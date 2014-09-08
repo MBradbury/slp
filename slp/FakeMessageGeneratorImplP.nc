@@ -78,12 +78,7 @@ implementation
 				return FALSE;
 			}
 
-			status = signal FakeMessageGenerator.generateFakeMessage(message);
-			if (status != SUCCESS)
-			{
-				myerr("FakeMessageGeneratorImplP", "Failed to create fake message with status=%u.\n", status);
-				return FALSE;
-			}
+			signal FakeMessageGenerator.generateFakeMessage(message);
 
 			status = call FakeSend.send(AM_BROADCAST_ADDR, &packet, sizeof(FakeMessage));
 			if (status == SUCCESS)

@@ -6,6 +6,9 @@
 typedef nx_struct AwayChooseMessage {
   nx_uint32_t sequence_number;
 
+  // The id of the node that sent this message
+  nx_uint16_t source_id;
+
   nx_int16_t sink_source_distance;
 
   // The number of hops that this message
@@ -14,8 +17,7 @@ typedef nx_struct AwayChooseMessage {
 
   nx_uint16_t max_hop;
 
-  // The id of the node that sent this message
-  nx_uint16_t source_id;
+  
 
 } AwayChooseMessage;
 

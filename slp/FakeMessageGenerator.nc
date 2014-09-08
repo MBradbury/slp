@@ -7,7 +7,7 @@ interface FakeMessageGenerator
 
 	command void stop();
 	
-	event error_t generateFakeMessage(FakeMessage* message);
+	event void generateFakeMessage(FakeMessage* message);
 
 	event void sent(error_t error);
 
