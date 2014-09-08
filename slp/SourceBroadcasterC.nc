@@ -70,6 +70,13 @@ implementation
 
 	NodeType type = NormalNode;
 
+	typedef enum
+	{
+		UnknownAlgorithm, FurtherAlgorithm, GenericAlgorithm
+	} AlgorithmType;
+
+	AlgorithmType algorithm = UnknownAlgorithm;
+
 	SequenceNumber normal_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 	SequenceNumber away_sequence_counter;
@@ -133,10 +140,68 @@ implementation
 		}
 	}
 
+	//
+	// Algorithm specialisations
+	//
+
 	bool should_forward_normal()
 	{
-		return TRUE;
+		return sink_source_distance == BOTTOM ||
+			   source_distance == BOTTOM ||
+			   (sink_source_distance * 1.125) >= source_distance;
 	}
+
+	bool should_ignore_choose()
+	{
+		switch (algorithm)
+		{
+		case FurtherAlgorithm:
+			return sink_source_distance != BOTTOM &&
+				source_distance <= ((1.0 * sink_source_distance) / 2.0) - 1;
+
+		case GenericAlgorithm:
+			return sink_source_distance != BOTTOM &&
+				source_distance <= ((3.0 * sink_source_distance) / 4.0);
+
+		default:
+			return FALSE;
+		}
+	}
+
+	uint32_t get_perm_fs_period()
+	{
+		switch (algorithm)
+		{
+		case FurtherAlgorithm:
+			return (uint32_t)(SOURCE_PERIOD_MS * 0.55);
+
+		case GenericAlgorithm:
+		default:
+			return (uint32_t)(SOURCE_PERIOD_MS * 0.85);
+		}
+	}
+
+	uint32_t get_temp_fake_messages_to_send()
+	{
+		const uint32_t d_source = source_distance == BOTTOM ? 0 : source_distance;
+		const uint32_t d_sink_source = sink_source_distance == BOTTOM ? 0 : sink_source_distance;
+
+		switch (algorithm)
+		{
+		case FurtherAlgorithm:
+			return max(d_source, 1);
+
+		case GenericAlgorithm:
+		default:
+			return max(d_source - d_sink_source, 1);
+		}
+	}
+
+
+	//
+	// Events
+	//
+
 
 	event void Boot.booted()
 	{
@@ -265,28 +330,18 @@ implementation
 	}
 
 	//
-	// Specialisations (just do generic for now)
-	//
-
-	uint32_t get_temp_fake_messages_to_send()
-	{
-		const uint32_t d_source = source_distance == BOTTOM ? 0 : source_distance;
-		const uint32_t d_sink_source = sink_source_distance == BOTTOM ? 0 : sink_source_distance;
-
-		return max(d_source - d_sink_source, 1);
-	}
-
-	//
 	// Fake sources
 	//
 
 	bool decide_if_temp_fake_source()
 	{
+		// TODO: probability
 		return TRUE;
 	}
 
 	bool decide_if_perm_fake_source()
 	{
+		// TODO: probability
 		return TRUE;
 	}
 
@@ -647,9 +702,8 @@ implementation
 
 			sink_source_distance = minbot(sink_source_distance, (int32_t)choose_rcvd->sink_source_distance);
 
-			// TODO: algorithm ignore choose
-
-			should_become_fake = sequence_number_before(&choose_sequence_counter, choose_rcvd->sequence_number);
+			should_become_fake = ! should_ignore_choose() &&
+				sequence_number_before(&choose_sequence_counter, choose_rcvd->sequence_number);
 
 			if (should_become_fake)
 			{
@@ -697,7 +751,6 @@ implementation
 			*message = *original_message;
 			message->sink_source_distance = sink_source_distance;
 			message->travel_dist -= 1;
-			message->source_id = TOS_NODE_ID;
 
 			status = call FakeSend.send(AM_BROADCAST_ADDR, &packet, sizeof(FakeMessage));
 			if (status == SUCCESS)
@@ -756,8 +809,22 @@ implementation
 				}
 			}
 
-			// TODO: revert to normal node when a perm fake source
+			// Revert to normal node when a perm fake source
 			// is detected and is further from the source than this node is
+			if (algorithm == GenericAlgorithm && type == PermFakeSourceNode)
+			{
+				if (fake_rcvd->from_permanent_fs &&
+						(
+						fake_rcvd->source_distance > source_distance ||
+						(fake_rcvd->source_distance == source_distance && sink_distance < fake_rcvd->from_sink_distance) ||
+						(fake_rcvd->source_distance == source_distance && sink_distance == fake_rcvd->from_sink_distance && TOS_NODE_ID < fake_rcvd->source_id)
+						)
+					)
+				{
+					type = NormalNode;
+					call FakeMessageGenerator.stop();
+				}
+			}
 
 			break;
 
@@ -830,22 +897,20 @@ implementation
 		}
 	}
 
-	event error_t FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
+	event void FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
 	{
-		const uint32_t modifier = 1; //TODO
+		const double modifier = 1; //TODO
 
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
 		message->sink_source_distance = sink_source_distance;
 		message->source_distance = source_distance;
 		message->max_hop = first_hop;
-		message->travel_dist = modifier * source_distance;
+		message->travel_dist = (uint32_t)ceil(modifier * source_distance);
 		message->from_sink_distance = sink_distance;
 		message->from_permanent_fs = (type == PermFakeSourceNode);
 		message->source_id = TOS_NODE_ID;
 
 		sequence_number_increment(&fake_sequence_counter);
-
-		return SUCCESS;
 	}
 
 	event void FakeMessageGenerator.sendDone(const AwayChooseMessage* original_message)
