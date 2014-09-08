@@ -1,0 +1,9 @@
+syntax: glob
+
+*.pyc
+*.so
+*~
+simbuild
+TOSSIM.py
+app.xml
+build
