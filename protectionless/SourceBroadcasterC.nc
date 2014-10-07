@@ -23,21 +23,45 @@ module SourceBroadcasterC
 
 implementation
 {
+	typedef enum
+	{
+		SourceNode, SinkNode, PermFakeSourceNode, TempFakeSourceNode, NormalNode
+	} NodeType;
+
+	NodeType type = NormalNode;
+
+	const char* type_to_string()
+	{
+		switch (type)
+		{
+		case SourceNode: 			return "SourceNode";
+		case SinkNode:				return "SinkNode  ";
+		case PermFakeSourceNode:	return "PermFS    ";
+		case TempFakeSourceNode:	return "TempFS    ";
+		case NormalNode:			return "NormalNode";
+		default:					return "<unknown> ";
+		}
+	}
+
 	SequenceNumber normal_sequence_counter;
 
 	bool busy = FALSE;
 	message_t packet;
-
-	bool is_source_node()
-	{
-		return TOS_NODE_ID == 0;
-	}
 
 	event void Boot.booted()
 	{
 		dbg("Boot", "%s: Application booted.\n", sim_time_string());
 
 		sequence_number_init(&normal_sequence_counter);
+
+		if (TOS_NODE_ID == 0)
+		{
+			type = SourceNode;
+		}
+		if (TOS_NODE_ID == 60)
+		{
+			type = SinkNode;
+		}
 
 		call RadioControl.start();
 	}
@@ -48,8 +72,7 @@ implementation
 		{
 			dbg("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			// TODO: replace this with some other way to identify the source node
-			if (is_source_node())
+			if (type == SourceNode)
 			{
 				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 			}
@@ -88,13 +111,13 @@ implementation
 				call Leds.led0On();
 				busy = TRUE;
 
-				return TRUE;
+				dbg_clear("Metric-BCAST-Normal", PRIu64 ",%d,%s,%u\n", sim_time(), TOS_NODE_ID, "success", tosend->sequence_number);
 
-				dbg("metric-bcast-Normal", "%d,%s\n", TOS_NODE_ID, "success");
+				return TRUE;
 			}
 			else
 			{
-				dbg("metric-bcast-Normal", "%d,%s\n", TOS_NODE_ID, "failed");
+				dbg_clear("Metric-BCAST-Normal", PRIu64 ",%d,%s,%u\n", sim_time(), TOS_NODE_ID, "failed", tosend->sequence_number);
 
 				return FALSE;
 			}
@@ -103,7 +126,7 @@ implementation
 		{
 			dbg("SourceBroadcasterC", "%s: BroadcastNormalTimer busy, not sending Normal message.\n", sim_time_string());
 
-			dbg("metric-bcast-Normal", "%d,%s\n", TOS_NODE_ID, "busy");
+			dbg_clear("Metric-BCAST-Normal", PRIu64 ",%d,%s,%u\n", sim_time(), TOS_NODE_ID, "busy", tosend->sequence_number);
 
 			return FALSE;
 		}
@@ -136,25 +159,16 @@ implementation
 		}
 	}
 
-	event message_t* NormalReceive.receive(message_t* msg, void* payload, uint8_t len)
+	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const normal_rcvd)
 	{
-		const NormalMessage* const normal_rcvd = (const NormalMessage*)payload;
-		am_addr_t source_addr;
 		NormalMessage forwarding_message;
-
-		if (len != sizeof(NormalMessage))
-		{
-			dbgerror("SourceBroadcasterC", "%s: Received Normal of invalid length %hhu.\n", sim_time_string(), len);
-			return msg;
-		}
-
-		dbg("SourceBroadcasterC", "%s: Received valid Normal.\n", sim_time_string());
-
-		source_addr = call AMPacket.source(msg);
+		const am_addr_t source_addr  = call AMPacket.source(msg);
 
 		if (sequence_number_before(&normal_sequence_counter, normal_rcvd->sequence_number))
 		{
 			sequence_number_update(&normal_sequence_counter, normal_rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Normal", PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
 
 			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), normal_rcvd->sequence_number, source_addr);
 
@@ -167,6 +181,47 @@ implementation
 		{
 			dbg("SourceBroadcasterC", "%s: Received previously seen Normal seqno=%u.\n", sim_time_string(), normal_rcvd->sequence_number);
 		}*/
+	}
+
+	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const normal_rcvd)
+	{
+		const am_addr_t source_addr = call AMPacket.source(msg);
+
+		if (sequence_number_before(&normal_sequence_counter, normal_rcvd->sequence_number))
+		{
+			sequence_number_update(&normal_sequence_counter, normal_rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Normal", PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
+		}
+	}
+
+	event message_t* NormalReceive.receive(message_t* msg, void* payload, uint8_t len)
+	{
+		const NormalMessage* const normal_rcvd = (const NormalMessage*)payload;
+
+		const am_addr_t source_addr = call AMPacket.source(msg);
+
+		dbg("Attacker-RCV", PRIu64 ",%u,%u,%u,%u\n", sim_time(), "normal", TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
+
+		if (len != sizeof(NormalMessage))
+		{
+			dbgerror("SourceBroadcasterC", "%s: Received Normal of invalid length %hhu.\n", sim_time_string(), len);
+			return msg;
+		}
+
+		dbg("SourceBroadcasterC", "%s: Received valid Normal.\n", sim_time_string());
+
+		switch (type)
+		{
+			case SinkNode: Sink_receieve_Normal(msg, normal_rcvd); break;
+
+			case NormalNode: Normal_receieve_Normal(msg, normal_rcvd); break;
+
+			default:
+			{
+				dbgerror("SourceBroadcasterC", "%s: Unknown node type %s. Cannot process Normal message\n", sim_time_string(), type_to_string());
+			} break;
+		}
 
 		return msg;
 	}
