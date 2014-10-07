@@ -28,27 +28,9 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
-	void setLeds(uint32_t val)
-	{
-		if (val & 0x01)
-		  call Leds.led0On();
-		else 
-		  call Leds.led0Off();
-
-		if (val & 0x02)
-		  call Leds.led1On();
-		else
-		  call Leds.led1Off();
-
-		if (val & 0x04)
-		  call Leds.led2On();
-		else
-		  call Leds.led2Off();
-	}
-
 	bool is_source_node()
 	{
-		return TOS_NODE_ID == 1;
+		return TOS_NODE_ID == 0;
 	}
 
 	event void Boot.booted()
@@ -85,7 +67,7 @@ implementation
 		dbg("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
-	void generate_and_send_normal_message()
+	bool send_normal_message(const NormalMessage* tosend)
 	{
 		error_t status;
 
@@ -95,34 +77,52 @@ implementation
 			if (message == NULL)
 			{
 				dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string());
-				return;
+				return FALSE;
 			}
 
-			message->sequence_number = sequence_number_get(&normal_sequence_counter);
-			message->sink_source_distance = 0;
-			message->hop = 0;
-			message->max_hop = 0;
-			message->source_id = TOS_NODE_ID;
+			*message = *tosend;
 
 			status = call NormalSend.send(AM_BROADCAST_ADDR, &packet, sizeof(NormalMessage));
 			if (status == SUCCESS)
 			{
+				call Leds.led0On();
 				busy = TRUE;
 
-				sequence_number_increment(&normal_sequence_counter);
+				return TRUE;
+
+				dbg("metric-bcast-Normal", "%d,%s\n", TOS_NODE_ID, "success");
+			}
+			else
+			{
+				dbg("metric-bcast-Normal", "%d,%s\n", TOS_NODE_ID, "failed");
+
+				return FALSE;
 			}
 		}
 		else
 		{
 			dbg("SourceBroadcasterC", "%s: BroadcastNormalTimer busy, not sending Normal message.\n", sim_time_string());
+
+			dbg("metric-bcast-Normal", "%d,%s\n", TOS_NODE_ID, "busy");
+
+			return FALSE;
 		}
 	}
 
 	event void BroadcastNormalTimer.fired()
 	{
+		NormalMessage message;
+
 		dbg("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
-		generate_and_send_normal_message();
+		message.sequence_number = sequence_number_next(&normal_sequence_counter);
+		message.hop = 0;
+		message.source_id = TOS_NODE_ID;
+
+		if (send_normal_message(&message))
+		{
+			sequence_number_increment(&normal_sequence_counter);
+		}
 	}
 
 	event void NormalSend.sendDone(message_t* msg, error_t error)
@@ -131,38 +131,8 @@ implementation
 
 		if (&packet == msg)
 		{
+			call Leds.led0Off();
 			busy = FALSE;
-		}
-	}
-
-	bool forward_normal_message(const NormalMessage* normal_rcvd)
-	{
-		error_t status;
-
-		if (!busy)
-		{
-			NormalMessage* forwarding_message = (NormalMessage*)(call Packet.getPayload(&packet, sizeof(NormalMessage)));
-			if (forwarding_message == NULL)
-			{
-				dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string());
-				return FALSE;
-			}
-
-			*forwarding_message = *normal_rcvd;
-			forwarding_message->hop += 1;
-
-			status = call NormalSend.send(AM_BROADCAST_ADDR, &packet, sizeof(NormalMessage));
-			if (status == SUCCESS)
-			{
-				busy = TRUE;
-			}
-
-			return TRUE;
-		}
-		else
-		{
-			dbgerror("SourceBroadcasterC", "%s: BroadcastNormal busy, not forwarding Normal message.\n", sim_time_string());
-			return FALSE;
 		}
 	}
 
@@ -170,6 +140,7 @@ implementation
 	{
 		const NormalMessage* const normal_rcvd = (const NormalMessage*)payload;
 		am_addr_t source_addr;
+		NormalMessage forwarding_message;
 
 		if (len != sizeof(NormalMessage))
 		{
@@ -181,19 +152,20 @@ implementation
 
 		source_addr = call AMPacket.source(msg);
 
-		setLeds(normal_rcvd->sequence_number);
-
 		if (sequence_number_before(&normal_sequence_counter, normal_rcvd->sequence_number))
 		{
 			sequence_number_update(&normal_sequence_counter, normal_rcvd->sequence_number);
 
 			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), normal_rcvd->sequence_number, source_addr);
 
-			forward_normal_message(normal_rcvd);
+			forwarding_message = *normal_rcvd;
+			forwarding_message.hop += 1;
+
+			send_normal_message(&forwarding_message);
 		}
 		/*else
 		{
-			dbg("SourceBroadcasterC", "%s: Received previously seen Normal seqno=%u.\n", sim_time_string(), normal_msg->sequence_number);
+			dbg("SourceBroadcasterC", "%s: Received previously seen Normal seqno=%u.\n", sim_time_string(), normal_rcvd->sequence_number);
 		}*/
 
 		return msg;

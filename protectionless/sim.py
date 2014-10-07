@@ -2,11 +2,50 @@
 # TODO: Eventually replace this using C++
 # Python bindings will be slow
 
+from __future__ import print_function
+
 from TOSSIM import *
 
 import sys
 import random
 
+from tosvis.TosVis import *
+
+class Simulation(TosVis):
+	def __init__(self, nodeLocations, range, drawNeighborLinks=True):
+		super(Simulation, self).__init__(
+			node_locations=nodeLocations,
+			range=range,
+			drawNeighborLinks=drawNeighborLinks
+			)
+
+		#self.tossim.addChannel("Boot", sys.stdout)
+		#self.tossim.addChannel("SourceBroadcasterC", sys.stdout)
+		self.tossim.addChannel("metric-bcast-Normal", sys.stdout)
+
+
+class GridSimulation(Simulation):
+	def __init__(self, size, range, initialPosition=100, drawNeighborLinks=True):
+
+		range_modifier = 2
+		modified_range = range - range_modifier
+
+		nodes = [(x * modified_range + initialPosition, y * modified_range + initialPosition)
+			for y in xrange(size)
+			for x in xrange(size)]
+
+		super(GridSimulation, self).__init__(
+			nodeLocations=nodes,
+			range=range,
+			drawNeighborLinks=drawNeighborLinks
+			)
+
+
+sim = GridSimulation(11, 45)
+
+sim.run()
+
+"""
 t = Tossim([])
 r = t.radio()
 
@@ -72,8 +111,8 @@ def print_matrix(A):
 	for i in range(len(A)):
 		for j in range(len(A[i])):
 			value = A[i][j]
-			print '{:5}'.format(value if value else ""),
-		print
+			print('{:5}'.format(value if value else ""), end='')
+		print()
 
 def show_network_matrix(size):
 	connected_matrix = [[pos_to_id[(x, y)] for y in xrange(size)] for x in xrange(size)]
@@ -114,3 +153,4 @@ t.runNextEvent()
 time = t.time()
 while time + (20 * t.ticksPerSecond()) > t.time():
 	t.runNextEvent()
+"""
