@@ -19,9 +19,11 @@ class Simulation(TosVis):
 			drawNeighborLinks=drawNeighborLinks
 			)
 
-		#self.tossim.addChannel("Boot", sys.stdout)
-		#self.tossim.addChannel("SourceBroadcasterC", sys.stdout)
-		self.tossim.addChannel("metric-bcast-Normal", sys.stdout)
+		self.tossim.addChannel("Metric-BCAST-Normal", sys.stdout)
+		self.tossim.addChannel("Metric-RCV-Normal", sys.stdout)
+		self.tossim.addChannel("Boot", sys.stdout)
+		self.tossim.addChannel("SourceBroadcasterC", sys.stdout)
+		
 
 
 class GridSimulation(Simulation):
