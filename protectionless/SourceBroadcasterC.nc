@@ -111,13 +111,13 @@ implementation
 				call Leds.led0On();
 				busy = TRUE;
 
-				dbg_clear("Metric-BCAST-Normal", PRIu64 ",%d,%s,%u\n", sim_time(), TOS_NODE_ID, "success", tosend->sequence_number);
+				dbg_clear("Metric-BCAST-Normal", "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "success", tosend->sequence_number);
 
 				return TRUE;
 			}
 			else
 			{
-				dbg_clear("Metric-BCAST-Normal", PRIu64 ",%d,%s,%u\n", sim_time(), TOS_NODE_ID, "failed", tosend->sequence_number);
+				dbg_clear("Metric-BCAST-Normal", "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "failed", tosend->sequence_number);
 
 				return FALSE;
 			}
@@ -126,7 +126,7 @@ implementation
 		{
 			dbg("SourceBroadcasterC", "%s: BroadcastNormalTimer busy, not sending Normal message.\n", sim_time_string());
 
-			dbg_clear("Metric-BCAST-Normal", PRIu64 ",%d,%s,%u\n", sim_time(), TOS_NODE_ID, "busy", tosend->sequence_number);
+			dbg_clear("Metric-BCAST-Normal", "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "busy", tosend->sequence_number);
 
 			return FALSE;
 		}
@@ -168,7 +168,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, normal_rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Normal", PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
+			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
 
 			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), normal_rcvd->sequence_number, source_addr);
 
@@ -191,7 +191,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, normal_rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Normal", PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
+			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
 		}
 	}
 
@@ -201,7 +201,7 @@ implementation
 
 		const am_addr_t source_addr = call AMPacket.source(msg);
 
-		dbg("Attacker-RCV", PRIu64 ",%u,%u,%u,%u\n", sim_time(), "normal", TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
+		dbg_clear("Attacker-RCV", "%" PRIu64 ",%u,%u,%u,%u\n", sim_time(), "normal", TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
 
 		if (len != sizeof(NormalMessage))
 		{
