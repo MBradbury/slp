@@ -54,23 +54,6 @@ class DebugAnalyzer:
 		return None
 
 ###############################################
-class OutputCatcher:
-	def __init__(self, linefn):
-		(r, w) = os.pipe()
-		self.read = os.fdopen(r, 'r')
-		self.write = os.fdopen(w, 'w')
-		self.linefn = linefn
-
-	def process(self):
-		while True:
-			r,w,e = select.select([self.read.fileno()],[],[],0)
-			if len(r) == 1:
-				line = self.read.readline()
-				self.linefn(line)
-			else:
-				break
-
-###############################################
 class TosVis(Simulator):
 	####################
 	def __init__(self, node_locations, range, drawNeighborLinks=True):
