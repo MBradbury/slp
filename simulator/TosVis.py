@@ -56,9 +56,10 @@ class DebugAnalyzer:
 ###############################################
 class TosVis(Simulator):
 	####################
-	def __init__(self, node_locations, range, drawNeighborLinks=True):
+	def __init__(self, TOSSIM, node_locations, range, drawNeighborLinks=True):
 
 		super(TosVis, self).__init__(
+			TOSSIM,
 			node_locations=node_locations,
 			range=range)
 

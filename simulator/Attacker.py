@@ -5,10 +5,10 @@ class Attacker:
     def __init__(self, sim, sourceId, sinkId):
         self.sim = sim
 
-        self.out = OutputCatcher(self.process)
-        self.sim.tossim.addChannel('Attacker-RCV', self.out.write)
+        out = OutputCatcher(self.process)
+        self.sim.tossim.addChannel('Attacker-RCV', out.write)
 
-        self.sim.addOutputProcessor(self.out)
+        self.sim.addOutputProcessor(out)
 
         self.seqNos = {}
         self.position = sinkId
