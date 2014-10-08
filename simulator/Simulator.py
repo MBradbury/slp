@@ -1,4 +1,3 @@
-from TOSSIM import *
 from random import random
 import os, sys, math, select
 
@@ -25,8 +24,8 @@ class OutputCatcher:
 				break
 
 class Simulator(object):
-	def __init__(self, node_locations, range):
-		self.tossim = Tossim([])
+	def __init__(self, TOSSIM, node_locations, range):
+		self.tossim = TOSSIM.Tossim([])
 		self.outProcs = []
 
 		self.setSeed()
