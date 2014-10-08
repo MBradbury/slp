@@ -109,7 +109,7 @@ class Metrics:
             normalLatency, normalSent, sentHeatMap, receivedHeatMap))
 
 
-class Simulation(Simulator):
+class Simulation(TosVis):
     def __init__(self, seed, node_locations, range):
 
         self.seed = int(seed)
