@@ -28,7 +28,7 @@ inline bool sequence_number_before(const SequenceNumber* left, const SequenceNum
 	return *left < right;
 }
 
-inline bool sequence_number_update(SequenceNumber* left, const SequenceNumber right) __attribute__((nonnull(1)))
+inline void sequence_number_update(SequenceNumber* left, const SequenceNumber right) __attribute__((nonnull(1)))
 {
 	*left = right;
 }

@@ -1,12 +1,28 @@
 from TOSSIM import *
 from random import random
-import math
+import os, sys, math, select
 
 class Node:
 	def __init__(self, id, location, tossim_node):
 		self.id = id
 		self.location = location
 		self.tossim_node = tossim_node
+
+class OutputCatcher:
+	def __init__(self, linefn):
+		(r, w) = os.pipe()
+		self.read = os.fdopen(r, 'r')
+		self.write = os.fdopen(w, 'w')
+		self.linefn = linefn
+
+	def process(self):
+		while True:
+			r,w,e = select.select([self.read.fileno()],[],[],0)
+			if len(r) == 1:
+				line = self.read.readline()
+				self.linefn(line)
+			else:
+				break
 
 class Simulator(object):
 	def __init__(self, node_locations, range):

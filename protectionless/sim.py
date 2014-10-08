@@ -14,6 +14,98 @@ import random
 from TosVis import *
 from Simulator import *
 
+from numpy import mean
+from scipy.spatial.distance import euclidean
+
+from collections import Counter
+
+class Metrics:
+    def __init__(self, sim, sourceID, sinkID):
+        self.sim = sim
+
+        self.sourceID = sourceID
+        self.sinkID = sinkID
+
+        self.BCAST_Normal = OutputCatcher(self.process_BCAST_Normal)
+        self.sim.tossim.addChannel('Metric-BCAST-Normal', self.BCAST_Normal.write)
+        self.sim.addOutputProcessor(self.BCAST_Normal)
+
+        self.RCV_Normal = OutputCatcher(self.process_RCV_Normal)
+        self.sim.tossim.addChannel('Metric-RCV-Normal', self.RCV_Normal.write)
+        self.sim.addOutputProcessor(self.RCV_Normal)
+
+        self.heatMap = {}
+
+        self.normalSentTime = {}
+        self.normalLatency = {}
+
+        self.normalSent = Counter()
+        self.normalReceived = Counter()
+
+    def process_BCAST_Normal(self, line):
+        (time, nodeID, status, seqNo) = line.split(',')
+
+        time = float(time) / self.sim.tossim.ticksPerSecond()
+        nodeID = int(nodeID)
+        seqNo = int(seqNo)
+
+        if nodeID == self.sourceID:
+            self.normalSentTime[seqNo] = time
+
+        self.normalSent[nodeID] += 1
+
+
+    def process_RCV_Normal(self, line):
+        (time, nodeID, sourceID, seqNo) = line.split(',')
+
+        time = float(time) / self.sim.tossim.ticksPerSecond()
+        nodeID = int(nodeID)
+        sourceID = int (sourceID)
+        seqNo = int(seqNo)
+
+        if nodeID == self.sinkID:
+            self.normalLatency[seqNo] = time - self.normalSentTime[seqNo]
+
+        self.normalReceived[nodeID] += 1
+
+    def averageNormalLatency(self):
+        return mean(self.normalLatency.values())
+
+    def receivedRatio(self):
+        return float(len(self.normalLatency)) / len(self.normalSentTime)
+
+    def attackerDistance(self):
+        sourceLocation = self.sim.nodes[self.sourceID].location
+
+        return {
+            i: euclidean(sourceLocation, self.sim.nodes[attacker.position].location)
+            for i, attacker
+            in enumerate(self.sim.attackers)
+        }
+
+    def printResults(self):
+        normalSent = sum(self.normalSent.values())
+        sent = normalSent
+        received = sum(self.normalReceived.values())
+        collisions = None
+        captured = self.sim.anyAttackerFoundSource()
+        receivedRatio = self.receivedRatio()
+        time = float(self.sim.tossim.time()) / self.sim.tossim.ticksPerSecond()
+        attackerHopDistance = None
+        attackerDistance = self.attackerDistance()
+        attackerMoves = {i: attacker.moves for i, attacker in enumerate(self.sim.attackers)}
+        normalLatency = self.averageNormalLatency()
+
+        # TODO: when more message types are involved, sum those Counters together
+        sentHeatMap = dict(self.normalSent)
+        receivedHeatMap = dict(self.normalReceived)
+
+        print(",".join(["{}"] * 14).format(
+            seed, sent, received, collisions, captured,
+            receivedRatio, time, attackerHopDistance, attackerDistance, attackerMoves,
+            normalLatency, normalSent, sentHeatMap, receivedHeatMap))
+
+
 class Attacker:
     def __init__(self, sim, sourceId, sinkId):
         self.sim = sim
@@ -27,10 +119,13 @@ class Attacker:
         self.position = sinkId
         self.sourceId = sourceId
 
+        self.moves = 0
+
     def foundSource(self):
         return self.position == self.sourceId
 
     def process(self, line):
+        # Don't want to move if the source has been found
         if self.foundSource():
             return
 
@@ -46,7 +141,9 @@ class Attacker:
             self.seqNos[msgType] = seqNo
             self.position = fromID
 
-            print("Attacker moved from {} to {}".format(nodeID, fromID))
+            self.moves += 1
+
+            #print("Attacker moved from {} to {}".format(nodeID, fromID))
 
             self.draw(time, self.position)
 
@@ -67,13 +164,13 @@ class Attacker:
 
 
 
-class Simulation(TosVis):
-    def __init__(self, seed, nodeLocations, range):
+class Simulation(Simulator):
+    def __init__(self, seed, node_locations, range):
 
         self.seed = int(seed)
 
         super(Simulation, self).__init__(
-            node_locations=nodeLocations,
+            node_locations=node_locations,
             range=range
             )
 
@@ -83,13 +180,17 @@ class Simulation(TosVis):
 #       self.tossim.addChannel("SourceBroadcasterC", sys.stdout)
 #       self.tossim.addChannel("Attacker-RCV", sys.stdout)
 
-        self.attacker = Attacker(self, 0, 60)
+        self.attackers = [Attacker(self, 0, 60)]
+
+        self.metrics = Metrics(self, 0, 60)
 
     def continuePredicate(self):
-        return not self.attacker.foundSource()
+        return not self.anyAttackerFoundSource()
+
+    def anyAttackerFoundSource(self):
+        return any(attacker.foundSource() for attacker in self.attackers)
 
     def setSeed(self):
-        print(dir(self.tossim))
         self.tossim.randomSeed(self.seed)
 
 
@@ -105,7 +206,7 @@ class GridSimulation(Simulation):
 
         super(GridSimulation, self).__init__(
             seed=seed,
-            nodeLocations=nodes,
+            node_locations=nodes,
             range=range
             )
 
@@ -122,23 +223,7 @@ sim = GridSimulation(seed, networkSize, wirelessRange)
 
 sim.run()
 
-sent = None
-received = None
-collisions = None
-captured = True
-receivedRatio = None
-time = float(sim.tossim.time()) / sim.tossim.ticksPerSecond()
-attackerHopDistance = {0: 0}
-attackerDistance = {0: 0}
-attackerMoves = None
-normalLatency = None
-normalSent = None
-heatMap = None
-
-print(",".join(["{}"] * 13).format(
-    seed, sent, received, collisions, captured,
-    receivedRatio, time, attackerHopDistance, attackerDistance, attackerMoves,
-    normalLatency, normalSent, heatMap))
+sim.metrics.printResults()
 
 """
 t = Tossim([])
