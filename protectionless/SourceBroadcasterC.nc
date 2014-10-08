@@ -25,7 +25,7 @@ implementation
 {
 	typedef enum
 	{
-		SourceNode, SinkNode, PermFakeSourceNode, TempFakeSourceNode, NormalNode
+		SourceNode, SinkNode, NormalNode
 	} NodeType;
 
 	NodeType type = NormalNode;
@@ -36,8 +36,6 @@ implementation
 		{
 		case SourceNode: 			return "SourceNode";
 		case SinkNode:				return "SinkNode  ";
-		case PermFakeSourceNode:	return "PermFS    ";
-		case TempFakeSourceNode:	return "TempFS    ";
 		case NormalNode:			return "NormalNode";
 		default:					return "<unknown> ";
 		}

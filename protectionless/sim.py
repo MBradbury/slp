@@ -6,10 +6,13 @@ from __future__ import print_function
 
 from TOSSIM import *
 
+import os
+import struct
 import sys
 import random
 
 from TosVis import *
+from Simulator import *
 
 class Attacker:
     def __init__(self, sim, sourceId, sinkId):
@@ -31,11 +34,9 @@ class Attacker:
         if self.foundSource():
             return
 
-        #print(line)
-
         (time, msgType, nodeID, fromID, seqNo) = line.split(',')
 
-        time = float(time) / 10000000000.0
+        time = float(time) / self.sim.tossim.ticksPerSecond() # Get time to be in sec
         nodeID = int(nodeID)
         fromID = int(fromID)
         seqNo = int(seqNo)
@@ -50,6 +51,9 @@ class Attacker:
             self.draw(time, self.position)
 
     def draw(self, time, nodeID):
+        if not hasattr(self.sim, "scene"):
+            return
+
         (x,y) = self.sim.nodes[nodeID].location
 
         shapeId = "attacker"
@@ -64,11 +68,13 @@ class Attacker:
 
 
 class Simulation(TosVis):
-    def __init__(self, nodeLocations, range, drawNeighborLinks=True):
+    def __init__(self, seed, nodeLocations, range):
+
+        self.seed = int(seed)
+
         super(Simulation, self).__init__(
             node_locations=nodeLocations,
-            range=range,
-            drawNeighborLinks=drawNeighborLinks
+            range=range
             )
 
 #       self.tossim.addChannel("Metric-BCAST-Normal", sys.stdout)
@@ -82,9 +88,13 @@ class Simulation(TosVis):
     def continuePredicate(self):
         return not self.attacker.foundSource()
 
+    def setSeed(self):
+        print(dir(self.tossim))
+        self.tossim.randomSeed(self.seed)
+
 
 class GridSimulation(Simulation):
-    def __init__(self, size, range, initialPosition=100, drawNeighborLinks=True):
+    def __init__(self, seed, size, range, initialPosition=100):
 
         range_modifier = 2
         modified_range = range - range_modifier
@@ -94,15 +104,41 @@ class GridSimulation(Simulation):
             for x in xrange(size)]
 
         super(GridSimulation, self).__init__(
+            seed=seed,
             nodeLocations=nodes,
-            range=range,
-            drawNeighborLinks=drawNeighborLinks
+            range=range
             )
 
+networkSize = 11
+sourcePeriod = None
+configuration = None
+networkType = "GRID"
 
-sim = GridSimulation(11, 45)
+wirelessRange = 45
+
+seed = struct.unpack("<i", os.urandom(4))[0]
+
+sim = GridSimulation(seed, networkSize, wirelessRange)
 
 sim.run()
+
+sent = None
+received = None
+collisions = None
+captured = True
+receivedRatio = None
+time = float(sim.tossim.time()) / sim.tossim.ticksPerSecond()
+attackerHopDistance = {0: 0}
+attackerDistance = {0: 0}
+attackerMoves = None
+normalLatency = None
+normalSent = None
+heatMap = None
+
+print(",".join(["{}"] * 13).format(
+    seed, sent, received, collisions, captured,
+    receivedRatio, time, attackerHopDistance, attackerDistance, attackerMoves,
+    normalLatency, normalSent, heatMap))
 
 """
 t = Tossim([])
