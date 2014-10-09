@@ -3,9 +3,25 @@
 #include "FakeMessage.h"
 #include "NormalMessage.h"
 #include "SequenceNumber.h"
-/*
+
 #include <Timer.h>
-#include <TinyError.h>*/
+#include <TinyError.h>
+
+#define max(a, b) \
+	({ __typeof__(a) _a = (a); \
+	   __typeof__(b) _b = (b); \
+	   _a > _b ? _a : _b; })
+
+#define min(a, b) \
+	({ __typeof__(a) _a = (a); \
+	   __typeof__(b) _b = (b); \
+	   _a < _b ? _a : _b; })
+
+#define minbot(a, b) \
+	({ __typeof__(a) _a = (a); \
+	   __typeof__(b) _b = (b); \
+	   (_a == BOTTOM || _b < _a) ? _b : _a; })
+
 
 #define SEND_MESSAGE(NAME) \
 bool send_##NAME##_message(const NAME##Message* tosend) \
@@ -140,6 +156,26 @@ implementation
 	}
 
 	SequenceNumber normal_sequence_counter;
+	SequenceNumber away_sequence_counter;
+	SequenceNumber choose_sequence_counter;
+	SequenceNumber fake_sequence_counter;
+
+	int32_t sink_source_distance = BOTTOM;
+	int32_t source_distance = BOTTOM;
+	int32_t sink_distance = BOTTOM;
+
+	bool sink_sent_away = FALSE;
+
+	int32_t first_source_distance = BOTTOM;
+
+	bool seen_pfs = FALSE;
+
+	typedef enum
+	{
+		UnknownAlgorithm, GenericAlgorithm, FurtherAlgorithm
+	} Algorithm;
+
+	Algorithm algorithm = UnknownAlgorithm;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -149,6 +185,9 @@ implementation
 		dbg("Boot", "%s: Application booted.\n", sim_time_string());
 
 		sequence_number_init(&normal_sequence_counter);
+		sequence_number_init(&away_sequence_counter);
+		sequence_number_init(&choose_sequence_counter);
+		sequence_number_init(&fake_sequence_counter);
 
 		if (TOS_NODE_ID == SOURCE_NODE_ID)
 		{
@@ -242,20 +281,142 @@ implementation
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
 			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			sink_source_distance = minbot(sink_source_distance, rcvd->hop + 1);
+
+			if (!sink_sent_away)
+			{
+				AwayMessage message;
+				message.sequence_number = sequence_number_next(&away_sequence_counter);
+				message.sink_distance = 0;
+				message.sink_source_distance = sink_source_distance;
+				message.max_hop = first_source_distance;
+
+				sequence_number_increment(&away_sequence_counter);
+
+				sink_sent_away = TRUE;
+
+				// TODO sense repeat 3 in (Psource / 2)
+				send_Away_message(&message);
+			}
+		}
+	}
+
+	void Fake_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
 		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal)
 		case SinkNode: Sink_receieve_Normal(rcvd, source_addr); break;
 		case NormalNode: Normal_receieve_Normal(rcvd, source_addr); break;
+		case TempFakeNode:
+		case PermFakeNode:
+			Fake_receieve_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
+
+	void Source_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Away", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+		}
+	}
+
+	void Normal_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Away", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+		}
+	}
+
 	RECEIVE_MESSAGE_BEGIN(Away)
+		case SourceNode: Source_receieve_Away(rcvd, source_addr); break;
+		case NormalNode: Normal_receieve_Away(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
+
+	void Normal_receieve_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Choose", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+		}
+	}
+
 	RECEIVE_MESSAGE_BEGIN(Choose)
+		case NormalNode: Normal_receieve_Choose(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Choose)
 
+
+
+	void Sink_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	{
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
+		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		{
+			FakeMessage message = *rcvd;
+
+			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Fake", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			message.sink_source_distance = sink_source_distance;
+
+			send_Fake_message(&message);
+		}
+	}
+
+	void Source_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Fake", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+		}
+	}
+
+	void Normal_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Fake", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+		}
+	}
+
+	void Fake_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
+
+			dbg_clear("Metric-RCV-Fake", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+		}
+	}
+
 	RECEIVE_MESSAGE_BEGIN(Fake)
+		case SinkNode: Sink_receieve_Fake(rcvd, source_addr); break;
+		case SourceNode: Source_receieve_Fake(rcvd, source_addr); break;
+		case NormalNode: Normal_receieve_Fake(rcvd, source_addr); break;
+		case TempFakeNode:
+		case PermFakeNode:
+			Fake_receieve_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 }
