@@ -52,11 +52,11 @@ implementation
 
 		sequence_number_init(&normal_sequence_counter);
 
-		if (TOS_NODE_ID == 0)
+		if (TOS_NODE_ID == SOURCE_NODE_ID)
 		{
 			type = SourceNode;
 		}
-		if (TOS_NODE_ID == 60)
+		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
 		}

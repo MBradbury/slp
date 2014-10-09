@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 import os, struct
 
@@ -12,8 +13,9 @@ wirelessRange = 45
 
 seed = struct.unpack("<i", os.urandom(4))[0]
 
-sim = GridSimulation(seed, networkSize, wirelessRange)
+with GridSimulation(seed, networkSize, wirelessRange) as sim:
+	#print(dir(sim.tossim))
 
-sim.run()
+	sim.run()
 
-sim.metrics.printResults()
+	sim.metrics.printResults()
