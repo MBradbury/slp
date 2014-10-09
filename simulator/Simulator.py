@@ -23,9 +23,14 @@ class OutputCatcher:
 			else:
 				break
 
+	def close(self):
+		self.read.close()
+		self.write.close()
+
 class Simulator(object):
 	def __init__(self, TOSSIM, node_locations, range):
 		self.tossim = TOSSIM.Tossim([])
+
 		self.outProcs = []
 
 		self.setSeed()
@@ -37,6 +42,13 @@ class Simulator(object):
 		# Randomly set the boot times for all nodes
 		for n in self.nodes:
 			self.setBootTime(n)
+
+	def __enter__(self):
+		return self
+
+	def __exit__(self, type, value, tb):
+		for op in self.outProcs:
+			op.close()
 
 	def setSeed(self):
 		pass
