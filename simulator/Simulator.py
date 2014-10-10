@@ -28,12 +28,14 @@ class OutputCatcher:
 		self.write.close()
 
 class Simulator(object):
-	def __init__(self, TOSSIM, node_locations, range):
+	def __init__(self, TOSSIM, node_locations, range, seed=None):
 		self.tossim = TOSSIM.Tossim([])
 
 		self.outProcs = []
 
-		self.setSeed()
+		if seed is not None:
+			self.tossim.randomSeed(seed)
+		self.seed = seed
 
 		self.range = range
 
@@ -49,9 +51,6 @@ class Simulator(object):
 	def __exit__(self, type, value, tb):
 		for op in self.outProcs:
 			op.close()
-
-	def setSeed(self):
-		pass
 
 	def setBootTime(self, node):
 		pass

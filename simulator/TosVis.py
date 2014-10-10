@@ -1,5 +1,5 @@
-import math, getopt, re
-import sys, os, time, select, heapq
+import re
+
 from topovis import *
 from topovis.TkPlotter import Plotter
 
@@ -56,17 +56,22 @@ class DebugAnalyzer:
 ###############################################
 class TosVis(Simulator):
 	####################
-	def __init__(self, TOSSIM, node_locations, range, drawNeighborLinks=True):
+	def __init__(self, TOSSIM, node_locations, range, seed=None):
 
 		super(TosVis, self).__init__(
 			TOSSIM,
 			node_locations=node_locations,
-			range=range)
+			range=range,
+			seed=seed)
 
-		self.drawNeighborLinks = drawNeighborLinks
+		self.runGui = False
+
+	def setupGUI(self):
+
+		self.runGui = True
+
 		self.debug_analyzer = DebugAnalyzer()
 		self.am_types = None
-		self.evq = []   # custom event queue
 
 		# setup a pipe for monitoring dbg messages
 		dbg = OutputCatcher(self.processDbgMsg)
@@ -135,16 +140,17 @@ class TosVis(Simulator):
 	def preRun(self):
 		super(TosVis, self).preRun()
 
-		# Setup an animating canvas
-		self.scene = Scene(timescale=1)
-		self.tkplot = Plotter()
-		self.scene.addPlotter(self.tkplot)
+		if self.runGui:
+			# Setup an animating canvas
+			self.scene = Scene(timescale=1)
+			self.tkplot = Plotter()
+			self.scene.addPlotter(self.tkplot)
 
-		# set line style used for neighbor relationship
-		self.scene.execute(0, 'linestyle(1,color=(.7,.7,.7))')
+			# set line style used for neighbor relationship
+			self.scene.execute(0, 'linestyle(1,color=(.7,.7,.7))')
 
-		# draw nodes on animating canvas
-		for n in self.nodes:
-			self.scene.execute(0, 'node(%d,%f,%f)' % (n.id, n.location[0], n.location[1]))
+			# draw nodes on animating canvas
+			for n in self.nodes:
+				self.scene.execute(0, 'node(%d,%f,%f)' % (n.id, n.location[0], n.location[1]))
 
 ###############################################
