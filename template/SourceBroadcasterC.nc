@@ -45,13 +45,13 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 			call Leds.led0On(); \
 			busy = TRUE; \
  \
-			dbg_clear("Metric-BCAST-" #NAME, "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "success", tosend->sequence_number); \
+			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #NAME, sim_time(), TOS_NODE_ID, "success", tosend->sequence_number); \
  \
 			return TRUE; \
 		} \
 		else \
 		{ \
-			dbg_clear("Metric-BCAST-" #NAME, "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "failed", tosend->sequence_number); \
+			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #NAME, sim_time(), TOS_NODE_ID, "failed", tosend->sequence_number); \
  \
 			return FALSE; \
 		} \
@@ -60,7 +60,7 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 	{ \
 		dbg("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
  \
-		dbg_clear("Metric-BCAST-" #NAME, "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "busy", tosend->sequence_number); \
+		dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #NAME, sim_time(), TOS_NODE_ID, "busy", tosend->sequence_number); \
  \
 		return FALSE; \
 	} \
@@ -131,6 +131,8 @@ module SourceBroadcasterC
 
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
+
+	uses interface FakeMessageGenerator;
 }
 
 implementation
@@ -176,6 +178,36 @@ implementation
 	} Algorithm;
 
 	Algorithm algorithm = UnknownAlgorithm;
+
+	bool should_ignore_choose()
+	{
+		switch (algorithm)
+		{
+			case GenericAlgorithm:
+				return sink_source_distance != BOTTOM && source_distance <= ((3 * sink_source_distance) / 4);
+
+			case FurtherAlgorithm:
+				return !seen_pfs && sink_source_distance != BOTTOM && source_distance <= (((1 * sink_source_distance) / 2) - 1);
+
+			default:
+				return FALSE;
+		}
+	}
+
+	bool pfs_can_become_normal()
+	{
+		switch (algorithm)
+		{
+			case GenericAlgorithm:
+				return TRUE;
+
+			case FurtherAlgorithm:
+				return FALSE;
+
+			default:
+				return FALSE;
+		}
+	}
 
 	bool busy = FALSE;
 	message_t packet;
@@ -238,11 +270,22 @@ implementation
 	void become_Normal()
 	{
 		type = NormalNode;
+
+		call FakeMessageGenerator.stop();
 	}
 
-	void become_Fake(bool perm, uint32_t duration)
+	void become_Fake(const AwayChooseMessage* message, bool perm)
 	{
 		type = perm ? PermFakeNode : TempFakeNode;
+
+		if (perm)
+		{
+			call FakeMessageGenerator.start(message, FAKE_PERIOD_MS);
+		}
+		else
+		{
+			call FakeMessageGenerator.startLimited(message, FAKE_PERIOD_MS, TEMP_FAKE_DURATION_MS);
+		}
 	}
 
 	event void BroadcastNormalTimer.fired()
@@ -276,7 +319,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Normal", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
 
 			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
@@ -306,7 +349,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Normal", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
 
 			sink_source_distance = minbot(sink_source_distance, rcvd->hop + 1);
 
@@ -317,6 +360,7 @@ implementation
 				message.sink_distance = 0;
 				message.sink_source_distance = sink_source_distance;
 				message.max_hop = first_source_distance;
+				message.algorithm = ALGORITHM;
 
 				sequence_number_increment(&away_sequence_counter);
 
@@ -338,7 +382,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Normal", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -373,7 +417,7 @@ implementation
 		{
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Away", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Away", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
 
 			sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_distance + 1);
 
@@ -406,13 +450,13 @@ implementation
 		{
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Away", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Away", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
 
 			sink_distance = minbot(sink_distance, (int32_t)rcvd->sink_distance + 1);
 
 			if (rcvd->sink_distance == 0)
 			{
-				become_Fake(TempFakeNode, TEMP_FAKE_DURATION);
+				become_Fake(rcvd, TempFakeNode);
 
 				sequence_number_increment(&choose_sequence_counter);
 			}
@@ -434,11 +478,32 @@ implementation
 
 	void Normal_receieve_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
+		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+		}
+
+		if (algorithm == UnknownAlgorithm)
+		{
+			algorithm = (Algorithm)rcvd->algorithm;
+		}
+
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
+		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && !should_ignore_choose())
 		{
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Choose", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Choose", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			if (is_pfs_candidate)
+			{
+				become_Fake(rcvd, PermFakeNode);
+			}
+			else
+			{
+				become_Fake(rcvd, TempFakeNode);
+			}
 		}
 	}
 
@@ -458,7 +523,7 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Fake", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Fake", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
 
 			message.sink_source_distance = sink_source_distance;
 
@@ -468,31 +533,80 @@ implementation
 
 	void Source_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Fake", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Fake", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			seen_pfs |= rcvd->from_pfs;
 		}
 	}
 
 	void Normal_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+		}
+
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
+			FakeMessage forwarding_message = *rcvd;
+
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Fake", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Fake", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			seen_pfs |= rcvd->from_pfs;
+
+			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.max_hop = max(first_source_distance, (int32_t)forwarding_message.max_hop);
+
+			send_Fake_message(&forwarding_message);
 		}
 	}
 
 	void Fake_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+		}
+
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
+			FakeMessage forwarding_message = *rcvd;
+
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Fake", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Fake", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			seen_pfs |= rcvd->from_pfs;
+
+			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.max_hop = max(first_source_distance, (int32_t)forwarding_message.max_hop);
+
+			send_Fake_message(&forwarding_message);
+
+			if (pfs_can_become_normal() &&
+				type == PermFakeNode &&
+				rcvd->from_pfs &&
+				(
+					(rcvd->source_distance > source_distance) ||
+					(rcvd->source_distance == source_distance && sink_distance < rcvd->sink_distance) ||
+					(rcvd->source_distance == source_distance && sink_distance == rcvd->sink_distance && TOS_NODE_ID < rcvd->source_id)
+				)
+				)
+			{
+				become_Normal();
+			}
 		}
 	}
 
@@ -504,4 +618,51 @@ implementation
 		case PermFakeNode:
 			Fake_receieve_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
+
+
+	event void FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
+	{
+		message->sequence_number = sequence_number_next(&fake_sequence_counter);
+		message->sink_source_distance = sink_source_distance;
+		message->source_distance = source_distance;
+		message->max_hop = first_source_distance;
+		message->sink_distance = sink_distance;
+		message->from_pfs = (type == PermFakeNode);
+		message->source_id = TOS_NODE_ID;
+
+		sequence_number_increment(&fake_sequence_counter);
+	}
+
+	event void FakeMessageGenerator.sendDone(const AwayChooseMessage* original_message)
+	{
+		dbg("SourceBroadcasterC", "Finished sending Fake.\n");
+
+		// When finished sending fake messages
+
+		//generate_choose_message(original_message);
+
+		type = NormalNode;
+
+		// TODO
+	}
+
+	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* message)
+	{
+		dbg("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
+
+		switch (error)
+		{
+		case SUCCESS:
+			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", "Fake", sim_time(), TOS_NODE_ID, "success", message->sequence_number);
+			break;
+
+		case EBUSY:
+			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", "Fake", sim_time(), TOS_NODE_ID, "busy", message->sequence_number);
+			break;
+
+		default:
+			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", "Fake", sim_time(), TOS_NODE_ID, "failed", message->sequence_number);
+			break;
+		}		
+	}
 }

@@ -4,7 +4,7 @@
 
 from __future__ import print_function, absolute_import
 
-import protectionless.TOSSIM as TOSSIM
+import template.TOSSIM as TOSSIM
 
 import os
 import struct
@@ -27,47 +27,53 @@ class Metrics:
         self.sourceID = sourceID
         self.sinkID = sinkID
 
-        self.BCAST_Normal = OutputCatcher(self.process_BCAST_Normal)
-        self.sim.tossim.addChannel('Metric-BCAST-Normal', self.BCAST_Normal.write)
-        self.sim.addOutputProcessor(self.BCAST_Normal)
+        self.BCAST = OutputCatcher(self.process_BCAST)
+        self.sim.tossim.addChannel('Metric-BCAST', self.BCAST.write)
+        self.sim.addOutputProcessor(self.BCAST)
 
-        self.RCV_Normal = OutputCatcher(self.process_RCV_Normal)
-        self.sim.tossim.addChannel('Metric-RCV-Normal', self.RCV_Normal.write)
-        self.sim.addOutputProcessor(self.RCV_Normal)
+        self.RCV = OutputCatcher(self.process_RCV)
+        self.sim.tossim.addChannel('Metric-RCV', self.RCV.write)
+        self.sim.addOutputProcessor(self.RCV)
 
         self.heatMap = {}
 
         self.normalSentTime = {}
         self.normalLatency = {}
 
-        self.normalSent = Counter()
-        self.normalReceived = Counter()
+        self.sent = {}
+        self.received = {}
 
-    def process_BCAST_Normal(self, line):
-        (time, nodeID, status, seqNo) = line.split(',')
+    def process_BCAST(self, line):
+        (kind, time, nodeID, status, seqNo) = line.split(',')
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
         nodeID = int(nodeID)
         seqNo = int(seqNo)
 
-        if nodeID == self.sourceID:
+        if nodeID == self.sourceID and kind == "Normal":
             self.normalSentTime[seqNo] = time
 
-        self.normalSent[nodeID] += 1
+        if kind not in self.sent:
+            self.sent[kind] = Counter()
+
+        self.sent[kind][nodeID] += 1
 
 
-    def process_RCV_Normal(self, line):
-        (time, nodeID, sourceID, seqNo) = line.split(',')
+    def process_RCV(self, line):
+        (kind, time, nodeID, sourceID, seqNo) = line.split(',')
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
         nodeID = int(nodeID)
         sourceID = int (sourceID)
         seqNo = int(seqNo)
 
-        if nodeID == self.sinkID:
+        if nodeID == self.sinkID and kind == "Normal":
             self.normalLatency[seqNo] = time - self.normalSentTime[seqNo]
 
-        self.normalReceived[nodeID] += 1
+        if kind not in self.received:
+            self.received[kind] = Counter()
+
+        self.received[kind][nodeID] += 1
 
     def averageNormalLatency(self):
         return mean(self.normalLatency.values())
@@ -87,32 +93,39 @@ class Metrics:
     def printResults(self):
         seed = self.sim.seed
 
-        normalSent = sum(self.normalSent.values())
-        sent = normalSent
-        received = sum(self.normalReceived.values())
+        def numSent(name):
+            return 0 if name not in self.sent else sum(self.sent[name].values())
+
+        normalSent = numSent("Normal")
+        fakeSent = numSent("Fake")
+        chooseSent = numSent("Choose")
+        awaySent = numSent("Away")
+        sent = sum(sum(sent.values()) for sent in self.sent.values())
+        received = sum(sum(received.values()) for received in self.received.values())
         collisions = None
         captured = self.sim.anyAttackerFoundSource()
         receivedRatio = self.receivedRatio()
-        time = float(self.sim.tossim.time()) / self.sim.tossim.ticksPerSecond()
+        time = self.sim.simTime()
         attackerHopDistance = None
         attackerDistance = self.attackerDistance()
         attackerMoves = {i: attacker.moves for i, attacker in enumerate(self.sim.attackers)}
         normalLatency = self.averageNormalLatency()
 
-        # TODO: when more message types are involved, sum those Counters together
-        sentHeatMap = dict(self.normalSent)
-        receivedHeatMap = dict(self.normalReceived)
+        sentHeatMap = dict(sum(self.sent.values(), Counter()))
+        receivedHeatMap = dict(sum(self.received.values(), Counter()))
 
-        print(",".join(["{}"] * 14).format(
+        print(",".join(["{}"] * 17).format(
             seed, sent, received, collisions, captured,
             receivedRatio, time, attackerHopDistance, attackerDistance, attackerMoves,
-            normalLatency, normalSent, sentHeatMap, receivedHeatMap))
+            normalLatency, normalSent, fakeSent, chooseSent, awaySent,
+            sentHeatMap, receivedHeatMap))
 
 
 class Simulation(Simulator):
-    def __init__(self, seed, configuration, range):
+    def __init__(self, seed, configuration, range, safetyPeriod):
 
         self.seed = int(seed)
+        self.safetyPeriod = float(safetyPeriod)
 
         super(Simulation, self).__init__(
             TOSSIM,
@@ -131,7 +144,7 @@ class Simulation(Simulator):
         self.metrics = Metrics(self, configuration.sourceId, configuration.sinkId)
 
     def continuePredicate(self):
-        return not self.anyAttackerFoundSource()
+        return not self.anyAttackerFoundSource() and self.simTime() < self.safetyPeriod
 
     def anyAttackerFoundSource(self):
         return any(attacker.foundSource() for attacker in self.attackers)
