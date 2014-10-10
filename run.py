@@ -18,11 +18,11 @@ networkType = "GRID"
 
 wirelessRange = 45.0
 
-grid = Grid(network_size, wirelessRange)
+grid = Grid(network_size, wirelessRange - 2.5)
 
 source_corner = Configuration(grid, sourceId=0, sinkId=(len(grid.nodes) - 1) / 2)
 
-
+print(source_corner.topology.nodes)
 
 build("protectionless",
 	SOURCE_PERIOD_MS=1000,
