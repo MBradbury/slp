@@ -615,8 +615,7 @@ implementation
 		case SourceNode: Source_receieve_Fake(rcvd, source_addr); break;
 		case NormalNode: Normal_receieve_Fake(rcvd, source_addr); break;
 		case TempFakeNode:
-		case PermFakeNode:
-			Fake_receieve_Fake(rcvd, source_addr); break;
+		case PermFakeNode: Fake_receieve_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 
@@ -651,21 +650,17 @@ implementation
 
 	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* message)
 	{
+		const char* result;
+
 		dbg("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
 		switch (error)
 		{
-		case SUCCESS:
-			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", "Fake", sim_time(), TOS_NODE_ID, "success", message->sequence_number);
-			break;
+		case SUCCESS: result = "success"; break;
+		case EBUSY: result = "busy"; break;
+		default: result = "failed"; break;
+		}
 
-		case EBUSY:
-			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", "Fake", sim_time(), TOS_NODE_ID, "busy", message->sequence_number);
-			break;
-
-		default:
-			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", "Fake", sim_time(), TOS_NODE_ID, "failed", message->sequence_number);
-			break;
-		}		
+		dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", "Fake", sim_time(), TOS_NODE_ID, result, message->sequence_number);	
 	}
 }

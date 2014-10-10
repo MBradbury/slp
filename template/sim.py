@@ -122,7 +122,7 @@ class Metrics:
             sentHeatMap, receivedHeatMap))
 
 
-class Simulation(TosVis):
+class Simulation(Simulator):
     def __init__(self, seed, configuration, range, safetyPeriod):
 
         self.seed = int(seed)
