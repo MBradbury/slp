@@ -110,13 +110,13 @@ class Metrics:
 
 
 class Simulation(Simulator):
-    def __init__(self, seed, node_locations, range):
+    def __init__(self, seed, configuration, range):
 
         self.seed = int(seed)
 
         super(Simulation, self).__init__(
             TOSSIM,
-            node_locations=node_locations,
+            node_locations=configuration.topology.nodes,
             range=range
             )
 
@@ -126,9 +126,9 @@ class Simulation(Simulator):
 #       self.tossim.addChannel("SourceBroadcasterC", sys.stdout)
 #       self.tossim.addChannel("Attacker-RCV", sys.stdout)
 
-        self.attackers = [Attacker(self, 0, 60)]
+        self.attackers = [Attacker(self, configuration.sourceId, configuration.sinkId)]
 
-        self.metrics = Metrics(self, 0, 60)
+        self.metrics = Metrics(self, configuration.sourceId, configuration.sinkId)
 
     def continuePredicate(self):
         return not self.anyAttackerFoundSource()
@@ -139,19 +139,3 @@ class Simulation(Simulator):
     def setSeed(self):
         self.tossim.randomSeed(self.seed)
 
-
-class GridSimulation(Simulation):
-    def __init__(self, seed, size, range, initialPosition=100):
-
-        range_modifier = 2
-        modified_range = range - range_modifier
-
-        nodes = [(x * modified_range + initialPosition, y * modified_range + initialPosition)
-            for y in xrange(size)
-            for x in xrange(size)]
-
-        super(GridSimulation, self).__init__(
-            seed=seed,
-            node_locations=nodes,
-            range=range
-            )
