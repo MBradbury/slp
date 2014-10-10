@@ -9,7 +9,7 @@ def build(directory, **kwargs):
 
 	print(command)
 
-	subprocess.call(
+	result = subprocess.check_call(
 		command,
 		cwd=directory,
 		shell=True

@@ -62,4 +62,8 @@ implementation
 
 	App.FakeSend -> FakeSender;
 	App.FakeReceive -> FakeReceiver;
+
+	components FakeMessageGeneratorP;
+
+	App.FakeMessageGenerator -> FakeMessageGeneratorP;
 }
