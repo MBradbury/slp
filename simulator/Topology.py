@@ -27,8 +27,6 @@ class Circle:
 		def isInCircle(position):
 			return euclidean(centreNodePos, position) < self.diameter / 2.0
 
-		#print([euclidean(centreNodePos, position) for position in self.nodes])
-
 		self.nodes = [pos for pos in self.nodes if isInCircle(pos)]
 
 class Ring:

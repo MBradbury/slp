@@ -165,10 +165,10 @@ implementation
 	int32_t sink_distance = BOTTOM;
 
 	bool sink_sent_away = FALSE;
+	bool seen_pfs = FALSE;
+	bool is_pfs_candidate = FALSE;
 
 	int32_t first_source_distance = BOTTOM;
-
-	bool seen_pfs = FALSE;
 
 	typedef enum
 	{
@@ -193,7 +193,7 @@ implementation
 		{
 			type = SourceNode;
 		}
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		else if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
 		}
@@ -235,6 +235,16 @@ implementation
 	SEND_MESSAGE(Choose);
 	SEND_MESSAGE(Fake);
 
+	void become_Normal()
+	{
+		type = NormalNode;
+	}
+
+	void become_Fake(bool perm, uint32_t duration)
+	{
+		type = perm ? PermFakeNode : TempFakeNode;
+	}
+
 	event void BroadcastNormalTimer.fired()
 	{
 		NormalMessage message;
@@ -255,6 +265,13 @@ implementation
 	{
 		NormalMessage forwarding_message;
 
+		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+		}
+
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
@@ -263,8 +280,17 @@ implementation
 
 			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
+			if (first_source_distance == BOTTOM)
+			{
+				first_source_distance = rcvd->hop + 1;
+				is_pfs_candidate = TRUE;
+			}
+
+			source_distance = minbot(source_distance, (int32_t)rcvd->hop + 1);
+
 			forwarding_message = *rcvd;
 			forwarding_message.hop += 1;
+			forwarding_message.max_hop = max(first_source_distance, (int32_t)rcvd->max_hop);
 
 			send_Normal_message(&forwarding_message);
 		}
@@ -304,11 +330,22 @@ implementation
 
 	void Fake_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		NormalMessage forwarding_message;
+
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
 			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			forwarding_message = *rcvd;
+			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.hop += 1;
+			forwarding_message.max_hop = max(first_source_distance, (int32_t)rcvd->max_hop);
+
+			send_Normal_message(&forwarding_message);
 		}
 	}
 
@@ -323,21 +360,69 @@ implementation
 
 	void Source_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		AwayMessage forwarding_message;
+
+		if (algorithm == UnknownAlgorithm)
+		{
+			algorithm = (Algorithm)rcvd->algorithm;
+		}
+
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			dbg_clear("Metric-RCV-Away", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_distance + 1);
+
+			forwarding_message = *rcvd;
+			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_distance += 1;
+			forwarding_message.algorithm = algorithm;
+
+			send_Away_message(&forwarding_message);
 		}
 	}
 
 	void Normal_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		AwayMessage forwarding_message;
+
+		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+		}
+
+		if (algorithm == UnknownAlgorithm)
+		{
+			algorithm = (Algorithm)rcvd->algorithm;
+		}
+
+		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			dbg_clear("Metric-RCV-Away", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+
+			sink_distance = minbot(sink_distance, (int32_t)rcvd->sink_distance + 1);
+
+			if (rcvd->sink_distance == 0)
+			{
+				become_Fake(TempFakeNode, TEMP_FAKE_DURATION);
+
+				sequence_number_increment(&choose_sequence_counter);
+			}
+
+			forwarding_message = *rcvd;
+			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_distance += 1;
+			forwarding_message.algorithm = algorithm;
+
+			send_Away_message(&forwarding_message);
 		}
 	}
 
