@@ -13,16 +13,21 @@ class Grid:
 
 class Circle:
 	def __init__(self, diameter, distance, initialPosition=100):
-		self.diameter = diameter
+		self.diameterInHops = diameter
+		self.diameter = self.diameterInHops * distance
 
 		self.nodes = [(float(x * distance + initialPosition), float(y * distance + initialPosition))
 			for y in xrange(diameter)
 			for x in xrange(diameter)]
 
-		self.centreNode = self.nodes[(len(self.nodes) - 1) / 2]
+		self.centreNode = (len(self.nodes) - 1) / 2
+
+		centreNodePos = self.nodes[self.centreNode]
 
 		def isInCircle(position):
-			return euclidean(self.nodes[self.centreNode], position) <= diameter / 2.0
+			return euclidean(centreNodePos, position) < self.diameter / 2.0
+
+		#print([euclidean(centreNodePos, position) for position in self.nodes])
 
 		self.nodes = [pos for pos in self.nodes if isInCircle(pos)]
 
@@ -33,4 +38,4 @@ class Ring:
 		self.nodes = [(float(x * distance + initialPosition), float(y * distance + initialPosition))
 			for y in xrange(diameter)
 			for x in xrange(diameter)
-			if (x == 0 or x == diameter -1) and (y == 0 or y == diameter - 1)]
+			if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)]
