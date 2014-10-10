@@ -11,5 +11,5 @@ interface FakeMessageGenerator
 
 	event void sent(error_t error, const FakeMessage* message);
 
-	event void sendDone(const AwayChooseMessage* original_message);
+	event void durationExpired(const AwayChooseMessage* original_message);
 }
