@@ -46,17 +46,18 @@ class Metrics:
     def process_BCAST(self, line):
         (kind, time, nodeID, status, seqNo) = line.split(',')
 
-        time = float(time) / self.sim.tossim.ticksPerSecond()
-        nodeID = int(nodeID)
-        seqNo = int(seqNo)
+        if status == "success":
+            time = float(time) / self.sim.tossim.ticksPerSecond()
+            nodeID = int(nodeID)
+            seqNo = int(seqNo)
 
-        if nodeID == self.sourceID and kind == "Normal":
-            self.normalSentTime[seqNo] = time
+            if nodeID == self.sourceID and kind == "Normal":
+                self.normalSentTime[seqNo] = time
 
-        if kind not in self.sent:
-            self.sent[kind] = Counter()
+            if kind not in self.sent:
+                self.sent[kind] = Counter()
 
-        self.sent[kind][nodeID] += 1
+            self.sent[kind][nodeID] += 1
 
 
     def process_RCV(self, line):
@@ -121,7 +122,7 @@ class Metrics:
             sentHeatMap, receivedHeatMap))
 
 
-class Simulation(Simulator):
+class Simulation(TosVis):
     def __init__(self, seed, configuration, range, safetyPeriod):
 
         self.seed = int(seed)

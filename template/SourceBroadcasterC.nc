@@ -633,17 +633,20 @@ implementation
 		sequence_number_increment(&fake_sequence_counter);
 	}
 
-	event void FakeMessageGenerator.sendDone(const AwayChooseMessage* original_message)
+	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
 	{
-		dbg("SourceBroadcasterC", "Finished sending Fake.\n");
+		ChooseMessage message = *original_message;
 
-		// When finished sending fake messages
+		dbg("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
-		//generate_choose_message(original_message);
+		// When finished sending fake messages from a TFS
+
+		message.sink_source_distance = sink_source_distance;
+		message.sink_distance += 1;
+
+		send_Choose_message(&message);
 
 		type = NormalNode;
-
-		// TODO
 	}
 
 	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* message)
