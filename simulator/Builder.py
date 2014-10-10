@@ -7,8 +7,6 @@ def build(directory, **kwargs):
 
 	command = 'make micaz sim CFLAGS="{}"'.format(flags)
 
-	print(command)
-
 	result = subprocess.check_call(
 		command,
 		cwd=directory,
