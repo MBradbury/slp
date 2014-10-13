@@ -30,7 +30,7 @@ class Simulation(TosVis):
         self.attackers.append(attacker)
 
     def continuePredicate(self):
-        return not self.anyAttackerFoundSource() and self.simTime() < self.safetyPeriod
+        return not self.anyAttackerFoundSource() and (self.safetyPeriod is None or self.simTime() < self.safetyPeriod)
 
     def anyAttackerFoundSource(self):
         return any(attacker.foundSource() for attacker in self.attackers)

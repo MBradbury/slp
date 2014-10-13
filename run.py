@@ -22,7 +22,7 @@ a.parse(sys.argv[2:])
 
 build_arguments = a.getBuildArguments()
 
-configuration = CreateFurtherSinkCorner(a.args.network_size, a.args.wireless_range - 2.5)
+configuration = CreateSourceCorner(a.args.network_size, a.args.wireless_range - 2.5)
 
 build_arguments.update(configuration.getBuildArguments())
 
