@@ -73,6 +73,10 @@ class Metrics:
             in enumerate(self.sim.attackers)
         }
 
+    @staticmethod
+    def printHeader(stream=sys.stdout):
+        print("Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerHopDistance,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,SentHeatMap,ReceivedHeatMap", file=stream)
+
     def printResults(self, stream=sys.stdout):
         seed = self.sim.seed
 

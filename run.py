@@ -13,7 +13,7 @@ from simulator.Simulation import Simulation
 def secureRandom():
 	return struct.unpack("<i", os.urandom(4))[0]
 
-module = "template"
+module = "protectionless"
 
 gui = False
 
@@ -46,4 +46,5 @@ with Simulation(module, seed, configuration, wirelessRange, 30.0) as sim:
 
 	sim.run()
 
+	sim.metrics.printHeader()
 	sim.metrics.printResults()
