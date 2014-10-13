@@ -6,8 +6,8 @@ from simulator.Topology import *
 class Configuration:
 	def __init__(self, topology, sourceId, sinkId, spaceBehindSink):
 		self.topology = topology
-		self.sinkId = sinkId
-		self.sourceId = sourceId
+		self.sinkId = int(sinkId)
+		self.sourceId = int(sourceId)
 		self.spaceBehindSink = spaceBehindSink
 
 		if self.sinkId >= len(self.topology.nodes):
@@ -15,6 +15,12 @@ class Configuration:
 
 		if self.sourceId >= len(self.topology.nodes):
 			raise Exception("There are not enough nodes ({}) to have a source id of {}".format(len(self.topology.nodes), self.source))
+
+	def getBuildArguments(self):
+		return {
+			"SOURCE_NODE_ID": self.sourceId,
+			"SINK_NODE_ID": self.sinkId
+		}
 
 def CreateSourceCorner(size, distance):
 	grid = Grid(size, distance)
