@@ -1,4 +1,6 @@
-from __future__ import print_function, absolute_import
+from __future__ import print_function
+
+import sys
 
 from numpy import mean
 from scipy.spatial.distance import euclidean
@@ -78,7 +80,11 @@ class Metrics:
             in enumerate(self.sim.attackers)
         }
 
-    def printResults(self):
+    @staticmethod
+    def printHeader(stream=sys.stdout):
+        print("Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerHopDistance,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,FakeSent,ChooseSent,AwaySent,SentHeatMap,ReceivedHeatMap", file=stream)
+
+    def printResults(self, stream=sys.stdout):
         seed = self.sim.seed
 
         def numSent(name):
@@ -106,4 +112,4 @@ class Metrics:
             seed, sent, received, collisions, captured,
             receivedRatio, time, attackerHopDistance, attackerDistance, attackerMoves,
             normalLatency, normalSent, fakeSent, chooseSent, awaySent,
-            sentHeatMap, receivedHeatMap))
+            sentHeatMap, receivedHeatMap), file=stream)
