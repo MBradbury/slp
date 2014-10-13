@@ -10,11 +10,13 @@ class DebugAnalyzer:
 	LED     = 0
 	AM_SEND = 1
 	AM_RECV = 2
+	FAKE    = 3
 
 	WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
 	LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
 	AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
 	AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
+	FAKE_RE   = re.compile(r'The node has become a ([a-zA-Z]+)')
 
 	####################
 	def analyze(self, dbg):
@@ -51,6 +53,12 @@ class DebugAnalyzer:
 			amlen  = int(match.group(2))
 			return (id, self.AM_RECV, (amtype,amlen))
 
+		# Node becoming TFS, PFS or Normal
+		match = self.FAKE_RE.match(detail)
+		if match is not None:
+			kind = match.group(1)
+			return (id, self.FAKE, (kind,))
+
 		return None
 
 ###############################################
@@ -77,6 +85,7 @@ class TosVis(Simulator):
 		dbg = OutputCatcher(self.processDbgMsg)
 		self.tossim.addChannel('LedsC', dbg.write)
 		self.tossim.addChannel('AM', dbg.write)
+		self.tossim.addChannel('GUI-Fake-Notification', dbg.write)
 
 		self.addOutputProcessor(dbg)
 
@@ -106,9 +115,9 @@ class TosVis(Simulator):
 			return
 		scene = self.scene
 		(x,y) = self.nodes[sender].location
-		scene.execute(time,
-				'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.3)'
-				% (x,y,self.range))
+		#scene.execute(time,
+		#			'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.3)'
+		#		% (x,y,self.range))
 
 	####################
 	def animateAmRecv(self,time,receiver,amtype,amlen):
@@ -119,6 +128,25 @@ class TosVis(Simulator):
 		scene.execute(time,
 				'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
 				% (x,y,10))
+
+	def animateFakeState(self,time,node,kind):
+
+		pfs_colour = [x / 255.0 for x in (225,41,41)]
+		tfs_colour = [x / 255.0 for x in (196,196,37)]
+		normal_colour = [0,0,0]
+
+		if kind == "TFS":
+			colour = tfs_colour
+		elif kind == "PFS":
+			colour = pfs_colour
+		elif kind == "Normal":
+			colour = normal_colour
+		else:
+			raise Exception("Unknown kind {}".format(kind))
+
+		scene = self.scene
+		scene.execute(time,
+				'nodecolor({},{},{},{})'.format(*([node] + colour)))
 
 	####################
 	def processDbgMsg(self, dbg):
@@ -135,6 +163,9 @@ class TosVis(Simulator):
 		elif cmp == DebugAnalyzer.AM_RECV:
 			(amtype,amlen) = detail
 			self.animateAmRecv(self.simTime(), id, amtype, amlen)
+		elif cmp == DebugAnalyzer.FAKE:
+			(kind,) = detail
+			self.animateFakeState(self.simTime(), id, kind)
 
 	####################
 	def preRun(self):

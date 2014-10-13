@@ -7,6 +7,8 @@
 #include <Timer.h>
 #include <TinyError.h>
 
+#include <assert.h>
+
 #define max(a, b) \
 	({ __typeof__(a) _a = (a); \
 	   __typeof__(b) _b = (b); \
@@ -274,16 +276,23 @@ implementation
 		call FakeMessageGenerator.stop();
 	}
 
-	void become_Fake(const AwayChooseMessage* message, bool perm)
+	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
 	{
-		type = perm ? PermFakeNode : TempFakeNode;
-
-		if (perm)
+		if (perm_type != PermFakeNode && perm_type != TempFakeNode)
 		{
+			assert("The perm type is not correct");
+		}
+
+		type = perm_type;
+
+		if (type == PermFakeNode)
+		{
+			dbg("GUI-Fake-Notification", "The node has become a PFS\n");
 			call FakeMessageGenerator.start(message, FAKE_PERIOD_MS);
 		}
 		else
 		{
+			dbg("GUI-Fake-Notification", "The node has become a TFS\n");
 			call FakeMessageGenerator.startLimited(message, FAKE_PERIOD_MS, TEMP_FAKE_DURATION_MS);
 		}
 	}
@@ -296,7 +305,9 @@ implementation
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.hop = 0;
+		message.max_hop = BOTTOM;
 		message.source_id = TOS_NODE_ID;
+		message.sink_source_distance = sink_source_distance;
 
 		if (send_Normal_message(&message))
 		{
@@ -308,9 +319,10 @@ implementation
 	{
 		NormalMessage forwarding_message;
 
-		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
 		{
 			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 
 		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
@@ -327,6 +339,7 @@ implementation
 			{
 				first_source_distance = rcvd->hop + 1;
 				is_pfs_candidate = TRUE;
+				call Leds.led1On();
 			}
 
 			source_distance = minbot(source_distance, (int32_t)rcvd->hop + 1);
@@ -359,7 +372,7 @@ implementation
 				message.sequence_number = sequence_number_next(&away_sequence_counter);
 				message.sink_distance = 0;
 				message.sink_source_distance = sink_source_distance;
-				message.max_hop = first_source_distance;
+				message.max_hop = rcvd->max_hop;
 				message.algorithm = ALGORITHM;
 
 				sequence_number_increment(&away_sequence_counter);
@@ -434,9 +447,10 @@ implementation
 	{
 		AwayMessage forwarding_message;
 
-		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
 		{
 			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 
 		if (algorithm == UnknownAlgorithm)
@@ -478,9 +492,10 @@ implementation
 
 	void Normal_receieve_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
 		{
 			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 
 		if (algorithm == UnknownAlgorithm)
@@ -547,9 +562,10 @@ implementation
 
 	void Normal_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
 		{
 			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 
 		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
@@ -573,9 +589,10 @@ implementation
 
 	void Fake_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (first_source_distance == BOTTOM || rcvd->max_hop - 1 > first_source_distance)
+		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
 		{
 			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 
 		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
@@ -644,6 +661,8 @@ implementation
 		message.sink_distance += 1;
 
 		send_Choose_message(&message);
+
+		dbg("GUI-Fake-Notification", "The node has become a Normal\n");
 
 		type = NormalNode;
 	}
