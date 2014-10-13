@@ -1,7 +1,8 @@
 #ifndef SLP_CONSTANTS_H
 #define SLP_CONSTANTS_H
 
-/*#ifndef SOURCE_PERIOD_MS
+#ifdef DEFAULT_PARAMETERS
+#ifndef SOURCE_PERIOD_MS
 #	define SOURCE_PERIOD_MS (1000)
 #endif
 
@@ -15,7 +16,8 @@
 
 #ifndef SINK_NODE_ID
 #	define SINK_NODE_ID (60)
-#endif*/
+#endif
+#endif
 
 enum Channels
 {
