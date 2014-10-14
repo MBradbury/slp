@@ -79,7 +79,6 @@ class TosVis(Simulator):
 		self.runGui = True
 
 		self.debug_analyzer = DebugAnalyzer()
-		self.am_types = None
 
 		# setup a pipe for monitoring dbg messages
 		dbg = OutputCatcher(self.processDbgMsg)
@@ -111,8 +110,6 @@ class TosVis(Simulator):
 
 	####################
 	def animateAmSend(self,time,sender,amtype,amlen,amdst):
-		if self.am_types is not None and amtype not in self.am_types:
-			return
 		scene = self.scene
 		(x,y) = self.nodes[sender].location
 		#scene.execute(time,
@@ -121,8 +118,6 @@ class TosVis(Simulator):
 
 	####################
 	def animateAmRecv(self,time,receiver,amtype,amlen):
-		if self.am_types is not None and amtype not in self.am_types:
-			return
 		scene = self.scene
 		(x,y) = self.nodes[receiver].location
 		scene.execute(time,

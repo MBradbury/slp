@@ -2,4 +2,4 @@ COMPONENT = SourceBroadcasterAppC
 
 CFLAGS += -Wnonnull
 
-include $(MAKERULES)
+include $(TINYOS_ROOT_DIR)/Makefile.include

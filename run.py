@@ -2,16 +2,14 @@
 
 from __future__ import print_function
 
-import os, sys, struct, importlib
+import os, sys, struct, importlib, subprocess
 
 from simulator.Attacker import Attacker
 from simulator.Builder import build
 from simulator.Topology import *
 from simulator.Configuration import *
 from simulator.Simulation import Simulation
-
-def secureRandom():
-	return struct.unpack("<i", os.urandom(4))[0]
+from simulator.SubprocessPool import SubprocessPool
 
 module = sys.argv[1]
 
@@ -34,16 +32,18 @@ else:
 # Now build the simulation with the specified arguments
 build(module, **build_arguments)
 
-seed = secureRandom()
+if a.args.mode == "GUI":
+	import simulator.DoRun
 
-with Simulation(module, seed, configuration, a.args) as sim:
+else:
+	subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
 
-	sim.addAttacker(Attacker(sim, configuration.sourceId, configuration.sinkId))
+	def runner():
+		return subprocess.Popen(subprocess_args, stdout=subprocess.PIPE)
 
-	if a.args.mode == "GUI":
-		sim.setupGUI()
+	def callback(proc):
+		for line in proc.stdout:
+			print(line, end="")
 
-	sim.run()
-
-	sim.metrics.printHeader()
-	sim.metrics.printResults()
+	p = SubprocessPool(a.args.thread_count, runner, callback)
+	p.run(a.args.job_size)
