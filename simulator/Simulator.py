@@ -52,6 +52,8 @@ class Simulator(object):
 		for op in self.outProcs:
 			op.close()
 
+		del self.tossim
+
 	def setBootTime(self, node):
 		pass
 
@@ -136,11 +138,16 @@ class Simulator(object):
 		
 		self.preRun()
 
+		eventCount = 0
+
 		while self.continuePredicate():
 			if self.tossim.runNextEvent() == 0:
+				print("Run next event returned 0 ({})".format(eventCount))
 				break
 
 			self.inRun()
+
+			eventCount += 1
 
 		self.postRun()
 
