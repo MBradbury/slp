@@ -27,7 +27,7 @@ class OutputCatcher:
 		self.read.close()
 		self.write.close()
 
-class Simulator(object):
+class Simulator(object):	
 	def __init__(self, TOSSIM, node_locations, range, seed=None):
 		self.tossim = TOSSIM.Tossim([])
 

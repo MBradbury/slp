@@ -12,7 +12,7 @@ class Simulation(TosVis):
             seed=seed
             )
 
-        self.safetyPeriod = args.safety_period
+        self.safetyPeriod = args.safety_period if hasattr(args, "safety_period") else None
 
 #       self.tossim.addChannel("Metric-BCAST-Normal", sys.stdout)
 #       self.tossim.addChannel("Metric-RCV-Normal", sys.stdout)
