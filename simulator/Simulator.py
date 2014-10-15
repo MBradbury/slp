@@ -1,5 +1,4 @@
-from random import random
-import os, sys, math, select
+import os, sys, math, select, random
 
 class Node:
 	def __init__(self, id, location, tossim_node):
@@ -28,14 +27,18 @@ class OutputCatcher:
 		self.write.close()
 
 class Simulator(object):	
-	def __init__(self, TOSSIM, node_locations, range, seed=None):
+	def __init__(self, TOSSIM, node_locations, range, seed):
 		self.tossim = TOSSIM.Tossim([])
 
 		self.outProcs = []
 
-		if seed is not None:
-			self.tossim.randomSeed(seed)
+		self.tossim.randomSeed(seed)
 		self.seed = seed
+
+		# It is important to seed python's random number generator
+		# as well as TOSSIM's. If this is not done then the simulations
+		# will differ when the seeds are the same.
+		random.seed(self.seed)
 
 		self.range = range
 
@@ -88,7 +91,7 @@ class Simulator(object):
 
 	def createNoiseModel(self, node):
 		for i in range(100):
-			node.tossim_node.addNoiseTraceReading(int(random()*20)-100)
+			node.tossim_node.addNoiseTraceReading(int(random.random()*20)-100)
 		node.tossim_node.createNoiseModel()
 
 	def computeRFGain(self, src, dst):
@@ -110,7 +113,7 @@ class Simulator(object):
 			return (False, 0)
 
 	def setBootTime(self, node):
-		node.tossim_node.bootAtTime(int(random() * self.tossim.ticksPerSecond()))
+		node.tossim_node.bootAtTime(int(random.random() * self.tossim.ticksPerSecond()))
 
 	def moveNode(self, node, location, time=None):
 		'''

@@ -1,15 +1,15 @@
-import importlib
+import os, struct, importlib
 
 from simulator.TosVis import TosVis
 
 class Simulation(TosVis):
-    def __init__(self, moduleName, seed, configuration, args):
+    def __init__(self, moduleName, configuration, args):
 
         super(Simulation, self).__init__(
             importlib.import_module('{}.TOSSIM'.format(moduleName)),
             node_locations=configuration.topology.nodes,
             range=args.wireless_range,
-            seed=seed
+            seed=args.seed if args.seed is not None else self.secureRandom()
             )
 
         self.safetyPeriod = args.safety_period if hasattr(args, "safety_period") else None
@@ -34,3 +34,7 @@ class Simulation(TosVis):
 
     def anyAttackerFoundSource(self):
         return any(attacker.foundSource() for attacker in self.attackers)
+
+    @staticmethod
+    def secureRandom():
+        return struct.unpack("<i", os.urandom(4))[0]
