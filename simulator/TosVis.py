@@ -1,7 +1,7 @@
 import re
 
-from topovis import *
-from topovis.TkPlotter import Plotter
+from simulator.topovis import *
+from simulator.topovis.TkPlotter import Plotter
 
 from Simulator import *
 
