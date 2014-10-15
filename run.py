@@ -14,6 +14,7 @@ from simulator.SubprocessPool import SubprocessPool
 module = sys.argv[1]
 
 Arguments = importlib.import_module("{}.Arguments".format(module))
+Metrics = importlib.import_module("{}.Metrics".format(module))
 
 a = Arguments.Arguments()
 a.parse(sys.argv[2:])
@@ -31,6 +32,8 @@ else:
 
 # Now build the simulation with the specified arguments
 build(module, **build_arguments)
+
+Metrics.Metrics.printHeader()
 
 # Because of the way TOSSIM is architectured each individual simulation
 # needs to be run in a separate process.

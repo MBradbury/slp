@@ -75,7 +75,7 @@ class Metrics:
 
     @staticmethod
     def printHeader(stream=sys.stdout):
-        print("Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerHopDistance,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,SentHeatMap,ReceivedHeatMap", file=stream)
+        print("Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerHopDistance,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
 
     def printResults(self, stream=sys.stdout):
         seed = self.sim.seed
@@ -96,7 +96,7 @@ class Metrics:
         sentHeatMap = dict(self.normalSent)
         receivedHeatMap = dict(self.normalReceived)
 
-        print(",".join(["{}"] * 14).format(
+        print("|".join(["{}"] * 14).format(
             seed, sent, received, collisions, captured,
             receivedRatio, time, attackerHopDistance, attackerDistance, attackerMoves,
             normalLatency, normalSent, sentHeatMap, receivedHeatMap),
