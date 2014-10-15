@@ -17,7 +17,7 @@ class SubprocessPool:
 
 				self.active.append(proc)
 
-			time.sleep(0.5)
+			time.sleep(0.1)
 
 			new_active = []
 

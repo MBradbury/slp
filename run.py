@@ -32,6 +32,8 @@ else:
 # Now build the simulation with the specified arguments
 build(module, **build_arguments)
 
+# Because of the way TOSSIM is architectured each individual simulation
+# needs to be run in a separate process.
 if a.args.mode == "GUI":
 	import simulator.DoRun
 
