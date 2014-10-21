@@ -46,7 +46,7 @@ class Attacker:
         if not hasattr(self.sim, "scene"):
             return
 
-        (x,y) = self.sim.nodes[nodeID].location
+        (x,y) = self.sim.getNodeLocation(nodeID)
 
         shapeId = "attacker"
 

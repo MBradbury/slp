@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, sys, math, select, random
 
 class Node:
@@ -29,6 +30,7 @@ class OutputCatcher:
 class Simulator(object):	
 	def __init__(self, TOSSIM, node_locations, range, seed):
 		self.tossim = TOSSIM.Tossim([])
+		self.radio = self.tossim.radio()
 
 		self.outProcs = []
 
@@ -69,29 +71,40 @@ class Simulator(object):
 
 	def createNodes(self, node_locations):
 		"Creates nodes and initialize their boot times"
+
 		self.nodes = []
 		for i,loc in enumerate(node_locations):
 			tossim_node = self.tossim.getNode(i)
 			new_node = Node(i, loc, tossim_node)
-			self.createNoiseModel(new_node)
 			self.nodes.append(new_node)
+
+	def setupNoiseModels(self):
+		for node in self.nodes:
+			self.createNoiseModel(node)
 
 	def setupRadio(self):
 		"Creates radio links for node pairs that are in range"
-		radio = self.tossim.radio()
 		num_nodes = len(self.nodes)
 		for i,ni in enumerate(self.nodes):
 			for j,nj in enumerate(self.nodes):
 				if i != j:
 					(isLinked, gain) = self.computeRFGain(ni, nj)
 					if isLinked:
-						radio.add(i, j, gain)
+						self.radio.add(i, j, gain)
 						#if self.drawNeighborLinks:
 						#	self.scene.execute(0, 'addlink(%d,%d,1)' % (i,j))
+	
+
+	def readNoiseFromFile(self, path):
+		with open(path, "r") as f:
+			for line in f:
+				line = line.strip()
+				if len(line) != 0:
+					yield int(line)
 
 	def createNoiseModel(self, node):
 		for i in range(100):
-			node.tossim_node.addNoiseTraceReading(int(random.random()*20)-100)
+			node.tossim_node.addNoiseTraceReading(int(random.random()*20)-75)
 		node.tossim_node.createNoiseModel()
 
 	def computeRFGain(self, src, dst):
@@ -101,16 +114,16 @@ class Simulator(object):
 		propagation model.
 		'''
 		if src == dst:
-			return (False, 0)
+			return (False, None)
 
 		(x1,y1) = src.location
 		(x2,y2) = dst.location
 		dx = x1 - x2;
 		dy = y1 - y2;
 		if math.sqrt(dx*dx + dy*dy) <= self.range:
-			return (True, 0)
+			return (True, -55)
 		else:
-			return (False, 0)
+			return (False, None)
 
 	def setBootTime(self, node):
 		node.tossim_node.bootAtTime(int(random.random() * self.tossim.ticksPerSecond()))
@@ -129,6 +142,7 @@ class Simulator(object):
 
 	def preRun(self):
 		self.setupRadio()
+		self.setupNoiseModels()
 
 	def postRun(self):
 		pass

@@ -7,4 +7,7 @@ simbuild
 TOSSIM.py
 app.xml
 build
+linkgain.out
+topology.out
+topology.txt
 

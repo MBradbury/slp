@@ -10,11 +10,11 @@ from collections import Counter
 from simulator.Simulator import OutputCatcher
 
 class Metrics:
-    def __init__(self, sim, sourceID, sinkID):
+    def __init__(self, sim, configuration):
         self.sim = sim
 
-        self.sourceID = sourceID
-        self.sinkID = sinkID
+        self.sourceID = configuration.sourceId
+        self.sinkID = configuration.sinkId
 
         self.BCAST = OutputCatcher(self.process_BCAST)
         self.sim.tossim.addChannel('Metric-BCAST', self.BCAST.write)
