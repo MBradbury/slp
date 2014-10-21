@@ -9,11 +9,11 @@ from scipy.spatial.distance import euclidean
 from simulator.Simulator import OutputCatcher
 
 class Metrics:
-    def __init__(self, sim, sourceID, sinkID):
+    def __init__(self, sim, configuration):
         self.sim = sim
 
-        self.sourceID = sourceID
-        self.sinkID = sinkID
+        self.sourceID = configuration.sourceId
+        self.sinkID = configuration.sinkId
 
         self.BCAST_Normal = OutputCatcher(self.process_BCAST_Normal)
         self.sim.tossim.addChannel('Metric-BCAST-Normal', self.BCAST_Normal.write)
@@ -50,7 +50,7 @@ class Metrics:
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
         nodeID = int(nodeID)
-        sourceID = int (sourceID)
+        sourceID = int(sourceID)
         seqNo = int(seqNo)
 
         if nodeID == self.sinkID:
@@ -92,7 +92,6 @@ class Metrics:
         attackerMoves = {i: attacker.moves for i, attacker in enumerate(self.sim.attackers)}
         normalLatency = self.averageNormalLatency()
 
-        # TODO: when more message types are involved, sum those Counters together
         sentHeatMap = dict(self.normalSent)
         receivedHeatMap = dict(self.normalReceived)
 

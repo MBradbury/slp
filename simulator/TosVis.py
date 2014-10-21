@@ -88,10 +88,18 @@ class TosVis(Simulator):
 
 		self.addOutputProcessor(dbg)
 
+	@staticmethod
+	def adjustLocation(loc):
+		factor = 10
+		return (loc[0] * factor, loc[1] * factor)
+
+	def getNodeLocation(self, id):
+		return self.adjustLocation(self.nodes[id].location)
+
 	####################
 	def animateLeds(self,time,id,ledno,state):
 		scene = self.scene
-		(x,y) = self.nodes[id].location
+		(x,y) = self.getNodeLocation(id)
 		shape_id = '%d:%d' % (id,ledno)
 		if state == 0:
 			scene.execute(time, 'delshape("%s")' % shape_id)
@@ -111,7 +119,7 @@ class TosVis(Simulator):
 	####################
 	def animateAmSend(self,time,sender,amtype,amlen,amdst):
 		scene = self.scene
-		(x,y) = self.nodes[sender].location
+		(x,y) = self.getNodeLocation(sender)
 		#scene.execute(time,
 		#			'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.3)'
 		#		% (x,y,self.range))
@@ -119,7 +127,7 @@ class TosVis(Simulator):
 	####################
 	def animateAmRecv(self,time,receiver,amtype,amlen):
 		scene = self.scene
-		(x,y) = self.nodes[receiver].location
+		(x,y) = self.getNodeLocation(receiver)
 		scene.execute(time,
 				'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
 				% (x,y,10))
@@ -177,6 +185,6 @@ class TosVis(Simulator):
 
 			# draw nodes on animating canvas
 			for n in self.nodes:
-				self.scene.execute(0, 'node(%d,%f,%f)' % (n.id, n.location[0], n.location[1]))
+				self.scene.execute(0, 'node(%d,%f,%f)' % ((n.id,) + self.adjustLocation(n.location)))
 
 ###############################################

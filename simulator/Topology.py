@@ -2,7 +2,7 @@
 from scipy.spatial.distance import euclidean
 
 class Grid:
-	def __init__(self, size, distance, initialPosition=100.0):
+	def __init__(self, size, distance, initialPosition=10.0):
 		self.size = size
 
 		self.nodes = [(float(x * distance + initialPosition), float(y * distance + initialPosition))
@@ -12,7 +12,7 @@ class Grid:
 		self.centreNode = self.nodes[(len(self.nodes) - 1) / 2]
 
 class Circle:
-	def __init__(self, diameter, distance, initialPosition=100.0):
+	def __init__(self, diameter, distance, initialPosition=10.0):
 		self.diameterInHops = diameter
 		self.diameter = self.diameterInHops * distance
 
@@ -30,7 +30,7 @@ class Circle:
 		self.nodes = [pos for pos in self.nodes if isInCircle(pos)]
 
 class Ring:
-	def __init__(self, diameter, distance, initialPosition=100.0):
+	def __init__(self, diameter, distance, initialPosition=10.0):
 		self.diameter = diameter
 
 		self.nodes = [(float(x * distance + initialPosition), float(y * distance + initialPosition))
@@ -39,5 +39,5 @@ class Ring:
 			if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)]
 
 class Random:
-	def __init__(self, sizeRoot, initialPosition=100.0):
+	def __init__(self, sizeRoot, initialPosition=10.0):
 		raise Exception("TODO")

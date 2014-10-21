@@ -22,26 +22,54 @@ class Configuration:
 			"SINK_NODE_ID": self.sinkId
 		}
 
-def CreateSourceCorner(size, distance):
-	grid = Grid(size, distance)
+	def __str__(self):
+		return "Configuration<sinkId={}, sourceId={}, spaceBehindSink={}, topology={}".format(
+			self.sinkId, self.sourceId, self.spaceBehindSink, self.topology
+			)
+
+def CreateSourceCorner(network_size, distance):
+	grid = Grid(network_size, distance)
 
 	return Configuration(grid,
 		sourceId=0,
 		sinkId=(len(grid.nodes) - 1) / 2,
 		spaceBehindSink=True)
 
-def CreateSinkCorner(size, distance):
-	grid = Grid(size, distance)
+def CreateSinkCorner(network_size, distance):
+	grid = Grid(network_size, distance)
 
 	return Configuration(grid,
 		sourceId=(len(grid.nodes) - 1) / 2,
 		sinkId=len(grid.nodes) - 1,
 		spaceBehindSink=False)
 
-def CreateFurtherSinkCorner(size, distance):
-	grid = Grid(size, distance)
+def CreateFurtherSinkCorner(network_size, distance):
+	grid = Grid(network_size, distance)
 
 	return Configuration(grid,
-		sourceId=(size + 1) * 3,
+		sourceId=(network_size + 1) * 3,
 		sinkId=len(grid.nodes) - 1,
 		spaceBehindSink=False)
+
+def CreateGeneric1(network_size, distance):
+	grid = Grid(network_size, distance)
+
+	node_count = len(grid.nodes)
+
+	return Configuration(grid,
+		sourceId=(network_size / 2) - (node_count / 3),
+		sinkId=(network_size / 2) + (node_count / 3),
+		spaceBehindSink=False)
+
+configurationMapping = {
+	"SourceCorner": CreateSourceCorner,
+	"SinkCorner": CreateSinkCorner,
+	"FurtherSinkCorner": CreateFurtherSinkCorner,
+	"Generic1": CreateGeneric1
+}
+
+def Names():
+	return configurationMapping.keys()
+
+def Create(name, args):
+	return configurationMapping[name](args.network_size, args.distance)

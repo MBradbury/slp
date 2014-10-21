@@ -1,4 +1,5 @@
 import argparse, multiprocessing
+import simulator.Configuration as Configuration
 
 class Arguments:
 	def __init__(self):
@@ -11,10 +12,9 @@ class Arguments:
 
 		parser.add_argument("--source-period", type=float, required=True)
 
-		parser.add_argument("--wireless-range", type=float, required=True)
+		parser.add_argument("--distance", type=float, required=True)
 
-		parser.add_argument("--network-layout", type=str, choices=["GRID", "CIRCLE", "RING"], required=True)
-		parser.add_argument("--configuration", type=str, required=True)
+		parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
 
 		parser.add_argument("--job-size", type=int, default=1)
 		parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())

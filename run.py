@@ -2,12 +2,11 @@
 
 from __future__ import print_function
 
-import os, sys, struct, importlib, subprocess
+import sys, importlib, subprocess
 
 from simulator.Attacker import Attacker
 from simulator.Builder import build
-from simulator.Topology import *
-from simulator.Configuration import *
+import simulator.Configuration as Configuration
 from simulator.Simulation import Simulation
 from simulator.SubprocessPool import SubprocessPool
 
@@ -21,7 +20,7 @@ a.parse(sys.argv[2:])
 
 build_arguments = a.getBuildArguments()
 
-configuration = CreateSourceCorner(a.args.network_size, a.args.wireless_range - 2.5)
+configuration = Configuration.Create(a.args.configuration, a.args)
 
 build_arguments.update(configuration.getBuildArguments())
 
@@ -32,6 +31,14 @@ else:
 
 # Now build the simulation with the specified arguments
 build(module, **build_arguments)
+
+# Need to build the topology.txt file once.
+# Do it now as if done later it will be created
+# once per process and could potentially race with other processes
+# that need to create this file.
+#
+# The assumption is that any processes running are of the same topology
+Simulation.writeTopologyFile(configuration.topology.nodes)
 
 Metrics.Metrics.printHeader()
 
