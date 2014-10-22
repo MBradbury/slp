@@ -61,11 +61,49 @@ def CreateGeneric1(network_size, distance):
 		sinkId=(network_size / 2) + (node_count / 3),
 		spaceBehindSink=False)
 
+def CreateGeneric2(network_size, distance):
+	grid = Grid(network_size, distance)
+
+	return Configuration(grid,
+		sourceId=(network_size * (network_size - 2)) - 2 - 1,
+		sinkId=(network_size * 2) + 2,
+		spaceBehindSink=True)
+
+
+def CreateRingTop(network_size, distance):
+	ring = Ring(network_size, distance)
+
+	return Configuration(ring,
+		sourceId=network_size - 1,
+		sinkId=0,
+		spaceBehindSink=True)
+
+def CreateRingMiddle(network_size, distance):
+	ring = Ring(network_size, distance)
+
+	return Configuration(ring,
+		sourceId=(4 * network_size - 5) / 2 + 1,
+		sinkId=(4 * network_size - 5) / 2,
+		spaceBehindSink=True)
+
+def CreateRingOpposite(network_size, distance):
+	ring = Ring(network_size, distance)
+
+	return Configuration(ring,
+		sourceId=len(ring.nodes) - 1,
+		sinkId=0,
+		spaceBehindSink=True)
+
 configurationMapping = {
 	"SourceCorner": CreateSourceCorner,
 	"SinkCorner": CreateSinkCorner,
 	"FurtherSinkCorner": CreateFurtherSinkCorner,
-	"Generic1": CreateGeneric1
+	"Generic1": CreateGeneric1,
+	"Generic2": CreateGeneric2,
+
+	"RingTop": CreateRingTop,
+	"RingMiddle": CreateRingMiddle,
+	"RingOpposite": CreateRingOpposite,
 }
 
 def Names():
