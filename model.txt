@@ -46,5 +46,3 @@ WHITE_GAUSSIAN_NOISE = 4;
 
 TOPOLOGY = 4;
 TOPOLOGY_FILE = topology.txt;
-
-% TODO: the ability to pass a seed to the java prng

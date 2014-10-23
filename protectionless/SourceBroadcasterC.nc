@@ -5,6 +5,97 @@
 #include <Timer.h>
 #include <TinyError.h>
 
+#define SEND_MESSAGE(NAME) \
+bool send_##NAME##_message(const NAME##Message* tosend) \
+{ \
+	error_t status; \
+ \
+	if (!busy) \
+	{ \
+		NAME##Message* const message = (NAME##Message*)(call Packet.getPayload(&packet, sizeof(NAME##Message))); \
+		if (message == NULL) \
+		{ \
+			dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string()); \
+			return FALSE; \
+		} \
+ \
+		*message = *tosend; \
+ \
+		status = call NAME##Send.send(AM_BROADCAST_ADDR, &packet, sizeof(NAME##Message)); \
+		if (status == SUCCESS) \
+		{ \
+			call Leds.led0On(); \
+			busy = TRUE; \
+ \
+			METRIC_BCAST(NAME, "success"); \
+ \
+			return TRUE; \
+		} \
+		else \
+		{ \
+			METRIC_BCAST(NAME, "failed"); \
+ \
+			return FALSE; \
+		} \
+	} \
+	else \
+	{ \
+		dbg("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
+ \
+		METRIC_BCAST(NAME, "busy"); \
+ \
+		return FALSE; \
+	} \
+}
+
+#define SEND_DONE(NAME) \
+event void NAME##Send.sendDone(message_t* msg, error_t error) \
+{ \
+	dbg("SourceBroadcasterC", "%s: " #NAME "Send sendDone with status %i.\n", sim_time_string(), error); \
+ \
+	if (&packet == msg) \
+	{ \
+		call Leds.led0Off(); \
+		busy = FALSE; \
+	} \
+}
+
+#define RECEIVE_MESSAGE_BEGIN(NAME) \
+event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t len) \
+{ \
+	const NAME##Message* const rcvd = (const NAME##Message*)payload; \
+ \
+	const am_addr_t source_addr = call AMPacket.source(msg); \
+ \
+	dbg_clear("Attacker-RCV", "%" PRIu64 ",%u,%u,%u,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->sequence_number); \
+ \
+	if (len != sizeof(NAME##Message)) \
+	{ \
+		dbgerror("SourceBroadcasterC", "%s: Received " #NAME " of invalid length %hhu.\n", sim_time_string(), len); \
+		return msg; \
+	} \
+ \
+	dbg("SourceBroadcasterC", "%s: Received valid " #NAME ".\n", sim_time_string()); \
+ \
+	switch (type) \
+	{
+
+#define RECEIVE_MESSAGE_END(NAME) \
+		default: \
+		{ \
+			dbgerror("SourceBroadcasterC", "%s: Unknown node type %s. Cannot process " #NAME " message\n", sim_time_string(), type_to_string()); \
+		} break; \
+	} \
+ \
+	return msg; \
+}
+
+#define METRIC_RCV(TYPE) \
+	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number)
+
+#define METRIC_BCAST(TYPE, STATUS) \
+	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, tosend->sequence_number)
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -88,47 +179,9 @@ implementation
 		dbg("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
-	bool send_normal_message(const NormalMessage* tosend)
-	{
-		error_t status;
+	SEND_DONE(Normal);
 
-		if (!busy)
-		{
-			NormalMessage* const message = (NormalMessage*)(call Packet.getPayload(&packet, sizeof(NormalMessage)));
-			if (message == NULL)
-			{
-				dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string());
-				return FALSE;
-			}
-
-			*message = *tosend;
-
-			status = call NormalSend.send(AM_BROADCAST_ADDR, &packet, sizeof(NormalMessage));
-			if (status == SUCCESS)
-			{
-				call Leds.led0On();
-				busy = TRUE;
-
-				dbg_clear("Metric-BCAST-Normal", "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "success", tosend->sequence_number);
-
-				return TRUE;
-			}
-			else
-			{
-				dbg_clear("Metric-BCAST-Normal", "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "failed", tosend->sequence_number);
-
-				return FALSE;
-			}
-		}
-		else
-		{
-			dbg("SourceBroadcasterC", "%s: BroadcastNormalTimer busy, not sending Normal message.\n", sim_time_string());
-
-			dbg_clear("Metric-BCAST-Normal", "%" PRIu64 ",%u,%s,%u\n", sim_time(), TOS_NODE_ID, "busy", tosend->sequence_number);
-
-			return FALSE;
-		}
-	}
+	SEND_MESSAGE(Normal);
 
 	event void BroadcastNormalTimer.fired()
 	{
@@ -137,90 +190,46 @@ implementation
 		dbg("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
-		message.hop = 0;
+		message.source_distance = 0;
 		message.source_id = TOS_NODE_ID;
 
-		if (send_normal_message(&message))
+		if (send_Normal_message(&message))
 		{
 			sequence_number_increment(&normal_sequence_counter);
 		}
 	}
 
-	event void NormalSend.sendDone(message_t* msg, error_t error)
+	void Normal_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		dbg("SourceBroadcasterC", "%s: NormalSend sendDone with status %i.\n", sim_time_string(), error);
-
-		if (&packet == msg)
+		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
-			call Leds.led0Off();
-			busy = FALSE;
+			NormalMessage forwarding_message;
+
+			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV(Normal);
+
+			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
+
+			forwarding_message = *rcvd;
+			forwarding_message.source_distance += 1;
+
+			send_Normal_message(&forwarding_message);
 		}
 	}
 
-	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const normal_rcvd)
+	void Sink_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		NormalMessage forwarding_message;
-		const am_addr_t source_addr  = call AMPacket.source(msg);
-
-		if (sequence_number_before(&normal_sequence_counter, normal_rcvd->sequence_number))
+		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
-			sequence_number_update(&normal_sequence_counter, normal_rcvd->sequence_number);
+			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
-
-			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), normal_rcvd->sequence_number, source_addr);
-
-			forwarding_message = *normal_rcvd;
-			forwarding_message.hop += 1;
-
-			send_normal_message(&forwarding_message);
-		}
-		/*else
-		{
-			dbg("SourceBroadcasterC", "%s: Received previously seen Normal seqno=%u.\n", sim_time_string(), normal_rcvd->sequence_number);
-		}*/
-	}
-
-	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const normal_rcvd)
-	{
-		const am_addr_t source_addr = call AMPacket.source(msg);
-
-		if (sequence_number_before(&normal_sequence_counter, normal_rcvd->sequence_number))
-		{
-			sequence_number_update(&normal_sequence_counter, normal_rcvd->sequence_number);
-
-			dbg_clear("Metric-RCV-Normal", "%" PRIu64 ",%u,%u,%u\n", sim_time(), TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
+			METRIC_RCV(Normal);
 		}
 	}
 
-	event message_t* NormalReceive.receive(message_t* msg, void* payload, uint8_t len)
-	{
-		const NormalMessage* const normal_rcvd = (const NormalMessage*)payload;
-
-		const am_addr_t source_addr = call AMPacket.source(msg);
-
-		dbg_clear("Attacker-RCV", "%" PRIu64 ",%u,%u,%u,%u\n", sim_time(), "normal", TOS_NODE_ID, source_addr, normal_rcvd->sequence_number);
-
-		if (len != sizeof(NormalMessage))
-		{
-			dbgerror("SourceBroadcasterC", "%s: Received Normal of invalid length %hhu.\n", sim_time_string(), len);
-			return msg;
-		}
-
-		dbg("SourceBroadcasterC", "%s: Received valid Normal.\n", sim_time_string());
-
-		switch (type)
-		{
-			case SinkNode: Sink_receieve_Normal(msg, normal_rcvd); break;
-
-			case NormalNode: Normal_receieve_Normal(msg, normal_rcvd); break;
-
-			default:
-			{
-				dbgerror("SourceBroadcasterC", "%s: Unknown node type %s. Cannot process Normal message\n", sim_time_string(), type_to_string());
-			} break;
-		}
-
-		return msg;
-	}
+	RECEIVE_MESSAGE_BEGIN(Normal)
+		case SinkNode: Sink_receieve_Normal(rcvd, source_addr); break;
+		case NormalNode: Normal_receieve_Normal(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Normal)
 }

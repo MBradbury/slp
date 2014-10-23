@@ -4,7 +4,7 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct FakeMessage {
-  nx_uint32_t sequence_number;
+  nx_uint64_t sequence_number;
 
   // The id of the node that sent this message
   nx_uint16_t source_id;

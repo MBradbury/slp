@@ -4,11 +4,11 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct NormalMessage {
-  nx_uint32_t sequence_number;
+  nx_uint64_t sequence_number;
 
   // The number of hops that this message
   // has travelled from the source. 
-  nx_uint16_t hop;
+  nx_uint16_t source_distance;
 
   // The id of the node that sent this message
   nx_uint16_t source_id;
