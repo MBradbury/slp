@@ -117,6 +117,11 @@ implementation
 	{
 		mydbg("FakeMessageGeneratorImplP", "DurationTimer fired.\n");
 
+		call FakeMessageGenerator.expireDuration();
+	}
+
+	command void FakeMessageGenerator.expireDuration()
+	{
 		call SendFakeTimer.stop();
 		signal FakeMessageGenerator.durationExpired(&original_message);
 	}

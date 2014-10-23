@@ -15,13 +15,13 @@ class Metrics:
         self.sourceID = configuration.sourceId
         self.sinkID = configuration.sinkId
 
-        self.BCAST_Normal = OutputCatcher(self.process_BCAST_Normal)
-        self.sim.tossim.addChannel('Metric-BCAST-Normal', self.BCAST_Normal.write)
-        self.sim.addOutputProcessor(self.BCAST_Normal)
+        self.BCAST = OutputCatcher(self.process_BCAST)
+        self.sim.tossim.addChannel('Metric-BCAST', self.BCAST.write)
+        self.sim.addOutputProcessor(self.BCAST)
 
-        self.RCV_Normal = OutputCatcher(self.process_RCV_Normal)
-        self.sim.tossim.addChannel('Metric-RCV-Normal', self.RCV_Normal.write)
-        self.sim.addOutputProcessor(self.RCV_Normal)
+        self.RCV = OutputCatcher(self.process_RCV)
+        self.sim.tossim.addChannel('Metric-RCV', self.RCV.write)
+        self.sim.addOutputProcessor(self.RCV)
 
         self.heatMap = {}
 
@@ -31,8 +31,11 @@ class Metrics:
         self.normalSent = Counter()
         self.normalReceived = Counter()
 
-    def process_BCAST_Normal(self, line):
-        (time, nodeID, status, seqNo) = line.split(',')
+    def process_BCAST(self, line):
+        (kind, time, nodeID, status, seqNo) = line.split(',')
+
+        if kind != "Normal":
+            raise Exception("Unknown message type of {}".format(kind))
 
         if status == "success":
             time = float(time) / self.sim.tossim.ticksPerSecond()
@@ -45,8 +48,11 @@ class Metrics:
             self.normalSent[nodeID] += 1
 
 
-    def process_RCV_Normal(self, line):
-        (time, nodeID, sourceID, seqNo) = line.split(',')
+    def process_RCV(self, line):
+        (kind, time, nodeID, sourceID, seqNo) = line.split(',')
+
+        if kind != "Normal":
+            raise Exception("Unknown message type of {}".format(kind))
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
         nodeID = int(nodeID)
@@ -75,7 +81,7 @@ class Metrics:
 
     @staticmethod
     def printHeader(stream=sys.stdout):
-        print("Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerHopDistance,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
+        print("Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
 
     def printResults(self, stream=sys.stdout):
         seed = self.sim.seed
@@ -87,7 +93,6 @@ class Metrics:
         captured = self.sim.anyAttackerFoundSource()
         receivedRatio = self.receivedRatio()
         time = float(self.sim.tossim.time()) / self.sim.tossim.ticksPerSecond()
-        attackerHopDistance = None
         attackerDistance = self.attackerDistance()
         attackerMoves = {i: attacker.moves for i, attacker in enumerate(self.sim.attackers)}
         normalLatency = self.averageNormalLatency()
@@ -95,8 +100,8 @@ class Metrics:
         sentHeatMap = dict(self.normalSent)
         receivedHeatMap = dict(self.normalReceived)
 
-        print("|".join(["{}"] * 14).format(
+        print("|".join(["{}"] * 13).format(
             seed, sent, received, collisions, captured,
-            receivedRatio, time, attackerHopDistance, attackerDistance, attackerMoves,
+            receivedRatio, time, attackerDistance, attackerMoves,
             normalLatency, normalSent, sentHeatMap, receivedHeatMap),
             file=stream)

@@ -10,18 +10,15 @@
 #include <assert.h>
 
 #define max(a, b) \
-	({ __typeof__(a) _a = (a); \
-	   __typeof__(b) _b = (b); \
+	({ __typeof__(a) _a = (a), _b = (b); \
 	   _a > _b ? _a : _b; })
 
 #define min(a, b) \
-	({ __typeof__(a) _a = (a); \
-	   __typeof__(b) _b = (b); \
+	({ __typeof__(a) _a = (a), _b = (b); \
 	   _a < _b ? _a : _b; })
 
 #define minbot(a, b) \
-	({ __typeof__(a) _a = (a); \
-	   __typeof__(b) _b = (b); \
+	({ __typeof__(a) _a = (a), _b = (b); \
 	   (_a == BOTTOM || _b < _a) ? _b : _a; })
 
 
@@ -47,13 +44,13 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 			call Leds.led0On(); \
 			busy = TRUE; \
  \
-			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #NAME, sim_time(), TOS_NODE_ID, "success", tosend->sequence_number); \
+			METRIC_BCAST(NAME, "success"); \
  \
 			return TRUE; \
 		} \
 		else \
 		{ \
-			dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #NAME, sim_time(), TOS_NODE_ID, "failed", tosend->sequence_number); \
+			METRIC_BCAST(NAME, "failed"); \
  \
 			return FALSE; \
 		} \
@@ -62,7 +59,7 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 	{ \
 		dbg("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
  \
-		dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #NAME, sim_time(), TOS_NODE_ID, "busy", tosend->sequence_number); \
+		METRIC_BCAST(NAME, "busy"); \
  \
 		return FALSE; \
 	} \
@@ -109,6 +106,12 @@ event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t le
  \
 	return msg; \
 }
+
+#define METRIC_RCV(TYPE) \
+	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number)
+
+#define METRIC_BCAST(TYPE, STATUS) \
+	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, tosend->sequence_number)
 
 module SourceBroadcasterC
 {
@@ -172,7 +175,8 @@ implementation
 	bool seen_pfs = FALSE;
 	bool is_pfs_candidate = FALSE;
 
-	int32_t first_source_distance = BOTTOM;
+	uint32_t first_source_distance = 0;
+	bool first_source_distance_set = FALSE;
 
 	typedef enum
 	{
@@ -181,18 +185,18 @@ implementation
 
 	Algorithm algorithm = UnknownAlgorithm;
 
-	bool should_ignore_choose()
+	bool should_process_choose()
 	{
 		switch (algorithm)
 		{
 			case GenericAlgorithm:
-				return sink_source_distance != BOTTOM && source_distance <= ((3 * sink_source_distance) / 4);
+				return !(sink_source_distance != BOTTOM && source_distance <= ((3 * sink_source_distance) / 4));
 
 			case FurtherAlgorithm:
-				return !seen_pfs && sink_source_distance != BOTTOM && source_distance <= (((1 * sink_source_distance) / 2) - 1);
+				return !seen_pfs && !(sink_source_distance != BOTTOM && source_distance <= (((1 * sink_source_distance) / 2) - 1));
 
 			default:
-				return FALSE;
+				return TRUE;
 		}
 	}
 
@@ -274,6 +278,8 @@ implementation
 		type = NormalNode;
 
 		call FakeMessageGenerator.stop();
+
+		dbg("GUI-Fake-Notification", "The node has become a Normal\n");
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
@@ -304,8 +310,8 @@ implementation
 		dbg("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
-		message.hop = 0;
-		message.max_hop = BOTTOM;
+		message.source_distance = 0;
+		message.max_hop = first_source_distance;
 		message.source_id = TOS_NODE_ID;
 		message.sink_source_distance = sink_source_distance;
 
@@ -317,43 +323,41 @@ implementation
 
 	void Normal_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		NormalMessage forwarding_message;
-
-		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
+		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
 		}
 
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
+			NormalMessage forwarding_message;
+
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Normal", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Normal);
 
 			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
-			if (first_source_distance == BOTTOM)
+			if (!first_source_distance_set)
 			{
-				first_source_distance = rcvd->hop + 1;
+				first_source_distance = rcvd->source_distance + 1;
 				is_pfs_candidate = TRUE;
+				first_source_distance_set = TRUE;
 				call Leds.led1On();
 			}
 
-			source_distance = minbot(source_distance, (int32_t)rcvd->hop + 1);
+			source_distance = minbot(source_distance, rcvd->source_distance + 1);
 
 			forwarding_message = *rcvd;
-			forwarding_message.hop += 1;
-			forwarding_message.max_hop = max(first_source_distance, (int32_t)rcvd->max_hop);
+			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.source_distance += 1;
+			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 
 			send_Normal_message(&forwarding_message);
 		}
-		/*else
-		{
-			dbg("SourceBroadcasterC", "%s: Received previously seen Normal seqno=%u.\n", sim_time_string(), rcvd->sequence_number);
-		}*/
 	}
 
 	void Sink_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -362,9 +366,9 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Normal", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Normal);
 
-			sink_source_distance = minbot(sink_source_distance, rcvd->hop + 1);
+			sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
 
 			if (!sink_sent_away)
 			{
@@ -377,30 +381,31 @@ implementation
 
 				sequence_number_increment(&away_sequence_counter);
 
-				sink_sent_away = TRUE;
-
 				// TODO sense repeat 3 in (Psource / 2)
-				send_Away_message(&message);
+				if (send_Away_message(&message))
+				{
+					sink_sent_away = TRUE;
+				}
 			}
 		}
 	}
 
 	void Fake_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		NormalMessage forwarding_message;
-
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
+			NormalMessage forwarding_message;
+
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Normal", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Normal);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.hop += 1;
-			forwarding_message.max_hop = max(first_source_distance, (int32_t)rcvd->max_hop);
+			forwarding_message.source_distance += 1;
+			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 
 			send_Normal_message(&forwarding_message);
 		}
@@ -417,37 +422,36 @@ implementation
 
 	void Source_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		AwayMessage forwarding_message;
-
 		if (algorithm == UnknownAlgorithm)
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
+			AwayMessage forwarding_message;
+
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Away", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Away);
 
-			sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_distance + 1);
+			sink_source_distance = minbot(sink_source_distance, rcvd->sink_distance + 1);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 
+			// TODO: repeat 2
 			send_Away_message(&forwarding_message);
 		}
 	}
 
 	void Normal_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		AwayMessage forwarding_message;
-
-		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
+		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -458,15 +462,17 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
+			AwayMessage forwarding_message;
+
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Away", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Away);
 
-			sink_distance = minbot(sink_distance, (int32_t)rcvd->sink_distance + 1);
+			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 			if (rcvd->sink_distance == 0)
 			{
@@ -479,7 +485,9 @@ implementation
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
+			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 
+			// TODO: repeat 2
 			send_Away_message(&forwarding_message);
 		}
 	}
@@ -492,7 +500,7 @@ implementation
 
 	void Normal_receieve_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
+		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -503,13 +511,13 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
-		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && !should_ignore_choose())
+		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && should_process_choose())
 		{
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Choose", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Choose);
 
 			if (is_pfs_candidate)
 			{
@@ -530,7 +538,7 @@ implementation
 
 	void Sink_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -538,7 +546,7 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Fake", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Fake);
 
 			message.sink_source_distance = sink_source_distance;
 
@@ -548,13 +556,13 @@ implementation
 
 	void Source_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Fake", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Fake);
 
 			seen_pfs |= rcvd->from_pfs;
 		}
@@ -562,13 +570,13 @@ implementation
 
 	void Normal_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
+		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
 		}
 
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -576,12 +584,12 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Fake", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Fake);
 
 			seen_pfs |= rcvd->from_pfs;
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.max_hop = max(first_source_distance, (int32_t)forwarding_message.max_hop);
+			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
 
 			send_Fake_message(&forwarding_message);
 		}
@@ -589,13 +597,13 @@ implementation
 
 	void Fake_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (first_source_distance == BOTTOM || (rcvd->max_hop != BOTTOM && rcvd->max_hop - 1 > first_source_distance))
+		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
 		}
 
-		sink_source_distance = minbot(sink_source_distance, (int32_t)rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -603,12 +611,12 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", "Fake", sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number);
+			METRIC_RCV(Fake);
 
 			seen_pfs |= rcvd->from_pfs;
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.max_hop = max(first_source_distance, (int32_t)forwarding_message.max_hop);
+			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
 
 			send_Fake_message(&forwarding_message);
 
@@ -660,14 +668,13 @@ implementation
 		message.sink_source_distance = sink_source_distance;
 		message.sink_distance += 1;
 
+		// TODO: repeat 3
 		send_Choose_message(&message);
 
-		dbg("GUI-Fake-Notification", "The node has become a Normal\n");
-
-		type = NormalNode;
+		become_Normal();
 	}
 
-	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* message)
+	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)
 	{
 		const char* result;
 
@@ -680,6 +687,14 @@ implementation
 		default: result = "failed"; break;
 		}
 
-		dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", "Fake", sim_time(), TOS_NODE_ID, result, message->sequence_number);	
+		METRIC_BCAST(Fake, result);
+
+		if (pfs_can_become_normal())
+		{
+			if (type == PermFakeNode && !is_pfs_candidate)
+			{
+				call FakeMessageGenerator.expireDuration();
+			}
+		}
 	}
 }

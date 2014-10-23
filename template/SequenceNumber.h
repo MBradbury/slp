@@ -1,7 +1,7 @@
 #ifndef SLP_SEQUENCENUMBER_H
 #define SLP_SEQUENCENUMBER_H
 
-typedef uint32_t SequenceNumber;
+typedef uint64_t SequenceNumber;
 
 inline void sequence_number_init(SequenceNumber* seqno) __attribute__((nonnull(1)))
 {
