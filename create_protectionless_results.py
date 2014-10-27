@@ -30,19 +30,19 @@ sizes = [ 11, 15, 21, 25 ]
 periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
 configurations = [
-    ('GRID', 'SourceCorner'),
-    ('GRID', 'SinkCorner'),
-    #('GRID', 'FurtherSinkCorner'),
-    #('GRID', 'Generic1'),
-    #('GRID', 'Generic2'),
+    'SourceCorner',
+    'SinkCorner',
+    #'FurtherSinkCorner',
+    #'Generic1',
+    #'Generic2',
     
-    #('RING', 'RingTop'),
-    #('RING', 'RingOpposite'),
-    #('RING', 'RingMiddle'),
+    #'RingTop',
+    #'RingOpposite',
+    #'RingMiddle',
     
-    #('CIRCLE', 'CircleEdges'),
-    #('CIRCLE', 'CircleSourceCentre'),
-    #('CIRCLE', 'CircleSinkCentre'),
+    #'CircleEdges',
+    #'CircleSourceCentre',
+    #'CircleSinkCentre',
 ]
 
 def create_dirtree(path):

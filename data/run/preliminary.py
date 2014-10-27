@@ -18,9 +18,9 @@ class RunSimulations(RunSimulationsCommon):
             raise Exception("The file {} doesn't exist".format(jar_path))
 
         for (size, source_period, (type, configuration, algorithm)) in itertools.product(sizes, source_periods, configurations):
-            if not self._already_processed(size, source_period, configuration, type, repeats):
+            if not self._already_processed(size, source_period, configuration, repeats):
 
-                safety_period = self.safety_periods[type][configuration][size][source_rate]
+                safety_period = self.safety_periods[configuration][size][source_rate]
 
                 command = 'java {} -cp "{}" Adaptive.Main --network-size {} --safety-period {} --source-rate {} --network-layout {} --configuration {} --algorithm {} --mode PARALLEL --job-size {}'.format(
                     self.optimisations,
