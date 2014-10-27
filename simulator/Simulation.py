@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os, struct, importlib, subprocess
+import os, struct, importlib, subprocess, sys
 
 from simulator.TosVis import TosVis
 
@@ -15,11 +15,11 @@ class Simulation(TosVis):
 
         self.safetyPeriod = args.safety_period if hasattr(args, "safety_period") else None
 
-#       self.tossim.addChannel("Metric-BCAST-Normal", sys.stdout)
-#       self.tossim.addChannel("Metric-RCV-Normal", sys.stdout)
-#       self.tossim.addChannel("Boot", sys.stdout)
-#       self.tossim.addChannel("SourceBroadcasterC", sys.stdout)
-#       self.tossim.addChannel("Attacker-RCV", sys.stdout)
+#        self.tossim.addChannel("Metric-BCAST-Normal", sys.stdout)
+#        self.tossim.addChannel("Metric-RCV-Normal", sys.stdout)
+#        self.tossim.addChannel("Boot", sys.stdout)
+#        self.tossim.addChannel("SourceBroadcasterC", sys.stdout)
+#        self.tossim.addChannel("Attacker-RCV", sys.stdout)
 
         self.attackers = []
 
@@ -57,7 +57,7 @@ class Simulation(TosVis):
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.
-        count = 400
+        count = 1000
 
         noises = [noise for _, noise in zip(range(count), self.readNoiseFromFile(path))]
         
