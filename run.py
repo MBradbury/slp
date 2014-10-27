@@ -40,6 +40,9 @@ build(module, **build_arguments)
 # The assumption is that any processes running are of the same topology
 Simulation.writeTopologyFile(configuration.topology.nodes)
 
+for (k, v) in vars(a.args).items():
+	print("{}={}".format(k, v))
+
 Metrics.Metrics.printHeader()
 
 # Because of the way TOSSIM is architectured each individual simulation

@@ -39,23 +39,22 @@ class RunSimulationsCommon:
 
                     # Count result lines
                     if seen_hash:
-                        if ',' in line:
+                        if '|' in line:
                             results_count += 1
 
                 
                 if len(fileopts) != 0:
                     self.existing_results[(
-                        fileopts['Network Size'],
-                        fileopts['Source Period'],
-                        fileopts['Configuration'],
-                        fileopts['Network Type']
-                        )] = (int(fileopts['Jobs']), results_count)
+                        fileopts['network_size'],
+                        fileopts['source_period'],
+                        fileopts['configuration']
+                        )] = (int(fileopts['job_size']), results_count)
 
-    def _already_processed(self, size, source_rate, configuration, type, repeats):
+    def _already_processed(self, size, source_period, configuration, repeats):
         if not self.skip_completed_simulations:
             return False
 
-        key = (str(size), str(int(1.0/source_rate)), str(configuration), str(type))
+        key = (str(size), str(source_period), str(configuration))
 
         if key not in self.existing_results:
             return False

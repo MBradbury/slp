@@ -54,7 +54,7 @@ create_dirtree(graphs_directory)
 
 if 'all' in args or 'run' in args:
     runner = run_protectionless.RunSimulations(LocalDriver.Runner(), results_directory)
-    runner.run(jar_path, distance, sizes, periods, configurations, 1000)
+    runner.run(jar_path, distance, sizes, periods, configurations, 250)
 
 if 'all' in args or 'analyse' in args:
     analyzer = analyse_protectionless.Analyzer(results_directory)
