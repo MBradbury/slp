@@ -1,5 +1,5 @@
 
-import subprocess
+import subprocess, sys
 
 def build(directory, **kwargs):
 
@@ -10,5 +10,6 @@ def build(directory, **kwargs):
 	result = subprocess.check_call(
 		command,
 		cwd=directory,
-		shell=True
+		shell=True,
+		stdout=sys.stderr.fileno()
 		)
