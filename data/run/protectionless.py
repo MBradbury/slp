@@ -15,8 +15,8 @@ class RunSimulations(RunSimulationsCommon):
         if not os.path.exists(exe_path):
             raise Exception("The file {} doesn't exist".format(exe_path))
 
-        for (size, source_period, (type, configuration)) in itertools.product(sizes, source_periods, configurations):
-            if not self._already_processed(size, source_period, configuration, type, repeats):
+        for (size, source_period, configuration) in itertools.product(sizes, source_periods, configurations):
+            if not self._already_processed(size, source_period, configuration, repeats):
 
                 command = 'python {} {} protectionless --mode PARALLEL --network-size {} --source-period {} --configuration {} --job-size {} --distance {}'.format(
                     self.optimisations,
