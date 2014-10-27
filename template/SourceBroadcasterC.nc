@@ -25,18 +25,26 @@
 #define SEND_MESSAGE(NAME) \
 bool send_##NAME##_message(const NAME##Message* tosend) \
 { \
-	error_t status; \
- \
-	if (!busy) \
+	if (!busy || tosend == NULL) \
 	{ \
-		NAME##Message* const message = (NAME##Message*)(call Packet.getPayload(&packet, sizeof(NAME##Message))); \
+		error_t status; \
+ \
+ 		NAME##Message* const message = (NAME##Message*)(call Packet.getPayload(&packet, sizeof(NAME##Message))); \
 		if (message == NULL) \
 		{ \
 			dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string()); \
 			return FALSE; \
 		} \
  \
-		*message = *tosend; \
+ 		if (tosend != NULL) \
+ 		{ \
+			*message = *tosend; \
+		} \
+		else \
+		{ \
+			/* Need tosend set, so that the metrics recording works. */ \
+			tosend = message; \
+		} \
  \
 		status = call NAME##Send.send(AM_BROADCAST_ADDR, &packet, sizeof(NAME##Message)); \
 		if (status == SUCCESS) \
@@ -72,8 +80,18 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
  \
 	if (&packet == msg) \
 	{ \
-		call Leds.led0Off(); \
-		busy = FALSE; \
+		if (extra_to_send > 0) \
+		{ \
+			if (send_##NAME##_message(NULL)) \
+			{ \
+				--extra_to_send; \
+			} \
+		} \
+		else \
+		{ \
+			call Leds.led0Off(); \
+			busy = FALSE; \
+		} \
 	} \
 }
 
@@ -111,7 +129,7 @@ event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t le
 	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number)
 
 #define METRIC_BCAST(TYPE, STATUS) \
-	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, tosend->sequence_number)
+	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, (tosend != NULL) ? tosend->sequence_number : (uint32_t)-1)
 
 module SourceBroadcasterC
 {
@@ -177,6 +195,8 @@ implementation
 
 	uint32_t first_source_distance = 0;
 	bool first_source_distance_set = FALSE;
+
+	uint32_t extra_to_send = 0;
 
 	typedef enum
 	{
@@ -263,15 +283,15 @@ implementation
 		dbg("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
-	SEND_DONE(Normal);
-	SEND_DONE(Away);
-	SEND_DONE(Choose);
-	SEND_DONE(Fake);
-
 	SEND_MESSAGE(Normal);
 	SEND_MESSAGE(Away);
 	SEND_MESSAGE(Choose);
 	SEND_MESSAGE(Fake);
+
+	SEND_DONE(Normal);
+	SEND_DONE(Away);
+	SEND_DONE(Choose);
+	SEND_DONE(Fake);
 
 	void become_Normal()
 	{
@@ -382,6 +402,7 @@ implementation
 				sequence_number_increment(&away_sequence_counter);
 
 				// TODO sense repeat 3 in (Psource / 2)
+				extra_to_send = 2;
 				if (send_Away_message(&message))
 				{
 					sink_sent_away = TRUE;
@@ -445,6 +466,7 @@ implementation
 			forwarding_message.algorithm = algorithm;
 
 			// TODO: repeat 2
+			//extra_to_send = 1;
 			send_Away_message(&forwarding_message);
 		}
 	}
@@ -488,6 +510,7 @@ implementation
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 
 			// TODO: repeat 2
+			//extra_to_send = 1;
 			send_Away_message(&forwarding_message);
 		}
 	}
@@ -630,7 +653,7 @@ implementation
 				)
 				)
 			{
-				become_Normal();
+				call FakeMessageGenerator.expireDuration();
 			}
 		}
 	}
@@ -669,6 +692,7 @@ implementation
 		message.sink_distance += 1;
 
 		// TODO: repeat 3
+		extra_to_send = 2;
 		send_Choose_message(&message);
 
 		become_Normal();
