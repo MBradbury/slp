@@ -143,6 +143,7 @@ module SourceBroadcasterC
 	uses interface Random;
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
+	uses interface Timer<TMilli> as AwaySenderTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -385,6 +386,25 @@ implementation
 		}
 	}
 
+	event void AwaySenderTimer.fired()
+	{
+		AwayMessage message;
+		message.sequence_number = sequence_number_next(&away_sequence_counter);
+		message.sink_distance = 0;
+		message.sink_source_distance = sink_source_distance;
+		message.max_hop = sink_source_distance;
+		message.algorithm = ALGORITHM;
+
+		sequence_number_increment(&away_sequence_counter);
+
+		// TODO sense repeat 3 in (Psource / 2)
+		extra_to_send = 2;
+		if (send_Away_message(&message))
+		{
+			sink_sent_away = TRUE;
+		}
+	}
+
 	void Normal_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
@@ -436,21 +456,7 @@ implementation
 
 			if (!sink_sent_away)
 			{
-				AwayMessage message;
-				message.sequence_number = sequence_number_next(&away_sequence_counter);
-				message.sink_distance = 0;
-				message.sink_source_distance = sink_source_distance;
-				message.max_hop = rcvd->max_hop;
-				message.algorithm = ALGORITHM;
-
-				sequence_number_increment(&away_sequence_counter);
-
-				// TODO sense repeat 3 in (Psource / 2)
-				extra_to_send = 2;
-				if (send_Away_message(&message))
-				{
-					sink_sent_away = TRUE;
-				}
+				call AwaySenderTimer.startOneShot(SOURCE_PERIOD_MS / 2);
 			}
 		}
 	}

@@ -29,8 +29,10 @@ implementation
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
+	components new TimerMilliC() as AwaySenderTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
+	App.AwaySenderTimer -> AwaySenderTimer;
 
 
 	// Networking

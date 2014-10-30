@@ -7,7 +7,7 @@ from .common import RunSimulationsCommon
 
 class RunSimulations(RunSimulationsCommon):
     def __init__(self, driver, results_directory, safety_periods, skip_completed_simulations=True):
-        super().__init__(driver, results_directory, skip_completed_simulations)
+        super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
     def run(self, jar_path, sizes, source_periods, configurations, repeats):

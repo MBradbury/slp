@@ -6,7 +6,7 @@ from .common import RunSimulationsCommon
 
 class RunSimulations(RunSimulationsCommon):
     def __init__(self, driver, results_directory, skip_completed_simulations=True):
-        super().__init__(driver, results_directory, skip_completed_simulations)
+        super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
 
     def run(self, exe_path, distance, sizes, source_periods, configurations, repeats):
         if self.skip_completed_simulations:

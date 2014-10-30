@@ -17,7 +17,7 @@ class CapturedAnalysisResults(AnalysisResults):
     varianceOf = {}
 
     def __init__(self, analysis):
-        super().__init__(analysis)
+        super(CapturedAnalysisResults, self).__init__(analysis)
                 
         self.captured = analysis.capturedRuns()
 
