@@ -2,7 +2,7 @@ import os
 import fnmatch
 
 
-class RunSimulationsCommon:
+class RunSimulationsCommon(object):
     optimisations = '-OO'
     
     def __init__(self, driver, results_directory, skip_completed_simulations=True):

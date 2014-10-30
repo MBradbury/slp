@@ -74,7 +74,7 @@ class Analyse:
 
         return capture
 
-class AnalysisResults:
+class AnalysisResults(object):
     def __init__(self, analysis):
         self.averageOf = {}
         self.varianceOf = {}
