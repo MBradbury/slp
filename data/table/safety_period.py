@@ -1,5 +1,7 @@
 # Author: Matthew Bradbury
 
+from __future__ import print_function
+
 import csv
 import math
 import sys
@@ -22,11 +24,6 @@ class TableGenerator:
             'CircleSourceCentre': {11: 7, 15: 9, 21: 12, 25: 15},
             'CircleSinkCentre': {11: 7, 15: 9, 21: 12, 25: 15},
         }
-
-    def _network_layout_rank(self, type):
-        type_ranks = {'GRID': 1, 'RING': 2, 'CIRCLE': 3}
-
-        return type_ranks[type] if type in type_ranks else len(type_ranks) + 1
 
     def _configuration_rank(self, configuration):
         rank = {
@@ -70,7 +67,6 @@ class TableGenerator:
                     size = int(values[ headers.index('network size') ])
                     srcPeriod = float(values[ headers.index('source period') ])
                     configuration = values[ headers.index('configuration') ]
-                    type = values[ headers.index('network type') ]
                     
                     timetaken = extractAverageAndSddev(values[ headers.index('time taken') ])
                     rcv = extractAverageAndSddev(values[ headers.index('received ratio') ])
@@ -81,7 +77,6 @@ class TableGenerator:
                     latency = extractAverageAndSddev(values[ headers.index('normal latency') ])
                     
                     self.data \
-                        .setdefault(type, {}) \
                         .setdefault(configuration, {}) \
                         .setdefault(size, []) \
                         .append( (srcPeriod, timetaken, safetyPeriod, rcv, latency) )
@@ -90,58 +85,54 @@ class TableGenerator:
                     headers = values
 
     def print_table(self, stream=sys.stdout):
-        for type in sorted(self.data.keys(), key=self._network_layout_rank):
-            for config in sorted(self.data[type].keys(), key=self._configuration_rank):
-                print('\\begin{table}', file=stream)
-                print('\\vspace{-0.35cm}', file=stream)
-                print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration for \\textbf{{{}}} networks}}'.format(config, type), file=stream)
-                print('\\centering', file=stream)
-                print('\\begin{tabular}{ | c | c || c || c | c | c || c | }', file=stream)
-                print('\\hline', file=stream)
-                print('Size & Period & Source-Sink   & Received & Latency   & Average Time    & Safety Period \\tabularnewline', file=stream)
-                print('~    & (sec)  & Distance (hop)& (\%)     & (seconds) & Taken (seconds) & (seconds) \\tabularnewline', file=stream)
-                print('\\hline', file=stream)
-                print('', file=stream)
+        for config in sorted(self.data.keys(), key=self._configuration_rank):
+            print('\\begin{table}', file=stream)
+            print('\\vspace{-0.35cm}', file=stream)
+            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration for \\textbf{{{}}} networks}}'.format(config, type), file=stream)
+            print('\\centering', file=stream)
+            print('\\begin{tabular}{ | c | c || c || c | c | c || c | }', file=stream)
+            print('\\hline', file=stream)
+            print('Size & Period & Source-Sink   & Received & Latency   & Average Time    & Safety Period \\tabularnewline', file=stream)
+            print('~    & (sec)  & Distance (hop)& (\%)     & (seconds) & Taken (seconds) & (seconds) \\tabularnewline', file=stream)
+            print('\\hline', file=stream)
+            print('', file=stream)
 
-                for size in sorted(self.data[type][config].keys()):
+            for size in sorted(self.data[config].keys()):
 
-                    # Sort by srcPeriod
-                    sortedData = sorted(self.data[type][config][size], key=lambda x: x[0])
+                # Sort by srcPeriod
+                sortedData = sorted(self.data[config][size], key=lambda x: x[0])
 
-                    for (srcPeriod, timeTaken, safetyPeriod, rcv, latency) in sortedData:
+                for (srcPeriod, timeTaken, safetyPeriod, rcv, latency) in sortedData:
+                
+                    print('{} & {} & {} & {:0.0f} $\pm$ {:0.2f} & {:0.3f} $\pm$ {:0.3f} & {:0.2f} $\pm$ {:0.2f} & {:0.2f} \\tabularnewline'.format(
+                            size,
+                            srcPeriod,
+                            self.sddata[config][size],
+                            rcv[0], rcv[1],
+                            latency[0], latency[1],
+                            timeTaken[0], timeTaken[1],
+                            safetyPeriod),
+                        file=stream)
                     
-                        print('{} & {} & {} & {:0.0f} $\pm$ {:0.2f} & {:0.3f} $\pm$ {:0.3f} & {:0.2f} $\pm$ {:0.2f} & {:0.2f} \\tabularnewline'.format(
-                                size,
-                                srcPeriod,
-                                self.sddata[config][size],
-                                rcv[0], rcv[1],
-                                latency[0], latency[1],
-                                timeTaken[0], timeTaken[1],
-                                safetyPeriod),
-                            file=stream)
-                        
-                    print('\\hline', file=stream)
-                    print('', file=stream)
-
-                print('\\end{tabular}', file=stream)
-                print('\\label{{tab:safety-periods-{}-{}}}'.format(type, config), file=stream)
-                print('\\end{table}', file=stream)
+                print('\\hline', file=stream)
                 print('', file=stream)
 
-            print('\\clearpage', file=stream)
+            print('\\end{tabular}', file=stream)
+            print('\\label{{tab:safety-periods-{}}}'.format(config), file=stream)
+            print('\\end{table}', file=stream)
+            print('', file=stream)
+
+        print('\\clearpage', file=stream)
 
     def safety_periods(self):
         # type -> configuration -> size -> source rate -> safety period
         result = {}
 
-        for (type, type_dict) in self.data.items():
-            result[type] = {}
-            for (config, config_list) in type_dict.items():
-                result[type][config] = {}
-                for (size, size_list) in config_list.items():
-                    result[type][config][size] = {}
-                    for (srcPeriod, timeTaken, safetyPeriod, rcv, latency) in size_list:
-                        sourceRate = int(1.0 / srcPeriod)
-                        result[type][config][size][sourceRate] = safetyPeriod
+        for (config, config_list) in self.data.items():
+            result[config] = {}
+            for (size, size_list) in config_list.items():
+                result[config][size] = {}
+                for (srcPeriod, timeTaken, safetyPeriod, rcv, latency) in size_list:
+                    result[config][size][srcPeriod] = safetyPeriod
 
         return result

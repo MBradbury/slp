@@ -1,22 +1,9 @@
 
-try:
-    import numpy
-    mean = numpy.mean
-    variance = numpy.var
-except:
-    def mean(data):
-        return sum(data) / len(data)
+from numpy import mean
+from numpy import var as variance
 
-    # From: http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Two-pass_algorithm
-    def variance(data):
-        variance = 0.0
-        average  = mean(data)
-
-        for x in data:
-            diff = x - average
-            variance += diff * diff
-
-        return variance / (len(data) - 1)
+import ast
+from collections import Counter
 
 class Analyse:
     def __init__(self, infile):
@@ -41,19 +28,13 @@ class Analyse:
 
                 elif line.startswith('#'):
                     # Read the headings
-                    self.headings = line[1:].split(',')
+                    self.headings = line[1:].split('|')
 
-                elif ',' in line:
+                elif '|' in line:
                     # Read the actual data
-                    values = line.split(',')
+                    values = line.split('|')
 
                     self.data.append(values)
-                    
-                elif ':' in line:
-                    # We are reading the options so record them
-                    opt = line.split(':')
-
-                    self.results[opt[0]] = opt[1]
 
                 else:
                     pass
@@ -62,13 +43,24 @@ class Analyse:
         # Find the index that header refers to
         index = self.headings.index(header)
 
-        return mean([float(values[index]) for values in self.data])
+        if "{" in self.data[0][index]:
+            return self.dictMean(index)
+        else:
+            return mean([float(values[index]) for values in self.data])
 
     def varianceOf(self, header):
         # Find the index that header refers to
         index = self.headings.index(header)
 
-        return variance([float(values[index]) for values in self.data])
+        if "{" in self.data[0][index]:
+            raise NotImplementedError()
+        else:
+            return variance([float(values[index]) for values in self.data])
+
+    def dictMean(self, index):
+        dictList = [Counter(ast.literal_eval(values[index])) for values in self.data]
+
+        return { k: float(v) / len(dictList) for (k, v) in dict(sum(dictList, Counter())).items() }
         
     def capturedRuns(self):
         # Find the index that header refers to
@@ -83,20 +75,21 @@ class Analyse:
         return capture
 
 class AnalysisResults:
-
-    averageOf = {}
-    varianceOf = {}
-
     def __init__(self, analysis):
+        self.averageOf = {}
+        self.varianceOf = {}
+        
         for heading in analysis.headings:
             try:
                 self.averageOf[heading] = analysis.averageOf(heading)
-                self.varianceOf[heading] = analysis.varianceOf(heading)
             except:
                 try:
                     del self.averageOf[heading]
                 except:
                     pass
+            try:
+                self.varianceOf[heading] = analysis.varianceOf(heading)
+            except:
                 try:
                     del self.varianceOf[heading]
                 except:

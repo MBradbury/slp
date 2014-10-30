@@ -22,11 +22,10 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},{},,{},{},{},,{},,{}\n'.format(
+            out.write('{},{},{},,{},{},{},,{},,{},{}\n'.format(
                 'network size',
                 'source period',
                 'configuration',
-                'network type',
                 
                 'time taken',
                 'received ratio',
@@ -34,7 +33,8 @@ class Analyzer:
                 
                 'safety period',
 
-                'Heatmap'
+                'sent heatmap',
+                'received heatmap'
                 ))
 
             for infile in files:
@@ -44,24 +44,24 @@ class Analyzer:
             
                 result = AnalysisResults(Analyse(path))
 
-                out.write('{},{},{},{},,{}({}),{}({}),{}({}),,{},,{}\n'.format(
-                    result.opts['Network Size'],
-                    result.opts['Source Period'],
-                    result.opts['Configuration'],   
-                    result.opts['Network Type'],            
+                out.write('{},{},{},,{}({}),{}({}),{}({}),,{},,{},{}\n'.format(
+                    result.opts['network_size'],
+                    result.opts['source_period'],
+                    result.opts['configuration'],           
                     
-                    result.averageOf['Time'],
-                    result.varianceOf['Time'],
+                    result.averageOf['TimeTaken'],
+                    result.varianceOf['TimeTaken'],
                     
-                    result.averageOf['Received Ratio'],
-                    result.varianceOf['Received Ratio'],
+                    result.averageOf['ReceiveRatio'],
+                    result.varianceOf['ReceiveRatio'],
 
                     result.averageOf['NormalLatency'],
                     result.varianceOf['NormalLatency'],
                     
-                    result.averageOf['Time'] * 2.0,
+                    result.averageOf['TimeTaken'] * 2.0,
 
-                    result.results['Sent Map']
+                    result.averageOf['SentHeatMap'],
+                    result.averageOf['ReceivedHeatMap']
                     ))
                     
             print('Finished writing {}'.format(summary_file))
