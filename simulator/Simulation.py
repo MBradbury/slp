@@ -15,6 +15,8 @@ class Simulation(TosVis):
 
         self.safetyPeriod = args.safety_period if hasattr(args, "safety_period") else None
 
+#        self.tossim.addChannel("Fake-Probability-Decision", sys.stdout)
+#        self.tossim.addChannel("stdout", sys.stdout)
 #        self.tossim.addChannel("Metric-BCAST-Normal", sys.stdout)
 #        self.tossim.addChannel("Metric-RCV-Normal", sys.stdout)
 #        self.tossim.addChannel("Boot", sys.stdout)
