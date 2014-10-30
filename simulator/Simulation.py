@@ -42,7 +42,7 @@ class Simulation(TosVis):
             stdout=subprocess.PIPE)
 
         for line in proc.stdout:
-            parts = line.split("\t")
+            parts = line.strip().split("\t")
 
             if parts[0] == "gain":
                 (g, nodeIdFrom, nodeIdTo, gain) = parts

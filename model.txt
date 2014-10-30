@@ -30,12 +30,14 @@ NOISE_FLOOR = -105.0;
 % S12 : covariance between noise floor and output power (captures correlation)
 % S21 : equal to S12
 % S22 : variance of output power 
-
-% 0 for symmetric links
-S11 = 0;
-S12 = 0;
-S21 = 0;
-S22 = 0;
+%
+% [0 x; x 0] for symmetric links
+% [3.7 -3.3; -3.3 6.0] for high asymmetry levels
+% [0.9 -0.7; -0.7 1.2] for low asymmetry levels
+S11 = 0.9;
+S12 = -0.7;
+S21 = -0.7;
+S22 = 1.2;
 
 % standard deviation of additive white gaussian noise
 WHITE_GAUSSIAN_NOISE = 4;
