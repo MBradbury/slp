@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os, sys, math, select, random
+import os, sys, math, select, random, gc
 
 class Node:
 	def __init__(self, id, location, tossim_node):
@@ -153,18 +153,26 @@ class Simulator(object):
 
 	def run(self):
 		
-		self.preRun()
+		# Lets disable the python GC, so that it will not be run
+		# in this tight loop that shouldn't allocate much memory
+		try:
+			gc.disable()
 
-		eventCount = 0
+			self.preRun()
 
-		while self.continuePredicate():
-			if self.tossim.runNextEvent() == 0:
-				print("Run next event returned 0 ({})".format(eventCount))
-				break
+			eventCount = 0
 
-			self.inRun()
+			while self.continuePredicate():
+				if self.tossim.runNextEvent() == 0:
+					print("Run next event returned 0 ({})".format(eventCount))
+					break
 
-			eventCount += 1
+				self.inRun()
 
-		self.postRun()
+				eventCount += 1
+
+		finally:
+			gc.enable()
+
+			self.postRun()
 
