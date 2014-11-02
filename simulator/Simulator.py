@@ -59,9 +59,6 @@ class Simulator(object):
 
 		del self.tossim
 
-	def setBootTime(self, node):
-		pass
-
 	def addOutputProcessor(self, op):
 		self.outProcs.append(op)
 
