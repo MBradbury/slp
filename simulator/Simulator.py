@@ -24,8 +24,14 @@ class OutputCatcher:
 				break
 
 	def close(self):
-		self.read.close()
-		self.write.close()
+		if self.read is not None:
+			self.read.close()
+
+		if self.write is not None:
+			self.write.close()
+
+		self.read = None
+		self.write = None
 
 class Simulator(object):	
 	def __init__(self, TOSSIM, node_locations, range, seed):

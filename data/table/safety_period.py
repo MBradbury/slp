@@ -5,6 +5,7 @@ from __future__ import print_function
 import csv
 import math
 import sys
+import numpy
 
 class TableGenerator:
 
@@ -50,7 +51,7 @@ class TableGenerator:
             mean = float(split[0])
             var = float(split[1].strip(')'))
 
-            return (mean, math.sqrt(var))
+            return numpy.array((mean, math.sqrt(var)))
 
         with open(result_file, 'r') as f:
 
@@ -69,8 +70,7 @@ class TableGenerator:
                     configuration = values[ headers.index('configuration') ]
                     
                     timetaken = extractAverageAndSddev(values[ headers.index('time taken') ])
-                    rcv = extractAverageAndSddev(values[ headers.index('received ratio') ])
-                    rcv = (rcv[0] * 100.0, rcv[1] * 100.0)
+                    rcv = extractAverageAndSddev(values[ headers.index('received ratio') ]) * 100.0
                     
                     safetyPeriod = float(values[ headers.index('safety period') ])
 
@@ -88,7 +88,7 @@ class TableGenerator:
         for config in sorted(self.data.keys(), key=self._configuration_rank):
             print('\\begin{table}', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
-            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration for \\textbf{{{}}} networks}}'.format(config, type), file=stream)
+            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration}}'.format(config), file=stream)
             print('\\centering', file=stream)
             print('\\begin{tabular}{ | c | c || c || c | c | c || c | }', file=stream)
             print('\\hline', file=stream)
@@ -121,8 +121,6 @@ class TableGenerator:
             print('\\label{{tab:safety-periods-{}}}'.format(config), file=stream)
             print('\\end{table}', file=stream)
             print('', file=stream)
-
-        print('\\clearpage', file=stream)
 
     def safety_periods(self):
         # type -> configuration -> size -> source rate -> safety period
