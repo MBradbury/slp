@@ -22,7 +22,7 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},,{},{},{},,{},,{},{}\n'.format(
+            out.write('{},{},{},,{},{},{},,{},,{},{}\n'.replace(",", "|").format(
                 'network size',
                 'source period',
                 'configuration',
@@ -44,7 +44,7 @@ class Analyzer:
             
                 result = AnalysisResults(Analyse(path))
 
-                out.write('{},{},{},,{}({}),{}({}),{}({}),,{},,{},{}\n'.format(
+                out.write('{},{},{},,{}({}),{}({}),{}({}),,{},,{},{}\n'.replace(",", "|").format(
                     result.opts['network_size'],
                     result.opts['source_period'],
                     result.opts['configuration'],           

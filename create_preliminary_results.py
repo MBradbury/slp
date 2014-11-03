@@ -65,7 +65,7 @@ create_dirtree(preliminary_graphs_directory)
 
 if 'all' in args or 'run-protectionless' in args:
     runner = run_protectionless.RunSimulations(LocalDriver.Runner(), protectionless_results_directory)
-    runner.run(jar_path, sizes, rates, protectionless_configurations, 1000)
+    runner.run(jar_path, sizes, rates, protectionless_configurations, 100)
 
 if 'all' in args or 'run' in args:
     analyzer = analyse_protectionless.Analyzer(protectionless_results_directory)
@@ -77,7 +77,7 @@ if 'all' in args or 'run' in args:
     safety_periods = safety_period_table_generator.safety_periods()
 
     prelim_runner = run_preliminary.RunSimulations(LocalDriver.Runner(), preliminary_results_directory, safety_periods, skip_completed_simulations=True)
-    prelim_runner.run(jar_path, sizes, rates, configurations, 1000)
+    prelim_runner.run(jar_path, sizes, rates, configurations, 100)
 
 if 'all' in args or 'analyse' in args:
     prelim_analyzer = analyse_preliminary.Analyzer(preliminary_results_directory)
