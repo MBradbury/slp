@@ -248,9 +248,14 @@ implementation
 		}
 	}
 
-	uint32_t get_temp_fake_messages_to_send()
+	uint32_t get_tfs_duration()
 	{
-		return TEMP_FAKE_DURATION_MS / FAKE_PERIOD_MS;
+		return TEMP_FAKE_DURATION_MS;
+	}
+
+	uint32_t get_tfs_period()
+	{
+		return FAKE_PERIOD_MS;
 	}
 
 	uint32_t get_pfs_period()
@@ -258,7 +263,7 @@ implementation
 		return FAKE_PERIOD_MS;
 	}
 
-	
+
 
 	bool busy = FALSE;
 	message_t packet;
@@ -329,9 +334,6 @@ implementation
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
 	{
-		uint16_t rnd;
-		float rndFloat;
-
 		if (perm_type != PermFakeNode && perm_type != TempFakeNode)
 		{
 			assert("The perm type is not correct");
@@ -339,50 +341,17 @@ implementation
 
 		type = perm_type;
 
-		// There appears to be problem with the 32 bit random number generator
-		// in TinyOS that means it will not generate numbers in the full range
-		// that a 32 bit integer can hold. So use the 16 bit value instead.
-		// With the 16 bit integer we get better float values to compare to the
-		// fake source probability.
-		// Ref: https://github.com/tinyos/tinyos-main/issues/248
-		rnd = call Random.rand16();
-		rndFloat = ((float)rnd) / UINT16_MAX;
-
-		//dbg("stdout", "rndno %u/%u, %f prf=%f tf=%f\n", rnd, UINT16_MAX, rndFloat, PR_PFS, PR_TFS);
-
 		if (type == PermFakeNode)
 		{
-			if (rndFloat <= PR_PFS)
-			{
-				dbg("GUI-Fake-Notification", "The node has become a PFS\n");
+			dbg("GUI-Fake-Notification", "The node has become a PFS\n");
 
-				dbgverbose("Fake-Probability-Decision",
- 					"The node %u has become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
-
-				call FakeMessageGenerator.start(message, FAKE_PERIOD_MS);
-			}
-			else
-			{
- 				dbgverbose("Fake-Probability-Decision",
- 					"The node %u has not become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
-			}
+			call FakeMessageGenerator.start(message, get_pfs_period());
 		}
 		else
 		{
-			if (rndFloat <= PR_TFS)
-			{
-				dbg("GUI-Fake-Notification", "The node has become a TFS\n");
+			dbg("GUI-Fake-Notification", "The node has become a TFS\n");
 
-				dbgverbose("Fake-Probability-Decision",
-					"The node %u has become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
-
-				call FakeMessageGenerator.startLimited(message, FAKE_PERIOD_MS, TEMP_FAKE_DURATION_MS);
-			}
-			else
-			{
-				dbgverbose("Fake-Probability-Decision",
-					"The node %u has not become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
-			}
+			call FakeMessageGenerator.startLimited(message, get_tfs_period(), get_tfs_duration());
 		}
 	}
 
