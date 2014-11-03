@@ -12,13 +12,16 @@ implementation
 
 	FakeMessageGenerator = App;
 
-	components new TimerMilliC() as GenerateFakeTimer;
+	components new TimerMilliC() as SendFakeTimer;
 
-	App.GenerateFakeTimer -> GenerateFakeTimer;
+	App.SendFakeTimer -> SendFakeTimer;
+
+	components new TimerMilliC() as DurationTimer;
+
+	App.DurationTimer -> DurationTimer;
 
 	components new AMSenderC(FAKE_CHANNEL) as FakeSender;
 
 	App.Packet -> FakeSender;
 	App.FakeSend -> FakeSender;
 }
-
