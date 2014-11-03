@@ -218,15 +218,23 @@ implementation
 
 	Algorithm algorithm = UnknownAlgorithm;
 
+	// Produces a random float between 0 and 1
+	float random_float()
+	{
+		// There appears to be problem with the 32 bit random number generator
+		// in TinyOS that means it will not generate numbers in the full range
+		// that a 32 bit integer can hold. So use the 16 bit value instead.
+		// With the 16 bit integer we get better float values to compared to the
+		// fake source probability.
+		// Ref: https://github.com/tinyos/tinyos-main/issues/248
+		const uint16_t rnd = call Random.rand16();
+
+		return ((float)rnd) / UINT16_MAX;
+	}
+
 	int32_t ignore_choose_distance(int32_t distance)
 	{
-		uint16_t rnd;
-		float rndFloat;
-
-		rnd = call Random.rand16();
-		rndFloat = ((float)rnd) / UINT16_MAX;
-
-		return (int32_t)ceil(distance * rndFloat);
+		return (int32_t)ceil(distance * random_float());
 	}
 
 	bool should_process_choose()
@@ -234,7 +242,7 @@ implementation
 		switch (algorithm)
 		{
 			case GenericAlgorithm:
-				return !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance((3 * sink_source_distance) / 4));
+				return !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
 
 			case FurtherAlgorithm:
 				return !seen_pfs && !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
