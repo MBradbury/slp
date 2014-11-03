@@ -10,6 +10,8 @@ import csv
 import shutil
 import subprocess
 
+from data.which import which
+
 class Grapher:
     def __init__(self, results_summary_path, output_directory):
         self.results_summary_path = results_summary_path
@@ -60,7 +62,7 @@ class Grapher:
 
             seenFirst = False
             
-            reader = csv.reader(f, delimiter=',')
+            reader = csv.reader(f, delimiter='|')
             
             headers = []
             
@@ -107,17 +109,22 @@ class Grapher:
                         self.results.setdefault( 'Received Ratio', {} ).setdefault( key, {} )[ size ] = \
                             extractAverage(values[ headers.index('Received Ratio') ]) * 100.0
                     
-                    if 'Normal Latency' in headers:
-                        self.results.setdefault( 'Normal Latency', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('Normal Latency') ])
+                    if 'normal latency' in headers:
+                        self.results.setdefault( 'normal latency', {} ).setdefault( key, {} )[ size ] = \
+                            extractAverage(values[ headers.index('normal latency') ])
                     
-                    if 'Heatmap' in headers:
-                        self.results.setdefault( 'Heatmap', {} )[ (srcPeriod, size, config) ] = \
-                            values[ headers.index('Heatmap') ]
+                    if 'sent heatmap' in headers:
+                        self.results.setdefault( 'sent heatmap', {} )[ (srcPeriod, size, config) ] = \
+                            values[ headers.index('sent heatmap') ]
+
+                    if 'received heatmap' in headers:
+                        self.results.setdefault( 'received heatmap', {} )[ (srcPeriod, size, config) ] = \
+                            values[ headers.index('received heatmap') ]
                    
                 else:
                     seenFirst = True
                     headers = values
+                    print(headers)
 
             self.sizes = sorted(self.sizes)
 
@@ -125,8 +132,11 @@ class Grapher:
         self.remove_existing()
         self.read_results()
 
-        if 'Heatmap' in self.results:
-            self.graphHeatMap()
+        if 'sent heatmap' in self.results:
+            self.graphHeatMap("sent")
+
+        if 'received heatmap' in self.results:
+            self.graphHeatMap("received")
 
         if 'Captured' in self.results:
             self.graphVersus(
@@ -173,7 +183,7 @@ class Grapher:
         def get_gnuplot_binary_name():
             names = ['gnuplot-nox', 'gnuplot']
             for name in names:
-                if shutil.which(name) is not None:
+                if which(name) is not None:
                     return name
 
             raise Exception("Could not find gnuplot binary")
@@ -197,7 +207,7 @@ class Grapher:
     def pprint_table(stream, table):
         def get_max_width(table, index):
             """Get the maximum width of the given column index."""
-            return max([len(str(row[index])) for row in table])
+            return max(len(str(row[index])) for row in table)
 
         """Prints out a table of data, padded for alignment
         @param stream: Output stream (file-like object)
@@ -339,18 +349,31 @@ class Grapher:
             with open(os.path.join(dirNames[key], 'graph.caption'), 'w') as captionFile:
                 captionFile.write(self.parameterValues(keyMap[key], vary))
                 
-    def graphHeatMap(self, kind='pdf'):
-        print('Creating Heat Map graph files')
-        
-        for ((rate, size, config), data) in self.results['Heatmap'].items():
-            dirName = os.path.join(self.output_directory, 'HeatMap/{0}/{1}/{2}'.format(config, rate, size))
+    def graphHeatMap(self, name, kind='pdf'):
+        def chunks(l, n):
+            """ Yield successive n-sized chunks from l."""
+            for i in xrange(0, len(l), n):
+                yield l[i:i+n]
+
+        print('Creating {} Heat Map graph files'.format(name))
+
+        key = '{} heatmap'.format(name)
+
+        for ((rate, size, config), data) in self.results[key].items():
+            dirName = os.path.join(self.output_directory, '{}HeatMap/{}/{}/{}'.format(name.title(), config, rate, size))
 
             # Ensure that the dir we want to put the files in
             # actually exists
             self.ensureDirExists(dirName)
-            
-            array = [x.split('|') for x in data.split('@')]
-            
+
+            data = eval(data)
+
+            array = [0] * (size * size)
+            for (k, v) in data.items():
+                array[k] = v
+
+            array = list(chunks(array, size))
+
             with open(os.path.join(dirName, 'graph.p'), 'w') as pFile:
             
                 if kind == 'pdf':
