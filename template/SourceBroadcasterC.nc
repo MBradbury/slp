@@ -9,6 +9,12 @@
 
 #include <assert.h>
 
+#ifdef SLP_VERBOSE_DEBUG
+#	define dbgverbose(...) dbg(...)
+#else
+#	define dbgverbose(...)
+#endif
+
 #define max(a, b) \
 	({ __typeof__(a) _a = (a), _b = (b); \
 	   _a > _b ? _a : _b; })
@@ -65,7 +71,7 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 	} \
 	else \
 	{ \
-		dbg("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
+		dbgverbose("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
  \
 		METRIC_BCAST(NAME, "busy"); \
  \
@@ -76,7 +82,7 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 #define SEND_DONE(NAME) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
 { \
-	dbg("SourceBroadcasterC", "%s: " #NAME "Send sendDone with status %i.\n", sim_time_string(), error); \
+	dbgverbose("SourceBroadcasterC", "%s: " #NAME "Send sendDone with status %i.\n", sim_time_string(), error); \
  \
 	if (&packet == msg) \
 	{ \
@@ -115,7 +121,7 @@ event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t le
 		return msg; \
 	} \
  \
-	dbg("SourceBroadcasterC", "%s: Received valid " #NAME ".\n", sim_time_string()); \
+	dbgverbose("SourceBroadcasterC", "%s: Received valid " #NAME ".\n", sim_time_string()); \
  \
 	switch (type) \
 	{
@@ -247,7 +253,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbg("Boot", "%s: Application booted.\n", sim_time_string());
+		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
@@ -270,7 +276,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbg("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			if (type == SourceNode)
 			{
@@ -287,7 +293,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbg("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	SEND_MESSAGE(Normal);
@@ -338,14 +344,14 @@ implementation
 			{
 				dbg("GUI-Fake-Notification", "The node has become a PFS\n");
 
-				dbg("Fake-Probability-Decision",
+				dbgverbose("Fake-Probability-Decision",
  					"The node %u has become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
 
 				call FakeMessageGenerator.start(message, FAKE_PERIOD_MS);
 			}
 			else
 			{
- 				dbg("Fake-Probability-Decision",
+ 				dbgverbose("Fake-Probability-Decision",
  					"The node %u has not become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
 			}
 		}
@@ -355,14 +361,14 @@ implementation
 			{
 				dbg("GUI-Fake-Notification", "The node has become a TFS\n");
 
-				dbg("Fake-Probability-Decision",
+				dbgverbose("Fake-Probability-Decision",
 					"The node %u has become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
 
 				call FakeMessageGenerator.startLimited(message, FAKE_PERIOD_MS, TEMP_FAKE_DURATION_MS);
 			}
 			else
 			{
-				dbg("Fake-Probability-Decision",
+				dbgverbose("Fake-Probability-Decision",
 					"The node %u has not become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
 			}
 		}
@@ -372,7 +378,7 @@ implementation
 	{
 		NormalMessage message;
 
-		dbg("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
@@ -423,7 +429,7 @@ implementation
 
 			METRIC_RCV(Normal);
 
-			dbg("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
+			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
 			if (!first_source_distance_set)
 			{
@@ -734,7 +740,7 @@ implementation
 	{
 		ChooseMessage message = *original_message;
 
-		dbg("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
+		dbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
 		// When finished sending fake messages from a TFS
 
@@ -752,7 +758,7 @@ implementation
 	{
 		const char* result;
 
-		dbg("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
+		dbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
 		switch (error)
 		{
