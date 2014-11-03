@@ -9,7 +9,7 @@ def restricted_float(x):
 
 class Arguments:
 	def __init__(self):
-		parser = argparse.ArgumentParser(description="SLP Protectionless", add_help=True)
+		parser = argparse.ArgumentParser(description="SLP Template", add_help=True)
 		parser.add_argument("--mode", type=str, choices=["GUI", "PARALLEL"], required=True)
 
 		parser.add_argument("--seed", type=int)

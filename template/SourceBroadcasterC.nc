@@ -218,15 +218,26 @@ implementation
 
 	Algorithm algorithm = UnknownAlgorithm;
 
+	int32_t ignore_choose_distance(int32_t distance)
+	{
+		uint16_t rnd;
+		float rndFloat;
+
+		rnd = call Random.rand16();
+		rndFloat = ((float)rnd) / UINT16_MAX;
+
+		return (int32_t)ceil(distance * rndFloat);
+	}
+
 	bool should_process_choose()
 	{
 		switch (algorithm)
 		{
 			case GenericAlgorithm:
-				return !(sink_source_distance != BOTTOM && source_distance <= ((3 * sink_source_distance) / 4));
+				return !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance((3 * sink_source_distance) / 4));
 
 			case FurtherAlgorithm:
-				return !seen_pfs && !(sink_source_distance != BOTTOM && source_distance <= (((1 * sink_source_distance) / 2) - 1));
+				return !seen_pfs && !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
 
 			default:
 				return TRUE;
