@@ -4,20 +4,18 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct AwayChooseMessage {
-  nx_uint32_t sequence_number;
+  nx_uint64_t sequence_number;
 
-  // The id of the node that sent this message
-  nx_uint16_t source_id;
-
-  nx_int16_t sink_source_distance;
-
-  // The number of hops that this message
-  // has travelled from the source. 
+  // The sink and sink-source distances must be known
+  // by the time an away or choose message is sent.
+  // Although not necessarily the correct distance,
+  // as the known distance may be higher.
   nx_uint16_t sink_distance;
+  nx_uint16_t sink_source_distance;
 
   nx_uint16_t max_hop;
 
-  
+  nx_uint8_t algorithm;
 
 } AwayChooseMessage;
 

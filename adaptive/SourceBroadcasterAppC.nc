@@ -14,9 +14,11 @@ implementation
 	// Low levels events such as boot and LED control
 	components MainC;
 	components LedsC;
+	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
+	App.Random -> RandomC;
 
 
 	// Radio Control
@@ -27,8 +29,10 @@ implementation
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
+	components new TimerMilliC() as AwaySenderTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
+	App.AwaySenderTimer -> AwaySenderTimer;
 
 
 	// Networking
