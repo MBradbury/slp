@@ -57,7 +57,7 @@ class TableGenerator:
 
             seenFirst = False
             
-            reader = csv.reader(f, delimiter=',')
+            reader = csv.reader(f, delimiter='|')
             
             headers = []
             
