@@ -46,7 +46,7 @@ configurations = [
     #'CircleSinkCentre',
 ]
 
-repeats = 100
+repeats = 250
 
 def create_dirtree(path):
     if not os.path.exists(path):
