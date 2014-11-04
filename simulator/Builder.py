@@ -13,3 +13,5 @@ def build(directory, **kwargs):
 		shell=True,
 		stdout=sys.stderr.fileno()
 		)
+
+	return result

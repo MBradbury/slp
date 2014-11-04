@@ -2,8 +2,7 @@
 
 from __future__ import print_function
 
-import os
-import sys
+import os, sys, shutil
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -12,7 +11,7 @@ else:
     args = sys.argv[1:]
 
 from data.run import protectionless as run_protectionless
-from data.run.driver import local as LocalDriver
+from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver
 from data.analysis import protectionless as analyse_protectionless
 from data.table import safety_period
 from data.latex import latex
@@ -47,16 +46,37 @@ configurations = [
     #'CircleSinkCentre',
 ]
 
+repeats = 100
+
 def create_dirtree(path):
     if not os.path.exists(path):
-        os.makedirs(path) 
+        os.makedirs(path)
+
+def recreate_dirtree(path):
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    os.makedirs(path)
 
 create_dirtree(results_directory)
 create_dirtree(graphs_directory)
 
+if 'cluster' in args:
+    cluster_directory = "cluster/Protectionless"
+
+    recreate_dirtree(cluster_directory)
+
+    if 'all' in args or 'build' in args:
+        runner = run_protectionless.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, False)
+        runner.run(jar_path, distance, sizes, periods, configurations, repeats)
+
+    if 'all' in args or 'submit' in args:
+        pass
+
+    sys.exit(0)
+
 if 'all' in args or 'run' in args:
     runner = run_protectionless.RunSimulations(LocalDriver.Runner(), results_directory)
-    runner.run(jar_path, distance, sizes, periods, configurations, 100)
+    runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
 if 'all' in args or 'analyse' in args:
     analyzer = analyse_protectionless.Analyzer(results_directory)

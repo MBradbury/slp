@@ -18,23 +18,24 @@ class RunSimulations(RunSimulationsCommon):
         for (size, source_period, configuration) in itertools.product(sizes, source_periods, configurations):
             if not self._already_processed(size, source_period, configuration, repeats):
 
-                command = 'python {} {} protectionless --mode PARALLEL --network-size {} --source-period {} --configuration {} --job-size {} --distance {}'.format(
+                executable = 'python {} {}'.format(
                     self.optimisations,
-                    exe_path,
+                    exe_path)
+
+                options = 'protectionless --mode PARALLEL --network-size {} --source-period {} --configuration {} --job-size {} --distance {}'.format(
                     size,
                     source_period,
                     configuration,
                     repeats,
                     distance)
 
-                filename = os.path.join(self.results_directory, '{}-{}-{}-{}-{}.txt'.format(
+                filename = os.path.join(self.results_directory, '{}-{}-{}-{}.txt'.format(
                     size,
                     source_period,
                     configuration,
-                    repeats,
                     distance))
 
-                self.driver.add_job(command, filename)
+                self.driver.add_job(executable, options, filename)
 
         self.driver.wait_for_completion()
 
