@@ -12,8 +12,6 @@ from simulator.SubprocessPool import SubprocessPool
 
 module = sys.argv[1]
 
-print(module)
-
 Arguments = importlib.import_module("{}.Arguments".format(module))
 Metrics = importlib.import_module("{}.Metrics".format(module))
 

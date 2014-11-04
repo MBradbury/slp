@@ -10,14 +10,14 @@ class RunSimulations(RunSimulationsCommon):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
-    def run(self, exe_path, distance, sizes, source_periods, fake_periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats):
+    def run(self, exe_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats):
         if self.skip_completed_simulations:
             self._check_existing_results()
     
         if not os.path.exists(exe_path):
             raise Exception("The file {} doesn't exist".format(exe_path))
 
-        for (size, source_period, fake_period, tfs_duration, pr_tfs, pr_pfs, (configuration, algorithm)) in itertools.product(sizes, source_periods, fake_periods, temp_fake_durations, prs_tfs, prs_pfs, configurations):
+        for (size, (source_period, fake_period), tfs_duration, pr_tfs, pr_pfs, (configuration, algorithm)) in itertools.product(sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations):
             if not self._already_processed(size, source_period, configuration, repeats):
 
                 safety_period = self.safety_periods[configuration][size][source_period]
