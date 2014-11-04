@@ -34,13 +34,14 @@ template_graphs_directory = os.path.join(template_results_directory, 'Graphs')
 
 distance = 4.5
 
-sizes = [ 11 , 15, 21, 25 ]
+sizes = [ 11, 15, 21, 25 ]
 
 source_periods = [ 1.0, 0.5 , 0.25, 0.125 ]
 fake_periods = [ 0.5, 0.25, 0.125, 0.0625 ]
 
 periods = [ (src, fake) for (src, fake) in itertools.product(source_periods, fake_periods) if src / 4.0 <= fake < src ]
 
+# TODO implement algorithm override
 configurations = [
     ('SourceCorner', 'CHOOSE'),
     ('SinkCorner', 'CHOOSE'),
@@ -58,10 +59,10 @@ configurations = [
 ]
 
 
-temp_fake_durations = [ 2 ]
+temp_fake_durations = [ 2 ] # [ 1, 2, 4 ]
 
-prs_tfs = [ 1.0 ]
-prs_pfs = [ 1.0 ]
+prs_tfs = [ 1.0 ] # [ 1.0, 0.9, 0.8 ]
+prs_pfs = [ 1.0 ] # [ 1.0 ]
 
 protectionless_configurations = [(a) for (a, b) in configurations]
 
