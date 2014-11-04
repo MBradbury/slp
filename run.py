@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import sys, importlib, subprocess
+import sys, importlib, subprocess, multiprocessing
 
 from simulator.Attacker import Attacker
 from simulator.Builder import build
@@ -11,6 +11,8 @@ from simulator.Simulation import Simulation
 from simulator.SubprocessPool import SubprocessPool
 
 module = sys.argv[1]
+
+print(module)
 
 Arguments = importlib.import_module("{}.Arguments".format(module))
 Metrics = importlib.import_module("{}.Metrics".format(module))
@@ -53,12 +55,19 @@ if a.args.mode == "GUI":
 else:
 	subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
 
-	def runner():
-		return subprocess.Popen(subprocess_args, stdout=subprocess.PIPE)
+	def runner(args):
+		process = subprocess.Popen(args, stdout=subprocess.PIPE)
+		try:
+			process.wait()
+		except (KeyboardInterrupt, SystemExit):
+			process.terminate()
 
-	def callback(proc):
-		for line in proc.stdout:
+		for line in process.stdout:
 			print(line, end="")
 
-	p = SubprocessPool(a.args.thread_count, runner, callback)
-	p.run(a.args.job_size)
+	p = multiprocessing.Pool(a.args.thread_count)
+	try:
+		r = p.map_async(runner, [subprocess_args] * a.args.job_size)
+		r.wait()
+	except (KeyboardInterrupt, SystemExit):
+		p.terminate()

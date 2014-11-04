@@ -7,7 +7,7 @@ import sys
 
 args = []
 if len(sys.argv[1:]) == 0:
-    args.append('all')
+    raise RuntimeError("No arguments provided!")
 else:
     args = sys.argv[1:]
 

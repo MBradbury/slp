@@ -42,7 +42,7 @@ class Grapher:
 
         print('Removing existing directories')
 
-        paths = [ 'Versus', 'Combined', 'HeatMap' ]
+        paths = [ 'Versus', 'Combined', 'SentHeatMap', 'ReceivedHeatMap' ]
         for path in paths:
             full_path = os.path.join(self.output_directory, path)
             if os.path.exists(full_path):
@@ -402,7 +402,7 @@ class Grapher:
                 pFile.write('set xrange [0:{0}]\n'.format(size - 1))
                 
                 pFile.write('set cbrange []\n')
-                pFile.write('set cblabel "Messages Sent"\n')
+                pFile.write('set cblabel "Messages {}"\n'.format(name.title()))
                 #pFile.write('unset cbtics\n')
 
                 pFile.write('set view map\n')
