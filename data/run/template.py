@@ -20,12 +20,13 @@ class RunSimulations(RunSimulationsCommon):
         for (size, (source_period, fake_period), tfs_duration, pr_tfs, pr_pfs, (configuration, algorithm)) in itertools.product(sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations):
             if not self._already_processed(size, source_period, configuration, repeats):
 
-                safety_period = self.safety_periods[configuration][size][source_period]
+                safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
 
-                command = 'python {} {} template --mode PARALLEL --network-size {} --configuration {} --safety-period {} --source-period {} --fake-period {} --temp-fake-duration {} --pr-tfs {} --pr-pfs {} --distance {} --job-size {}'.format(
+                executable = 'python {} {}'.format(
                     self.optimisations,
-                    exe_path,
+                    exe_path)
 
+                options = 'template --mode PARALLEL --network-size {} --configuration {} --safety-period {} --source-period {} --fake-period {} --temp-fake-duration {} --pr-tfs {} --pr-pfs {} --distance {} --job-size {}'.format(
                     size,
                     configuration,
                     safety_period,
@@ -39,7 +40,7 @@ class RunSimulations(RunSimulationsCommon):
                     distance,
                     repeats)
 
-                filename = os.path.join(self.results_directory, ('-'.join(['{}'] * 8) + '.txt').format(
+                filename = os.path.join(self.results_directory, ('-'.join(['{}'] * 7) + '.txt').format(
                     size,
                     configuration,
 
@@ -48,10 +49,9 @@ class RunSimulations(RunSimulationsCommon):
                     pr_tfs,
                     pr_pfs,
                     
-                    distance,
-                    repeats))
+                    distance))
 
-                self.driver.add_job(command, filename)
+                self.driver.add_job(executable, options, filename)
 
         self.driver.wait_for_completion()
 

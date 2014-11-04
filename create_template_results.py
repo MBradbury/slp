@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, itertools
+import os, sys, shutil, itertools
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -16,7 +16,7 @@ from data.analysis import protectionless as analyse_protectionless
 from data.run import template as run_template
 from data.analysis import template as analyse_template
 
-from data.run.driver import local as LocalDriver
+from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver
 from data.table import safety_period, fake_source_result, comparison
 from data.graph import grapher, summary
 
@@ -36,8 +36,12 @@ distance = 4.5
 
 sizes = [ 11, 15, 21, 25 ]
 
+# Note that our simulation only has millisecond resolution,
+# so periods that require a resolution greater than 0.001 will be
+# truncated. An important example of this is 0.0625 which will be truncated
+# to 0.062. So 0.0625 has been rounded up.
 source_periods = [ 1.0, 0.5 , 0.25, 0.125 ]
-fake_periods = [ 0.5, 0.25, 0.125, 0.0625 ]
+fake_periods = [ 0.5, 0.25, 0.125, 0.063 ]
 
 periods = [ (src, fake) for (src, fake) in itertools.product(source_periods, fake_periods) if src / 4.0 <= fake < src ]
 
@@ -64,19 +68,41 @@ temp_fake_durations = [ 2 ] # [ 1, 2, 4 ]
 prs_tfs = [ 1.0 ] # [ 1.0, 0.9, 0.8 ]
 prs_pfs = [ 1.0 ] # [ 1.0 ]
 
+protectionless_repeats = 100
+repeats = 100
+
 protectionless_configurations = [(a) for (a, b) in configurations]
 
 def create_dirtree(path):
     if not os.path.exists(path):
-        os.makedirs(path) 
+        os.makedirs(path)
+
+def recreate_dirtree(path):
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    os.makedirs(path)
 
 create_dirtree(protectionless_results_directory)
 create_dirtree(template_results_directory)
 create_dirtree(template_graphs_directory)
 
+if 'cluster' in args:
+    cluster_directory = "cluster/Template"
+
+    recreate_dirtree(cluster_directory)
+
+    if 'all' in args or 'build' in args:
+        runner = run_template.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
+        runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
+
+    if 'all' in args or 'submit' in args:
+        pass
+
+    sys.exit(0)
+
 if 'all' in args or 'run-protectionless' in args:
     runner = run_protectionless.RunSimulations(LocalDriver.Runner(), protectionless_results_directory)
-    runner.run(jar_path, distance, sizes, source_periods, protectionless_configurations, 100)
+    runner.run(jar_path, distance, sizes, source_periods, protectionless_configurations, protectionless_repeats)
 
 if 'all' in args or 'analyse-protectionless' in args:
     analyzer = analyse_protectionless.Analyzer(protectionless_results_directory)
@@ -89,7 +115,7 @@ if 'all' in args or 'run' in args:
     safety_periods = safety_period_table_generator.safety_periods()
 
     prelim_runner = run_template.RunSimulations(LocalDriver.Runner(), template_results_directory, safety_periods, skip_completed_simulations=True)
-    prelim_runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, 100)
+    prelim_runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
 if 'all' in args or 'analyse' in args:
     prelim_analyzer = analyse_template.Analyzer(template_results_directory)

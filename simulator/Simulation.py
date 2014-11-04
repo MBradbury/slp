@@ -30,8 +30,8 @@ class Simulation(TosVis):
         self.metrics = Metrics.Metrics(self, configuration)
 
     @staticmethod
-    def writeTopologyFile(node_locations):
-        with open("topology.txt", "w") as f:
+    def writeTopologyFile(node_locations, location="."):
+        with open(os.path.join(location, "topology.txt"), "w") as f:
             for i,loc in enumerate(node_locations):
                 print("{}\t{}\t{}".format(i, loc[0], loc[1]), file=f) 
 
