@@ -55,7 +55,7 @@ class Simulation(TosVis):
                 self.radio.setNoise(int(nodeId), float(noiseFloor), float(awgn))
 
     def setupNoiseModels(self):
-        path = os.path.join(os.environ['TOSROOT'], "tos/lib/tossim/noise/meyer-heavy.txt")
+        path = "meyer-heavy.txt"
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.

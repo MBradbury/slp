@@ -28,8 +28,9 @@ class Runner:
 
         LocalBuilder.build(module, **build_args)
 
-        shutil.move(os.path.join(module, "_TOSSIMmodule.so"), target_directory)
-        shutil.move(os.path.join(module, "TOSSIM.py"), target_directory)
+        files_to_move = ["_TOSSIMmodule.so", "TOSSIM.py", "Arguments.py", "Metrics.py", "__init__.py"]
+        for f in files_to_move:
+            shutil.copy(os.path.join(module, f), target_directory)
 
         # Create the topology of this configuration
         print("Creating topology file")
