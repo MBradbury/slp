@@ -8,7 +8,6 @@ from simulator.Attacker import Attacker
 from simulator.Builder import build
 import simulator.Configuration as Configuration
 from simulator.Simulation import Simulation
-from simulator.SubprocessPool import SubprocessPool
 
 module = sys.argv[1]
 
