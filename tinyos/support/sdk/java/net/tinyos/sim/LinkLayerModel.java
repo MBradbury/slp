@@ -46,8 +46,6 @@
  *     
  ****************************************************************************/
 
-package net.tinyos.sim;
-
 import java.io.*;
 import java.util.*;
 import java.text.DecimalFormat;
