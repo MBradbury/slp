@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil
+import os, sys, shutil, subprocess
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -63,11 +63,15 @@ create_dirtree(graphs_directory)
 if 'cluster' in args:
     cluster_directory = "cluster/Protectionless"
 
-    recreate_dirtree(cluster_directory)
-
     if 'all' in args or 'build' in args:
+        recreate_dirtree(cluster_directory)
+
         runner = run_protectionless.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
+
+    if 'all' in args or 'copy' in args:
+        username = raw_input("Enter your Caffeine username: ")
+        subprocess.check_call("rsync -avz -e ssh --delete ./{} {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/{}".format(cluster_directory, username, os.path.dirname(cluster_directory)), shell=True)
 
     if 'all' in args or 'submit' in args:
         pass
