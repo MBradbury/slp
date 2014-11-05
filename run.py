@@ -24,11 +24,6 @@ configuration = Configuration.Create(a.args.configuration, a.args)
 
 build_arguments.update(configuration.getBuildArguments())
 
-if configuration.spaceBehindSink:
-	build_arguments.update({"ALGORITHM": "GenericAlgorithm"})
-else:
-	build_arguments.update({"ALGORITHM": "FurtherAlgorithm"})
-
 # Now build the simulation with the specified arguments
 build(module, **build_arguments)
 

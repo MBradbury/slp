@@ -64,9 +64,4 @@ class Runner:
 
         build_args.update(configuration.getBuildArguments())
 
-        if configuration.spaceBehindSink:
-            build_args.update({"ALGORITHM": "GenericAlgorithm"})
-        else:
-            build_args.update({"ALGORITHM": "FurtherAlgorithm"})
-
         return build_args

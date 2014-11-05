@@ -17,10 +17,17 @@ class Configuration:
 			raise Exception("There are not enough nodes ({}) to have a source id of {}".format(len(self.topology.nodes), self.source))
 
 	def getBuildArguments(self):
-		return {
+		build_arguments = {
 			"SOURCE_NODE_ID": self.sourceId,
 			"SINK_NODE_ID": self.sinkId
 		}
+
+		if self.spaceBehindSink:
+			build_arguments.update({"ALGORITHM": "GenericAlgorithm"})
+		else:
+			build_arguments.update({"ALGORITHM": "FurtherAlgorithm"})
+
+		return build_arguments
 
 	def __str__(self):
 		return "Configuration<sinkId={}, sourceId={}, spaceBehindSink={}, topology={}".format(
