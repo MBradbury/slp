@@ -37,7 +37,7 @@ class Simulation(TosVis):
 
     def setupRadio(self):
         proc = subprocess.Popen(
-            "java net.tinyos.sim.LinkLayerModel model.txt {}".format(self.seed),
+            "java -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel model.txt {}".format(self.seed),
             shell=True,
             stdout=subprocess.PIPE)
 
