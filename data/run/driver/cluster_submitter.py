@@ -19,7 +19,7 @@ class Runner:
         command = 'echo "cd \$PBS_O_WORKDIR ; {}" | {}'.format(script_command, cluster_command)
 
         print(command)
-        #subprocess.check_call(command, shell=True)
+        subprocess.check_call(command, shell=True)
 
 
     def wait_for_completion(self):
