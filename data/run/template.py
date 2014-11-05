@@ -26,7 +26,8 @@ class RunSimulations(RunSimulationsCommon):
                     self.optimisations,
                     exe_path)
 
-                options = 'template --mode PARALLEL --network-size {} --configuration {} --safety-period {} --source-period {} --fake-period {} --temp-fake-duration {} --pr-tfs {} --pr-pfs {} --distance {} --job-size {}'.format(
+                options = 'template --mode {} --network-size {} --configuration {} --safety-period {} --source-period {} --fake-period {} --temp-fake-duration {} --pr-tfs {} --pr-pfs {} --distance {} --job-size {}'.format(
+                    self.driver.mode(),
                     size,
                     configuration,
                     safety_period,
@@ -40,7 +41,7 @@ class RunSimulations(RunSimulationsCommon):
                     distance,
                     repeats)
 
-                filename = os.path.join(self.results_directory, ('-'.join(['{}'] * 7) + '.txt').format(
+                filename = os.path.join(self.results_directory, '-'.join(['{}'] * 7).format(
                     size,
                     configuration,
 
@@ -49,7 +50,7 @@ class RunSimulations(RunSimulationsCommon):
                     pr_tfs,
                     pr_pfs,
                     
-                    distance))
+                    distance).replace(".", "_") + ".txt")
 
                 self.driver.add_job(executable, options, filename)
 

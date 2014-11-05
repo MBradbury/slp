@@ -16,7 +16,7 @@ from data.analysis import protectionless as analyse_protectionless
 from data.run import template as run_template
 from data.analysis import template as analyse_template
 
-from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver
+from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.table import safety_period, fake_source_result, comparison
 from data.graph import grapher, summary
 
@@ -82,15 +82,21 @@ def recreate_dirtree(path):
         shutil.rmtree(path)
     os.makedirs(path)
 
+def touch(fname, times=None):
+    with open(fname, 'a'):
+        os.utime(fname, times)
+
 create_dirtree(protectionless_results_directory)
 create_dirtree(template_results_directory)
 create_dirtree(template_graphs_directory)
 
 if 'cluster' in args:
-    cluster_directory = "cluster/Template"
+    cluster_directory = "cluster/template"
 
     if 'all' in args or 'build' in args:
         recreate_dirtree(cluster_directory)
+        touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
+        touch("{}/__init__.py".format(cluster_directory))
 
         runner = run_template.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
@@ -100,7 +106,13 @@ if 'cluster' in args:
         subprocess.check_call("rsync -avz -e ssh --delete ./{} {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/{}".format(cluster_directory, username, os.path.dirname(cluster_directory)), shell=True)
 
     if 'all' in args or 'submit' in args:
-        pass
+        safety_period_table_generator = safety_period.TableGenerator()
+        safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
+
+        safety_periods = safety_period_table_generator.safety_periods()
+
+        runner = run_template.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
+        runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
     sys.exit(0)
 

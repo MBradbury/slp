@@ -11,7 +11,7 @@ else:
     args = sys.argv[1:]
 
 from data.run import protectionless as run_protectionless
-from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver
+from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.analysis import protectionless as analyse_protectionless
 from data.table import safety_period
 from data.latex import latex
@@ -57,14 +57,20 @@ def recreate_dirtree(path):
         shutil.rmtree(path)
     os.makedirs(path)
 
+def touch(fname, times=None):
+    with open(fname, 'a'):
+        os.utime(fname, times)
+
 create_dirtree(results_directory)
 create_dirtree(graphs_directory)
 
 if 'cluster' in args:
-    cluster_directory = "cluster/Protectionless"
+    cluster_directory = "cluster/protectionless"
 
     if 'all' in args or 'build' in args:
         recreate_dirtree(cluster_directory)
+        touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
+        touch("{}/__init__.py".format(cluster_directory))
 
         runner = run_protectionless.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)

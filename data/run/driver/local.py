@@ -16,3 +16,6 @@ class Runner:
 
     def fetch_results(self):
         pass
+
+    def mode(self):
+        return "PARALLEL"

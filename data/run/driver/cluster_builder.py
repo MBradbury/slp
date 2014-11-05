@@ -43,6 +43,9 @@ class Runner:
     def fetch_results(self):
         pass
 
+    def mode(self):
+        return "CLUSTER"
+
     @staticmethod
     def create_dirtree(path):
         if not os.path.exists(path):
