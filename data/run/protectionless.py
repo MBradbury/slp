@@ -22,18 +22,19 @@ class RunSimulations(RunSimulationsCommon):
                     self.optimisations,
                     exe_path)
 
-                options = 'protectionless --mode PARALLEL --network-size {} --source-period {} --configuration {} --job-size {} --distance {}'.format(
+                options = 'protectionless --mode {} --network-size {} --source-period {} --configuration {} --job-size {} --distance {}'.format(
+                    self.driver.mode(),
                     size,
                     source_period,
                     configuration,
                     repeats,
                     distance)
 
-                filename = os.path.join(self.results_directory, '{}-{}-{}-{}.txt'.format(
+                filename = os.path.join(self.results_directory, '{}-{}-{}-{}'.format(
                     size,
                     source_period,
                     configuration,
-                    distance))
+                    distance).replace(".", "_") + ".txt")
 
                 self.driver.add_job(executable, options, filename)
 
