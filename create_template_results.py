@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil, itertools
+import os, sys, shutil, itertools, subprocess
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -89,11 +89,15 @@ create_dirtree(template_graphs_directory)
 if 'cluster' in args:
     cluster_directory = "cluster/Template"
 
-    recreate_dirtree(cluster_directory)
-
     if 'all' in args or 'build' in args:
+        recreate_dirtree(cluster_directory)
+
         runner = run_template.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
+
+    if 'all' in args or 'copy' in args:
+        username = raw_input("Enter your Caffeine username: ")
+        subprocess.check_call("rsync -avz -e ssh --delete ./{} {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/{}".format(cluster_directory, username, os.path.dirname(cluster_directory)), shell=True)
 
     if 'all' in args or 'submit' in args:
         pass
