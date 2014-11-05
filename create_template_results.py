@@ -103,7 +103,7 @@ if 'cluster' in args:
 
     if 'all' in args or 'copy' in args:
         username = raw_input("Enter your Caffeine username: ")
-        subprocess.check_call("rsync -avz -e ssh --delete ./{} {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/{}".format(cluster_directory, username, os.path.dirname(cluster_directory)), shell=True)
+        subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
 
     if 'all' in args or 'submit' in args:
         safety_period_table_generator = safety_period.TableGenerator()
