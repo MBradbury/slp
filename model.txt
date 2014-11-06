@@ -47,4 +47,6 @@ WHITE_GAUSSIAN_NOISE = 4;
 %%%%%%%%%%%%%%%%%%%%%%
 
 TOPOLOGY = 4;
-TOPOLOGY_FILE = topology.txt;
+
+% Modified to be specified as a command line argument
+%TOPOLOGY_FILE = topology.txt;

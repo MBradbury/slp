@@ -2,6 +2,7 @@ from __future__ import print_function
 import os, struct, importlib, subprocess, sys
 
 from simulator.TosVis import TosVis
+from simulator.Topology import topology_path
 
 class Simulation(TosVis):
     def __init__(self, moduleName, configuration, args):
@@ -29,6 +30,8 @@ class Simulation(TosVis):
 
         self.metrics = Metrics.Metrics(self, configuration)
 
+        self.topologyPath = topology_path(moduleName, args)
+
     @staticmethod
     def writeTopologyFile(node_locations, location="."):
         with open(os.path.join(location, "topology.txt"), "w") as f:
@@ -36,12 +39,11 @@ class Simulation(TosVis):
                 print("{}\t{}\t{}".format(i, loc[0], loc[1]), file=f) 
 
     def setupRadio(self):
-        proc = subprocess.Popen(
-            "java -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel model.txt {}".format(self.seed),
-            shell=True,
-            stdout=subprocess.PIPE)
+        output = subprocess.check_output(
+            "java -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel model.txt {} {}".format(self.topologyPath, self.seed),
+            shell=True)
 
-        for line in proc.stdout:
+        for line in output.splitlines():
             parts = line.strip().split("\t")
 
             if parts[0] == "gain":

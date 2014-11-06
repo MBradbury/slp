@@ -4,6 +4,7 @@ syntax: glob
 *.pyo
 *.so
 *~
+*.class
 simbuild
 TOSSIM.py
 app.xml

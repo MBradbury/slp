@@ -142,15 +142,19 @@ public class LinkLayerModel  {
   private static final Random rand = new Random();
 
   public static void main (String args[]) {
-    if (args.length != 2) {
+    if (args.length != 3) {
       usage();
       return;
     }
 
-    rand.setSeed(Integer.parseInt(args[1]));
+    rand.setSeed(Integer.parseInt(args[2]));
 
     // variable that contains input parameters
     InputVariables inVar = new InputVariables();
+
+    // Set the topology path
+    inVar.topFile = args[1];
+
     // parse configuration file and store parameters in inVar
     readFile  ( args[0], inVar );
     // if user defined topology (TOPOLOGY = 4), obtain number of nodes
@@ -175,6 +179,8 @@ public class LinkLayerModel  {
     //System.out.print("Printing Output File ...\t");
     printFile  ( inVar, outVar);
     //System.out.println("done");
+
+    System.exit(0);
   }
 
 
@@ -211,28 +217,28 @@ public class LinkLayerModel  {
               if ( key.equals("PATH_LOSS_EXPONENT")) {
                 var.n = Double.valueOf(value).doubleValue();
                 if (var.n < 0) {
-                  System.out.println("Error: value of PATH_LOSS_EXPONENT must be positive");
+                  System.err.println("Error: value of PATH_LOSS_EXPONENT must be positive");
                   System.exit(1);
                 }
               }
               else if ( key.equals("SHADOWING_STANDARD_DEVIATION")) {
                 var.sigma = Double.valueOf(value).doubleValue();
                 if (var.sigma < 0) {
-                  System.out.println("Error: value of SHADOWING_STANDARD_DEVIATION must be positive");
+                  System.err.println("Error: value of SHADOWING_STANDARD_DEVIATION must be positive");
                   System.exit(1);
                 }
               }
               else if ( key.equals("PL_D0")) {
                 var.pld0 = Double.valueOf(value).doubleValue();
                 if (var.pld0 < 0) {
-                  System.out.println("Error: value of PL_D0 must be positive");
+                  System.err.println("Error: value of PL_D0 must be positive");
                   System.exit(1);
                 }
               }
               else if ( key.equals("D0")) {
                 var.d0 = Double.valueOf(value).doubleValue();
                 if (var.d0 <= 0) {
-                  System.out.println("Error: value of D0 must be greater than zero");
+                  System.err.println("Error: value of D0 must be greater than zero");
                   System.exit(1);
                 }
               }
@@ -242,14 +248,14 @@ public class LinkLayerModel  {
               else if ( key.equals("WHITE_GAUSSIAN_NOISE")) {
                 var.wgn = Double.valueOf(value).doubleValue();
                 if (var.wgn < 0) {
-                  System.out.println("Error: value of WHITE_GAUSSIAN_NOISE must be greater equal than 0");
+                  System.err.println("Error: value of WHITE_GAUSSIAN_NOISE must be greater equal than 0");
                   System.exit(1);
                 }
               }
               else if ( key.equals("S11")) {
                 var.s11 = Double.valueOf(value).doubleValue();
                 if (var.s11 < 0) {
-                  System.out.println("Error: value of S11 must be greater equal than 0");
+                  System.err.println("Error: value of S11 must be greater equal than 0");
                   System.exit(1);
                 }
               }
@@ -262,21 +268,21 @@ public class LinkLayerModel  {
               else if ( key.equals("S22")) {
                 var.s22 = Double.valueOf(value).doubleValue();
                 if (var.s22 < 0) {
-                  System.out.println("Error: value of S22 must be greater equal than 0");
+                  System.err.println("Error: value of S22 must be greater equal than 0");
                   System.exit(1);
                 }
               }
               else if ( key.equals("NUMBER_OF_NODES")) {
                 var.numNodes = Integer.parseInt(value);
                 if (var.numNodes <= 0) {
-                  System.out.println("Error: value of NUMBER_OF_NODES must be positive");
+                  System.err.println("Error: value of NUMBER_OF_NODES must be positive");
                   System.exit(1);
                 }
               } 
               else if ( key.equals("TOPOLOGY")) {
                 var.top = Integer.parseInt(value);
                 if ( (var.top < 1) | (var.top > 4) ) {
-                  System.out.println("Error: value of TOPOLOGY must be between 1 and 4");
+                  System.err.println("Error: value of TOPOLOGY must be between 1 and 4");
                   System.exit(1);
                 }
               }
@@ -284,44 +290,44 @@ public class LinkLayerModel  {
                 var.grid = Double.valueOf(value).doubleValue();
               }
               else if ( key.equals("TOPOLOGY_FILE")) {
-                var.topFile = value;
+                //var.topFile = value;
               }
               else if ( key.equals("TERRAIN_DIMENSIONS_X")) {
                 var.Xterr = Double.valueOf(value).doubleValue();
                 if (var.Xterr < 0) {
-                  System.out.println("Error: value of TERRAIN_DIMENSIONS_X must be positive");
+                  System.err.println("Error: value of TERRAIN_DIMENSIONS_X must be positive");
                   System.exit(1);
                 }
               } 
               else if ( key.equals("TERRAIN_DIMENSIONS_Y")) {
                 var.Yterr = Double.valueOf(value).doubleValue();
                 if (var.Yterr < 0) {
-                  System.out.println("Error: value of TERRAIN_DIMENSIONS_Y must be positive");
+                  System.err.println("Error: value of TERRAIN_DIMENSIONS_Y must be positive");
                   System.exit(1);
                 }
                 var.area = var.Xterr * var.Yterr;
               } 
               else {
-                System.out.println("Error: undefined parameter " + key + ", please review your configuration file");
+                System.err.println("Error: undefined parameter " + key + ", please review your configuration file");
                 System.exit(1);
               } 
             }
           } // end while loop
         }
         catch (Exception e) {
-          System.out.println("Error1: " + e);
+          System.err.println("Error1: " + e);
           System.exit(1);
         }
 
       } // end try
       catch (Exception e) {
-        System.out.println("Error2: " + e);
+        System.err.println("Error2: " + e);
         System.exit(1);
       }
 
     } // end try
     catch (Exception e) {
-      System.out.println("Error Failed to Open file " + inputFile + e);
+      System.err.println("Error Failed to Open file " + inputFile + e);
       System.exit(1);
     }
 
@@ -350,19 +356,19 @@ public class LinkLayerModel  {
     boolean wrongPlacement;
 
     if (inVar.numNodes <= 0) {
-      System.out.println("\nError: value of NUMBER_OF_NODES must be positive");
+      System.err.println("\nError: value of NUMBER_OF_NODES must be positive");
       System.exit(1);
     }
 
     switch (inVar.top) {
     case 1: // GRID
       if (inVar.grid < inVar.d0) {
-        System.out.println("\nError: value of GRID_UNIT must be equal or greater than D0");
+        System.err.println("\nError: value of GRID_UNIT must be equal or greater than D0");
         System.exit(1);
       }
       sqrtNumNodes = (int) Math.sqrt(inVar.numNodes);
       if ( sqrtNumNodes != Math.sqrt(inVar.numNodes) ) {
-        System.out.println ("\nError: on GRID topology, NUMBER_OF_NODES should be the square of a natural number");
+        System.err.println ("\nError: on GRID topology, NUMBER_OF_NODES should be the square of a natural number");
         System.exit(1);
       }
       for (i = 0; i < inVar.numNodes; i = i+1) {
@@ -373,21 +379,21 @@ public class LinkLayerModel  {
     case 2: // UNIFORM
       sqrtNumNodes = (int) Math.sqrt(inVar.numNodes);
       if ( sqrtNumNodes != Math.sqrt(inVar.numNodes) ) {
-        System.out.println ("\nError: on UNIFORM topology, NUMBER_OF_NODES should be the square of a natural number");
+        System.err.println ("\nError: on UNIFORM topology, NUMBER_OF_NODES should be the square of a natural number");
         System.exit(1);
       }
       if ( (inVar.Xterr <= 0) | (inVar.Yterr <= 0) ) {
-        System.out.println("\nError: values of TERRAIN_DIMENSIONS must be positive");
+        System.err.println("\nError: values of TERRAIN_DIMENSIONS must be positive");
         System.exit(1);
       }
       if ( inVar.Xterr != inVar.Yterr ) {
-        System.out.println("\nError: values of TERRAIN_DIMENSIONS_X and TERRAIN_DIMENSIONS_Y must be equal");
+        System.err.println("\nError: values of TERRAIN_DIMENSIONS_X and TERRAIN_DIMENSIONS_Y must be equal");
         System.exit(1);
       }
       cellLength = Math.sqrt ( inVar.area / inVar.numNodes );
       nodesX = sqrtNumNodes; 
       if ( cellLength < (inVar.d0*1.4) ) {
-        System.out.println ("\nError: on UNIFORM topology, density is too high, increase physical terrain");
+        System.err.println ("\nError: on UNIFORM topology, density is too high, increase physical terrain");
         System.exit(1);
       }
       for (i = 0; i < inVar.numNodes; i = i+1) {
@@ -415,12 +421,12 @@ public class LinkLayerModel  {
       break;
     case 3: // RANDOM
       if ( (inVar.Xterr <= 0) | (inVar.Yterr <= 0) ) {
-        System.out.println("\nError: values of TERRAIN_DIMENSIONS must be positive");
+        System.err.println("\nError: values of TERRAIN_DIMENSIONS must be positive");
         System.exit(1);
       }
       cellLength = Math.sqrt ( inVar.area / inVar.numNodes );   
       if ( cellLength < (inVar.d0*1.4) ) {
-        System.out.println ("\nError: on RANDOM topology, density is too high, increase physical terrain");
+        System.err.println ("\nError: on RANDOM topology, density is too high, increase physical terrain");
         System.exit(1);
       }
       for (i = 0; i < inVar.numNodes; i = i+1) {
@@ -451,7 +457,7 @@ public class LinkLayerModel  {
       correctTopology (inVar, outVar);
       break;
     default:
-      System.out.println("\nError: topology is not correct, please check TOPOLOGY in the configuration file");
+      System.err.println("\nError: topology is not correct, please check TOPOLOGY in the configuration file");
       System.exit(1);
     }
 
@@ -481,7 +487,7 @@ public class LinkLayerModel  {
         // distance between a given pair of nodes
         dist = Math.pow((Xdist*Xdist + Ydist*Ydist), 0.5);
         if (dist < inVar.d0) {
-          System.out.println("\nError: file " + inVar.topFile + " contains inter-node distances less than one.");
+          System.err.println("\nError: file " + inVar.topFile + " contains inter-node distances less than one.");
           System.exit(1);
         }
       }
@@ -513,16 +519,16 @@ public class LinkLayerModel  {
     if ( (inVar.s11 == 0) && (inVar.s22 == 0) ) { // symmetric links do nothing
     }
     else if ( (inVar.s11 == 0) && (inVar.s22 != 0) ) { // both S11 and S22 must be 0 for symmetric links
-      System.out.println("\nError: symmetric links require both, S11 and S22 to be 0, not only S11.");
+      System.err.println("\nError: symmetric links require both, S11 and S22 to be 0, not only S11.");
       System.exit(1);
     }
     else {
       if ( (inVar.s12 != inVar.s21) ) { // check that S is symmetric
-        System.out.println("\nError: S12 and S21 must have the same value.");
+        System.err.println("\nError: S12 and S21 must have the same value.");
         System.exit(1);
       }
       if ( Math.abs(inVar.s12) > Math.sqrt(inVar.s11*inVar.s22) ) { // check that correlation is within [-1,1]
-        System.out.println("\nError: S12 (and S21) must be less than sqrt(S11xS22).");
+        System.err.println("\nError: S12 (and S21) must be less than sqrt(S11xS22).");
         System.exit(1);
       }
       t11 = Math.sqrt(inVar.s11);
@@ -606,12 +612,12 @@ public class LinkLayerModel  {
         }
       }
       catch (Exception e) {
-        System.out.println("\nError : Failed to open a print stream to the linkgain file" + e);
+        System.err.println("\nError : Failed to open a print stream to the linkgain file" + e);
       }
 
     }
     catch (Exception e) {
-      System.out.println("\nError : Failed to open the link gain file linkgains.out:" + e);
+      System.err.println("\nError : Failed to open the link gain file linkgains.out:" + e);
     }*/
 
    
@@ -633,7 +639,7 @@ public class LinkLayerModel  {
       }
     }
     catch (Exception e) {
-      System.out.println("\nError : Failed to open a print stream to the linkgain file" + e);
+      System.err.println("\nError : Failed to open a print stream to the linkgain file" + e);
     }
 
     return true;
@@ -677,19 +683,19 @@ public class LinkLayerModel  {
           }
         } // end try
         catch (Exception e) {
-          System.out.println("Error4: " + e);
+          System.err.println("Error4: " + e);
           System.exit(1);
         }
 
       } // end try
       catch (Exception e) {
-        System.out.println("Error5: " + e);
+        System.err.println("Error5: " + e);
         System.exit(1);
       }
 
     } // end try
     catch (Exception e) {
-      System.out.println("Error: Failed to Open TOPOLOGY_FILE " + inputTopoFile + e);
+      System.err.println("Error: Failed to Open TOPOLOGY_FILE " + inputTopoFile + " " + e);
       System.exit(1);
     }
 
@@ -731,19 +737,19 @@ public class LinkLayerModel  {
 
         } // end try
         catch (Exception e) {
-          System.out.println("Error4: " + e);
+          System.err.println("Error4: " + e);
           System.exit(1);
         }
 
       } // end try
       catch (Exception e) {
-        System.out.println("Error5: " + e);
+        System.err.println("Error5: " + e);
         System.exit(1);
       }
 
     } // end try
     catch (Exception e) {
-      System.out.println("Error: Failed to Open TOPOLOGY_FILE " + inputTopoFile + e);
+      System.err.println("Error: Failed to Open TOPOLOGY_FILE " + inputTopoFile + e);
       System.exit(1);
     }
 

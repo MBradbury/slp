@@ -1,4 +1,4 @@
-
+import os
 from scipy.spatial.distance import euclidean
 
 class Grid:
@@ -41,3 +41,9 @@ class Ring:
 class Random:
 	def __init__(self, sizeRoot, initialPosition=10.0):
 		raise Exception("TODO")
+
+def topology_path(module, args):
+	if args.mode == "CLUSTER":
+		return os.path.join(module.replace(".", "/"), "topology.txt")
+	else:
+		return "./topology.txt"
