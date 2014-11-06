@@ -19,6 +19,8 @@ a.parse(sys.argv[2:])
 
 configuration = Configuration.Create(a.args.configuration, a.args)
 
+# For cluster runs, the binary has already been built and the
+# topology file has been written. So do not attempt to do so again.
 if a.args.mode != "CLUSTER":
 	build_arguments = a.getBuildArguments()
 
