@@ -46,7 +46,7 @@ configurations = [
     #'CircleSinkCentre',
 ]
 
-repeats = 250
+repeats = 1000
 
 def create_dirtree(path):
     if not os.path.exists(path):
@@ -80,7 +80,8 @@ if 'cluster' in args:
         subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
 
     if 'all' in args or 'submit' in args:
-        pass
+        runner = run_protectionless.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, False)
+        runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
     sys.exit(0)
 
