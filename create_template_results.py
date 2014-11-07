@@ -106,6 +106,8 @@ if 'cluster' in args:
         subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
 
     if 'all' in args or 'submit' in args:
+        subprocess.check_call("module load jdk/1.7.0_07")
+        
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
 
