@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import sys, importlib, subprocess, multiprocessing
+import sys, importlib, subprocess, multiprocessing, traceback
 
 from simulator.Attacker import Attacker
 from simulator.Builder import build
@@ -48,21 +48,43 @@ if a.args.mode == "GUI":
 	import simulator.DoRun
 
 else:
-	subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
-
 	def runner(args):
-		process = subprocess.Popen(args, stdout=subprocess.PIPE)
-		try:
-			process.wait()
-		except (KeyboardInterrupt, SystemExit):
-			process.terminate()
+		def runner_impl(args):
+			process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			try:
+				process.wait()
 
-		for line in process.stdout:
-			print(line, end="")
+				for line in process.stdout:
+					print(line, end="")
+				for line in process.stderr:
+					print(line, end="", file=sys.stderr)
+
+			except (KeyboardInterrupt, SystemExit) as e:
+				print("Killing process due to {}".format(e), file=sys.stderr)
+				process.terminate()
+
+		max_retries = 3
+		tries = 0
+		done = False
+
+		while not done and tries < max_retries:
+			try:
+				tries += 1
+				runner_impl(args)
+				done = True
+			except Exception as e:
+				print("Encountered (try {}): {}".format(tries, e), file=sys.stderr)
+				print(traceback.format_exc(), file=sys.stderr)
+
+	subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
 
 	p = multiprocessing.Pool(a.args.thread_count)
 	try:
 		r = p.map_async(runner, [subprocess_args] * a.args.job_size)
 		r.wait()
-	except (KeyboardInterrupt, SystemExit):
+	except (KeyboardInterrupt, SystemExit) as e:
+		print("Killing thread pool due to {}".format(e), file=sys.stderr)
 		p.terminate()
+	except Exception as e:
+		print("Encountered: {}".format(e), file=sys.stderr)
+		print(traceback.format_exc(), file=sys.stderr)
