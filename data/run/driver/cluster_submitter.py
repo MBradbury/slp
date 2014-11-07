@@ -12,7 +12,7 @@ class Runner:
 
         module = target_directory.replace("/", ".")
 
-        cluster_command = "qsub -q serial -j oe -V -l nodes=1:ppn=4 -l walltime=200:00:00 -N {}".format(module)
+        cluster_command = "qsub -q serial -j oe -V -l nodes=1:ppn=4 -l walltime=100:00:00 -N {}".format(module)
 
         script_command = '{} {} {} > {}'.format(executable, module, options, name)
 
