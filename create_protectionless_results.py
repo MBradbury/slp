@@ -80,7 +80,7 @@ if 'cluster' in args:
         subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
 
     if 'all' in args or 'submit' in args:
-        subprocess.check_call("module load jdk/1.7.0_07")
+        subprocess.check_call("module load jdk/1.7.0_07", shell=True)
 
         runner = run_protectionless.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
