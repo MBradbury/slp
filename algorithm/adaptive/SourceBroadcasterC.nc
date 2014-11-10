@@ -267,19 +267,27 @@ implementation
 		}
 	}
 
-	uint32_t get_tfs_duration()
+
+	uint32_t get_tfs_num_msg_to_send()
 	{
-		return TEMP_FAKE_DURATION_MS;
+		return max(3, source_distance - sink_source_distance);
 	}
+
+
 
 	uint32_t get_tfs_period()
 	{
-		return FAKE_PERIOD_MS;
+		return SOURCE_PERIOD_MS / 4;
+	}
+
+	uint32_t get_tfs_duration()
+	{
+		return get_tfs_period() * get_tfs_num_msg_to_send();
 	}
 
 	uint32_t get_pfs_period()
 	{
-		return FAKE_PERIOD_MS;
+		return SOURCE_PERIOD_MS / 2;
 	}
 
 
