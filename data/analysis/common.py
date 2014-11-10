@@ -36,12 +36,17 @@ class Analyse:
                     # Read the actual data
                     values = line.split('|')
 
-                    self.check_consistent(values, lineNumber)
+                    try:
+                        self.check_consistent(values, lineNumber)
 
-                    self.data.append(values)
+                        self.check_outlier(values, lineNumber)
+
+                        self.data.append(values)
+                    except RuntimeError as e:
+                        print("Unable to process line {} due to {}".format(lineNumber, e), file=sys.stderr)
 
                 else:
-                    print("Unable to parse: {}".format(line))
+                    print("Unable to parse line {} : '{}'".format(lineNumber, line))
 
                 lineNumber += 1
 
@@ -49,6 +54,34 @@ class Analyse:
         if len(values) != len(self.headings):
             raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
                 len(values), len(self.headings), lineNumber))
+
+        for (heading, value) in zip(self.headings, values):
+            if value.startswith('{'):
+                # Check that the map format is valid
+                try:
+                    d = ast.literal_eval(value)
+                except SyntaxError as e:
+                    raise RuntimeError("The value for {} could not be parsed".format(heading), e)
+
+                network_size = int(self.opts['network_size'])
+                number_nodes = network_size * network_size
+
+                # Check that there aren't too many nodes
+                if len(d) > number_nodes:
+                    raise RuntimeError("There are too many nodes in this map {}, when there should be {} maximum.".format(len(d), number_nodes))
+
+                # Check that the node ids are in the right range
+                for k in d.keys():
+                    if k < 0 or k >= number_nodes:
+                        raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
+
+    def check_outlier(self, values, lineNumber):
+        index = self.headings.index("TimeTaken")
+
+        time_taken = float(values[index])
+
+        if time_taken > 500:
+            raise RuntimeError("Detected outlier, the time taken is {}".format(time_taken))
 
 
     def averageOf(self, header):
