@@ -12,7 +12,6 @@ else:
 
 import algorithm.protectionless as protectionless
 
-from data.run import protectionless as run_protectionless
 from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.table import safety_period
 from data.latex import latex
@@ -75,7 +74,7 @@ if 'cluster' in args:
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
 
-        runner = run_protectionless.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, False)
+        runner = protectionless.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
     if 'all' in args or 'copy' in args:
@@ -85,13 +84,13 @@ if 'cluster' in args:
     if 'all' in args or 'submit' in args:
         cluster.load_module("jdk/1.7.0_07")
 
-        runner = run_protectionless.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, False)
+        runner = protectionless.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
     sys.exit(0)
 
 if 'all' in args or 'run' in args:
-    runner = run_protectionless.RunSimulations(LocalDriver.Runner(), results_directory)
+    runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), results_directory)
     runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
 if 'all' in args or 'analyse' in args:

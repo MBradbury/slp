@@ -13,8 +13,6 @@ else:
 import algorithm.protectionless as protectionless
 import algorithm.template as template
 
-from data.run import template as run_template
-
 from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.table import safety_period, fake_source_result, comparison
 from data.graph import grapher, summary
