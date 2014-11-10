@@ -1,4 +1,3 @@
-#
 # This file runs the analysis script on the raw data
 # and then saves it all in one big csv file.
 #
@@ -9,7 +8,7 @@ import os
 import fnmatch
 import math
 
-from .common import *
+from data.analysis import Analyse, AnalysisResults
 
 class Analyzer:
     def __init__(self, results_directory):

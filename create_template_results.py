@@ -10,11 +10,11 @@ if len(sys.argv[1:]) == 0:
 else:
     args = sys.argv[1:]
 
-from data.run import protectionless as run_protectionless
-from data.analysis import protectionless as analyse_protectionless
+import algorithm.protectionless as protectionless
+import algorithm.template as template
 
+from data.run import protectionless as run_protectionless
 from data.run import template as run_template
-from data.analysis import template as analyse_template
 
 from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.table import safety_period, fake_source_result, comparison
@@ -125,7 +125,7 @@ if 'all' in args or 'run-protectionless' in args:
     runner.run(jar_path, distance, sizes, source_periods, protectionless_configurations, protectionless_repeats)
 
 if 'all' in args or 'analyse-protectionless' in args:
-    analyzer = analyse_protectionless.Analyzer(protectionless_results_directory)
+    analyzer = protectionless.Analysis.Analyzer(protectionless_results_directory)
     analyzer.run(protectionless_analysis_result_file)
 
 if 'all' in args or 'run' in args:
@@ -138,7 +138,7 @@ if 'all' in args or 'run' in args:
     prelim_runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
 if 'all' in args or 'analyse' in args:
-    prelim_analyzer = analyse_template.Analyzer(template_results_directory)
+    prelim_analyzer = template.Analysis.Analyzer(template_results_directory)
     prelim_analyzer.run(template_analysis_result_file)
 
 template_analysis_result_path = os.path.join(template_results_directory, template_analysis_result_file)

@@ -10,9 +10,10 @@ if len(sys.argv[1:]) == 0:
 else:
     args = sys.argv[1:]
 
+import algorithm.protectionless as protectionless
+
 from data.run import protectionless as run_protectionless
 from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
-from data.analysis import protectionless as analyse_protectionless
 from data.table import safety_period
 from data.latex import latex
 from data.graph import grapher, summary
@@ -94,7 +95,7 @@ if 'all' in args or 'run' in args:
     runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
 if 'all' in args or 'analyse' in args:
-    analyzer = analyse_protectionless.Analyzer(results_directory)
+    analyzer = protectionless.Analysis.Analyzer(results_directory)
     analyzer.run(analysis_result_file)
 
 if 'all' in args or 'table' in args:

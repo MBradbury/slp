@@ -8,7 +8,7 @@ import os
 import fnmatch
 import math
 
-from .common import *
+from data.analysis import Analyse, AnalysisResults
 
 class Analyzer:
     def __init__(self, results_directory):
