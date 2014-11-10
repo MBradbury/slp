@@ -13,7 +13,6 @@ else:
 import algorithm.protectionless as protectionless
 import algorithm.template as template
 
-from data.run import protectionless as run_protectionless
 from data.run import template as run_template
 
 from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
@@ -100,7 +99,7 @@ if 'cluster' in args:
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
 
-        runner = run_template.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
+        runner = template.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
     if 'all' in args or 'copy' in args:
@@ -115,13 +114,13 @@ if 'cluster' in args:
 
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = run_template.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
+        runner = template.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
     sys.exit(0)
 
 if 'all' in args or 'run-protectionless' in args:
-    runner = run_protectionless.RunSimulations(LocalDriver.Runner(), protectionless_results_directory)
+    runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), protectionless_results_directory)
     runner.run(jar_path, distance, sizes, source_periods, protectionless_configurations, protectionless_repeats)
 
 if 'all' in args or 'analyse-protectionless' in args:
@@ -134,7 +133,7 @@ if 'all' in args or 'run' in args:
 
     safety_periods = safety_period_table_generator.safety_periods()
 
-    prelim_runner = run_template.RunSimulations(LocalDriver.Runner(), template_results_directory, safety_periods, skip_completed_simulations=True)
+    prelim_runner = template.Runner.RunSimulations(LocalDriver.Runner(), template_results_directory, safety_periods, skip_completed_simulations=True)
     prelim_runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
 if 'all' in args or 'analyse' in args:

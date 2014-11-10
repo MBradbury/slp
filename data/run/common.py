@@ -1,7 +1,6 @@
 import os
 import fnmatch
 
-
 class RunSimulationsCommon(object):
     optimisations = '-OO'
     

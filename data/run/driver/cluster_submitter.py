@@ -21,12 +21,5 @@ class Runner:
         print(command)
         subprocess.check_call(command, shell=True)
 
-
-    def wait_for_completion(self):
-        pass
-
-    def fetch_results(self):
-        pass
-
     def mode(self):
         return "CLUSTER"
