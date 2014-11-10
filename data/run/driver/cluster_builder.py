@@ -38,13 +38,6 @@ class Runner:
         configuration = Configuration.Create(a.args.configuration, a.args)
         Simulation.Simulation.writeTopologyFile(configuration.topology.nodes, target_directory)
 
-
-    def wait_for_completion(self):
-        pass
-
-    def fetch_results(self):
-        pass
-
     def mode(self):
         return "CLUSTER"
 

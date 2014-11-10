@@ -2,7 +2,7 @@ import subprocess
 import os
 import itertools
 
-from .common import RunSimulationsCommon
+from data.run.common import RunSimulationsCommon
 
 class RunSimulations(RunSimulationsCommon):
     def __init__(self, driver, results_directory, skip_completed_simulations=True):
@@ -37,7 +37,3 @@ class RunSimulations(RunSimulationsCommon):
                     distance).replace(".", "_") + ".txt")
 
                 self.driver.add_job(executable, options, filename)
-
-        self.driver.wait_for_completion()
-
-        self.driver.fetch_results()
