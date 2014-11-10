@@ -22,7 +22,7 @@ class RunSimulations(RunSimulationsCommon):
                     self.optimisations,
                     exe_path)
 
-                options = 'protectionless --mode {} --network-size {} --source-period {} --configuration {} --job-size {} --distance {}'.format(
+                options = 'algorithm.protectionless --mode {} --network-size {} --source-period {} --configuration {} --job-size {} --distance {}'.format(
                     self.driver.mode(),
                     size,
                     source_period,

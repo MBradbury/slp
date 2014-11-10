@@ -18,6 +18,7 @@ class Runner:
         # Parse options
         options = shlex.split(options)
         module, argv = options[0], options[1:]
+        module_path = module.replace(".", "/")
 
         a = self.parse_arguments(module, argv)
 
@@ -26,11 +27,11 @@ class Runner:
 
         print("building for {}".format(build_args))
 
-        LocalBuilder.build(module, **build_args)
+        LocalBuilder.build(module_path, **build_args)
 
         files_to_move = ["_TOSSIMmodule.so", "TOSSIM.py", "Arguments.py", "Metrics.py", "__init__.py"]
         for f in files_to_move:
-            shutil.copy(os.path.join(module, f), target_directory)
+            shutil.copy(os.path.join(module_path, f), target_directory)
 
         # Create the topology of this configuration
         print("Creating topology file")
