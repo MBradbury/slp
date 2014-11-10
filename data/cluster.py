@@ -1,7 +1,7 @@
 import subprocess
 
 def load_module(module):
-	try:
+    try:
         subprocess.check_call("module load {}".format(module), shell=True)
     except subprocess.CalledProcessError as e:
         print("Failed to load {}: {}".format(module, e))
