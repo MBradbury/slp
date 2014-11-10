@@ -68,7 +68,7 @@ temp_fake_durations = [ 2 ] # [ 1, 2, 4 ]
 prs_tfs = [ 1.0 ] # [ 1.0, 0.9, 0.8 ]
 prs_pfs = [ 1.0 ] # [ 1.0 ]
 
-protectionless_repeats = 1000
+protectionless_repeats = 750
 repeats = 500
 
 protectionless_configurations = [(a) for (a, b) in configurations]
