@@ -22,6 +22,8 @@ from data.graph import grapher, summary
 
 from data.latex import latex
 
+from data import cluster
+
 jar_path = 'run.py'
 
 protectionless_results_directory = 'data/results/protectionless'
@@ -106,7 +108,7 @@ if 'cluster' in args:
         subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
 
     if 'all' in args or 'submit' in args:
-        subprocess.check_call("module load jdk/1.7.0_07", shell=True)
+        cluster.load_module("jdk/1.7.0_07")
 
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
