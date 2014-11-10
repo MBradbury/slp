@@ -19,7 +19,7 @@ from data.graph import grapher, summary
 
 jar_path = 'run.py'
 
-results_directory = 'data/results/Protectionless'
+results_directory = 'data/results/protectionless'
 analysis_result_file = 'protectionless-results.csv'
 
 graphs_directory = os.path.join(results_directory, 'Graphs')

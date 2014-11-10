@@ -1,8 +1,9 @@
+from __future__ import print_function
 
 from numpy import mean
 from numpy import var as variance
 
-import ast
+import sys, ast
 from collections import Counter
 
 class Analyse:
@@ -15,6 +16,7 @@ class Analyse:
         self.data = []
 
         with open(infile) as f:
+            lineNumber = 1
             for line in f:
         
                 # We need to remove the new line at the end of the line
@@ -34,10 +36,20 @@ class Analyse:
                     # Read the actual data
                     values = line.split('|')
 
+                    self.check_consistent(values, lineNumber)
+
                     self.data.append(values)
 
                 else:
-                    pass
+                    print("Unable to parse: {}".format(line))
+
+                lineNumber += 1
+
+    def check_consistent(self, values, lineNumber):
+        if len(values) != len(self.headings):
+            raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
+                len(values), len(self.headings), lineNumber))
+
 
     def averageOf(self, header):
         # Find the index that header refers to
@@ -82,18 +94,20 @@ class AnalysisResults(object):
         for heading in analysis.headings:
             try:
                 self.averageOf[heading] = analysis.averageOf(heading)
-            except:
+            except Exception as e:
                 try:
                     del self.averageOf[heading]
                 except:
                     pass
+                print("Failed to average {}: {}".format(heading, e), file=sys.stderr)
             try:
                 self.varianceOf[heading] = analysis.varianceOf(heading)
-            except:
+            except Exception as e:
                 try:
                     del self.varianceOf[heading]
                 except:
                     pass
+                print("Failed to find variance {}: {}".format(heading, e), file=sys.stderr)
 
         self.opts = analysis.opts
         self.data = analysis.data

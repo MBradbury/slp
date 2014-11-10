@@ -24,10 +24,10 @@ from data.latex import latex
 
 jar_path = 'run.py'
 
-protectionless_results_directory = 'data/results/Protectionless'
+protectionless_results_directory = 'data/results/protectionless'
 protectionless_analysis_result_file = 'protectionless-results.csv'
 
-template_results_directory = 'data/results/Template'
+template_results_directory = 'data/results/template'
 template_analysis_result_file = 'template-results.csv'
 
 template_graphs_directory = os.path.join(template_results_directory, 'Graphs')

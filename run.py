@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import sys, importlib, subprocess, multiprocessing, traceback
 
+from threading import Lock
+
 from simulator.Attacker import Attacker
 from simulator.Builder import build
 import simulator.Configuration as Configuration
@@ -49,15 +51,26 @@ if a.args.mode == "GUI":
 
 else:
 	def runner(args):
+		print_lock = Lock()
+
 		def runner_impl(args):
 			process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			try:
 				process.wait()
 
-				for line in process.stdout:
-					print(line, end="")
-				for line in process.stderr:
-					print(line, end="", file=sys.stderr)
+				# Multiple processes may be attempting to write out at the same
+				# time, so this needs to be protected with a lock.
+				#
+				# Also the streams write method needs to be called directly,
+				# as print has issues with newline printing and multithreading.
+				with print_lock:
+					for line in process.stdout:
+						sys.stdout.write(line)
+					sys.stdout.flush()
+
+					for line in process.stderr:
+						sys.stderr.write(line)
+					sys.stderr.flush()
 
 			except (KeyboardInterrupt, SystemExit) as e:
 				print("Killing process due to {}".format(e), file=sys.stderr)
