@@ -14,7 +14,10 @@ class Simulation(TosVis):
             seed=args.seed if args.seed is not None else self.secureRandom()
             )
 
-        self.safetyPeriod = args.safety_period if hasattr(args, "safety_period") else None
+        # To make simulations safer an upper bound on the simulation time
+        # is used when no safety period makes sense. This upper bound is the 
+        # time it would have otherwise taken the attacker to scan the whole network.
+        self.safetyPeriod = args.safety_period if hasattr(args, "safety_period") else (args.network_size ** 2) * max(1.0, 2.0 * args.source_period)
 
 #        self.tossim.addChannel("Fake-Probability-Decision", sys.stdout)
 #        self.tossim.addChannel("stdout", sys.stdout)

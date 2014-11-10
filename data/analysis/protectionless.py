@@ -22,12 +22,13 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},,{},{},{},,{},,{},{}\n'.replace(",", "|").format(
+            out.write('{},{},{},,{},{},{},{},,{},,{},{}\n'.replace(",", "|").format(
                 'network size',
                 'source period',
                 'configuration',
                 
                 'time taken',
+                'captured',
                 'received ratio',
                 'normal latency',
                 
@@ -44,13 +45,15 @@ class Analyzer:
             
                 result = AnalysisResults(Analyse(path))
 
-                out.write('{},{},{},,{}({}),{}({}),{}({}),,{},,{},{}\n'.replace(",", "|").format(
+                out.write('{},{},{},,{}({}),{},{}({}),{}({}),,{},,{},{}\n'.replace(",", "|").format(
                     result.opts['network_size'],
                     result.opts['source_period'],
                     result.opts['configuration'],           
                     
                     result.averageOf['TimeTaken'],
                     result.varianceOf['TimeTaken'],
+
+                    result.averageOf['Captured'],
                     
                     result.averageOf['ReceiveRatio'],
                     result.varianceOf['ReceiveRatio'],

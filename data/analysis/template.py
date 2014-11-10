@@ -11,16 +11,6 @@ import math
 
 from .common import *
 
-class CapturedAnalysisResults(AnalysisResults):
-
-    averageOf = {}
-    varianceOf = {}
-
-    def __init__(self, analysis):
-        super(CapturedAnalysisResults, self).__init__(analysis)
-                
-        self.captured = analysis.capturedRuns()
-
 class Analyzer:
     def __init__(self, results_directory):
         self.results_directory = results_directory
@@ -62,7 +52,7 @@ class Analyzer:
             for infile in files:
                 path = os.path.join(self.results_directory, infile)
             
-                result = CapturedAnalysisResults(Analyse(path))
+                result = AnalysisResults(Analyse(path))
                 
                 runs = len(result.data)
             
@@ -80,7 +70,7 @@ class Analyzer:
                     result.averageOf['Sent'], result.varianceOf['Sent'],
                     result.averageOf['Received'], result.varianceOf['Received'],
                     result.averageOf['Collisions'], result.varianceOf['Collisions'],
-                    result.captured / float(runs),
+                    result.averageOf['Captured'],
                     result.averageOf['Received Ratio'], result.varianceOf['Received Ratio'],
                     result.averageOf['NormalLatency'], result.varianceOf['NormalLatency'],
                     result.averageOf['Time'], result.varianceOf['Time'],

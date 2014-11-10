@@ -83,6 +83,17 @@ class Analyse:
         if time_taken > 500:
             raise RuntimeError("Detected outlier, the time taken is {}".format(time_taken))
 
+    @staticmethod
+    def to_float(value):
+
+        value_lit = ast.literal_eval(value)
+
+        if value_lit is True:
+            return 1.0
+        elif value_lit is False:
+            return 0.0
+        else:
+            return float(value)
 
     def averageOf(self, header):
         # Find the index that header refers to
@@ -91,7 +102,7 @@ class Analyse:
         if "{" in self.data[0][index]:
             return self.dictMean(index)
         else:
-            return mean([float(values[index]) for values in self.data])
+            return mean([self.to_float(values[index]) for values in self.data])
 
     def varianceOf(self, header):
         # Find the index that header refers to
@@ -100,24 +111,13 @@ class Analyse:
         if "{" in self.data[0][index]:
             raise NotImplementedError()
         else:
-            return variance([float(values[index]) for values in self.data])
+            return variance([self.to_float(values[index]) for values in self.data])
 
     def dictMean(self, index):
         dictList = [Counter(ast.literal_eval(values[index])) for values in self.data]
 
         return { k: float(v) / len(dictList) for (k, v) in dict(sum(dictList, Counter())).items() }
-        
-    def capturedRuns(self):
-        # Find the index that header refers to
-        index = self.headings.index('Captured')
 
-        capture = 0.0
-
-        for values in self.data:
-            if values[index] == 'true':
-                capture += 1.0
-
-        return capture
 
 class AnalysisResults(object):
     def __init__(self, analysis):
