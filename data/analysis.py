@@ -6,8 +6,8 @@ from numpy import var as variance
 import sys, ast
 from collections import Counter
 
-class Analyse:
-    def __init__(self, infile, detect_outlier=lambda x, y: None):
+class Analyse(object):
+    def __init__(self, infile):
 
         self.opts = {}
         self.results = {}
@@ -39,7 +39,7 @@ class Analyse:
                     try:
                         self.check_consistent(values, lineNumber)
 
-                        detect_outlier(self, values)
+                        self.detect_outlier(values)
 
                         self.data.append(values)
 
@@ -52,6 +52,7 @@ class Analyse:
                 lineNumber += 1
 
     def check_consistent(self, values, lineNumber):
+        # Check that the expected number of values are present
         if len(values) != len(self.headings):
             raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
                 len(values), len(self.headings), lineNumber))
@@ -76,11 +77,15 @@ class Analyse:
                     if k < 0 or k >= number_nodes:
                         raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
 
+    def detect_outlier(self, values):
+        pass
+
     @staticmethod
     def to_float(value):
-
         value_lit = ast.literal_eval(value)
 
+        # Convert boolean to floats to allow averaging
+        # the number of time the source was captured.
         if value_lit is True:
             return 1.0
         elif value_lit is False:

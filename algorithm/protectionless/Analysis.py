@@ -10,24 +10,24 @@ import math
 
 from data.analysis import Analyse, AnalysisResults
 
-class Analyzer:
-    def __init__(self, results_directory):
-        self.results_directory = results_directory
+class AnalyseWithOutlierDetection(Analyse):
+    def __init__(self, infile):
+        super(AnalyseWithOutlierDetection, self).__init__(infile)
 
-    def detect_outlier(self, analysis, values):
+    def detect_outlier(self, values):
         # Discard simulations that didn't capture the source
-        captured_index = analysis.headings.index("Captured")
+        captured_index = self.headings.index("Captured")
         captured = bool(values[captured_index])
 
         if not captured:
             raise RuntimeError("Detected outlier, the source was not captured")
 
         # Discard simulations that took too long
-        time_index = analysis.headings.index("TimeTaken")
+        time_index = self.headings.index("TimeTaken")
         time_taken = float(values[time_index])
 
-        network_size = int(analysis.opts['network_size'])
-        source_period = float(analysis.opts['source_period'])
+        network_size = int(self.opts['network_size'])
+        source_period = float(self.opts['source_period'])
 
         upper_bound = (network_size ** 2) * source_period
 
@@ -37,6 +37,9 @@ class Analyzer:
             raise RuntimeError("Detected outlier, the time taken is {}, upper bound is {}".format(
                 time_taken, upper_bound))
 
+class Analyzer:
+    def __init__(self, results_directory):
+        self.results_directory = results_directory
 
     def run(self, summary_file):
         summary_file_path = os.path.join(self.results_directory, summary_file)
@@ -67,7 +70,7 @@ class Analyzer:
 
                 print('Analysing {0}'.format(path))
             
-                result = AnalysisResults(Analyse(path, self.detect_outlier))
+                result = AnalysisResults(AnalyseWithOutlierDetection(path))
 
                 out.write('{},{},{},,{}({}),{},{}({}),{}({}),,{},,{},{}\n'.replace(",", "|").format(
                     result.opts['network_size'],
