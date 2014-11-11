@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import sys
+import sys, re
 
 from numpy import mean
 from scipy.spatial.distance import euclidean
@@ -10,6 +10,10 @@ from collections import Counter
 from simulator.Simulator import OutputCatcher
 
 class Metrics:
+
+    WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
+    FAKE_RE   = re.compile(r'The node has become a ([a-zA-Z]+)')
+
     def __init__(self, sim, configuration):
         self.sim = sim
 
@@ -24,6 +28,10 @@ class Metrics:
         self.sim.tossim.addChannel('Metric-RCV', self.RCV.write)
         self.sim.addOutputProcessor(self.RCV)
 
+        self.FAKE_NOTIFICATION = OutputCatcher(self.process_FAKE_NOTIFICATION)
+        self.sim.tossim.addChannel('Fake-Notification', self.FAKE_NOTIFICATION.write)
+        self.sim.addOutputProcessor(self.FAKE_NOTIFICATION)
+
         self.heatMap = {}
 
         self.normalSentTime = {}
@@ -31,6 +39,10 @@ class Metrics:
 
         self.sent = {}
         self.received = {}
+
+        self.tfsCreated = 0
+        self.pfsCreated = 0
+        self.fakeToNormal = 0
 
     def process_BCAST(self, line):
         (kind, time, nodeID, status, seqNo) = line.split(',')
@@ -65,6 +77,27 @@ class Metrics:
 
         self.received[kind][nodeID] += 1
 
+    def process_FAKE_NOTIFICATION(self, line):
+        match = self.WHOLE_RE.match(line)
+        if match is None:
+            return None
+
+        id = int(match.group(1))
+        detail = match.group(2)
+
+        match = self.FAKE_RE.match(detail)
+        if match is not None:
+            kind = match.group(1)
+            
+            if kind == "TFS":
+                self.tfsCreated += 1
+            elif kind == "PFS":
+                self.pfsCreated += 1
+            elif kind == "Normal":
+                self.fakeToNormal += 1
+            else:
+                raise RuntimeError("Unknown kind {}".format(kind))
+
     def averageNormalLatency(self):
         return mean(self.normalLatency.values())
 
@@ -82,7 +115,7 @@ class Metrics:
 
     @staticmethod
     def printHeader(stream=sys.stdout):
-        print("#Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,FakeSent,ChooseSent,AwaySent,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
+        print("#Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,FakeSent,ChooseSent,AwaySent,TFS,PFS,FakeToNormal,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
 
     def printResults(self, stream=sys.stdout):
         seed = self.sim.seed
@@ -107,8 +140,9 @@ class Metrics:
         sentHeatMap = dict(sum(self.sent.values(), Counter()))
         receivedHeatMap = dict(sum(self.received.values(), Counter()))
 
-        print("|".join(["{}"] * 16).format(
+        print("|".join(["{}"] * 19).format(
             seed, sent, received, collisions, captured,
             receivedRatio, time, attackerDistance, attackerMoves,
             normalLatency, normalSent, fakeSent, chooseSent, awaySent,
+            self.tfsCreated, self.pfsCreated, self.fakeToNormal,
             sentHeatMap, receivedHeatMap), file=stream)

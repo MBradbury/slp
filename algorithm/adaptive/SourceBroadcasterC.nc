@@ -241,14 +241,14 @@ implementation
 	{
 		switch (algorithm)
 		{
-			case GenericAlgorithm:
-				return !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
+		case GenericAlgorithm:
+			return !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
 
-			case FurtherAlgorithm:
-				return !seen_pfs && !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
+		case FurtherAlgorithm:
+			return !seen_pfs && !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
 
-			default:
-				return TRUE;
+		default:
+			return TRUE;
 		}
 	}
 
@@ -256,28 +256,51 @@ implementation
 	{
 		switch (algorithm)
 		{
-			case GenericAlgorithm:
-				return TRUE;
+		case GenericAlgorithm:
+			return TRUE;
 
-			case FurtherAlgorithm:
-				return FALSE;
+		case FurtherAlgorithm:
+			return FALSE;
 
-			default:
-				return FALSE;
+		default:
+			return FALSE;
 		}
 	}
 
 
 	uint32_t get_tfs_num_msg_to_send()
 	{
-		return max(3, source_distance - sink_source_distance);
+		uint32_t result = 0;
+		const int32_t d_src = source_distance == BOTTOM ? 0 : source_distance;
+		const int32_t d_sink_src = sink_source_distance == BOTTOM ? 0 : sink_source_distance;
+
+		switch (algorithm)
+		{
+		case GenericAlgorithm:
+			result = max(2, d_src - d_sink_src);
+			break;
+
+		case FurtherAlgorithm:
+			result = max(2, d_src);
+			break;
+
+		default:
+			result = max(2, d_src);
+			break;
+		}
+
+		result = (uint32_t)ceil(1.0 / max(1, abs(d_src - d_sink_src)) * d_sink_src);
+
+		//dbg("stdout", "[%s]: get_tfs_num_msg_to_send: src-dist: %d sink-source-dist: %d || result: %d\n", sim_time_string(), source_distance, sink_source_distance, result);
+
+		return result;
 	}
 
 
 
 	uint32_t get_tfs_period()
 	{
-		return SOURCE_PERIOD_MS / 4;
+		return SOURCE_PERIOD_MS / 2;
 	}
 
 	uint32_t get_tfs_duration()
@@ -287,7 +310,7 @@ implementation
 
 	uint32_t get_pfs_period()
 	{
-		return SOURCE_PERIOD_MS / 2;
+		return (SOURCE_PERIOD_MS * 4U) / 5U;
 	}
 
 
@@ -355,7 +378,7 @@ implementation
 
 		call FakeMessageGenerator.stop();
 
-		dbg("GUI-Fake-Notification", "The node has become a Normal\n");
+		dbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
@@ -369,13 +392,13 @@ implementation
 
 		if (type == PermFakeNode)
 		{
-			dbg("GUI-Fake-Notification", "The node has become a PFS\n");
+			dbg("Fake-Notification", "The node has become a PFS\n");
 
 			call FakeMessageGenerator.start(message, get_pfs_period());
 		}
 		else
 		{
-			dbg("GUI-Fake-Notification", "The node has become a TFS\n");
+			dbg("Fake-Notification", "The node has become a TFS\n");
 
 			call FakeMessageGenerator.startLimited(message, get_tfs_period(), get_tfs_duration());
 		}
