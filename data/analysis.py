@@ -7,7 +7,7 @@ import sys, ast
 from collections import Counter
 
 class Analyse:
-    def __init__(self, infile):
+    def __init__(self, infile, detect_outlier=lambda x, y: None):
 
         self.opts = {}
         self.results = {}
@@ -39,9 +39,10 @@ class Analyse:
                     try:
                         self.check_consistent(values, lineNumber)
 
-                        self.check_outlier(values, lineNumber)
+                        detect_outlier(self, values)
 
                         self.data.append(values)
+
                     except RuntimeError as e:
                         print("Unable to process line {} due to {}".format(lineNumber, e), file=sys.stderr)
 
@@ -74,14 +75,6 @@ class Analyse:
                 for k in d.keys():
                     if k < 0 or k >= number_nodes:
                         raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
-
-    def check_outlier(self, values, lineNumber):
-        index = self.headings.index("TimeTaken")
-
-        time_taken = float(values[index])
-
-        if time_taken > 500:
-            raise RuntimeError("Detected outlier, the time taken is {}".format(time_taken))
 
     @staticmethod
     def to_float(value):
@@ -119,7 +112,7 @@ class Analyse:
         return { k: float(v) / len(dictList) for (k, v) in dict(sum(dictList, Counter())).items() }
 
 
-class AnalysisResults(object):
+class AnalysisResults:
     def __init__(self, analysis):
         self.averageOf = {}
         self.varianceOf = {}
