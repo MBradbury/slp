@@ -331,7 +331,7 @@ implementation
 
 		call FakeMessageGenerator.stop();
 
-		dbg("GUI-Fake-Notification", "The node has become a Normal\n");
+		dbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
@@ -351,7 +351,7 @@ implementation
 		{
 			if (rndFloat <= PR_PFS)
 			{
-				dbg("GUI-Fake-Notification", "The node has become a PFS\n");
+				dbg("Fake-Notification", "The node has become a PFS\n");
 
 				dbgverbose("Fake-Probability-Decision",
  					"The node %u has become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
@@ -368,7 +368,7 @@ implementation
 		{
 			if (rndFloat <= PR_TFS)
 			{
-				dbg("GUI-Fake-Notification", "The node has become a TFS\n");
+				dbg("Fake-Notification", "The node has become a TFS\n");
 
 				dbgverbose("Fake-Probability-Decision",
 					"The node %u has become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);

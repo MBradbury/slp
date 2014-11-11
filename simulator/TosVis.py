@@ -84,7 +84,7 @@ class TosVis(Simulator):
 		dbg = OutputCatcher(self.processDbgMsg)
 		self.tossim.addChannel('LedsC', dbg.write)
 		self.tossim.addChannel('AM', dbg.write)
-		self.tossim.addChannel('GUI-Fake-Notification', dbg.write)
+		self.tossim.addChannel('Fake-Notification', dbg.write)
 
 		self.addOutputProcessor(dbg)
 
@@ -145,7 +145,7 @@ class TosVis(Simulator):
 		elif kind == "Normal":
 			colour = normal_colour
 		else:
-			raise Exception("Unknown kind {}".format(kind))
+			raise RuntimeError("Unknown kind {}".format(kind))
 
 		scene = self.scene
 		scene.execute(time,
