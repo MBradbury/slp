@@ -14,6 +14,30 @@ class Analyzer:
     def __init__(self, results_directory):
         self.results_directory = results_directory
 
+    def detect_outlier(self, analysis, values):
+        # Discard simulations that didn't capture the source
+        captured_index = analysis.headings.index("Captured")
+        captured = bool(values[captured_index])
+
+        if not captured:
+            raise RuntimeError("Detected outlier, the source was not captured")
+
+        # Discard simulations that took too long
+        time_index = analysis.headings.index("TimeTaken")
+        time_taken = float(values[time_index])
+
+        network_size = int(analysis.opts['network_size'])
+        source_period = float(analysis.opts['source_period'])
+
+        upper_bound = (network_size ** 2) * source_period
+
+        # This can be much stricter than the protectionless upper bound on time.
+        # As it can be changed once the simulations have been run.
+        if time_taken >= upper_bound:
+            raise RuntimeError("Detected outlier, the time taken is {}, upper bound is {}".format(
+                time_taken, upper_bound))
+
+
     def run(self, summary_file):
         summary_file_path = os.path.join(self.results_directory, summary_file)
 
@@ -43,7 +67,7 @@ class Analyzer:
 
                 print('Analysing {0}'.format(path))
             
-                result = AnalysisResults(Analyse(path))
+                result = AnalysisResults(Analyse(path, self.detect_outlier))
 
                 out.write('{},{},{},,{}({}),{},{}({}),{}({}),,{},,{},{}\n'.replace(",", "|").format(
                     result.opts['network_size'],
