@@ -17,7 +17,7 @@ from data.table import safety_period
 from data.latex import latex
 from data.graph import grapher, summary
 
-from data import cluster
+#from data import cluster
 
 jar_path = 'run.py'
 

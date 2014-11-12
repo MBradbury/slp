@@ -19,7 +19,7 @@ from data.graph import grapher, summary
 
 from data.latex import latex
 
-from data import cluster
+#from data import cluster
 
 jar_path = 'run.py'
 
