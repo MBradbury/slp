@@ -52,6 +52,8 @@ class Analyse(object):
                 lineNumber += 1
 
     def check_consistent(self, values, lineNumber):
+        """Perform multiple sanity checks on the data generated"""
+
         # Check that the expected number of values are present
         if len(values) != len(self.headings):
             raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
@@ -76,6 +78,25 @@ class Analyse(object):
                 for k in d.keys():
                     if k < 0 or k >= number_nodes:
                         raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
+
+        # If captured is set to true, there should be an attacker at the source location
+        captured_index = self.headings.index("Captured")
+        captured = ast.literal_eval(values[captured_index])
+
+        attacker_distance_index = self.headings.index("AttackerDistance")
+        attacker_distance = ast.literal_eval(values[attacker_distance_index])
+
+        if captured != any(v == 0.0 for (k, v) in attacker_distance.items()):
+            raise RuntimeError("There is a discrepancy between captured ({}) and the attacker distances {}.".format(captured, attacker_distance))
+
+        # Check NormalLatency is not 0
+        latency_index = self.headings.index("NormalLatency")
+        latency = float(values[latency_index])
+
+        if latency <= 0:
+            raise RuntimeError("The NormalLatency {} is less than or equal to 0.".format(latency))
+        
+
 
     def detect_outlier(self, values):
         pass
