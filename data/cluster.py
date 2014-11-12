@@ -16,8 +16,8 @@ def load_module(module):
         subprocess.check_call("module load {}".format(module), shell=True, executable="/bin/bash")
 
     except subprocess.CalledProcessError as e:
-        print("Failed to load {}: {}".format(module, e), file=sts.stderr)
-        print("Checking that {} is loaded:".format(module), file=sts.stderr)
+        print("Failed to load {}: {}".format(module, e), file=sys.stderr)
+        print("Checking that {} is loaded:".format(module), file=sys.stderr)
 
     finally:
         if not module_loaded(module):
