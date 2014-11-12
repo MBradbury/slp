@@ -62,10 +62,10 @@ configurations = [
 ]
 
 
-temp_fake_durations = [ 2 ] # [ 1, 2, 4 ]
+temp_fake_durations = [ 1, 2, 4 ]
 
-prs_tfs = [ 1.0 ] # [ 1.0, 0.9, 0.8 ]
-prs_pfs = [ 1.0 ] # [ 1.0 ]
+prs_tfs = [ 1.0, 0.9, 0.8 ]
+prs_pfs = [ 1.0 ]
 
 protectionless_repeats = 750
 repeats = 500
@@ -105,7 +105,10 @@ if 'cluster' in args:
         subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
 
     if 'all' in args or 'submit' in args:
-        cluster.load_module("jdk/1.7.0_07")
+        # It would be nice if we could detect and/or load the jdk
+        # but it appears that this function would only do this for
+        # bash subshell created.
+        #cluster.load_module("jdk/1.7.0_07")
 
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))

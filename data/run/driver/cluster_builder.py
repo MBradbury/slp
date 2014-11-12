@@ -29,7 +29,7 @@ class Runner:
 
         LocalBuilder.build(module_path, **build_args)
 
-        files_to_move = ["_TOSSIMmodule.so", "TOSSIM.py", "Arguments.py", "Metrics.py", "__init__.py"]
+        files_to_move = ["_TOSSIMmodule.so", "TOSSIM.py", "Analysis.py", "Arguments.py", "Runner.py", "Metrics.py", "__init__.py"]
         for f in files_to_move:
             shutil.copy(os.path.join(module_path, f), target_directory)
 

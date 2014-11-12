@@ -82,7 +82,10 @@ if 'cluster' in args:
         subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
 
     if 'all' in args or 'submit' in args:
-        cluster.load_module("jdk/1.7.0_07")
+        # It would be nice if we could detect and/or load the jdk
+        # but it appears that this function would only do this for
+        # bash subshell created.
+        #cluster.load_module("jdk/1.7.0_07")
 
         runner = protectionless.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
