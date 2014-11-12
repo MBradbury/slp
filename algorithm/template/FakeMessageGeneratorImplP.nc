@@ -68,7 +68,8 @@ implementation
 
 		if (!busy)
 		{
-			FakeMessage* tosend = (FakeMessage*)(call Packet.getPayload(&packet, sizeof(FakeMessage)));
+			void* const void_tosend = call Packet.getPayload(&packet, sizeof(FakeMessage));
+			FakeMessage* const tosend = (FakeMessage*)void_tosend;
 			if (tosend == NULL)
 			{
 				myerr("FakeMessageGeneratorImplP", "Packet has no payload, or payload is too large.\n");

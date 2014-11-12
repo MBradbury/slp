@@ -35,7 +35,8 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 	{ \
 		error_t status; \
  \
- 		NAME##Message* const message = (NAME##Message*)(call Packet.getPayload(&packet, sizeof(NAME##Message))); \
+ 		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
+ 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
 			dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string()); \
@@ -443,7 +444,7 @@ implementation
 
 	void Normal_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
+		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -559,7 +560,7 @@ implementation
 
 	void Normal_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
+		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -609,7 +610,7 @@ implementation
 
 	void Normal_receieve_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
+		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -679,7 +680,7 @@ implementation
 
 	void Normal_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
+		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -706,7 +707,7 @@ implementation
 
 	void Fake_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || (rcvd->max_hop != BOTTOM && rcvd->max_hop > first_source_distance + 1))
+		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
