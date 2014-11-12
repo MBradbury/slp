@@ -1,6 +1,6 @@
 COMPONENT = SourceBroadcasterAppC
 
-CFLAGS += -Wnonnull
+CFLAGS += -Wnonnull -Wpointer-arith -Wshadow
 
 # See http://www.ti.com/lit/ds/symlink/cc2420.pdf
 # Section 28
