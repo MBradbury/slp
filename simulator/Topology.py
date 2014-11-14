@@ -4,6 +4,7 @@ from scipy.spatial.distance import euclidean
 class Grid:
 	def __init__(self, size, distance, initialPosition=10.0):
 		self.size = size
+		self.distance = distance
 
 		self.nodes = [(float(x * distance + initialPosition), float(y * distance + initialPosition))
 			for y in xrange(size)
@@ -15,6 +16,7 @@ class Circle:
 	def __init__(self, diameter, distance, initialPosition=10.0):
 		self.diameterInHops = diameter
 		self.diameter = self.diameterInHops * distance
+		self.distance = distance
 
 		self.nodes = [(float(x * distance + initialPosition), float(y * distance + initialPosition))
 			for y in xrange(diameter)
@@ -32,6 +34,7 @@ class Circle:
 class Ring:
 	def __init__(self, diameter, distance, initialPosition=10.0):
 		self.diameter = diameter
+		self.distance = distance
 
 		self.nodes = [(float(x * distance + initialPosition), float(y * distance + initialPosition))
 			for y in xrange(diameter)

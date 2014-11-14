@@ -268,7 +268,7 @@ implementation
 		}
 	}
 
-
+#if 0
 	uint32_t get_tfs_num_msg_to_send()
 	{
 		uint32_t result = 0;
@@ -313,7 +313,38 @@ implementation
 	{
 		return (SOURCE_PERIOD_MS * 4U) / 5U;
 	}
+#else
 
+	uint32_t get_tfs_num_msg_to_send()
+	{
+		return NUM_MESSAGES_TO_SEND;
+	}
+
+	uint32_t get_tfs_duration()
+	{
+		uint32_t duration = SOURCE_PERIOD_MS;
+
+		if (sink_distance <= 1)
+		{
+			duration -= SOURCE_PERIOD_MS / 2;
+		}
+
+		duration -= TIME_TO_SEND_MS;
+
+		return duration;
+	}
+
+	uint32_t get_tfs_period()
+	{
+		// Use a "- 1" to make sure that all the messages to be sent are sent
+		return (get_tfs_duration() / get_tfs_num_msg_to_send()) - 1;
+	}
+
+	uint32_t get_pfs_period()
+	{
+		return (SOURCE_PERIOD_MS * 9) / 10;
+	}
+#endif
 
 	bool busy = FALSE;
 	message_t packet;
