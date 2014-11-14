@@ -12,6 +12,8 @@ class Arguments:
 		parser.add_argument("--safety-period", type=float, required=True)
 
 		parser.add_argument("--source-period", type=float, required=True)
+		parser.add_argument("--time-to-send", type=float, required=True)
+		parser.add_argument("--fake-messages", type=int, required=True)
 
 		parser.add_argument("--distance", type=float, required=True)
 
@@ -28,5 +30,7 @@ class Arguments:
 
 	def getBuildArguments(self):
 		return {
-			"SOURCE_PERIOD_MS": int(self.args.source_period * 1000)
+			"SOURCE_PERIOD_MS": int(self.args.source_period * 1000),
+			"NUM_MESSAGES_TO_SEND": self.args.fake_messages,
+			"TIME_TO_SEND_MS": int(self.args.time_to_send * 1000)
 		}
