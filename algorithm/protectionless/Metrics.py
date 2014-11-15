@@ -27,6 +27,7 @@ class Metrics:
 
         self.normalSentTime = {}
         self.normalLatency = {}
+        self.normalHopCount = []
 
         self.normalSent = Counter()
         self.normalReceived = Counter()
@@ -49,7 +50,7 @@ class Metrics:
 
 
     def process_RCV(self, line):
-        (kind, time, nodeID, sourceID, seqNo) = line.split(',')
+        (kind, time, nodeID, sourceID, seqNo, hopCount) = line.split(',')
 
         if kind != "Normal":
             raise Exception("Unknown message type of {}".format(kind))
@@ -58,9 +59,11 @@ class Metrics:
         nodeID = int(nodeID)
         sourceID = int(sourceID)
         seqNo = int(seqNo)
+        hopCount = int(hopCount)
 
         if nodeID == self.sinkID:
             self.normalLatency[seqNo] = time - self.normalSentTime[seqNo]
+            self.normalHopCount.append(hopCount)
 
         self.normalReceived[nodeID] += 1
 
@@ -79,9 +82,12 @@ class Metrics:
             in enumerate(self.sim.attackers)
         }
 
+    def averageSinkSourceHops(self):
+        return mean(self.normalHopCount)
+
     @staticmethod
     def printHeader(stream=sys.stdout):
-        print("#Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
+        print("#Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerDistance,AttackerMoves,NormalLatency,NormalSinkSourceHops,NormalSent,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
 
     def printResults(self, stream=sys.stdout):
         seed = self.sim.seed
@@ -96,12 +102,13 @@ class Metrics:
         attackerDistance = self.attackerDistance()
         attackerMoves = {i: attacker.moves for i, attacker in enumerate(self.sim.attackers)}
         normalLatency = self.averageNormalLatency()
+        averageSinkSourceHops = self.averageSinkSourceHops()
 
         sentHeatMap = dict(self.normalSent)
         receivedHeatMap = dict(self.normalReceived)
 
-        print("|".join(["{}"] * 13).format(
+        print("|".join(["{}"] * 14).format(
             seed, sent, received, collisions, captured,
-            receivedRatio, time, attackerDistance, attackerMoves,
-            normalLatency, normalSent, sentHeatMap, receivedHeatMap),
+            receivedRatio, time, attackerDistance, attackerMoves, normalLatency,
+            averageSinkSourceHops, normalSent, sentHeatMap, receivedHeatMap),
             file=stream)

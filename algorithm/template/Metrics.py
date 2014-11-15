@@ -36,6 +36,7 @@ class Metrics:
 
         self.normalSentTime = {}
         self.normalLatency = {}
+        self.normalHopCount = []
 
         self.sent = {}
         self.received = {}
@@ -62,15 +63,17 @@ class Metrics:
 
 
     def process_RCV(self, line):
-        (kind, time, nodeID, sourceID, seqNo) = line.split(',')
+        (kind, time, nodeID, sourceID, seqNo, hopCount) = line.split(',')
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
         nodeID = int(nodeID)
         sourceID = int (sourceID)
         seqNo = int(seqNo)
+        hopCount = int(hopCount)
 
         if nodeID == self.sinkID and kind == "Normal":
             self.normalLatency[seqNo] = time - self.normalSentTime[seqNo]
+            self.normalHopCount.append(hopCount)
 
         if kind not in self.received:
             self.received[kind] = Counter()
@@ -113,9 +116,12 @@ class Metrics:
             in enumerate(self.sim.attackers)
         }
 
+    def averageSinkSourceHops(self):
+        return mean(self.normalHopCount)
+
     @staticmethod
     def printHeader(stream=sys.stdout):
-        print("#Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerDistance,AttackerMoves,NormalLatency,NormalSent,FakeSent,ChooseSent,AwaySent,TFS,PFS,FakeToNormal,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
+        print("#Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerDistance,AttackerMoves,NormalLatency,NormalSinkSourceHops,NormalSent,FakeSent,ChooseSent,AwaySent,TFS,PFS,FakeToNormal,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
 
     def printResults(self, stream=sys.stdout):
         seed = self.sim.seed
@@ -136,13 +142,15 @@ class Metrics:
         attackerDistance = self.attackerDistance()
         attackerMoves = {i: attacker.moves for i, attacker in enumerate(self.sim.attackers)}
         normalLatency = self.averageNormalLatency()
+        averageSinkSourceHops = self.averageSinkSourceHops()
 
         sentHeatMap = dict(sum(self.sent.values(), Counter()))
         receivedHeatMap = dict(sum(self.received.values(), Counter()))
 
-        print("|".join(["{}"] * 19).format(
+        print("|".join(["{}"] * 20).format(
             seed, sent, received, collisions, captured,
             receivedRatio, time, attackerDistance, attackerMoves,
-            normalLatency, normalSent, fakeSent, chooseSent, awaySent,
+            normalLatency, averageSinkSourceHops,
+            normalSent, fakeSent, chooseSent, awaySent,
             self.tfsCreated, self.pfsCreated, self.fakeToNormal,
             sentHeatMap, receivedHeatMap), file=stream)
