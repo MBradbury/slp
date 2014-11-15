@@ -68,7 +68,7 @@ prs_tfs = [ 1.0, 0.9, 0.8 ]
 prs_pfs = [ 1.0 ]
 
 protectionless_repeats = 750
-repeats = 500
+repeats = 300
 
 protectionless_configurations = [(a) for (a, b) in configurations]
 
