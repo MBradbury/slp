@@ -97,8 +97,8 @@ event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t le
 	return msg; \
 }
 
-#define METRIC_RCV(TYPE) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number)
+#define METRIC_RCV(TYPE, DISTANCE) \
+	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number, DISTANCE)
 
 #define METRIC_BCAST(TYPE, STATUS) \
 	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, tosend->sequence_number)
@@ -214,7 +214,7 @@ implementation
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal);
+			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
 			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
@@ -231,7 +231,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal);
+			METRIC_RCV(Normal, rcvd->source_distance + 1);
 		}
 	}
 
