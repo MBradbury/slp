@@ -23,7 +23,7 @@ class RunSimulations(RunSimulationsCommon):
                     self.optimisations,
                     exe_path)
 
-                options = 'algorithm.adaptive --mode {} --network-size {} --configuration {} --safety-period {} --source-period {} --fake-messages {} --time-to-send {} --distance {} --job-size {}'.format(
+                options = 'algorithm.adaptive --mode {} --network-size {} --configuration {} --safety-period {} --source-period {} --pull-back-hops {} --time-to-send {} --distance {} --job-size {}'.format(
                     self.driver.mode(),
                     size,
                     configuration,

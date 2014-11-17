@@ -14,7 +14,7 @@ import algorithm.protectionless as protectionless
 import algorithm.template as template
 
 from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
-from data.table import safety_period, fake_source_result, comparison
+from data.table import safety_period, fake_source_result, fake_result, comparison
 from data.graph import grapher, summary
 
 from data.latex import latex
@@ -118,6 +118,10 @@ if 'cluster' in args:
         runner = template.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
+    if 'all' in args or 'copy-back' in args:
+        username = raw_input("Enter your Caffeine username: ")
+        subprocess.check_call("rsync -avz -e ssh {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/template/*.txt data/results/template".format(username), shell=True)
+
     sys.exit(0)
 
 if 'all' in args or 'run-protectionless' in args:
@@ -157,7 +161,9 @@ if 'all' in args or 'graph' in args:
     summary.GraphSummary(os.path.join(template_graphs_directory, 'HeatMap'), 'HeatMap-template').run()
 
 if 'all' in args or 'table' in args:
-    result_table = fake_source_result.ResultTable(template_analysis_result_path)
+    result_table = fake_result.ResultTable(template_analysis_result_path,
+        parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
+        results=('captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
     with open('template_results.tex', 'w') as result_file:
         latex.print_header(result_file)

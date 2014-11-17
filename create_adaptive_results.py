@@ -15,7 +15,7 @@ import algorithm.template as template
 import algorithm.adaptive as adaptive
 
 from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
-from data.table import safety_period, fake_source_result, comparison
+from data.table import safety_period, fake_result, comparison
 from data.graph import grapher, summary
 
 from data.latex import latex
@@ -58,7 +58,7 @@ configurations = [
     #('CircleSinkCentre', 'CHOOSE'),
 ]
 
-pull_back = [ 1, 3 ]
+pull_back_hops = [ 1, 3 ]
 
 # 6 milliseconds
 alpha = 0.006
@@ -92,7 +92,7 @@ if 'cluster' in args:
         touch("{}/__init__.py".format(cluster_directory))
 
         runner = adaptive.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
-        runner.run(jar_path, distance, sizes, source_periods, pull_back, configurations, alpha, repeats)
+        runner.run(jar_path, distance, sizes, source_periods, pull_back_hops, configurations, alpha, repeats)
 
     if 'all' in args or 'copy' in args:
         username = raw_input("Enter your Caffeine username: ")
@@ -110,7 +110,7 @@ if 'cluster' in args:
         safety_periods = safety_period_table_generator.safety_periods()
 
         runner = adaptive.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
-        runner.run(jar_path, distance, sizes, source_periods, pull_back, configurations, alpha, repeats)
+        runner.run(jar_path, distance, sizes, source_periods, pull_back_hops, configurations, alpha, repeats)
 
     sys.exit(0)
 
@@ -121,7 +121,7 @@ if 'all' in args or 'run' in args:
     safety_periods = safety_period_table_generator.safety_periods()
 
     prelim_runner = adaptive.Runner.RunSimulations(LocalDriver.Runner(), adaptive_results_directory, safety_periods, skip_completed_simulations=True)
-    prelim_runner.run(jar_path, distance, sizes, source_periods, pull_back, configurations, alpha, repeats)
+    prelim_runner.run(jar_path, distance, sizes, source_periods, pull_back_hops, configurations, alpha, repeats)
 
 if 'all' in args or 'analyse' in args:
     prelim_analyzer = adaptive.Analysis.Analyzer(adaptive_results_directory)
@@ -143,7 +143,9 @@ if 'all' in args or 'graph' in args:
     summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'HeatMap'), 'HeatMap-template').run()
 
 if 'all' in args or 'table' in args:
-    result_table = fake_source_result.ResultTable(adaptive_analysis_result_path)
+    result_table = fake_result.ResultTable(adaptive_analysis_result_path,
+        parameters=('pull back hops',),
+        results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
     with open('adaptive_results.tex', 'w') as result_file:
         latex.print_header(result_file)
