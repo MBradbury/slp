@@ -12,6 +12,9 @@ class Grid:
 
 		self.centreNode = self.nodes[(len(self.nodes) - 1) / 2]
 
+	def __str__(self):
+		return "Grid<size={}>".format(self.size)
+
 class Circle:
 	def __init__(self, diameter, distance, initialPosition=10.0):
 		self.diameterInHops = diameter
@@ -31,6 +34,9 @@ class Circle:
 
 		self.nodes = [pos for pos in self.nodes if isInCircle(pos)]
 
+	def __str__(self):
+		return "Circle<diameter={}>".format(self.diameterInHops)
+
 class Ring:
 	def __init__(self, diameter, distance, initialPosition=10.0):
 		self.diameter = diameter
@@ -40,6 +46,9 @@ class Ring:
 			for y in xrange(diameter)
 			for x in xrange(diameter)
 			if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)]
+
+	def __str__(self):
+		return "Ring<diameter={}>".format(self.diameter)
 
 class Random:
 	def __init__(self, sizeRoot, initialPosition=10.0):

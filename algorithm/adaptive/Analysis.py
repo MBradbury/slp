@@ -22,27 +22,31 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},,{}\n'.format(
+            out.write('{},{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},,{},{}\n'.format(
                 'network size',
                 'configuration',
-                'algorithm',
                 'source period',
+                'pull back hops',
                 
-                'Sent',
-                'Received',
-                'Collisions',
-                'Captured',
-                'Received Ratio',
-                'Normal Latency',
-                'Time',
-                'Normal',
-                'Away',
-                'Choose',
-                'Fake',
-                'TFS',
-                'PFS',
+                'sent',
+                'received',
+                'captured',
+                'attacker moves',
+                'attacker distance',
+                'received ratio',
+                'normal latency',
+                'time taken',
+                'normal',
+                'away',
+                'choose',
+                'fake',
+                'tfs',
+                'pfs',
+                'fake to normal',
+                'ssd',
                 
-                'Heatmap'
+                'sent heatmap',
+                'received heatmap'
                 ))
 
             for infile in files:
@@ -50,31 +54,36 @@ class Analyzer:
             
                 result = AnalysisResults(Analyse(path))
                 
-                runs = len(result.data)
-            
                 print('Analysing {0}'.format(path))
 
-                out.write('{},{},{},{},,{}({}),{}({}),{}({}),{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{}\n'.format(
-                    result.opts['Network Size'],
-                    result.opts['Configuration'],
-                    result.opts['Algorithm'],
-                    result.opts['Source Period'],
+                print(result.opts)
+
+                out.write('{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.format(
+                    result.opts['network_size'],
+                    result.opts['configuration'],
+                    result.opts['source_period'],
+                    result.opts['pull_back_hops'],
                     
                     result.averageOf['Sent'], result.varianceOf['Sent'],
                     result.averageOf['Received'], result.varianceOf['Received'],
-                    result.averageOf['Collisions'], result.varianceOf['Collisions'],
+                    #result.averageOf['Collisions'], result.varianceOf['Collisions'],
                     result.averageOf['Captured'],
-                    result.averageOf['Received Ratio'], result.varianceOf['Received Ratio'],
+                    result.averageOf['AttackerMoves'],
+                    result.averageOf['AttackerDistance'],
+                    result.averageOf['ReceiveRatio'], result.varianceOf['ReceiveRatio'],
                     result.averageOf['NormalLatency'], result.varianceOf['NormalLatency'],
-                    result.averageOf['Time'], result.varianceOf['Time'],
-                    result.averageOf['Normal'], result.varianceOf['Normal'],
-                    result.averageOf['Away'], result.varianceOf['Away'],
-                    result.averageOf['Choose'], result.varianceOf['Choose'],
-                    result.averageOf['Fake'], result.varianceOf['Fake'],
+                    result.averageOf['TimeTaken'], result.varianceOf['TimeTaken'],
+                    result.averageOf['NormalSent'], result.varianceOf['NormalSent'],
+                    result.averageOf['AwaySent'], result.varianceOf['AwaySent'],
+                    result.averageOf['ChooseSent'], result.varianceOf['ChooseSent'],
+                    result.averageOf['FakeSent'], result.varianceOf['FakeSent'],
                     result.averageOf['TFS'], result.varianceOf['TFS'],
                     result.averageOf['PFS'], result.varianceOf['PFS'],
+                    result.averageOf['FakeToNormal'], result.varianceOf['FakeToNormal'],
+                    result.averageOf['NormalSinkSourceHops'], result.varianceOf['NormalSinkSourceHops'],
 
-                    result.results['Sent Map']
+                    result.averageOf['SentHeatMap'],
+                    result.averageOf['ReceivedHeatMap']
                     ))
                     
             print('Finished writing {}'.format(summary_file))

@@ -30,7 +30,7 @@ class Configuration:
 		return build_arguments
 
 	def __str__(self):
-		return "Configuration<sinkId={}, sourceId={}, spaceBehindSink={}, topology={}".format(
+		return "Configuration<sinkId={}, sourceId={}, spaceBehindSink={}, topology={}>".format(
 			self.sinkId, self.sourceId, self.spaceBehindSink, self.topology
 			)
 

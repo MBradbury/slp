@@ -49,7 +49,7 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},,{},{},{},{},,{},,{},{}\n'.replace(",", "|").format(
+            out.write('{},{},{},,{},{},{},{},,{},,{},{},{},{},,{},{}\n'.replace(",", "|").format(
                 'network size',
                 'source period',
                 'configuration',
@@ -60,6 +60,12 @@ class Analyzer:
                 'normal latency',
                 
                 'safety period',
+
+                'sent',
+                'received',
+                'attacker distance',
+                'attacker moves',
+                #'ssd',
 
                 'sent heatmap',
                 'received heatmap'
@@ -72,7 +78,7 @@ class Analyzer:
             
                 result = AnalysisResults(AnalyseWithOutlierDetection(path))
 
-                out.write('{},{},{},,{}({}),{},{}({}),{}({}),,{},,{},{}\n'.replace(",", "|").format(
+                out.write('{},{},{},,{}({}),{},{}({}),{}({}),,{},,{}({}),{}({}),{},{},,{},{}\n'.replace(",", "|").format(
                     result.opts['network_size'],
                     result.opts['source_period'],
                     result.opts['configuration'],           
@@ -89,6 +95,12 @@ class Analyzer:
                     result.varianceOf['NormalLatency'],
                     
                     result.averageOf['TimeTaken'] * 2.0,
+
+                    result.averageOf['Sent'], result.varianceOf['Sent'],
+                    result.averageOf['Received'], result.varianceOf['Received'],
+                    result.averageOf['AttackerDistance'],
+                    result.averageOf['AttackerMoves'],
+                    #result.averageOf['NormalSinkSourceHops'], result.varianceOf['NormalSinkSourceHops'],
 
                     result.averageOf['SentHeatMap'],
                     result.averageOf['ReceivedHeatMap']

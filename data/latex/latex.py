@@ -5,6 +5,7 @@ import os
 
 def print_header(stream):
     print('\\documentclass[a4paper,notitlepage]{article}', file=stream)
+    print('\\usepackage[margin=0.5cm]{geometry}', file=stream)
     print('\\usepackage{multirow}', file=stream)
     print('\\usepackage{boxedminipage}', file=stream)
     print('\\usepackage{float}', file=stream)

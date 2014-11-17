@@ -32,6 +32,7 @@ class ResultTable:
 
         #print('Opening: {0}'.format(adinfile))
 
+        self.keys = set()
         self.sizes = set()
         self.sourcePeriods = set()
         self.configurations = set()
@@ -55,19 +56,20 @@ class ResultTable:
 
                     key = (size, srcPeriod, config)
 
+                    self.keys.add(key)
                     self.sizes.add(size)
                     self.sourcePeriods.add(srcPeriod)
                     self.configurations.add(config)
                     
                     # Convert from percentage in the range of [0, 1] to [0, 100]
-                    self.captured[key] = float(values[ headers.index('Captured') ]) * 100.0
+                    self.captured[key] = float(values[ headers.index('captured') ]) * 100.0
 
-                    self.received[key] = self.extractAverageAndSddev(values[ headers.index('Received Ratio') ])
+                    self.received[key] = self.extractAverageAndSddev(values[ headers.index('received ratio') ])
                     self.received[key] = (self.received[key][0] * 100.0, self.received[key][1] * 100.0)
 
-                    self.maxFake[key] = self.extractAverageAndSddev(values[ headers.index('Fake') ])
+                    self.maxFake[key] = self.extractAverageAndSddev(values[ headers.index('fake') ])
 
-                    self.latency[key] = self.extractAverageAndSddev(values[ headers.index('Normal Latency') ])
+                    self.latency[key] = self.extractAverageAndSddev(values[ headers.index('normal latency') ])
                 
                 else:
                     seenFirst = True
@@ -99,13 +101,18 @@ class ResultTable:
                         print('        \\multirow{{4}}{{*}}{{{0}}}'.format(size), file=stream)
                         currentSize = size
                     
-                    print('        ~ & {} & {:.2f} & {:.0f} $\pm$ {:.0f} & {:.1f} $\pm$ {:.1f} & {:.3f} $\pm$ {:.3f} \\\\'.format(
-                        float(srcPeriod),
-                        self.captured[actualkey],
-                        self.maxFake[actualkey][0], self.maxFake[actualkey][1],
-                        self.received[actualkey][0], self.received[actualkey][1],
-                        self.latency[actualkey][0], self.latency[actualkey][1],
-                        ), file=stream)
+                    if actualkey in self.keys:
+                        print('        ~ & {} & {:.2f} & {:.0f} $\pm$ {:.0f} & {:.1f} $\pm$ {:.1f} & {:.3f} $\pm$ {:.3f} \\\\'.format(
+                            float(srcPeriod),
+                            self.captured[actualkey],
+                            self.maxFake[actualkey][0], self.maxFake[actualkey][1],
+                            self.received[actualkey][0], self.received[actualkey][1],
+                            self.latency[actualkey][0], self.latency[actualkey][1],
+                            ), file=stream)
+                    else:
+                        print('        ~ & \multicolumn{{5}}{{c}}{{The key {} was not found}} \\\\'.format(
+                            actualkey
+                            ), file=stream)
                     
 
             print('        \\hline', file=stream)
