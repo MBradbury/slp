@@ -12,6 +12,7 @@ else:
 
 import algorithm.protectionless as protectionless
 import algorithm.template as template
+import algorithm.adaptive as adaptive
 
 from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.table import safety_period, fake_source_result, comparison
@@ -29,20 +30,16 @@ protectionless_analysis_result_file = 'protectionless-results.csv'
 template_results_directory = 'data/results/template'
 template_analysis_result_file = 'template-results.csv'
 
-template_graphs_directory = os.path.join(template_results_directory, 'Graphs')
+adaptive_results_directory = 'data/results/adaptive'
+adaptive_analysis_result_file = 'adaptive-results.csv'
+
+adaptive_graphs_directory = os.path.join(adaptive_results_directory, 'Graphs')
 
 distance = 4.5
 
-sizes = [ 11, 15, 21, 25 ]
+sizes = [ 11, 15 ] # [ 11, 15, 21, 25 ]
 
-# Note that our simulation only has millisecond resolution,
-# so periods that require a resolution greater than 0.001 will be
-# truncated. An important example of this is 0.0625 which will be truncated
-# to 0.062. So 0.0625 has been rounded up.
 source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
-fake_periods = [ 0.5, 0.25, 0.125, 0.063 ]
-
-periods = [ (src, fake) for (src, fake) in itertools.product(source_periods, fake_periods) if src / 4.0 <= fake < src ]
 
 # TODO implement algorithm override
 configurations = [
@@ -61,14 +58,12 @@ configurations = [
     #('CircleSinkCentre', 'CHOOSE'),
 ]
 
+pull_back = [ 1, 3 ]
 
-temp_fake_durations = [ 1, 2, 4 ]
+# 6 milliseconds
+alpha = 0.006
 
-prs_tfs = [ 1.0, 0.9, 0.8 ]
-prs_pfs = [ 1.0 ]
-
-protectionless_repeats = 750
-repeats = 300
+repeats = 50
 
 protectionless_configurations = [(a) for (a, b) in configurations]
 
@@ -85,20 +80,19 @@ def touch(fname, times=None):
     with open(fname, 'a'):
         os.utime(fname, times)
 
-create_dirtree(protectionless_results_directory)
-create_dirtree(template_results_directory)
-create_dirtree(template_graphs_directory)
+create_dirtree(adaptive_results_directory)
+create_dirtree(adaptive_graphs_directory)
 
 if 'cluster' in args:
-    cluster_directory = "cluster/template"
+    cluster_directory = "cluster/adaptive"
 
     if 'all' in args or 'build' in args:
         recreate_dirtree(cluster_directory)
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
 
-        runner = template.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
-        runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
+        runner = adaptive.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
+        runner.run(jar_path, distance, sizes, source_periods, pull_back, configurations, alpha, repeats)
 
     if 'all' in args or 'copy' in args:
         username = raw_input("Enter your Caffeine username: ")
@@ -115,18 +109,10 @@ if 'cluster' in args:
 
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = template.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
-        runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
+        runner = adaptive.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
+        runner.run(jar_path, distance, sizes, source_periods, pull_back, configurations, alpha, repeats)
 
     sys.exit(0)
-
-if 'all' in args or 'run-protectionless' in args:
-    runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), protectionless_results_directory)
-    runner.run(jar_path, distance, sizes, source_periods, protectionless_configurations, protectionless_repeats)
-
-if 'all' in args or 'analyse-protectionless' in args:
-    analyzer = protectionless.Analysis.Analyzer(protectionless_results_directory)
-    analyzer.run(protectionless_analysis_result_file)
 
 if 'all' in args or 'run' in args:
     safety_period_table_generator = safety_period.TableGenerator()
@@ -134,42 +120,42 @@ if 'all' in args or 'run' in args:
 
     safety_periods = safety_period_table_generator.safety_periods()
 
-    prelim_runner = template.Runner.RunSimulations(LocalDriver.Runner(), template_results_directory, safety_periods, skip_completed_simulations=True)
-    prelim_runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
+    prelim_runner = adaptive.Runner.RunSimulations(LocalDriver.Runner(), adaptive_results_directory, safety_periods, skip_completed_simulations=True)
+    prelim_runner.run(jar_path, distance, sizes, source_periods, pull_back, configurations, alpha, repeats)
 
 if 'all' in args or 'analyse' in args:
-    prelim_analyzer = template.Analysis.Analyzer(template_results_directory)
-    prelim_analyzer.run(template_analysis_result_file)
+    prelim_analyzer = adaptive.Analysis.Analyzer(adaptive_results_directory)
+    prelim_analyzer.run(adaptive_analysis_result_file)
 
-template_analysis_result_path = os.path.join(template_results_directory, template_analysis_result_file)
+adaptive_analysis_result_path = os.path.join(adaptive_results_directory, adaptive_analysis_result_file)
 
 if 'all' in args or 'graph' in args:
-    prelim_grapher = grapher.Grapher(template_analysis_result_path, template_graphs_directory)
+    prelim_grapher = grapher.Grapher(adaptive_analysis_result_path, adaptive_graphs_directory)
     prelim_grapher.create_plots()
     prelim_grapher.create_graphs()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
     #    summary.GraphSummary(
-    #        os.path.join(template_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
+    #        os.path.join(adaptive_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
     #        subdir).run()
 
-    summary.GraphSummary(os.path.join(template_graphs_directory, 'HeatMap'), 'HeatMap-template').run()
+    summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'HeatMap'), 'HeatMap-template').run()
 
 if 'all' in args or 'table' in args:
-    result_table = fake_source_result.ResultTable(template_analysis_result_path)
+    result_table = fake_source_result.ResultTable(adaptive_analysis_result_path)
 
-    with open('template_results.tex', 'w') as result_file:
+    with open('adaptive_results.tex', 'w') as result_file:
         latex.print_header(result_file)
         result_table.write_tables(result_file)
         latex.print_footer(result_file)
 
-    latex.compile('template_results.tex')
+    latex.compile('adaptive_results.tex')
 
 #if 'all' in args or 'comparison-table' in args:
 #    comparison_path = 'results/3yp-adaptive-summary.csv'
 #
-#    result_table = comparison.ResultTable(template_analysis_result_path, comparison_path)
+#    result_table = comparison.ResultTable(adaptive_analysis_result_path, comparison_path)
 #
 #    with open('comparison_results.tex', 'w') as result_file:
 #        latex.print_header(result_file)

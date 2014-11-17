@@ -7,14 +7,14 @@ class RunSimulations(RunSimulationsCommon):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
-    def run(self, exe_path, distance, sizes, source_periods, configurations, repeats):
+    def run(self, exe_path, distance, sizes, source_periods, pull_backs, configurations, alpha, repeats):
         if self.skip_completed_simulations:
             self._check_existing_results()
     
         if not os.path.exists(exe_path):
             raise Exception("The file {} doesn't exist".format(exe_path))
 
-        for (size, source_period, (configuration, algorithm)) in itertools.product(sizes, source_periods, configurations):
+        for (size, source_period, pull_back, (configuration, algorithm)) in itertools.product(sizes, source_periods, pull_backs, configurations):
             if not self._already_processed(size, source_period, configuration, repeats):
 
                 safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
@@ -23,21 +23,25 @@ class RunSimulations(RunSimulationsCommon):
                     self.optimisations,
                     exe_path)
 
-                options = 'algorithm.adaptive --mode {} --network-size {} --configuration {} --safety-period {} --source-period {} --distance {} --job-size {}'.format(
+                options = 'algorithm.adaptive --mode {} --network-size {} --configuration {} --safety-period {} --source-period {} --fake-messages {} --time-to-send {} --distance {} --job-size {}'.format(
                     self.driver.mode(),
                     size,
                     configuration,
                     safety_period,
 
                     source_period,
+                    pull_back,
                     
+                    alpha,
                     distance,
                     repeats)
 
-                filename = os.path.join(self.results_directory, '-'.join(['{}'] * 4).format(
+                filename = os.path.join(self.results_directory, '-'.join(['{}'] * 5).format(
                     size,
                     configuration,
                     source_period,
+                    pull_back,
+                    alpha,
                     distance).replace(".", "_") + ".txt")
 
                 self.driver.add_job(executable, options, filename)
