@@ -12,7 +12,8 @@ class Runner:
 
         module = target_directory.replace("/", ".")
 
-        cluster_command = "qsub -q serial -j oe -V -l nodes=1:ppn=4 -l walltime=250:00:00 -N {}".format(module)
+        # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        cluster_command = "qsub -q serial -j oe -V -h -l nodes=1:ppn=4 -l walltime=250:00:00 -N {}".format(module)
 
         script_command = '{} {} {} > {}'.format(executable, module, options, name)
 
