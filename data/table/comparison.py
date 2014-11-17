@@ -3,21 +3,15 @@ from __future__ import print_function
 import csv
 import numpy
 
+from simulator.Configuration import configurationRank
+
 class ResultTable:
     bad = '\\badcolour'
     good = '\\goodcolour'
     neutral = ''
 
     def _configuration_rank(self, configuration):
-        rank = {
-            'SourceCorner': 1, 'SinkCorner': 2, 'FurtherSinkCorner': 3, 'Generic1': 4, 'Generic2': 5,
-            
-            'RingTop': 6, 'RingOpposite': 7, 'RingMiddle': 8,
-            
-            'CircleEdges': 9, 'CircleSourceCentre': 10, 'CircleSinkCentre': 11,
-            }
-
-        return rank[configuration] if configuration in rank else len(rank) + 1
+        return configurationRank[configuration] if configuration in configurationRank else len(rank) + 1
 
     class ResultsReader:
         def __init__(self, path):

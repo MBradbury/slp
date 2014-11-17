@@ -5,16 +5,12 @@ import csv, math, sys
 
 import numpy
 
+from simulator.Configuration import configurationRank
+
 # Have one table per network size and configuration
 # Specify parameters an results to show
 
 class ResultTable:
-
-    rank = {
-        'SourceCorner': 1, 'SinkCorner': 2, 'FurtherSinkCorner': 3, 'Generic1': 4, 'Generic2': 5,
-        'CircleSinkCentre': 6, 'CircleSourceCentre': 7, 'CircleEdges': 8,
-        'RingTop': 9, 'RingMiddle': 10, 'RingOpposite': 11,
-        }
     
     @staticmethod
     def extractAverageAndSddev(value):
@@ -148,7 +144,7 @@ class ResultTable:
                     
         print('\\vspace{-0.3cm}', file=stream)
 
-        for configuration in sorted(self.configurations, key=lambda x: self.rank[x]):
+        for configuration in sorted(self.configurations, key=lambda x: configurationRank[x]):
             for size in sorted(self.sizes):
                 print('\\begin{table}[H]', file=stream)
                 print('    \\centering', file=stream)
