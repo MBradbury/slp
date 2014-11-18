@@ -115,6 +115,10 @@ if 'cluster' in args:
         runner = adaptive.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
         runner.run(jar_path, distance, sizes, source_periods, pull_back_hops, configurations, alpha, repeats)
 
+    if 'all' in args or 'copy-back' in args:
+        username = raw_input("Enter your Caffeine username: ")
+        subprocess.check_call("rsync -avz -e ssh {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/adaptive/*.txt data/results/adaptive".format(username), shell=True)
+
     sys.exit(0)
 
 if 'all' in args or 'run' in args:
