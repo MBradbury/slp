@@ -33,13 +33,12 @@ class RunSimulationsCommon(object):
 
                         fileopts[opt[0].strip()] = opt[1].strip()
                         
-                    elif '#' in line:
+                    elif line.startswith('#'):
                         seen_hash = True
 
                     # Count result lines
-                    if seen_hash:
-                        if '|' in line:
-                            results_count += 1
+                    if seen_hash and '|' in line and not line.startswith('#'):
+                        results_count += 1
 
                 
                 if len(fileopts) != 0:
