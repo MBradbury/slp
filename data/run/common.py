@@ -51,7 +51,7 @@ class RunSimulationsCommon(object):
         if not self.skip_completed_simulations:
             return False
 
-        key = tuple(map(str, *args))
+        key = tuple(map(str, args))
 
         if key not in self.existing_results:
             return False
