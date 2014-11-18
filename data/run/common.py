@@ -1,5 +1,5 @@
-import os
-import fnmatch
+from __future__ import print_function
+import os, sys, fnmatch
 
 class RunSimulationsCommon(object):
     optimisations = '-OO'
@@ -45,6 +45,8 @@ class RunSimulationsCommon(object):
                 if len(fileopts) != 0:
                     key = tuple([fileopts[name] for name in names])
 
+                    print("Added the key {} to the existing results".format(key), file=sys.stderr)
+
                     self.existing_results[key] = (int(fileopts['job_size']), results_count)
 
     def _already_processed(self, repeats, *args):
@@ -54,6 +56,7 @@ class RunSimulationsCommon(object):
         key = tuple(map(str, args))
 
         if key not in self.existing_results:
+            print("Unable to find the key {} in the existing results".format(key), file=sys.stderr)
             return False
 
         # Check that more than enough jobs were done
