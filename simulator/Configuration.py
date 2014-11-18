@@ -123,6 +123,7 @@ configurationRank = {
     'CircleSinkCentre': 6,
     'CircleSourceCentre': 7,
     'CircleEdges': 8,
+    
     'RingTop': 9,
     'RingMiddle': 10,
     'RingOpposite': 11,

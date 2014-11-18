@@ -22,7 +22,7 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},{},{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},,{},{}\n'.format(
+            out.write('{},{},{},{},{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},,{},{}\n'.replace(",", "|").format(
                 'network size',
                 'configuration',
                 'source period',
@@ -58,7 +58,7 @@ class Analyzer:
                 
                 print('Analysing {0}'.format(path))
 
-                out.write('{},{},{},{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.format(
+                out.write('{},{},{},{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
                     result.opts['network_size'],
                     result.opts['configuration'],
                     result.opts['source_period'],
