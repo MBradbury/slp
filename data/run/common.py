@@ -44,10 +44,11 @@ class RunSimulationsCommon(object):
                 
                 if len(fileopts) != 0:
                     key = tuple([fileopts[name] for name in names])
+                    value = (int(fileopts['job_size']), results_count)
 
-                    print("Added the key {} to the existing results".format(key), file=sys.stderr)
+                    print("Added the key {} with value {} to the existing results".format(key, value), file=sys.stderr)
 
-                    self.existing_results[key] = (int(fileopts['job_size']), results_count)
+                    self.existing_results[key] = value
 
     def _already_processed(self, repeats, *args):
         if not self.skip_completed_simulations:
