@@ -58,7 +58,7 @@ configurations = [
     #('CircleSinkCentre', 'CHOOSE'),
 ]
 
-pull_back_hops = [ 1, 3 ]
+pull_back_hops = [ 1, 3, 5, 10 ]
 
 # 6 milliseconds
 alpha = 0.006
