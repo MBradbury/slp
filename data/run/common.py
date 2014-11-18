@@ -12,7 +12,7 @@ class RunSimulationsCommon(object):
         if not os.path.exists(self.results_directory):
             raise Exception("{} is not a directory".format(self.results_directory))
 
-    def _check_existing_results(self):
+    def _check_existing_results(self, names):
         self.existing_results = {}
 
         # The output files we need to process
@@ -43,17 +43,15 @@ class RunSimulationsCommon(object):
 
                 
                 if len(fileopts) != 0:
-                    self.existing_results[(
-                        fileopts['network_size'],
-                        fileopts['source_period'],
-                        fileopts['configuration']
-                        )] = (int(fileopts['job_size']), results_count)
+                    key = tuple([fileopts[name] for name in names])
 
-    def _already_processed(self, size, source_period, configuration, repeats):
+                    self.existing_results[key] = (int(fileopts['job_size']), results_count)
+
+    def _already_processed(self, repeats, *args):
         if not self.skip_completed_simulations:
             return False
 
-        key = (str(size), str(source_period), str(configuration))
+        key = tuple(map(str, *args))
 
         if key not in self.existing_results:
             return False

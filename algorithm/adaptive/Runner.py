@@ -9,13 +9,13 @@ class RunSimulations(RunSimulationsCommon):
 
     def run(self, exe_path, distance, sizes, source_periods, pull_backs, configurations, alpha, repeats):
         if self.skip_completed_simulations:
-            self._check_existing_results()
+            self._check_existing_results(['network_size', 'source_period', 'pull_back_hops', 'configuration'])
     
         if not os.path.exists(exe_path):
             raise Exception("The file {} doesn't exist".format(exe_path))
 
         for (size, source_period, pull_back, (configuration, algorithm)) in itertools.product(sizes, source_periods, pull_backs, configurations):
-            if not self._already_processed(size, source_period, configuration, repeats):
+            if not self._already_processed(repeats, size, source_period, pull_back, configuration):
 
                 safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
 
