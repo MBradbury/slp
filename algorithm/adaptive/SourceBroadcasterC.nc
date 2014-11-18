@@ -342,7 +342,7 @@ implementation
 
 	uint32_t get_pfs_period()
 	{
-		return (SOURCE_PERIOD_MS * 9) / 10;
+		return SOURCE_PERIOD_MS / 2;
 	}
 #endif
 
