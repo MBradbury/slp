@@ -12,7 +12,7 @@ class RunSimulations(RunSimulationsCommon):
 
     def run(self, exe_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats):
         if self.skip_completed_simulations:
-            self._check_existing_results()['network_size', 'configuration', 'source_period', 'fake_period', 'temp_fake_duration', 'pr_tfs', 'pr_pfs'])
+            self._check_existing_results(['network_size', 'configuration', 'source_period', 'fake_period', 'temp_fake_duration', 'pr_tfs', 'pr_pfs'])
     
         if not os.path.exists(exe_path):
             raise Exception("The file {} doesn't exist".format(exe_path))
