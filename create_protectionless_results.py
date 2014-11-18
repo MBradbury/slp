@@ -93,6 +93,10 @@ if 'cluster' in args:
         runner = protectionless.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
+    if 'all' in args or 'copy-back' in args:
+        username = raw_input("Enter your Caffeine username: ")
+        subprocess.check_call("rsync -avz -e ssh {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/protectionless/*.txt data/results/protectionless".format(username), shell=True)
+
     sys.exit(0)
 
 if 'all' in args or 'run' in args:
