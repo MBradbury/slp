@@ -17,7 +17,10 @@ from data.table import safety_period
 from data.latex import latex
 from data.graph import grapher, summary
 
-#from data import cluster
+import numpy
+
+# Raise all numpy errors
+numpy.seterr(all='raise')
 
 jar_path = 'run.py'
 
