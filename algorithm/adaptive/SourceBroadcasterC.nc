@@ -268,57 +268,23 @@ implementation
 		}
 	}
 
-#if 0
+#if defined(NO_COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
 	{
-		uint32_t result = 0;
-		const int32_t d_src = source_distance == BOTTOM ? 0 : source_distance;
-		const int32_t d_sink_src = sink_source_distance == BOTTOM ? 0 : sink_source_distance;
+		const uint32_t valid_ssd = minbot(1, sink_source_distance);
 
-		switch (algorithm)
-		{
-		case GenericAlgorithm:
-			result = max(2, d_src - d_sink_src);
-			break;
-
-		case FurtherAlgorithm:
-			result = max(2, d_src);
-			break;
-
-		default:
-			result = max(2, d_src);
-			break;
-		}
-
-		result = (uint32_t)ceil(1.0 / max(1, abs(d_src - d_sink_src)) * d_sink_src);
-
-		//dbg("stdout", "[%s]: get_tfs_num_msg_to_send: src-dist: %d sink-source-dist: %d || result: %d\n", sim_time_string(), source_distance, sink_source_distance, result);
-
-		return result;
+		return valid_ssd * 2;
 	}
-
-
-
-	uint32_t get_tfs_period()
+#elif defined(COL_FULL_DIST)
+	uint32_t get_tfs_num_msg_to_send()
 	{
-		return SOURCE_PERIOD_MS / 2;
-	}
+		const uint32_t valid_ssd = minbot(1, sink_source_distance);
 
-	uint32_t get_tfs_duration()
-	{
-		return get_tfs_period() * get_tfs_num_msg_to_send();
-	}
-
-	uint32_t get_pfs_period()
-	{
-		return (SOURCE_PERIOD_MS * 4U) / 5U;
+		return (uint32_t)ceil((valid_ssd / RECEIVE_RATIO) + valid_ssd);
 	}
 #else
-
-	uint32_t get_tfs_num_msg_to_send()
-	{
-		return NUM_MESSAGES_TO_SEND;
-	}
+#	error "Technique not specified"
+#endif
 
 	uint32_t get_tfs_duration()
 	{
@@ -336,15 +302,17 @@ implementation
 
 	uint32_t get_tfs_period()
 	{
-		// Use a "- 1" to make sure that all the messages to be sent are sent
-		return (get_tfs_duration() / get_tfs_num_msg_to_send()) - 1;
+		const uint32_t duration = get_tfs_duration();
+		const uint32_t msg = get_tfs_num_msg_to_send();
+		const uint32_t period = duration / msg;
+
+		return max(period, TIME_TO_SEND_MS);
 	}
 
 	uint32_t get_pfs_period()
 	{
-		return SOURCE_PERIOD_MS / 2;
+		return SOURCE_PERIOD_MS * RECEIVE_RATIO;
 	}
-#endif
 
 	bool busy = FALSE;
 	message_t packet;

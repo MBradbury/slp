@@ -22,11 +22,10 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},,{},{}\n'.replace(",", "|").format(
+            out.write('{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},,{},{}\n'.replace(",", "|").format(
                 'network size',
                 'configuration',
                 'source period',
-                'pull back hops',
                 
                 'sent',
                 'received',
@@ -56,11 +55,10 @@ class Analyzer:
                 
                 print('Analysing {0}'.format(path))
 
-                out.write('{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
+                out.write('{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
                     result.opts['network_size'],
                     result.opts['configuration'],
                     result.opts['source_period'],
-                    result.opts['pull_back_hops'],
                     
                     result.averageOf['Sent'], result.varianceOf['Sent'],
                     result.averageOf['Received'], result.varianceOf['Received'],
