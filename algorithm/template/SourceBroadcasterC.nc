@@ -235,7 +235,12 @@ implementation
 
 	int32_t ignore_choose_distance(int32_t distance)
 	{
-		return (int32_t)ceil(distance * random_float());
+		// We contemplated changing this versus the original algorithm,
+		// but decided against it.
+		// By randomising this, the capture rates for the Sink Corner
+		// are very bad.
+		//return (int32_t)ceil(distance * random_float());
+		return distance;
 	}
 
 	bool should_process_choose()
@@ -532,7 +537,7 @@ implementation
 			forwarding_message.algorithm = algorithm;
 
 			// TODO: repeat 2
-			//extra_to_send = 1;
+			extra_to_send = 1;
 			send_Away_message(&forwarding_message);
 		}
 	}
@@ -576,7 +581,7 @@ implementation
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 
 			// TODO: repeat 2
-			//extra_to_send = 1;
+			extra_to_send = 1;
 			send_Away_message(&forwarding_message);
 		}
 	}
