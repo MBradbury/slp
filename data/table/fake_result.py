@@ -1,11 +1,13 @@
 # Author: Matthew Bradbury
 from __future__ import print_function
 
-import csv, math, sys
+import csv, math, sys, ast
 
 import numpy
 
 from simulator.Configuration import configurationRank
+
+from data.latex import latex
 
 # Have one table per network size and configuration
 # Specify parameters an results to show
@@ -36,8 +38,10 @@ class ResultTable:
             return self.extractAverageAndSddev(value) * 100.0
         elif '(' in value:
             return self.extractAverageAndSddev(value)
+        elif name == 'technique':
+            return value
         else:
-            return float(value)
+            return ast.literal_eval(value)
 
     def _read_results(self):
 
@@ -78,9 +82,6 @@ class ResultTable:
                     seenFirst = True
                     headers = values
 
-        from pprint import pprint
-        pprint(self.results)
-
     def _column_layout(self):
         parameter_count = len(self.parameter_names)
         result_count = len(self.result_names)
@@ -107,6 +108,7 @@ class ResultTable:
                 "pull back hops": ("Pull Back", "Messages"),
                 "ssd": ("$\\Delta_{ss}$", "(hops)"),
                 "normal latency": ("Normal Latency", "(sec)"),
+                "technique": ("Technique", "~"),
             }[name][row]
         except KeyError as e:
             print("Failed to find the name {} for row {} : {}".format(name, row, e), file=sys.stderr)
@@ -125,6 +127,8 @@ class ResultTable:
             return "{:.0f}".format(value * 100.0)
         elif name == "tfs" or name == "pfs":
             return "{:.0f}".format(value[0])
+        elif name == "technique":
+            return latex.escape(value)
         elif isinstance(value, float):
             return "{:.2f}".format(value)
         elif name == "received ratio":

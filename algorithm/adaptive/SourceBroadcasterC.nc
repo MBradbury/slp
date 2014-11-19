@@ -235,7 +235,8 @@ implementation
 
 	int32_t ignore_choose_distance(int32_t distance)
 	{
-		return (int32_t)ceil(distance * random_float());
+		//return (int32_t)ceil(distance * random_float());
+		return distance;
 	}
 
 	bool should_process_choose()
@@ -271,16 +272,16 @@ implementation
 #if defined(NO_COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
 	{
-		const uint32_t valid_ssd = minbot(1, sink_source_distance);
+		const uint32_t valid_sink_distance = minbot(1, sink_distance);
 
-		return valid_ssd * 2;
+		return valid_sink_distance * 2;
 	}
 #elif defined(COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
 	{
-		const uint32_t valid_ssd = minbot(1, sink_source_distance);
+		const uint32_t valid_sink_distance = minbot(1, sink_distance);
 
-		return (uint32_t)ceil((valid_ssd / RECEIVE_RATIO) + valid_ssd);
+		return (uint32_t)ceil((valid_sink_distance / RECEIVE_RATIO) + valid_sink_distance);
 	}
 #else
 #	error "Technique not specified"
