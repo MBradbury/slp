@@ -1,7 +1,6 @@
 from __future__ import print_function
 
-import subprocess
-import os
+import os, re, subprocess
 
 def print_header(stream):
     print('\\documentclass[a4paper,notitlepage]{article}', file=stream)
@@ -44,3 +43,27 @@ def compile(path_and_name, executable="pdflatex -interaction=nonstopmode"):
                 os.remove(os.path.join(path, name_without_ext + ext_to_remove))
             except:
                 pass
+
+def escape(text):
+    """
+        :param text: a plain text message
+        :return: the message escaped to appear correctly in LaTeX
+
+        :from: http://stackoverflow.com/questions/16259923/how-can-i-escape-latex-special-characters-inside-django-templates/25875504#25875504
+    """
+    conv = {
+        '&': r'\&',
+        '%': r'\%',
+        '$': r'\$',
+        '#': r'\#',
+        '_': r'\_',
+        '{': r'\{',
+        '}': r'\}',
+        '~': r'\textasciitilde{}',
+        '^': r'\^{}',
+        '\\': r'\textbackslash{}',
+        '<': r'\textless{}',
+        '>': r'\textgreater{}',
+    }
+    regex = re.compile('|'.join(re.escape(unicode(key)) for key in sorted(conv.keys(), key = lambda item: - len(item))))
+    return regex.sub(lambda match: conv[match.group()], text)

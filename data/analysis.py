@@ -3,7 +3,7 @@ from __future__ import print_function
 from numpy import mean
 from numpy import var as variance
 
-import sys, ast
+import sys, ast, traceback
 from collections import Counter
 
 class Analyse(object):
@@ -91,7 +91,12 @@ class Analyse(object):
 
         # Check NormalLatency is not 0
         latency_index = self.headings.index("NormalLatency")
-        latency = float(values[latency_index])
+        latency_str = values[latency_index]
+
+        if latency_str == 'nan':
+            raise RuntimeError('The NormalLatency {} is a NaN'.format(latency_str))
+
+        latency = float(latency_str)
 
         if latency <= 0:
             raise RuntimeError("The NormalLatency {} is less than or equal to 0.".format(latency))
@@ -103,7 +108,10 @@ class Analyse(object):
 
     @staticmethod
     def to_float(value):
-        value_lit = ast.literal_eval(value)
+        try:
+            value_lit = ast.literal_eval(value)
+        except ValueError as e:
+            raise ValueError("The string '{}' has a value error".format(value), e)
 
         # Convert boolean to floats to allow averaging
         # the number of time the source was captured.
@@ -147,19 +155,14 @@ class AnalysisResults:
             try:
                 self.averageOf[heading] = analysis.averageOf(heading)
             except Exception as e:
-                try:
-                    del self.averageOf[heading]
-                except:
-                    pass
                 print("Failed to average {}: {}".format(heading, e), file=sys.stderr)
+                #print(traceback.format_exc(), file=sys.stderr)
+            
             try:
                 self.varianceOf[heading] = analysis.varianceOf(heading)
             except Exception as e:
-                try:
-                    del self.varianceOf[heading]
-                except:
-                    pass
                 print("Failed to find variance {}: {}".format(heading, e), file=sys.stderr)
+                #print(traceback.format_exc(), file=sys.stderr)
 
         self.opts = analysis.opts
         self.data = analysis.data
