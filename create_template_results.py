@@ -51,7 +51,7 @@ periods = [ (src, fake) for (src, fake) in itertools.product(source_periods, fak
 configurations = [
     ('SourceCorner', 'CHOOSE'),
     ('SinkCorner', 'CHOOSE'),
-    #('FurtherSinkCorner', 'CHOOSE'),
+    ('FurtherSinkCorner', 'CHOOSE'),
     #('Generic1', 'CHOOSE'),
     #('Generic2', 'CHOOSE'),
     

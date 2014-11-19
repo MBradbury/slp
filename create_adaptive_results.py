@@ -48,7 +48,7 @@ source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
 configurations = [
     ('SourceCorner', 'CHOOSE'),
     ('SinkCorner', 'CHOOSE'),
-    #('FurtherSinkCorner', 'CHOOSE'),
+    ('FurtherSinkCorner', 'CHOOSE'),
     #('Generic1', 'CHOOSE'),
     #('Generic2', 'CHOOSE'),
     
