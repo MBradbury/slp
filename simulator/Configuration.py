@@ -1,7 +1,9 @@
 
-import math
+import math, itertools
 
 from simulator.Topology import *
+
+from scipy.spatial.distance import euclidean
 
 class Configuration:
     def __init__(self, topology, sourceId, sinkId, spaceBehindSink):
@@ -33,6 +35,43 @@ class Configuration:
         return "Configuration<sinkId={}, sourceId={}, spaceBehindSink={}, topology={}>".format(
             self.sinkId, self.sourceId, self.spaceBehindSink, self.topology
             )
+
+    def build_connectivity_matrix(self):
+        if self.connectivity_matrix is None or self.sp is None:
+            import numpy
+            from scipy.sparse import csr_matrix
+            from scipy.sparse.csgraph import shortest_path
+
+            self.connectivity_matrix = numpy.zeros((self.size, self.size))
+
+            for (y, x) in itertools.product(xrange(self.size), xrange(self.size)):
+                self.connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
+            self.connectivity_matrix = csr_matrix(self.connectivity_matrix)
+
+            self.sp = shortest_path(self.connectivity_matrix)
+
+    def is_connected(self, i, j):
+        nodes = self.topology.nodes
+        return euclidean(nodes[i], nodes[j]) <= self.topology.distance
+
+    def one_hop_neighbours(self, node):
+        for i in xrange(len(self.topology.nodes)):
+            if i != node and self.is_connected(node, i):
+                yield i
+
+    def ssd(self):
+        """The number of hops between the sink and the source nodes"""
+        self.build_connectivity_matrix()
+        return self.sp[self.sourceId, self.sinkId]
+
+    def node_sink_distance(self, node):
+        self.build_connectivity_matrix()
+        return self.sp[node, self.sinkId]
+
+    def node_source_distance(self, node):
+        self.build_connectivity_matrix()
+        return self.sp[node, self.sourceId]
+
 
 def CreateSourceCorner(network_size, distance):
     grid = Grid(network_size, distance)

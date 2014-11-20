@@ -2,13 +2,7 @@
 
 from __future__ import print_function
 
-import math, itertools
-
-import numpy
-
-from scipy.spatial.distance import euclidean
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import shortest_path
+import math
 
 from simulator.Configuration import *
 
@@ -23,34 +17,18 @@ class Calculator:
 		self.source_period = float(source_period)
 		self.num_fake_to_send = int(num_fake_to_send)
 
-		self.size = len(configuration.topology.nodes)
-
-		connectivity_matrix = numpy.zeros((self.size, self.size))
-
-		for (y, x) in itertools.product(xrange(self.size), xrange(self.size)):
-			connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
-		connectivity_matrix = csr_matrix(connectivity_matrix)
-
-		self.sp = shortest_path(connectivity_matrix)
-
-	def is_connected(self, i, j):
-		nodes = self.configuration.topology.nodes
-		return euclidean(nodes[i], nodes[j]) <= self.configuration.topology.distance
-
 	def one_hop_neighbours(self, node):
-		for i in xrange(self.size):
-			if i != node and self.is_connected(node, i):
-				yield i
+		return self.configuration.one_hop_neighbours(node)
 
 	def ssd(self):
 		"""The number of hops between the sink and the source nodes"""
-		return self.sp[self.configuration.sourceId, self.configuration.sinkId]
+		return self.configuration.ssd()
 
 	def node_sink_distance(self, node):
-		return self.sp[node, self.configuration.sinkId]
+		return self.configuration.node_sink_distance(node)
 
 	def node_source_distance(self, node):
-		return self.sp[node, self.configuration.sourceId]
+		return self.configuration.node_source_distance(node)
 
 	def attacker_source_distance(self, i):
 		return max(0, self.ssd() - i)
