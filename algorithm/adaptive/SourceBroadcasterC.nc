@@ -276,16 +276,42 @@ implementation
 #if defined(NO_COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
 	{
-		const uint32_t valid_sink_distance = minbot(1, sink_distance);
+		uint32_t distance;
 
-		return valid_sink_distance * 2;
+		switch (algorithm)
+		{
+		case GenericAlgorithm:
+			distance = max(1, sink_distance);
+			break;
+
+		default:
+		case FurtherAlgorithm:
+			distance = max(sink_source_distance, sink_distance);
+			distance = max(distance, 1);
+			break;
+		}
+
+		return distance * 2;
 	}
 #elif defined(COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
 	{
-		const uint32_t valid_sink_distance = minbot(1, sink_distance);
+		uint32_t distance;
 
-		return (uint32_t)ceil((valid_sink_distance / RECEIVE_RATIO) + valid_sink_distance);
+		switch (algorithm)
+		{
+		case GenericAlgorithm:
+			distance = max(1, sink_distance);
+			break;
+
+		default:
+		case FurtherAlgorithm:
+			distance = max(sink_source_distance, sink_distance);
+			distance = max(distance, 1);
+			break;
+		}
+
+		return (uint32_t)ceil((distance / RECEIVE_RATIO) + distance);
 	}
 #else
 #	error "Technique not specified"
