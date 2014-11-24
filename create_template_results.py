@@ -36,7 +36,7 @@ template_graphs_directory = os.path.join(template_results_directory, 'Graphs')
 
 distance = 4.5
 
-sizes = [ 11, 15, 21, 25 ]
+sizes = [ 11, 15 ] #   [ 11, 15, 21, 25 ]
 
 # Note that our simulation only has millisecond resolution,
 # so periods that require a resolution greater than 0.001 will be
@@ -95,7 +95,7 @@ create_dirtree(template_graphs_directory)
 if 'cluster' in args:
     cluster_directory = "cluster/template"
 
-    if 'all' in args or 'build' in args:
+    if 'build' in args:
         recreate_dirtree(cluster_directory)
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
@@ -103,11 +103,15 @@ if 'cluster' in args:
         runner = template.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
-    if 'all' in args or 'copy' in args:
+    if 'copy-caffeine' in args:
         username = raw_input("Enter your Caffeine username: ")
         subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
 
-    if 'all' in args or 'submit' in args:
+    if 'copy-minerva' in args:
+        username = raw_input("Enter your Minerva username: ")
+        subprocess.check_call("rsync -avz -e ssh --delete cluster {}@minerva.csc.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
+
+    if 'submit' in args:
         # It would be nice if we could detect and/or load the jdk
         # but it appears that this function would only do this for
         # bash subshell created.
@@ -121,7 +125,7 @@ if 'cluster' in args:
         runner = template.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
-    if 'all' in args or 'copy-back' in args:
+    if 'copy-back' in args:
         username = raw_input("Enter your Caffeine username: ")
         subprocess.check_call("rsync -avz -e ssh {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/template/*.txt data/results/template".format(username), shell=True)
 

@@ -7,6 +7,12 @@ def restricted_float(x):
 		raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]".format(x))
 	return x
 
+def alpha(x):
+	x = float(x)
+	if int(x * 1000) <= 0:
+		raise argparse.ArgumentTypeError("{} need to be at least 0.001".format(x))
+	return x
+
 class Arguments:
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="SLP Adaptive", add_help=True)
@@ -18,7 +24,7 @@ class Arguments:
 		parser.add_argument("--safety-period", type=float, required=True)
 
 		parser.add_argument("--source-period", type=float, required=True)
-		parser.add_argument("--time-to-send", type=float, required=True)
+		parser.add_argument("--time-to-send", type=alpha, required=True)
 		parser.add_argument("--receive-ratio", type=restricted_float, required=True)
 
 		parser.add_argument("--technique", type=str, choices=["NO_COL_FULL_DIST", "COL_FULL_DIST"], required=True)

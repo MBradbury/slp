@@ -248,10 +248,12 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			return !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
+			return !(sink_source_distance != BOTTOM &&
+				source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
 
 		case FurtherAlgorithm:
-			return !seen_pfs && !(sink_source_distance != BOTTOM && source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
+			return !seen_pfs && !(sink_source_distance != BOTTOM &&
+				source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
 
 		default:
 			return TRUE;
@@ -291,7 +293,13 @@ implementation
 			break;
 		}
 
-		return distance * 2;
+		distance = distance + distance;
+
+		distance = (uint32_t)ceil(distance * 1.5);
+
+		dbg("stdout", "get_tfs_num_msg_to_send=%u\n", distance);
+
+		return distance;
 	}
 #elif defined(COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
@@ -311,7 +319,13 @@ implementation
 			break;
 		}
 
-		return (uint32_t)ceil((distance / RECEIVE_RATIO) + distance);
+		distance = (uint32_t)ceil(distance / RECEIVE_RATIO) + distance;
+
+		distance = (uint32_t)ceil(distance * 1.5);
+
+		dbg("stdout", "get_tfs_num_msg_to_send=%u\n", distance);
+
+		return distance;
 	}
 #else
 #	error "Technique not specified"
@@ -326,7 +340,11 @@ implementation
 			duration -= SOURCE_PERIOD_MS / 2;
 		}
 
+		duration = (uint32_t)ceil(duration * 1.5);
+
 		duration -= TIME_TO_SEND_MS;
+
+		dbg("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
 		return duration;
 	}
@@ -337,12 +355,23 @@ implementation
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const uint32_t period = duration / msg;
 
-		return max(period, TIME_TO_SEND_MS);
+		const uint32_t result_period = max(period, TIME_TO_SEND_MS);
+
+		dbg("stdout", "get_tfs_period=%u\n", result_period);
+
+		return result_period;
 	}
 
 	uint32_t get_pfs_period()
 	{
-		return SOURCE_PERIOD_MS * RECEIVE_RATIO;
+		const double x = pow(RECEIVE_RATIO, source_distance / (double)sink_source_distance);
+		const uint32_t period = (uint32_t)ceil(SOURCE_PERIOD_MS * x);
+
+		const uint32_t result_period = max(period, TIME_TO_SEND_MS);
+
+		dbg("stdout", "get_pfs_period=%u (source_distance=%d, sink_source_distance=%d, x=%f)\n", result_period, source_distance, sink_source_distance, x);
+
+		return result_period;
 	}
 
 	bool busy = FALSE;

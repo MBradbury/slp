@@ -48,7 +48,7 @@ source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
 configurations = [
     ('SourceCorner', 'CHOOSE'),
     ('SinkCorner', 'CHOOSE'),
-    ('FurtherSinkCorner', 'CHOOSE'),
+    #('FurtherSinkCorner', 'CHOOSE'),
     #('Generic1', 'CHOOSE'),
     #('Generic2', 'CHOOSE'),
     
@@ -68,9 +68,9 @@ alpha = 0.006
 
 receive_ratio = 0.65
 
-repeats = 50
+repeats = 100
 
-protectionless_configurations = [(a) for (a, b) in configurations]
+protectionless_configurations = [(a) for (a, build) in configurations]
 
 def create_dirtree(path):
     if not os.path.exists(path):
