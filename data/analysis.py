@@ -6,6 +6,10 @@ from numpy import var as variance
 import sys, ast, traceback
 from collections import Counter
 
+class EmptyFileError(RuntimeError):
+    def __init__(self, filename):
+        super(EmptyFileError, self).__init__("The file '{}' is empty.".format(filename))
+
 class Analyse(object):
     def __init__(self, infile):
 
@@ -16,8 +20,10 @@ class Analyse(object):
         self.data = []
 
         with open(infile) as f:
-            lineNumber = 1
+            lineNumber = 0
             for line in f:
+
+                lineNumber += 1
         
                 # We need to remove the new line at the end of the line
                 line = line.strip()
@@ -49,7 +55,8 @@ class Analyse(object):
                 else:
                     print("Unable to parse line {} : '{}'".format(lineNumber, line))
 
-                lineNumber += 1
+            if lineNumber == 0:
+                raise EmptyFileError(infile)
 
     def check_consistent(self, values, lineNumber):
         """Perform multiple sanity checks on the data generated"""
