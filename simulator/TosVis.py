@@ -1,8 +1,5 @@
 import re
 
-from simulator.topovis import *
-from simulator.topovis.TkPlotter import Plotter
-
 from Simulator import *
 
 ###############################################
@@ -75,6 +72,9 @@ class TosVis(Simulator):
 		self.runGui = False
 
 	def setupGUI(self):
+
+		if self.runGui:
+			return
 
 		self.runGui = True
 
@@ -175,6 +175,9 @@ class TosVis(Simulator):
 		super(TosVis, self).preRun()
 
 		if self.runGui:
+			from simulator.topovis.TopoVis import Scene
+			from simulator.topovis.TkPlotter import Plotter
+
 			# Setup an animating canvas
 			self.scene = Scene(timescale=1)
 			self.tkplot = Plotter()
