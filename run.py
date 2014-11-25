@@ -12,7 +12,7 @@ try:
 	import simulator.Configuration as Configuration
 	from simulator.Simulation import Simulation
 except ImportError as e:
-	raise ImportError("Failed to import a module on {HOSTNAME}".format(**os.environ), e)
+	raise ImportError("Failed to import a module on {}".format(os.uname()[1]), e)
 
 module = sys.argv[1]
 
