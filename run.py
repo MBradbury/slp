@@ -2,14 +2,17 @@
 
 from __future__ import print_function
 
-import sys, importlib, subprocess, multiprocessing, traceback
+import os, sys, importlib, subprocess, multiprocessing, traceback
 
 from threading import Lock
 
-from simulator.Attacker import Attacker
-from simulator.Builder import build
-import simulator.Configuration as Configuration
-from simulator.Simulation import Simulation
+try:
+	from simulator.Attacker import Attacker
+	from simulator.Builder import build
+	import simulator.Configuration as Configuration
+	from simulator.Simulation import Simulation
+except ImportError as e:
+	raise ImportError("Failed to import a module on {HOSTNAME}".format(**os.environ), e)
 
 module = sys.argv[1]
 
