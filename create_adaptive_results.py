@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil, itertools, subprocess
+import os, sys, shutil
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -14,7 +14,6 @@ import algorithm.protectionless as protectionless
 import algorithm.template as template
 import algorithm.adaptive as adaptive
 
-from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.table import safety_period, fake_result, comparison
 from data.graph import grapher, summary
 
@@ -91,7 +90,11 @@ create_dirtree(adaptive_graphs_directory)
 if 'cluster' in args:
     cluster_directory = "cluster/adaptive"
 
-    if 'all' in args or 'build' in args:
+    from data import cluster_manager
+
+    cluster = cluster_manager.load(args)
+
+    if 'build' in args:
         recreate_dirtree(cluster_directory)
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
@@ -99,27 +102,20 @@ if 'cluster' in args:
         runner = adaptive.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
         runner.run(jar_path, distance, sizes, source_periods, techniques, configurations, alpha, receive_ratio, repeats)
 
-    if 'all' in args or 'copy' in args:
-        username = raw_input("Enter your Caffeine username: ")
-        subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
+    if 'copy' in args:
+        cluster.copy_to()
 
-    if 'all' in args or 'submit' in args:
-        # It would be nice if we could detect and/or load the jdk
-        # but it appears that this function would only do this for
-        # bash subshell created.
-        #cluster.load_module("jdk/1.7.0_07")
-
+    if 'submit' in args:
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
 
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = adaptive.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
+        runner = adaptive.Runner.RunSimulations(cluster.submitter(), cluster_directory, safety_periods, False)
         runner.run(jar_path, distance, sizes, source_periods, techniques, configurations, alpha, receive_ratio, repeats)
 
-    if 'all' in args or 'copy-back' in args:
-        username = raw_input("Enter your Caffeine username: ")
-        subprocess.check_call("rsync -avz -e ssh {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/adaptive/*.txt data/results/adaptive".format(username), shell=True)
+    if 'copy-back' in args:
+        cluster.copy_back()
 
     sys.exit(0)
 

@@ -2,8 +2,8 @@ import os
 import subprocess
 
 class Runner:
-    def __init__(self):
-        pass
+    def __init__(self, cluster_command):
+        self.cluster_command = cluster_command
 
     def add_job(self, executable, options, name):
         target_directory = name[:-len(".txt")]
@@ -12,8 +12,7 @@ class Runner:
 
         module = target_directory.replace("/", ".")
 
-        # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
-        cluster_command = "qsub -q serial -j oe -V -h -l nodes=1:ppn=4 -l walltime=250:00:00 -N {}".format(module)
+        cluster_command = self.cluster_command.format(module)
 
         script_command = '{} {} {} > {}'.format(executable, module, options, name)
 
