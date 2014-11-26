@@ -115,7 +115,7 @@ if 'cluster' in args:
         runner.run(jar_path, distance, sizes, source_periods, techniques, configurations, alpha, receive_ratio, repeats)
 
     if 'copy-back' in args:
-        cluster.copy_back()
+        cluster.copy_back("adaptive")
 
     sys.exit(0)
 

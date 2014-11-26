@@ -119,7 +119,7 @@ if 'cluster' in args:
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
     if 'copy-back' in args:
-        cluster.copy_back()
+        cluster.copy_back("template")
 
     sys.exit(0)
 

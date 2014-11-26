@@ -75,7 +75,7 @@ if 'cluster' in args:
 
     cluster = cluster_manager.load(args)
 
-    if 'all' in args or 'build' in args:
+    if 'build' in args:
         recreate_dirtree(cluster_directory)
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
@@ -91,13 +91,13 @@ if 'cluster' in args:
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
     if 'copy-back' in args:
-        cluster.copy_back()
+        cluster.copy_back("protectionless")
 
     sys.exit(0)
 
 if 'all' in args or 'run' in args:
     from data.run.driver import local as LocalDriver
-    
+
     runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), results_directory)
     runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
