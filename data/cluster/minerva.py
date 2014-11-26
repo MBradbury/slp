@@ -17,6 +17,8 @@ def submitter():
 
     cluster_command = "msub -q smp -j oe -V -l nodes=1:ppn=4 -l walltime=20:00:00 -N {}"
 
-    prepare_command = "module swap oldmodules minerva-2.0 ; module load iomkl/13.1.3/ScientificPython/2.8-python-2.7.6"
+    # Do this first
+    # module swap oldmodules minerva-2.0
+    prepare_command = "module load iomkl/13.1.3/ScientificPython/2.8-python-2.7.6"
     
     return Submitter(cluster_command, prepare_command)
