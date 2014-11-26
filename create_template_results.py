@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil, itertools, subprocess
+import os, sys, shutil, itertools
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -13,7 +13,6 @@ else:
 import algorithm.protectionless as protectionless
 import algorithm.template as template
 
-from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.table import safety_period, fake_source_result, fake_result, comparison
 from data.graph import grapher, summary
 
@@ -95,39 +94,32 @@ create_dirtree(template_graphs_directory)
 if 'cluster' in args:
     cluster_directory = "cluster/template"
 
+    from data import cluster_manager
+
+    cluster = cluster_manager.load(args)
+
     if 'build' in args:
         recreate_dirtree(cluster_directory)
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
 
-        runner = template.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
+        runner = template.Runner.RunSimulations(cluster.builder(), cluster_directory, None, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
-    if 'copy-caffeine' in args:
-        username = raw_input("Enter your Caffeine username: ")
-        subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
-
-    if 'copy-minerva' in args:
-        username = raw_input("Enter your Minerva username: ")
-        subprocess.check_call("rsync -avz -e ssh --delete cluster {}@minerva.csc.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
+    if 'copy' in args:
+        cluster.copy_to()
 
     if 'submit' in args:
-        # It would be nice if we could detect and/or load the jdk
-        # but it appears that this function would only do this for
-        # bash subshell created.
-        #cluster.load_module("jdk/1.7.0_07")
-
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
 
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = template.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, safety_periods, False)
+        runner = template.Runner.RunSimulations(cluster.submitter(), cluster_directory, safety_periods, False)
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
     if 'copy-back' in args:
-        username = raw_input("Enter your Caffeine username: ")
-        subprocess.check_call("rsync -avz -e ssh {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/template/*.txt data/results/template".format(username), shell=True)
+        cluster.copy_back()
 
     sys.exit(0)
 

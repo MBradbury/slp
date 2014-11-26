@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil, subprocess
+import os, sys, shutil
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -12,7 +12,6 @@ else:
 
 import algorithm.protectionless as protectionless
 
-from data.run.driver import local as LocalDriver, cluster_builder as ClusterBuilderDriver, cluster_submitter as ClusterSubmitterDriver
 from data.table import safety_period
 from data.latex import latex
 from data.graph import grapher, summary
@@ -72,30 +71,27 @@ create_dirtree(graphs_directory)
 if 'cluster' in args:
     cluster_directory = "cluster/protectionless"
 
+    from data import cluster_manager
+
+    cluster = cluster_manager.load(args)
+
     if 'all' in args or 'build' in args:
         recreate_dirtree(cluster_directory)
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
 
-        runner = protectionless.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, False)
+        runner = protectionless.Runner.RunSimulations(cluster.builder(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
-    if 'all' in args or 'copy' in args:
-        username = raw_input("Enter your Caffeine username: ")
-        subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
+    if 'copy' in args:
+        cluster.copy_to()
 
-    if 'all' in args or 'submit' in args:
-        # It would be nice if we could detect and/or load the jdk
-        # but it appears that this function would only do this for
-        # bash subshell created.
-        #cluster.load_module("jdk/1.7.0_07")
-
-        runner = protectionless.Runner.RunSimulations(ClusterSubmitterDriver.Runner(), cluster_directory, False)
+    if 'submit' in args:
+        runner = protectionless.Runner.RunSimulations(cluster.submitter(), cluster_directory, False)
         runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
-    if 'all' in args or 'copy-back' in args:
-        username = raw_input("Enter your Caffeine username: ")
-        subprocess.check_call("rsync -avz -e ssh {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/protectionless/*.txt data/results/protectionless".format(username), shell=True)
+    if 'copy-back' in args:
+        cluster.copy_back()
 
     sys.exit(0)
 
