@@ -123,19 +123,13 @@ if 'cluster' in args:
 
     sys.exit(0)
 
-if 'all' in args or 'run-protectionless' in args:
-    runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), protectionless_results_directory)
-    runner.run(jar_path, distance, sizes, source_periods, protectionless_configurations, protectionless_repeats)
-
-if 'all' in args or 'analyse-protectionless' in args:
-    analyzer = protectionless.Analysis.Analyzer(protectionless_results_directory)
-    analyzer.run(protectionless_analysis_result_file)
-
 if 'all' in args or 'run' in args:
     safety_period_table_generator = safety_period.TableGenerator()
     safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
 
     safety_periods = safety_period_table_generator.safety_periods()
+
+    from data.run.driver import local as LocalDriver
 
     prelim_runner = template.Runner.RunSimulations(LocalDriver.Runner(), template_results_directory, safety_periods, skip_completed_simulations=True)
     prelim_runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)

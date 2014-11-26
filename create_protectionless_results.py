@@ -96,6 +96,8 @@ if 'cluster' in args:
     sys.exit(0)
 
 if 'all' in args or 'run' in args:
+    from data.run.driver import local as LocalDriver
+    
     runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), results_directory)
     runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 

@@ -47,7 +47,7 @@ source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
 configurations = [
     ('SourceCorner', 'CHOOSE'),
     ('SinkCorner', 'CHOOSE'),
-    #('FurtherSinkCorner', 'CHOOSE'),
+    ('FurtherSinkCorner', 'CHOOSE'),
     #('Generic1', 'CHOOSE'),
     #('Generic2', 'CHOOSE'),
     
@@ -124,6 +124,8 @@ if 'all' in args or 'run' in args:
     safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
 
     safety_periods = safety_period_table_generator.safety_periods()
+
+    from data.run.driver import local as LocalDriver
 
     prelim_runner = adaptive.Runner.RunSimulations(LocalDriver.Runner(), adaptive_results_directory, safety_periods, skip_completed_simulations=True)
     prelim_runner.run(jar_path, distance, sizes, source_periods, techniques, configurations, alpha, receive_ratio, repeats)
