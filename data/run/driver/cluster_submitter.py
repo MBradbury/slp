@@ -18,7 +18,7 @@ class Runner:
         script_command = '{} {} {} > {}'.format(executable, module, options, name)
 
         command = 'echo "cd \$PBS_O_WORKDIR ; {} ; {}" | {}'.format(
-            script_command, self.prepare_command, cluster_command)
+            self.prepare_command, script_command, cluster_command)
 
         print(command)
         subprocess.check_call(command, shell=True)
