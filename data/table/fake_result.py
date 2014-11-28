@@ -163,7 +163,9 @@ class ResultTable:
                 source_periods = sorted(set(self.results[table_key].keys()))
 
                 for source_period in source_periods:
-                    for (params, results) in self.results[table_key][source_period].items():                    
+                    items = self.results[table_key][source_period].items()
+
+                    for (params, results) in sorted(items, key=lambda (x, y): x):                    
                         to_print = [self._var_fmt("source period", source_period)]
 
                         for name, value in zip(self.parameter_names, params):
