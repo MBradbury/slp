@@ -3,7 +3,7 @@ from __future__ import print_function
 from numpy import mean
 from numpy import var as variance
 
-import sys, ast, traceback
+import sys, ast, traceback, math
 from collections import Counter
 
 class EmptyFileError(RuntimeError):
@@ -39,10 +39,10 @@ class Analyse(object):
                     self.headings = line[1:].split('|')
 
                 elif '|' in line:
-                    # Read the actual data
-                    values = line.split('|')
-
                     try:
+                        # Read the actual data
+                        values = map(ast.literal_eval, line.split('|'))
+
                         self.check_consistent(values, lineNumber)
 
                         self.detect_outlier(values)
@@ -51,6 +51,9 @@ class Analyse(object):
 
                     except RuntimeError as e:
                         print("Unable to process line {} due to {}".format(lineNumber, e), file=sys.stderr)
+
+                    except ValueError as e:
+                        print("Unable to process line {} due to {} ({})".format(lineNumber, e, line), file=sys.stderr)
 
                 else:
                     print("Unable to parse line {} : '{}'".format(lineNumber, line))
@@ -67,43 +70,35 @@ class Analyse(object):
                 len(values), len(self.headings), lineNumber))
 
         for (heading, value) in zip(self.headings, values):
-            if value.startswith('{'):
-                # Check that the map format is valid
-                try:
-                    d = ast.literal_eval(value)
-                except SyntaxError as e:
-                    raise RuntimeError("The value for {} could not be parsed".format(heading), e)
-
+            if type(value) is dict:
                 network_size = int(self.opts['network_size'])
                 number_nodes = network_size * network_size
 
                 # Check that there aren't too many nodes
-                if len(d) > number_nodes:
+                if len(value) > number_nodes:
                     raise RuntimeError("There are too many nodes in this map {}, when there should be {} maximum.".format(len(d), number_nodes))
 
                 # Check that the node ids are in the right range
-                for k in d.keys():
+                for k in value.keys():
                     if k < 0 or k >= number_nodes:
                         raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
 
         # If captured is set to true, there should be an attacker at the source location
         captured_index = self.headings.index("Captured")
-        captured = ast.literal_eval(values[captured_index])
+        captured = values[captured_index]
 
         attacker_distance_index = self.headings.index("AttackerDistance")
-        attacker_distance = ast.literal_eval(values[attacker_distance_index])
+        attacker_distance = values[attacker_distance_index]
 
         if captured != any(v == 0.0 for (k, v) in attacker_distance.items()):
             raise RuntimeError("There is a discrepancy between captured ({}) and the attacker distances {}.".format(captured, attacker_distance))
 
         # Check NormalLatency is not 0
         latency_index = self.headings.index("NormalLatency")
-        latency_str = values[latency_index]
+        latency = values[latency_index]
 
-        if latency_str == 'nan':
+        if math.isnan(latency):
             raise RuntimeError('The NormalLatency {} is a NaN'.format(latency_str))
-
-        latency = float(latency_str)
 
         if latency <= 0:
             raise RuntimeError("The NormalLatency {} is less than or equal to 0.".format(latency))
@@ -115,16 +110,11 @@ class Analyse(object):
 
     @staticmethod
     def to_float(value):
-        try:
-            value_lit = ast.literal_eval(value)
-        except ValueError as e:
-            raise ValueError("The string '{}' has a value error".format(value), e)
-
         # Convert boolean to floats to allow averaging
         # the number of time the source was captured.
-        if value_lit is True:
+        if value is True:
             return 1.0
-        elif value_lit is False:
+        elif value is False:
             return 0.0
         else:
             return float(value)
@@ -133,7 +123,7 @@ class Analyse(object):
         # Find the index that header refers to
         index = self.headings.index(header)
 
-        if "{" in self.data[0][index]:
+        if type(self.data[0][index]) is dict:
             return self.dictMean(index)
         else:
             return mean([self.to_float(values[index]) for values in self.data])
@@ -142,15 +132,15 @@ class Analyse(object):
         # Find the index that header refers to
         index = self.headings.index(header)
 
-        if "{" in self.data[0][index]:
+        if type(self.data[0][index]) is dict:
             raise NotImplementedError()
         else:
             return variance([self.to_float(values[index]) for values in self.data])
 
     def dictMean(self, index):
-        dictList = [Counter(ast.literal_eval(values[index])) for values in self.data]
+        dictList = (Counter(values[index]) for values in self.data)
 
-        return { k: float(v) / len(dictList) for (k, v) in dict(sum(dictList, Counter())).items() }
+        return { k: float(v) / len(self.data) for (k, v) in dict(sum(dictList, Counter())).items() }
 
 
 class AnalysisResults:
