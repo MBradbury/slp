@@ -97,17 +97,17 @@ class ResultTable:
             return {
                 "source period": ("$P_{src}$", "(sec)"),
                 "fake period": ("$P_{fs}$", "(sec)"),
-                "temp fake duration": ("Duration", "(sec)"),
+                "temp fake duration": ("Dur", "(sec)"),
                 "pr(tfs)": ("Pr(TFS)", "(\%)"),
                 "pr(pfs)": ("Pr(PFS)", "(\%)"),
-                "captured": ("Captured", "(\%)"),
+                "captured": ("Cap", "(\%)"),
                 "fake": ("Fake", "Messages"),
                 "received ratio": ("Received", "(\%)"),
-                "tfs": ("\\#TFS", "~"),
-                "pfs": ("\\#PFS", "~"),
+                "tfs": ("TFS", "~"),
+                "pfs": ("PFS", "~"),
                 "pull back hops": ("Pull Back", "Messages"),
                 "ssd": ("$\\Delta_{ss}$", "(hops)"),
-                "normal latency": ("Normal Latency", "(sec)"),
+                "normal latency": ("Latency", "(sec)"),
                 "technique": ("Technique", "~"),
             }[name][row]
         except KeyError as e:
