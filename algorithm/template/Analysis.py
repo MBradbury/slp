@@ -22,7 +22,7 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},{},{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},,{},{}\n'.replace(",", "|").format(
+            out.write('{},{},{},{},{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},,{},{}\n'.replace(",", "|").format(
                 'network size',
                 'configuration',
                 'source period',
@@ -37,6 +37,7 @@ class Analyzer:
                 'attacker moves',
                 'attacker distance',
                 'received ratio',
+                'ssd',
                 'normal latency',
                 'time taken',
                 'normal',
@@ -64,7 +65,7 @@ class Analyzer:
                         print("Skipping as there is no data.")
                         continue
 
-                    out.write('{},{},{},{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
+                    out.write('{},{},{},{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
                         result.opts['network_size'],
                         result.opts['configuration'],
                         result.opts['source_period'],
@@ -80,6 +81,7 @@ class Analyzer:
                         result.averageOf['AttackerMoves'],
                         result.averageOf['AttackerDistance'],
                         result.averageOf['ReceiveRatio'], result.varianceOf['ReceiveRatio'],
+                        result.averageOf['NormalSinkSourceHops'], result.varianceOf['NormalSinkSourceHops'],
                         result.averageOf['NormalLatency'], result.varianceOf['NormalLatency'],
                         result.averageOf['TimeTaken'], result.varianceOf['TimeTaken'],
                         result.averageOf['NormalSent'], result.varianceOf['NormalSent'],
