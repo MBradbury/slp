@@ -275,6 +275,11 @@ implementation
 		}
 	}
 
+	double get_tfs_factor()
+	{
+		return 1.5;
+	}
+
 #if defined(NO_COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
 	{
@@ -295,7 +300,7 @@ implementation
 
 		distance = distance + distance;
 
-		distance = (uint32_t)ceil(distance * 1.5);
+		distance = (uint32_t)ceil(distance * get_tfs_factor());
 
 		dbg("stdout", "get_tfs_num_msg_to_send=%u\n", distance);
 
@@ -321,7 +326,7 @@ implementation
 
 		distance = (uint32_t)ceil(distance / RECEIVE_RATIO) + distance;
 
-		distance = (uint32_t)ceil(distance * 1.5);
+		distance = (uint32_t)ceil(distance * get_tfs_factor());
 
 		dbg("stdout", "get_tfs_num_msg_to_send=%u\n", distance);
 
@@ -340,7 +345,7 @@ implementation
 			duration -= SOURCE_PERIOD_MS / 2;
 		}
 
-		duration = (uint32_t)ceil(duration * 1.5);
+		duration = (uint32_t)ceil(duration * get_tfs_factor());
 
 		duration -= TIME_TO_SEND_MS;
 
