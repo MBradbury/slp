@@ -8,7 +8,7 @@ import os
 import fnmatch
 import math
 
-from data.analysis import Analyse, AnalysisResults
+from data.analysis import Analyse, AnalysisResults, EmptyFileError
 
 class Analyzer:
     def __init__(self, results_directory):
@@ -53,39 +53,48 @@ class Analyzer:
 
             for infile in files:
                 path = os.path.join(self.results_directory, infile)
-            
-                result = AnalysisResults(Analyse(path))
-                
+
                 print('Analysing {0}'.format(path))
+            
+                try:
+                    result = AnalysisResults(Analyse(path))
 
-                out.write('{},{},{},{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
-                    result.opts['network_size'],
-                    result.opts['configuration'],
-                    result.opts['source_period'],
-                    result.opts['fake_period'],
-                    result.opts['temp_fake_duration'],
-                    result.opts['pr_tfs'],
-                    result.opts['pr_pfs'],
-                    
-                    result.averageOf['Sent'], result.varianceOf['Sent'],
-                    result.averageOf['Received'], result.varianceOf['Received'],
-                    #result.averageOf['Collisions'], result.varianceOf['Collisions'],
-                    result.averageOf['Captured'],
-                    result.averageOf['AttackerMoves'],
-                    result.averageOf['AttackerDistance'],
-                    result.averageOf['ReceiveRatio'], result.varianceOf['ReceiveRatio'],
-                    result.averageOf['NormalLatency'], result.varianceOf['NormalLatency'],
-                    result.averageOf['TimeTaken'], result.varianceOf['TimeTaken'],
-                    result.averageOf['NormalSent'], result.varianceOf['NormalSent'],
-                    result.averageOf['AwaySent'], result.varianceOf['AwaySent'],
-                    result.averageOf['ChooseSent'], result.varianceOf['ChooseSent'],
-                    result.averageOf['FakeSent'], result.varianceOf['FakeSent'],
-                    result.averageOf['TFS'], result.varianceOf['TFS'],
-                    result.averageOf['PFS'], result.varianceOf['PFS'],
-                    result.averageOf['FakeToNormal'], result.varianceOf['FakeToNormal'],
+                    # Skip 0 length results
+                    if len(result.data) == 0:
+                        print("Skipping as there is no data.")
+                        continue
 
-                    result.averageOf['SentHeatMap'],
-                    result.averageOf['ReceivedHeatMap']
-                    ))
-                    
+                    out.write('{},{},{},{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
+                        result.opts['network_size'],
+                        result.opts['configuration'],
+                        result.opts['source_period'],
+                        result.opts['fake_period'],
+                        result.opts['temp_fake_duration'],
+                        result.opts['pr_tfs'],
+                        result.opts['pr_pfs'],
+                        
+                        result.averageOf['Sent'], result.varianceOf['Sent'],
+                        result.averageOf['Received'], result.varianceOf['Received'],
+                        #result.averageOf['Collisions'], result.varianceOf['Collisions'],
+                        result.averageOf['Captured'],
+                        result.averageOf['AttackerMoves'],
+                        result.averageOf['AttackerDistance'],
+                        result.averageOf['ReceiveRatio'], result.varianceOf['ReceiveRatio'],
+                        result.averageOf['NormalLatency'], result.varianceOf['NormalLatency'],
+                        result.averageOf['TimeTaken'], result.varianceOf['TimeTaken'],
+                        result.averageOf['NormalSent'], result.varianceOf['NormalSent'],
+                        result.averageOf['AwaySent'], result.varianceOf['AwaySent'],
+                        result.averageOf['ChooseSent'], result.varianceOf['ChooseSent'],
+                        result.averageOf['FakeSent'], result.varianceOf['FakeSent'],
+                        result.averageOf['TFS'], result.varianceOf['TFS'],
+                        result.averageOf['PFS'], result.varianceOf['PFS'],
+                        result.averageOf['FakeToNormal'], result.varianceOf['FakeToNormal'],
+
+                        result.averageOf['SentHeatMap'],
+                        result.averageOf['ReceivedHeatMap']
+                        ))
+
+                except EmptyFileError as e:
+                    print(e)
+
             print('Finished writing {}'.format(summary_file))

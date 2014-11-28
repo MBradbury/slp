@@ -51,11 +51,16 @@ class Analyzer:
 
             for infile in files:
                 path = os.path.join(self.results_directory, infile)
+
+                print('Analysing {0}'.format(path))
             
                 try:
                     result = AnalysisResults(Analyse(path))
                     
-                    print('Analysing {0}'.format(path))
+                    # Skip 0 length results
+                    if len(result.data) == 0:
+                        print("Skipping as there is no data.")
+                        continue
 
                     out.write('{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
                         result.opts['network_size'],
