@@ -2,17 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, importlib, subprocess, multiprocessing, traceback
-
-from threading import Lock
-
-try:
-	from simulator.Attacker import Attacker
-	from simulator.Builder import build
-	import simulator.Configuration as Configuration
-	from simulator.Simulation import Simulation
-except ImportError as e:
-	raise ImportError("Failed to import a module on {}".format(os.uname()[1]), e)
+import sys, importlib
 
 module = sys.argv[1]
 
@@ -22,11 +12,15 @@ Metrics = importlib.import_module("{}.Metrics".format(module))
 a = Arguments.Arguments()
 a.parse(sys.argv[2:])
 
-configuration = Configuration.Create(a.args.configuration, a.args)
-
 # For cluster runs, the binary has already been built and the
 # topology file has been written. So do not attempt to do so again.
 if a.args.mode != "CLUSTER":
+	from simulator.Builder import build
+	from simulator.Simulation import Simulation
+	import simulator.Configuration as Configuration
+
+	configuration = Configuration.Create(a.args.configuration, a.args)
+
 	build_arguments = a.getBuildArguments()
 
 	build_arguments.update(configuration.getBuildArguments())
@@ -53,6 +47,9 @@ if a.args.mode == "GUI":
 	import simulator.DoRun
 
 else:
+	import subprocess, multiprocessing.pool, traceback
+	from threading import Lock
+
 	def runner(args):
 		print_lock = Lock()
 
@@ -94,13 +91,15 @@ else:
 
 	subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
 
-	p = multiprocessing.Pool(a.args.thread_count)
+	p = multiprocessing.pool.ThreadPool(a.args.thread_count)
 	try:
 		r = p.map_async(runner, [subprocess_args] * a.args.job_size)
 		r.wait()
 	except (KeyboardInterrupt, SystemExit) as e:
 		print("Killing thread pool due to {}".format(e), file=sys.stderr)
-		p.terminate()
 	except Exception as e:
 		print("Encountered: {}".format(e), file=sys.stderr)
 		print(traceback.format_exc(), file=sys.stderr)
+	finally:
+		p.terminate()
+		p.join()
