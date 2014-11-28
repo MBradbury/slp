@@ -156,7 +156,7 @@ if 'all' in args or 'graph' in args:
 if 'all' in args or 'table' in args:
     result_table = fake_result.ResultTable(template_analysis_result_path,
         parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
-        results=('captured', 'fake', 'received ratio', 'tfs', 'pfs'))
+        results=('captured', 'fake', 'received ratio', 'tfs', 'pfs', 'ssd', 'normal latency'))
 
     with open('template_results.tex', 'w') as result_file:
         latex.print_header(result_file)
