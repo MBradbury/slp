@@ -8,7 +8,7 @@ import os
 import fnmatch
 import math
 
-from data.analysis import Analyse, AnalysisResults
+from data.analysis import Analyse, AnalysisResults, EmptyFileError
 
 class AnalyseWithOutlierDetection(Analyse):
     def __init__(self, infile):
@@ -76,34 +76,43 @@ class Analyzer:
 
                 print('Analysing {0}'.format(path))
             
-                result = AnalysisResults(AnalyseWithOutlierDetection(path))
+                try:
+                    result = AnalysisResults(AnalyseWithOutlierDetection(path))
 
-                out.write('{},{},{},,{}({}),{},{}({}),{}({}),,{},,{}({}),{}({}),{},{},{}({}),,{},{}\n'.replace(",", "|").format(
-                    result.opts['network_size'],
-                    result.opts['source_period'],
-                    result.opts['configuration'],           
-                    
-                    result.averageOf['TimeTaken'],
-                    result.varianceOf['TimeTaken'],
+                    # Skip 0 length results
+                    if len(result.data) == 0:
+                        print("Skipping as there is no data.")
+                        continue
 
-                    result.averageOf['Captured'],
-                    
-                    result.averageOf['ReceiveRatio'],
-                    result.varianceOf['ReceiveRatio'],
+                    out.write('{},{},{},,{}({}),{},{}({}),{}({}),,{},,{}({}),{}({}),{},{},{}({}),,{},{}\n'.replace(",", "|").format(
+                        result.opts['network_size'],
+                        result.opts['source_period'],
+                        result.opts['configuration'],           
+                        
+                        result.averageOf['TimeTaken'],
+                        result.varianceOf['TimeTaken'],
 
-                    result.averageOf['NormalLatency'],
-                    result.varianceOf['NormalLatency'],
-                    
-                    result.averageOf['TimeTaken'] * 2.0,
+                        result.averageOf['Captured'],
+                        
+                        result.averageOf['ReceiveRatio'],
+                        result.varianceOf['ReceiveRatio'],
 
-                    result.averageOf['Sent'], result.varianceOf['Sent'],
-                    result.averageOf['Received'], result.varianceOf['Received'],
-                    result.averageOf['AttackerDistance'],
-                    result.averageOf['AttackerMoves'],
-                    result.averageOf['NormalSinkSourceHops'], result.varianceOf['NormalSinkSourceHops'],
+                        result.averageOf['NormalLatency'],
+                        result.varianceOf['NormalLatency'],
+                        
+                        result.averageOf['TimeTaken'] * 2.0,
 
-                    result.averageOf['SentHeatMap'],
-                    result.averageOf['ReceivedHeatMap']
-                    ))
+                        result.averageOf['Sent'], result.varianceOf['Sent'],
+                        result.averageOf['Received'], result.varianceOf['Received'],
+                        result.averageOf['AttackerDistance'],
+                        result.averageOf['AttackerMoves'],
+                        result.averageOf['NormalSinkSourceHops'], result.varianceOf['NormalSinkSourceHops'],
+
+                        result.averageOf['SentHeatMap'],
+                        result.averageOf['ReceivedHeatMap']
+                        ))
+
+                except EmptyFileError as e:
+                    print(e)
                     
             print('Finished writing {}'.format(summary_file))
