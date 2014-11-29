@@ -6,7 +6,6 @@
 import sys
 import os
 import fnmatch
-import math
 
 from data.analysis import Analyse, AnalysisResults, EmptyFileError
 

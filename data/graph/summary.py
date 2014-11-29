@@ -12,12 +12,15 @@ class GraphSummary:
         self.graph_count = 0
 
     def _write_latex_header(self, stream):
-        stream.write("\\documentclass{report}\n")
+        stream.write("\\documentclass{article}\n")
+        stream.write("\\usepackage{fullpage}\n")
+        stream.write("\\usepackage[margin=0.25in,landscape]{geometry}\n")
         stream.write("\\usepackage{boxedminipage}\n")
         stream.write("\\usepackage{subfig}\n")
         stream.write("\\usepackage{graphicx}\n")
         stream.write("\\usepackage{grffile}\n")
         stream.write("\\usepackage{morefloats}\n")
+        stream.write("\\usepackage{framed}\n")
         stream.write("\\usepackage[justification=centering]{caption}\n")
         stream.write("\\pdfoptionpdfminorversion=5\n")
         stream.write("\\begin{document}\n")
@@ -33,9 +36,11 @@ class GraphSummary:
         image_path = os.path.join(directory, name_without_ext + '.pdf').replace('\\', '/')
 
         stream.write("  \\begin{figure}[H]\n")
+        stream.write("  \\begin{framed}\n")
         #stream.write("   \\centering"
-        stream.write("    \\includegraphics[scale=0.8]{{{0}}}\n".format(image_path))           
-        stream.write("    \\caption[justification=centering]{{\\tiny {0} }}\n".format(caption))
+        stream.write("    \\includegraphics{{{0}}}\n".format(image_path))
+        stream.write("    \\caption[justification=centering]{{\\small {0} }}\n".format(caption))
+        stream.write("  \\end{framed}\n")
         stream.write("  \\end{figure}\n")
 
         self.graph_count += 1

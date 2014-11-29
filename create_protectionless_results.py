@@ -14,7 +14,8 @@ import algorithm.protectionless as protectionless
 
 from data.table import safety_period
 from data.latex import latex
-from data.graph import grapher, summary
+from data.graph import summary, heatmap
+from data import results
 
 import numpy
 
@@ -23,7 +24,7 @@ numpy.seterr(all='raise')
 
 jar_path = 'run.py'
 
-results_directory = 'data/results/protectionless'
+results_directory = 'results/protectionless'
 analysis_result_file = 'protectionless-results.csv'
 
 graphs_directory = os.path.join(results_directory, 'Graphs')
@@ -51,6 +52,8 @@ configurations = [
 ]
 
 repeats = 750
+
+parameter_names = tuple()
 
 def create_dirtree(path):
     if not os.path.exists(path):
@@ -109,14 +112,11 @@ if 'all' in args or 'table' in args:
     safety_period_table_generator = safety_period.TableGenerator()
     safety_period_table_generator.analyse(os.path.join(results_directory, analysis_result_file))
 
-
     safety_period_table_path = 'safety_period_table.tex'
 
     with open(safety_period_table_path, 'w') as latex_safety_period_tables:
         latex.print_header(latex_safety_period_tables)
-
         safety_period_table_generator.print_table(latex_safety_period_tables)
-
         latex.print_footer(latex_safety_period_tables)
 
     latex.compile(safety_period_table_path)
@@ -124,14 +124,18 @@ if 'all' in args or 'table' in args:
 analysis_result_path = os.path.join(results_directory, analysis_result_file)
 
 if 'all' in args or 'graph' in args:
-    grapher = grapher.Grapher(analysis_result_path, graphs_directory)
-    grapher.create_plots()
-    grapher.create_graphs()
+    protectionless_results = results.Results(analysis_result_path,
+        parameters=parameter_names,
+        results=('sent heatmap', 'received heatmap'))
+
+    heatmap.Grapher(protectionless_results, 'sent heatmap', graphs_directory).create()
+    heatmap.Grapher(protectionless_results, 'received heatmap', graphs_directory).create()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
     #    summary.GraphSummary(
-    #        os.path.join(preliminary_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
+    #        os.path.join(graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
     #        subdir).run()
 
-    summary.GraphSummary(os.path.join(graphs_directory, 'HeatMap'), 'HeatMap-protectionless').run()
+    summary.GraphSummary(os.path.join(graphs_directory, 'sent heatmap'), 'protectionless-SentHeatMap').run()
+    summary.GraphSummary(os.path.join(graphs_directory, 'received heatmap'), 'protectionless-ReceivedHeatMap').run()

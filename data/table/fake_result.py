@@ -13,80 +13,13 @@ from data.latex import latex
 # Specify parameters an results to show
 
 class ResultTable:
-    
-    @staticmethod
-    def extractAverageAndSddev(value):
-        split = value.split('(')
-
-        mean = float(split[0])
-        var = float(split[1].strip(')'))
-
-        return numpy.array((mean, math.sqrt(var)))
-
-    def __init__(self, result_file, parameters, results, param_filter = lambda x: True):
-        self.result_file = result_file
-        self.parameter_names = list(parameters)
-        self.result_names = list(results)
+    def __init__(self, results, param_filter = lambda x: True):
+        self.results = results
         self.param_filter = param_filter
 
-    def _process(self, name, headers, values):
-        index = headers.index(name)
-        value = values[index]
-
-        if name == 'captured':
-            return float(value) * 100.0
-        elif name == 'received ratio':
-            return self.extractAverageAndSddev(value) * 100.0
-        elif '(' in value:
-            return self.extractAverageAndSddev(value)
-        elif name == 'technique':
-            return value
-        else:
-            return ast.literal_eval(value)
-
-    def _read_results(self):
-
-        self.table_keys = set()
-        self.results = {}
-
-        self.sizes = set()
-        self.configurations = set()
-
-        with open(self.result_file, 'r') as f:
-
-            seenFirst = False
-            
-            reader = csv.reader(f, delimiter='|')
-            
-            headers = []
-            
-            for values in reader:
-                # Check if we have seen the first line
-                # We do this because we want to ignore it
-                if seenFirst:
-
-                    size = int(values[ headers.index('network size') ])
-                    srcPeriod = float(values[ headers.index('source period') ])
-                    config = values[ headers.index('configuration') ]
-
-                    table_key = (size, config)
-
-                    params = tuple([self._process(name, headers, values) for name in self.parameter_names])
-                    results = tuple([self._process(name, headers, values) for name in self.result_names])
-                
-                    if self.param_filter(params):
-                        self.sizes.add(size)
-                        self.configurations.add(config)
-
-                        self.results.setdefault(table_key, {}).setdefault(srcPeriod, {})[params] = results
-
-                else:
-                    seenFirst = True
-                    headers = values
-
     def _column_layout(self):
-        parameter_count = len(self.parameter_names)
-        result_count = len(self.result_names)
+        parameter_count = len(self.results.parameter_names)
+        result_count = len(self.results.result_names)
 
         a = "|l|"
         b = "|" + "|".join("l" * parameter_count) + "|"
@@ -117,7 +50,7 @@ class ResultTable:
             return name
 
     def _title_row(self, row):
-        a = map(lambda x: self._convert_title_row(x, row), ["source period"] + self.parameter_names +  self.result_names)
+        a = map(lambda x: self._convert_title_row(x, row), ["source period"] + self.results.parameter_names +  self.results.result_names)
         return "        " + " & ".join(a) + "\\\\"
 
     def _var_fmt(self, name, value):
@@ -146,14 +79,12 @@ class ResultTable:
 
 
     def write_tables(self, stream):
-        self._read_results()
-
-        title_order = self.parameter_names + self.result_names
+        title_order = self.results.parameter_names + self.results.result_names
                     
         print('\\vspace{-0.3cm}', file=stream)
 
-        for configuration in sorted(self.configurations, key=lambda x: configurationRank[x]):
-            for size in sorted(self.sizes):
+        for configuration in sorted(self.results.configurations, key=lambda x: configurationRank[x]):
+            for size in sorted(self.results.sizes):
                 print('\\begin{table}[H]', file=stream)
                 print('    \\centering', file=stream)
                 print('    \\begin{{tabular}}{{{}}}'.format(self._column_layout()), file=stream)
@@ -164,18 +95,20 @@ class ResultTable:
 
                 table_key = (size, configuration)
 
-                source_periods = sorted(set(self.results[table_key].keys()))
+                source_periods = sorted(set(self.results.data[table_key].keys()))
 
                 for source_period in source_periods:
-                    items = self.results[table_key][source_period].items()
+                    items = self.results.data[table_key][source_period].items()
+
+                    items = filter(lambda (k, v): self.param_filter(k), items)
 
                     for (params, results) in sorted(items, key=lambda (x, y): x):                    
                         to_print = [self._var_fmt("source period", source_period)]
 
-                        for name, value in zip(self.parameter_names, params):
+                        for name, value in zip(self.results.parameter_names, params):
                             to_print.append(self._var_fmt(name, value))
 
-                        for name, value in zip(self.result_names, results):
+                        for name, value in zip(self.results.result_names, results):
                             to_print.append(self._var_fmt(name, value))
 
                         print(" & ".join(to_print) + "\\\\", file=stream)

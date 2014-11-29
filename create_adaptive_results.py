@@ -15,9 +15,10 @@ import algorithm.template as template
 import algorithm.adaptive as adaptive
 
 from data.table import safety_period, fake_result, comparison
-from data.graph import grapher, summary
+from data.graph import summary, heatmap
 
 from data.latex import latex
+from data import results
 
 import numpy
 
@@ -26,13 +27,13 @@ numpy.seterr(all='raise')
 
 jar_path = 'run.py'
 
-protectionless_results_directory = 'data/results/protectionless'
+protectionless_results_directory = 'results/protectionless'
 protectionless_analysis_result_file = 'protectionless-results.csv'
 
-template_results_directory = 'data/results/template'
+template_results_directory = 'results/template'
 template_analysis_result_file = 'template-results.csv'
 
-adaptive_results_directory = 'data/results/adaptive'
+adaptive_results_directory = 'results/adaptive'
 adaptive_analysis_result_file = 'adaptive-results.csv'
 
 adaptive_graphs_directory = os.path.join(adaptive_results_directory, 'Graphs')
@@ -68,6 +69,8 @@ alpha = 0.006
 receive_ratio = 0.65
 
 repeats = 300
+
+parameter_names = ('technique',)
 
 protectionless_configurations = [(a) for (a, build) in configurations]
 
@@ -137,9 +140,12 @@ if 'all' in args or 'analyse' in args:
 adaptive_analysis_result_path = os.path.join(adaptive_results_directory, adaptive_analysis_result_file)
 
 if 'all' in args or 'graph' in args:
-    prelim_grapher = grapher.Grapher(adaptive_analysis_result_path, adaptive_graphs_directory)
-    prelim_grapher.create_plots()
-    prelim_grapher.create_graphs()
+    adaptive_results = results.Results(adaptive_analysis_result_path,
+        parameters=parameter_names,
+        results=('sent heatmap', 'received heatmap'))
+
+    heatmap.Grapher(adaptive_results, 'sent heatmap', adaptive_graphs_directory).create()
+    heatmap.Grapher(adaptive_results, 'received heatmap', adaptive_graphs_directory).create()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
@@ -147,28 +153,24 @@ if 'all' in args or 'graph' in args:
     #        os.path.join(adaptive_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
     #        subdir).run()
 
-    summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'HeatMap'), 'HeatMap-template').run()
+    summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'sent heatmap'), 'adaptive-SentHeatMap').run()
+    summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'received heatmap'), 'adaptive-ReceivedHeatMap').run()
 
 if 'all' in args or 'table' in args:
-    result_table = fake_result.ResultTable(adaptive_analysis_result_path,
-        parameters=('technique',),
+    adaptive_results = results.Results(adaptive_analysis_result_path,
+        parameters=parameter_names,
         results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
-    with open('adaptive_results.tex', 'w') as result_file:
-        latex.print_header(result_file)
-        result_table.write_tables(result_file)
-        latex.print_footer(result_file)
+    def create_adaptive_table(name, param_filter=lambda x: True):
+        result_table = fake_result.ResultTable(adaptive_results, param_filter=param_filter)
 
-    latex.compile('adaptive_results.tex')
+        filename = name + ".tex"
 
-#if 'all' in args or 'comparison-table' in args:
-#    comparison_path = 'results/3yp-adaptive-summary.csv'
-#
-#    result_table = comparison.ResultTable(adaptive_analysis_result_path, comparison_path)
-#
-#    with open('comparison_results.tex', 'w') as result_file:
-#        latex.print_header(result_file)
-#        result_table.write_tables(result_file)
-#        latex.print_footer(result_file)
-#
-#    latex.compile('comparison_results.tex')
+        with open(filename, 'w') as result_file:
+            latex.print_header(result_file)
+            result_table.write_tables(result_file)
+            latex.print_footer(result_file)
+
+        latex.compile(filename)
+
+    create_adaptive_table("adaptive_results")
