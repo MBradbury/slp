@@ -17,8 +17,7 @@ import algorithm.adaptive as adaptive
 from data.table import safety_period, fake_result, comparison
 from data.graph import summary, heatmap
 
-from data.latex import latex
-from data import results
+from data import results, latex
 
 import numpy
 
