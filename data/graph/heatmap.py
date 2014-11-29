@@ -3,7 +3,7 @@ import os
 
 from grapher import GrapherBase
 
-from data.latex import latex
+from data import latex
 
 class Grapher(GrapherBase):
     def __init__(self, results, result_name, output_directory):
@@ -87,4 +87,4 @@ class Grapher(GrapherBase):
             captionFile.write('Network Size: {0}\\newline\n'.format(size))
             captionFile.write('Configuration: {0}\\newline\n'.format(config))
             for (name, value) in zip(self.results.parameter_names, params):
-                captionFile.write('{}: {}\\newline\n'.format(latex.escape(name), latex.escape(value)))
+                captionFile.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))

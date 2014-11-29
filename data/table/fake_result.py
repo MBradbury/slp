@@ -7,7 +7,7 @@ import numpy
 
 from simulator.Configuration import configurationRank
 
-from data.latex import latex
+from data import latex
 
 # Have one table per network size and configuration
 # Specify parameters an results to show
