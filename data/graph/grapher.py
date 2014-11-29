@@ -9,15 +9,15 @@ import os
 import csv
 import shutil
 import subprocess
+import multiprocessing
 
 from data.which import which
 
-class Grapher:
-    def __init__(self, results_summary_path, output_directory):
-        self.results_summary_path = results_summary_path
+class GrapherBase(object):
+    def __init__(self, output_directory):
         self.output_directory = output_directory
 
-    def remove_existing(self):
+    def _remove_existing(self, subdir):
         # From: http://trac.pythonpaste.org/pythonpaste/attachment/ticket/359/onerror.diff
         # From pathutils by Michael Foord: http://www.voidspace.org.uk/python/pathutils.html
         def onRmtreeError(func, path, exc_info):
@@ -42,92 +42,98 @@ class Grapher:
 
         print('Removing existing directories')
 
-        paths = [ 'Versus', 'Combined', 'SentHeatMap', 'ReceivedHeatMap' ]
-        for path in paths:
-            full_path = os.path.join(self.output_directory, path)
-            if os.path.exists(full_path):
-                shutil.rmtree(full_path, onerror=onRmtreeError)
+        full_path = os.path.join(self.output_directory, subdir)
+        if os.path.exists(full_path):
+            shutil.rmtree(full_path, onerror=onRmtreeError)
 
-    def read_results(self):
-        def extractAverage(value):
-            return float(value.split('(')[0])
+    def _create_graphs(self, subdir):
+        def get_gnuplot_binary_name():
+            names = ['gnuplot-nox', 'gnuplot']
+            for name in names:
+                if which(name) is not None:
+                    return name
 
-        self.sizes = set()
+            raise RuntimeError("Could not find gnuplot binary")
 
-        self.results = {}
+        gnuplot = get_gnuplot_binary_name()
 
-        print('Opening: {0}'.format(self.results_summary_path))
+        walk_dir = os.path.abspath(os.path.join(self.output_directory, subdir))
 
-        with open(self.results_summary_path, 'r') as f:
+        print(walk_dir)
 
-            seenFirst = False
+        def worker(queue):
+            while True:
+                item = queue.get()
+
+                if item is None:
+                    return
+
+                (args1, args2, root) = item
+
+                subprocess.check_call(args1, cwd=root)
+                subprocess.check_call(args2, cwd=root)
+
+        nprocs = multiprocessing.cpu_count()
+
+        queue = multiprocessing.Queue()
+        pool = multiprocessing.Pool(nprocs, worker, (queue,))
+
+        for (root, subdirs, files) in os.walk(walk_dir):
+            for filename in files:
+                (name_without_ext, extension) = os.path.splitext(filename)
+                if extension == '.p':
+                    pdf_filename = '{}.pdf'.format(name_without_ext)
+
+                    queue.put((
+                        [gnuplot, filename],
+                        ['pdfcrop', pdf_filename, pdf_filename],
+                        root))
+
+        # Push the queue sentinel
+        for i in range(nprocs):
+            queue.put(None)
+
+        queue.close()
+        queue.join_thread()
+
+        pool.close()
+        pool.join()
+
+    # From: http://stackoverflow.com/questions/273192/python-best-way-to-create-directory-if-it-doesnt-exist-for-file-write
+    @staticmethod
+    def _ensureDirExists(d):
+        if not os.path.exists(d):
+            os.makedirs(d)
+
+    # From: http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
+    @staticmethod
+    def _pprint_table(stream, table):
+        def get_max_width(table, index):
+            """Get the maximum width of the given column index."""
+            return max(len(str(row[index])) for row in table)
+
+        """Prints out a table of data, padded for alignment
+        @param stream: Output stream (file-like object)
+        @param table: The table to print. A list of lists.
+        Each row must have the same number of columns."""
+
+        col_paddings = []
+
+        for i in range(len(table[0])):
+            col_paddings.append(get_max_width(table, i))
+
+        for row in table:
+            # left col
+            stream.write(str(row[0]).ljust(col_paddings[0] + 1))
             
-            reader = csv.reader(f, delimiter='|')
+            # rest of the cols
+            for i in range(1, len(row)):
+                stream.write(str(row[i]).rjust(col_paddings[i] + 2))
             
-            headers = []
-            
-            for values in reader:
-                # Check if we have seen the first line
-                # We do this because we want to ignore it
-                if seenFirst:
+            stream.write('\n')
 
-                    size = int(values[ headers.index('network size') ])
-                    srcPeriod = float(values[ headers.index('source period') ])
-                    config = values[ headers.index('configuration') ]
-
-                    key = (srcPeriod, config)
-
-                    self.sizes.add(size)
-
-                    # Convert from percentage in the range of [0, 1] to [0, 100]
-                    if 'Captured' in headers:
-                        self.results.setdefault( 'Captured', {} ).setdefault( key, {} )[ size ] = \
-                            float(values[ headers.index('Captured') ]) * 100.0
-
-                    if 'Sent' in headers:
-                        self.results.setdefault( 'Sent', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('Sent') ])
-
-                    if 'Received' in headers:
-                        self.results.setdefault( 'Received', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('Received') ])
-                    if 'Collisions' in headers:
-                        self.results.setdefault( 'Collisions', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('Collisions') ])
-                    if 'Fake' in headers:
-                        self.results.setdefault( 'Fake', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('Fake') ])
-                    
-                    if 'TFS' in headers:
-                        self.results.setdefault( 'TFS', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('TFS') ])
-                    if 'PFS' in headers:
-                        self.results.setdefault( 'PFS', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('PFS') ])
-                    
-                    if 'Received Ratio' in headers:
-                        self.results.setdefault( 'Received Ratio', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('Received Ratio') ]) * 100.0
-                    
-                    if 'normal latency' in headers:
-                        self.results.setdefault( 'normal latency', {} ).setdefault( key, {} )[ size ] = \
-                            extractAverage(values[ headers.index('normal latency') ])
-                    
-                    if 'sent heatmap' in headers:
-                        self.results.setdefault( 'sent heatmap', {} )[ (srcPeriod, size, config) ] = \
-                            values[ headers.index('sent heatmap') ]
-
-                    if 'received heatmap' in headers:
-                        self.results.setdefault( 'received heatmap', {} )[ (srcPeriod, size, config) ] = \
-                            values[ headers.index('received heatmap') ]
-                   
-                else:
-                    seenFirst = True
-                    headers = values
-                    print(headers)
-
-            self.sizes = sorted(self.sizes)
-
+"""
+class Grapher:
     def create_plots(self):
         self.remove_existing()
         self.read_results()
@@ -179,63 +185,6 @@ class Grapher:
                 'Latency', 'Source Period',
                 'Normal Message Latency (seconds)', rangeY=(0, '*'))
 
-    def create_graphs(self):
-        def get_gnuplot_binary_name():
-            names = ['gnuplot-nox', 'gnuplot']
-            for name in names:
-                if which(name) is not None:
-                    return name
-
-            raise Exception("Could not find gnuplot binary")
-
-        gnuplot = get_gnuplot_binary_name()
-
-        walk_dir = os.path.abspath(self.output_directory)
-
-        for (root, subdirs, files) in os.walk(walk_dir):
-            for filename in files:
-                (name_without_ext, extension) = os.path.splitext(filename)
-                if extension == '.p':
-                    pdf_filename = '{}.pdf'.format(name_without_ext)
-                    subprocess.call([gnuplot, filename], cwd=root)
-                    
-                    subprocess.call(['pdfcrop', pdf_filename, pdf_filename], cwd=root)
-
- 
-    # From: http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
-    @staticmethod
-    def pprint_table(stream, table):
-        def get_max_width(table, index):
-            """Get the maximum width of the given column index."""
-            return max(len(str(row[index])) for row in table)
-
-        """Prints out a table of data, padded for alignment
-        @param stream: Output stream (file-like object)
-        @param table: The table to print. A list of lists.
-        Each row must have the same number of columns."""
-
-        col_paddings = []
-
-        for i in range(len(table[0])):
-            col_paddings.append(get_max_width(table, i))
-
-        for row in table:
-            # left col
-            stream.write(str(row[0]).ljust(col_paddings[0] + 1))
-            
-            # rest of the cols
-            for i in range(1, len(row)):
-                stream.write(str(row[i]).rjust(col_paddings[i] + 2))
-            
-            stream.write('\n')
-            
-
-    # From: http://stackoverflow.com/questions/273192/python-best-way-to-create-directory-if-it-doesnt-exist-for-file-write
-    @staticmethod
-    def ensureDirExists(d):
-        if not os.path.exists(d):
-            os.makedirs(d)
-
     @staticmethod
     def dirNameFromKey(key, value=None):
 
@@ -246,7 +195,7 @@ class Grapher:
 
     @staticmethod
     def parameterValues(key, value=None):
-        """ The result of this must be valid LaTeX!"""
+        "" " The result of this must be valid LaTeX!"" "
 
         plural1 = 's' if key[0] != 1 else ''
 
@@ -348,70 +297,4 @@ class Grapher:
 
             with open(os.path.join(dirNames[key], 'graph.caption'), 'w') as captionFile:
                 captionFile.write(self.parameterValues(keyMap[key], vary))
-                
-    def graphHeatMap(self, name, kind='pdf'):
-        def chunks(l, n):
-            """ Yield successive n-sized chunks from l."""
-            for i in xrange(0, len(l), n):
-                yield l[i:i+n]
-
-        print('Creating {} Heat Map graph files'.format(name))
-
-        key = '{} heatmap'.format(name)
-
-        for ((rate, size, config), data) in self.results[key].items():
-            dirName = os.path.join(self.output_directory, '{}HeatMap/{}/{}/{}'.format(name.title(), config, rate, size))
-
-            # Ensure that the dir we want to put the files in
-            # actually exists
-            self.ensureDirExists(dirName)
-
-            data = eval(data)
-
-            array = [0] * (size * size)
-            for (k, v) in data.items():
-                array[k] = v
-
-            array = list(chunks(array, size))
-
-            with open(os.path.join(dirName, 'graph.p'), 'w') as pFile:
-            
-                if kind == 'pdf':
-                    pFile.write('set terminal pdf enhanced\n')
-                    pFile.write('set output "graph.pdf" \n')
-                elif kind == 'ps':
-                    pFile.write('set terminal postscript enhanced 22\n')
-                    pFile.write('set output "graph.ps"\n')
-                else:
-                    pFile.write('set terminal postscript eps enhanced 22\n')
-                    pFile.write('set output "graph.eps"\n')
-                    
-                pFile.write('set palette rgbformulae 22,13,10\n')
-            
-                #pFile.write('set title "Heat Map of Messages Sent"\n')
-                pFile.write('unset key\n')
-                #pFile.write('set size ratio 0.5\n')
-                pFile.write('set tic scale 0\n')
-                
-                pFile.write('set xlabel "X Coordinate"\n')
-                pFile.write('set ylabel "Y Coordinate"\n')
-                
-                
-                # To top left to be (0, 0)
-                pFile.write('set yrange [0:{0}] reverse\n'.format(size - 1))
-                pFile.write('set xrange [0:{0}]\n'.format(size - 1))
-                
-                pFile.write('set cbrange []\n')
-                pFile.write('set cblabel "Messages {}"\n'.format(name.title()))
-                #pFile.write('unset cbtics\n')
-
-                pFile.write('set view map\n')
-                pFile.write('splot \'-\' matrix with image\n')
-                
-                self.pprint_table(pFile, array)
-            
-            with open(os.path.join(dirName, 'graph.caption'), 'w') as captionFile:
-                captionFile.write('Parameters:\\newline\n')
-                captionFile.write('Source Broadcast Rate: every {0} second\\newline\n'.format(rate))
-                captionFile.write('Network Size: {0}\\newline\n'.format(size))
-                captionFile.write('Configuration: {0}\\newline\n'.format(config))
+"""

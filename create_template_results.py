@@ -14,9 +14,10 @@ import algorithm.protectionless as protectionless
 import algorithm.template as template
 
 from data.table import safety_period, fake_source_result, fake_result, comparison
-from data.graph import grapher, summary
+from data.graph import summary, heatmap
 
 from data.latex import latex
+from data import results
 
 import numpy
 
@@ -25,10 +26,10 @@ numpy.seterr(all='raise')
 
 jar_path = 'run.py'
 
-protectionless_results_directory = 'data/results/protectionless'
+protectionless_results_directory = 'results/protectionless'
 protectionless_analysis_result_file = 'protectionless-results.csv'
 
-template_results_directory = 'data/results/template'
+template_results_directory = 'results/template'
 template_analysis_result_file = 'template-results.csv'
 
 template_graphs_directory = os.path.join(template_results_directory, 'Graphs')
@@ -73,6 +74,8 @@ protectionless_repeats = 750
 repeats = 300
 
 protectionless_configurations = [(a) for (a, b) in configurations]
+
+parameter_names = ('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)')
 
 def create_dirtree(path):
     if not os.path.exists(path):
@@ -141,9 +144,12 @@ if 'all' in args or 'analyse' in args:
 template_analysis_result_path = os.path.join(template_results_directory, template_analysis_result_file)
 
 if 'all' in args or 'graph' in args:
-    prelim_grapher = grapher.Grapher(template_analysis_result_path, template_graphs_directory)
-    prelim_grapher.create_plots()
-    prelim_grapher.create_graphs()
+    template_results = results.Results(template_analysis_result_path,
+        parameters=parameter_names,
+        results=('sent heatmap', 'received heatmap'))
+
+    heatmap.Grapher(template_results, 'sent heatmap', template_graphs_directory).create()
+    heatmap.Grapher(template_results, 'received heatmap', template_graphs_directory).create()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
@@ -151,14 +157,16 @@ if 'all' in args or 'graph' in args:
     #        os.path.join(template_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
     #        subdir).run()
 
-    summary.GraphSummary(os.path.join(template_graphs_directory, 'HeatMap'), 'HeatMap-template').run()
+    summary.GraphSummary(os.path.join(template_graphs_directory, 'sent heatmap'), 'template-SentHeatMap').run()
+    summary.GraphSummary(os.path.join(template_graphs_directory, 'received heatmap'), 'template-ReceivedHeatMap').run()
 
 if 'all' in args or 'table' in args:
+    template_results = results.Results(template_analysis_result_path,
+        parameters=parameter_names,
+        results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
+
     def create_template_table(name, param_filter):
-        result_table = fake_result.ResultTable(template_analysis_result_path,
-            parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
-            results=('captured', 'fake', 'received ratio', 'tfs', 'pfs', 'ssd', 'normal latency'),
-            param_filter=param_filter)
+        result_table = fake_result.ResultTable(template_results, param_filter=param_filter)
 
         filename = name + ".tex"
 

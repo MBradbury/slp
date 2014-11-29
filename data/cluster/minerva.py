@@ -14,7 +14,7 @@ def copy_to():
 
 def copy_back(dirname):
     username = raw_input("Enter your Minerva username: ")
-    subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" {1}@minerva.csc.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/{2}/*.txt data/results/{2}".format(
+    subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" {1}@minerva.csc.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/{2}/*.txt results/{2}".format(
         os.environ['HOME'], username, dirname), shell=True)
 
 def submitter():

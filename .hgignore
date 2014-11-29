@@ -12,6 +12,7 @@ build
 linkgain.out
 topology.out
 topology.txt
-data/results
-cluster
+results/
+cluster/
+
 

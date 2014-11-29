@@ -13,7 +13,7 @@ def copy_to():
 
 def copy_back(dirname):
     username = raw_input("Enter your Caffeine username: ")
-    subprocess.check_call("rsync -avz -e ssh {0}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/{1}/*.txt data/results/{1}".format(username, dirname), shell=True)
+    subprocess.check_call("rsync -avz -e ssh {0}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/{1}/*.txt results/{1}".format(username, dirname), shell=True)
 
 def submitter():
     from data.run.driver.cluster_submitter import Runner as Submitter
