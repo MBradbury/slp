@@ -23,10 +23,11 @@ class ResultTable:
 
         return numpy.array((mean, math.sqrt(var)))
 
-    def __init__(self, result_file, parameters, results):
+    def __init__(self, result_file, parameters, results, param_filter = lambda x: True):
         self.result_file = result_file
         self.parameter_names = list(parameters)
         self.result_names = list(results)
+        self.param_filter = param_filter
 
     def _process(self, name, headers, values):
         index = headers.index(name)
@@ -70,13 +71,14 @@ class ResultTable:
 
                     table_key = (size, config)
 
-                    self.sizes.add(size)
-                    self.configurations.add(config)
-
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
                 
-                    self.results.setdefault(table_key, {}).setdefault(srcPeriod, {})[params] = results
+                    if self.param_filter(params):
+                        self.sizes.add(size)
+                        self.configurations.add(config)
+
+                        self.results.setdefault(table_key, {}).setdefault(srcPeriod, {})[params] = results
 
                 else:
                     seenFirst = True
@@ -98,8 +100,8 @@ class ResultTable:
                 "source period": ("$P_{src}$", "(sec)"),
                 "fake period": ("$P_{fs}$", "(sec)"),
                 "temp fake duration": ("Dur", "(sec)"),
-                "pr(tfs)": ("Pr(TFS)", "(\%)"),
-                "pr(pfs)": ("Pr(PFS)", "(\%)"),
+                "pr(tfs)": ("P[TFS]", "(\%)"),
+                "pr(pfs)": ("P[PFS]", "(\%)"),
                 "captured": ("Cap", "(\%)"),
                 "fake": ("Fake", "Messages"),
                 "received ratio": ("Received", "(\%)"),
@@ -107,7 +109,7 @@ class ResultTable:
                 "pfs": ("PFS", "~"),
                 "pull back hops": ("Pull Back", "Messages"),
                 "ssd": ("$\\Delta_{ss}$", "(hops)"),
-                "normal latency": ("Latency", "(sec)"),
+                "normal latency": ("Latency", "(msec)"),
                 "technique": ("Technique", "~"),
             }[name][row]
         except KeyError as e:
@@ -126,7 +128,7 @@ class ResultTable:
         elif name == "pr(tfs)" or name == "pr(pfs)":
             return "{:.0f}".format(value * 100.0)
         elif name == "tfs" or name == "pfs":
-            return "{:.0f}".format(value[0])
+            return "{:.1f}".format(value[0])
         elif name == "technique":
             return latex.escape(value)
         elif isinstance(value, float):
@@ -137,6 +139,8 @@ class ResultTable:
             return "{:.0f} $\pm$ {:.0f}".format(*value)
         elif name == "ssd":
             return "{:.1f} $\pm$ {:.1f}".format(*value)
+        elif name == "normal latency":
+            return "{:.0f} $\pm$ {:.0f}".format(*(value * 1000))
         else:
             return "{:.3f} $\pm$ {:.3f}".format(*value)
 

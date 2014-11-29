@@ -12,6 +12,7 @@ def print_header(stream):
     print('\\usepackage{graphicx}', file=stream)
     print('\\usepackage{epstopdf}', file=stream)
     print('\\usepackage[table]{xcolor}', file=stream)
+    print('\\usepackage{longtable}', file=stream)
     print('', file=stream)
     print('% For comparison results', file=stream)
     print('\\newcommand{\\goodcolour}{\\cellcolor[rgb]{0.57,0.82,0.31}}', file=stream)

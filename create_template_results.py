@@ -35,7 +35,7 @@ template_graphs_directory = os.path.join(template_results_directory, 'Graphs')
 
 distance = 4.5
 
-sizes = [ 11, 15 ] #   [ 11, 15, 21, 25 ]
+sizes = [ 11, 15 ] # [ 11, 15, 21, 25 ]
 
 # Note that our simulation only has millisecond resolution,
 # so periods that require a resolution greater than 0.001 will be
@@ -154,16 +154,26 @@ if 'all' in args or 'graph' in args:
     summary.GraphSummary(os.path.join(template_graphs_directory, 'HeatMap'), 'HeatMap-template').run()
 
 if 'all' in args or 'table' in args:
-    result_table = fake_result.ResultTable(template_analysis_result_path,
-        parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
-        results=('captured', 'fake', 'received ratio', 'tfs', 'pfs', 'ssd', 'normal latency'))
+    def create_template_table(name, param_filter):
+        result_table = fake_result.ResultTable(template_analysis_result_path,
+            parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
+            results=('captured', 'fake', 'received ratio', 'tfs', 'pfs', 'ssd', 'normal latency'),
+            param_filter=param_filter)
 
-    with open('template_results.tex', 'w') as result_file:
-        latex.print_header(result_file)
-        result_table.write_tables(result_file)
-        latex.print_footer(result_file)
+        filename = name + ".tex"
 
-    latex.compile('template_results.tex')
+        with open(filename, 'w') as result_file:
+            latex.print_header(result_file)
+            result_table.write_tables(result_file)
+            latex.print_footer(result_file)
+
+        latex.compile(filename)
+
+    create_template_table("template_results",
+        lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
+
+    create_template_table("template_results_low_prob",
+        lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
 
 #if 'all' in args or 'comparison-table' in args:
 #    comparison_path = 'results/3yp-adaptive-summary.csv'
