@@ -277,7 +277,7 @@ implementation
 
 	double get_tfs_factor()
 	{
-		return 1.5;
+		return 2;
 	}
 
 #if defined(NO_COL_FULL_DIST)

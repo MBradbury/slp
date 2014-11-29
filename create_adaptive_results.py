@@ -67,7 +67,7 @@ alpha = 0.006
 
 receive_ratio = 0.65
 
-repeats = 100
+repeats = 300
 
 protectionless_configurations = [(a) for (a, build) in configurations]
 
@@ -99,7 +99,7 @@ if 'cluster' in args:
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
 
-        runner = adaptive.Runner.RunSimulations(ClusterBuilderDriver.Runner(), cluster_directory, None, False)
+        runner = adaptive.Runner.RunSimulations(cluster.builder(), cluster_directory, None, False)
         runner.run(jar_path, distance, sizes, source_periods, techniques, configurations, alpha, receive_ratio, repeats)
 
     if 'copy' in args:
