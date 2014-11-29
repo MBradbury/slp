@@ -13,9 +13,8 @@ else:
 import algorithm.protectionless as protectionless
 
 from data.table import safety_period
-from data.latex import latex
 from data.graph import summary, heatmap
-from data import results
+from data import results, latex
 
 import numpy
 

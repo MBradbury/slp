@@ -2,7 +2,7 @@ import os
 import subprocess
 import shutil
 
-from data.latex import latex
+from data import latex
 
 class GraphSummary:
     def __init__(self, directory, name, graphs_on_page=2):

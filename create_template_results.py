@@ -15,9 +15,7 @@ import algorithm.template as template
 
 from data.table import safety_period, fake_source_result, fake_result, comparison
 from data.graph import summary, heatmap
-
-from data.latex import latex
-from data import results
+from data import results, latex
 
 import numpy
 
