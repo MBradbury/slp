@@ -163,14 +163,14 @@ if 'all' in args or 'table' in args:
         parameters=parameter_names,
         results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
-    def create_template_table(name, param_filter):
-        result_table = fake_result.ResultTable(template_results, param_filter=param_filter)
+    result_table = fake_result.ResultTable(template_results)
 
+    def create_template_table(name, param_filter):
         filename = name + ".tex"
 
         with open(filename, 'w') as result_file:
             latex.print_header(result_file)
-            result_table.write_tables(result_file)
+            result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
         latex.compile(filename)
@@ -180,15 +180,3 @@ if 'all' in args or 'table' in args:
 
     create_template_table("template_results_low_prob",
         lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
-
-#if 'all' in args or 'comparison-table' in args:
-#    comparison_path = 'results/3yp-adaptive-summary.csv'
-#
-#    result_table = comparison.ResultTable(template_analysis_result_path, comparison_path)
-#
-#    with open('comparison_results.tex', 'w') as result_file:
-#        latex.print_header(result_file)
-#        result_table.write_tables(result_file)
-#        latex.print_footer(result_file)
-#
-#    latex.compile('comparison_results.tex')
