@@ -14,6 +14,7 @@ module FakeMessageGeneratorImplP
 	}
 	uses
 	{
+		interface Timer<TMilli> as SendFakeTimerInitial;
 		interface Timer<TMilli> as SendFakeTimer;
 
 		interface Timer<TMilli> as DurationTimer;
@@ -25,6 +26,7 @@ module FakeMessageGeneratorImplP
 implementation
 {
 	AwayChooseMessage original_message;
+	uint32_t fake_period_ms;
 
 	// Network variables
 
@@ -36,8 +38,13 @@ implementation
 	command void FakeMessageGenerator.start(const AwayChooseMessage* original, uint32_t period_ms)
 	{
 		original_message = *original;
+		fake_period_ms = period_ms;
 
-		call SendFakeTimer.startPeriodic(period_ms);
+		// The first fake message is to be sent half way through the period.
+		// After this message is sent, all other messages are sent with an interval
+		// of the period given. The aim here is to reduce the traffic at the start and
+		// end of the TFS duration.
+		call SendFakeTimerInitial.startPeriodic(period_ms / 2);
 	}
 
 	command void FakeMessageGenerator.startLimited(const AwayChooseMessage* original, uint32_t period_ms, uint32_t duration_ms)
@@ -53,6 +60,7 @@ implementation
 	{
 		call DurationTimer.stop();
 		call SendFakeTimer.stop();
+		call SendFakeTimerInitial.stop();
 	}
 	
 	default event void FakeMessageGenerator.sent(error_t error, const FakeMessage* message)
@@ -95,6 +103,15 @@ implementation
 			myerr("SourceBroadcasterC", "BroadcastAway busy, not forwarding Away message.\n");
 			return FALSE;
 		}
+	}
+
+	event void SendFakeTimerInitial.fired()
+	{
+		mydbg("FakeMessageGeneratorImplP", "SendFakeTimerInitial fired.\n");
+
+		call SendFakeTimerInitial.startPeriodic(fake_period_ms);
+
+		send_fake_message();
 	}
 
 	event void SendFakeTimer.fired()
