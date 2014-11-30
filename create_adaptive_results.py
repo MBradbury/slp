@@ -161,14 +161,14 @@ if 'all' in args or 'table' in args:
         parameters=parameter_names,
         results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
-    def create_adaptive_table(name, param_filter=lambda x: True):
-        result_table = fake_result.ResultTable(adaptive_results, param_filter=param_filter)
+    result_table = fake_result.ResultTable(adaptive_results)
 
+    def create_adaptive_table(name, param_filter=lambda x: True):
         filename = name + ".tex"
 
         with open(filename, 'w') as result_file:
             latex.print_header(result_file)
-            result_table.write_tables(result_file)
+            result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
         latex.compile(filename)
