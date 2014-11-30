@@ -275,10 +275,10 @@ implementation
 		}
 	}
 
-	double get_tfs_factor()
+	/*double get_tfs_factor()
 	{
 		return 1.5;
-	}
+	}*/
 
 #if defined(NO_COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
@@ -288,7 +288,14 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			distance = max(1, sink_distance);
+			//distance = max(1, sink_distance);
+
+			// When reasoning we want to pull back in terms of the sink distance.
+			// However, the Dsrc - the Dss gives a good approximation of the Dsink.
+			// It has the added benefit that this is only true when the TFS is further from
+			// the source than the sink is.
+			// This means that TFSs near the source will send fewer messages.
+			distance = max(1, source_distance - sink_source_distance);
 			break;
 
 		default:
@@ -300,7 +307,7 @@ implementation
 
 		distance = distance + distance;
 
-		distance = (uint32_t)ceil(distance * get_tfs_factor());
+		//distance = (uint32_t)ceil(distance * get_tfs_factor());
 
 		dbg("stdout", "get_tfs_num_msg_to_send=%u\n", distance);
 
@@ -314,7 +321,14 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			distance = max(1, sink_distance);
+			//distance = max(1, sink_distance);
+
+			// When reasoning we want to pull back in terms of the sink distance.
+			// However, the Dsrc - the Dss gives a good approximation of the Dsink.
+			// It has the added benefit that this is only true when the TFS is further from
+			// the source than the sink is.
+			// This means that TFSs near the source will send fewer messages.
+			distance = max(1, source_distance - sink_source_distance);
 			break;
 
 		default:
@@ -326,7 +340,7 @@ implementation
 
 		distance = (uint32_t)ceil(distance / RECEIVE_RATIO) + distance;
 
-		distance = (uint32_t)ceil(distance * get_tfs_factor());
+		//distance = (uint32_t)ceil(distance * get_tfs_factor());
 
 		dbg("stdout", "get_tfs_num_msg_to_send=%u\n", distance);
 
@@ -345,7 +359,7 @@ implementation
 			duration -= SOURCE_PERIOD_MS / 2;
 		}
 
-		duration = (uint32_t)ceil(duration * get_tfs_factor());
+		//duration = (uint32_t)ceil(duration * get_tfs_factor());
 
 		duration -= TIME_TO_SEND_MS;
 
@@ -366,6 +380,24 @@ implementation
 
 		return result_period;
 	}
+
+	/*uint32_t get_tfs_period()
+	{
+		const uint32_t result_period = TIME_TO_SEND_MS * 3 * 10;
+
+		dbg("stdout", "get_tfs_period=%u\n", result_period);
+
+		return result_period;
+	}
+
+	uint32_t get_tfs_duration()
+	{
+		const uint32_t duration = get_tfs_num_msg_to_send() * get_tfs_period();
+
+		dbg("stdout", "get_tfs_duration=%u\n", duration);
+
+		return duration;
+	}*/
 
 	uint32_t get_pfs_period()
 	{
