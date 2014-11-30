@@ -14,7 +14,7 @@ import algorithm.protectionless as protectionless
 import algorithm.template as template
 
 from data.table import safety_period, fake_source_result, fake_result, comparison
-from data.graph import summary, heatmap
+from data.graph import summary, heatmap, versus
 from data import results, latex
 
 import numpy
@@ -144,10 +144,10 @@ template_analysis_result_path = os.path.join(template_results_directory, templat
 if 'all' in args or 'graph' in args:
     template_results = results.Results(template_analysis_result_path,
         parameters=parameter_names,
-        results=('sent heatmap', 'received heatmap'))
+        results=('captured', 'sent heatmap', 'received heatmap'))
 
-    heatmap.Grapher(template_results, 'sent heatmap', template_graphs_directory).create()
-    heatmap.Grapher(template_results, 'received heatmap', template_graphs_directory).create()
+    #heatmap.Grapher(template_graphs_directory, template_results, 'sent heatmap').create()
+    #heatmap.Grapher(template_graphs_directory, template_results, 'received heatmap').create()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
@@ -155,8 +155,16 @@ if 'all' in args or 'graph' in args:
     #        os.path.join(template_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
     #        subdir).run()
 
-    summary.GraphSummary(os.path.join(template_graphs_directory, 'sent heatmap'), 'template-SentHeatMap').run()
-    summary.GraphSummary(os.path.join(template_graphs_directory, 'received heatmap'), 'template-ReceivedHeatMap').run()
+    #summary.GraphSummary(os.path.join(template_graphs_directory, 'sent heatmap'), 'template-SentHeatMap').run()
+    #summary.GraphSummary(os.path.join(template_graphs_directory, 'received heatmap'), 'template-ReceivedHeatMap').run()
+
+
+    versus.Grapher(template_graphs_directory, template_results, 'captured-v-psrc',
+        xaxis='size', yaxis='captured', vary='source period').create()
+
+    versus.Grapher(template_graphs_directory, template_results, 'captured-v-pr(tfs)',
+        xaxis='size', yaxis='captured', vary='pr(tfs)').create()
+
 
 if 'all' in args or 'table' in args:
     template_results = results.Results(template_analysis_result_path,

@@ -6,7 +6,7 @@ from grapher import GrapherBase
 from data import latex
 
 class Grapher(GrapherBase):
-    def __init__(self, results, result_name, output_directory):
+    def __init__(self, output_directory, results, result_name):
 
         super(Grapher, self).__init__(output_directory)
 

@@ -127,8 +127,8 @@ if 'all' in args or 'graph' in args:
         parameters=parameter_names,
         results=('sent heatmap', 'received heatmap'))
 
-    heatmap.Grapher(protectionless_results, 'sent heatmap', graphs_directory).create()
-    heatmap.Grapher(protectionless_results, 'received heatmap', graphs_directory).create()
+    heatmap.Grapher(graphs_directory, protectionless_results, 'sent heatmap').create()
+    heatmap.Grapher(graphs_directory, protectionless_results, 'received heatmap').create()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
