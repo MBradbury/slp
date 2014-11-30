@@ -32,7 +32,10 @@ class ResultTable(BaseResultTable):
             b = [x[0] if isinstance(x, numpy.ndarray) else x for x in b]
             c = [x[0] if isinstance(x, numpy.ndarray) else x for x in c]
 
-            return numpy.subtract(c, b)
+            diff = numpy.subtract(c, b)
+            pdiff = (diff / numpy.array([x if x != 0 else 1 for x in numpy.add(c, b) * 0.5])) * 100.0
+
+            return zip(diff, pdiff)
 
         self.diff = {}
         self.configurations = set()
@@ -113,16 +116,16 @@ class ResultTable(BaseResultTable):
                 return ResultTable.bad
 
         if name == "tfs" or name == "pfs":
-            return "${:+.1f}$".format(value)
+            return "${:+.1f}$".format(*value)
         elif name == "received ratio":
-            return "${} {:+.1f}$".format(colour_pos(value), value)
+            return "${} {:+.1f}$".format(colour_pos(value[0]), *value)
         elif name == "fake":
-            return "${} {:+.0f}$".format(colour_neg(value), value)
+            return "${} {:+.0f}$ $({:+.0f}\\%)$".format(colour_neg(value[0]), *value)
         elif name == "ssd":
-            return "${} {:+.2f}$".format(colour_neg(value), value)
+            return "${} {:+.2f}$".format(colour_neg(value[0]), *value)
         elif name == "normal latency":
-            return "${} {:+.2f}$".format(colour_neg(value), value * 1000)
+            return "${} {:+.2f}$".format(colour_neg(value[0]), value[0] * 1000, value[1])
         elif name == "captured":
-            return "${} {:+.2f}$".format(colour_neg(value), value)
+            return "${} {:+.2f}$ $({:+.0f}\\%)$".format(colour_neg(value[0]), *value)
         else:
             return super(ResultTable, self)._var_fmt(name, value)

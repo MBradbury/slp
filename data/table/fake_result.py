@@ -41,7 +41,7 @@ class ResultTable(object):
                 "pfs": ("PFS", "~"),
                 "pull back hops": ("Pull Back", "Messages"),
                 "ssd": ("$\\Delta_{ss}$", "(hops)"),
-                "normal latency": ("Latency", "(msec)"),
+                "normal latency": ("Laten", "(msec)"),
                 "technique": ("Technique", "~"),
             }[name][row]
         except KeyError as e:
