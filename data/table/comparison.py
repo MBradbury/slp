@@ -1,135 +1,128 @@
 from __future__ import print_function
 
-import csv
 import numpy
+
+from fake_result import ResultTable as BaseResultTable
+from data import latex
 
 from simulator.Configuration import configurationRank
 
-class ResultTable:
+class ResultTable(BaseResultTable):
     bad = '\\badcolour'
     good = '\\goodcolour'
     neutral = ''
 
-    def _configuration_rank(self, configuration):
+    @staticmethod
+    def _configuration_rank(configuration):
         return configurationRank[configuration] if configuration in configurationRank else len(rank) + 1
 
-    class ResultsReader:
-        def __init__(self, path):
-            def read(value):
-                if '(' in value:
-                    return float(value.split('(')[0])
-                else:
-                    return float(value)
+    def __init__(self, base_results, comparison_results):
 
-            headers = []
-            self.data = {}
+        super(ResultTable, self).__init__(base_results)
 
-            self.sizes = set()
-            self.configs = set()
-            self.periods = set()
+        self.base_results = base_results
+        self.comparison_results = comparison_results
 
-            with open(path, 'r') as f:
-                reader = csv.reader(f, delimiter=',')
-                for values in reader:
-                    if len(headers) == 0:
-                        headers = values
-                    else:
-                        size = int(values[ headers.index('network size') ])
-                        config = values[ headers.index('configuration') ]
+        self._create_diff()
 
-                        if 'source period' in headers:
-                            srcPeriod = float(values[ headers.index('source period') ])
-                        else:
-                            srcPeriod = float(values[ headers.index('source rate') ])
+    def _create_diff(self):
+        def sub(b, c):
+            # Get the mean of a (mean, stddev) pair if the value is an array.
+            # Otherwise just use the value.
+            b = [x[0] if isinstance(x, numpy.ndarray) else x for x in b]
+            c = [x[0] if isinstance(x, numpy.ndarray) else x for x in c]
 
-                        self.sizes.add(size)
-                        self.configs.add(config)
-                        self.periods.add(srcPeriod)
+            return numpy.subtract(c, b)
 
-                        sent = read(values[ headers.index('Sent') ])
-                        received = read(values[ headers.index('Received') ])
-                        collisions = read(values[ headers.index('Collisions') ])
-                        captured = read(values[ headers.index('Captured') ]) * 100.0
-                        received_ratio = read(values[ headers.index('Received Ratio') ]) * 100.0
-                        time = read(values[ headers.index('Time') ])
-                        normal = read(values[ headers.index('Normal') ])
-                        away = read(values[ headers.index('Away') ])
-                        choose = read(values[ headers.index('Choose') ])
-                        fake = read(values[ headers.index('Fake') ])
-                        TFS = read(values[ headers.index('TFS') ])
-                        PFS = read(values[ headers.index('PFS') ])
-
-                        self.data[ (config, size, srcPeriod) ] = \
-                            (sent, received, collisions, captured,
-                            received_ratio, time, normal, away, choose,
-                            fake, TFS, PFS)
-
-
-    def __init__(self, base_results_path, comparison_path):
-        self.base = self.ResultsReader(base_results_path)
-        self.comp = self.ResultsReader(comparison_path)
-
-        self.create_diff()
-
-    def create_diff(self):
         self.diff = {}
+        self.configurations = set()
+        self.sizes = set()
 
-        for config in self.base.configs:
-            for size in self.base.sizes:
-                for period in self.base.periods:
-                    key = (config, size, period)
+        for ((size, config), items1) in self.base_results.data.items():
+            for (srcPeriod, items2) in items1.items():
+                for (base_params, base_values) in items2.items():
+                    try:
+                        for (comp_params, comp_values) in self.comparison_results.data[(size, config)][srcPeriod].items():
 
-                    base = self.base.data[key]
-                    comp = self.comp.data[key]
+                            self.diff \
+                                .setdefault((size, config), {}) \
+                                .setdefault(comp_params, {}) \
+                                .setdefault(srcPeriod, {}) \
+                                [base_params] = sub(base_values, comp_values)
 
-                    diff = tuple(numpy.subtract(base, comp))
+                            self.configurations.add(config)
+                            self.sizes.add(size)
 
-                    self.diff[key] = diff
+                    except KeyError as e:
+                        print("Skipping {} due to KeyError({})".format((size, config, srcPeriod), e))
 
-    def colour_neg(self, value):
-        if value < 0:
-            return self.good
+    def write_tables(self, stream, param_filter = lambda x: True):
+        title_order = self.base_results.parameter_names + self.base_results.result_names
+                    
+        print('\\vspace{-0.3cm}', file=stream)
+
+        for configuration in sorted(self.configurations, key=lambda x: configurationRank[x]):
+            for size in sorted(self.sizes):
+                table_key = (size, configuration)
+
+                for comp_param in sorted(set(self.diff[table_key].keys())):
+
+                    print('\\begin{table}[H]', file=stream)
+                    print('    \\centering', file=stream)
+                    print('    \\begin{{tabular}}{{{}}}'.format(self._column_layout()), file=stream)
+                    print('        \\hline', file=stream)
+                    print(self._title_row(0), file=stream)
+                    print(self._title_row(1), file=stream)
+                    print('        \\hline', file=stream)
+
+                    for source_period in sorted(set(self.diff[table_key][comp_param].keys())):
+
+                        items = self.diff[table_key][comp_param][source_period].items()
+
+                        items = filter(lambda (k, v): param_filter(k), items)
+
+                        for (params, results) in sorted(items, key=lambda (x, y): x):                    
+                            to_print = [self._var_fmt("source period", source_period)]
+
+                            for name, value in zip(self.results.parameter_names, params):
+                                to_print.append(self._var_fmt(name, value))
+
+                            for name, value in zip(self.results.result_names, results):
+                                to_print.append(self._var_fmt(name, value))
+
+                            print(" & ".join(to_print) + "\\\\", file=stream)
+                        print('        \\hline', file=stream)
+
+                    print('    \\end{tabular}', file=stream)
+                    print('\\caption{{Comparison results for the size {}, configuration {} and compared parameters {}}}'.format(
+                        size, configuration, latex.escape(str(zip(self.comparison_results.parameter_names, comp_param)))), file=stream)
+                    print('\\end{table}', file=stream)
+                    print('', file=stream)
+
+    def _var_fmt(self, name, value):
+        def colour_neg(value):
+            if value < 0:
+                return ResultTable.good
+            else:
+                return ResultTable.bad
+
+        def colour_pos(value):
+            if value > 0:
+                return ResultTable.good
+            else:
+                return ResultTable.bad
+
+        if name == "tfs" or name == "pfs":
+            return "${:+.1f}$".format(value)
+        elif name == "received ratio":
+            return "${} {:+.1f}$".format(colour_pos(value), value)
+        elif name == "fake":
+            return "${} {:+.0f}$".format(colour_neg(value), value)
+        elif name == "ssd":
+            return "${} {:+.2f}$".format(colour_neg(value), value)
+        elif name == "normal latency":
+            return "${} {:+.2f}$".format(colour_neg(value), value * 1000)
+        elif name == "captured":
+            return "${} {:+.2f}$".format(colour_neg(value), value)
         else:
-            return self.bad
-
-    def colour_pos(self, value):
-        if value > 0:
-            return self.good
-        else:
-            return self.bad
-
-    def write_tables(self, stream):
-        for config in sorted(self.base.configs, key=self._configuration_rank):
-            print('\\begin{table}[H]', file=stream)
-            print('    \\centering', file=stream)
-            print('    \\begin{tabular}{|l|l||l|l|l|l|}', file=stream)
-            print('        \\hline', file=stream)
-            print('        Size & Source Period & Captured & Normal   & Fake     & Received \\\\', file=stream)
-            print('        ~    & (seconds)     & (\\%)    & Messages & Messages & (\\%)    \\\\', file=stream)
-            print('        \\hline', file=stream)
-
-            for size in sorted(self.base.sizes):
-                print('        \\multirow{{4}}{{*}}{{{0}}}'.format(size), file=stream)
-
-                for period in sorted(self.base.periods):
-
-                    (sent, received, collisions, captured,
-                            received_ratio, time, normal, away, choose,
-                            fake, TFS, PFS) = self.diff[ (config, size, period) ]
-
-                    print('        ~ & {} & {} {:+.2f} & {} {:+.0f} & {} {:+.0f} & {} {:+.2f} \\\\'.format(
-                        float(period),
-                        self.colour_neg(captured), captured,
-                        self.colour_pos(normal), normal,
-                        self.colour_neg(fake), fake,
-                        self.colour_pos(received_ratio), received_ratio
-                        ), file=stream)
-
-                print('        \\hline', file=stream)
-                print('', file=stream)
-
-            print('    \\end{tabular}', file=stream)
-            print('\\caption{{Adaptive results for the {0} configuration}}'.format(config), file=stream)
-            print('\\end{table}', file=stream)
-            print('', file=stream)
-
+            return super(ResultTable, self)._var_fmt(name, value)

@@ -12,10 +12,9 @@ from data import latex
 # Have one table per network size and configuration
 # Specify parameters an results to show
 
-class ResultTable:
-    def __init__(self, results, param_filter = lambda x: True):
+class ResultTable(object):
+    def __init__(self, results):
         self.results = results
-        self.param_filter = param_filter
 
     def _column_layout(self):
         parameter_count = len(self.results.parameter_names)
@@ -55,30 +54,30 @@ class ResultTable:
 
     def _var_fmt(self, name, value):
         if name == "source period" or name == "fake period":
-            return "{}".format(value)
-        elif name == "duration":
-            return "{}".format(value)
+            return "${}$".format(value)
+        elif name == "duration" or name == "temp fake duration":
+            return "${:.0f}$".format(value)
         elif name == "pr(tfs)" or name == "pr(pfs)":
-            return "{:.0f}".format(value * 100.0)
+            return "${:.0f}$".format(value * 100.0)
         elif name == "tfs" or name == "pfs":
-            return "{:.1f}".format(value[0])
+            return "${:.1f}$".format(value[0])
         elif name == "technique":
             return latex.escape(value)
         elif isinstance(value, float):
-            return "{:.2f}".format(value)
+            return "${:.2f}$".format(value)
         elif name == "received ratio":
-            return "{:.1f} $\pm$ {:.1f}".format(*value)
+            return "${:.1f} \pm {:.1f}$".format(*value)
         elif name == "fake":
-            return "{:.0f} $\pm$ {:.0f}".format(*value)
+            return "${:.0f} \pm {:.0f}$".format(*value)
         elif name == "ssd":
-            return "{:.1f} $\pm$ {:.1f}".format(*value)
+            return "${:.1f} \pm {:.1f}$".format(*value)
         elif name == "normal latency":
-            return "{:.0f} $\pm$ {:.0f}".format(*(value * 1000))
+            return "${:.0f} \pm {:.0f}$".format(*(value * 1000))
         else:
-            return "{:.3f} $\pm$ {:.3f}".format(*value)
+            return "${:.3f} \pm {:.3f}$".format(*value)
 
 
-    def write_tables(self, stream):
+    def write_tables(self, stream, param_filter = lambda x: True):
         title_order = self.results.parameter_names + self.results.result_names
                     
         print('\\vspace{-0.3cm}', file=stream)
@@ -100,7 +99,7 @@ class ResultTable:
                 for source_period in source_periods:
                     items = self.results.data[table_key][source_period].items()
 
-                    items = filter(lambda (k, v): self.param_filter(k), items)
+                    items = filter(lambda (k, v): param_filter(k), items)
 
                     for (params, results) in sorted(items, key=lambda (x, y): x):                    
                         to_print = [self._var_fmt("source period", source_period)]

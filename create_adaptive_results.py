@@ -137,6 +137,7 @@ if 'all' in args or 'analyse' in args:
     prelim_analyzer.run(adaptive_analysis_result_file)
 
 adaptive_analysis_result_path = os.path.join(adaptive_results_directory, adaptive_analysis_result_file)
+template_analysis_result_path = os.path.join(template_results_directory, template_analysis_result_file)
 
 if 'all' in args or 'graph' in args:
     adaptive_results = results.Results(adaptive_analysis_result_path,
@@ -173,3 +174,33 @@ if 'all' in args or 'table' in args:
         latex.compile(filename)
 
     create_adaptive_table("adaptive_results")
+
+if 'all' in args or 'comparison-table' in args:
+
+    results_to_compare = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
+
+    adaptive_results = results.Results(adaptive_analysis_result_path,
+        parameters=parameter_names,
+        results=results_to_compare)
+
+    template_results = results.Results(template_analysis_result_path,
+        parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
+        results=results_to_compare)
+
+    result_table = comparison.ResultTable(template_results, adaptive_results)
+
+    def create_comparison_table(name, param_filter=lambda x: True):
+        filename = name + ".tex"
+
+        with open(filename, 'w') as result_file:
+            latex.print_header(result_file)
+            result_table.write_tables(result_file, param_filter)
+            latex.print_footer(result_file)
+
+        latex.compile(filename)
+
+    create_comparison_table("comparison_template_adaptive_results",
+        lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
+
+    create_comparison_table("comparison_template_adaptive_results_low_prob",
+        lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
