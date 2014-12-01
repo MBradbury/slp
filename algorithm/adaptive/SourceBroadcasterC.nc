@@ -280,69 +280,69 @@ implementation
 		return 1.5;
 	}*/
 
-#if defined(NO_COL_FULL_DIST)
-	uint32_t get_tfs_num_msg_to_send()
+	uint32_t get_dist_to_pull_back()
 	{
-		uint32_t distance;
+		int32_t distance = 0;
 
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			//distance = max(1, sink_distance);
-
 			// When reasoning we want to pull back in terms of the sink distance.
 			// However, the Dsrc - the Dss gives a good approximation of the Dsink.
 			// It has the added benefit that this is only true when the TFS is further from
 			// the source than the sink is.
 			// This means that TFSs near the source will send fewer messages.
-			distance = max(1, source_distance - sink_source_distance);
+			if (source_distance == BOTTOM || sink_source_distance == BOTTOM)
+			{
+				if (sink_distance == BOTTOM)
+				{
+					distance = 1;
+				}
+				else
+				{
+					distance = sink_distance;
+				}
+			}
+			else
+			{
+				distance = source_distance - sink_source_distance;
+			}
 			break;
 
 		default:
 		case FurtherAlgorithm:
 			distance = max(sink_source_distance, sink_distance);
-			distance = max(distance, 1);
 			break;
 		}
+
+		distance = max(distance, 1);
+		
+		return distance;	
+	}
+
+#if defined(NO_COL_FULL_DIST)
+	uint32_t get_tfs_num_msg_to_send()
+	{
+		uint32_t distance = get_dist_to_pull_back();
 
 		distance = distance + distance;
 
 		//distance = (uint32_t)ceil(distance * get_tfs_factor());
 
-		dbg("stdout", "get_tfs_num_msg_to_send=%u\n", distance);
+		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n", distance, source_distance, sink_distance, sink_source_distance);
 
 		return distance;
 	}
 #elif defined(COL_FULL_DIST)
 	uint32_t get_tfs_num_msg_to_send()
 	{
-		uint32_t distance;
-
-		switch (algorithm)
-		{
-		case GenericAlgorithm:
-			//distance = max(1, sink_distance);
-
-			// When reasoning we want to pull back in terms of the sink distance.
-			// However, the Dsrc - the Dss gives a good approximation of the Dsink.
-			// It has the added benefit that this is only true when the TFS is further from
-			// the source than the sink is.
-			// This means that TFSs near the source will send fewer messages.
-			distance = max(1, source_distance - sink_source_distance);
-			break;
-
-		default:
-		case FurtherAlgorithm:
-			distance = max(sink_source_distance, sink_distance);
-			distance = max(distance, 1);
-			break;
-		}
+		uint32_t distance = get_dist_to_pull_back();
 
 		distance = (uint32_t)ceil(distance / RECEIVE_RATIO) + distance;
 
 		//distance = (uint32_t)ceil(distance * get_tfs_factor());
 
-		dbg("stdout", "get_tfs_num_msg_to_send=%u\n", distance);
+		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n", distance, source_distance, sink_distance, sink_source_distance);
 
 		return distance;
 	}
