@@ -19,6 +19,9 @@ class Simulation(TosVis):
         # time it would have otherwise taken the attacker to scan the whole network.
         self.safetyPeriod = args.safety_period if hasattr(args, "safety_period") else (args.network_size ** 2) * max(1.0, 2.0 * args.source_period)
 
+        if args.mode == "GUI":
+            self.tossim.addChannel("stdout", sys.stdout)
+
 #        self.tossim.addChannel("Fake-Probability-Decision", sys.stdout)
 #        self.tossim.addChannel("stdout", sys.stdout)
 #        self.tossim.addChannel("Metric-BCAST-Normal", sys.stdout)
