@@ -46,8 +46,8 @@ source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
 # TODO implement algorithm override
 configurations = [
     ('SourceCorner', 'CHOOSE'),
-    ('SinkCorner', 'CHOOSE'),
-    ('FurtherSinkCorner', 'CHOOSE'),
+    #('SinkCorner', 'CHOOSE'),
+    #('FurtherSinkCorner', 'CHOOSE'),
     #('Generic1', 'CHOOSE'),
     #('Generic2', 'CHOOSE'),
     
