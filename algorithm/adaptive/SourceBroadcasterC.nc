@@ -275,10 +275,10 @@ implementation
 		}
 	}
 
-	/*double get_tfs_factor()
+	double get_tfs_factor()
 	{
 		return 1.5;
-	}*/
+	}
 
 	uint32_t get_dist_to_pull_back()
 	{
@@ -327,7 +327,7 @@ implementation
 
 		distance = distance + distance;
 
-		//distance = (uint32_t)ceil(distance * get_tfs_factor());
+		distance = (uint32_t)ceil(distance * get_tfs_factor());
 
 		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n", distance, source_distance, sink_distance, sink_source_distance);
 
@@ -340,7 +340,7 @@ implementation
 
 		distance = (uint32_t)ceil(distance / RECEIVE_RATIO) + distance;
 
-		//distance = (uint32_t)ceil(distance * get_tfs_factor());
+		distance = (uint32_t)ceil(distance * get_tfs_factor());
 
 		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n", distance, source_distance, sink_distance, sink_source_distance);
 
@@ -359,7 +359,7 @@ implementation
 			duration -= SOURCE_PERIOD_MS / 2;
 		}
 
-		//duration = (uint32_t)ceil(duration * get_tfs_factor());
+		duration = (uint32_t)ceil(duration * get_tfs_factor());
 
 		duration -= TIME_TO_SEND_MS;
 
