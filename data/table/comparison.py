@@ -33,7 +33,7 @@ class ResultTable(BaseResultTable):
             c = [x[0] if isinstance(x, numpy.ndarray) else x for x in c]
 
             diff = numpy.subtract(c, b)
-            pdiff = (diff / numpy.array([x if x != 0 else 1 for x in numpy.add(c, b) * 0.5])) * 100.0
+            pdiff = numpy.array([0 if x == 0 else x / y for (x, y) in zip(diff, numpy.add(c, b) * 0.5)]) * 100.0
 
             return zip(diff, pdiff)
 

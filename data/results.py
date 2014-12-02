@@ -58,7 +58,7 @@ class Results:
             return self.extractAverageAndSddev(value) * 100.0
         elif '(' in value:
             return self.extractAverageAndSddev(value)
-        elif name == 'technique':
+        elif name == 'approach':
             return value
         else:
             return ast.literal_eval(value)

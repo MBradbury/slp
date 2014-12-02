@@ -275,11 +275,7 @@ implementation
 		}
 	}
 
-	double get_tfs_factor()
-	{
-		return 1.5;
-	}
-
+#if defined(TWIDDLE_APPROACH)
 	uint32_t get_dist_to_pull_back()
 	{
 		int32_t distance = 0;
@@ -320,46 +316,55 @@ implementation
 		return distance;	
 	}
 
-#if defined(NO_COL_FULL_DIST)
-	uint32_t get_tfs_num_msg_to_send()
+	double get_tfs_duration_factor() { return 2; }
+
+#elif defined(INTUITION_APPROACH)
+	uint32_t get_dist_to_pull_back()
 	{
-		uint32_t distance = get_dist_to_pull_back();
+		int32_t distance = 0;
 
-		//distance = distance + distance;
+		switch (algorithm)
+		{
+		case GenericAlgorithm:
+			distance = sink_distance + sink_distance;
+			break;
 
-		distance = (uint32_t)ceil(distance * get_tfs_factor());
+		default:
+		case FurtherAlgorithm:
+			distance = max(sink_source_distance, sink_distance);
+			break;
+		}
 
-		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n", distance, source_distance, sink_distance, sink_source_distance);
-
-		return distance;
+		distance = max(distance, 1);
+		
+		return distance;	
 	}
-#elif defined(COL_FULL_DIST)
-	uint32_t get_tfs_num_msg_to_send()
-	{
-		uint32_t distance = get_dist_to_pull_back();
 
-		distance = (uint32_t)ceil(distance / RECEIVE_RATIO);// + distance;
+	double get_tfs_duration_factor() { return 1; }
 
-		distance = (uint32_t)ceil(distance * get_tfs_factor());
-
-		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n", distance, source_distance, sink_distance, sink_source_distance);
-
-		return distance;
-	}
 #else
 #	error "Technique not specified"
 #endif
 
+	uint32_t get_tfs_num_msg_to_send()
+	{
+		uint32_t distance = get_dist_to_pull_back();
+
+		distance = (uint32_t)ceil(distance * get_tfs_duration_factor());
+
+		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n", distance, source_distance, sink_distance, sink_source_distance);
+
+		return distance;
+	}
+
 	uint32_t get_tfs_duration()
 	{
-		uint32_t duration = SOURCE_PERIOD_MS;
+		uint32_t duration = (uint32_t)ceil(SOURCE_PERIOD_MS * get_tfs_duration_factor());
 
 		if (sink_distance <= 1)
 		{
 			duration -= SOURCE_PERIOD_MS / 2;
 		}
-
-		duration = (uint32_t)ceil(duration * get_tfs_factor());
 
 		duration -= TIME_TO_SEND_MS;
 
@@ -374,37 +379,30 @@ implementation
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const uint32_t period = duration / msg;
 
-		const uint32_t result_period = max(period, TIME_TO_SEND_MS * 3);
+		const uint32_t min_period = 3 * TIME_TO_SEND_MS;
+
+		uint32_t result_period = 0;
+
+		if (period + TIME_TO_SEND_MS < min_period)
+		{
+			result_period = min_period;
+		}
+		else
+		{
+			result_period = period - TIME_TO_SEND_MS;
+		}
 
 		dbg("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
-
-	/*uint32_t get_tfs_period()
-	{
-		const uint32_t result_period = TIME_TO_SEND_MS * 3 * 10;
-
-		dbg("stdout", "get_tfs_period=%u\n", result_period);
-
-		return result_period;
-	}
-
-	uint32_t get_tfs_duration()
-	{
-		const uint32_t duration = get_tfs_num_msg_to_send() * get_tfs_period();
-
-		dbg("stdout", "get_tfs_duration=%u\n", duration);
-
-		return duration;
-	}*/
 
 	uint32_t get_pfs_period()
 	{
 		const double x = pow(RECEIVE_RATIO, source_distance / (double)sink_source_distance);
 		const uint32_t period = (uint32_t)ceil(SOURCE_PERIOD_MS * x);
 
-		const uint32_t result_period = max(period, TIME_TO_SEND_MS);
+		const uint32_t result_period = max(period, 3 * TIME_TO_SEND_MS);
 
 		dbg("stdout", "get_pfs_period=%u (source_distance=%d, sink_source_distance=%d, x=%f)\n", result_period, source_distance, sink_source_distance, x);
 
