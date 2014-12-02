@@ -60,7 +60,7 @@ configurations = [
     #('CircleSinkCentre', 'CHOOSE'),
 ]
 
-techniques = [ "NO_COL_FULL_DIST", "COL_FULL_DIST" ]
+approaches = [ "TWIDDLE_APPROACH", "INTUITION_APPROACH" ]
 
 # 6 milliseconds
 alpha = 0.006
@@ -69,7 +69,7 @@ receive_ratio = 0.65
 
 repeats = 300
 
-parameter_names = ('technique',)
+parameter_names = ('approach',)
 
 protectionless_configurations = [(a) for (a, build) in configurations]
 
@@ -102,7 +102,7 @@ if 'cluster' in args:
         touch("{}/__init__.py".format(cluster_directory))
 
         runner = adaptive.Runner.RunSimulations(cluster.builder(), cluster_directory, None, False)
-        runner.run(jar_path, distance, sizes, source_periods, techniques, configurations, alpha, receive_ratio, repeats)
+        runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, alpha, receive_ratio, repeats)
 
     if 'copy' in args:
         cluster.copy_to()
@@ -114,7 +114,7 @@ if 'cluster' in args:
         safety_periods = safety_period_table_generator.safety_periods()
 
         runner = adaptive.Runner.RunSimulations(cluster.submitter(), cluster_directory, safety_periods, False)
-        runner.run(jar_path, distance, sizes, source_periods, techniques, configurations, alpha, receive_ratio, repeats)
+        runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, alpha, receive_ratio, repeats)
 
     if 'copy-back' in args:
         cluster.copy_back("adaptive")
@@ -130,7 +130,7 @@ if 'all' in args or 'run' in args:
     from data.run.driver import local as LocalDriver
 
     prelim_runner = adaptive.Runner.RunSimulations(LocalDriver.Runner(), adaptive_results_directory, safety_periods, skip_completed_simulations=True)
-    prelim_runner.run(jar_path, distance, sizes, source_periods, techniques, configurations, alpha, receive_ratio, repeats)
+    prelim_runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, alpha, receive_ratio, repeats)
 
 if 'all' in args or 'analyse' in args:
     prelim_analyzer = adaptive.Analysis.Analyzer(adaptive_results_directory)

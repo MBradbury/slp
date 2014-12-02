@@ -27,7 +27,7 @@ class Arguments:
 		parser.add_argument("--time-to-send", type=alpha, required=True)
 		parser.add_argument("--receive-ratio", type=restricted_float, required=True)
 
-		parser.add_argument("--technique", type=str, choices=["NO_COL_FULL_DIST", "COL_FULL_DIST"], required=True)
+		parser.add_argument("--approach", type=str, choices=["TWIDDLE_APPROACH", "INTUITION_APPROACH"], required=True)
 
 		parser.add_argument("--distance", type=float, required=True)
 
@@ -47,6 +47,6 @@ class Arguments:
 			"SOURCE_PERIOD_MS": int(self.args.source_period * 1000),
 			"TIME_TO_SEND_MS": int(self.args.time_to_send * 1000),
 			"RECEIVE_RATIO": str(self.args.receive_ratio),
-			"TECHNIQUE": self.args.technique,
-			self.args.technique: 1,
+			"APPROACH": self.args.approach,
+			self.args.approach: 1,
 		}

@@ -26,7 +26,7 @@ class Analyzer:
                 'network size',
                 'configuration',
                 'source period',
-                'technique',
+                'approach',
                 
                 'sent',
                 'received',
@@ -66,7 +66,7 @@ class Analyzer:
                         result.opts['network_size'],
                         result.opts['configuration'],
                         result.opts['source_period'],
-                        result.opts['technique'],
+                        result.opts['approach'],
                         
                         result.averageOf['Sent'], result.varianceOf['Sent'],
                         result.averageOf['Received'], result.varianceOf['Received'],

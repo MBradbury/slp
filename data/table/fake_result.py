@@ -42,7 +42,7 @@ class ResultTable(object):
                 "pull back hops": ("Pull Back", "Messages"),
                 "ssd": ("$\\Delta_{ss}$", "(hops)"),
                 "normal latency": ("Laten", "(msec)"),
-                "technique": ("Technique", "~"),
+                "approach": ("Approach", "~"),
             }[name][row]
         except KeyError as e:
             print("Failed to find the name {} for row {} : {}".format(name, row, e), file=sys.stderr)
@@ -61,7 +61,7 @@ class ResultTable(object):
             return "${:.0f}$".format(value * 100.0)
         elif name == "tfs" or name == "pfs":
             return "${:.1f}$".format(value[0])
-        elif name == "technique":
+        elif name == "approach":
             return latex.escape(value)
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
