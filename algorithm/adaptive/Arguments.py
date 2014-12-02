@@ -27,7 +27,7 @@ class Arguments:
 		parser.add_argument("--time-to-send", type=alpha, required=True)
 		parser.add_argument("--receive-ratio", type=restricted_float, required=True)
 
-		parser.add_argument("--approach", type=str, choices=["TWIDDLE_APPROACH", "INTUITION_APPROACH"], required=True)
+		parser.add_argument("--approach", type=str, choices=["TWIDDLE_1_APPROACH", "TWIDDLE_15_APPROACH", "TWIDDLE_2_APPROACH", "INTUITION_APPROACH"], required=True)
 
 		parser.add_argument("--distance", type=float, required=True)
 
