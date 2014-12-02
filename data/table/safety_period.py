@@ -50,7 +50,7 @@ class TableGenerator:
 
                     safetyPeriod = float(values[ headers.index('safety period') ])
 
-                    latency = extractAverageAndSddev(values[ headers.index('normal latency') ])
+                    latency = extractAverageAndSddev(values[ headers.index('normal latency') ]) * 1000
                     ssd = extractAverageAndSddev(values[ headers.index('ssd') ])
                     
                     self.data \
@@ -70,7 +70,7 @@ class TableGenerator:
             print('\\begin{tabular}{ | c | c || c | c | c | c || c | }', file=stream)
             print('\\hline', file=stream)
             print('Size & Period & Received & Source-Sink   & Latency   & Average Time    & Safety Period \\tabularnewline', file=stream)
-            print('~    & (sec)  & (\%)     & Distance (hop)& (seconds) & Taken (seconds) & (seconds) \\tabularnewline', file=stream)
+            print('~    & (sec)  & (\%)     & Distance (hop)& (msec)    & Taken (seconds) & (seconds) \\tabularnewline', file=stream)
             print('\\hline', file=stream)
             print('', file=stream)
 
@@ -81,7 +81,7 @@ class TableGenerator:
 
                 for (srcPeriod, timeTaken, safetyPeriod, rcv, latency, ssd) in sortedData:
                 
-                    print('{} & {} & {:0.0f} $\pm$ {:0.2f} & {:.1f} $\pm$ {:.2f} & {:0.3f} $\pm$ {:0.3f} & {:0.2f} $\pm$ {:0.2f} & {:0.2f} \\tabularnewline'.format(
+                    print('{} & {} & {:0.0f} $\pm$ {:0.2f} & {:.1f} $\pm$ {:.2f} & {:0.1f} $\pm$ {:0.1f} & {:0.2f} $\pm$ {:0.2f} & {:0.2f} \\tabularnewline'.format(
                             size,
                             srcPeriod,
                             rcv[0], rcv[1],
