@@ -60,7 +60,7 @@ configurations = [
     #('CircleSinkCentre', 'CHOOSE'),
 ]
 
-approaches = [ "TWIDDLE_APPROACH", "INTUITION_APPROACH" ]
+approaches = [ "TWIDDLE_1_APPROACH", "TWIDDLE_15_APPROACH", "TWIDDLE_2_APPROACH", "INTUITION_APPROACH" ]
 
 # 6 milliseconds
 alpha = 0.006

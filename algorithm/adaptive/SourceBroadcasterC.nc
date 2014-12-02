@@ -275,7 +275,7 @@ implementation
 		}
 	}
 
-#if defined(TWIDDLE_APPROACH)
+#if defined(TWIDDLE_1_APPROACH) || defined(TWIDDLE_15_APPROACH) || defined(TWIDDLE_2_APPROACH)
 	uint32_t get_dist_to_pull_back()
 	{
 		int32_t distance = 0;
@@ -316,7 +316,15 @@ implementation
 		return distance;	
 	}
 
+#	if defined(TWIDDLE_1_APPROACH)
+	double get_tfs_duration_factor() { return 1; }
+#	elif defined(TWIDDLE_15_APPROACH)
+	double get_tfs_duration_factor() { return 1.5; }
+#	elif defined(TWIDDLE_2_APPROACH)
 	double get_tfs_duration_factor() { return 2; }
+#	else
+#		error "Unknown twiddle"
+#	endif
 
 #elif defined(INTUITION_APPROACH)
 	uint32_t get_dist_to_pull_back()
@@ -337,7 +345,7 @@ implementation
 
 		distance = max(distance, 1);
 		
-		return distance;	
+		return distance;
 	}
 
 	double get_tfs_duration_factor() { return 1; }
@@ -359,12 +367,14 @@ implementation
 
 	uint32_t get_tfs_duration()
 	{
-		uint32_t duration = (uint32_t)ceil(SOURCE_PERIOD_MS * get_tfs_duration_factor());
+		uint32_t duration = SOURCE_PERIOD_MS;
 
 		if (sink_distance <= 1)
 		{
 			duration -= SOURCE_PERIOD_MS / 2;
 		}
+
+		duration = (uint32_t)ceil(duration * get_tfs_duration_factor());
 
 		duration -= TIME_TO_SEND_MS;
 
