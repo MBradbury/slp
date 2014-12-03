@@ -199,6 +199,8 @@ implementation
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
+	const uint32_t away_delay = SOURCE_PERIOD_MS / 4;
+
 	int32_t sink_source_distance = BOTTOM;
 	int32_t source_distance = BOTTOM;
 	int32_t sink_distance = BOTTOM;
@@ -371,7 +373,7 @@ implementation
 
 		if (sink_distance <= 1)
 		{
-			duration -= SOURCE_PERIOD_MS / 2;
+			duration -= away_delay;
 		}
 
 		duration = (uint32_t)ceil(duration * get_tfs_duration_factor());
@@ -389,7 +391,7 @@ implementation
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const uint32_t period = duration / msg;
 
-		const uint32_t min_period = 3 * TIME_TO_SEND_MS;
+		const uint32_t min_period = TIME_TO_SEND_MS;
 
 		uint32_t result_period = 0;
 
@@ -412,7 +414,7 @@ implementation
 		const double x = pow(RECEIVE_RATIO, source_distance / (double)sink_source_distance);
 		const uint32_t period = (uint32_t)ceil(SOURCE_PERIOD_MS * x);
 
-		const uint32_t result_period = max(period, 3 * TIME_TO_SEND_MS);
+		const uint32_t result_period = max(period, TIME_TO_SEND_MS);
 
 		dbg("stdout", "get_pfs_period=%u (source_distance=%d, sink_source_distance=%d, x=%f)\n", result_period, source_distance, sink_source_distance, x);
 
@@ -597,7 +599,7 @@ implementation
 
 			if (!sink_sent_away)
 			{
-				call AwaySenderTimer.startOneShot(SOURCE_PERIOD_MS / 2);
+				call AwaySenderTimer.startOneShot(away_delay);
 			}
 		}
 	}
