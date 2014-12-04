@@ -34,7 +34,7 @@ template_graphs_directory = os.path.join(template_results_directory, 'Graphs')
 
 distance = 4.5
 
-sizes = [ 11, 15 ] # [ 11, 15, 21, 25 ]
+sizes = [ 11, 15, 21, 25 ]
 
 # Note that our simulation only has millisecond resolution,
 # so periods that require a resolution greater than 0.001 will be
@@ -69,7 +69,7 @@ prs_tfs = [ 1.0, 0.9, 0.8 ]
 prs_pfs = [ 1.0 ]
 
 protectionless_repeats = 750
-repeats = 300
+repeats = 500
 
 protectionless_configurations = [(a) for (a, b) in configurations]
 
