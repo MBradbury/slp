@@ -199,7 +199,7 @@ implementation
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
-	const uint32_t away_delay = SOURCE_PERIOD_MS / 4;
+	const uint32_t away_delay = SOURCE_PERIOD_MS / 2;
 
 	int32_t sink_source_distance = BOTTOM;
 	int32_t source_distance = BOTTOM;
@@ -277,7 +277,7 @@ implementation
 		}
 	}
 
-#if defined(TWIDDLE_1_APPROACH) || defined(TWIDDLE_15_APPROACH) || defined(TWIDDLE_2_APPROACH)
+#if defined(TWIDDLE_APPROACH)
 	uint32_t get_dist_to_pull_back()
 	{
 		int32_t distance = 0;
@@ -292,14 +292,7 @@ implementation
 			// This means that TFSs near the source will send fewer messages.
 			if (source_distance == BOTTOM || sink_source_distance == BOTTOM)
 			{
-				if (sink_distance == BOTTOM)
-				{
-					distance = 1;
-				}
-				else
-				{
-					distance = sink_distance;
-				}
+				distance = sink_distance;
 			}
 			else
 			{
@@ -318,16 +311,6 @@ implementation
 		return distance;	
 	}
 
-#	if defined(TWIDDLE_1_APPROACH)
-	double get_tfs_duration_factor() { return 1; }
-#	elif defined(TWIDDLE_15_APPROACH)
-	double get_tfs_duration_factor() { return 1.5; }
-#	elif defined(TWIDDLE_2_APPROACH)
-	double get_tfs_duration_factor() { return 2; }
-#	else
-#		error "Unknown twiddle"
-#	endif
-
 #elif defined(INTUITION_APPROACH)
 	uint32_t get_dist_to_pull_back()
 	{
@@ -336,7 +319,16 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			distance = sink_distance + sink_distance;
+			if (source_distance == BOTTOM || sink_source_distance == BOTTOM)
+			{
+				distance = sink_distance;
+			}
+			else
+			{
+				distance = source_distance - sink_source_distance;
+			}
+
+			distance *= 2;
 			break;
 
 		default:
@@ -350,8 +342,6 @@ implementation
 		return distance;
 	}
 
-	double get_tfs_duration_factor() { return 1; }
-
 #else
 #	error "Technique not specified"
 #endif
@@ -359,8 +349,6 @@ implementation
 	uint32_t get_tfs_num_msg_to_send()
 	{
 		uint32_t distance = get_dist_to_pull_back();
-
-		distance = (uint32_t)ceil(distance * get_tfs_duration_factor());
 
 		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n", distance, source_distance, sink_distance, sink_source_distance);
 
@@ -375,8 +363,6 @@ implementation
 		{
 			duration -= away_delay;
 		}
-
-		duration = (uint32_t)ceil(duration * get_tfs_duration_factor());
 
 		duration -= TIME_TO_SEND_MS;
 
