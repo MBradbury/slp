@@ -13,7 +13,7 @@ else:
 import algorithm.protectionless as protectionless
 import algorithm.template as template
 
-from data.table import safety_period, fake_source_result, fake_result, comparison
+from data.table import safety_period, fake_result, comparison
 from data.graph import summary, heatmap, versus
 from data import results, latex
 
