@@ -319,16 +319,7 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			if (source_distance == BOTTOM || sink_source_distance == BOTTOM)
-			{
-				distance = sink_distance;
-			}
-			else
-			{
-				distance = source_distance - sink_source_distance;
-			}
-
-			distance *= 2;
+			distance = sink_distance + sink_distance
 			break;
 
 		default:
