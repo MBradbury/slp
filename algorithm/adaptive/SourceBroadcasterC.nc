@@ -319,7 +319,7 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			distance = sink_distance + sink_distance
+			distance = sink_distance + sink_distance;
 			break;
 
 		default:
