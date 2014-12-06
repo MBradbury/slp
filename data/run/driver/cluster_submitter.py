@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-class Runner:
+class Runner(object):
     def __init__(self, cluster_command, prepare_command):
         self.cluster_command = cluster_command
         self.prepare_command = prepare_command
@@ -20,8 +20,11 @@ class Runner:
         command = 'echo "cd \$PBS_O_WORKDIR ; {} ; {}" | {}'.format(
             self.prepare_command, script_command, cluster_command)
 
-        print(command)
-        subprocess.check_call(command, shell=True)
+        self._submit_job(command)
 
     def mode(self):
         return "CLUSTER"
+
+    def _submit_job(self, command):
+        print(command)
+        subprocess.check_call(command, shell=True)

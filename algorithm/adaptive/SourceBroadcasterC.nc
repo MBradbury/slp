@@ -368,7 +368,7 @@ implementation
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const uint32_t period = duration / msg;
 
-		const uint32_t min_period = TIME_TO_SEND_MS;
+		const uint32_t min_period = 3 * TIME_TO_SEND_MS;
 
 		uint32_t result_period = 0;
 
@@ -391,7 +391,7 @@ implementation
 		const double x = pow(RECEIVE_RATIO, source_distance / (double)sink_source_distance);
 		const uint32_t period = (uint32_t)ceil(SOURCE_PERIOD_MS * x);
 
-		const uint32_t result_period = max(period, TIME_TO_SEND_MS);
+		const uint32_t result_period = max(period, 3 * TIME_TO_SEND_MS);
 
 		dbg("stdout", "get_pfs_period=%u (source_distance=%d, sink_source_distance=%d, x=%f)\n", result_period, source_distance, sink_source_distance, x);
 
