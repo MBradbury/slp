@@ -3,11 +3,12 @@ import os, itertools
 from data.run.common import RunSimulationsCommon
 
 class RunSimulations(RunSimulationsCommon):
-    def __init__(self, driver, results_directory, safety_periods, skip_completed_simulations=True):
+    def __init__(self, driver, results_directory, safety_periods, receive_ratios, skip_completed_simulations=True):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
+        self.receive_ratios = receive_ratios
 
-    def run(self, exe_path, distance, sizes, source_periods, approaches, configurations, alpha, receive_ratio, repeats):
+    def run(self, exe_path, distance, sizes, source_periods, approaches, configurations, alpha, repeats):
         if self.skip_completed_simulations:
             self._check_existing_results(['network_size', 'source_period', 'approach', 'configuration'])
     
@@ -18,6 +19,9 @@ class RunSimulations(RunSimulationsCommon):
             if not self._already_processed(repeats, size, source_period, approach, configuration):
 
                 safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
+                receive_ratio = 0 if self.receive_ratios is None else self.receive_ratios[configuration][size][source_period]
+
+                receive_ratio = "{:.5f}".format(receive_ratio)
 
                 executable = 'python {} {}'.format(
                     self.optimisations,

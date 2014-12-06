@@ -111,3 +111,16 @@ class TableGenerator:
                     result[config][size][srcPeriod] = safetyPeriod
 
         return result
+
+    def receive_ratios(self):
+        # type -> configuration -> size -> source rate -> receive ratio
+        result = {}
+
+        for (config, config_list) in self.data.items():
+            result[config] = {}
+            for (size, size_list) in config_list.items():
+                result[config][size] = {}
+                for (srcPeriod, timeTaken, safetyPeriod, rcv, latency, ssd) in size_list:
+                    result[config][size][srcPeriod] = rcv[0] / 100.0
+
+        return result
