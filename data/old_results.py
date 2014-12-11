@@ -3,12 +3,11 @@ import csv, math, sys, ast
 
 import numpy
 
-class Results(object):
-    def __init__(self, result_file, parameters, results):
-        self.parameter_names = list(parameters)
-        self.result_names = list(results)
+from results import Results
 
-        self._read_results(result_file)
+class OldResults(Results):
+    def __init__(self, result_file, parameters, results):
+        super(OldResults, self).__init__(result_file, parameters, results)
 
     def _read_results(self, result_file):
 
@@ -21,7 +20,7 @@ class Results(object):
 
             seenFirst = False
             
-            reader = csv.reader(f, delimiter='|')
+            reader = csv.reader(f, delimiter=',')
             
             headers = []
             
@@ -52,22 +51,7 @@ class Results(object):
         index = headers.index(name)
         value = values[index]
 
-        if name == 'captured':
-            return float(value) * 100.0
-        elif name == 'received ratio':
-            return self.extractAverageAndSddev(value) * 100.0
-        elif '(' in value:
-            return self.extractAverageAndSddev(value)
-        elif name == 'approach':
+        if name == 'configuration' or name == 'network type':
             return value
         else:
-            return ast.literal_eval(value)
-
-    @staticmethod
-    def extractAverageAndSddev(value):
-        split = value.split('(')
-
-        mean = float(split[0])
-        var = float(split[1].strip(')'))
-
-        return numpy.array((mean, math.sqrt(var)))
+            return super(OldResults, self)._process(name, headers, values)

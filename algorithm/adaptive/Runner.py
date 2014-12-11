@@ -18,8 +18,11 @@ class RunSimulations(RunSimulationsCommon):
         for (size, source_period, approach, (configuration, algorithm)) in itertools.product(sizes, source_periods, approaches, configurations):
             if not self._already_processed(repeats, size, source_period, approach, configuration):
 
-                safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
-                receive_ratio = 0 if self.receive_ratios is None else self.receive_ratios[configuration][size][source_period]
+                try:
+                    safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
+                    receive_ratio = 0 if self.receive_ratios is None else self.receive_ratios[configuration][size][source_period]
+                except KeyError as e:
+                    raise KeyError("Failed to find the key {}".format((configuration, size, source_period)), e)
 
                 receive_ratio = "{:.5f}".format(receive_ratio)
 

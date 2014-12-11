@@ -12,7 +12,7 @@ else:
 
 import algorithm.protectionless as protectionless
 
-from data.table import safety_period
+from data.table import safety_period, comparison
 from data.graph import summary, heatmap
 from data import results, latex
 
@@ -138,3 +138,28 @@ if 'all' in args or 'graph' in args:
 
     summary.GraphSummary(os.path.join(graphs_directory, 'sent heatmap'), 'protectionless-SentHeatMap').run()
     summary.GraphSummary(os.path.join(graphs_directory, 'received heatmap'), 'protectionless-ReceivedHeatMap').run()
+
+if 'ccpe-comparison-table' in args:
+    from data.old_results import OldResults 
+
+    old_results = OldResults('results/CCPE/protectionless-results.csv',
+        parameters=tuple(),
+        results=('time taken', 'received ratio', 'safety period'))
+
+    protectionless_results = results.Results(analysis_result_path,
+        parameters=parameter_names,
+        results=('time taken', 'received ratio', 'safety period'))
+
+    result_table = comparison.ResultTable(old_results, protectionless_results)
+
+    def create_comparison_table(name, param_filter=lambda x: True):
+        filename = name + ".tex"
+
+        with open(filename, 'w') as result_file:
+            latex.print_header(result_file)
+            result_table.write_tables(result_file, param_filter)
+            latex.print_footer(result_file)
+
+        latex.compile(filename)
+
+    create_comparison_table('protectionless-ccpe-comparison')

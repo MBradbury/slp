@@ -97,8 +97,13 @@ class ResultTable(BaseResultTable):
                         print('        \\hline', file=stream)
 
                     print('    \\end{tabular}', file=stream)
-                    print('\\caption{{Comparison results for the size {}, configuration {} and compared parameters {}}}'.format(
-                        size, configuration, latex.escape(str(zip(self.comparison_results.parameter_names, comp_param)))), file=stream)
+
+                    if len(comp_param) == 0 and len(self.comparison_results.parameter_names) == 0:
+                        print('\\caption{{Comparison results for the size {} and configuration {}}}'.format(size, configuration), file=stream)
+                    else:
+                        print('\\caption{{Comparison results for the size {}, configuration {} and compared parameters {}}}'.format(
+                            size, configuration, latex.escape(str(zip(self.comparison_results.parameter_names, comp_param)))), file=stream)
+
                     print('\\end{table}', file=stream)
                     print('', file=stream)
 
@@ -126,6 +131,8 @@ class ResultTable(BaseResultTable):
         elif name == "normal latency":
             return "${} {:+.2f}$".format(colour_neg(value[0]), value[0] * 1000, value[1])
         elif name == "captured":
+            return "${} {:+.2f}$ $({:+.0f}\\%)$".format(colour_neg(value[0]), *value)
+        elif name == "time taken" or name == "safety period":
             return "${} {:+.2f}$ $({:+.0f}\\%)$".format(colour_neg(value[0]), *value)
         else:
             return super(ResultTable, self)._var_fmt(name, value)
