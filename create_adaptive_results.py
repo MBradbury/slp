@@ -39,7 +39,7 @@ adaptive_graphs_directory = os.path.join(adaptive_results_directory, 'Graphs')
 
 distance = 4.5
 
-sizes = [ 11, 15 ] # [ 11, 15, 21, 25 ]
+sizes = [ 11, 15, 21, 25 ]
 
 source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
@@ -124,7 +124,7 @@ if 'cluster' in args:
 
 if 'all' in args or 'run' in args:
     from data.run.driver import local as LocalDriver
-    
+
     run(LocalDriver.Runner(), True)
 
 if 'all' in args or 'analyse' in args:

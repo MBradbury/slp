@@ -43,6 +43,8 @@ class ResultTable(object):
                 "ssd": ("$\\Delta_{ss}$", "(hops)"),
                 "normal latency": ("Laten", "(msec)"),
                 "approach": ("Approach", "~"),
+                "time taken": ("Time", "(sec)"),
+                "safety period": ("Safety Period", "(sec)"),
             }[name][row]
         except KeyError as e:
             print("Failed to find the name {} for row {} : {}".format(name, row, e), file=sys.stderr)
