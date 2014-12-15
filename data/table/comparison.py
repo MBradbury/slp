@@ -124,6 +124,9 @@ class ResultTable(BaseResultTable):
             return "${:+.1f}$".format(*value)
         elif name == "received ratio":
             return "${} {:+.1f}$".format(colour_pos(value[0]), *value)
+            # With percentage diff:
+            #return "${} {:+.1f}$ $({:+.0f}\\%)$".format(colour_pos(value[0]), *value)
+
         elif name == "fake":
             return "${} {:+.0f}$ $({:+.0f}\\%)$".format(colour_neg(value[0]), *value)
         elif name == "ssd":
