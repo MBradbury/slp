@@ -147,7 +147,7 @@ class Simulator(object):
 		self.setupRadio()
 		self.setupNoiseModels()
 
-	def postRun(self):
+	def postRun(self, eventCount):
 		pass
 
 	def inRun(self):
@@ -155,15 +155,15 @@ class Simulator(object):
 			op.process()
 
 	def run(self):
-		
+
+		eventCount = 0
+
 		# Lets disable the python GC, so that it will not be run
 		# in this tight loop that shouldn't allocate much memory
 		try:
 			gc.disable()
 
 			self.preRun()
-
-			eventCount = 0
 
 			while self.continuePredicate():
 				if self.tossim.runNextEvent() == 0:
@@ -177,5 +177,4 @@ class Simulator(object):
 		finally:
 			gc.enable()
 
-			self.postRun()
-
+			self.postRun(eventCount)
