@@ -2,23 +2,16 @@ from __future__ import print_function
 
 import sys, re
 
-from numpy import mean
-from scipy.spatial.distance import euclidean
-
-from collections import Counter
-
 from simulator.Simulator import OutputCatcher
+from simulator.MetricsCommon import MetricsCommon
 
-class Metrics:
+class Metrics(MetricsCommon):
 
     WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
     FAKE_RE   = re.compile(r'The node has become a ([a-zA-Z]+)')
 
     def __init__(self, sim, configuration):
-        self.sim = sim
-
-        self.sourceID = configuration.sourceId
-        self.sinkID = configuration.sinkId
+        super(Metrics, self).__init__(sim, configuration)
 
         self.BCAST = OutputCatcher(self.process_BCAST)
         self.sim.tossim.addChannel('Metric-BCAST', self.BCAST.write)
@@ -32,53 +25,9 @@ class Metrics:
         self.sim.tossim.addChannel('Fake-Notification', self.FAKE_NOTIFICATION.write)
         self.sim.addOutputProcessor(self.FAKE_NOTIFICATION)
 
-        self.heatMap = {}
-
-        self.normalSentTime = {}
-        self.normalLatency = {}
-        self.normalHopCount = []
-
-        self.sent = {}
-        self.received = {}
-
         self.tfsCreated = 0
         self.pfsCreated = 0
         self.fakeToNormal = 0
-
-    def process_BCAST(self, line):
-        (kind, time, nodeID, status, seqNo) = line.split(',')
-
-        if status == "success":
-            time = float(time) / self.sim.tossim.ticksPerSecond()
-            nodeID = int(nodeID)
-            seqNo = int(seqNo)
-
-            if nodeID == self.sourceID and kind == "Normal":
-                self.normalSentTime[seqNo] = time
-
-            if kind not in self.sent:
-                self.sent[kind] = Counter()
-
-            self.sent[kind][nodeID] += 1
-
-
-    def process_RCV(self, line):
-        (kind, time, nodeID, sourceID, seqNo, hopCount) = line.split(',')
-
-        time = float(time) / self.sim.tossim.ticksPerSecond()
-        nodeID = int(nodeID)
-        sourceID = int (sourceID)
-        seqNo = int(seqNo)
-        hopCount = int(hopCount)
-
-        if nodeID == self.sinkID and kind == "Normal":
-            self.normalLatency[seqNo] = time - self.normalSentTime[seqNo]
-            self.normalHopCount.append(hopCount)
-
-        if kind not in self.received:
-            self.received[kind] = Counter()
-
-        self.received[kind][nodeID] += 1
 
     def process_FAKE_NOTIFICATION(self, line):
         match = self.WHOLE_RE.match(line)
@@ -101,56 +50,23 @@ class Metrics:
             else:
                 raise RuntimeError("Unknown kind {}".format(kind))
 
-    def averageNormalLatency(self):
-        return mean(self.normalLatency.values())
-
-    def receivedRatio(self):
-        return float(len(self.normalLatency)) / len(self.normalSentTime)
-
-    def attackerDistance(self):
-        sourceLocation = self.sim.nodes[self.sourceID].location
-
-        return {
-            i: euclidean(sourceLocation, self.sim.nodes[attacker.position].location)
-            for i, attacker
-            in enumerate(self.sim.attackers)
-        }
-
-    def averageSinkSourceHops(self):
-        return mean(self.normalHopCount)
+    @staticmethod
+    def items():
+        d = MetricsCommon.items()
+        d["FakeSent"]               = lambda x: x.numberSent("Fake")
+        d["ChooseSent"]             = lambda x: x.numberSent("Choose")
+        d["AwaySent"]               = lambda x: x.numberSent("Away")
+        d["TFS"]                    = lambda x: x.tfsCreated
+        d["PFS"]                    = lambda x: x.pfsCreated
+        d["FakeToNormal"]           = lambda x: x.fakeToNormal
+        
+        return d
 
     @staticmethod
     def printHeader(stream=sys.stdout):
-        print("#Seed,Sent,Received,Collisions,Captured,ReceiveRatio,TimeTaken,AttackerDistance,AttackerMoves,NormalLatency,NormalSinkSourceHops,NormalSent,FakeSent,ChooseSent,AwaySent,TFS,PFS,FakeToNormal,SentHeatMap,ReceivedHeatMap".replace(",", "|"), file=stream)
+        print("#" + "|".join(Metrics.items().keys()), file=stream)
 
     def printResults(self, stream=sys.stdout):
-        seed = self.sim.seed
-
-        def numSent(name):
-            return 0 if name not in self.sent else sum(self.sent[name].values())
-
-        normalSent = numSent("Normal")
-        fakeSent = numSent("Fake")
-        chooseSent = numSent("Choose")
-        awaySent = numSent("Away")
-        sent = sum(sum(sent.values()) for sent in self.sent.values())
-        received = sum(sum(received.values()) for received in self.received.values())
-        collisions = None
-        captured = self.sim.anyAttackerFoundSource()
-        receivedRatio = self.receivedRatio()
-        time = self.sim.simTime()
-        attackerDistance = self.attackerDistance()
-        attackerMoves = {i: attacker.moves for i, attacker in enumerate(self.sim.attackers)}
-        normalLatency = self.averageNormalLatency()
-        averageSinkSourceHops = self.averageSinkSourceHops()
-
-        sentHeatMap = dict(sum(self.sent.values(), Counter()))
-        receivedHeatMap = dict(sum(self.received.values(), Counter()))
-
-        print("|".join(["{}"] * 20).format(
-            seed, sent, received, collisions, captured,
-            receivedRatio, time, attackerDistance, attackerMoves,
-            normalLatency, averageSinkSourceHops,
-            normalSent, fakeSent, chooseSent, awaySent,
-            self.tfsCreated, self.pfsCreated, self.fakeToNormal,
-            sentHeatMap, receivedHeatMap), file=stream)
+        results = [str(f(self)) for f in Metrics.items().values()]
+        
+        print("|".join(results), file=stream)

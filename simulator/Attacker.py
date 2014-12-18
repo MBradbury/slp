@@ -14,10 +14,15 @@ class Attacker:
         self.position = sinkId
         self.sourceId = sourceId
 
+        self.hasFoundSource = self.foundSourceSlow()
+
         self.moves = 0
 
-    def foundSource(self):
+    def foundSourceSlow(self):
         return self.position == self.sourceId
+
+    def foundSource(self):
+        return self.hasFoundSource
 
     def process(self, line):
         # Don't want to move if the source has been found
@@ -35,6 +40,8 @@ class Attacker:
 
             self.seqNos[msgType] = seqNo
             self.position = fromID
+
+            self.hasFoundSource = self.foundSourceSlow()
 
             self.moves += 1
 

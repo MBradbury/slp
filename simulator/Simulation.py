@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os, struct, importlib, subprocess, sys
+import os, timeit, struct, importlib, subprocess, sys
 
 from simulator.TosVis import TosVis
 from simulator.Topology import topology_path
@@ -37,6 +37,19 @@ class Simulation(TosVis):
         self.metrics = Metrics.Metrics(self, configuration)
 
         self.topologyPath = topology_path(moduleName, args)
+
+    def preRun(self):
+        super(Simulation, self).preRun()
+
+        self.start_time = timeit.default_timer()
+
+    def postRun(self, eventCount):
+
+        # Set the number of seconds this simulation run took
+        self.metrics.wallTime = timeit.default_timer() - self.start_time
+        self.metrics.eventCount = eventCount
+
+        super(Simulation, self).postRun(eventCount)
 
     @staticmethod
     def writeTopologyFile(node_locations, location="."):
