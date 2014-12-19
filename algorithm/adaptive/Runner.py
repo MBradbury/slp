@@ -1,5 +1,7 @@
 import os, itertools
 
+from collections import OrderedDict
+
 from data.run.common import RunSimulationsCommon
 
 class RunSimulations(RunSimulationsCommon):
@@ -30,27 +32,35 @@ class RunSimulations(RunSimulationsCommon):
                     self.optimisations,
                     exe_path)
 
-                options = 'algorithm.adaptive --mode {} --network-size {} --configuration {} --safety-period {} --source-period {} --approach {} --time-to-send {} --receive-ratio {} --distance {} --job-size {}'.format(
-                    self.driver.mode(),
+                opts = OrderedDict()
+                opts["--mode"] = self.driver.mode()
+                opts["--network-size"] = size
+                opts["--configuration"] = configuration
+                opts["--safety-period"] = safety_period
+                opts["--source-period"] = source_period
+                opts["--approach"] = approach
+                opts["--time-to-send"] = alpha
+                opts["--receive-ratio"] = receive_ratio
+                opts["--distance"] = distance
+                opts["--job-size"] = repeats
+
+                optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
+
+                options = 'algorithm.adaptive ' + " ".join(optItems)
+
+                filenameItems = (
                     size,
                     configuration,
-                    safety_period,
-
-                    source_period,
-                    approach,
-                    
-                    alpha,
-                    receive_ratio,
-                    distance,
-                    repeats)
-
-                filename = os.path.join(self.results_directory, '-'.join(['{}'] * 7).format(
-                    size,
-                    configuration,
                     source_period,
                     approach,
                     alpha,
                     receive_ratio,
-                    distance).replace(".", "_") + ".txt")
+                    distance
+                )
+
+                filename = os.path.join(
+                    self.results_directory,
+                    '-'.join(map(str, filenameItems)).replace(".", "_") + ".txt"
+                )
 
                 self.driver.add_job(executable, options, filename)

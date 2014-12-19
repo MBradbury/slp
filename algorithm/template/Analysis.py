@@ -3,16 +3,54 @@
 #
 # Author: Matthew Bradbury
 
-import sys
-import os
-import fnmatch
-import math
+from __future__ import print_function
+
+import os, fnmatch
+
+from collections import OrderedDict
 
 from data.analysis import Analyse, AnalysisResults, EmptyFileError
 
 class Analyzer:
     def __init__(self, results_directory):
         self.results_directory = results_directory
+
+        d = OrderedDict()
+        d['network size']       = lambda x: x.opts['network_size']
+        d['configuration']      = lambda x: x.opts['configuration']
+        d['source period']      = lambda x: x.opts['source_period']
+        d['fake period']        = lambda x: x.opts['fake_period']
+        d['temp fake duration'] = lambda x: x.opts['temp_fake_duration']
+        d['pr(tfs)']            = lambda x: x.opts['pr_tfs']
+        d['pr(pfs)']            = lambda x: x.opts['pr_pfs']
+
+        def format_results(x, name):
+            if name in x.varianceOf:
+                return "{}({})".format(x.averageOf[name], x.varianceOf[name])
+            else:
+                return "{}".format(x.averageOf[name])
+        
+        d['sent']               = lambda x: format_results(x, 'Sent')
+        d['received']           = lambda x: format_results(x, 'Received')
+        d['captured']           = lambda x: str(x.averageOf['Captured'])
+        d['attacker moves']     = lambda x: format_results(x, 'AttackerMoves')
+        d['attacker distance']  = lambda x: format_results(x, 'AttackerDistance')
+        d['received ratio']     = lambda x: format_results(x, 'ReceiveRatio')
+        d['normal latency']     = lambda x: format_results(x, 'NormalLatency')
+        d['time taken']         = lambda x: format_results(x, 'TimeTaken')
+        d['normal']             = lambda x: format_results(x, 'NormalSent')
+        d['away']               = lambda x: format_results(x, 'AwaySent')
+        d['choose']             = lambda x: format_results(x, 'ChooseSent')
+        d['fake']               = lambda x: format_results(x, 'FakeSent')
+        d['tfs']                = lambda x: format_results(x, 'TFS')
+        d['pfs']                = lambda x: format_results(x, 'PFS')
+        d['fake to normal']     = lambda x: format_results(x, 'FakeToNormal')
+        d['ssd']                = lambda x: format_results(x, 'NormalSinkSourceHops')
+        
+        d['sent heatmap']       = lambda x: format_results(x, 'SentHeatMap')
+        d['received heatmap']   = lambda x: format_results(x, 'ReceivedHeatMap')
+
+        self.values = d
 
     def run(self, summary_file):
         summary_file_path = os.path.join(self.results_directory, summary_file)
@@ -22,35 +60,7 @@ class Analyzer:
 
         with open(summary_file_path, 'w') as out:
 
-            out.write('{},{},{},{},{},{},{},,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},,{},{}\n'.replace(",", "|").format(
-                'network size',
-                'configuration',
-                'source period',
-                'fake period',
-                'temp fake duration',
-                'pr(tfs)',
-                'pr(pfs)',
-                
-                'sent',
-                'received',
-                'captured',
-                'attacker moves',
-                'attacker distance',
-                'received ratio',
-                'ssd',
-                'normal latency',
-                'time taken',
-                'normal',
-                'away',
-                'choose',
-                'fake',
-                'tfs',
-                'pfs',
-                'fake to normal',
-                
-                'sent heatmap',
-                'received heatmap'
-                ))
+            print("|".join(self.values.keys()), file=out)
 
             for infile in files:
                 path = os.path.join(self.results_directory, infile)
@@ -65,36 +75,9 @@ class Analyzer:
                         print("Skipping as there is no data.")
                         continue
 
-                    out.write('{},{},{},{},{},{},{},,{}({}),{}({}),{},{},{},{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),{}({}),,{},{}\n'.replace(",", "|").format(
-                        result.opts['network_size'],
-                        result.opts['configuration'],
-                        result.opts['source_period'],
-                        result.opts['fake_period'],
-                        result.opts['temp_fake_duration'],
-                        result.opts['pr_tfs'],
-                        result.opts['pr_pfs'],
-                        
-                        result.averageOf['Sent'], result.varianceOf['Sent'],
-                        result.averageOf['Received'], result.varianceOf['Received'],
-                        #result.averageOf['Collisions'], result.varianceOf['Collisions'],
-                        result.averageOf['Captured'],
-                        result.averageOf['AttackerMoves'],
-                        result.averageOf['AttackerDistance'],
-                        result.averageOf['ReceiveRatio'], result.varianceOf['ReceiveRatio'],
-                        result.averageOf['NormalSinkSourceHops'], result.varianceOf['NormalSinkSourceHops'],
-                        result.averageOf['NormalLatency'], result.varianceOf['NormalLatency'],
-                        result.averageOf['TimeTaken'], result.varianceOf['TimeTaken'],
-                        result.averageOf['NormalSent'], result.varianceOf['NormalSent'],
-                        result.averageOf['AwaySent'], result.varianceOf['AwaySent'],
-                        result.averageOf['ChooseSent'], result.varianceOf['ChooseSent'],
-                        result.averageOf['FakeSent'], result.varianceOf['FakeSent'],
-                        result.averageOf['TFS'], result.varianceOf['TFS'],
-                        result.averageOf['PFS'], result.varianceOf['PFS'],
-                        result.averageOf['FakeToNormal'], result.varianceOf['FakeToNormal'],
+                    lineData = [f(result) for f in self.values.values()]
 
-                        result.averageOf['SentHeatMap'],
-                        result.averageOf['ReceivedHeatMap']
-                        ))
+                    print("|".join(lineData), file=out)
 
                 except EmptyFileError as e:
                     print(e)
