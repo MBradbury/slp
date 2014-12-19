@@ -2,7 +2,7 @@
 from Simulator import *
 
 class Attacker:
-    def __init__(self, sim, sourceId, sinkId):
+    def __init__(self, sim, sourceId, startNodeId):
         self.sim = sim
 
         out = OutputCatcher(self.process)
@@ -11,7 +11,7 @@ class Attacker:
         self.sim.addOutputProcessor(out)
 
         self.seqNos = {}
-        self.position = sinkId
+        self.position = startNodeId
         self.sourceId = sourceId
 
         self.hasFoundSource = self.foundSourceSlow()
