@@ -1,7 +1,6 @@
-import subprocess
-import os
-import fnmatch
-import itertools
+import os, itertools
+
+from collections import OrderedDict
 
 from data.run.common import RunSimulationsCommon
 
@@ -26,11 +25,26 @@ class RunSimulations(RunSimulationsCommon):
                     self.optimisations,
                     exe_path)
 
-                options = 'algorithm.template --mode {} --network-size {} --configuration {} --safety-period {} --source-period {} --fake-period {} --temp-fake-duration {} --pr-tfs {} --pr-pfs {} --distance {} --job-size {}'.format(
-                    self.driver.mode(),
+                opts = OrderedDict()
+                opts["--mode"] = self.driver.mode()
+                opts["--network-size"] = size
+                opts["--configuration"] = configuration
+                opts["--safety-period"] = safety_period
+                opts["--source-period"] = source_period
+                opts["--fake-period"] = fake_period
+                opts["--temp-fake-duration"] = tfs_duration
+                opts["--pr-tfs"] = pr_tfs
+                opts["--pr-pfs"] = pr_pfs
+                opts["--distance"] = distance
+                opts["--job-size"] = repeats
+
+                optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
+
+                options = 'algorithm.template ' + " ".join(optItems)
+
+                filenameItems = (
                     size,
                     configuration,
-                    safety_period,
 
                     source_period,
                     fake_period,
@@ -38,19 +52,14 @@ class RunSimulations(RunSimulationsCommon):
                     pr_tfs,
                     pr_pfs,
                     
-                    distance,
-                    repeats)
+                    distance
+                )
 
-                filename = os.path.join(self.results_directory, '-'.join(['{}'] * 8).format(
-                    size,
-                    configuration,
+                filename = os.path.join(
+                    self.results_directory,
+                    '-'.join(map(str, filenameItems)).replace(".", "_") + ".txt"
+                )
 
-                    source_period,
-                    fake_period,
-                    tfs_duration,
-                    pr_tfs,
-                    pr_pfs,
-                    
-                    distance).replace(".", "_") + ".txt")
+                
 
                 self.driver.add_job(executable, options, filename)

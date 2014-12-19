@@ -1,6 +1,6 @@
-import subprocess
-import os
-import itertools
+import os, itertools
+
+from collections import OrderedDict
 
 from data.run.common import RunSimulationsCommon
 
@@ -22,18 +22,28 @@ class RunSimulations(RunSimulationsCommon):
                     self.optimisations,
                     exe_path)
 
-                options = 'algorithm.protectionless --mode {} --network-size {} --source-period {} --configuration {} --job-size {} --distance {}'.format(
-                    self.driver.mode(),
-                    size,
-                    source_period,
-                    configuration,
-                    repeats,
-                    distance)
+                opts = OrderedDict()
+                opts["--mode"] = self.driver.mode()
+                opts["--network-size"] = size
+                opts["--configuration"] = configuration
+                opts["--source-period"] = source_period
+                opts["--distance"] = distance
+                opts["--job-size"] = repeats
 
-                filename = os.path.join(self.results_directory, '{}-{}-{}-{}'.format(
+                optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
+
+                options = 'algorithm.protectionless ' + " ".join(optItems)
+
+                filenameItems = (
                     size,
                     source_period,
                     configuration,
-                    distance).replace(".", "_") + ".txt")
+                    distance
+                )
+
+                filename = os.path.join(
+                    self.results_directory,
+                    '-'.join(map(str, filenameItems)).replace(".", "_") + ".txt"
+                )
 
                 self.driver.add_job(executable, options, filename)

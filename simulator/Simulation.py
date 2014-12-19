@@ -1,6 +1,8 @@
 from __future__ import print_function
 import os, timeit, struct, importlib, subprocess, sys
 
+from itertools import islice
+
 from simulator.TosVis import TosVis
 from simulator.Topology import topology_path
 
@@ -82,8 +84,8 @@ class Simulation(TosVis):
         # is used. If we were to use it all it leads to large slowdowns.
         count = 1000
 
-        noises = [noise for _, noise in zip(range(count), self.readNoiseFromFile(path))]
-        
+        noises = list(islice(self.readNoiseFromFile(path), count))
+
         for node in self.nodes:
             for noise in noises:
                 node.tossim_node.addNoiseTraceReading(noise)

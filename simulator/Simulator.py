@@ -106,6 +106,10 @@ class Simulator(object):
 					yield int(line)
 
 	def createNoiseModel(self, node):
+		'''
+		Either override this method or setupNoiseModels to use a better noise model.
+		For example use a noise trace file such as meyer-heavy.txt.
+		'''
 		for i in range(100):
 			node.tossim_node.addNoiseTraceReading(int(random.random()*20)-75)
 		node.tossim_node.createNoiseModel()
@@ -113,7 +117,7 @@ class Simulator(object):
 	def computeRFGain(self, src, dst):
 		'''
 		Returns signal reception gain between src and dst using a simple
-		range-threshold model.  Should be overriden with a more realistic
+		range-threshold model.  Should be overridden with a more realistic
 		propagation model.
 		'''
 		if src == dst:
