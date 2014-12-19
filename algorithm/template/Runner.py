@@ -60,6 +60,4 @@ class RunSimulations(RunSimulationsCommon):
                     '-'.join(map(str, filenameItems)).replace(".", "_") + ".txt"
                 )
 
-                
-
                 self.driver.add_job(executable, options, filename)
