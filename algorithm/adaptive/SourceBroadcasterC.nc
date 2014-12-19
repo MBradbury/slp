@@ -388,12 +388,13 @@ implementation
 
 	uint32_t get_pfs_period()
 	{
-		const double x = pow(RECEIVE_RATIO, source_distance / (double)sink_source_distance);
+		const double x = pow(RECEIVE_RATIO, sink_distance / (double)sink_source_distance);
 		const uint32_t period = (uint32_t)ceil(SOURCE_PERIOD_MS * x);
 
 		const uint32_t result_period = max(period, 3 * TIME_TO_SEND_MS);
 
-		dbg("stdout", "get_pfs_period=%u (source_distance=%d, sink_source_distance=%d, x=%f)\n", result_period, source_distance, sink_source_distance, x);
+		dbg("stdout", "get_pfs_period=%u (sink_distance=%d, source_distance=%d, sink_source_distance=%d, x=%f)\n",
+			result_period, sink_distance, source_distance, sink_source_distance, x);
 
 		return result_period;
 	}
@@ -705,6 +706,7 @@ implementation
 		}
 
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && should_process_choose())
 		{
