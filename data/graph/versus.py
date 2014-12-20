@@ -77,7 +77,7 @@ class Grapher(GrapherBase):
 
             table =  [ [ '#' ] + vvalues ]
 
-            for xvalue in xvalues:
+            for xvalue in sorted(xvalues):
                 row = [ xvalue ]
                 for vvalue in vvalues:
                     row.append(values.get((xvalue, vvalue), '?'))
