@@ -15,7 +15,7 @@ import algorithm.template as template
 import algorithm.adaptive as adaptive
 
 from data.table import safety_period, fake_result, comparison
-from data.graph import summary, heatmap
+from data.graph import summary, heatmap, versus
 
 from data import results, latex
 
@@ -137,7 +137,7 @@ template_analysis_result_path = os.path.join(template_results_directory, templat
 if 'all' in args or 'graph' in args:
     adaptive_results = results.Results(adaptive_analysis_result_path,
         parameters=parameter_names,
-        results=('sent heatmap', 'received heatmap'))
+        results=('captured', 'sent heatmap', 'received heatmap'))
 
     heatmap.Grapher(adaptive_graphs_directory, adaptive_results, 'sent heatmap').create()
     heatmap.Grapher(adaptive_graphs_directory, adaptive_results, 'received heatmap').create()
@@ -150,6 +150,9 @@ if 'all' in args or 'graph' in args:
 
     summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'sent heatmap'), 'adaptive-SentHeatMap').run()
     summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'received heatmap'), 'adaptive-ReceivedHeatMap').run()
+
+    versus.Grapher(adaptive_graphs_directory, adaptive_results, 'captured-v-source-period',
+        xaxis='size', yaxis='captured', vary='source period').create()
 
 if 'all' in args or 'table' in args:
     adaptive_results = results.Results(adaptive_analysis_result_path,
