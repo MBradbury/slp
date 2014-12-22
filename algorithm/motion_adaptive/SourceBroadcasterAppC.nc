@@ -70,4 +70,8 @@ implementation
 	components FakeMessageGeneratorP;
 
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
+
+	components ObjectDetectorP;
+
+	App.ObjectDetector -> ObjectDetectorP;
 }
