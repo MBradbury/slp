@@ -138,7 +138,7 @@ event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t le
 }
 
 #define METRIC_RCV(TYPE, DURATION) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number, DURATION)
+	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->source_id, rcvd->sequence_number, DURATION)
 
 #define METRIC_BCAST(TYPE, STATUS) \
 	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, (tosend != NULL) ? tosend->sequence_number : (uint32_t)-1)
@@ -501,7 +501,7 @@ implementation
 		message.source_distance = 0;
 		message.max_hop = first_source_distance;
 		message.source_id = TOS_NODE_ID;
-		message.sink_source_distance = sink_source_distance;
+		message.sink_source_distance = sink_distance;
 
 		if (send_Normal_message(&message))
 		{
@@ -516,6 +516,7 @@ implementation
 		message.sink_distance = 0;
 		message.sink_source_distance = sink_source_distance;
 		message.max_hop = sink_source_distance;
+		message.source_id = TOS_NODE_ID;
 		message.algorithm = ALGORITHM;
 
 		sequence_number_increment(&away_sequence_counter);
@@ -543,6 +544,19 @@ implementation
 			NormalMessage forwarding_message;
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+
+			// If the source has changed or this is the first time that we have received a Normal message
+			if (rcvd->source_id != source_node_id)
+			{
+				dbg_clear("Metric-SOURCE_CHANGE", "%u,%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
+
+				source_node_id = rcvd->source_id;
+
+				// Reset variables to the new values
+				source_distance = rcvd->source_distance + 1;
+				sink_source_distance = rcvd->sink_source_distance;
+			}
+
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
@@ -631,7 +645,8 @@ implementation
 
 			METRIC_RCV(Away, rcvd->sink_distance + 1);
 
-			sink_source_distance = minbot(sink_source_distance, rcvd->sink_distance + 1);
+			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+			sink_source_distance = minbot(sink_source_distance, sink_distance);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;

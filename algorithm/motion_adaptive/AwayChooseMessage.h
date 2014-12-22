@@ -15,6 +15,8 @@ typedef nx_struct AwayChooseMessage {
 
   nx_uint16_t max_hop;
 
+  nx_uint16_t source_id;
+
   nx_uint8_t algorithm;
 
 } AwayChooseMessage;
