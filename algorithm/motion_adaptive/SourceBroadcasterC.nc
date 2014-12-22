@@ -170,6 +170,7 @@ module SourceBroadcasterC
 	uses interface Receive as FakeReceive;
 
 	uses interface FakeMessageGenerator;
+	uses interface ObjectDetector;
 }
 
 implementation
@@ -431,10 +432,7 @@ implementation
 		{
 			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			if (type == SourceNode)
-			{
-				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
-			}
+			call ObjectDetector.start();
 		}
 		else
 		{
@@ -447,6 +445,23 @@ implementation
 	event void RadioControl.stopDone(error_t err)
 	{
 		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+	}
+
+	event void ObjectDetector.detect()
+	{
+		type = SourceNode;
+
+		call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
+	}
+
+	event void ObjectDetector.stoppedDetecting()
+	{
+		if (type == SourceNode)
+		{
+			call BroadcastNormalTimer.stop();
+
+			type = NormalNode;
+		}
 	}
 
 	SEND_MESSAGE(Normal);
