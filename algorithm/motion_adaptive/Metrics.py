@@ -2,6 +2,8 @@ from __future__ import print_function
 
 import sys, re
 
+from collections import Counter
+
 from simulator.Simulator import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
@@ -25,9 +27,32 @@ class Metrics(MetricsCommon):
         self.sim.tossim.addChannel('Fake-Notification', self.FAKE_NOTIFICATION.write)
         self.sim.addOutputProcessor(self.FAKE_NOTIFICATION)
 
+        self.SOURCE_CHANGE = OutputCatcher(self.process_SOURCE_CHANGE)
+        self.sim.tossim.addChannel('Metric-SOURCE_CHANGE', self.SOURCE_CHANGE.write)
+        self.sim.addOutputProcessor(self.SOURCE_CHANGE)
+
         self.tfsCreated = 0
         self.pfsCreated = 0
         self.fakeToNormal = 0
+
+    def process_RCV(self, line):
+        (kind, time, nodeID, neighbourSourceID, ultimateSourceID, seqNo, hopCount) = line.split(',')
+
+        time = float(time) / self.sim.tossim.ticksPerSecond()
+        nodeID = int(nodeID)
+        neighbourSourceID = int(neighbourSourceID)
+        ultimateSourceID = int(ultimateSourceID)
+        seqNo = int(seqNo)
+        hopCount = int(hopCount)
+
+        if kind not in self.received:
+            self.received[kind] = Counter()
+
+        self.received[kind][nodeID] += 1
+
+        if nodeID == self.sinkID and kind == "Normal":
+            self.normalLatency[seqNo] = time - self.normalSentTime[seqNo]
+            self.normalHopCount.append(hopCount)
 
     def process_FAKE_NOTIFICATION(self, line):
         match = self.WHOLE_RE.match(line)
@@ -49,6 +74,22 @@ class Metrics(MetricsCommon):
                 self.fakeToNormal += 1
             else:
                 raise RuntimeError("Unknown kind {}".format(kind))
+
+    def process_SOURCE_CHANGE(self, line):
+        (time, nodeID, previousSourceID, currentSourceID) = line.split(',')
+
+        time = float(time) / self.sim.tossim.ticksPerSecond()
+        nodeID = int(nodeID)
+        previousSourceID = int(previousSourceID)
+        currentSourceID = int(currentSourceID)
+
+        # TODO: proper metrics for this information
+        # Ideas:
+        # - Delay between a source change and a node detecting it
+        #
+        #
+        print("On {} source changes from {} to {}".format(nodeID, previousSourceID, currentSourceID))
+
 
     @staticmethod
     def items():
