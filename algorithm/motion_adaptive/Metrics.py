@@ -27,9 +27,15 @@ class Metrics(MetricsCommon):
         self.sim.tossim.addChannel('Fake-Notification', self.FAKE_NOTIFICATION.write)
         self.sim.addOutputProcessor(self.FAKE_NOTIFICATION)
 
+        # Normal nodes becoming the source, or source nodes becoming normal
         self.SOURCE_CHANGE = OutputCatcher(self.process_SOURCE_CHANGE)
         self.sim.tossim.addChannel('Metric-SOURCE_CHANGE', self.SOURCE_CHANGE.write)
         self.sim.addOutputProcessor(self.SOURCE_CHANGE)
+
+        # Non-source nodes detecting the source has changed
+        self.SOURCE_CHANGE_DETECT = OutputCatcher(self.process_SOURCE_CHANGE_DETECT)
+        self.sim.tossim.addChannel('Metric-SOURCE_CHANGE_DETECT', self.SOURCE_CHANGE_DETECT.write)
+        self.sim.addOutputProcessor(self.SOURCE_CHANGE_DETECT)
 
         self.tfsCreated = 0
         self.pfsCreated = 0
@@ -75,7 +81,7 @@ class Metrics(MetricsCommon):
             else:
                 raise RuntimeError("Unknown kind {}".format(kind))
 
-    def process_SOURCE_CHANGE(self, line):
+    def process_SOURCE_CHANGE_DETECT(self, line):
         (time, nodeID, previousSourceID, currentSourceID) = line.split(',')
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
@@ -89,6 +95,9 @@ class Metrics(MetricsCommon):
         #
         #
         print("On {} source changes from {} to {}".format(nodeID, previousSourceID, currentSourceID))
+
+    def process_SOURCE_CHANGE(self, line):
+        print(line)
 
 
     @staticmethod

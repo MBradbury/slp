@@ -414,11 +414,7 @@ implementation
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
 
-		if (TOS_NODE_ID == SOURCE_NODE_ID)
-		{
-			type = SourceNode;
-		}
-		else if (TOS_NODE_ID == SINK_NODE_ID)
+		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
 		}
@@ -449,6 +445,8 @@ implementation
 
 	event void ObjectDetector.detect()
 	{
+		dbg("Metric-SOURCE_CHANGE", "become source\n");
+
 		type = SourceNode;
 
 		call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
@@ -461,6 +459,8 @@ implementation
 			call BroadcastNormalTimer.stop();
 
 			type = NormalNode;
+
+			dbg("Metric-SOURCE_CHANGE", "was source, now normal\n");
 		}
 	}
 
@@ -563,7 +563,7 @@ implementation
 			// If the source has changed or this is the first time that we have received a Normal message
 			if (rcvd->source_id != source_node_id)
 			{
-				dbg_clear("Metric-SOURCE_CHANGE", "%u,%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
+				dbg_clear("Metric-SOURCE_CHANGE_DETECT", "%u,%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
 
 				source_node_id = rcvd->source_id;
 
