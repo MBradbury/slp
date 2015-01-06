@@ -11,7 +11,13 @@ class ResultTable(BaseResultTable):
         if base_results.parameter_names != comparison_results.parameter_names:
             raise RuntimeError("Parameter names are not the same")
 
+        if base_results.result_names != comparison_results.result_names:
+            raise RuntimeError("Result names are not the same")
+
         super(ResultTable, self).__init__(base_results, comparison_results)
+
+        self.parameter_names = base_results.parameter_names
+        self.result_names = base_results.result_names
 
     def _create_diff(self):
         def sub(b, c):
@@ -26,6 +32,7 @@ class ResultTable(BaseResultTable):
             return zip(diff, pdiff)
 
         self.diff = {}
+        self.data = {}
         self.configurations = set()
         self.sizes = set()
 
@@ -42,6 +49,11 @@ class ResultTable(BaseResultTable):
                         self.diff \
                             .setdefault((size, config), {}) \
                             .setdefault(comp_params, {}) \
+                            .setdefault(srcPeriod, {}) \
+                            [base_params] = sub(base_values, comp_values)
+
+                        self.data \
+                            .setdefault((size, config), {}) \
                             .setdefault(srcPeriod, {}) \
                             [base_params] = sub(base_values, comp_values)
 
