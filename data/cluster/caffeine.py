@@ -1,5 +1,8 @@
 import subprocess
 
+def url():
+    return "caffeine.dcs.warwick.ac.uk"
+
 def ppn():
     return 4
 
@@ -9,11 +12,13 @@ def builder():
 
 def copy_to():
     username = raw_input("Enter your Caffeine username: ")
-    subprocess.check_call("rsync -avz -e ssh --delete cluster {}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos".format(username), shell=True)
+    subprocess.check_call("rsync -avz -e ssh --delete cluster {}@{}:~/slp-algorithm-tinyos".format(
+        username, url()), shell=True)
 
 def copy_back(dirname):
     username = raw_input("Enter your Caffeine username: ")
-    subprocess.check_call("rsync -avz -e ssh {0}@caffeine.dcs.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/{1}/*.txt results/{1}".format(username, dirname), shell=True)
+    subprocess.check_call("rsync -avz -e ssh {0}@{1}:~/slp-algorithm-tinyos/cluster/{2}/*.txt results/{2}".format(
+        username, url(), dirname), shell=True)
 
 def submitter():
     from data.run.driver.cluster_submitter import Runner as Submitter

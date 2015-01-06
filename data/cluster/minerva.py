@@ -1,5 +1,8 @@
 import os, subprocess
 
+def url():
+    return "minerva.csc.warwick.ac.uk"
+
 def ppn():
     return 12
 
@@ -9,13 +12,13 @@ def builder():
 
 def copy_to():
     username = raw_input("Enter your Minerva username: ")
-    subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" --delete cluster {1}@minerva.csc.warwick.ac.uk:~/slp-algorithm-tinyos".format(
-        os.environ['HOME'], username), shell=True)
+    subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" --delete cluster {1}@{2}:~/slp-algorithm-tinyos".format(
+        os.environ['HOME'], username, url()), shell=True)
 
 def copy_back(dirname):
     username = raw_input("Enter your Minerva username: ")
-    subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" {1}@minerva.csc.warwick.ac.uk:~/slp-algorithm-tinyos/cluster/{2}/*.txt results/{2}".format(
-        os.environ['HOME'], username, dirname), shell=True)
+    subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" {1}@{2}:~/slp-algorithm-tinyos/cluster/{3}/*.txt results/{3}".format(
+        os.environ['HOME'], username, url(), dirname), shell=True)
 
 def submitter():
     from data.run.driver.cluster_submitter import Runner as Submitter

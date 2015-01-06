@@ -1,5 +1,8 @@
 import subprocess
 
+def url():
+    return None
+
 def ppn():
     return 1
 
