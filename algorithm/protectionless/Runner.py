@@ -1,4 +1,4 @@
-import os, itertools
+import os, itertools, uuid
 
 from collections import OrderedDict
 
@@ -38,7 +38,8 @@ class RunSimulations(RunSimulationsCommon):
                     size,
                     source_period,
                     configuration,
-                    distance
+                    distance,
+                    str(uuid.uuid4()).replace("-", "_")
                 )
 
                 filename = os.path.join(
