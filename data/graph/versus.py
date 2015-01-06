@@ -6,7 +6,7 @@ from grapher import GrapherBase
 from data import latex
 
 class Grapher(GrapherBase):
-    def __init__(self, output_directory, results, result_name, xaxis, yaxis, vary):
+    def __init__(self, output_directory, results, result_name, xaxis, yaxis, vary, yextractor = lambda x: x):
 
         super(Grapher, self).__init__(output_directory)
 
@@ -16,6 +16,8 @@ class Grapher(GrapherBase):
         self.xaxis = xaxis
         self.yaxis = yaxis
         self.vary = vary
+
+        self.yextractor = yextractor
 
     def create(self):
 
@@ -42,7 +44,7 @@ class Grapher(GrapherBase):
 
                     key_names = ['size', 'configuration', 'source period'] + self.results.parameter_names
 
-                    print(key_names)
+                    #print(key_names)
 
                     values = [size, config, srcPeriod] + list(params)
 
@@ -52,9 +54,9 @@ class Grapher(GrapherBase):
                     key_names = tuple(key_names)
                     values = tuple(values)
 
-                    result = results[ self.results.result_names.index(self.yaxis) ]
+                    yvalue = results[ self.results.result_names.index(self.yaxis) ]
 
-                    data.setdefault((key_names, values), {})[(xvalue, vvalue)] = result
+                    data.setdefault((key_names, values), {})[(xvalue, vvalue)] = self.yextractor(yvalue)
 
         for ((key_names, key_values), values) in data.items():
             self._create_plot(key_names, key_values, values)
@@ -73,7 +75,7 @@ class Grapher(GrapherBase):
         with open(os.path.join(dirName, 'graph.dat'), 'w') as datFile:
 
             xvalues = list({x[0] for x in values.keys()})
-            vvalues = list({x[1] for x in values.keys()})
+            vvalues = list(sorted({x[1] for x in values.keys()}))
 
             table =  [ [ '#' ] + vvalues ]
 
@@ -108,7 +110,7 @@ class Grapher(GrapherBase):
             #if rangeY is not None:
             #    pFile.write('set yrange [{0}:{1}]\n'.format(rangeY[0], rangeY[1]))
             #else:
-            pFile.write('set yrange [0:*]\n')
+            pFile.write('set yrange [*:*]\n')
             pFile.write('set ytics auto\n')
             
             

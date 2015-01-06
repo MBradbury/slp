@@ -12,8 +12,8 @@ else:
 
 import algorithm.protectionless as protectionless
 
-from data.table import safety_period, comparison
-from data.graph import summary, heatmap
+from data.table import safety_period, comparison, direct_comparison
+from data.graph import summary, heatmap, versus
 from data import results, latex
 
 import numpy
@@ -150,7 +150,7 @@ if 'ccpe-comparison-table' in args:
         parameters=parameter_names,
         results=('time taken', 'received ratio', 'safety period'))
 
-    result_table = comparison.ResultTable(old_results, protectionless_results)
+    result_table = direct_comparison.ResultTable(old_results, protectionless_results)
 
     def create_comparison_table(name, param_filter=lambda x: True):
         filename = name + ".tex"
@@ -163,3 +163,31 @@ if 'ccpe-comparison-table' in args:
         latex.compile(filename)
 
     create_comparison_table('protectionless-ccpe-comparison')
+
+if 'ccpe-comparison-graph' in args:
+    from data.old_results import OldResults
+
+    result_names = ('time taken', 'received ratio', 'safety period')
+
+    old_results = OldResults('results/CCPE/protectionless-results.csv',
+        parameters=parameter_names,
+        results=result_names)
+
+    protectionless_results = results.Results(analysis_result_path,
+        parameters=parameter_names,
+        results=result_names)
+
+    result_table = direct_comparison.ResultTable(old_results, protectionless_results)
+
+    def create_ccpe_comp_versus(yxaxis, pc=False):
+        name = 'ccpe-comp-{}-{}'.format(yxaxis, "pcdiff" if pc else "diff")
+
+        versus.Grapher(graphs_directory, result_table, name,
+            xaxis='size', yaxis=yxaxis, vary='source period',
+            yextractor=lambda (diff, pcdiff): pcdiff if pc else diff).create()
+
+        summary.GraphSummary(os.path.join(graphs_directory, name), 'protectionless-{}'.format(name).replace(" ", "_")).run()
+
+    for result_name in result_names:
+        create_ccpe_comp_versus(result_name, pc=True)
+        create_ccpe_comp_versus(result_name, pc=False)
