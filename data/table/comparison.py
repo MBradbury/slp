@@ -25,18 +25,29 @@ class ResultTable(BaseResultTable):
 
         self._create_diff()
 
+    def _sub(self, base_values, comp_values):
+        def relative_change(old_value, new_value):
+            old_value = float(old_value)
+            new_value = float(new_value)
+
+            change = new_value - old_value
+            try:
+                divisor = abs(old_value)
+                return (change / divisor) * 100.0
+            except ZeroDivisionError:
+                return None
+
+        # Get the mean of a (mean, stddev) pair if the value is an array.
+        # Otherwise just use the value.
+        base_values = [x[0] if isinstance(x, numpy.ndarray) else x for x in base_values]
+        comp_values = [x[0] if isinstance(x, numpy.ndarray) else x for x in comp_values]
+
+        diff = numpy.subtract(comp_values, base_values)
+        reldiff = numpy.array([relative_change(x, y) for (x, y) in zip(base_values, comp_values)])
+
+        return zip(diff, reldiff)
+
     def _create_diff(self):
-        def sub(b, c):
-            # Get the mean of a (mean, stddev) pair if the value is an array.
-            # Otherwise just use the value.
-            b = [x[0] if isinstance(x, numpy.ndarray) else x for x in b]
-            c = [x[0] if isinstance(x, numpy.ndarray) else x for x in c]
-
-            diff = numpy.subtract(c, b)
-            pdiff = numpy.array([0 if x == 0 else x / y for (x, y) in zip(diff, numpy.add(c, b) * 0.5)]) * 100.0
-
-            return zip(diff, pdiff)
-
         self.diff = {}
         self.configurations = set()
         self.sizes = set()
@@ -51,7 +62,7 @@ class ResultTable(BaseResultTable):
                                 .setdefault((size, config), {}) \
                                 .setdefault(comp_params, {}) \
                                 .setdefault(srcPeriod, {}) \
-                                [base_params] = sub(base_values, comp_values)
+                                [base_params] = self._sub(base_values, comp_values)
 
                             self.configurations.add(config)
                             self.sizes.add(size)
@@ -120,22 +131,25 @@ class ResultTable(BaseResultTable):
             else:
                 return ResultTable.bad
 
+        def with_rel_diff(fn, value, fmt):
+            if value[1] is not None:
+                return ("${} " + fmt + "$ $({:+.0f}\\%)$").format(fn(value[0]), *value)
+            else:
+                return ("${} " + fmt + "$ $(\mathrm{{N/A}}\%)$").format(fn(value[0]), *value)
+
         if name == "tfs" or name == "pfs":
             return "${:+.1f}$".format(*value)
         elif name == "received ratio":
             return "${} {:+.1f}$".format(colour_pos(value[0]), *value)
-            # With percentage diff:
-            #return "${} {:+.1f}$ $({:+.0f}\\%)$".format(colour_pos(value[0]), *value)
-
         elif name == "fake":
-            return "${} {:+.0f}$ $({:+.0f}\\%)$".format(colour_neg(value[0]), *value)
+            return with_rel_diff(colour_neg, value, "{:+.0f}")
         elif name == "ssd":
             return "${} {:+.2f}$".format(colour_neg(value[0]), *value)
         elif name == "normal latency":
             return "${} {:+.2f}$".format(colour_neg(value[0]), value[0] * 1000, value[1])
         elif name == "captured":
-            return "${} {:+.2f}$ $({:+.0f}\\%)$".format(colour_neg(value[0]), *value)
+            return with_rel_diff(colour_neg, value, "{:+.2f}")
         elif name == "time taken" or name == "safety period":
-            return "${} {:+.2f}$ $({:+.0f}\\%)$".format(colour_neg(value[0]), *value)
+            return with_rel_diff(colour_neg, value, "{:+.2f}")
         else:
             return super(ResultTable, self)._var_fmt(name, value)
