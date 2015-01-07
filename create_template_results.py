@@ -14,7 +14,7 @@ import algorithm.protectionless as protectionless
 import algorithm.template as template
 
 from data.table import safety_period, fake_result, direct_comparison
-from data.graph import summary, heatmap, versus, bar
+from data.graph import summary, heatmap, versus, bar, grouped_bar
 from data import results, latex
 
 import numpy
@@ -244,3 +244,14 @@ if 'ccpe-comparison-graph' in args:
     for result_name in results_to_compare:
         create_ccpe_comp_bar(result_name, pc=True)
         create_ccpe_comp_bar(result_name, pc=False)
+
+    def create_ccpe_comp_bar_pcdiff():
+        name = 'ccpe-comp-pcdiff'
+
+        grouped_bar.Grapher(template_graphs_directory, result_table, name,
+            shows=results_to_compare,
+            extractor=lambda (diff, pcdiff): pcdiff).create()
+
+        summary.GraphSummary(os.path.join(template_graphs_directory, name), 'template-{}'.format(name).replace(" ", "_")).run()
+
+    create_ccpe_comp_bar_pcdiff()
