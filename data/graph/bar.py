@@ -115,3 +115,31 @@ class Grapher(GrapherBase):
             captionFile.write('Parameters:\\newline\n')
             for (name, value) in zip(key_names, key_values):
                 captionFile.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
+
+class DiffGrapher(Grapher):
+    def create(self):
+        self._remove_existing(self.result_name)
+
+        print('Creating {} graph files'.format(self.result_name))
+
+        data = {}
+
+        for ((size, config), items1) in self.results.diff.items():
+            for (comp_params, items2) in items1.items():
+                for (srcPeriod, items3) in items2.items():
+                    for (params, results) in items3.items():
+
+                        key_names = tuple(['size', 'configuration', 'source period'] + self.results.comparison_results.parameter_names)
+                        key_values = tuple([size, config, srcPeriod] + list(comp_params))
+
+                        yvalues = []
+
+                        for show in self.shows:
+                            yvalues.append( self.extractor(results[ self.results.comparison_results.result_names.index(show) ]) )
+
+                        data.setdefault((key_names, key_values), {})[params] = yvalues
+
+        for ((key_names, key_values), values) in data.items():
+            self._create_plot(key_names, key_values, values)
+
+        self._create_graphs(self.result_name)
