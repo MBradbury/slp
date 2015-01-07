@@ -14,7 +14,7 @@ import algorithm.protectionless as protectionless
 import algorithm.template as template
 
 from data.table import safety_period, fake_result, direct_comparison
-from data.graph import summary, heatmap, versus
+from data.graph import summary, heatmap, versus, bar
 from data import results, latex
 
 import numpy
@@ -183,10 +183,10 @@ if 'all' in args or 'table' in args:
 
         latex.compile(filename)
 
-    create_template_table("template_results",
+    create_template_table("template-results",
         lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
 
-    create_template_table("template_results_low_prob",
+    create_template_table("template-results-low-prob",
         lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
 
 
@@ -216,3 +216,31 @@ if 'ccpe-comparison-table' in args:
         latex.compile(filename)
 
     create_comparison_table('template-ccpe-comparison')
+
+if 'ccpe-comparison-graph' in args:
+    from data.old_results import OldResults 
+
+    results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
+
+    old_results = OldResults('results/CCPE/template-results.csv',
+        parameters=parameter_names,
+        results=results_to_compare)
+
+    template_results = results.Results(template_analysis_result_path,
+        parameters=parameter_names,
+        results=results_to_compare)
+
+    result_table = direct_comparison.ResultTable(old_results, template_results)
+
+    def create_ccpe_comp_bar(show, pc=False):
+        name = 'ccpe-comp-{}-{}'.format(show, "pcdiff" if pc else "diff")
+
+        bar.Grapher(template_graphs_directory, result_table, name,
+            show=show,
+            extractor=lambda (diff, pcdiff): pcdiff if pc else diff).create()
+
+        summary.GraphSummary(os.path.join(template_graphs_directory, name), 'template-{}'.format(name).replace(" ", "_")).run()
+
+    for result_name in results_to_compare:
+        create_ccpe_comp_bar(result_name, pc=True)
+        create_ccpe_comp_bar(result_name, pc=False)

@@ -171,7 +171,7 @@ if 'all' in args or 'table' in args:
 
         latex.compile(filename)
 
-    create_adaptive_table("adaptive_results")
+    create_adaptive_table("adaptive-results")
 
 if 'all' in args or 'comparison-table' in args:
 
@@ -197,8 +197,8 @@ if 'all' in args or 'comparison-table' in args:
 
         latex.compile(filename)
 
-    create_comparison_table("comparison_template_adaptive_results",
+    create_comparison_table("adaptive-template-comparison",
         lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
 
-    create_comparison_table("comparison_template_adaptive_results_low_prob",
+    create_comparison_table("adaptive-template-comparison-low-prob",
         lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})

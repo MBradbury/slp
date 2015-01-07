@@ -111,7 +111,7 @@ if 'all' in args or 'table' in args:
     safety_period_table_generator = safety_period.TableGenerator()
     safety_period_table_generator.analyse(os.path.join(results_directory, analysis_result_file))
 
-    safety_period_table_path = 'safety_period_table.tex'
+    safety_period_table_path = 'protectionless-results.tex'
 
     with open(safety_period_table_path, 'w') as latex_safety_period_tables:
         latex.print_header(latex_safety_period_tables)
