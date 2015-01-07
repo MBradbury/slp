@@ -15,7 +15,7 @@ import algorithm.template as template
 import algorithm.adaptive as adaptive
 
 from data.table import safety_period, fake_result, comparison
-from data.graph import summary, heatmap, versus
+from data.graph import summary, heatmap, versus, bar
 
 from data import results, latex
 
@@ -122,19 +122,19 @@ if 'cluster' in args:
 
     sys.exit(0)
 
-if 'all' in args or 'run' in args:
+if 'run' in args:
     from data.run.driver import local as LocalDriver
 
     run(LocalDriver.Runner(), True)
 
-if 'all' in args or 'analyse' in args:
+if 'analyse' in args:
     prelim_analyzer = adaptive.Analysis.Analyzer(adaptive_results_directory)
     prelim_analyzer.run(adaptive_analysis_result_file)
 
 adaptive_analysis_result_path = os.path.join(adaptive_results_directory, adaptive_analysis_result_file)
 template_analysis_result_path = os.path.join(template_results_directory, template_analysis_result_file)
 
-if 'all' in args or 'graph' in args:
+if 'graph' in args:
     adaptive_results = results.Results(adaptive_analysis_result_path,
         parameters=parameter_names,
         results=('captured', 'sent heatmap', 'received heatmap'))
@@ -154,7 +154,7 @@ if 'all' in args or 'graph' in args:
     versus.Grapher(adaptive_graphs_directory, adaptive_results, 'captured-v-source-period',
         xaxis='size', yaxis='captured', vary='source period').create()
 
-if 'all' in args or 'table' in args:
+if 'table' in args:
     adaptive_results = results.Results(adaptive_analysis_result_path,
         parameters=parameter_names,
         results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
@@ -173,8 +173,7 @@ if 'all' in args or 'table' in args:
 
     create_adaptive_table("adaptive-results")
 
-if 'all' in args or 'comparison-table' in args:
-
+if 'comparison-table' in args:
     results_to_compare = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
     adaptive_results = results.Results(adaptive_analysis_result_path,
@@ -202,3 +201,41 @@ if 'all' in args or 'comparison-table' in args:
 
     create_comparison_table("adaptive-template-comparison-low-prob",
         lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
+
+
+if 'comparison-graph' in args:
+    results_to_compare = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
+
+    adaptive_results = results.Results(adaptive_analysis_result_path,
+        parameters=parameter_names,
+        results=results_to_compare)
+
+    template_results = results.Results(template_analysis_result_path,
+        parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
+        results=results_to_compare)
+
+    result_table = comparison.ResultTable(template_results, adaptive_results)
+
+    def create_comp_bar(show, pc=False):
+        name = 'template-comp-{}-{}'.format(show, "pcdiff" if pc else "diff")
+
+        bar.DiffGrapher(adaptive_graphs_directory, result_table, name,
+            shows=[show],
+            extractor=lambda (diff, pcdiff): pcdiff if pc else diff).create()
+
+        summary.GraphSummary(os.path.join(adaptive_graphs_directory, name), 'adaptive-{}'.format(name).replace(" ", "_")).run()
+
+    for result_name in results_to_compare:
+        create_comp_bar(result_name, pc=True)
+        create_comp_bar(result_name, pc=False)
+
+    def create_comp_bar_pcdiff():
+        name = 'template-comp-pcdiff'
+
+        bar.DiffGrapher(adaptive_graphs_directory, result_table, name,
+            shows=results_to_compare,
+            extractor=lambda (diff, pcdiff): pcdiff).create()
+
+        summary.GraphSummary(os.path.join(adaptive_graphs_directory, name), 'adaptive-{}'.format(name).replace(" ", "_")).run()
+
+    create_comp_bar_pcdiff()
