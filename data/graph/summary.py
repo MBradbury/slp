@@ -14,7 +14,7 @@ class GraphSummary:
     def _write_latex_header(self, stream):
         stream.write("\\documentclass{article}\n")
         stream.write("\\usepackage{fullpage}\n")
-        stream.write("\\usepackage[margin=0.25in,landscape]{geometry}\n")
+        stream.write("\\usepackage[margin=0.25in,portrait]{geometry}\n")
         stream.write("\\usepackage{boxedminipage}\n")
         stream.write("\\usepackage{subfig}\n")
         stream.write("\\usepackage{graphicx}\n")
