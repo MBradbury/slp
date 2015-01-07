@@ -69,8 +69,6 @@ class Grapher(GrapherBase):
 
             self._pprint_table(datFile, table)
 
-        columnCount = 2
-
 
         with open(os.path.join(dirName, 'graph.p'), 'w') as pFile:
 
