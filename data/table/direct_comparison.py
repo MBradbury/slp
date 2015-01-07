@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import numpy
-
 from comparison import ResultTable as BaseResultTable
 
 class ResultTable(BaseResultTable):
@@ -20,17 +18,6 @@ class ResultTable(BaseResultTable):
         self.result_names = base_results.result_names
 
     def _create_diff(self):
-        def sub(b, c):
-            # Get the mean of a (mean, stddev) pair if the value is an array.
-            # Otherwise just use the value.
-            b = [x[0] if isinstance(x, numpy.ndarray) else x for x in b]
-            c = [x[0] if isinstance(x, numpy.ndarray) else x for x in c]
-
-            diff = numpy.subtract(c, b)
-            pdiff = numpy.array([0 if x == 0 else x / y for (x, y) in zip(diff, numpy.add(c, b) * 0.5)]) * 100.0
-
-            return zip(diff, pdiff)
-
         self.diff = {}
         self.data = {}
         self.configurations = set()
@@ -50,12 +37,12 @@ class ResultTable(BaseResultTable):
                             .setdefault((size, config), {}) \
                             .setdefault(comp_params, {}) \
                             .setdefault(srcPeriod, {}) \
-                            [base_params] = sub(base_values, comp_values)
+                            [base_params] = self._sub(base_values, comp_values)
 
                         self.data \
                             .setdefault((size, config), {}) \
                             .setdefault(srcPeriod, {}) \
-                            [base_params] = sub(base_values, comp_values)
+                            [base_params] = self._sub(base_values, comp_values)
 
                         self.configurations.add(config)
                         self.sizes.add(size)
