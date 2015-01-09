@@ -135,24 +135,31 @@ adaptive_analysis_result_path = os.path.join(adaptive_results_directory, adaptiv
 template_analysis_result_path = os.path.join(template_results_directory, template_analysis_result_file)
 
 if 'graph' in args:
+    def extract(x):
+        if numpy.isscalar(x):
+            return x
+        else:
+            (val, stddev) = x
+            return val
+
+    versus_results = ['normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs']
+    heatmap_results = ['sent heatmap', 'received heatmap']
+
     adaptive_results = results.Results(adaptive_analysis_result_path,
         parameters=parameter_names,
-        results=('captured', 'sent heatmap', 'received heatmap'))
+        results=tuple(versus_results + heatmap_results))
 
-    heatmap.Grapher(adaptive_graphs_directory, adaptive_results, 'sent heatmap').create()
-    heatmap.Grapher(adaptive_graphs_directory, adaptive_results, 'received heatmap').create()
+    for name in heatmap_results:
+        heatmap.Grapher(adaptive_graphs_directory, adaptive_results, name).create()
+        summary.GraphSummary(os.path.join(adaptive_graphs_directory, name), 'adaptive-' + name.replace(" ", "_")).run()
 
-    # Don't need these as they are contained in the results file
-    #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
-    #    summary.GraphSummary(
-    #        os.path.join(adaptive_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
-    #        subdir).run()
+    for yaxis in versus_results:
+        name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
-    summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'sent heatmap'), 'adaptive-SentHeatMap').run()
-    summary.GraphSummary(os.path.join(adaptive_graphs_directory, 'received heatmap'), 'adaptive-ReceivedHeatMap').run()
+        versus.Grapher(adaptive_graphs_directory, adaptive_results, name,
+            xaxis='size', yaxis=yaxis, vary='source period', yextractor=extract).create()
 
-    versus.Grapher(adaptive_graphs_directory, adaptive_results, 'captured-v-source-period',
-        xaxis='size', yaxis='captured', vary='source period').create()
+        summary.GraphSummary(os.path.join(adaptive_graphs_directory, name), 'adaptive-' + name).run()
 
 if 'table' in args:
     adaptive_results = results.Results(adaptive_analysis_result_path,

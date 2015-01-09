@@ -110,7 +110,7 @@ class Grapher(GrapherBase):
             #if rangeY is not None:
             #    pFile.write('set yrange [{0}:{1}]\n'.format(rangeY[0], rangeY[1]))
             #else:
-            pFile.write('set yrange [*:*]\n')
+            pFile.write('set yrange [0:*]\n')
             pFile.write('set ytics auto\n')
             
             
