@@ -142,28 +142,31 @@ if 'all' in args or 'analyse' in args:
 template_analysis_result_path = os.path.join(template_results_directory, template_analysis_result_file)
 
 if 'all' in args or 'graph' in args:
+    def extract(x):
+        if numpy.isscalar(x):
+            return x
+        else:
+            (val, stddev) = x
+            return val
+
+    versus_results = ['normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs']
+    heatmap_results = ['sent heatmap', 'received heatmap']
+
     template_results = results.Results(template_analysis_result_path,
         parameters=parameter_names,
-        results=('captured', 'sent heatmap', 'received heatmap'))
+        results=tuple(versus_results + heatmap_results))
 
-    heatmap.Grapher(template_graphs_directory, template_results, 'sent heatmap').create()
-    heatmap.Grapher(template_graphs_directory, template_results, 'received heatmap').create()
+    for name in heatmap_results:
+        heatmap.Grapher(template_graphs_directory, template_results, name).create()
+        summary.GraphSummary(os.path.join(template_graphs_directory, name), 'template-' + name.replace(" ", "_")).run()
 
-    # Don't need these as they are contained in the results file
-    #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
-    #    summary.GraphSummary(
-    #        os.path.join(template_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
-    #        subdir).run()
-
-    summary.GraphSummary(os.path.join(template_graphs_directory, 'sent heatmap'), 'template-SentHeatMap').run()
-    summary.GraphSummary(os.path.join(template_graphs_directory, 'received heatmap'), 'template-ReceivedHeatMap').run()
-
-
-    versus.Grapher(template_graphs_directory, template_results, 'captured-v-psrc',
-        xaxis='size', yaxis='captured', vary='source period').create()
-
-    versus.Grapher(template_graphs_directory, template_results, 'captured-v-pr(tfs)',
-        xaxis='size', yaxis='captured', vary='pr(tfs)').create()
+    #for yaxis in versus_results:
+    #    name = '{}-v-fake-period'.format(yaxis.replace(" ", "_"))
+    #
+    #    versus.Grapher(template_graphs_directory, template_results, name,
+    #        xaxis='size', yaxis=yaxis, vary='fake period', yextractor=extract).create()
+    #
+    #    summary.GraphSummary(os.path.join(template_graphs_directory, name), 'template-' + name).run()
 
 
 if 'all' in args or 'table' in args:
