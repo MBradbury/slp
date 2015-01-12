@@ -36,6 +36,8 @@ class Arguments:
 		parser.add_argument("--job-size", type=int, default=1)
 		parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
 
+		parser.add_argument("-v", "--verbose", action="store_true")
+
 		self.parser = parser
 
 	def parse(self, argv):
@@ -43,10 +45,17 @@ class Arguments:
 		return self.args
 
 	def getBuildArguments(self):
-		return {
+		result = {}
+
+		if self.args.verbose:
+			result.update(SLP_VERBOSE_DEBUG=1)
+
+		result.update({
 			"SOURCE_PERIOD_MS": int(self.args.source_period * 1000),
 			"TIME_TO_SEND_MS": int(self.args.time_to_send * 1000),
 			"RECEIVE_RATIO": str(self.args.receive_ratio),
 			"APPROACH": self.args.approach,
 			self.args.approach: 1,
-		}
+		})
+
+		return result

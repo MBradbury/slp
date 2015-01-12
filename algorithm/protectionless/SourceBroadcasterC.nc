@@ -6,7 +6,7 @@
 #include <TinyError.h>
 
 #ifdef SLP_VERBOSE_DEBUG
-#	define dbgverbose(...) dbg(...)
+#	define dbgverbose(...) dbg(__VA_ARGS__)
 #else
 #	define dbgverbose(...)
 #endif
