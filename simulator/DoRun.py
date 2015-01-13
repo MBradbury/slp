@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import sys, importlib
 
-from simulator.Attacker import Attacker
+import simulator.Attacker as Attacker
 from simulator.Builder import build
 import simulator.Configuration as Configuration
 from simulator.Simulation import Simulation
@@ -23,7 +23,9 @@ configuration = Configuration.Create(a.args.configuration, a.args)
 
 with Simulation(module, configuration, a.args) as sim:
 
-	sim.addAttacker(Attacker(sim, configuration.sourceId, configuration.sinkId))
+	AttackerClass = getattr(Attacker, a.args.attacker_model)
+
+	sim.addAttacker(AttackerClass(sim, configuration.sourceId, configuration.sinkId))
 
 	if a.args.mode == "GUI":
 		sim.setupGUI()

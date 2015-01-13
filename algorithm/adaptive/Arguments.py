@@ -1,5 +1,6 @@
 import argparse, multiprocessing
 import simulator.Configuration as Configuration
+import simulator.Attacker as Attacker
 
 def restricted_float(x):
 	x = float(x)
@@ -32,6 +33,8 @@ class Arguments:
 		parser.add_argument("--distance", type=float, required=True)
 
 		parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
+
+		parser.add_argument("--attacker-model", type=str, choices=Attacker.models(), default=Attacker.default())
 
 		parser.add_argument("--job-size", type=int, default=1)
 		parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
