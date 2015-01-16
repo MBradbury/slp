@@ -18,6 +18,9 @@ class Configuration:
         if self.sourceId >= len(self.topology.nodes):
             raise Exception("There are not enough nodes ({}) to have a source id of {}".format(len(self.topology.nodes), self.source))
 
+        self.connectivity_matrix = None
+        self.sp = None
+
     def getBuildArguments(self):
         build_arguments = {
             "SOURCE_NODE_ID": self.sourceId,
@@ -42,13 +45,16 @@ class Configuration:
             from scipy.sparse import csr_matrix
             from scipy.sparse.csgraph import shortest_path
 
-            self.connectivity_matrix = numpy.zeros((self.size, self.size))
+            self.connectivity_matrix = numpy.zeros((self.size(), self.size()))
 
-            for (y, x) in itertools.product(xrange(self.size), xrange(self.size)):
+            for (y, x) in itertools.product(xrange(self.size()), xrange(self.size())):
                 self.connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
             self.connectivity_matrix = csr_matrix(self.connectivity_matrix)
 
             self.sp = shortest_path(self.connectivity_matrix)
+
+    def size(self):
+        return len(self.topology.nodes)
 
     def is_connected(self, i, j):
         nodes = self.topology.nodes
