@@ -6,16 +6,16 @@ import math
 
 from simulator.Configuration import *
 
-class Calculator:
+class Calculator(object):
 
 	# The time it takes for one message to be sent from
 	# one node to another in seconds.
 	alpha = 0.0051
 
-	def __init__(self, configuration, source_period, num_fake_to_send):
+	def __init__(self, configuration, source_period, receive_ratio):
 		self.configuration = configuration
 		self.source_period = float(source_period)
-		self.num_fake_to_send = int(num_fake_to_send)
+		self.receive_ratio = float(receive_ratio)
 
 	def one_hop_neighbours(self, node):
 		return self.configuration.one_hop_neighbours(node)
@@ -50,7 +50,7 @@ class Calculator:
 		return self.send_time_Normal_Source(1) + self.alpha * self.ssd() + self.source_period / 2.0
 
 	def rcv_time_Away_Normal(self, node):
-		"""The time at which the given node will receive the Away message"""
+		"""The earliest time at which the given node will receive the Away message"""
 		return self.send_time_Away_Sink() + self.alpha * self.node_sink_distance(node)
 
 
@@ -71,21 +71,33 @@ class Calculator:
 	def num_Normal_sent_at_become_TFS(self, node):
 		return math.ceil(self.become_TFS_time(node) / self.source_period)
 
-
-	def tfs_Fake_to_send(self, node):
-		if self.node_sink_distance(node) == 1:
-			return self.node_sink_distance(node) + (self.ssd() - self.attacker_source_distance(self.num_Normal_sent_at_become_TFS(node)))
-		else:
-			return self.num_fake_to_send
+	def tfs_Fake_to_send_upper_bound(self, node):
+		return self.node_sink_distance(node) + self.ssd() - self.attacker_source_distance(self.num_Normal_sent_at_become_TFS(node))
 
 	def tfs_period(self, node):
 		return self.tfs_duration(node) / self.tfs_Fake_to_send(node)
 
 	def tfs_duration(self, node):
 		return self.rcv_time_Normal_Attacker(self.num_Normal_sent_at_become_TFS(node) + 1) - self.become_TFS_time(node) - self.alpha
-		#return self.source_period - 2.0 * self.alpha * self.node_sink_distance(node)
 
-calc = Calculator(CreateSourceCorner(11, 4.5), source_period=1, num_fake_to_send=4)
+	def tfs_duration_simple(self, node):
+		if self.node_sink_distance(node) == 1:
+			return self.source_period / 2.0 - 3 * self.alpha
+		else:
+			return self.source_period - 2 * self.alpha
+
+	def pfs_period(self, node):
+		return max(3 * self.alpha, self.receive_ratio ** (self.node_sink_distance(node) / self.ssd()))
+
+class TwiddleCalculator(Calculator):
+	def tfs_Fake_to_send(self, node):
+		return max(1, self.node_source_distance(node) - self.ssd())
+
+class IntuitionCalculator(Calculator):
+	def tfs_Fake_to_send(self, node):
+		return max(1, 2 * self.node_sink_distance(node))
+
+calc = TwiddleCalculator(CreateSourceCorner(11, 4.5), source_period=1, receive_ratio=0.65)
 
 print(calc.configuration)
 print(calc.configuration.topology.nodes)
@@ -98,9 +110,16 @@ print("Times 1HopN(sink) rcv Away:")
 for one_hop_neighbour in calc.one_hop_neighbours(calc.configuration.sinkId):
 	print("\t{}: {}".format(one_hop_neighbour, calc.rcv_time_Away_Normal(one_hop_neighbour)))
 
-for n in xrange(calc.configuration.sinkId + 1, calc.configuration.sinkId + 5):
+def print_node_details(n):
 	print("Node {}:".format(n))
 	print("\tBecome TFS time is {}".format(calc.become_TFS_time(n)))
-	print("\tNumber of Fake to send = {}".format(calc.tfs_Fake_to_send(n)))
+	print("\t# Fake Upper    is {}".format(calc.tfs_Fake_to_send_upper_bound(n)))
+	print("\t# Fake          is {}".format(calc.tfs_Fake_to_send(n)))
 	print("\tDuration        is {}".format(calc.tfs_duration(n)))
-	print("\tPeriod          is {}".format(calc.tfs_period(n)))
+	print("\tSimpleDuration  is {}".format(calc.tfs_duration_simple(n)))
+	print("\tTFSPeriod       is {}".format(calc.tfs_period(n)))
+	print("\tPFSPeriod       is {}".format(calc.pfs_period(n)))
+	print("")
+
+for n in xrange(calc.configuration.sinkId + 1, calc.configuration.sinkId + calc.configuration.topology.size + 1):
+	print_node_details(n)
