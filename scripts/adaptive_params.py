@@ -17,6 +17,8 @@ class Calculator(object):
 		self.source_period = float(source_period)
 		self.receive_ratio = float(receive_ratio)
 
+		self.away_delay = self.source_period / 2
+
 	def one_hop_neighbours(self, node):
 		return self.configuration.one_hop_neighbours(node)
 
@@ -47,7 +49,7 @@ class Calculator(object):
 	def send_time_Away_Sink(self):
 		"""The time at which the sink bcasts the Away message"""
 		# The code waits for Psrc / 2 seconds before sending the away message
-		return self.send_time_Normal_Source(1) + self.alpha * self.ssd() + self.source_period / 2.0
+		return self.send_time_Normal_Source(1) + self.alpha * self.ssd() + self.away_delay
 
 	def rcv_time_Away_Normal(self, node):
 		"""The earliest time at which the given node will receive the Away message"""
@@ -82,7 +84,7 @@ class Calculator(object):
 
 	def tfs_duration_simple(self, node):
 		if self.node_sink_distance(node) == 1:
-			return self.source_period / 2.0 - 3 * self.alpha
+			return self.source_period - self.away_delay - 3 * self.alpha
 		else:
 			return self.source_period - 2 * self.alpha
 
