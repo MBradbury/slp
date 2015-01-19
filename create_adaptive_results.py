@@ -62,9 +62,6 @@ configurations = [
 
 approaches = [ "TWIDDLE_APPROACH", "INTUITION_APPROACH" ]
 
-# 6 milliseconds
-alpha = 0.006
-
 repeats = 300
 
 parameter_names = ('approach',)
@@ -87,15 +84,14 @@ def touch(fname, times=None):
 create_dirtree(adaptive_results_directory)
 create_dirtree(adaptive_graphs_directory)
 
-def run(driver, skip_completed_simulations):
+def run(driver, results_directory, skip_completed_simulations):
     safety_period_table_generator = safety_period.TableGenerator()
     safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
 
     safety_periods = safety_period_table_generator.safety_periods()
-    receive_ratios = safety_period_table_generator.receive_ratios()
 
-    runner = adaptive.Runner.RunSimulations(driver, cluster_directory, safety_periods, receive_ratios, skip_completed_simulations)
-    runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, alpha, repeats)
+    runner = adaptive.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
+    runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, repeats)
 
 if 'cluster' in args:
     cluster_directory = "cluster/adaptive"
@@ -109,13 +105,13 @@ if 'cluster' in args:
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
         
-        run(cluster.builder(), False)
+        run(cluster.builder(), cluster_directory, False)
 
     if 'copy' in args:
         cluster.copy_to()
 
     if 'submit' in args:
-        run(cluster.submitter(), False)
+        run(cluster.submitter(), cluster_directory, False)
 
     if 'copy-back' in args:
         cluster.copy_back("adaptive")
@@ -125,7 +121,7 @@ if 'cluster' in args:
 if 'run' in args:
     from data.run.driver import local as LocalDriver
 
-    run(LocalDriver.Runner(), True)
+    run(LocalDriver.Runner(), adaptive_results_directory, True)
 
 if 'analyse' in args:
     prelim_analyzer = adaptive.Analysis.Analyzer(adaptive_results_directory)
