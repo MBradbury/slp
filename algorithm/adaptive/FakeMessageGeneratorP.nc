@@ -13,10 +13,8 @@ implementation
 	FakeMessageGenerator = App;
 
 	components
-		new TimerMilliC() as SendFakeTimerInitial,
 		new TimerMilliC() as SendFakeTimer;
 
-	App.SendFakeTimerInitial -> SendFakeTimerInitial;
 	App.SendFakeTimer -> SendFakeTimer;
 
 	components new TimerMilliC() as DurationTimer;

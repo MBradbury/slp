@@ -13,8 +13,8 @@ class Attacker(object):
         self.sourceId = sourceId
         self.position = None
 
+        self.moves = 0
         self.move(startNodeId)
-
         self.moves = 0
 
     def foundSourceSlow(self):
