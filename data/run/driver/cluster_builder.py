@@ -1,5 +1,7 @@
 import os, importlib, shlex, shutil
 
+import data.util
+
 from simulator import Builder as LocalBuilder
 from simulator import Configuration, Simulation
 
@@ -13,7 +15,7 @@ class Runner:
         # Create the target directory
         target_directory = name[:-len(".txt")]
 
-        self.create_dirtree(target_directory)
+        data.util.create_dirtree(target_directory)
 
         # Parse options
         options = shlex.split(options)
@@ -29,9 +31,17 @@ class Runner:
 
         LocalBuilder.build(module_path, **build_args)
 
-        files_to_move = ["_TOSSIMmodule.so", "TOSSIM.py", "Analysis.py", "Arguments.py", "Runner.py", "Metrics.py", "__init__.py"]
-        for f in files_to_move:
-            shutil.copy(os.path.join(module_path, f), target_directory)
+        files_to_move = [
+            "_TOSSIMmodule.so",
+            "TOSSIM.py",
+            "Analysis.py",
+            "Arguments.py",
+            "Runner.py",
+            "Metrics.py",
+            "__init__.py"
+        ]
+        for name in files_to_move:
+            shutil.copy(os.path.join(module_path, name), target_directory)
 
         # Create the topology of this configuration
         print("Creating topology file")
@@ -40,11 +50,6 @@ class Runner:
 
     def mode(self):
         return "CLUSTER"
-
-    @staticmethod
-    def create_dirtree(path):
-        if not os.path.exists(path):
-            os.makedirs(path)
 
     @staticmethod
     def parse_arguments(module, argv):
