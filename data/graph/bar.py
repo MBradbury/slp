@@ -1,11 +1,13 @@
+from __future__ import print_function
 
 import os
 
+import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
-    def __init__(self, output_directory, results, result_name, shows, extractor = lambda x: x):
+    def __init__(self, output_directory, results, result_name, shows, extractor=lambda x: x):
         super(Grapher, self).__init__(output_directory)
 
         self.results = results
@@ -15,7 +17,8 @@ class Grapher(GrapherBase):
         self.extractor = extractor
 
     def create(self):
-        self._remove_existing(self.result_name)
+        print('Removing existing directories')
+        data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
         print('Creating {} graph files'.format(self.result_name))
 
@@ -46,7 +49,7 @@ class Grapher(GrapherBase):
         print(dir_name)
 
         # Ensure that the dir we want to put the files in actually exists
-        self._ensureDirExists(dir_name)
+        data.util.create_dirtree(dir_name)
 
         all_positive = True
 
@@ -116,7 +119,8 @@ class Grapher(GrapherBase):
 
 class DiffGrapher(Grapher):
     def create(self):
-        self._remove_existing(self.result_name)
+        print('Removing existing directories')
+        data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
         print('Creating {} graph files'.format(self.result_name))
 

@@ -3,14 +3,14 @@ import os, sys, fnmatch
 
 class RunSimulationsCommon(object):
     optimisations = '-OO'
-    
+
     def __init__(self, driver, results_directory, skip_completed_simulations=True):
         self.driver = driver
         self.results_directory = results_directory
         self.skip_completed_simulations = skip_completed_simulations
 
         if not os.path.exists(self.results_directory):
-            raise Exception("{} is not a directory".format(self.results_directory))
+            raise RuntimeError("{} is not a directory".format(self.results_directory))
 
         self.existing_results = {}
 
@@ -22,19 +22,19 @@ class RunSimulationsCommon(object):
 
         for infile in files:
             with open(os.path.join(self.results_directory, infile)) as f:
-            
+
                 fileopts = {}
 
                 seen_hash = False
                 results_count = 0
-            
+
                 for line in f:
                     if '=' in line:
                         # We are reading the options so record them
                         opt = line.split('=')
 
                         fileopts[opt[0].strip()] = opt[1].strip()
-                        
+
                     elif line.startswith('#'):
                         seen_hash = True
 
@@ -42,7 +42,6 @@ class RunSimulationsCommon(object):
                     if seen_hash and '|' in line and not line.startswith('#'):
                         results_count += 1
 
-                
                 if len(fileopts) != 0:
                     key = tuple([fileopts[name] for name in names])
                     value = (int(fileopts['job_size']), results_count)

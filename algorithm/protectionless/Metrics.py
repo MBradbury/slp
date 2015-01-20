@@ -21,7 +21,7 @@ class Metrics(MetricsCommon):
         (kind, time, nodeID, status, seqNo) = line.split(',')
 
         if kind != "Normal":
-            raise Exception("Unknown message type of {}".format(kind))
+            raise RuntimeError("Unknown message type of {}".format(kind))
 
         super(Metrics, self).process_BCAST(line)
 
@@ -30,7 +30,7 @@ class Metrics(MetricsCommon):
         (kind, time, nodeID, sourceID, seqNo, hopCount) = line.split(',')
 
         if kind != "Normal":
-            raise Exception("Unknown message type of {}".format(kind))
+            raise RuntimeError("Unknown message type of {}".format(kind))
 
         super(Metrics, self).process_RCV(line)
 

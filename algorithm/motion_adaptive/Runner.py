@@ -14,7 +14,7 @@ class RunSimulations(RunSimulationsCommon):
             self._check_existing_results(['network_size', 'source_period', 'approach', 'configuration'])
     
         if not os.path.exists(exe_path):
-            raise Exception("The file {} doesn't exist".format(exe_path))
+            raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
         for (size, source_period, approach, (configuration, algorithm)) in itertools.product(sizes, source_periods, approaches, configurations):
             if not self._already_processed(repeats, size, source_period, approach, configuration):

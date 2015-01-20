@@ -1,6 +1,8 @@
+from __future__ import print_function
 
 import os
 
+import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
 
@@ -14,7 +16,8 @@ class Grapher(GrapherBase):
         self.result_index = results.result_names.index(result_name)
 
     def create(self):
-        self._remove_existing(self.result_name)
+        print('Removing existing directories')
+        data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
         print('Creating {} graph files'.format(self.result_name))
 
@@ -44,7 +47,7 @@ class Grapher(GrapherBase):
 
         # Ensure that the dir we want to put the files in
         # actually exists
-        self._ensureDirExists(dir_name)
+        data.util.create_dirtree(dir_name)
 
         # Convert to the array
         array = [0] * (size * size)

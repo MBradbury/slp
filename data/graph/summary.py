@@ -1,5 +1,8 @@
+from __future__ import print_function
+
 import os
 
+import data.util
 from data import latex
 
 class GraphSummary:
@@ -71,10 +74,7 @@ class GraphSummary:
     def clean(self):
         extensions = ['.pdf', '.tex']
         for extension in extensions:
-            try:
-                os.remove(self.name + extension)
-            except:
-                pass
+            data.util.silent_remove(self.name + extension)
 
     def run(self):
         self.graph_count = 0

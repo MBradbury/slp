@@ -6,9 +6,11 @@ class Grid:
         self.size = size
         self.distance = distance
 
-        self.nodes = [(float(x * distance + initial_position), float(y * distance + initial_position))
+        self.nodes = [
+            (float(x * distance + initial_position), float(y * distance + initial_position))
             for y in xrange(size)
-            for x in xrange(size)]
+            for x in xrange(size)
+        ]
 
         self.centre_node = self.nodes[(len(self.nodes) - 1) / 2]
 
@@ -21,9 +23,11 @@ class Circle:
         self.diameter = self.diameter_in_hops * distance
         self.distance = distance
 
-        self.nodes = [(float(x * distance + initial_position), float(y * distance + initial_position))
+        self.nodes = [
+            (float(x * distance + initial_position), float(y * distance + initial_position))
             for y in xrange(diameter)
-            for x in xrange(diameter)]
+            for x in xrange(diameter)
+        ]
 
         self.centre_node = (len(self.nodes) - 1) / 2
 
@@ -42,10 +46,12 @@ class Ring:
         self.diameter = diameter
         self.distance = distance
 
-        self.nodes = [(float(x * distance + initial_position), float(y * distance + initial_position))
+        self.nodes = [
+            (float(x * distance + initial_position), float(y * distance + initial_position))
             for y in xrange(diameter)
             for x in xrange(diameter)
-            if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)]
+            if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)
+        ]
 
     def __str__(self):
         return "Ring<diameter={}>".format(self.diameter)

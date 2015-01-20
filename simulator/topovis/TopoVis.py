@@ -1,4 +1,4 @@
-from simulator.topovis.common import *
+from simulator.topovis.common import INF, DEFAULT, Color, Parameters
 from time import sleep, time as systime
 from threading import Timer
 from heapq import heappush, heappop
@@ -21,15 +21,15 @@ class LineStyle(object):
           'head', 'tail', 'both', and 'none'.
     """
     def __init__(self, **kwargs):
-        self.color = (0,0,0)
+        self.color = (0, 0, 0)
         self.dash = ()
         self.width = 1
         self.arrow = 'none'
-        for (k,v) in kwargs.items():
+        for (k, v) in kwargs.items():
             if k in ['color', 'dash', 'width', 'arrow']:
                 setattr(self, k, v)
             else:
-                raise Exception('Unknown option "%s"' % k)
+                raise RuntimeError('Unknown option "%s"' % k)
 
     def __repr__(self):
         return '[color=%s,dash=%s,width=%s,arrow=%s]' % (
@@ -44,11 +44,11 @@ class FillStyle(object):
     """
     def __init__(self, **kwargs):
         self.color = None
-        for (k,v) in kwargs.items():
+        for (k, v) in kwargs.items():
             if k in ['color']:
                 setattr(self, k, v)
             else:
-                raise Exception('Unknown option "%s"' % k)
+                raise RuntimeError('Unknown option "%s"' % k)
 
     def __repr__(self):
         return '[color=%s]' % self.color
@@ -60,12 +60,12 @@ class TextStyle(object):
     supported are 'color', 'font', and 'size'.
     """
     def __init__(self, **kwargs):
-        self.color = (0,0,0)
+        self.color = (0, 0, 0)
         for (k,v) in kwargs.items():
             if k in ['color', 'font', 'size']:
                 setattr(self, k, v)
             else:
-                raise Exception('Unknown option "%s"' % k)
+                raise RuntimeError('Unknown option "%s"' % k)
 
 ###############################################
 class Node:
@@ -80,7 +80,8 @@ class GenericPlotter:
     Define a generic plotter class from which actual plotters are derived
     """
     def __init__(self, params=None):
-        if params is None: params = Parameters()
+        if params is None:
+            params = Parameters()
         self.params = params
         self.scene  = None
 
@@ -91,27 +92,27 @@ class GenericPlotter:
     #######################################################
     # The following methods are supposed to be overridden
     #######################################################
-    def init(self,tx,ty): pass
+    def init(self, tx, ty): pass
     def setTime(self, time): pass
-    def node(self,id,x,y): pass
-    def nodemove(self,id,x,y): pass
-    def nodehollow(self,id,flag): pass
-    def nodedouble(self,id,flag): pass
-    def nodecolor(self,id,r,g,b): pass
-    def nodewidth(self,id,width): pass
-    def nodelabel(self,id,label): pass
-    def nodescale(self,id,scale): pass
-    def addlink(self,src,dst,style): pass
-    def dellink(self,src,dst,style): pass
+    def node(self, ident, x, y): pass
+    def nodemove(self, ident, x, y): pass
+    def nodehollow(self, ident, flag): pass
+    def nodedouble(self, ident, flag): pass
+    def nodecolor(self, ident, r, g, b): pass
+    def nodewidth(self, ident, width): pass
+    def nodelabel(self, ident, label): pass
+    def nodescale(self, ident, scale): pass
+    def addlink(self, src, dst, style): pass
+    def dellink(self, src, dst, style): pass
     def clearlinks(self): pass
     def show(self): pass
-    def circle(self,x,y,r,id,linestyle,fillstyle): pass
-    def line(self,x1,y1,x2,y2,id,linestyle): pass
-    def rect(self,x1,y1,x2,y2,id,linestyle,fillstyle): pass
-    def delshape(self,id): pass
-    def linestyle(self,id,**kwargs): pass
-    def fillstyle(self,id,**kwargs): pass
-    def textstyle(self,id,**kwargs): pass
+    def circle(self, x, y, r, ident, linestyle, fillstyle): pass
+    def line(self, x1, y1, x2, y2, ident, linestyle): pass
+    def rect(self, x1, y1, x2, y2, ident, linestyle, fillstyle): pass
+    def delshape(self, ident): pass
+    def linestyle(self, ident, **kwargs): pass
+    def fillstyle(self, ident, **kwargs): pass
+    def textstyle(self, ident, **kwargs): pass
 
 ###############################################
 def informPlotters(_func_):
@@ -165,7 +166,7 @@ class Scene:
         self.evq = []        # Event queue
         self.uniqueId = 0    # Counter for generating unique IDs
 
-        self.dim = (0,0)     # Terrain dimension
+        self.dim = (0, 0)     # Terrain dimension
         self.nodes = {}      # Nodes' information
         self.links = set()   # Set of links between nodes
         self.lineStyles = {} # List of defined line styles
@@ -247,7 +248,7 @@ class Scene:
             heappush(self.evq, (self.time+delay, cmd, args, kwargs))
 
     ###################
-    def setTime(self,time):
+    def setTime(self, time):
         """
         Set the current time being tracked by TopoVis to the specified time.
         A corresponding amount of delay will be applied unless TopoVis scene
@@ -256,26 +257,26 @@ class Scene:
         title can be updated accordingly.
         """
         if time < self.time:
-            raise Exception(
+            raise RuntimeError(
                     'Time cannot flow backward: current = %.3f, new = %.3f'
                     % (self.time, time)
                     )
         if not self.realtime:
-            sleep((time-self.time)*self.timescale)
+            sleep((time-self.time) * self.timescale)
             self.time = time
         for plotter in self.plotters:
             plotter.setTime(time)
 
     ###################
     @informPlotters
-    def init(self,tx,ty):
+    def init(self, tx, ty):
         """
         (Scene scripting command) Intialize the scene.  This command should
         be called before any other scripting commands.
         """
         if (self.initialized):
-            raise Exception('init() has already been called')
-        self.dim = (tx,ty)
+            raise RuntimeError('init() has already been called')
+        self.dim = (tx, ty)
         self.initialized = True
 
 
@@ -287,104 +288,104 @@ class Scene:
 
     ###################
     @informPlotters
-    def node(self,id,x,y):
+    def node(self, ident, x, y):
         """
         (Scene scripting command)
         Define a node with the specified ID and location (x,y)
         """
-        self.nodes[id]        = Node()
-        self.nodes[id].id     = id
-        self.nodes[id].pos    = (x,y)
-        self.nodes[id].scale  = 1.0
-        self.nodes[id].label  = str(id)
-        self.nodes[id].hollow = DEFAULT
-        self.nodes[id].double = DEFAULT
-        self.nodes[id].width  = DEFAULT
-        self.nodes[id].color  = DEFAULT
+        self.nodes[ident]        = Node()
+        self.nodes[ident].id     = ident
+        self.nodes[ident].pos    = (x,y)
+        self.nodes[ident].scale  = 1.0
+        self.nodes[ident].label  = str(ident)
+        self.nodes[ident].hollow = DEFAULT
+        self.nodes[ident].double = DEFAULT
+        self.nodes[ident].width  = DEFAULT
+        self.nodes[ident].color  = DEFAULT
 
     ###################
     @informPlotters
-    def nodemove(self,id,x,y):
+    def nodemove(self, ident, x, y):
         """
         (Scene scripting command)
-        Move a node whose ID is id to a new location (x,y)
+        Move a node whose ID is ident to a new location (x, y)
         """
-        self.nodes[id].pos = (x,y)
+        self.nodes[ident].pos = (x, y)
 
     ###################
     @informPlotters
-    def nodecolor(self,id,r,g,b):
+    def nodecolor(self, ident, r, g, b):
         """
         (Scene scripting command)
         Set color (in rgb format, 0 <= r,g,b <= 1) of the node, specified by
-        id
+        ident
         """
-        self.nodes[id].color = (r,g,b)
+        self.nodes[ident].color = (r, g, b)
 
     ###################
     @informPlotters
-    def nodelabel(self,id,label):
+    def nodelabel(self, ident, label):
         """
         (Scene scripting command)
-        Set string label for the node, specified by id
+        Set string label for the node, specified by ident
         """
-        self.nodes[id].label = label
+        self.nodes[ident].label = label
 
     ###################
     @informPlotters
-    def nodescale(self,id,scale):
+    def nodescale(self, ident, scale):
         """
         (Scene scripting command)
         Set node scaling factor.  By default, nodes are visualized with
         scale=1
         """
-        self.nodes[id].scale = scale
+        self.nodes[ident].scale = scale
 
     ###################
     @informPlotters
-    def nodehollow(self,id,flag):
+    def nodehollow(self, ident, flag):
         """
         (Scene scripting command)
         Set node's hollow display
         """
-        self.nodes[id].hollow = flag
+        self.nodes[ident].hollow = flag
 
     ###################
     @informPlotters
-    def nodedouble(self,id,flag):
+    def nodedouble(self, ident, flag):
         """
         (Scene scripting command)
         Set node's double-outline display
         """
-        self.nodes[id].double = flag
+        self.nodes[ident].double = flag
 
     ###################
     @informPlotters
-    def nodewidth(self,id,width):
+    def nodewidth(self, ident, width):
         """
         (Scene scripting command)
         Set node's outline width
         """
-        self.nodes[id].width = width
+        self.nodes[ident].width = width
 
     ###################
     @informPlotters
-    def addlink(self,src,dst,style):
+    def addlink(self, src, dst, style):
         """
         (Scene scripting command)
         Add a link with the specified style, which is an instance of
         LineStyle, between a pair of nodes
         """
-        self.links.add((src,dst,style))
+        self.links.add((src, dst, style))
 
     ###################
     @informPlotters
-    def dellink(self,src,dst,style):
+    def dellink(self, src, dst, style):
         """
         (Scene scripting command)
         Remove a link with the specified style from a pair of nodes
         """
-        self.links.remove((src,dst,style))
+        self.links.remove((src, dst, style))
 
     ###################
     @informPlotters
@@ -405,23 +406,23 @@ class Scene:
         pass
 
     ###################
-    def circle(self,x,y,r,id=None,line=LineStyle(),fill=FillStyle(),delay=INF):
+    def circle(self, x, y, r, ident=None, line=LineStyle(), fill=FillStyle(), delay=INF):
         """
         (Scene scripting command)
         Draw/update a circle centered at (x,y) with radius r.  line and fill
         are applied to the drawn object.  The object will remain on the scene
         for the specified delay.
         """
-        # resolve id and inform plotters manually
+        # resolve ident and inform plotters manually
         # XXX will try to use decorator later on
-        if id == None:
-            id = self._getUniqueId()
+        if ident == None:
+            ident = self._getUniqueId()
         for plotter in self.plotters:
-            plotter.circle(x, y, r, id, line, fill)
-        self.executeAfter(delay, self.delshape, id)
+            plotter.circle(x, y, r, ident, line, fill)
+        self.executeAfter(delay, self.delshape, ident)
 
     ###################
-    def line(self,x1,y1,x2,y2,id=None,line=LineStyle(),delay=INF):
+    def line(self, x1, y1, x2, y2, ident=None, line=LineStyle(), delay=INF):
         """
         (Scene scripting command)
         Draw/update a line from (x1,y1) to (x2,y2).  line and fill
@@ -429,16 +430,16 @@ class Scene:
         for the specified delay.
 
         """
-        # resolve id and inform plotters manually
+        # resolve ident and inform plotters manually
         # XXX will try to use decorator later on
-        if id == None:
-            id = self._getUniqueId()
+        if ident == None:
+            ident = self._getUniqueId()
         for plotter in self.plotters:
-            plotter.line(x1, y1, x2, y2, id, line)
-        self.executeAfter(delay, self.delshape, id)
+            plotter.line(x1, y1, x2, y2, ident, line)
+        self.executeAfter(delay, self.delshape, ident)
 
     ###################
-    def rect(self,x1,y1,x2,y2,id=None,line=LineStyle(),fill=FillStyle(),delay=INF):
+    def rect(self, x1, y1, x2, y2, ident=None, line=LineStyle(), fill=FillStyle(), delay=INF):
         """
         (Scene scripting command)
         Draw/update a rectangle from (x1,y1) to (x2,y2).  line and fill
@@ -446,47 +447,47 @@ class Scene:
         for the specified delay.
 
         """
-        # resolve id and inform plotters manually
+        # resolve ident and inform plotters manually
         # XXX will try to use decorator later on
-        if id == None:
-            id = self._getUniqueId()
+        if ident == None:
+            ident = self._getUniqueId()
         for plotter in self.plotters:
-            plotter.rect(x1, y1, x2, y2, id, line, fill)
-        self.executeAfter(delay, self.delshape, id)
+            plotter.rect(x1, y1, x2, y2, ident, line, fill)
+        self.executeAfter(delay, self.delshape, ident)
 
     ###################
     @informPlotters
-    def delshape(self,id):
+    def delshape(self, ident):
         """
         (Scene scripting command)
-        Delete an animated shape (e.g., line, circle) previously created with ID id
+        Delete an animated shape (e.g., line, circle) previously created with ID ident
         """
         pass
 
     ###################
     @informPlotters
-    def linestyle(self,id,**kwargs):
+    def linestyle(self, ident, **kwargs):
         """
         (Scene scripting command)
         Define or redefine a line style.
         """
-        self.lineStyles[id] = LineStyle(**kwargs)
+        self.lineStyles[ident] = LineStyle(**kwargs)
 
     ###################
     @informPlotters
-    def fillstyle(self,id,**kwargs):
+    def fillstyle(self, ident, **kwargs):
         """
         (Scene scripting command)
         Define or redefine a fill style
         """
-        self.fillStyles[id] = FillStyle(**kwargs)
+        self.fillStyles[ident] = FillStyle(**kwargs)
 
     ###################
     @informPlotters
-    def textstyle(self,id,**kwargs):
+    def textstyle(self, ident, **kwargs):
         """
         (Scene scripting command)
         Define or redefine a text style
         """
-        self.textStyles[id] = FillStyle(**kwargs)
+        self.textStyles[ident] = FillStyle(**kwargs)
 

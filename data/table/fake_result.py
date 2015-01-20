@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import sys
 
-from simulator.Configuration import configuration_rank
+from simulator.Configuration import CONFIGURATION_RANK
 
 from data import latex
 
@@ -30,11 +30,11 @@ class ResultTable(object):
                 "source period": ("$P_{src}$", "(sec)"),
                 "fake period": ("$P_{fs}$", "(sec)"),
                 "temp fake duration": ("Dur", "(sec)"),
-                "pr(tfs)": ("P[TFS]", "(\%)"),
-                "pr(pfs)": ("P[PFS]", "(\%)"),
-                "captured": ("Cap", "(\%)"),
+                "pr(tfs)": ("P[TFS]", "(\\%)"),
+                "pr(pfs)": ("P[PFS]", "(\\%)"),
+                "captured": ("Cap", "(\\%)"),
                 "fake": ("Fake", "Messages"),
-                "received ratio": ("Received", "(\%)"),
+                "received ratio": ("Received", "(\\%)"),
                 "tfs": ("TFS", "~"),
                 "pfs": ("PFS", "~"),
                 "pull back hops": ("Pull Back", "Messages"),
@@ -44,8 +44,8 @@ class ResultTable(object):
                 "time taken": ("Time", "(sec)"),
                 "safety period": ("Safety Period", "(sec)"),
             }[name][row]
-        except KeyError as e:
-            print("Failed to find the name {} for row {} : {}".format(name, row, e), file=sys.stderr)
+        except KeyError as ex:
+            print("Failed to find the name {} for row {} : {}".format(name, row, ex), file=sys.stderr)
             return name
 
     def _title_row(self, row):
@@ -71,23 +71,21 @@ class ResultTable(object):
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
         elif name == "received ratio":
-            return "${:.1f} \pm {:.1f}$".format(*value)
+            return "${:.1f} \\pm {:.1f}$".format(*value)
         elif name == "fake":
-            return "${:.0f} \pm {:.0f}$".format(*value)
+            return "${:.0f} \\pm {:.0f}$".format(*value)
         elif name == "ssd":
-            return "${:.1f} \pm {:.1f}$".format(*value)
+            return "${:.1f} \\pm {:.1f}$".format(*value)
         elif name == "normal latency":
-            return "${:.0f} \pm {:.0f}$".format(*(value * 1000))
+            return "${:.0f} \\pm {:.0f}$".format(*(value * 1000))
         else:
-            return "${:.3f} \pm {:.3f}$".format(*value)
+            return "${:.3f} \\pm {:.3f}$".format(*value)
 
 
-    def write_tables(self, stream, param_filter = lambda x: True):
-        title_order = self.results.parameter_names + self.results.result_names
-                    
+    def write_tables(self, stream, param_filter=lambda x: True):
         print('\\vspace{-0.3cm}', file=stream)
 
-        for configuration in sorted(self.results.configurations, key=lambda x: configuration_rank[x]):
+        for configuration in sorted(self.results.configurations, key=lambda x: CONFIGURATION_RANK[x]):
             for size in sorted(self.results.sizes):
                 print('\\begin{table}[H]', file=stream)
                 print('    \\centering', file=stream)
@@ -104,9 +102,9 @@ class ResultTable(object):
                 for source_period in source_periods:
                     items = self.results.data[table_key][source_period].items()
 
-                    items = filter(lambda (k, v): param_filter(k), items)
+                    items = [(k, v) for (k, v) in items if param_filter(k)]
 
-                    for (params, results) in sorted(items, key=lambda (x, y): x):                    
+                    for (params, results) in sorted(items, key=lambda (x, y): x):
                         to_print = [self._var_fmt("source period", source_period)]
 
                         for name, value in zip(self.results.parameter_names, params):
@@ -117,7 +115,6 @@ class ResultTable(object):
 
                         print(" & ".join(to_print) + "\\\\", file=stream)
                     print('        \\hline', file=stream)
-                    
 
                 print('    \\end{tabular}', file=stream)
                 print('\\caption{{Template results for the size {} and configuration {}}}'.format(size, configuration), file=stream)

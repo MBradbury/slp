@@ -5,7 +5,7 @@ import numpy
 from data.table.fake_result import ResultTable as BaseResultTable
 from data import latex
 
-from simulator.Configuration import configuration_rank
+from simulator.Configuration import CONFIGURATION_RANK
 
 class ResultTable(BaseResultTable):
     bad = '\\badcolour'
@@ -14,7 +14,7 @@ class ResultTable(BaseResultTable):
 
     @staticmethod
     def _configuration_rank(configuration):
-        return configuration_rank[configuration] if configuration in configuration_rank else len(configuration_rank) + 1
+        return CONFIGURATION_RANK[configuration] if configuration in CONFIGURATION_RANK else len(CONFIGURATION_RANK) + 1
 
     def __init__(self, base_results, comparison_results):
 
@@ -70,12 +70,10 @@ class ResultTable(BaseResultTable):
                     except KeyError as ex:
                         print("Skipping {} due to KeyError({})".format((size, config, src_period), ex))
 
-    def write_tables(self, stream, param_filter = lambda x: True):
-        title_order = self.base_results.parameter_names + self.base_results.result_names
-                    
+    def write_tables(self, stream, param_filter=lambda x: True):
         print('\\vspace{-0.3cm}', file=stream)
 
-        for configuration in sorted(self.configurations, key=lambda x: configuration_rank[x]):
+        for configuration in sorted(self.configurations, key=lambda x: CONFIGURATION_RANK[x]):
             for size in sorted(self.sizes):
                 table_key = (size, configuration)
 
@@ -93,9 +91,9 @@ class ResultTable(BaseResultTable):
 
                         items = self.diff[table_key][comp_param][source_period].items()
 
-                        items = filter(lambda (k, v): param_filter(k), items)
+                        items =  [(k, v) for (k, v) in items if param_filter(k)]
 
-                        for (params, results) in sorted(items, key=lambda (x, y): x):                    
+                        for (params, results) in sorted(items, key=lambda (x, y): x):
                             to_print = [self._var_fmt("source period", source_period)]
 
                             for name, value in zip(self.results.parameter_names, params):
@@ -135,7 +133,7 @@ class ResultTable(BaseResultTable):
             if value[1] is not None:
                 return ("${} " + fmt + "$ $({:+.0f}\\%)$").format(fn(value[0]), *value)
             else:
-                return ("${} " + fmt + "$ $(\mathrm{{N/A}}\%)$").format(fn(value[0]), *value)
+                return ("${} " + fmt + "$ $(\\mathrm{{N/A}}\\%)$").format(fn(value[0]), *value)
 
         if name == "tfs" or name == "pfs":
             return "${:+.1f}$".format(*value)
@@ -146,7 +144,7 @@ class ResultTable(BaseResultTable):
         elif name == "ssd":
             return "${} {:+.2f}$".format(colour_neg(value[0]), *value)
         elif name == "normal latency":
-            return "${} {:+.2f}$".format(colour_neg(value[0]), value[0] * 1000, value[1])
+            return "${} {:+.2f}$".format(colour_neg(value[0]), value[0] * 1000)
         elif name == "captured":
             return with_rel_diff(colour_neg, value, "{:+.2f}")
         elif name == "time taken" or name == "safety period":

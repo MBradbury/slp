@@ -27,14 +27,16 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
 
     if path is None:
         path = os.environ.get("PATH", os.defpath)
+
     if not path:
         return None
-    path = path.split(os.pathsep)
+
+    spath = path.split(os.pathsep)
 
     if sys.platform == "win32":
         # The current directory takes precedence on Windows.
-        if not os.curdir in path:
-            path.insert(0, os.curdir)
+        if not os.curdir in spath:
+            spath.insert(0, os.curdir)
 
         # PATHEXT is necessary to check on Windows.
         pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
@@ -52,7 +54,7 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
         files = [cmd]
 
     seen = set()
-    for direc in path:
+    for direc in spath:
         normdir = os.path.normcase(direc)
         if not normdir in seen:
             seen.add(normdir)

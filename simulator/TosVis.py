@@ -1,6 +1,6 @@
 import re
 
-from Simulator import Simulator, OutputCatcher
+from simulator.Simulator import Simulator, OutputCatcher
 
 ###############################################
 class DebugAnalyzer:
@@ -14,6 +14,10 @@ class DebugAnalyzer:
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
     FAKE_RE   = re.compile(r'The node has become a ([a-zA-Z]+)')
+
+    ####################
+    def __init__(self):
+        pass
 
     ####################
     def analyze(self, dbg):
@@ -41,14 +45,14 @@ class DebugAnalyzer:
             amtype = int(match.group(1))
             amlen  = int(match.group(2))
             amdst  = int(match.group(3))
-            return (node_id, self.AM_SEND, (amtype,amlen,amdst))
+            return (node_id, self.AM_SEND, (amtype, amlen, amdst))
 
         # AM Receive message
         match = self.AMRECV_RE.match(detail)
         if match is not None:
             amtype = int(match.group(1))
             amlen  = int(match.group(2))
-            return (node_id, self.AM_RECV, (amtype,amlen))
+            return (node_id, self.AM_RECV, (amtype, amlen))
 
         # Node becoming TFS, PFS or Normal
         match = self.FAKE_RE.match(detail)
@@ -70,6 +74,10 @@ class TosVis(Simulator):
             seed=seed)
 
         self.run_gui = False
+
+        self.debug_analyzer = None
+        self.scene = None
+        self.tkplot = None
 
     def setup_gui(self):
 
@@ -117,7 +125,7 @@ class TosVis(Simulator):
             x, y = x-5, y+5
             color = '0,0,1'
         options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
-        scene.execute(time, 'circle({},{},2,id="{}",{})'.format(x, y, shape_id, options))
+        scene.execute(time, 'circle({},{},2,ident="{}",{})'.format(x, y, shape_id, options))
 
     ####################
     def _animate_am_send(self, time, sender, detail):
@@ -133,17 +141,17 @@ class TosVis(Simulator):
     def _animate_am_receive(self, time, receiver, detail):
         (amtype, amlen) = detail
         scene = self.scene
-        (x,y) = self.node_location(receiver)
+        (x, y) = self.node_location(receiver)
         scene.execute(time,
                 'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
-                % (x,y,10))
+                % (x, y, 10))
 
     def _animate_fake_state(self, time, node, detail):
         (kind,) = detail
 
-        pfs_colour = [x / 255.0 for x in (225,41,41)]
-        tfs_colour = [x / 255.0 for x in (196,196,37)]
-        normal_colour = [0,0,0]
+        pfs_colour = [x / 255.0 for x in (225, 41, 41)]
+        tfs_colour = [x / 255.0 for x in (196, 196, 37)]
+        normal_colour = [0, 0, 0]
 
         if kind == "TFS":
             colour = tfs_colour
@@ -155,8 +163,7 @@ class TosVis(Simulator):
             raise RuntimeError("Unknown kind {}".format(kind))
 
         scene = self.scene
-        scene.execute(time,
-                'nodecolor({},{},{},{})'.format(*([node] + colour)))
+        scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
 
     ####################
     def _process_message(self, dbg):
@@ -192,6 +199,7 @@ class TosVis(Simulator):
 
             # draw nodes on animating canvas
             for node in self.nodes:
-                self.scene.execute(0, 'node(%d,%f,%f)' % ((node.id,) + self.adjust_location(node.location)))
+                self.scene.execute(0,
+                    'node({},{},{})'.format(node.nid, *self.adjust_location(node.location)))
 
 ###############################################
