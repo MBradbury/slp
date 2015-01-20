@@ -7,13 +7,13 @@ import math
 import sys
 import numpy
 
-from simulator.Configuration import configuration_rank
+from simulator.Configuration import CONFIGURATION_RANK
 
 class TableGenerator:
 
     @staticmethod
     def _configuration_rank(configuration):
-        return configuration_rank[configuration] if configuration in configuration_rank else len(configuration_rank) + 1
+        return CONFIGURATION_RANK[configuration] if configuration in CONFIGURATION_RANK else len(CONFIGURATION_RANK) + 1
 
     def __init__(self):
         self.data = {}
@@ -71,7 +71,7 @@ class TableGenerator:
             print('\\begin{tabular}{ | c | c || c | c | c | c || c | }', file=stream)
             print('\\hline', file=stream)
             print('Size & Period & Received & Source-Sink   & Latency   & Average Time    & Safety Period \\tabularnewline', file=stream)
-            print('~    & (sec)  & (\%)     & Distance (hop)& (msec)    & Taken (seconds) & (seconds) \\tabularnewline', file=stream)
+            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Taken (seconds) & (seconds) \\tabularnewline', file=stream)
             print('\\hline', file=stream)
             print('', file=stream)
 
@@ -82,7 +82,7 @@ class TableGenerator:
 
                 for (src_period, time_taken, safety_period, rcv, latency, ssd) in sorted_data:
                 
-                    print('{} & {} & {:0.0f} $\pm$ {:0.2f} & {:.1f} $\pm$ {:.2f} & {:0.1f} $\pm$ {:0.1f} & {:0.2f} $\pm$ {:0.2f} & {:0.2f} \\tabularnewline'.format(
+                    print('{} & {} & {:0.0f} $\\pm$ {:0.2f} & {:.1f} $\\pm$ {:.2f} & {:0.1f} $\\pm$ {:0.1f} & {:0.2f} $\\pm$ {:0.2f} & {:0.2f} \\tabularnewline'.format(
                             size,
                             src_period,
                             rcv[0], rcv[1],

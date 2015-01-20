@@ -1,13 +1,13 @@
 from __future__ import print_function
-import os, sys, math, select, random, gc
+import os, math, select, random, gc
 
-class Node:
+class Node(object):
     def __init__(self, node_id, location, tossim_node):
-        self.id = node_id
+        self.nid = node_id
         self.location = location
         self.tossim_node = tossim_node
 
-class OutputCatcher:
+class OutputCatcher(object):
     def __init__(self, linefn):
         (read, write) = os.pipe()
         self.read = os.fdopen(read, 'r')
@@ -34,7 +34,7 @@ class OutputCatcher:
         self.read = None
         self.write = None
 
-class Simulator(object):    
+class Simulator(object):
     def __init__(self, TOSSIM, node_locations, wireless_range, seed):
         self.tossim = TOSSIM.Tossim([])
         self.radio = self.tossim.radio()
@@ -61,7 +61,7 @@ class Simulator(object):
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, tb):
+    def __exit__(self, tp, value, tb):
         for op in self.out_procs:
             op.close()
 
@@ -95,12 +95,11 @@ class Simulator(object):
         for i, ni in enumerate(self.nodes):
             for j, nj in enumerate(self.nodes):
                 if i != j:
-                    (is_linked, gain) = self.computeRFGain(ni, nj)
+                    (is_linked, gain) = self.compute_rf_gain(ni, nj)
                     if is_linked:
                         self.radio.add(i, j, gain)
                         #if self.drawNeighborLinks:
                         #   self.scene.execute(0, 'addlink(%d,%d,1)' % (i,j))
-    
 
     @staticmethod
     def read_noise_from_file(path):
@@ -119,7 +118,7 @@ class Simulator(object):
             node.tossim_node.addNoiseTraceReading(int(random.random()*20)-75)
         node.tossim_node.createNoiseModel()
 
-    def computeRFGain(self, src, dst):
+    def compute_rf_gain(self, src, dst):
         '''
         Returns signal reception gain between src and dst using a simple
         range-threshold model.  Should be overridden with a more realistic

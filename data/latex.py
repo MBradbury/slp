@@ -1,6 +1,8 @@
 from __future__ import print_function
 
-import os, errno, re, subprocess
+import os, re, subprocess
+
+import data.util
 
 def print_header(stream):
     print('\\documentclass[a4paper,notitlepage]{article}', file=stream)
@@ -27,15 +29,7 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
     (path, name_with_ext) = os.path.split(path_and_name)
     (name_without_ext, ext) = os.path.splitext(name_with_ext)
 
-    def silent_remove(path):
-        try:
-            os.remove(path)
-        except OSError as ex:
-            # errno.ENOENT = no such file or directory
-            if ex.error != errno.ENOENT:
-                raise
-
-    silent_remove(os.path.join(path, name_without_ext + ".pdf"))
+    data.util.silent_remove(os.path.join(path, name_without_ext + ".pdf"))
 
     try:
         command = "{} {}".format(executable, path_and_name)
@@ -46,7 +40,7 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
         exts_to_remove = [".log", ".aux", ".dvi", ".out", ".synctex.gz"]
 
         for ext_to_remove in exts_to_remove:
-            silent_remove(os.path.join(path, name_without_ext + ext_to_remove))
+            data.util.silent_remove(os.path.join(path, name_without_ext + ext_to_remove))
 
 def escape(text):
     """
@@ -69,5 +63,10 @@ def escape(text):
         '<': r'\textless{}',
         '>': r'\textgreater{}',
     }
-    regex = re.compile('|'.join(re.escape(unicode(key)) for key in sorted(conv.keys(), key = lambda item: - len(item))))
+
+    regex = re.compile(
+        '|'.join(re.escape(unicode(key))
+        for key
+        in sorted(conv.keys(), key=lambda item: - len(item))))
+
     return regex.sub(lambda match: conv[match.group()], text)

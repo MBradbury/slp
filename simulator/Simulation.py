@@ -17,7 +17,7 @@ class Simulation(TosVis):
             )
 
         # To make simulations safer an upper bound on the simulation time
-        # is used when no safety period makes sense. This upper bound is the 
+        # is used when no safety period makes sense. This upper bound is the
         # time it would have otherwise taken the attacker to scan the whole network.
         self.safety_period = args.safety_period if hasattr(args, "safety_period") else (args.network_size ** 2) * max(1.0, 2.0 * args.source_period)
 
@@ -55,9 +55,9 @@ class Simulation(TosVis):
 
     @staticmethod
     def write_topology_file(node_locations, location="."):
-        with open(os.path.join(location, "topology.txt"), "w") as f:
-            for (i, loc) in enumerate(node_locations):
-                print("{}\t{}\t{}".format(i, loc[0], loc[1]), file=f) 
+        with open(os.path.join(location, "topology.txt"), "w") as of:
+            for (nid, loc) in enumerate(node_locations):
+                print("{}\t{}\t{}".format(nid, loc[0], loc[1]), file=of)
 
     def setup_radio(self):
         output = subprocess.check_output(
@@ -68,14 +68,14 @@ class Simulation(TosVis):
             parts = line.strip().split("\t")
 
             if parts[0] == "gain":
-                (g, nodeIdFrom, nodeIdTo, gain) = parts
+                (g, from_node_id, to_node_id, gain) = parts
 
-                self.radio.add(int(nodeIdFrom), int(nodeIdTo), float(gain))
+                self.radio.add(int(from_node_id), int(to_node_id), float(gain))
 
             elif parts[0] == "noise":
-                (n, nodeId, noiseFloor, awgn) = parts
+                (n, node_id, noise_floor, awgn) = parts
 
-                self.radio.setNoise(int(nodeId), float(noiseFloor), float(awgn))
+                self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
 
     def setup_noise_models(self):
         path = "meyer-heavy.txt"

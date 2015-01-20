@@ -1,4 +1,3 @@
-import subprocess
 
 def url():
     return None

@@ -43,7 +43,7 @@ class MetricsCommon(object):
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
         node_id = int(node_id)
-        source_id = int (source_id)
+        source_id = int(source_id)
         sequence_number = int(sequence_number)
         hop_count = int(hop_count)
 
@@ -93,10 +93,10 @@ class MetricsCommon(object):
         return self.sim.any_attacker_found_source()
 
     def attacker_distance(self):
-        sourceLocation = self.sim.nodes[self.source_id].location
+        source_location = self.sim.nodes[self.source_id].location
 
         return {
-            i: euclidean(sourceLocation, self.sim.nodes[attacker.position].location)
+            i: euclidean(source_location, self.sim.nodes[attacker.position].location)
             for i, attacker
             in enumerate(self.sim.attackers)
         }

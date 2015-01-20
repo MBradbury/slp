@@ -41,7 +41,7 @@ class Attacker(object):
 
     def draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
-        if not hasattr(self.sim, "scene"):
+        if not self.sim.run_gui:
             return
 
         (x, y) = self.sim.node_location(node_id)
@@ -53,7 +53,7 @@ class Attacker(object):
         options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
 
         self.sim.scene.execute(time, 'delshape("{}")'.format(shape_id))
-        self.sim.scene.execute(time, 'circle(%d,%d,5,id="%s",%s)' % (x, y, shape_id, options))
+        self.sim.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
 
     def _process_line(self, line):
         (time, msg_type, node_id, from_id, sequence_number) = line.split(',')

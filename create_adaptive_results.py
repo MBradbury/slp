@@ -30,9 +30,9 @@ jar_path = 'run.py'
 
 distance = 4.5
 
-sizes = [ 11, 15, 21, 25 ]
+sizes = [11, 15, 21, 25]
 
-source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
+source_periods = [1.0, 0.5, 0.25, 0.125]
 
 # TODO implement algorithm override
 configurations = [
@@ -41,17 +41,17 @@ configurations = [
     #('FurtherSinkCorner', 'CHOOSE'),
     #('Generic1', 'CHOOSE'),
     #('Generic2', 'CHOOSE'),
-    
+
     #('RingTop', 'CHOOSE'),
     #('RingOpposite', 'CHOOSE'),
     #('RingMiddle', 'CHOOSE'),
-    
+
     #('CircleEdges', 'CHOOSE'),
     #('CircleSourceCentre', 'CHOOSE'),
     #('CircleSinkCentre', 'CHOOSE'),
 ]
 
-approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
+approaches = ["PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"]
 
 repeats = 300
 
@@ -82,7 +82,7 @@ if 'cluster' in args:
         recreate_dirtree(cluster_directory)
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
-        
+
         run(cluster.builder(), cluster_directory, False)
 
     if 'copy' in args:

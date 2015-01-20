@@ -6,8 +6,6 @@
 # Author: Matthew Bradbury
 
 import os
-import csv
-import shutil
 import subprocess
 import multiprocessing
 
@@ -16,35 +14,6 @@ from data.which import which
 class GrapherBase(object):
     def __init__(self, output_directory):
         self.output_directory = output_directory
-
-    def _remove_existing(self, subdir):
-        # From: http://trac.pythonpaste.org/pythonpaste/attachment/ticket/359/onerror.diff
-        # From pathutils by Michael Foord: http://www.voidspace.org.uk/python/pathutils.html
-        def onRmtreeError(func, path, exc_info):
-            """
-            Error handler for ``shutil.rmtree``.
-            
-            If the error is due to an access error (read only file)
-            it attempts to add write permission and then retries.
-            
-            If the error is for another reason it re-raises the error.
-            
-            Usage : ``shutil.rmtree(path, onerror=onRmtreeError)``
-            
-            """
-            import stat
-            if not os.access(path, os.W_OK):
-                # Is the error an access error ?
-                os.chmod(path, stat.S_IWUSR)
-                func(path)
-            else:
-                raise
-
-        print('Removing existing directories')
-
-        full_path = os.path.join(self.output_directory, subdir)
-        if os.path.exists(full_path):
-            shutil.rmtree(full_path, onerror=onRmtreeError)
 
     def _create_graphs(self, subdir):
         def get_gnuplot_binary_name():
@@ -98,12 +67,6 @@ class GrapherBase(object):
 
         pool.close()
         pool.join()
-
-    # From: http://stackoverflow.com/questions/273192/python-best-way-to-create-directory-if-it-doesnt-exist-for-file-write
-    @staticmethod
-    def _ensureDirExists(d):
-        if not os.path.exists(d):
-            os.makedirs(d)
 
     # From: http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
     @staticmethod

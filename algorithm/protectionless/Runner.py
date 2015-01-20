@@ -13,7 +13,7 @@ class RunSimulations(RunSimulationsCommon):
             self._check_existing_results(['network_size', 'source_period', 'configuration'])
         
         if not os.path.exists(exe_path):
-            raise Exception("The file {} doesn't exist".format(exe_path))
+            raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
         for (size, source_period, configuration) in itertools.product(sizes, source_periods, configurations):
             if not self._already_processed(repeats, size, source_period, configuration):
