@@ -2,6 +2,8 @@ import argparse, multiprocessing
 import simulator.Configuration as Configuration
 import simulator.Attacker as Attacker
 
+approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
+
 class Arguments:
     def __init__(self):
         parser = argparse.ArgumentParser(description="SLP Adaptive", add_help=True)
@@ -14,7 +16,7 @@ class Arguments:
 
         parser.add_argument("--source-period", type=float, required=True)
 
-        parser.add_argument("--approach", type=str, choices=["TWIDDLE_APPROACH", "INTUITION_APPROACH"], required=True)
+        parser.add_argument("--approach", type=str, choices=approaches, required=True)
 
         parser.add_argument("--distance", type=float, required=True)
 
@@ -39,10 +41,10 @@ class Arguments:
         if self.args.verbose:
             result.update(SLP_VERBOSE_DEBUG=1)
 
-		result.update({
-			"SOURCE_PERIOD_MS": int(self.args.source_period * 1000),
-			"APPROACH": self.args.approach,
-			self.args.approach: 1,
-		})
+        result.update({
+            "SOURCE_PERIOD_MS": int(self.args.source_period * 1000),
+            "APPROACH": self.args.approach,
+            self.args.approach: 1,
+        })
 
         return result

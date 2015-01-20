@@ -14,9 +14,7 @@ module FakeMessageGeneratorImplP
 	}
 	uses
 	{
-		interface Timer<TMilli> as SendFakeTimerInitial;
 		interface Timer<TMilli> as SendFakeTimer;
-
 		interface Timer<TMilli> as DurationTimer;
 
 		interface Packet;
@@ -26,7 +24,6 @@ module FakeMessageGeneratorImplP
 implementation
 {
 	AwayChooseMessage original_message;
-	uint32_t fake_period_ms;
 
 	// Network variables
 
@@ -35,21 +32,20 @@ implementation
 
 	// Implementation
 
-	command void FakeMessageGenerator.start(const AwayChooseMessage* original, uint32_t period_ms)
+	command void FakeMessageGenerator.start(const AwayChooseMessage* original)
 	{
 		original_message = *original;
-		fake_period_ms = period_ms;
 
 		// The first fake message is to be sent half way through the period.
 		// After this message is sent, all other messages are sent with an interval
 		// of the period given. The aim here is to reduce the traffic at the start and
 		// end of the TFS duration.
-		call SendFakeTimerInitial.startPeriodic(period_ms / 2);
+		call SendFakeTimer.startOneShot((signal FakeMessageGenerator.calculatePeriod()) / 2);
 	}
 
-	command void FakeMessageGenerator.startLimited(const AwayChooseMessage* original, uint32_t period_ms, uint32_t duration_ms)
+	command void FakeMessageGenerator.startLimited(const AwayChooseMessage* original, uint32_t duration_ms)
 	{
-		call FakeMessageGenerator.start(original, period_ms);
+		call FakeMessageGenerator.start(original);
 
 		call DurationTimer.startOneShot(duration_ms);
 
@@ -60,7 +56,11 @@ implementation
 	{
 		call DurationTimer.stop();
 		call SendFakeTimer.stop();
-		call SendFakeTimerInitial.stop();
+	}
+
+	default event uint32_t FakeMessageGenerator.calculatePeriod()
+	{
+		return 0;
 	}
 	
 	default event void FakeMessageGenerator.sent(error_t error, const FakeMessage* message)
@@ -105,20 +105,20 @@ implementation
 		}
 	}
 
-	event void SendFakeTimerInitial.fired()
-	{
-		mydbg("FakeMessageGeneratorImplP", "SendFakeTimerInitial fired.\n");
-
-		call SendFakeTimerInitial.startPeriodic(fake_period_ms);
-
-		send_fake_message();
-	}
-
 	event void SendFakeTimer.fired()
 	{
+		uint32_t period;
+
 		mydbg("FakeMessageGeneratorImplP", "SendFakeTimer fired.\n");
 
 		send_fake_message();
+
+		period = signal FakeMessageGenerator.calculatePeriod();
+
+		if (period > 0)
+		{
+			call SendFakeTimer.startOneShot(period);
+		}
 	}
 
 	event void FakeSend.sendDone(message_t* msg, error_t error)

@@ -35,7 +35,7 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 	{ \
 		error_t status; \
  \
- 		void const* void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
+ 		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
  		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
@@ -199,6 +199,9 @@ implementation
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
+
+	const uint32_t away_delay = SOURCE_PERIOD_MS / 2;
+
 	int32_t sink_source_distance = BOTTOM;
 	int32_t source_distance = BOTTOM;
 	int32_t sink_distance = BOTTOM;
@@ -247,16 +250,16 @@ implementation
 	{
 		switch (algorithm)
 		{
-			case GenericAlgorithm:
-				return !(sink_source_distance != BOTTOM &&
-					source_distance <= ignore_choose_distance((3 * sink_source_distance) / 4));
+		case GenericAlgorithm:
+			return !(sink_source_distance != BOTTOM &&
+				source_distance <= ignore_choose_distance((3 * sink_source_distance) / 4));
 
-			case FurtherAlgorithm:
-				return !seen_pfs && !(sink_source_distance != BOTTOM &&
-					source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
+		case FurtherAlgorithm:
+			return !seen_pfs && !(sink_source_distance != BOTTOM &&
+				source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
 
-			default:
-				return TRUE;
+		default:
+			return TRUE;
 		}
 	}
 
@@ -264,14 +267,14 @@ implementation
 	{
 		switch (algorithm)
 		{
-			case GenericAlgorithm:
-				return TRUE;
+		case GenericAlgorithm:
+			return TRUE;
 
-			case FurtherAlgorithm:
-				return FALSE;
+		case FurtherAlgorithm:
+			return FALSE;
 
-			default:
-				return FALSE;
+		default:
+			return FALSE;
 		}
 	}
 
@@ -428,7 +431,7 @@ implementation
 		}
 	}
 
-	void Normal_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
@@ -467,7 +470,7 @@ implementation
 		}
 	}
 
-	void Sink_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -479,12 +482,12 @@ implementation
 
 			if (!sink_sent_away)
 			{
-				call AwaySenderTimer.startOneShot(SOURCE_PERIOD_MS / 2);
+				call AwaySenderTimer.startOneShot(away_delay);
 			}
 		}
 	}
 
-	void Fake_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
@@ -506,15 +509,15 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal)
-		case SinkNode: Sink_receieve_Normal(rcvd, source_addr); break;
-		case NormalNode: Normal_receieve_Normal(rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 		case TempFakeNode:
 		case PermFakeNode:
-			Fake_receieve_Normal(rcvd, source_addr); break;
+			Fake_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 
-	void Source_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
+	void Source_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (algorithm == UnknownAlgorithm)
 		{
@@ -544,7 +547,7 @@ implementation
 		}
 	}
 
-	void Normal_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
@@ -589,12 +592,12 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away)
-		case SourceNode: Source_receieve_Away(rcvd, source_addr); break;
-		case NormalNode: Normal_receieve_Away(rcvd, source_addr); break;
+		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
-	void Normal_receieve_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
@@ -627,12 +630,12 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Choose)
-		case NormalNode: Normal_receieve_Choose(rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Choose)
 
 
 
-	void Sink_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
@@ -650,7 +653,7 @@ implementation
 		}
 	}
 
-	void Source_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
@@ -664,7 +667,7 @@ implementation
 		}
 	}
 
-	void Normal_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
@@ -691,7 +694,7 @@ implementation
 		}
 	}
 
-	void Fake_receieve_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
@@ -732,11 +735,11 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Fake)
-		case SinkNode: Sink_receieve_Fake(rcvd, source_addr); break;
-		case SourceNode: Source_receieve_Fake(rcvd, source_addr); break;
-		case NormalNode: Normal_receieve_Fake(rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Fake(rcvd, source_addr); break;
+		case SourceNode: Source_receive_Fake(rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;
 		case TempFakeNode:
-		case PermFakeNode: Fake_receieve_Fake(rcvd, source_addr); break;
+		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 
