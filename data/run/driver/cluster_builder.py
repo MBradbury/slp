@@ -36,7 +36,7 @@ class Runner:
         # Create the topology of this configuration
         print("Creating topology file")
         configuration = Configuration.Create(a.args.configuration, a.args)
-        Simulation.Simulation.writeTopologyFile(configuration.topology.nodes, target_directory)
+        Simulation.Simulation.write_topology_file(configuration.topology.nodes, target_directory)
 
     def mode(self):
         return "CLUSTER"
@@ -56,10 +56,10 @@ class Runner:
 
     @staticmethod
     def build_arguments(a):
-        build_args = a.getBuildArguments()
+        build_args = a.build_arguments()
 
         configuration = Configuration.Create(a.args.configuration, a.args)
 
-        build_args.update(configuration.getBuildArguments())
+        build_args.update(configuration.build_arguments())
 
         return build_args

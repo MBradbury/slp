@@ -1,24 +1,16 @@
 # Author: Matthew Bradbury
-import csv, math, sys, ast
+import csv
 
-import numpy
-
-from results import Results
+from data.results import Results
 
 class OldResults(Results):
     def __init__(self, result_file, parameters, results):
         super(OldResults, self).__init__(result_file, parameters, results)
 
     def _read_results(self, result_file):
-
-        self.data = {}
-
-        self.sizes = set()
-        self.configurations = set()
-
         with open(result_file, 'r') as f:
 
-            seenFirst = False
+            seen_first = False
             
             reader = csv.reader(f, delimiter=',')
             
@@ -27,10 +19,10 @@ class OldResults(Results):
             for values in reader:
                 # Check if we have seen the first line
                 # We do this because we want to ignore it
-                if seenFirst:
+                if seen_first:
 
                     size = int(values[ headers.index('network size') ])
-                    srcPeriod = float(values[ headers.index('source period') ])
+                    src_period = float(values[ headers.index('source period') ])
                     config = values[ headers.index('configuration') ]
 
                     table_key = (size, config)
@@ -41,10 +33,10 @@ class OldResults(Results):
                     self.sizes.add(size)
                     self.configurations.add(config)
 
-                    self.data.setdefault(table_key, {}).setdefault(srcPeriod, {})[params] = results
+                    self.data.setdefault(table_key, {}).setdefault(src_period, {})[params] = results
 
                 else:
-                    seenFirst = True
+                    seen_first = True
                     headers = values
 
     def _process(self, name, headers, values):

@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil, itertools
+import os, sys, itertools
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -17,20 +17,14 @@ from data.table import safety_period, fake_result, direct_comparison
 from data.graph import summary, heatmap, versus, bar
 from data import results, latex
 
+from data.util import create_dirtree, recreate_dirtree, touch
+
 import numpy
 
 # Raise all numpy errors
 numpy.seterr(all='raise')
 
 jar_path = 'run.py'
-
-protectionless_results_directory = 'results/protectionless'
-protectionless_analysis_result_file = 'protectionless-results.csv'
-
-template_results_directory = 'results/template'
-template_analysis_result_file = 'template-results.csv'
-
-template_graphs_directory = os.path.join(template_results_directory, 'Graphs')
 
 distance = 4.5
 
@@ -75,25 +69,11 @@ protectionless_configurations = [(a) for (a, b) in configurations]
 
 parameter_names = ('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)')
 
-def create_dirtree(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-def recreate_dirtree(path):
-    if os.path.exists(path):
-        shutil.rmtree(path)
-    os.makedirs(path)
-
-def touch(fname, times=None):
-    with open(fname, 'a'):
-        os.utime(fname, times)
-
-create_dirtree(protectionless_results_directory)
-create_dirtree(template_results_directory)
-create_dirtree(template_graphs_directory)
+create_dirtree(template.results_path)
+create_dirtree(template.graphs_path)
 
 if 'cluster' in args:
-    cluster_directory = "cluster/template"
+    cluster_directory = os.path.join("cluster", template.name)
 
     from data import cluster_manager
 
@@ -112,7 +92,7 @@ if 'cluster' in args:
 
     if 'submit' in args:
         safety_period_table_generator = safety_period.TableGenerator()
-        safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
+        safety_period_table_generator.analyse(protectionless.result_file_path)
 
         safety_periods = safety_period_table_generator.safety_periods()
 
@@ -120,28 +100,26 @@ if 'cluster' in args:
         runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
     if 'copy-back' in args:
-        cluster.copy_back("template")
+        cluster.copy_back(template.name)
 
     sys.exit(0)
 
-if 'all' in args or 'run' in args:
+if 'run' in args:
     safety_period_table_generator = safety_period.TableGenerator()
-    safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
+    safety_period_table_generator.analyse(protectionless.result_file_path)
 
     safety_periods = safety_period_table_generator.safety_periods()
 
     from data.run.driver import local as LocalDriver
 
-    prelim_runner = template.Runner.RunSimulations(LocalDriver.Runner(), template_results_directory, safety_periods, skip_completed_simulations=True)
+    prelim_runner = template.Runner.RunSimulations(LocalDriver.Runner(), template.results_path, safety_periods, skip_completed_simulations=True)
     prelim_runner.run(jar_path, distance, sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, repeats)
 
-if 'all' in args or 'analyse' in args:
-    prelim_analyzer = template.Analysis.Analyzer(template_results_directory)
-    prelim_analyzer.run(template_analysis_result_file)
+if 'analyse' in args:
+    prelim_analyzer = template.Analysis.Analyzer(template.results_path)
+    prelim_analyzer.run(template.result_file)
 
-template_analysis_result_path = os.path.join(template_results_directory, template_analysis_result_file)
-
-if 'all' in args or 'graph' in args:
+if 'graph' in args:
     def extract(x):
         if numpy.isscalar(x):
             return x
@@ -152,25 +130,25 @@ if 'all' in args or 'graph' in args:
     versus_results = ['normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs']
     heatmap_results = ['sent heatmap', 'received heatmap']
 
-    template_results = results.Results(template_analysis_result_path,
+    template_results = results.Results(template.result_file_path,
         parameters=parameter_names,
         results=tuple(versus_results + heatmap_results))
 
     for name in heatmap_results:
-        heatmap.Grapher(template_graphs_directory, template_results, name).create()
-        summary.GraphSummary(os.path.join(template_graphs_directory, name), 'template-' + name.replace(" ", "_")).run()
+        heatmap.Grapher(template.graphs_path, template_results, name).create()
+        summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-' + name.replace(" ", "_")).run()
 
     #for yaxis in versus_results:
     #    name = '{}-v-fake-period'.format(yaxis.replace(" ", "_"))
     #
-    #    versus.Grapher(template_graphs_directory, template_results, name,
+    #    versus.Grapher(template.graphs_path, template_results, name,
     #        xaxis='size', yaxis=yaxis, vary='fake period', yextractor=extract).create()
     #
-    #    summary.GraphSummary(os.path.join(template_graphs_directory, name), 'template-' + name).run()
+    #    summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-' + name).run()
 
 
 if 'all' in args or 'table' in args:
-    template_results = results.Results(template_analysis_result_path,
+    template_results = results.Results(template.result_file_path,
         parameters=parameter_names,
         results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
@@ -184,7 +162,7 @@ if 'all' in args or 'table' in args:
             result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
-        latex.compile(filename)
+        latex.compile_document(filename)
 
     create_template_table("template-results",
         lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
@@ -202,7 +180,7 @@ if 'ccpe-comparison-table' in args:
         parameters=parameter_names,
         results=results_to_compare)
 
-    template_results = results.Results(template_analysis_result_path,
+    template_results = results.Results(template.result_file_path,
         parameters=parameter_names,
         results=results_to_compare)
 
@@ -216,7 +194,7 @@ if 'ccpe-comparison-table' in args:
             result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
-        latex.compile(filename)
+        latex.compile_document(filename)
 
     create_comparison_table('template-ccpe-comparison')
 
@@ -229,7 +207,7 @@ if 'ccpe-comparison-graph' in args:
         parameters=parameter_names,
         results=results_to_compare)
 
-    template_results = results.Results(template_analysis_result_path,
+    template_results = results.Results(template.result_file_path,
         parameters=parameter_names,
         results=results_to_compare)
 
@@ -238,11 +216,11 @@ if 'ccpe-comparison-graph' in args:
     def create_ccpe_comp_bar(show, pc=False):
         name = 'ccpe-comp-{}-{}'.format(show, "pcdiff" if pc else "diff")
 
-        bar.Grapher(template_graphs_directory, result_table, name,
+        bar.Grapher(template.graphs_path, result_table, name,
             shows=[show],
             extractor=lambda (diff, pcdiff): pcdiff if pc else diff).create()
 
-        summary.GraphSummary(os.path.join(template_graphs_directory, name), 'template-{}'.format(name).replace(" ", "_")).run()
+        summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-{}'.format(name).replace(" ", "_")).run()
 
     for result_name in results_to_compare:
         create_ccpe_comp_bar(result_name, pc=True)
@@ -251,10 +229,10 @@ if 'ccpe-comparison-graph' in args:
     def create_ccpe_comp_bar_pcdiff():
         name = 'ccpe-comp-pcdiff'
 
-        bar.Grapher(template_graphs_directory, result_table, name,
+        bar.Grapher(template.graphs_path, result_table, name,
             shows=results_to_compare,
             extractor=lambda (diff, pcdiff): pcdiff).create()
 
-        summary.GraphSummary(os.path.join(template_graphs_directory, name), 'template-{}'.format(name).replace(" ", "_")).run()
+        summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-{}'.format(name).replace(" ", "_")).run()
 
     create_ccpe_comp_bar_pcdiff()

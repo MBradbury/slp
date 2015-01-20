@@ -1,124 +1,131 @@
 
-from Simulator import *
+from simulator.Simulator import OutputCatcher
 
 class Attacker(object):
-    def __init__(self, sim, sourceId, startNodeId):
+    def __init__(self, sim, source_id, start_node_id):
         self.sim = sim
 
         out = OutputCatcher(self.process)
         self.sim.tossim.addChannel('Attacker-RCV', out.write)
 
-        self.sim.addOutputProcessor(out)
+        self.sim.add_output_processor(out)
 
-        self.sourceId = sourceId
+        self.source_id = source_id
         self.position = None
 
+        self.has_found_source = False
+
+        # Create the moves variable and then make sure it
+        # is set to 0 after the position has been set up.
         self.moves = 0
-        self.move(startNodeId)
+        self.move(start_node_id)
         self.moves = 0
 
-    def foundSourceSlow(self):
-        return self.position == self.sourceId
+    def process(self, line):
+        raise NotImplementedError()
 
-    def foundSource(self):
-        return self.hasFoundSource
+    def found_source_slow(self):
+        """Checks if the source has been found using the attacker's position."""
+        return self.position == self.source_id
 
-    def move(self, to):
-        self.position = to
-        self.hasFoundSource = self.foundSourceSlow()
+    def found_source(self):
+        """Checks if the source has been found, using a cached variable."""
+        return self.has_found_source
+
+    def move(self, node_id):
+        """Moved the source to a new location."""
+        self.position = node_id
+        self.has_found_source = self.found_source_slow()
 
         self.moves += 1
 
-    def draw(self, time, nodeID):
+    def draw(self, time, node_id):
+        """Updates the attacker position on the GUI if one is present."""
         if not hasattr(self.sim, "scene"):
             return
 
-        (x,y) = self.sim.getNodeLocation(nodeID)
+        (x, y) = self.sim.node_location(node_id)
 
-        shapeId = "attacker"
+        shape_id = "attacker"
 
         color = '1,0,0'
 
-        options = 'line=LineStyle(color=(%s)),fill=FillStyle(color=(%s))' % (color,color)
+        options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
 
-        self.sim.scene.execute(time, 'delshape("%s")' % shapeId)
-        self.sim.scene.execute(time, 'circle(%d,%d,5,id="%s",%s)' % (x,y,shapeId,options))
+        self.sim.scene.execute(time, 'delshape("{}")'.format(shape_id))
+        self.sim.scene.execute(time, 'circle(%d,%d,5,id="%s",%s)' % (x, y, shape_id, options))
 
-    def process_line(self, line):
-        (time, msgType, nodeID, fromID, seqNo) = line.split(',')
+    def _process_line(self, line):
+        (time, msg_type, node_id, from_id, sequence_number) = line.split(',')
 
         time = float(time) / self.sim.tossim.ticksPerSecond() # Get time to be in sec
-        nodeID = int(nodeID)
-        fromID = int(fromID)
-        seqNo = int(seqNo)
+        node_id = int(node_id)
+        from_id = int(from_id)
+        sequence_number = int(sequence_number)
 
-        return (time, msgType, nodeID, fromID, seqNo)
+        return (time, msg_type, node_id, from_id, sequence_number)
 
 
 class BasicReactiveAttacker(Attacker):
     def process(self, line):
         # Don't want to move if the source has been found
-        if self.foundSource():
+        if self.found_source():
             return
 
-        (time, msgType, nodeID, fromID, seqNo) = self.process_line(line)
+        (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
 
-        if self.position == nodeID:
+        if self.position == node_id:
 
-            self.move(fromID)
-
-            #print("Attacker moved from {} to {}".format(nodeID, fromID))
-
+            self.move(from_id)
+            
             self.draw(time, self.position)
 
 class IgnorePreviousLocationReactiveAttacker(Attacker):
-    def __init__(self, sim, sourceId, startNodeId):
-        super(IgnorePreviousLocationReactiveAttacker, self).__init__(sim, sourceId, startNodeId)
-        self.previousLocation = None
+    def __init__(self, sim, source_id, start_node_id):
+        super(IgnorePreviousLocationReactiveAttacker, self).__init__(sim, source_id, start_node_id)
+        self.previous_location = None
 
     def process(self, line):
         # Don't want to move if the source has been found
-        if self.foundSource():
+        if self.found_source():
             return
 
-        (time, msgType, nodeID, fromID, seqNo) = self.process_line(line)
+        (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
 
-        if self.position == nodeID and self.previousLocation != fromID:
+        if self.position == node_id and self.previous_location != from_id:
 
-            self.move(fromID)
-
-            #print("Attacker moved from {} to {}".format(nodeID, fromID))
+            self.move(from_id)
 
             self.draw(time, self.position)
 
-    def move(self, to):
-        self.previousLocation = self.position
-        super(IgnorePreviousLocationReactiveAttacker, self).move(to)
+    def move(self, node_id):
+        self.previous_location = self.position
+        super(IgnorePreviousLocationReactiveAttacker, self).move(node_id)
 
 class SeqNoReactiveAttacker(Attacker):
-    def __init__(self, sim, sourceId, startNodeId):
-        super(SeqNoReactiveAttacker, self).__init__(sim, sourceId, startNodeId)
-        self.seqNos = {}
+    def __init__(self, sim, source_id, start_node_id):
+        super(SeqNoReactiveAttacker, self).__init__(sim, source_id, start_node_id)
+        self.sequence_numbers = {}
 
     def process(self, line):
         # Don't want to move if the source has been found
-        if self.foundSource():
+        if self.found_source():
             return
 
-        (time, msgType, nodeID, fromID, seqNo) = self.process_line(line)
+        (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
 
-        if self.position == nodeID and (msgType not in self.seqNos or self.seqNos[msgType] < seqNo):
+        if self.position == node_id and (msg_type not in self.sequence_numbers or self.sequence_numbers[msg_type] < sequence_number):
 
-            self.seqNos[msgType] = seqNo
+            self.sequence_numbers[msg_type] = sequence_number
             
-            self.move(fromID)
-
-            #print("Attacker moved from {} to {}".format(nodeID, fromID))
+            self.move(from_id)
 
             self.draw(time, self.position)
 
 def models():
+    """A list of the names of the available attacker models."""
     return [cls.__name__ for cls in Attacker.__subclasses__()]
 
 def default():
+    """Gets the name of the default attacker model"""
     return SeqNoReactiveAttacker.__name__

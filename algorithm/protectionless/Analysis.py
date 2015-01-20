@@ -48,20 +48,20 @@ class Analyzer:
         d['source period']      = lambda x: x.opts['source_period']
 
         def format_results(x, name):
-            if name in x.varianceOf:
-                return "{}({})".format(x.averageOf[name], x.varianceOf[name])
+            if name in x.variance_of:
+                return "{}({})".format(x.average_of[name], x.variance_of[name])
             else:
-                return "{}".format(x.averageOf[name])
+                return "{}".format(x.average_of[name])
         
         d['sent']               = lambda x: format_results(x, 'Sent')
         d['received']           = lambda x: format_results(x, 'Received')
-        d['captured']           = lambda x: str(x.averageOf['Captured'])
+        d['captured']           = lambda x: str(x.average_of['Captured'])
         d['attacker moves']     = lambda x: format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: format_results(x, 'AttackerDistance')
         d['received ratio']     = lambda x: format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: format_results(x, 'NormalLatency')
         d['time taken']         = lambda x: format_results(x, 'TimeTaken')
-        d['safety period']      = lambda x: str(x.averageOf['TimeTaken'] * 2.0)
+        d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
         d['normal']             = lambda x: format_results(x, 'NormalSent')
         d['ssd']                = lambda x: format_results(x, 'NormalSinkSourceHops')
         

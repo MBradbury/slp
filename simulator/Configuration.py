@@ -1,33 +1,33 @@
 
-import math, itertools
+import itertools
 
-from simulator.Topology import *
+from simulator.Topology import Ring, Grid
 
 from scipy.spatial.distance import euclidean
 
 class Configuration:
-    def __init__(self, topology, sourceId, sinkId, spaceBehindSink):
+    def __init__(self, topology, source_id, sink_id, space_behind_sink):
         self.topology = topology
-        self.sinkId = int(sinkId)
-        self.sourceId = int(sourceId)
-        self.spaceBehindSink = spaceBehindSink
+        self.sink_id = int(sink_id)
+        self.source_id = int(source_id)
+        self.space_behind_sink = space_behind_sink
 
-        if self.sinkId >= len(self.topology.nodes):
-            raise Exception("There are not enough nodes ({}) to have a sink id of {}".format(len(self.topology.nodes), self.sinkId))
+        if self.sink_id >= len(self.topology.nodes):
+            raise Exception("There are not enough nodes ({}) to have a sink id of {}".format(len(self.topology.nodes), self.sink_id))
 
-        if self.sourceId >= len(self.topology.nodes):
-            raise Exception("There are not enough nodes ({}) to have a source id of {}".format(len(self.topology.nodes), self.source))
+        if self.source_id >= len(self.topology.nodes):
+            raise Exception("There are not enough nodes ({}) to have a source id of {}".format(len(self.topology.nodes), self.source_id))
 
         self.connectivity_matrix = None
-        self.sp = None
+        self.shortest_path = None
 
-    def getBuildArguments(self):
+    def build_arguments(self):
         build_arguments = {
-            "SOURCE_NODE_ID": self.sourceId,
-            "SINK_NODE_ID": self.sinkId
+            "SOURCE_NODE_ID": self.source_id,
+            "SINK_NODE_ID": self.sink_id
         }
 
-        if self.spaceBehindSink:
+        if self.space_behind_sink:
             build_arguments.update({"ALGORITHM": "GenericAlgorithm"})
         else:
             build_arguments.update({"ALGORITHM": "FurtherAlgorithm"})
@@ -35,12 +35,12 @@ class Configuration:
         return build_arguments
 
     def __str__(self):
-        return "Configuration<sinkId={}, sourceId={}, spaceBehindSink={}, topology={}>".format(
-            self.sinkId, self.sourceId, self.spaceBehindSink, self.topology
+        return "Configuration<sink_id={}, source_id={}, space_behind_sink={}, topology={}>".format(
+            self.sink_id, self.source_id, self.space_behind_sink, self.topology
             )
 
     def build_connectivity_matrix(self):
-        if self.connectivity_matrix is None or self.sp is None:
+        if self.connectivity_matrix is None or self.shortest_path is None:
             import numpy
             from scipy.sparse import csr_matrix
             from scipy.sparse.csgraph import shortest_path
@@ -51,7 +51,7 @@ class Configuration:
                 self.connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
             self.connectivity_matrix = csr_matrix(self.connectivity_matrix)
 
-            self.sp = shortest_path(self.connectivity_matrix)
+            self.shortest_path = shortest_path(self.connectivity_matrix)
 
     def size(self):
         return len(self.topology.nodes)
@@ -68,40 +68,40 @@ class Configuration:
     def ssd(self):
         """The number of hops between the sink and the source nodes"""
         self.build_connectivity_matrix()
-        return self.sp[self.sourceId, self.sinkId]
+        return self.shortest_path[self.source_id, self.sink_id]
 
     def node_sink_distance(self, node):
         self.build_connectivity_matrix()
-        return self.sp[node, self.sinkId]
+        return self.shortest_path[node, self.sink_id]
 
     def node_source_distance(self, node):
         self.build_connectivity_matrix()
-        return self.sp[node, self.sourceId]
+        return self.shortest_path[node, self.source_id]
 
 
 def CreateSourceCorner(network_size, distance):
     grid = Grid(network_size, distance)
 
     return Configuration(grid,
-        sourceId=0,
-        sinkId=(len(grid.nodes) - 1) / 2,
-        spaceBehindSink=True)
+        source_id=0,
+        sink_id=(len(grid.nodes) - 1) / 2,
+        space_behind_sink=True)
 
 def CreateSinkCorner(network_size, distance):
     grid = Grid(network_size, distance)
 
     return Configuration(grid,
-        sourceId=(len(grid.nodes) - 1) / 2,
-        sinkId=len(grid.nodes) - 1,
-        spaceBehindSink=False)
+        source_id=(len(grid.nodes) - 1) / 2,
+        sink_id=len(grid.nodes) - 1,
+        space_behind_sink=False)
 
 def CreateFurtherSinkCorner(network_size, distance):
     grid = Grid(network_size, distance)
 
     return Configuration(grid,
-        sourceId=(network_size + 1) * 3,
-        sinkId=len(grid.nodes) - 1,
-        spaceBehindSink=False)
+        source_id=(network_size + 1) * 3,
+        sink_id=len(grid.nodes) - 1,
+        space_behind_sink=False)
 
 def CreateGeneric1(network_size, distance):
     grid = Grid(network_size, distance)
@@ -109,44 +109,44 @@ def CreateGeneric1(network_size, distance):
     node_count = len(grid.nodes)
 
     return Configuration(grid,
-        sourceId=(network_size / 2) - (node_count / 3),
-        sinkId=(network_size / 2) + (node_count / 3),
-        spaceBehindSink=False)
+        source_id=(network_size / 2) - (node_count / 3),
+        sink_id=(network_size / 2) + (node_count / 3),
+        space_behind_sink=False)
 
 def CreateGeneric2(network_size, distance):
     grid = Grid(network_size, distance)
 
     return Configuration(grid,
-        sourceId=(network_size * (network_size - 2)) - 2 - 1,
-        sinkId=(network_size * 2) + 2,
-        spaceBehindSink=True)
+        source_id=(network_size * (network_size - 2)) - 2 - 1,
+        sink_id=(network_size * 2) + 2,
+        space_behind_sink=True)
 
 
 def CreateRingTop(network_size, distance):
     ring = Ring(network_size, distance)
 
     return Configuration(ring,
-        sourceId=network_size - 1,
-        sinkId=0,
-        spaceBehindSink=True)
+        source_id=network_size - 1,
+        sink_id=0,
+        space_behind_sink=True)
 
 def CreateRingMiddle(network_size, distance):
     ring = Ring(network_size, distance)
 
     return Configuration(ring,
-        sourceId=(4 * network_size - 5) / 2 + 1,
-        sinkId=(4 * network_size - 5) / 2,
-        spaceBehindSink=True)
+        source_id=(4 * network_size - 5) / 2 + 1,
+        sink_id=(4 * network_size - 5) / 2,
+        space_behind_sink=True)
 
 def CreateRingOpposite(network_size, distance):
     ring = Ring(network_size, distance)
 
     return Configuration(ring,
-        sourceId=len(ring.nodes) - 1,
-        sinkId=0,
-        spaceBehindSink=True)
+        source_id=len(ring.nodes) - 1,
+        sink_id=0,
+        space_behind_sink=True)
 
-configurationMapping = {
+configuration_mapping = {
     "SourceCorner": CreateSourceCorner,
     "SinkCorner": CreateSinkCorner,
     "FurtherSinkCorner": CreateFurtherSinkCorner,
@@ -158,7 +158,7 @@ configurationMapping = {
     "RingOpposite": CreateRingOpposite,
 }
 
-configurationRank = {
+configuration_rank = {
     'SourceCorner': 1,
     'SinkCorner': 2,
     'FurtherSinkCorner': 3,
@@ -175,7 +175,7 @@ configurationRank = {
 }
 
 def Names():
-    return configurationMapping.keys()
+    return configuration_mapping.keys()
 
 def Create(name, args):
-    return configurationMapping[name](args.network_size, args.distance)
+    return configuration_mapping[name](args.network_size, args.distance)

@@ -25,14 +25,14 @@ class Analyzer:
         d['pr(pfs)']            = lambda x: x.opts['pr_pfs']
 
         def format_results(x, name):
-            if name in x.varianceOf:
-                return "{}({})".format(x.averageOf[name], x.varianceOf[name])
+            if name in x.variance_of:
+                return "{}({})".format(x.average_of[name], x.variance_of[name])
             else:
-                return "{}".format(x.averageOf[name])
+                return "{}".format(x.average_of[name])
         
         d['sent']               = lambda x: format_results(x, 'Sent')
         d['received']           = lambda x: format_results(x, 'Received')
-        d['captured']           = lambda x: str(x.averageOf['Captured'])
+        d['captured']           = lambda x: str(x.average_of['Captured'])
         d['attacker moves']     = lambda x: format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: format_results(x, 'AttackerDistance')
         d['received ratio']     = lambda x: format_results(x, 'ReceiveRatio')

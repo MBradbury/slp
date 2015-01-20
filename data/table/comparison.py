@@ -2,10 +2,10 @@ from __future__ import print_function
 
 import numpy
 
-from fake_result import ResultTable as BaseResultTable
+from data.table.fake_result import ResultTable as BaseResultTable
 from data import latex
 
-from simulator.Configuration import configurationRank
+from simulator.Configuration import configuration_rank
 
 class ResultTable(BaseResultTable):
     bad = '\\badcolour'
@@ -14,7 +14,7 @@ class ResultTable(BaseResultTable):
 
     @staticmethod
     def _configuration_rank(configuration):
-        return configurationRank[configuration] if configuration in configurationRank else len(rank) + 1
+        return configuration_rank[configuration] if configuration in configuration_rank else len(configuration_rank) + 1
 
     def __init__(self, base_results, comparison_results):
 
@@ -22,6 +22,10 @@ class ResultTable(BaseResultTable):
 
         self.base_results = base_results
         self.comparison_results = comparison_results
+
+        self.diff = {}
+        self.configurations = set()
+        self.sizes = set()
 
         self._create_diff()
 
@@ -48,34 +52,30 @@ class ResultTable(BaseResultTable):
         return zip(diff, reldiff)
 
     def _create_diff(self):
-        self.diff = {}
-        self.configurations = set()
-        self.sizes = set()
-
         for ((size, config), items1) in self.base_results.data.items():
-            for (srcPeriod, items2) in items1.items():
+            for (src_period, items2) in items1.items():
                 for (base_params, base_values) in items2.items():
                     try:
-                        for (comp_params, comp_values) in self.comparison_results.data[(size, config)][srcPeriod].items():
+                        for (comp_params, comp_values) in self.comparison_results.data[(size, config)][src_period].items():
 
                             self.diff \
                                 .setdefault((size, config), {}) \
                                 .setdefault(comp_params, {}) \
-                                .setdefault(srcPeriod, {}) \
+                                .setdefault(src_period, {}) \
                                 [base_params] = self._sub(base_values, comp_values)
 
                             self.configurations.add(config)
                             self.sizes.add(size)
 
-                    except KeyError as e:
-                        print("Skipping {} due to KeyError({})".format((size, config, srcPeriod), e))
+                    except KeyError as ex:
+                        print("Skipping {} due to KeyError({})".format((size, config, src_period), ex))
 
     def write_tables(self, stream, param_filter = lambda x: True):
         title_order = self.base_results.parameter_names + self.base_results.result_names
                     
         print('\\vspace{-0.3cm}', file=stream)
 
-        for configuration in sorted(self.configurations, key=lambda x: configurationRank[x]):
+        for configuration in sorted(self.configurations, key=lambda x: configuration_rank[x]):
             for size in sorted(self.sizes):
                 table_key = (size, configuration)
 

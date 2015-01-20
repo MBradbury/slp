@@ -3,41 +3,41 @@ import simulator.Configuration as Configuration
 import simulator.Attacker as Attacker
 
 class Arguments:
-	def __init__(self):
-		parser = argparse.ArgumentParser(description="SLP Protectionless", add_help=True)
-		parser.add_argument("--mode", type=str, choices=["GUI", "PARALLEL", "CLUSTER"], required=True)
+    def __init__(self):
+        parser = argparse.ArgumentParser(description="SLP Protectionless", add_help=True)
+        parser.add_argument("--mode", type=str, choices=["GUI", "PARALLEL", "CLUSTER"], required=True)
 
-		parser.add_argument("--seed", type=int)
+        parser.add_argument("--seed", type=int)
 
-		parser.add_argument("--network-size", type=int, required=True)
+        parser.add_argument("--network-size", type=int, required=True)
 
-		parser.add_argument("--source-period", type=float, required=True)
+        parser.add_argument("--source-period", type=float, required=True)
 
-		parser.add_argument("--distance", type=float, required=True)
+        parser.add_argument("--distance", type=float, required=True)
 
-		parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
+        parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
 
-		parser.add_argument("--attacker-model", type=str, choices=Attacker.models(), default=Attacker.default())
+        parser.add_argument("--attacker-model", type=str, choices=Attacker.models(), default=Attacker.default())
 
-		parser.add_argument("--job-size", type=int, default=1)
-		parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
+        parser.add_argument("--job-size", type=int, default=1)
+        parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
 
-		parser.add_argument("-v", "--verbose", action="store_true")
+        parser.add_argument("-v", "--verbose", action="store_true")
 
-		self.parser = parser
+        self.parser = parser
 
-	def parse(self, argv):
-		self.args = self.parser.parse_args(argv)
-		return self.args
+    def parse(self, argv):
+        self.args = self.parser.parse_args(argv)
+        return self.args
 
-	def getBuildArguments(self):
-		result = {}
+    def build_arguments(self):
+        result = {}
 
-		if self.args.verbose:
-			result.update(SLP_VERBOSE_DEBUG=1)
+        if self.args.verbose:
+            result.update(SLP_VERBOSE_DEBUG=1)
 
-		result.update({
-			"SOURCE_PERIOD_MS": int(self.args.source_period * 1000)
-		})
+        result.update({
+            "SOURCE_PERIOD_MS": int(self.args.source_period * 1000)
+        })
 
-		return result
+        return result

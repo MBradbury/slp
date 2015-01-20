@@ -1,6 +1,4 @@
 import os
-import subprocess
-import shutil
 
 from data import latex
 
@@ -68,7 +66,7 @@ class GraphSummary:
 
 
     def compile(self):
-        latex.compile(self.name + '.tex')
+        latex.compile_document(self.name + '.tex')
 
     def clean(self):
         extensions = ['.pdf', '.tex']

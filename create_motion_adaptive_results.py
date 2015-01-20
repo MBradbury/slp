@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil
+import os, sys
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -19,23 +19,14 @@ from data.graph import summary, heatmap, versus
 
 from data import results, latex
 
+from data.util import create_dirtree, recreate_dirtree, touch
+
 import numpy
 
 # Raise all numpy errors
 numpy.seterr(all='raise')
 
 jar_path = 'run.py'
-
-protectionless_results_directory = 'results/protectionless'
-protectionless_analysis_result_file = 'protectionless-results.csv'
-
-adaptive_results_directory = 'results/adaptive'
-adaptive_analysis_result_file = 'adaptive-results.csv'
-
-motion_adaptive_results_directory = 'results/motion_adaptive'
-motion_adaptive_analysis_result_file = 'motion_adaptive-results.csv'
-
-adaptive_graphs_directory = os.path.join(adaptive_results_directory, 'Graphs')
 
 distance = 4.5
 
@@ -71,25 +62,12 @@ parameter_names = ('approach',)
 
 protectionless_configurations = [(a) for (a, build) in configurations]
 
-def create_dirtree(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-def recreate_dirtree(path):
-    if os.path.exists(path):
-        shutil.rmtree(path)
-    os.makedirs(path)
-
-def touch(fname, times=None):
-    with open(fname, 'a'):
-        os.utime(fname, times)
-
-create_dirtree(adaptive_results_directory)
-create_dirtree(adaptive_graphs_directory)
+create_dirtree(motion_adaptive.results_path)
+create_dirtree(motion_adaptive.graphs_path)
 
 def run(driver, skip_completed_simulations):
     safety_period_table_generator = safety_period.TableGenerator()
-    safety_period_table_generator.analyse(os.path.join(protectionless_results_directory, protectionless_analysis_result_file))
+    safety_period_table_generator.analyse(protectionless.result_file_path)
 
     safety_periods = safety_period_table_generator.safety_periods()
     receive_ratios = safety_period_table_generator.receive_ratios()
@@ -98,7 +76,7 @@ def run(driver, skip_completed_simulations):
     runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, alpha, repeats)
 
 if 'cluster' in args:
-    cluster_directory = "cluster/motion_adaptive"
+    cluster_directory = os.path.join("cluster", motion_adaptive.name)
 
     from data import cluster_manager
 
@@ -122,44 +100,41 @@ if 'cluster' in args:
 
     sys.exit(0)
 
-if 'all' in args or 'run' in args:
+if 'run' in args:
     from data.run.driver import local as LocalDriver
 
     run(LocalDriver.Runner(), True)
 
-if 'all' in args or 'analyse' in args:
-    prelim_analyzer = motion_adaptive.Analysis.Analyzer(motion_adaptive_results_directory)
-    prelim_analyzer.run(motion_adaptive_analysis_result_file)
+if 'analyse' in args:
+    prelim_analyzer = motion_adaptive.Analysis.Analyzer(motion_adaptive.results_path)
+    prelim_analyzer.run(motion_adaptive.result_file)
 
-adaptive_analysis_result_path = os.path.join(adaptive_results_directory, adaptive_analysis_result_file)
-motion_adaptive_analysis_result_path = os.path.join(templatemotion_adaptive_results_directory, motion_adaptive_analysis_result_file)
-
-if 'all' in args or 'graph' in args:
-    adaptive_results = results.Results(motion_adaptive_analysis_result_path,
+if 'graph' in args:
+    results = results.Results(motion_adaptive.result_file_path,
         parameters=parameter_names,
         results=('captured', 'sent heatmap', 'received heatmap'))
 
-    heatmap.Grapher(motion_adaptive_graphs_directory, adaptive_results, 'sent heatmap').create()
-    heatmap.Grapher(motion_adaptive_graphs_directory, adaptive_results, 'received heatmap').create()
+    heatmap.Grapher(motion_adaptive.graphs_path, results, 'sent heatmap').create()
+    heatmap.Grapher(motion_adaptive.graphs_path, results, 'received heatmap').create()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
     #    summary.GraphSummary(
-    #        os.path.join(adaptive_graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
+    #        os.path.join(motion_adaptive.graphs_path, 'Versus/{}/Source-Period'.format(subdir)),
     #        subdir).run()
 
-    summary.GraphSummary(os.path.join(motion_adaptive_graphs_directory, 'sent heatmap'), 'motion_adaptive-SentHeatMap').run()
-    summary.GraphSummary(os.path.join(motion_adaptive_graphs_directory, 'received heatmap'), 'motion_adaptive-ReceivedHeatMap').run()
+    summary.GraphSummary(os.path.join(motion_adaptive.graphs_path, 'sent heatmap'), 'motion_adaptive-SentHeatMap').run()
+    summary.GraphSummary(os.path.join(motion_adaptive.graphs_path, 'received heatmap'), 'motion_adaptive-ReceivedHeatMap').run()
 
-    versus.Grapher(adaptive_graphs_directory, adaptive_results, 'captured-v-source-period',
+    versus.Grapher(motion_adaptive.graphs_path, results, 'captured-v-source-period',
         xaxis='size', yaxis='captured', vary='source period').create()
 
-if 'all' in args or 'table' in args:
-    adaptive_results = results.Results(adaptive_analysis_result_path,
+if 'table' in args:
+    results = results.Results(adaptive.result_file_path,
         parameters=parameter_names,
         results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
-    result_table = fake_result.ResultTable(adaptive_results)
+    result_table = fake_result.ResultTable(results)
 
     def create_adaptive_table(name, param_filter=lambda x: True):
         filename = name + ".tex"
@@ -169,19 +144,19 @@ if 'all' in args or 'table' in args:
             result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
-        latex.compile(filename)
+        latex.compile_document(filename)
 
     create_adaptive_table("motion_adaptive_results")
 
-if 'all' in args or 'comparison-table' in args:
+if 'comparison-table' in args:
 
     results_to_compare = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
-    adaptive_results = results.Results(adaptive_analysis_result_path,
+    adaptive_results = results.Results(adaptive.result_file_path,
         parameters=parameter_names,
         results=results_to_compare)
 
-    motion_adaptive_results = results.Results(motion_adaptive_analysis_result_path,
+    motion_adaptive_results = results.Results(motion_adaptive.result_file_path,
         parameters=parameter_names,
         results=results_to_compare)
 
@@ -195,6 +170,6 @@ if 'all' in args or 'comparison-table' in args:
             result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
-        latex.compile(filename)
+        latex.compile_document(filename)
 
     create_comparison_table("comparison_adaptive_motion_adaptive_results")

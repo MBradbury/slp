@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil
+import os, sys
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -12,9 +12,11 @@ else:
 
 import algorithm.protectionless as protectionless
 
-from data.table import safety_period, comparison, direct_comparison
+from data.table import safety_period, direct_comparison
 from data.graph import summary, heatmap, versus
 from data import results, latex
+
+from data.util import create_dirtree, recreate_dirtree, touch
 
 import numpy
 
@@ -22,11 +24,6 @@ import numpy
 numpy.seterr(all='raise')
 
 jar_path = 'run.py'
-
-results_directory = 'results/protectionless'
-analysis_result_file = 'protectionless-results.csv'
-
-graphs_directory = os.path.join(results_directory, 'Graphs')
 
 distance = 4.5
 
@@ -54,24 +51,11 @@ repeats = 750
 
 parameter_names = tuple()
 
-def create_dirtree(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-def recreate_dirtree(path):
-    if os.path.exists(path):
-        shutil.rmtree(path)
-    os.makedirs(path)
-
-def touch(fname, times=None):
-    with open(fname, 'a'):
-        os.utime(fname, times)
-
-create_dirtree(results_directory)
-create_dirtree(graphs_directory)
+create_dirtree(protectionless.results_path)
+create_dirtree(protectionless.graphs_path)
 
 if 'cluster' in args:
-    cluster_directory = "cluster/protectionless"
+    cluster_directory = os.path.join("cluster", protectionless.name)
 
     from data import cluster_manager
 
@@ -97,19 +81,19 @@ if 'cluster' in args:
 
     sys.exit(0)
 
-if 'all' in args or 'run' in args:
+if 'run' in args:
     from data.run.driver import local as LocalDriver
 
-    runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), results_directory)
+    runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), protectionless.results_path)
     runner.run(jar_path, distance, sizes, periods, configurations, repeats)
 
-if 'all' in args or 'analyse' in args:
-    analyzer = protectionless.Analysis.Analyzer(results_directory)
-    analyzer.run(analysis_result_file)
+if 'analyse' in args:
+    analyzer = protectionless.Analysis.Analyzer(protectionless.results_path)
+    analyzer.run(protectionless.result_file)
 
-if 'all' in args or 'table' in args:
+if 'table' in args:
     safety_period_table_generator = safety_period.TableGenerator()
-    safety_period_table_generator.analyse(os.path.join(results_directory, analysis_result_file))
+    safety_period_table_generator.analyse(protectionless.result_file_path)
 
     safety_period_table_path = 'protectionless-results.tex'
 
@@ -118,26 +102,24 @@ if 'all' in args or 'table' in args:
         safety_period_table_generator.print_table(latex_safety_period_tables)
         latex.print_footer(latex_safety_period_tables)
 
-    latex.compile(safety_period_table_path)
+    latex.compile_document(safety_period_table_path)
 
-analysis_result_path = os.path.join(results_directory, analysis_result_file)
-
-if 'all' in args or 'graph' in args:
-    protectionless_results = results.Results(analysis_result_path,
+if 'graph' in args:
+    protectionless_results = results.Results(protectionless.result_file_path,
         parameters=parameter_names,
         results=('sent heatmap', 'received heatmap'))
 
-    heatmap.Grapher(graphs_directory, protectionless_results, 'sent heatmap').create()
-    heatmap.Grapher(graphs_directory, protectionless_results, 'received heatmap').create()
+    heatmap.Grapher(protectionless.graphs_path, protectionless_results, 'sent heatmap').create()
+    heatmap.Grapher(protectionless.graphs_path, protectionless_results, 'received heatmap').create()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
     #    summary.GraphSummary(
-    #        os.path.join(graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
+    #        os.path.join(protectionless.graphs_path, 'Versus/{}/Source-Period'.format(subdir)),
     #        subdir).run()
 
-    summary.GraphSummary(os.path.join(graphs_directory, 'sent heatmap'), 'protectionless-SentHeatMap').run()
-    summary.GraphSummary(os.path.join(graphs_directory, 'received heatmap'), 'protectionless-ReceivedHeatMap').run()
+    summary.GraphSummary(os.path.join(protectionless.graphs_path, 'sent heatmap'), 'protectionless-SentHeatMap').run()
+    summary.GraphSummary(os.path.join(protectionless.graphs_path, 'received heatmap'), 'protectionless-ReceivedHeatMap').run()
 
 if 'ccpe-comparison-table' in args:
     from data.old_results import OldResults 
@@ -146,7 +128,7 @@ if 'ccpe-comparison-table' in args:
         parameters=tuple(),
         results=('time taken', 'received ratio', 'safety period'))
 
-    protectionless_results = results.Results(analysis_result_path,
+    protectionless_results = results.Results(protectionless.result_file_path,
         parameters=parameter_names,
         results=('time taken', 'received ratio', 'safety period'))
 
@@ -160,7 +142,7 @@ if 'ccpe-comparison-table' in args:
             result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
-        latex.compile(filename)
+        latex.compile_document(filename)
 
     create_comparison_table('protectionless-ccpe-comparison')
 
@@ -173,7 +155,7 @@ if 'ccpe-comparison-graph' in args:
         parameters=parameter_names,
         results=result_names)
 
-    protectionless_results = results.Results(analysis_result_path,
+    protectionless_results = results.Results(protectionless.result_file_path,
         parameters=parameter_names,
         results=result_names)
 
@@ -182,11 +164,11 @@ if 'ccpe-comparison-graph' in args:
     def create_ccpe_comp_versus(yxaxis, pc=False):
         name = 'ccpe-comp-{}-{}'.format(yxaxis, "pcdiff" if pc else "diff")
 
-        versus.Grapher(graphs_directory, result_table, name,
+        versus.Grapher(protectionless.graphs_path, result_table, name,
             xaxis='size', yaxis=yxaxis, vary='source period',
             yextractor=lambda (diff, pcdiff): pcdiff if pc else diff).create()
 
-        summary.GraphSummary(os.path.join(graphs_directory, name), 'protectionless-{}'.format(name).replace(" ", "_")).run()
+        summary.GraphSummary(os.path.join(protectionless.graphs_path, name), 'protectionless-{}'.format(name).replace(" ", "_")).run()
 
     for result_name in result_names:
         create_ccpe_comp_versus(result_name, pc=True)
