@@ -108,14 +108,14 @@ class GrapherBase(object):
     # From: http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
     @staticmethod
     def _pprint_table(stream, table):
-        def get_max_width(table, index):
-            """Get the maximum width of the given column index."""
-            return max(len(str(row[index])) for row in table)
-
         """Prints out a table of data, padded for alignment
         @param stream: Output stream (file-like object)
         @param table: The table to print. A list of lists.
         Each row must have the same number of columns."""
+
+        def get_max_width(table, index):
+            """Get the maximum width of the given column index."""
+            return max(len(str(row[index])) for row in table)
 
         col_paddings = []
 

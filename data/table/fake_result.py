@@ -1,11 +1,9 @@
 # Author: Matthew Bradbury
 from __future__ import print_function
 
-import csv, math, sys, ast
+import sys
 
-import numpy
-
-from simulator.Configuration import configurationRank
+from simulator.Configuration import configuration_rank
 
 from data import latex
 
@@ -20,11 +18,11 @@ class ResultTable(object):
         parameter_count = len(self.results.parameter_names)
         result_count = len(self.results.result_names)
 
-        a = "|l|"
-        b = "|" + "|".join("l" * parameter_count) + "|"
-        c = "|" + "|".join("l" * result_count   ) + "|"
+        inital_header = "|l|"
+        parameter_header = "|" + "|".join("l" * parameter_count) + "|"
+        result_header = "|" + "|".join("l" * result_count   ) + "|"
 
-        return a + b + c
+        return inital_header + parameter_header + result_header
 
     def _convert_title_row(self, name, row):
         try:
@@ -51,8 +49,13 @@ class ResultTable(object):
             return name
 
     def _title_row(self, row):
-        a = map(lambda x: self._convert_title_row(x, row), ["source period"] + self.results.parameter_names +  self.results.result_names)
-        return "        " + " & ".join(a) + "\\\\"
+        titles = [
+            self._convert_title_row(title, row)
+            for title
+            in ["source period"] + self.results.parameter_names +  self.results.result_names
+        ]
+
+        return "        " + " & ".join(titles) + "\\\\"
 
     def _var_fmt(self, name, value):
         if name == "source period" or name == "fake period":
@@ -84,7 +87,7 @@ class ResultTable(object):
                     
         print('\\vspace{-0.3cm}', file=stream)
 
-        for configuration in sorted(self.results.configurations, key=lambda x: configurationRank[x]):
+        for configuration in sorted(self.results.configurations, key=lambda x: configuration_rank[x]):
             for size in sorted(self.results.sizes):
                 print('\\begin{table}[H]', file=stream)
                 print('    \\centering', file=stream)

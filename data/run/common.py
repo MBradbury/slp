@@ -12,6 +12,8 @@ class RunSimulationsCommon(object):
         if not os.path.exists(self.results_directory):
             raise Exception("{} is not a directory".format(self.results_directory))
 
+        self.existing_results = {}
+
     def _check_existing_results(self, names):
         self.existing_results = {}
 

@@ -7,53 +7,61 @@ from simulator.TosVis import TosVis
 from simulator.Topology import topology_path
 
 class Simulation(TosVis):
-    def __init__(self, moduleName, configuration, args):
+    def __init__(self, module_name, configuration, args):
 
         super(Simulation, self).__init__(
-            importlib.import_module('{}.TOSSIM'.format(moduleName)),
+            importlib.import_module('{}.TOSSIM'.format(module_name)),
             node_locations=configuration.topology.nodes,
-            range=args.distance,
-            seed=args.seed if args.seed is not None else self.secureRandom()
+            wireless_range=args.distance,
+            seed=args.seed if args.seed is not None else self.secure_random()
             )
 
         # To make simulations safer an upper bound on the simulation time
         # is used when no safety period makes sense. This upper bound is the 
         # time it would have otherwise taken the attacker to scan the whole network.
-        self.safetyPeriod = args.safety_period if hasattr(args, "safety_period") else (args.network_size ** 2) * max(1.0, 2.0 * args.source_period)
+        self.safety_period = args.safety_period if hasattr(args, "safety_period") else (args.network_size ** 2) * max(1.0, 2.0 * args.source_period)
 
         if args.mode == "GUI" or args.verbose:
             self.tossim.addChannel("stdout", sys.stdout)
 
         self.attackers = []
 
-        Metrics = importlib.import_module('{}.Metrics'.format(moduleName))
+        Metrics = importlib.import_module('{}.Metrics'.format(module_name))
 
         self.metrics = Metrics.Metrics(self, configuration)
 
-        self.topologyPath = topology_path(moduleName, args)
+        self.topology_path = topology_path(module_name, args)
 
-    def preRun(self):
-        super(Simulation, self).preRun()
+        self.start_time = None
+
+    def _pre_run(self):
+        super(Simulation, self)._pre_run()
 
         self.start_time = timeit.default_timer()
 
-    def postRun(self, eventCount):
+    def _post_run(self, event_count):
 
-        # Set the number of seconds this simulation run took
-        self.metrics.wallTime = timeit.default_timer() - self.start_time
-        self.metrics.eventCount = eventCount
+        # Set the number of seconds this simulation run took.
+        # It is possible that we will reach here without setting
+        # start_time, so we need to look out for this.
+        try:
+            self.metrics.wall_time = timeit.default_timer() - self.start_time
+        except TypeError:
+            self.metrics.wall_time = None
 
-        super(Simulation, self).postRun(eventCount)
+        self.metrics.event_count = event_count
+
+        super(Simulation, self)._post_run(event_count)
 
     @staticmethod
-    def writeTopologyFile(node_locations, location="."):
+    def write_topology_file(node_locations, location="."):
         with open(os.path.join(location, "topology.txt"), "w") as f:
-            for i,loc in enumerate(node_locations):
+            for (i, loc) in enumerate(node_locations):
                 print("{}\t{}\t{}".format(i, loc[0], loc[1]), file=f) 
 
-    def setupRadio(self):
+    def setup_radio(self):
         output = subprocess.check_output(
-            "java -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel model.txt {} {}".format(self.topologyPath, self.seed),
+            "java -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel model.txt {} {}".format(self.topology_path, self.seed),
             shell=True)
 
         for line in output.splitlines():
@@ -69,29 +77,29 @@ class Simulation(TosVis):
 
                 self.radio.setNoise(int(nodeId), float(noiseFloor), float(awgn))
 
-    def setupNoiseModels(self):
+    def setup_noise_models(self):
         path = "meyer-heavy.txt"
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.
         count = 1000
 
-        noises = list(islice(self.readNoiseFromFile(path), count))
+        noises = list(islice(self.read_noise_from_file(path), count))
 
         for node in self.nodes:
             for noise in noises:
                 node.tossim_node.addNoiseTraceReading(noise)
             node.tossim_node.createNoiseModel()
 
-    def addAttacker(self, attacker):
+    def add_attacker(self, attacker):
         self.attackers.append(attacker)
 
-    def continuePredicate(self):
-        return not self.anyAttackerFoundSource() and (self.safetyPeriod is None or self.simTime() < self.safetyPeriod)
+    def continue_predicate(self):
+        return not self.any_attacker_found_source() and (self.safety_period is None or self.sim_time() < self.safety_period)
 
-    def anyAttackerFoundSource(self):
-        return any(attacker.foundSource() for attacker in self.attackers)
+    def any_attacker_found_source(self):
+        return any(attacker.found_source() for attacker in self.attackers)
 
     @staticmethod
-    def secureRandom():
+    def secure_random():
         return struct.unpack("<i", os.urandom(4))[0]

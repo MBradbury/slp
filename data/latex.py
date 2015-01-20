@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os, re, subprocess
+import os, errno, re, subprocess
 
 def print_header(stream):
     print('\\documentclass[a4paper,notitlepage]{article}', file=stream)
@@ -23,14 +23,19 @@ def print_header(stream):
 def print_footer(stream):
     print('\\end{document}', file=stream)
 
-def compile(path_and_name, executable="pdflatex -interaction=nonstopmode"):
+def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmode"):
     (path, name_with_ext) = os.path.split(path_and_name)
     (name_without_ext, ext) = os.path.splitext(name_with_ext)
 
-    try:
-        os.remove(os.path.join(path, name_without_ext + ".pdf"))
-    except:
-        pass
+    def silent_remove(path):
+        try:
+            os.remove(path)
+        except OSError as ex:
+            # errno.ENOENT = no such file or directory
+            if ex.error != errno.ENOENT:
+                raise
+
+    silent_remove(os.path.join(path, name_without_ext + ".pdf"))
 
     try:
         command = "{} {}".format(executable, path_and_name)
@@ -39,11 +44,9 @@ def compile(path_and_name, executable="pdflatex -interaction=nonstopmode"):
 
     finally:
         exts_to_remove = [".log", ".aux", ".dvi", ".out", ".synctex.gz"]
+
         for ext_to_remove in exts_to_remove:
-            try:
-                os.remove(os.path.join(path, name_without_ext + ext_to_remove))
-            except:
-                pass
+            silent_remove(os.path.join(path, name_without_ext + ext_to_remove))
 
 def escape(text):
     """

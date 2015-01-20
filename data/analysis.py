@@ -3,7 +3,7 @@ from __future__ import print_function
 from numpy import mean
 from numpy import var as variance
 
-import sys, ast, traceback, math
+import sys, ast, math
 from collections import Counter
 
 class EmptyFileError(RuntimeError):
@@ -20,10 +20,10 @@ class Analyse(object):
         self.data = []
 
         with open(infile) as f:
-            lineNumber = 0
+            line_number = 0
             for line in f:
 
-                lineNumber += 1
+                line_number += 1
         
                 # We need to remove the new line at the end of the line
                 line = line.strip()
@@ -43,31 +43,31 @@ class Analyse(object):
                         # Read the actual data
                         values = map(ast.literal_eval, line.split('|'))
 
-                        self.check_consistent(values, lineNumber)
+                        self.check_consistent(values, line_number)
 
                         self.detect_outlier(values)
 
                         self.data.append(values)
 
                     except RuntimeError as e:
-                        print("Unable to process line {} due to {}".format(lineNumber, e), file=sys.stderr)
+                        print("Unable to process line {} due to {}".format(line_number, e), file=sys.stderr)
 
                     except ValueError as e:
-                        print("Unable to process line {} due to {} ({})".format(lineNumber, e, line), file=sys.stderr)
+                        print("Unable to process line {} due to {} ({})".format(line_number, e, line), file=sys.stderr)
 
                 else:
-                    print("Unable to parse line {} : '{}'".format(lineNumber, line))
+                    print("Unable to parse line {} : '{}'".format(line_number, line))
 
-            if lineNumber == 0:
+            if line_number == 0:
                 raise EmptyFileError(infile)
 
-    def check_consistent(self, values, lineNumber):
+    def check_consistent(self, values, line_number):
         """Perform multiple sanity checks on the data generated"""
 
         # Check that the expected number of values are present
         if len(values) != len(self.headings):
             raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
-                len(values), len(self.headings), lineNumber))
+                len(values), len(self.headings), line_number))
 
         for (heading, value) in zip(self.headings, values):
             if type(value) is dict:
@@ -76,7 +76,7 @@ class Analyse(object):
 
                 # Check that there aren't too many nodes
                 if len(value) > number_nodes:
-                    raise RuntimeError("There are too many nodes in this map {}, when there should be {} maximum.".format(len(d), number_nodes))
+                    raise RuntimeError("There are too many nodes in this map {} called {}, when there should be {} maximum.".format(len(value), heading, number_nodes))
 
                 # Check that the node ids are in the right range
                 for k in value.keys():
@@ -98,7 +98,7 @@ class Analyse(object):
         latency = values[latency_index]
 
         if math.isnan(latency):
-            raise RuntimeError('The NormalLatency {} is a NaN'.format(latency_str))
+            raise RuntimeError('The NormalLatency {} is a NaN'.format(latency))
 
         if latency <= 0:
             raise RuntimeError("The NormalLatency {} is less than or equal to 0.".format(latency))
@@ -119,16 +119,16 @@ class Analyse(object):
         else:
             return float(value)
 
-    def averageOf(self, header):
+    def average_of(self, header):
         # Find the index that header refers to
         index = self.headings.index(header)
 
         if type(self.data[0][index]) is dict:
-            return self.dictMean(index)
+            return self.dict_mean(index)
         else:
             return mean([self.to_float(values[index]) for values in self.data])
 
-    def varianceOf(self, header):
+    def variance_of(self, header):
         # Find the index that header refers to
         index = self.headings.index(header)
 
@@ -137,28 +137,28 @@ class Analyse(object):
         else:
             return variance([self.to_float(values[index]) for values in self.data])
 
-    def dictMean(self, index):
-        dictList = (Counter(values[index]) for values in self.data)
+    def dict_mean(self, index):
+        dict_list = (Counter(values[index]) for values in self.data)
 
-        return { k: float(v) / len(self.data) for (k, v) in dict(sum(dictList, Counter())).items() }
+        return { k: float(v) / len(self.data) for (k, v) in dict(sum(dict_list, Counter())).items() }
 
 
 class AnalysisResults:
     def __init__(self, analysis):
-        self.averageOf = {}
-        self.varianceOf = {}
+        self.average_of = {}
+        self.variance_of = {}
         
         for heading in analysis.headings:
             try:
-                self.averageOf[heading] = analysis.averageOf(heading)
-            except Exception as e:
-                print("Failed to average {}: {}".format(heading, e), file=sys.stderr)
+                self.average_of[heading] = analysis.average_of(heading)
+            except (TypeError, RuntimeError) as ex:
+                print("Failed to average {}: {}".format(heading, ex), file=sys.stderr)
                 #print(traceback.format_exc(), file=sys.stderr)
             
             try:
-                self.varianceOf[heading] = analysis.varianceOf(heading)
-            except Exception as e:
-                print("Failed to find variance {}: {}".format(heading, e), file=sys.stderr)
+                self.variance_of[heading] = analysis.variance_of(heading)
+            except (TypeError, RuntimeError) as ex:
+                print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
                 #print(traceback.format_exc(), file=sys.stderr)
 
         self.opts = analysis.opts

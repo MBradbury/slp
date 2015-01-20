@@ -1,9 +1,8 @@
 
 import os
 
-from grapher import GrapherBase
-
 from data import latex
+from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
     def __init__(self, output_directory, results, result_name):
@@ -20,13 +19,13 @@ class Grapher(GrapherBase):
         print('Creating {} graph files'.format(self.result_name))
 
         for ((size, config), items1) in self.results.data.items():
-            for (srcPeriod, items2) in items1.items():
+            for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
-                    self._create_plot(size, config, srcPeriod, params, results)
+                    self._create_plot(size, config, src_period, params, results)
 
         self._create_graphs(self.result_name)
 
-    def _create_plot(self, size, config, srcPeriod, params, results):
+    def _create_plot(self, size, config, src_period, params, results):
         def chunks(l, n):
             """ Yield successive n-sized chunks from l."""
             for i in xrange(0, len(l), n):
@@ -37,13 +36,15 @@ class Grapher(GrapherBase):
         if type(data) is not dict:
             raise RuntimeError("The data is not a dict")
 
-        dirName = os.path.join(self.output_directory, self.result_name, config, str(size), str(srcPeriod), *map(str, params))
+        dir_name = os.path.join(
+            self.output_directory,
+            self.result_name, config, str(size), str(src_period), *map(str, params))
 
-        print(dirName)
+        print(dir_name)
 
         # Ensure that the dir we want to put the files in
         # actually exists
-        self._ensureDirExists(dirName)
+        self._ensureDirExists(dir_name)
 
         # Convert to the array
         array = [0] * (size * size)
@@ -52,39 +53,39 @@ class Grapher(GrapherBase):
 
         array = list(chunks(array, size))
 
-        with open(os.path.join(dirName, 'graph.p'), 'w') as pFile:
+        with open(os.path.join(dir_name, 'graph.p'), 'w') as graph_p:
         
-            pFile.write('set terminal pdf enhanced\n')
-            pFile.write('set output "graph.pdf" \n')
+            graph_p.write('set terminal pdf enhanced\n')
+            graph_p.write('set output "graph.pdf" \n')
                 
-            pFile.write('set palette rgbformulae 22,13,10\n')
+            graph_p.write('set palette rgbformulae 22,13,10\n')
         
-            #pFile.write('set title "Heat Map of Messages Sent"\n')
-            pFile.write('unset key\n')
-            #pFile.write('set size ratio 0.5\n')
-            pFile.write('set tic scale 0\n')
+            #graph_p.write('set title "Heat Map of Messages Sent"\n')
+            graph_p.write('unset key\n')
+            #graph_p.write('set size ratio 0.5\n')
+            graph_p.write('set tic scale 0\n')
             
-            pFile.write('set xlabel "X Coordinate"\n')
-            pFile.write('set ylabel "Y Coordinate"\n')
+            graph_p.write('set xlabel "X Coordinate"\n')
+            graph_p.write('set ylabel "Y Coordinate"\n')
             
             
             # To top left to be (0, 0)
-            pFile.write('set yrange [0:{0}] reverse\n'.format(size - 1))
-            pFile.write('set xrange [0:{0}]\n'.format(size - 1))
+            graph_p.write('set yrange [0:{0}] reverse\n'.format(size - 1))
+            graph_p.write('set xrange [0:{0}]\n'.format(size - 1))
             
-            pFile.write('set cbrange []\n')
-            pFile.write('set cblabel "{}"\n'.format(self.result_name))
-            #pFile.write('unset cbtics\n')
+            graph_p.write('set cbrange []\n')
+            graph_p.write('set cblabel "{}"\n'.format(self.result_name))
+            #graph_p.write('unset cbtics\n')
 
-            pFile.write('set view map\n')
-            pFile.write('splot \'-\' matrix with image\n')
+            graph_p.write('set view map\n')
+            graph_p.write('splot \'-\' matrix with image\n')
             
-            self._pprint_table(pFile, array)
+            self._pprint_table(graph_p, array)
         
-        with open(os.path.join(dirName, 'graph.caption'), 'w') as captionFile:
-            captionFile.write('Parameters:\\newline\n')
-            captionFile.write('Source Period: {0} second\\newline\n'.format(srcPeriod))
-            captionFile.write('Network Size: {0}\\newline\n'.format(size))
-            captionFile.write('Configuration: {0}\\newline\n'.format(config))
+        with open(os.path.join(dir_name, 'graph.caption'), 'w') as graph_caption:
+            graph_caption.write('Parameters:\\newline\n')
+            graph_caption.write('Source Period: {0} second\\newline\n'.format(src_period))
+            graph_caption.write('Network Size: {0}\\newline\n'.format(size))
+            graph_caption.write('Configuration: {0}\\newline\n'.format(config))
             for (name, value) in zip(self.results.parameter_names, params):
-                captionFile.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
+                graph_caption.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))

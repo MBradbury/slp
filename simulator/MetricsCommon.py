@@ -9,91 +9,91 @@ class MetricsCommon(object):
         self.sim = sim
         self.configuration = configuration
 
-        self.sourceID = configuration.sourceId
-        self.sinkID = configuration.sinkId
+        self.source_id = configuration.source_id
+        self.sink_id = configuration.sink_id
 
         self.sent = {}
         self.received = {}
 
-        self.normalSentTime = {}
-        self.normalLatency = {}
-        self.normalHopCount = []
+        self.normal_sent_time = {}
+        self.normal_latency = {}
+        self.normal_hop_count = []
 
-        self.wallTime = 0
-        self.eventCount = 0
+        self.wall_time = 0
+        self.event_count = 0
 
     def process_BCAST(self, line):
-        (kind, time, nodeID, status, seqNo) = line.split(',')
+        (kind, time, node_id, status, sequence_number) = line.split(',')
 
         if status == "success":
             time = float(time) / self.sim.tossim.ticksPerSecond()
-            nodeID = int(nodeID)
-            seqNo = int(seqNo)
+            node_id = int(node_id)
+            sequence_number = int(sequence_number)
 
             if kind not in self.sent:
                 self.sent[kind] = Counter()
 
-            self.sent[kind][nodeID] += 1
+            self.sent[kind][node_id] += 1
 
-            if nodeID == self.sourceID and kind == "Normal":
-                self.normalSentTime[seqNo] = time
+            if node_id == self.source_id and kind == "Normal":
+                self.normal_sent_time[sequence_number] = time
 
     def process_RCV(self, line):
-        (kind, time, nodeID, sourceID, seqNo, hopCount) = line.split(',')
+        (kind, time, node_id, source_id, sequence_number, hop_count) = line.split(',')
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
-        nodeID = int(nodeID)
-        sourceID = int (sourceID)
-        seqNo = int(seqNo)
-        hopCount = int(hopCount)
+        node_id = int(node_id)
+        source_id = int (source_id)
+        sequence_number = int(sequence_number)
+        hop_count = int(hop_count)
 
         if kind not in self.received:
             self.received[kind] = Counter()
 
-        self.received[kind][nodeID] += 1
+        self.received[kind][node_id] += 1
 
-        if nodeID == self.sinkID and kind == "Normal":
-            self.normalLatency[seqNo] = time - self.normalSentTime[seqNo]
-            self.normalHopCount.append(hopCount)
+        if node_id == self.sink_id and kind == "Normal":
+            self.normal_latency[sequence_number] = time - self.normal_sent_time[sequence_number]
+            self.normal_hop_count.append(hop_count)
 
     def seed(self):
         return self.sim.seed
 
-    def simTime(self):
-        return self.sim.simTime()
+    def sim_time(self):
+        return self.sim.sim_time()
 
-    def numberSent(self, name):
+    def number_sent(self, name):
         return 0 if name not in self.sent else sum(self.sent[name].values())
 
-    def numberReceived(self, name):
+    def number_received(self, name):
         return 0 if name not in self.received else sum(self.received[name].values())
 
-    def totalSent(self):
+    def total_sent(self):
         return sum(sum(sent.values()) for sent in self.sent.values())
 
-    def totalReceived(self):
+    def total_received(self):
         return sum(sum(received.values()) for received in self.received.values())
 
-    def sentHeatMap(self):
+    def sent_heat_map(self):
         return dict(sum(self.sent.values(), Counter()))
 
-    def receivedHeatMap(self):
+    def received_heat_map(self):
         return dict(sum(self.received.values(), Counter()))
 
-    def averageNormalLatency(self):
-        return mean(self.normalLatency.values())
+    def average_normal_latency(self):
+        return mean(self.normal_latency.values())
 
-    def receivedRatio(self):
-        return float(len(self.normalLatency)) / len(self.normalSentTime)
+    def receive_ratio(self):
+        return float(len(self.normal_latency)) / len(self.normal_sent_time)
 
-    def averageSinkSourceHops(self):
-        return mean(self.normalHopCount)
+    def average_sink_source_hops(self):
+        return mean(self.normal_hop_count)
 
     def captured(self):
-        return self.sim.anyAttackerFoundSource()
+        return self.sim.any_attacker_found_source()
 
-    def attackerDistance(self):
-        sourceLocation = self.sim.nodes[self.sourceID].location
+    def attacker_distance(self):
+        sourceLocation = self.sim.nodes[self.source_id].location
 
         return {
             i: euclidean(sourceLocation, self.sim.nodes[attacker.position].location)
@@ -101,7 +101,7 @@ class MetricsCommon(object):
             in enumerate(self.sim.attackers)
         }
 
-    def attackerMoves(self):
+    def attacker_moves(self):
         return {
             i: attacker.moves
             for i, attacker
@@ -112,20 +112,20 @@ class MetricsCommon(object):
     def items():
         d = OrderedDict()
         d["Seed"]                   = lambda x: x.seed()
-        d["Sent"]                   = lambda x: x.totalSent()
-        d["Received"]               = lambda x: x.totalReceived()
+        d["Sent"]                   = lambda x: x.total_sent()
+        d["Received"]               = lambda x: x.total_received()
         d["Collisions"]             = lambda x: None
         d["Captured"]               = lambda x: x.captured()
-        d["ReceiveRatio"]           = lambda x: x.receivedRatio()
-        d["TimeTaken"]              = lambda x: x.simTime()
-        d["WallTime"]               = lambda x: x.wallTime
-        d["EventCount"]             = lambda x: x.eventCount
-        d["AttackerDistance"]       = lambda x: x.attackerDistance()
-        d["AttackerMoves"]          = lambda x: x.attackerMoves()
-        d["NormalLatency"]          = lambda x: x.averageNormalLatency()
-        d["NormalSinkSourceHops"]   = lambda x: x.averageSinkSourceHops()
-        d["NormalSent"]             = lambda x: x.numberSent("Normal")
-        d["SentHeatMap"]            = lambda x: x.sentHeatMap()
-        d["ReceivedHeatMap"]        = lambda x: x.receivedHeatMap()
+        d["ReceiveRatio"]           = lambda x: x.receive_ratio()
+        d["TimeTaken"]              = lambda x: x.sim_time()
+        d["WallTime"]               = lambda x: x.wall_time
+        d["EventCount"]             = lambda x: x.event_count
+        d["AttackerDistance"]       = lambda x: x.attacker_distance()
+        d["AttackerMoves"]          = lambda x: x.attacker_moves()
+        d["NormalLatency"]          = lambda x: x.average_normal_latency()
+        d["NormalSinkSourceHops"]   = lambda x: x.average_sink_source_hops()
+        d["NormalSent"]             = lambda x: x.number_sent("Normal")
+        d["SentHeatMap"]            = lambda x: x.sent_heat_map()
+        d["ReceivedHeatMap"]        = lambda x: x.received_heat_map()
 
         return d

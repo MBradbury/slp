@@ -23,13 +23,13 @@ configuration = Configuration.Create(a.args.configuration, a.args)
 
 with Simulation(module, configuration, a.args) as sim:
 
-	AttackerClass = getattr(Attacker, a.args.attacker_model)
+    AttackerClass = getattr(Attacker, a.args.attacker_model)
 
-	sim.addAttacker(AttackerClass(sim, configuration.sourceId, configuration.sinkId))
+    sim.add_attacker(AttackerClass(sim, configuration.source_id, configuration.sink_id))
 
-	if a.args.mode == "GUI":
-		sim.setupGUI()
+    if a.args.mode == "GUI":
+        sim.setup_gui()
 
-	sim.run()
+    sim.run()
 
-	sim.metrics.printResults()
+    sim.metrics.print_results()

@@ -207,22 +207,25 @@ class Scene:
         self.plotters.remove(plotter)
 
     ###################
-    def execute(self, time, cmd, *args, **kwargs):
+    def execute(self, time, cmd = None, *args, **kwargs):
         """
         Execute the scene scripting command, cmd, with specified
         variable-length and keyword arguments
         """
         if self.realtime:
-            self.setTime(systime()-self.startTime)
+            self.setTime(systime() - self.startTime)
         else:
             # examine the event queue and execute everything prior to
             # the 'current time'
             while len(self.evq) > 0 and self.evq[0][0] < time:
-                (t,proc,a,kw) = heappop(self.evq)
+                (t, proc, a, kw) = heappop(self.evq)
                 self.setTime(t)
-                proc(*a,**kw)
+                proc(*a, **kw)
             self.setTime(time)
-        if type(cmd) is str:
+
+        if cmd is None:
+            return
+        elif type(cmd) is str:
             exec 'self.' + cmd
         else:
             cmd(*args, **kwargs)

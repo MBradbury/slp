@@ -1,5 +1,5 @@
-from simulator.topovis.common import *
-from Tkinter import *
+from simulator.topovis.common import computeLinkEndPoints
+from Tkinter import LAST, FIRST, BOTH, NONE, Tk, Canvas, YES, NW
 from simulator.topovis import GenericPlotter
 
 arrowMap = { 'head' : LAST, 'tail' : FIRST, 'both' : BOTH, 'none' : NONE }
@@ -29,7 +29,7 @@ class Plotter(GenericPlotter):
         self.tk.title(self.windowTitle)
         self.canvas = Canvas(self.tk, width=700, height=700)
         self.canvas.pack(fill=BOTH, expand=YES)
-        self.timeText = self.canvas.create_text(0,0,text="time=0.0",anchor=NW)
+        self.timeText = self.canvas.create_text(0, 0, text="time=0.0", anchor=NW)
 
     ###################
     def setTime(self, time):
@@ -38,17 +38,17 @@ class Plotter(GenericPlotter):
         self.lastShownTime = time
 
     ###################
-    def updateNodePosAndSize(self,id):
+    def updateNodePosAndSize(self, ident):
         p = self.params
         c = self.canvas
-        if id not in self.nodes.keys():
+        if ident not in self.nodes.keys():
             node_tag = c.create_oval(0,0,0,0)
-            label_tag = c.create_text(0,0,text=str(id))
-            self.nodes[id] = (node_tag,label_tag)
+            label_tag = c.create_text(0,0,text=str(ident))
+            self.nodes[ident] = (node_tag,label_tag)
         else:
-            (node_tag,label_tag) = self.nodes[id]
+            (node_tag,label_tag) = self.nodes[ident]
 
-        node = self.scene.nodes[id]
+        node = self.scene.nodes[ident]
         nodesize = node.scale*p.nodesize
         x1 = node.pos[0] - nodesize
         y1 = node.pos[1] - nodesize
@@ -56,11 +56,11 @@ class Plotter(GenericPlotter):
         c.coords(node_tag, x1, y1, x2, y2)
         c.coords(label_tag, node.pos)
 
-        for l in self.nodeLinks[id]:
+        for l in self.nodeLinks[ident]:
             self.updateLink(*l)
 
     ###################
-    def configLine(self,tagOrId,style):
+    def configLine(self, tagOrId, style):
         config = {}
         config['fill']  = colorStr(style.color)
         config['width'] = style.width
@@ -69,7 +69,7 @@ class Plotter(GenericPlotter):
         self.canvas.itemconfigure(tagOrId,**config)
 
     ###################
-    def configPolygon(self,tagOrId,lineStyle,fillStyle):
+    def configPolygon(self, tagOrId, lineStyle, fillStyle):
         config = {}
         config['outline'] = colorStr(lineStyle.color)
         config['width']    = lineStyle.width
@@ -78,7 +78,7 @@ class Plotter(GenericPlotter):
         self.canvas.itemconfigure(tagOrId,**config)
 
     ###################
-    def createLink(self,src,dst,style):
+    def createLink(self, src, dst, style):
         if src is dst:
             raise('Source and destination are the same node')
         p = self.params
@@ -92,11 +92,11 @@ class Plotter(GenericPlotter):
         return link_obj
 
     ###################
-    def updateLink(self,src,dst,style):
+    def updateLink(self, src, dst, style):
         p = self.params
         c = self.canvas
-        link_obj = self.links[(src,dst,style)]
-        (x1,y1,x2,y2) = computeLinkEndPoints(
+        link_obj = self.links[(src, dst, style)]
+        (x1, y1, x2, y2) = computeLinkEndPoints(
                 self.scene.nodes[src],
                 self.scene.nodes[dst], 
                 p.nodesize)
@@ -104,40 +104,40 @@ class Plotter(GenericPlotter):
 
 
     ###################
-    def node(self,id,x,y):
-        self.nodeLinks[id] = []
-        self.updateNodePosAndSize(id)
+    def node(self,ident,x,y):
+        self.nodeLinks[ident] = []
+        self.updateNodePosAndSize(ident)
         self.tk.update()
 
     ###################
-    def nodemove(self,id,x,y):
-        self.updateNodePosAndSize(id)
+    def nodemove(self,ident,x,y):
+        self.updateNodePosAndSize(ident)
         self.tk.update()
 
     ###################
-    def nodecolor(self,id,r,g,b):
-        (node_tag,label_tag) = self.nodes[id]
+    def nodecolor(self,ident,r,g,b):
+        (node_tag,label_tag) = self.nodes[ident]
         self.canvas.itemconfig(node_tag, outline=colorStr((r,g,b)))
         self.canvas.itemconfigure(label_tag, fill=colorStr((r,g,b)))
         self.tk.update()
 
     ###################
-    def nodewidth(self,id,width):
-        (node_tag,label_tag) = self.nodes[id]
+    def nodewidth(self,ident,width):
+        (node_tag,label_tag) = self.nodes[ident]
         self.canvas.itemconfig(node_tag, width=width)
         self.tk.update()
 
     ###################
-    def nodescale(self,id,scale):
+    def nodescale(self,ident,scale):
         # scale attribute has been set by TopoVis
         # just update the node
-        self.updateNodePosAndSize(id)
+        self.updateNodePosAndSize(ident)
         self.tk.update()
 
     ###################
-    def nodelabel(self,id,label):
-        (node_tag,label_tag) = self.nodes[id]
-        self.canvas.itemconfigure(label_tag, text=self.scene.nodes[id].label)
+    def nodelabel(self,ident,label):
+        (node_tag,label_tag) = self.nodes[ident]
+        self.canvas.itemconfigure(label_tag, text=self.scene.nodes[ident].label)
         self.tk.update()
 
     ###################
@@ -164,34 +164,34 @@ class Plotter(GenericPlotter):
         self.tk.update()
 
     ###################
-    def circle(self,x,y,r,id,linestyle,fillstyle):
-        if id in self.shapes.keys():
-            self.canvas.delete(self.shapes[id])
-            del self.shapes[id]
-        self.shapes[id] = self.canvas.create_oval(x-r,y-r,x+r,y+r)
-        self.configPolygon(self.shapes[id], linestyle, fillstyle)
+    def circle(self, x, y, r, ident, linestyle, fillstyle):
+        if ident in self.shapes.keys():
+            self.canvas.delete(self.shapes[ident])
+            del self.shapes[ident]
+        self.shapes[ident] = self.canvas.create_oval(x-r, y-r, x+r, y+r)
+        self.configPolygon(self.shapes[ident], linestyle, fillstyle)
         self.tk.update()
 
     ###################
-    def line(self,x1,y1,x2,y2,id,linestyle):
-        if id in self.shapes.keys():
-            self.canvas.delete(self.shapes[id])
-            del self.shapes[id]
-        self.shapes[id] = self.canvas.create_line(x1,y1,x2,y2)
-        self.configLine(self.shapes[id], linestyle)
+    def line(self, x1, y1, x2, y2, ident, linestyle):
+        if ident in self.shapes.keys():
+            self.canvas.delete(self.shapes[ident])
+            del self.shapes[ident]
+        self.shapes[ident] = self.canvas.create_line(x1, y1, x2, y2)
+        self.configLine(self.shapes[ident], linestyle)
         self.tk.update()
 
     ###################
-    def rect(self,x1,y1,x2,y2,id,linestyle,fillstyle):
-        if id in self.shapes.keys():
-            self.canvas.delete(self.shapes[id])
-            del self.shapes[id]
-        self.shapes[id] = self.canvas.create_rectangle(x1,y1,x2,y2)
-        self.configPolygon(self.shapes[id], linestyle, fillstyle)
+    def rect(self, x1, y1, x2, y2, ident, linestyle, fillstyle):
+        if ident in self.shapes.keys():
+            self.canvas.delete(self.shapes[ident])
+            del self.shapes[ident]
+        self.shapes[ident] = self.canvas.create_rectangle(x1, y1, x2, y2)
+        self.configPolygon(self.shapes[ident], linestyle, fillstyle)
         self.tk.update()
 
     ###################
-    def delshape(self,id):
-        if id in self.shapes.keys():
-            self.canvas.delete(self.shapes[id])
+    def delshape(self, ident):
+        if ident in self.shapes.keys():
+            self.canvas.delete(self.shapes[ident])
             self.tk.update()

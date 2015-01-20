@@ -15,15 +15,15 @@ class Metrics(MetricsCommon):
 
         self.BCAST = OutputCatcher(self.process_BCAST)
         self.sim.tossim.addChannel('Metric-BCAST', self.BCAST.write)
-        self.sim.addOutputProcessor(self.BCAST)
+        self.sim.add_output_processor(self.BCAST)
 
         self.RCV = OutputCatcher(self.process_RCV)
         self.sim.tossim.addChannel('Metric-RCV', self.RCV.write)
-        self.sim.addOutputProcessor(self.RCV)
+        self.sim.add_output_processor(self.RCV)
 
         self.FAKE_NOTIFICATION = OutputCatcher(self.process_FAKE_NOTIFICATION)
         self.sim.tossim.addChannel('Fake-Notification', self.FAKE_NOTIFICATION.write)
-        self.sim.addOutputProcessor(self.FAKE_NOTIFICATION)
+        self.sim.add_output_processor(self.FAKE_NOTIFICATION)
 
         self.tfsCreated = 0
         self.pfsCreated = 0
@@ -66,7 +66,7 @@ class Metrics(MetricsCommon):
     def printHeader(stream=sys.stdout):
         print("#" + "|".join(Metrics.items().keys()), file=stream)
 
-    def printResults(self, stream=sys.stdout):
+    def print_results(self, stream=sys.stdout):
         results = [str(f(self)) for f in Metrics.items().values()]
         
         print("|".join(results), file=stream)

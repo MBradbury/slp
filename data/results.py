@@ -1,5 +1,5 @@
 # Author: Matthew Bradbury
-import csv, math, sys, ast
+import csv, math, ast
 
 import numpy
 
@@ -8,18 +8,17 @@ class Results(object):
         self.parameter_names = list(parameters)
         self.result_names = list(results)
 
-        self._read_results(result_file)
-
-    def _read_results(self, result_file):
-
         self.data = {}
 
         self.sizes = set()
         self.configurations = set()
 
+        self._read_results(result_file)
+
+    def _read_results(self, result_file):
         with open(result_file, 'r') as f:
 
-            seenFirst = False
+            seen_first = False
             
             reader = csv.reader(f, delimiter='|')
             
@@ -28,10 +27,10 @@ class Results(object):
             for values in reader:
                 # Check if we have seen the first line
                 # We do this because we want to ignore it
-                if seenFirst:
+                if seen_first:
 
                     size = int(values[ headers.index('network size') ])
-                    srcPeriod = float(values[ headers.index('source period') ])
+                    src_period = float(values[ headers.index('source period') ])
                     config = values[ headers.index('configuration') ]
 
                     table_key = (size, config)
@@ -42,10 +41,10 @@ class Results(object):
                     self.sizes.add(size)
                     self.configurations.add(config)
 
-                    self.data.setdefault(table_key, {}).setdefault(srcPeriod, {})[params] = results
+                    self.data.setdefault(table_key, {}).setdefault(src_period, {})[params] = results
 
                 else:
-                    seenFirst = True
+                    seen_first = True
                     headers = values
 
     def _process(self, name, headers, values):
@@ -55,16 +54,16 @@ class Results(object):
         if name == 'captured':
             return float(value) * 100.0
         elif name == 'received ratio':
-            return self.extractAverageAndSddev(value) * 100.0
+            return self.extract_average_and_stddev(value) * 100.0
         elif '(' in value:
-            return self.extractAverageAndSddev(value)
+            return self.extract_average_and_stddev(value)
         elif name == 'approach':
             return value
         else:
             return ast.literal_eval(value)
 
     @staticmethod
-    def extractAverageAndSddev(value):
+    def extract_average_and_stddev(value):
         split = value.split('(')
 
         mean = float(split[0])

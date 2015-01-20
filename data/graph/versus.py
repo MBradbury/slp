@@ -1,9 +1,8 @@
 
 import os
 
-from grapher import GrapherBase
-
 from data import latex
+from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
     def __init__(self, output_directory, results, result_name, xaxis, yaxis, vary, yextractor = lambda x: x):
@@ -39,14 +38,14 @@ class Grapher(GrapherBase):
         data = {}
 
         for ((size, config), items1) in self.results.data.items():
-            for (srcPeriod, items2) in items1.items():
+            for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
 
                     key_names = ['size', 'configuration', 'source period'] + self.results.parameter_names
 
                     #print(key_names)
 
-                    values = [size, config, srcPeriod] + list(params)
+                    values = [size, config, src_period] + list(params)
 
                     (key_names, values, xvalue) = remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = remove_index(key_names, values, self.vary)
@@ -64,15 +63,15 @@ class Grapher(GrapherBase):
         self._create_graphs(self.result_name)
 
     def _create_plot(self, key_names, key_values, values):
-        dirName = os.path.join(self.output_directory, self.result_name, *map(str, key_values))
+        dir_name = os.path.join(self.output_directory, self.result_name, *map(str, key_values))
 
-        print(dirName)
+        print(dir_name)
 
         # Ensure that the dir we want to put the files in actually exists
-        self._ensureDirExists(dirName)
+        self._ensureDirExists(dir_name)
 
         # Write our data
-        with open(os.path.join(dirName, 'graph.dat'), 'w') as datFile:
+        with open(os.path.join(dir_name, 'graph.dat'), 'w') as graph_dat:
 
             xvalues = list({x[0] for x in values.keys()})
             vvalues = list(sorted({x[1] for x in values.keys()}))
@@ -86,45 +85,45 @@ class Grapher(GrapherBase):
 
                 table.append(row)
 
-            self._pprint_table(datFile, table)
+            self._pprint_table(graph_dat, table)
 
         columnCount = len(vvalues)
 
 
-        with open(os.path.join(dirName, 'graph.p'), 'w') as pFile:
+        with open(os.path.join(dir_name, 'graph.p'), 'w') as graph_p:
 
-            pFile.write('#!/usr/bin/gnuplot\n')
+            graph_p.write('#!/usr/bin/gnuplot\n')
 
-            pFile.write('set terminal pdf enhanced\n')
+            graph_p.write('set terminal pdf enhanced\n')
 
-            pFile.write('set xlabel "{}"\n'.format(self.xaxis))
-            pFile.write('set ylabel "{}"\n'.format(self.yaxis))
-            pFile.write('set pointsize 1\n')
-            pFile.write('set key right top\n')
+            graph_p.write('set xlabel "{}"\n'.format(self.xaxis))
+            graph_p.write('set ylabel "{}"\n'.format(self.yaxis))
+            graph_p.write('set pointsize 1\n')
+            graph_p.write('set key right top\n')
 
             # Should remain the same as we are testing with
             # a limited sized grid of nodes
-            pFile.write('set xrange [{}:{}]\n'.format(min(xvalues) - 1, max(xvalues) + 1))
-            pFile.write('set xtics ({})\n'.format(",".join(map(str, xvalues))))
+            graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues) - 1, max(xvalues) + 1))
+            graph_p.write('set xtics ({})\n'.format(",".join(map(str, xvalues))))
 
             #if rangeY is not None:
-            #    pFile.write('set yrange [{0}:{1}]\n'.format(rangeY[0], rangeY[1]))
+            #    graph_p.write('set yrange [{0}:{1}]\n'.format(rangeY[0], rangeY[1]))
             #else:
-            pFile.write('set yrange [0:*]\n')
-            pFile.write('set ytics auto\n')
+            graph_p.write('set yrange [0:*]\n')
+            graph_p.write('set ytics auto\n')
             
             
-            pFile.write('set output "graph.pdf"\n')
+            graph_p.write('set output "graph.pdf"\n')
             
             plots = []
 
             for x in range(1, columnCount + 1):
                 plots.append('"graph.dat" u 1:{} w lp ti "{}={}"'.format(x + 1, self.vary, vvalues[ x - 1 ]))
 
-            pFile.write('plot {}\n\n'.format(', '.join(plots)))
+            graph_p.write('plot {}\n\n'.format(', '.join(plots)))
         
 
-        with open(os.path.join(dirName, 'graph.caption'), 'w') as captionFile:
-            captionFile.write('Parameters:\\newline\n')
+        with open(os.path.join(dir_name, 'graph.caption'), 'w') as graph_caption:
+            graph_caption.write('Parameters:\\newline\n')
             for (name, value) in zip(key_names, key_values):
-                captionFile.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
+                graph_caption.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
