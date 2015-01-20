@@ -206,7 +206,7 @@ implementation
 		}
 	}
 
-	void Normal_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -225,7 +225,7 @@ implementation
 		}
 	}
 
-	void Sink_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -236,7 +236,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal)
-		case SinkNode: Sink_receieve_Normal(rcvd, source_addr); break;
-		case NormalNode: Normal_receieve_Normal(rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 }

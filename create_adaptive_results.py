@@ -51,7 +51,7 @@ configurations = [
     #('CircleSinkCentre', 'CHOOSE'),
 ]
 
-approaches = [ "TWIDDLE_APPROACH", "INTUITION_APPROACH" ]
+approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
 
 repeats = 300
 

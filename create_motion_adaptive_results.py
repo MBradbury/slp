@@ -51,10 +51,7 @@ configurations = [
     #('CircleSinkCentre', 'CHOOSE'),
 ]
 
-approaches = [ "TWIDDLE_APPROACH", "INTUITION_APPROACH" ]
-
-# 6 milliseconds
-alpha = 0.006
+approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
 
 repeats = 300
 
@@ -72,8 +69,8 @@ def run(driver, skip_completed_simulations):
     safety_periods = safety_period_table_generator.safety_periods()
     receive_ratios = safety_period_table_generator.receive_ratios()
 
-    runner = motion_adaptive.Runner.RunSimulations(driver, cluster_directory, safety_periods, receive_ratios, skip_completed_simulations)
-    runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, alpha, repeats)
+    runner = motion_adaptive.Runner.RunSimulations(driver, cluster_directory, safety_periods, skip_completed_simulations)
+    runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, repeats)
 
 if 'cluster' in args:
     cluster_directory = os.path.join("cluster", motion_adaptive.name)
