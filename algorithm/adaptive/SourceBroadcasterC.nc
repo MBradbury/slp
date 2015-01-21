@@ -872,8 +872,6 @@ implementation
 		message->sink_distance = sink_distance;
 		message->from_pfs = (type == PermFakeNode);
 		message->source_id = TOS_NODE_ID;
-
-		sequence_number_increment(&fake_sequence_counter);
 	}
 
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
@@ -897,6 +895,12 @@ implementation
 	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)
 	{
 		const char* result;
+
+		// Only if the message was successfully broadcasted, should the seqno be incremented.
+		if (error == SUCCESS)
+		{
+			sequence_number_increment(&fake_sequence_counter);
+		}
 
 		dbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
