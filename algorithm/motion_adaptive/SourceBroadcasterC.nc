@@ -395,8 +395,8 @@ implementation
 
 		const uint32_t result_period = ceil(SOURCE_PERIOD_MS * x);
 
-		dbgverbose("stdout", "get_pfs_period=%u (sink_distance=%d, source_distance=%d, sink_source_distance=%d, x=%f)\n",
-			result_period, sink_distance, source_distance, sink_source_distance, x);
+		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
+			result_period, counter, seq_inc, x);
 
 		return result_period;
 	}
