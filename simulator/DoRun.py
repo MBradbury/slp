@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import sys, importlib
+import sys, importlib, traceback
 
 import simulator.Attacker as Attacker
 from simulator.Builder import build
@@ -18,9 +18,6 @@ a.parse(sys.argv[2:])
 
 configuration = Configuration.Create(a.args.configuration, a.args)
 
-#print(configuration)
-#print(configuration.topology.nodes)
-
 with Simulation(module, configuration, a.args) as sim:
 
     AttackerClass = getattr(Attacker, a.args.attacker_model)
@@ -30,6 +27,10 @@ with Simulation(module, configuration, a.args) as sim:
     if a.args.mode == "GUI":
         sim.setup_gui()
 
-    sim.run()
-
-    sim.metrics.print_results()
+    try:
+        sim.run()
+    except RuntimeError as e:
+        print(e)
+        print(traceback.format_exc())
+    else:
+        sim.metrics.print_results()
