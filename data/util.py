@@ -43,5 +43,5 @@ def silent_remove(path):
         os.remove(path)
     except OSError as ex:
         # errno.ENOENT = no such file or directory
-        if ex.error != errno.ENOENT:
+        if ex.errno != errno.ENOENT:
             raise
