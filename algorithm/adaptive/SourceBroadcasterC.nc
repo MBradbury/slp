@@ -380,9 +380,8 @@ implementation
 
 	uint32_t get_pfs_period()
 	{
-		// Need to add one here because it is possible for the values to be the same as the
-		// values recorded when the node becomes a PFS. If they are the same then there is
-		// a division by 0 error here.
+		// Need to add one here because it is possible for the values to both be 0
+		// if no fake messages have ever been received.
 		const uint32_t seq_inc = source_fake_sequence_increments + 1;
 		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
 

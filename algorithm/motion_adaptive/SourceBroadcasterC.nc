@@ -200,10 +200,8 @@ implementation
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
-	uint64_t normal_sequence_increments;
-
-	SequenceNumber become_pfs_normal_sequence_counter;
-	uint64_t become_pfs_normal_sequence_increments;
+	SequenceNumber source_fake_sequence_counter;
+	uint64_t source_fake_sequence_increments;
 
 
 	const uint32_t away_delay = SOURCE_PERIOD_MS / 2;
@@ -385,11 +383,10 @@ implementation
 
 	uint32_t get_pfs_period()
 	{
-		// Need to add one here because it is possible for the values to be the same as the
-		// values recorded when the node becomes a PFS. If they are the same then there is
-		// a division by 0 error here.
-		const uint32_t seq_inc = normal_sequence_increments - become_pfs_normal_sequence_increments + 1;
-		const uint32_t counter = normal_sequence_counter - become_pfs_normal_sequence_counter + 1;
+		// Need to add one here because it is possible for the values to both be 0
+		// if no fake messages have ever been received.
+		const uint32_t seq_inc = source_fake_sequence_increments + 1;
+		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
 
 		const double x = seq_inc / (double)counter;
 
@@ -413,7 +410,8 @@ implementation
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
 
-		normal_sequence_increments = 0;
+		source_fake_sequence_increments = 0;
+		sequence_number_init(&source_fake_sequence_counter);
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
@@ -497,10 +495,6 @@ implementation
 		{
 			dbg("Fake-Notification", "The node has become a PFS\n");
 
-			// Record these values at the time the node becomes a PFS.
-			become_pfs_normal_sequence_counter = normal_sequence_counter;
-			become_pfs_normal_sequence_increments = normal_sequence_increments;
-
 			call FakeMessageGenerator.start(message);
 		}
 		else
@@ -522,6 +516,9 @@ implementation
 		message.max_hop = first_source_distance;
 		message.source_id = TOS_NODE_ID;
 		message.sink_source_distance = sink_distance;
+
+		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
+		message.fake_sequence_increments = source_fake_sequence_increments;
 
 		if (send_Normal_message(&message))
 		{
@@ -559,12 +556,14 @@ implementation
 
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
+		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
+		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
+
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
-			normal_sequence_increments += 1;
 
 			// If the source has changed or this is the first time that we have received a Normal message
 			if (rcvd->source_id != source_node_id)
@@ -597,6 +596,8 @@ implementation
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
+			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message);
 		}
@@ -604,10 +605,12 @@ implementation
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
+		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
+
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
-			normal_sequence_increments += 1;
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
@@ -624,12 +627,14 @@ implementation
 	{
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
+		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
+		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
+
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
-			normal_sequence_increments += 1;
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
@@ -637,6 +642,8 @@ implementation
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
+			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message);
 		}
@@ -796,6 +803,7 @@ implementation
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
+			source_fake_sequence_increments += 1;
 
 			METRIC_RCV(Fake, 0);
 
