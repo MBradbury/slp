@@ -38,7 +38,7 @@ class Grapher(GrapherBase):
 
         print('Creating {} graph files'.format(self.result_name))
 
-        data = {}
+        dat = {}
 
         for ((size, config), items1) in self.results.data.items():
             for (src_period, items2) in items1.items():
@@ -58,9 +58,9 @@ class Grapher(GrapherBase):
 
                     yvalue = results[ self.results.result_names.index(self.yaxis) ]
 
-                    data.setdefault((key_names, values), {})[(xvalue, vvalue)] = self.yextractor(yvalue)
+                    dat.setdefault((key_names, values), {})[(xvalue, vvalue)] = self.yextractor(yvalue)
 
-        for ((key_names, key_values), values) in data.items():
+        for ((key_names, key_values), values) in dat.items():
             self._create_plot(key_names, key_values, values)
 
         self._create_graphs(self.result_name)
