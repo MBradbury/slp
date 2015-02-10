@@ -348,7 +348,7 @@ implementation
 	{
 		uint32_t distance = get_dist_to_pull_back();
 
-		dbg("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
+		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
 			distance, source_distance, sink_distance, sink_source_distance);
 
 		return distance;
