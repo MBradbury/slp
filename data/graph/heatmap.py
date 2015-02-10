@@ -34,9 +34,9 @@ class Grapher(GrapherBase):
             for i in xrange(0, len(l), n):
                 yield l[i:i+n]
 
-        data = results[self.result_index]
+        dat = results[self.result_index]
 
-        if type(data) is not dict:
+        if type(dat) is not dict:
             raise RuntimeError("The data is not a dict")
 
         dir_name = os.path.join(
@@ -51,7 +51,7 @@ class Grapher(GrapherBase):
 
         # Convert to the array
         array = [0] * (size * size)
-        for (k, v) in data.items():
+        for (k, v) in dat.items():
             array[k] = v
 
         array = list(chunks(array, size))
