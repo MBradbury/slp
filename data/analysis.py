@@ -69,11 +69,12 @@ class Analyse(object):
             raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
                 len(values), len(self.headings), line_number))
 
+        network_size = int(self.opts['network_size'])
+        number_nodes = network_size * network_size
+
         for (heading, value) in zip(self.headings, values):
             if type(value) is dict:
-                network_size = int(self.opts['network_size'])
-                number_nodes = network_size * network_size
-
+                
                 # Check that there aren't too many nodes
                 if len(value) > number_nodes:
                     raise RuntimeError("There are too many nodes in this map {} called {}, when there should be {} maximum.".format(len(value), heading, number_nodes))

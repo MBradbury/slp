@@ -21,7 +21,7 @@ from data import results, latex
 
 from data.util import create_dirtree, recreate_dirtree, touch
 
-import numpy
+import numpy, itertools
 
 # Raise all numpy errors
 numpy.seterr(all='raise')
@@ -217,3 +217,20 @@ if 'comparison-graph' in args:
         summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-{}'.format(name).replace(" ", "_")).run()
 
     create_comp_bar_pcdiff()
+
+if 'time-taken-table' in args:
+    adaptive_results = results.Results(adaptive.result_file_path,
+        parameters=parameter_names,
+        results=('wall time', 'event count'))
+
+    result_table = fake_result.ResultTable(adaptive_results)
+
+    def create_adaptive_table(name, param_filter=lambda x: True):
+        filename = name + ".tex"
+
+        with open(filename, 'w') as result_file:
+            latex.print_header(result_file)
+            result_table.write_tables(result_file, param_filter)
+            latex.print_footer(result_file)
+
+        latex.compile_document(filename)

@@ -43,6 +43,9 @@ class Analyzer:
         d['pfs']                = lambda x: format_results(x, 'PFS')
         d['fake to normal']     = lambda x: format_results(x, 'FakeToNormal')
         d['ssd']                = lambda x: format_results(x, 'NormalSinkSourceHops')
+
+        d['wall time']          = lambda x: format_results(x, 'WallTime')
+        d['event count']        = lambda x: format_results(x, 'EventCount')
         
         d['sent heatmap']       = lambda x: format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: format_results(x, 'ReceivedHeatMap')

@@ -43,6 +43,8 @@ class ResultTable(object):
                 "approach": ("Approach", "~"),
                 "time taken": ("Time", "(sec)"),
                 "safety period": ("Safety Period", "(sec)"),
+                "wall time": ("Wall Time", "(sec)"),
+                "event count": ("Event Count", ""),
             }[name][row]
         except KeyError as ex:
             print("Failed to find the name {} for row {} : {}".format(name, row, ex), file=sys.stderr)
