@@ -1,3 +1,4 @@
+from collections import OrderedDict
 
 class MobilityModel(object):
 	def __init__(self, configuration, times):
@@ -18,7 +19,8 @@ class MobilityModel(object):
 class StationaryMobilityModel(MobilityModel):
 	def __init__(self, configuration):
 
-		times = { configuration.source_id: [(0, float('inf'))] }
+		times = OrderedDict()
+		times[configuration.source_id] = [(0, float('inf'))]
 
 		super(StationaryMobilityModel, self).__init__(configuration, times)
 
@@ -38,7 +40,7 @@ class TowardsSinkMobilityModel(MobilityModel):
 	def __init__(self, configuration, duration=1):
 		path = configuration.shortest_path(configuration.source_id, configuration.sink_id)
 
-		times = {}
+		times = OrderedDict()
 
 		current_time = 0
 

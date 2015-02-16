@@ -28,9 +28,9 @@ class Configuration(object):
         }
 
         if self.space_behind_sink:
-            build_arguments.update({"ALGORITHM": "GenericAlgorithm"})
+            build_arguments["ALGORITHM"] = "GenericAlgorithm"
         else:
-            build_arguments.update({"ALGORITHM": "FurtherAlgorithm"})
+            build_arguments["ALGORITHM"] = "FurtherAlgorithm"
 
         return build_arguments
 
