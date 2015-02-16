@@ -18,8 +18,8 @@ class Configuration(object):
         if self.source_id >= len(self.topology.nodes):
             raise RuntimeError("There are not enough nodes ({}) to have a source id of {}".format(len(self.topology.nodes), self.source_id))
 
-        self.connectivity_matrix = None
-        self.shortest_path = None
+        self._dist_matrix = None
+        self._predecessors = None
 
     def build_arguments(self):
         build_arguments = {
@@ -39,19 +39,25 @@ class Configuration(object):
             self.sink_id, self.source_id, self.space_behind_sink, self.topology
         )
 
-    def build_connectivity_matrix(self):
-        if self.connectivity_matrix is None or self.shortest_path is None:
+    def build_connectivity_matrix(self, return_predecessors=False):
+        if (self._dist_matrix is None or
+           (self._predecessors is None and return_predecessors)):
             import numpy
             from scipy.sparse import csr_matrix
             from scipy.sparse.csgraph import shortest_path
 
-            self.connectivity_matrix = numpy.zeros((self.size(), self.size()))
+            connectivity_matrix = numpy.zeros((self.size(), self.size()))
 
             for (y, x) in itertools.product(xrange(self.size()), xrange(self.size())):
-                self.connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
-            self.connectivity_matrix = csr_matrix(self.connectivity_matrix)
+                connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
+            connectivity_matrix = csr_matrix(connectivity_matrix)
 
-            self.shortest_path = shortest_path(self.connectivity_matrix)
+            ret = shortest_path(connectivity_matrix, return_predecessors=return_predecessors)
+
+            if return_predecessors:
+                self._dist_matrix, self._predecessors = ret
+            else:
+                self._dist_matrix = ret
 
     def size(self):
         return len(self.topology.nodes)
@@ -68,15 +74,29 @@ class Configuration(object):
     def ssd(self):
         """The number of hops between the sink and the source nodes"""
         self.build_connectivity_matrix()
-        return self.shortest_path[self.source_id, self.sink_id]
+        return self._dist_matrix[self.source_id, self.sink_id]
 
     def node_sink_distance(self, node):
         self.build_connectivity_matrix()
-        return self.shortest_path[node, self.sink_id]
+        return self._dist_matrix[node, self.sink_id]
 
     def node_source_distance(self, node):
         self.build_connectivity_matrix()
-        return self.shortest_path[node, self.source_id]
+        return self._dist_matrix[node, self.source_id]
+
+    def shortest_path(self, node_from, node_to):
+        self.build_connectivity_matrix(return_predecessors=True)
+
+        path = []
+
+        node = node_to
+        while node != node_from:
+            path.append(node)
+            node = self._predecessors[node_from, node]
+
+        path.append(node)
+
+        return path[::-1]
 
 
 def CreateSourceCorner(network_size, distance):
