@@ -17,6 +17,11 @@ class Metrics(MetricsCommon):
         self.sim.tossim.addChannel('Metric-RCV', self.RCV.write)
         self.sim.add_output_processor(self.RCV)
 
+        # Normal nodes becoming the source, or source nodes becoming normal
+        self.SOURCE_CHANGE = OutputCatcher(self.process_SOURCE_CHANGE)
+        self.sim.tossim.addChannel('Metric-SOURCE_CHANGE', self.SOURCE_CHANGE.write)
+        self.sim.add_output_processor(self.SOURCE_CHANGE)
+
     def process_BCAST(self, line):
         (kind, time, nodeID, status, seqNo) = line.split(',')
 
@@ -24,7 +29,6 @@ class Metrics(MetricsCommon):
             raise RuntimeError("Unknown message type of {}".format(kind))
 
         super(Metrics, self).process_BCAST(line)
-
 
     def process_RCV(self, line):
         (kind, time, nodeID, sourceID, seqNo, hopCount) = line.split(',')

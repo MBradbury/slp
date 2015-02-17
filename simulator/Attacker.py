@@ -7,10 +7,8 @@ class Attacker(object):
 
         out = OutputCatcher(self.process)
         self.sim.tossim.addChannel('Attacker-RCV', out.write)
-
         self.sim.add_output_processor(out)
 
-        self.source_id = source_id
         self.position = None
 
         self.has_found_source = False
@@ -26,7 +24,11 @@ class Attacker(object):
 
     def found_source_slow(self):
         """Checks if the source has been found using the attacker's position."""
-        return self.position == self.source_id
+        # Well this is a horrible hack.
+        # We cannot attach ourselves to the same output catcher more than
+        # once, so we have to rely on metrics grabbing and updating
+        # the information about which nodes are sources.
+        return self.position in self.sim.metrics.source_ids
 
     def found_source(self):
         """Checks if the source has been found, using a cached variable."""

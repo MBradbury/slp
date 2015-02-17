@@ -56,7 +56,7 @@ class Metrics(MetricsCommon):
 
         self.received[kind][node_id] += 1
 
-        if node_id == self.sink_id and kind == "Normal":
+        if node_id in self.sink_ids and kind == "Normal":
             self.normal_latency[sequence_number] = time - self.normal_sent_time[sequence_number]
             self.normal_hop_count.append(hop_count)
 
@@ -65,7 +65,7 @@ class Metrics(MetricsCommon):
         if match is None:
             return None
 
-        id = int(match.group(1))
+        node_id = int(match.group(1))
         detail = match.group(2)
 
         match = self.FAKE_RE.match(detail)
@@ -94,10 +94,8 @@ class Metrics(MetricsCommon):
         # - Delay between a source change and a node detecting it
         #
         #
-        print("On {} source changes from {} to {}".format(node_id, previous_source_id, current_source_id))
-
-    def process_SOURCE_CHANGE(self, line):
-        print(line)
+        print("On {} source changes from {} to {} at {}".format(
+            node_id, previous_source_id, current_source_id, time))
 
 
     @staticmethod
