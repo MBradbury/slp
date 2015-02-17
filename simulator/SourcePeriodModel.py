@@ -1,6 +1,8 @@
 from collections import OrderedDict
 
-import math
+import math, numbers
+
+from data.restricted_eval import restricted_eval
 
 class PeriodModel(object):
     def __init__(self, times):
@@ -39,13 +41,23 @@ class PeriodModel(object):
 class FixedPeriodModel(PeriodModel):
     def __init__(self, period):
 
+        self.period = float(period)
+
         times = OrderedDict()
-        times[(0, float('inf'))] = period
+        times[(0, float('inf'))] = self.period
 
         super(FixedPeriodModel, self).__init__(times)
 
+    def __repr__(self):
+        return "FixedPeriodModel(period={})".format(self.period)
+
 class FactoringPeriodModel(PeriodModel):
     def __init__(self, starting_period, max_period, duration, factor):
+
+        self.starting_period = starting_period
+        self.max_period = max_period
+        self.duration = duration
+        self.factor = factor
 
         times = OrderedDict()
 
@@ -63,6 +75,20 @@ class FactoringPeriodModel(PeriodModel):
 
         super(FactoringPeriodModel, self).__init__(times)
 
+    def __repr__(self):
+        return "FactoringPeriodModel(starting_period={}, max_period={}, duration={}, factor={})".format(
+            self.starting_period, self.max_period, self.duration, self.factor)
+
 def models():
     """A list of the names of the available period models."""
     return [cls for cls in PeriodModel.__subclasses__()]
+
+def eval_input(source):
+    result = restricted_eval(source, models())
+
+    if isinstance(result, numbers.Number):
+        return FixedPeriodModel(result)
+    elif isinstance(result, PeriodModel):
+        return result
+    else:
+        raise RuntimeError("The source ({}) is not valid.".format(source))

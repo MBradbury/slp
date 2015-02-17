@@ -19,6 +19,8 @@ typedef nx_struct AwayChooseMessage {
 
   nx_uint8_t algorithm;
 
+  nx_uint32_t source_period;
+
 } AwayChooseMessage;
 
 typedef AwayChooseMessage AwayMessage;

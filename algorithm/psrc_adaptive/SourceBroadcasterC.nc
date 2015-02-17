@@ -214,6 +214,8 @@ implementation
 	int32_t source_distance = BOTTOM;
 	int32_t sink_distance = BOTTOM;
 
+	int32_t source_period = BOTTOM;
+
 	bool sink_sent_away = FALSE;
 	bool seen_pfs = FALSE;
 	bool is_pfs_candidate = FALSE;
@@ -222,8 +224,6 @@ implementation
 	bool first_source_distance_set = FALSE;
 
 	uint32_t extra_to_send = 0;
-
-	int32_t source_period = BOTTOM;
 
 	typedef enum
 	{
