@@ -19,6 +19,8 @@ typedef nx_struct NormalMessage {
 
   nx_uint64_t fake_sequence_number;
   nx_uint32_t fake_sequence_increments;
+
+  nx_uint32_t source_period;
   
 } NormalMessage;
 

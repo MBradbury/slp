@@ -1,6 +1,8 @@
 import argparse, multiprocessing
 import simulator.Configuration as Configuration
 import simulator.Attacker as Attacker
+import simulator.SourcePeriodModel
+import simulator.MobilityModel
 
 approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
 
@@ -14,7 +16,11 @@ class Arguments:
         parser.add_argument("--network-size", type=int, required=True)
         parser.add_argument("--safety-period", type=float, required=True)
 
-        parser.add_argument("--source-period", type=float, required=True)
+        parser.add_argument("--source-period",
+            type=simulator.SourcePeriodModel.eval_input, required=True)
+        parser.add_argument("--source-mobility",
+            type=simulator.MobilityModel.eval_input,
+            default=simulator.MobilityModel.StationaryMobilityModel())
 
         parser.add_argument("--approach", type=str, choices=approaches, required=True)
 
@@ -33,18 +39,23 @@ class Arguments:
 
     def parse(self, argv):
         self.args = self.parser.parse_args(argv)
+
+        configuration = Configuration.Create(self.args.configuration, self.args)
+        self.args.source_mobility.setup(configuration)
+
         return self.args
 
     def build_arguments(self):
         result = {}
 
         if self.args.verbose:
-            result.update(SLP_VERBOSE_DEBUG=1)
+            result["SLP_VERBOSE_DEBUG"] = 1
 
         result.update({
-            "SOURCE_PERIOD_MS": int(self.args.source_period * 1000),
             "APPROACH": self.args.approach,
             self.args.approach: 1,
         })
+
+        result.update(self.args.source_period.build_arguments())
 
         return result

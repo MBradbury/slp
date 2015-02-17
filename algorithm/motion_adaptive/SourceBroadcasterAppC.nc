@@ -34,6 +34,10 @@ implementation
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
 
+	// LocalTime
+	components LocalTimeMilliC;
+	App.LocalTime -> LocalTimeMilliC;
+
 
 	// Networking
 	components

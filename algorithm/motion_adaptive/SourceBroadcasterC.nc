@@ -15,6 +15,8 @@
 #	define dbgverbose(...)
 #endif
 
+#define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
+
 #define max(a, b) \
 	({ const __typeof__(a) _a = (a), _b = (b); \
 	   _a > _b ? _a : _b; })
@@ -149,6 +151,7 @@ module SourceBroadcasterC
 	uses interface Leds;
 	uses interface Random;
 
+	uses interface LocalTime<TMilli>;
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 
@@ -175,6 +178,11 @@ module SourceBroadcasterC
 
 implementation
 {
+	typedef struct {
+		uint32_t end;
+		uint32_t period;
+	} local_end_period_t;
+
 	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode, TempFakeNode, PermFakeNode
@@ -203,12 +211,11 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint64_t source_fake_sequence_increments;
 
-
-	const uint32_t away_delay = SOURCE_PERIOD_MS / 2;
-
 	int32_t sink_source_distance = BOTTOM;
 	int32_t source_distance = BOTTOM;
 	int32_t sink_distance = BOTTOM;
+
+	int32_t source_period = BOTTOM;
 
 	bool sink_sent_away = FALSE;
 	bool seen_pfs = FALSE;
@@ -284,6 +291,13 @@ implementation
 		}
 	}
 
+	uint32_t get_away_delay()
+	{
+		assert(source_period != BOTTOM);
+
+		return source_period / 2;
+	}
+
 #if defined(PB_SINK_APPROACH)
 	uint32_t get_dist_to_pull_back()
 	{
@@ -356,11 +370,13 @@ implementation
 
 	uint32_t get_tfs_duration()
 	{
-		uint32_t duration = SOURCE_PERIOD_MS;
+		uint32_t duration = source_period;
+
+		assert(source_period != BOTTOM);
 
 		if (sink_distance <= 1)
 		{
-			duration -= away_delay;
+			duration -= get_away_delay();
 		}
 
 		dbg("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
@@ -376,7 +392,7 @@ implementation
 
 		const uint32_t result_period = period;
 
-		dbg("stdout", "get_tfs_period=%u\n", result_period);
+		dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -390,12 +406,57 @@ implementation
 
 		const double x = seq_inc / (double)counter;
 
-		const uint32_t result_period = ceil(SOURCE_PERIOD_MS * x);
+		const uint32_t result_period = ceil(source_period * x);
+
+		assert(source_period != BOTTOM);
 
 		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
 			result_period, counter, seq_inc, x);
 
 		return result_period;
+	}
+
+	// This function is to be used by the source node to get the
+	// period it should use at the current time.
+	// DO NOT use this for nodes other than the source!
+	uint32_t get_source_period()
+	{
+		const local_end_period_t times[] = PERIOD_TIMES_MS;
+		const uint32_t else_time = PERIOD_ELSE_TIME_MS;
+
+		const unsigned int times_length = ARRAY_LENGTH(times);
+
+		const uint32_t current_time = call LocalTime.get();
+
+		unsigned int i;
+
+		uint32_t period = -1;
+
+		assert(type == SourceNode);
+
+		//dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
+		//	current_time, times_length);
+
+		for (i = 0; i != times_length; ++i)
+		{
+			//dbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
+			//	i, current_time, times[i].end, times[i].period);
+
+			if (current_time < times[i].end)
+			{
+				period = times[i].period;
+				break;
+			}
+		}
+
+		if (i == times_length)
+		{
+			period = else_time;
+		}
+
+		dbgverbose("stdout", "Providing source period %u at time=%u\n",
+			period, current_time);
+		return period;
 	}
 
 	bool busy = FALSE;
@@ -448,7 +509,7 @@ implementation
 
 		type = SourceNode;
 
-		call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
+		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
 	event void ObjectDetector.stoppedDetecting()
@@ -484,10 +545,7 @@ implementation
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
 	{
-		if (perm_type != PermFakeNode && perm_type != TempFakeNode)
-		{
-			assert("The perm type is not correct");
-		}
+		assert(perm_type == PermFakeNode || perm_type == TempFakeNode);
 
 		type = perm_type;
 
@@ -509,6 +567,8 @@ implementation
 	{
 		NormalMessage message;
 
+		source_period = get_source_period();
+
 		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
@@ -520,10 +580,14 @@ implementation
 		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
 		message.fake_sequence_increments = source_fake_sequence_increments;
 
+		message.source_period = source_period;
+
 		if (send_Normal_message(&message))
 		{
 			sequence_number_increment(&normal_sequence_counter);
 		}
+
+		call BroadcastNormalTimer.startOneShot(source_period);
 	}
 
 	event void AwaySenderTimer.fired()
@@ -535,6 +599,7 @@ implementation
 		message.max_hop = sink_source_distance;
 		message.source_id = TOS_NODE_ID;
 		message.algorithm = ALGORITHM;
+		message.source_period = source_period;
 
 		sequence_number_increment(&away_sequence_counter);
 
@@ -565,6 +630,10 @@ implementation
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
+			METRIC_RCV(Normal, rcvd->source_distance + 1);
+
+			source_period = rcvd->source_period;
+
 			// If the source has changed or this is the first time that we have received a Normal message
 			if (rcvd->source_id != source_node_id)
 			{
@@ -576,9 +645,6 @@ implementation
 				source_distance = rcvd->source_distance + 1;
 				sink_source_distance = rcvd->sink_source_distance;
 			}
-
-
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
 			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
@@ -614,11 +680,13 @@ implementation
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
+			source_period = rcvd->source_period;
+
 			sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
 
 			if (!sink_sent_away)
 			{
-				call AwaySenderTimer.startOneShot(away_delay);
+				call AwaySenderTimer.startOneShot(get_away_delay());
 			}
 		}
 	}
@@ -637,6 +705,8 @@ implementation
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
+
+			source_period = rcvd->source_period;
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -675,6 +745,11 @@ implementation
 
 			METRIC_RCV(Away, rcvd->sink_distance + 1);
 
+			if (source_period == BOTTOM)
+			{
+				source_period = rcvd->source_period;
+			}
+
 			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 			sink_source_distance = minbot(sink_source_distance, sink_distance);
 
@@ -711,6 +786,11 @@ implementation
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV(Away, rcvd->sink_distance + 1);
+
+			if (source_period == BOTTOM)
+			{
+				source_period = rcvd->source_period;
+			}
 
 			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
@@ -760,6 +840,11 @@ implementation
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV(Choose, rcvd->sink_distance + 1);
+
+			if (source_period == BOTTOM)
+			{
+				source_period = rcvd->source_period;
+			}
 
 			if (is_pfs_candidate)
 			{

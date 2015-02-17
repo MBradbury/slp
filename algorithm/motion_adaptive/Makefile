@@ -4,5 +4,8 @@ CFLAGS += -Wnonnull -Wpointer-arith -Wshadow
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
+# Need to increase the size of the data to accommodate the normal message
+CFLAGS += -DTOSH_DATA_LENGTH=32
+
 #include $(TINYOS_ROOT_DIR)/Makefile.include
 include $(MAKERULES)

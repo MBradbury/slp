@@ -1,14 +1,9 @@
-from data.restricted_eval import restricted_eval
-
-import argparse, multiprocessing, ast
+import argparse, multiprocessing
 import simulator.Configuration as Configuration
 import simulator.Attacker as Attacker
 import simulator.SourcePeriodModel
 
 approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
-
-def source_period_model(source):
-    return restricted_eval(source, simulator.SourcePeriodModel.models())
 
 class Arguments:
     def __init__(self):
@@ -20,7 +15,8 @@ class Arguments:
         parser.add_argument("--network-size", type=int, required=True)
         parser.add_argument("--safety-period", type=float, required=True)
 
-        parser.add_argument("--source-period", type=source_period_model, required=True)
+        parser.add_argument("--source-period",
+            type=simulator.SourcePeriodModel.eval_input, required=True)
 
         parser.add_argument("--approach", type=str, choices=approaches, required=True)
 
