@@ -151,6 +151,8 @@ class TosVis(Simulator):
 
         pfs_colour = [x / 255.0 for x in (225, 41, 41)]
         tfs_colour = [x / 255.0 for x in (196, 196, 37)]
+        source_colour = [x / 255.0 for x in (64, 168, 73)]
+        sink_colour = [x / 255.0 for x in (36, 160, 201)]
         normal_colour = [0, 0, 0]
 
         if kind == "TFS":
@@ -159,8 +161,12 @@ class TosVis(Simulator):
             colour = pfs_colour
         elif kind == "Normal":
             colour = normal_colour
+        elif kind == "Source":
+            colour = source_colour
+        elif kind == "Sink":
+            colour = sink_colour
         else:
-            raise RuntimeError("Unknown kind {}".format(kind))
+            raise RuntimeError("Unknown kind '{}'".format(kind))
 
         scene = self.scene
         scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
