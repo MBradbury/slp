@@ -2,6 +2,8 @@ from collections import OrderedDict
 
 from data.restricted_eval import restricted_eval
 
+import math
+
 class MobilityModel(object):
     def __init__(self):
         pass
@@ -20,6 +22,42 @@ class MobilityModel(object):
         for (node_id, intervals) in self.active_times.items():
             if node_id > num_nodes:
                 raise RuntimeError("Invalid node id {}.".format(node_id))
+
+    def build_arguments(self):
+        build_arguments = {}
+
+        def to_tinyos_format(time):
+            if math.isinf(time):
+                return "-1"
+            else:
+                return "{}U".format(int(time * 1000))
+
+        indexes = []
+        periods = []
+        periods_lengths = []
+
+        for (node_id, intervals) in self.active_times.items():
+
+            indexes.append("{}U".format(node_id))
+
+            period = [
+                "{{{}, {}}}".format(*map(to_tinyos_format, v))
+                for v
+                in intervals
+            ]
+
+            periods.append("{ " + ", ".join(period) + " }")
+
+            periods_lengths.append("{}U".format(len(period)))
+
+        build_arguments["SOURCE_DETECTED_INDEXES"] = "{ " + ", ".join(indexes) + " }"
+        build_arguments["SOURCE_DETECTED_PERIODS"] = "{ " + ", ".join(periods) + " }"
+        build_arguments["SOURCE_DETECTED_PERIODS_LENGTHS"] = "{ " + ", ".join(periods_lengths) + " }"
+        build_arguments["SOURCE_DETECTED_NUM_NODES"] = len(indexes)
+
+        print(build_arguments)
+
+        return build_arguments
 
 class StationaryMobilityModel(MobilityModel):
     def __init__(self):

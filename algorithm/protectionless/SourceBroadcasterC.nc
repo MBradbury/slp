@@ -2,14 +2,9 @@
 #include "NormalMessage.h"
 #include "SequenceNumber.h"
 
+#include <assert.h>
 #include <Timer.h>
 #include <TinyError.h>
-
-#ifdef SLP_VERBOSE_DEBUG
-#	define dbgverbose(...) dbg(__VA_ARGS__)
-#else
-#	define dbgverbose(...)
-#endif
 
 #define SEND_MESSAGE(NAME) \
 bool send_##NAME##_message(const NAME##Message* tosend) \
@@ -108,6 +103,7 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
+	uses interface LocalTime<TMilli>;
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 
 	uses interface Packet;
@@ -117,10 +113,17 @@ module SourceBroadcasterC
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
+
+	uses interface ObjectDetector;
 }
 
 implementation
 {
+	typedef struct {
+		uint32_t end;
+		uint32_t period;
+	} local_end_period_t;
+
 	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode
@@ -139,6 +142,49 @@ implementation
 		}
 	}
 
+	// This function is to be used by the source node to get the
+	// period it should use at the current time.
+	// DO NOT use this for nodes other than the source!
+	uint32_t get_source_period()
+	{
+		const local_end_period_t times[] = PERIOD_TIMES_MS;
+		const uint32_t else_time = PERIOD_ELSE_TIME_MS;
+
+		const unsigned int times_length = ARRAY_LENGTH(times);
+
+		const uint32_t current_time = call LocalTime.get();
+
+		unsigned int i;
+
+		uint32_t period = -1;
+
+		assert(type == SourceNode);
+
+		//dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
+		//	current_time, times_length);
+
+		for (i = 0; i != times_length; ++i)
+		{
+			//dbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
+			//	i, current_time, times[i].end, times[i].period);
+
+			if (current_time < times[i].end)
+			{
+				period = times[i].period;
+				break;
+			}
+		}
+
+		if (i == times_length)
+		{
+			period = else_time;
+		}
+
+		dbgverbose("stdout", "Providing source period %u at time=%u\n",
+			period, current_time);
+		return period;
+	}
+
 	SequenceNumber normal_sequence_counter;
 
 	bool busy = FALSE;
@@ -150,11 +196,6 @@ implementation
 
 		sequence_number_init(&normal_sequence_counter);
 
-		if (TOS_NODE_ID == SOURCE_NODE_ID)
-		{
-			type = SourceNode;
-			dbg("Node-Change-Notification", "The node has become a Source\n");
-		}
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
@@ -170,10 +211,7 @@ implementation
 		{
 			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			if (type == SourceNode)
-			{
-				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
-			}
+			call ObjectDetector.start();
 		}
 		else
 		{
@@ -186,6 +224,33 @@ implementation
 	event void RadioControl.stopDone(error_t err)
 	{
 		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+	}
+
+	event void ObjectDetector.detect()
+	{
+		// The sink node cannot become a source node
+		if (type != SinkNode)
+		{
+			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			dbg("Node-Change-Notification", "The node has become a Source\n");
+
+			type = SourceNode;
+
+			call BroadcastNormalTimer.startOneShot(get_source_period());
+		}
+	}
+
+	event void ObjectDetector.stoppedDetecting()
+	{
+		if (type == SourceNode)
+		{
+			call BroadcastNormalTimer.stop();
+
+			type = NormalNode;
+
+			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			dbg("Node-Change-Notification", "The node has become a Normal\n");
+		}
 	}
 
 	SEND_DONE(Normal);
@@ -206,6 +271,8 @@ implementation
 		{
 			sequence_number_increment(&normal_sequence_counter);
 		}
+
+		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)

@@ -13,6 +13,10 @@ class PeriodModel(object):
     def _validate_times(self):
         pass
 
+    def fastest(self):
+        """Returns the smallest period possible with this model"""
+        raise NotImplemented()
+
     def build_arguments(self):
         build_arguments = {}
 
@@ -48,16 +52,22 @@ class FixedPeriodModel(PeriodModel):
 
         super(FixedPeriodModel, self).__init__(times)
 
+    def fastest(self):
+        return self.period
+
     def __repr__(self):
         return "FixedPeriodModel(period={})".format(self.period)
 
 class FactoringPeriodModel(PeriodModel):
     def __init__(self, starting_period, max_period, duration, factor):
 
-        self.starting_period = starting_period
-        self.max_period = max_period
-        self.duration = duration
-        self.factor = factor
+        self.starting_period = float(starting_period)
+        self.max_period = float(max_period)
+        self.duration = float(duration)
+        self.factor = float(factor)
+
+        if self.factor <= 1:
+            raise RuntimeError("The factor ({}) must be greater than 1".format(self.factor))
 
         times = OrderedDict()
 
@@ -74,6 +84,9 @@ class FactoringPeriodModel(PeriodModel):
             period *= factor
 
         super(FactoringPeriodModel, self).__init__(times)
+
+    def fastest(self):
+        return self.starting_period
 
     def __repr__(self):
         return "FactoringPeriodModel(starting_period={}, max_period={}, duration={}, factor={})".format(

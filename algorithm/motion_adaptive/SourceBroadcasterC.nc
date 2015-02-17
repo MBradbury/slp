@@ -9,27 +9,6 @@
 
 #include <assert.h>
 
-#ifdef SLP_VERBOSE_DEBUG
-#	define dbgverbose(...) dbg(__VA_ARGS__)
-#else
-#	define dbgverbose(...)
-#endif
-
-#define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
-
-#define max(a, b) \
-	({ const __typeof__(a) _a = (a), _b = (b); \
-	   _a > _b ? _a : _b; })
-
-#define min(a, b) \
-	({ const __typeof__(a) _a = (a), _b = (b); \
-	   _a < _b ? _a : _b; })
-
-#define minbot(a, b) \
-	({ const __typeof__(a) _a = (a), _b = (b); \
-	   (_a == BOTTOM || _b < _a) ? _b : _a; })
-
-
 #define SEND_MESSAGE(NAME) \
 bool send_##NAME##_message(const NAME##Message* tosend) \
 { \
@@ -362,8 +341,8 @@ implementation
 	{
 		uint32_t distance = get_dist_to_pull_back();
 
-		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
-			distance, source_distance, sink_distance, sink_source_distance);
+		//dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
+		//	distance, source_distance, sink_distance, sink_source_distance);
 
 		return distance;
 	}
@@ -379,7 +358,7 @@ implementation
 			duration -= get_away_delay();
 		}
 
-		dbg("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		//dbg("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
 		return duration;
 	}
@@ -392,7 +371,7 @@ implementation
 
 		const uint32_t result_period = period;
 
-		dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		//dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -410,8 +389,8 @@ implementation
 
 		assert(source_period != BOTTOM);
 
-		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
-			result_period, counter, seq_inc, x);
+		//dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
+		//	result_period, counter, seq_inc, x);
 
 		return result_period;
 	}
@@ -434,8 +413,8 @@ implementation
 
 		assert(type == SourceNode);
 
-		//dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
-		//	current_time, times_length);
+		dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
+			current_time, times_length);
 
 		for (i = 0; i != times_length; ++i)
 		{
@@ -477,6 +456,7 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
+			dbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -505,11 +485,16 @@ implementation
 
 	event void ObjectDetector.detect()
 	{
-		dbg("Metric-SOURCE_CHANGE", "become source\n");
+		// The sink node cannot become a source node
+		if (type != SinkNode)
+		{
+			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			dbg("Node-Change-Notification", "The node has become a Source\n");
 
-		type = SourceNode;
+			type = SourceNode;
 
-		call BroadcastNormalTimer.startOneShot(get_source_period());
+			call BroadcastNormalTimer.startOneShot(get_source_period());
+		}
 	}
 
 	event void ObjectDetector.stoppedDetecting()
@@ -520,7 +505,8 @@ implementation
 
 			type = NormalNode;
 
-			dbg("Metric-SOURCE_CHANGE", "was source, now normal\n");
+			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			dbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 

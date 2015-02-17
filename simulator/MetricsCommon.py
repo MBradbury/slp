@@ -9,8 +9,8 @@ class MetricsCommon(object):
         self.sim = sim
         self.configuration = configuration
 
-        self.source_id = configuration.source_id
-        self.sink_id = configuration.sink_id
+        self.source_ids = set([ configuration.source_id ])
+        self.sink_ids = set([ configuration.sink_id ])
 
         self.sent = {}
         self.received = {}
@@ -35,7 +35,7 @@ class MetricsCommon(object):
 
             self.sent[kind][node_id] += 1
 
-            if node_id == self.source_id and kind == "Normal":
+            if node_id in self.source_ids and kind == "Normal":
                 self.normal_sent_time[sequence_number] = time
 
     def process_RCV(self, line):
@@ -52,9 +52,25 @@ class MetricsCommon(object):
 
         self.received[kind][node_id] += 1
 
-        if node_id == self.sink_id and kind == "Normal":
+        if node_id in self.sink_ids and kind == "Normal":
             self.normal_latency[sequence_number] = time - self.normal_sent_time[sequence_number]
             self.normal_hop_count.append(hop_count)
+
+    def process_SOURCE_CHANGE(self, line):
+        (state, node_id) = line.strip().split(',')
+
+        node_id = int(node_id)
+
+        if state == "set":
+            self.source_ids.add(node_id)
+            print("The node {} has become a source.".format(node_id))
+        elif state == "unset":
+            if node_id in self.source_ids:
+                self.source_ids.remove(node_id)
+
+                print("The node {} has become a normal.".format(node_id))
+        else:
+            raise RuntimeError("Unknown state {}".format(state))
 
     def seed(self):
         return self.sim.seed
@@ -93,12 +109,19 @@ class MetricsCommon(object):
         return self.sim.any_attacker_found_source()
 
     def attacker_distance(self):
-        source_location = self.sim.nodes[self.source_id].location
+        def attacker_distance_from_src(source_id):
+            source_location = self.sim.nodes[source_id].location
+
+            return {
+                i: euclidean(source_location, self.sim.nodes[attacker.position].location)
+                for i, attacker
+                in enumerate(self.sim.attackers)
+            }
 
         return {
-            i: euclidean(source_location, self.sim.nodes[attacker.position].location)
-            for i, attacker
-            in enumerate(self.sim.attackers)
+            source_id: attacker_distance_from_src(source_id)
+            for source_id
+            in self.source_ids
         }
 
     def attacker_moves(self):

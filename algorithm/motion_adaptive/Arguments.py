@@ -57,5 +57,6 @@ class Arguments:
         })
 
         result.update(self.args.source_period.build_arguments())
+        result.update(self.args.source_mobility.build_arguments())
 
         return result

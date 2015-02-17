@@ -46,7 +46,7 @@ class Arguments:
         result = {}
 
         if self.args.verbose:
-            result.update(SLP_VERBOSE_DEBUG=1)
+            result["SLP_VERBOSE_DEBUG"] = 1
 
         result.update({
             "SOURCE_PERIOD_MS": int(self.args.source_period * 1000),
