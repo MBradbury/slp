@@ -196,17 +196,19 @@ class TosVis(Simulator):
             from simulator.topovis.TopoVis import Scene
             from simulator.topovis.TkPlotter import Plotter
 
+            time = self.sim_time()
+
             # Setup an animating canvas
             self.scene = Scene(timescale=1)
             self.tkplot = Plotter()
             self.scene.addPlotter(self.tkplot)
 
             # set line style used for neighbor relationship
-            self.scene.execute(0, 'linestyle(1,color=(.7,.7,.7))')
+            self.scene.execute(time, 'linestyle(1,color=(.7,.7,.7))')
 
             # draw nodes on animating canvas
             for node in self.nodes:
-                self.scene.execute(0,
+                self.scene.execute(time,
                     'node({},{},{})'.format(node.nid, *self.adjust_location(node.location)))
 
 ###############################################

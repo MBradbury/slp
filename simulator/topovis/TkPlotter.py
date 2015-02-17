@@ -33,9 +33,9 @@ class Plotter(GenericPlotter):
 
     ###################
     def setTime(self, time):
-        if (time - self.lastShownTime > 0.1):
-            self.canvas.itemconfigure(self.timeText, text='Time: %.2fS' % time)
-        self.lastShownTime = time
+        if time - self.lastShownTime > 0.00001:
+            self.canvas.itemconfigure(self.timeText, text='Time: %.5f seconds' % time)
+            self.lastShownTime = time
 
     ###################
     def updateNodePosAndSize(self, ident):
