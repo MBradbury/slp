@@ -274,7 +274,7 @@ class Scene:
         (Scene scripting command) Intialize the scene.  This command should
         be called before any other scripting commands.
         """
-        if (self.initialized):
+        if self.initialized:
             raise RuntimeError('init() has already been called')
         self.dim = (tx, ty)
         self.initialized = True
