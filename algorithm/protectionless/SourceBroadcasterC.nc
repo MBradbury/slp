@@ -153,12 +153,12 @@ implementation
 		if (TOS_NODE_ID == SOURCE_NODE_ID)
 		{
 			type = SourceNode;
-			dbg("Fake-Notification", "The node has become a Source\n");
+			dbg("Node-Change-Notification", "The node has become a Source\n");
 		}
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			dbg("Fake-Notification", "The node has become a Sink\n");
+			dbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
