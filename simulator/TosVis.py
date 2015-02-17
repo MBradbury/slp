@@ -7,13 +7,13 @@ class DebugAnalyzer:
     LED     = 0
     AM_SEND = 1
     AM_RECV = 2
-    FAKE    = 3
+    CHANGE  = 3
 
     WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
     LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
-    FAKE_RE   = re.compile(r'The node has become a ([a-zA-Z]+)')
+    CHANGE_RE = re.compile(r'The node has become a ([a-zA-Z]+)')
 
     ####################
     def __init__(self):
@@ -55,10 +55,10 @@ class DebugAnalyzer:
             return (node_id, self.AM_RECV, (amtype, amlen))
 
         # Node becoming TFS, PFS or Normal
-        match = self.FAKE_RE.match(detail)
+        match = self.CHANGE_RE.match(detail)
         if match is not None:
             kind = match.group(1)
-            return (node_id, self.FAKE, (kind,))
+            return (node_id, self.CHANGE, (kind,))
 
         return None
 
@@ -93,6 +93,7 @@ class TosVis(Simulator):
         self.tossim.addChannel('LedsC', dbg.write)
         self.tossim.addChannel('AM', dbg.write)
         self.tossim.addChannel('Fake-Notification', dbg.write)
+        self.tossim.addChannel('Node-Change-Notification', dbg.write)
 
         self.add_output_processor(dbg)
 
@@ -146,7 +147,7 @@ class TosVis(Simulator):
                 'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
                 % (x, y, 10))
 
-    def _animate_fake_state(self, time, node, detail):
+    def _animate_change_state(self, time, node, detail):
         (kind,) = detail
 
         pfs_colour = [x / 255.0 for x in (225, 41, 41)]
@@ -183,7 +184,7 @@ class TosVis(Simulator):
             DebugAnalyzer.LED: self._animate_leds,
             DebugAnalyzer.AM_SEND: self._animate_am_send,
             DebugAnalyzer.AM_RECV: self._animate_am_receive,
-            DebugAnalyzer.FAKE: self._animate_fake_state
+            DebugAnalyzer.CHANGE: self._animate_change_state
 
         }[event_type](self.sim_time(), node_id, detail)
 

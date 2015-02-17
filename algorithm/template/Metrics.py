@@ -47,10 +47,6 @@ class Metrics(MetricsCommon):
                 self.pfsCreated += 1
             elif kind == "Normal":
                 self.fakeToNormal += 1
-            elif kind == "Sink":
-                pass
-            elif kind == "Source":
-                pass
             else:
                 raise RuntimeError("Unknown kind {}".format(kind))
 
