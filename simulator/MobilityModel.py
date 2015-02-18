@@ -75,6 +75,7 @@ class StationaryMobilityModel(MobilityModel):
 
 class RandomWalkMobilityModel(MobilityModel):
     def __init__(self, max_time, duration):
+        # There needs to be a finite length to the random walk!
         self.max_time = max_time
 
         # Duration is the length for which a node will act as a source node.

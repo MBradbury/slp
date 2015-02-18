@@ -341,8 +341,8 @@ implementation
 	{
 		uint32_t distance = get_dist_to_pull_back();
 
-		//dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
-		//	distance, source_distance, sink_distance, sink_source_distance);
+		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
+			distance, source_distance, sink_distance, sink_source_distance);
 
 		return distance;
 	}
@@ -358,7 +358,7 @@ implementation
 			duration -= get_away_delay();
 		}
 
-		//dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
 		return duration;
 	}
@@ -371,7 +371,7 @@ implementation
 
 		const uint32_t result_period = period;
 
-		//dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -389,8 +389,8 @@ implementation
 
 		assert(source_period != BOTTOM);
 
-		//dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
-		//	result_period, counter, seq_inc, x);
+		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
+			result_period, counter, seq_inc, x);
 
 		return result_period;
 	}
@@ -597,6 +597,27 @@ implementation
 		}
 	}
 
+	bool handle_source_id_changed(const NormalMessage* const rcvd)
+	{
+		// If the source has changed or this is the first time that we have received a Normal message
+		if (rcvd->source_id != source_node_id)
+		{
+			dbg_clear("Metric-SOURCE_CHANGE_DETECT", "%u,%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
+
+			source_node_id = rcvd->source_id;
+
+			// Reset variables to the new values
+			source_distance = rcvd->source_distance + 1;
+			sink_source_distance = rcvd->sink_source_distance;
+
+			return TRUE;
+		}
+		else
+		{
+			return FALSE;
+		}
+	}
+
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
@@ -620,17 +641,7 @@ implementation
 
 			source_period = rcvd->source_period;
 
-			// If the source has changed or this is the first time that we have received a Normal message
-			if (rcvd->source_id != source_node_id)
-			{
-				dbg_clear("Metric-SOURCE_CHANGE_DETECT", "%u,%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
-
-				source_node_id = rcvd->source_id;
-
-				// Reset variables to the new values
-				source_distance = rcvd->source_distance + 1;
-				sink_source_distance = rcvd->sink_source_distance;
-			}
+			handle_source_id_changed(rcvd);
 
 			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
@@ -668,6 +679,8 @@ implementation
 
 			source_period = rcvd->source_period;
 
+			handle_source_id_changed(rcvd);
+
 			sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
 
 			if (!sink_sent_away)
@@ -693,6 +706,13 @@ implementation
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
 			source_period = rcvd->source_period;
+
+			if (handle_source_id_changed(rcvd))
+			{
+				// TODO:
+				// Consider changing the pater of fake sources to reflect
+				// the new source location
+			}
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
