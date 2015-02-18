@@ -99,8 +99,6 @@ implementation
 
 		dbgverbose("stdout", "Detected an object.\n");
 
-		signal ObjectDetector.detect();
-
 		if (get_periods_active(TOS_NODE_ID, &period, &length) && current_index < length)
 		{
 			// Don't start the expiry timer if this detection
@@ -114,6 +112,8 @@ implementation
 				call ExpireTimer.startOneShot(expire_at);
 			}
 		}
+
+		signal ObjectDetector.detect();
 	}
 
 	event void ExpireTimer.fired()
