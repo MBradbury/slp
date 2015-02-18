@@ -689,6 +689,8 @@ implementation
 
 			seen_pfs |= rcvd->from_pfs;
 
+			// TODO: Remind myself why source_distance isn't changed here!
+
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
 

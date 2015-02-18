@@ -20,7 +20,7 @@ from data import results, latex
 
 from data.util import create_dirtree, recreate_dirtree, touch
 
-import numpy, itertools
+import numpy
 
 # Raise all numpy errors
 numpy.seterr(all='raise')
