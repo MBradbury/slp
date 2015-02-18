@@ -25,16 +25,16 @@ class Metrics(MetricsCommon):
         self.sim.tossim.addChannel('Fake-Notification', self.FAKE_NOTIFICATION.write)
         self.sim.add_output_processor(self.FAKE_NOTIFICATION)
 
-        self.tfsCreated = 0
-        self.pfsCreated = 0
-        self.fakeToNormal = 0
+        self.tfs_created = 0
+        self.pfs_created = 0
+        self.fake_to_normal = 0
 
     def process_FAKE_NOTIFICATION(self, line):
         match = self.WHOLE_RE.match(line)
         if match is None:
             return None
 
-        id = int(match.group(1))
+        node_id = int(match.group(1))
         detail = match.group(2)
 
         match = self.FAKE_RE.match(detail)
@@ -42,23 +42,23 @@ class Metrics(MetricsCommon):
             kind = match.group(1)
             
             if kind == "TFS":
-                self.tfsCreated += 1
+                self.tfs_created += 1
             elif kind == "PFS":
-                self.pfsCreated += 1
+                self.pfs_created += 1
             elif kind == "Normal":
-                self.fakeToNormal += 1
+                self.fake_to_normal += 1
             else:
                 raise RuntimeError("Unknown kind {}".format(kind))
 
     @staticmethod
     def items():
         d = MetricsCommon.items()
-        d["FakeSent"]               = lambda x: x.numberSent("Fake")
-        d["ChooseSent"]             = lambda x: x.numberSent("Choose")
-        d["AwaySent"]               = lambda x: x.numberSent("Away")
-        d["TFS"]                    = lambda x: x.tfsCreated
-        d["PFS"]                    = lambda x: x.pfsCreated
-        d["FakeToNormal"]           = lambda x: x.fakeToNormal
+        d["FakeSent"]               = lambda x: x.number_sent("Fake")
+        d["ChooseSent"]             = lambda x: x.number_sent("Choose")
+        d["AwaySent"]               = lambda x: x.number_sent("Away")
+        d["TFS"]                    = lambda x: x.tfs_created
+        d["PFS"]                    = lambda x: x.pfs_created
+        d["FakeToNormal"]           = lambda x: x.fake_to_normal
 
         return d
 

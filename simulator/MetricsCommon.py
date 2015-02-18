@@ -1,5 +1,6 @@
 
 from collections import Counter, OrderedDict
+import itertools
 
 from numpy import mean
 from scipy.spatial.distance import euclidean
@@ -21,6 +22,9 @@ class MetricsCommon(object):
 
         self.wall_time = 0
         self.event_count = 0
+
+        self.became_source_times = {}
+        self.became_normal_after_source_times = {}
 
     def process_BCAST(self, line):
         (kind, time, node_id, status, sequence_number) = line.split(',')
@@ -60,15 +64,18 @@ class MetricsCommon(object):
         (state, node_id) = line.strip().split(',')
 
         node_id = int(node_id)
+        time = self.sim_time()
 
         if state == "set":
             self.source_ids.add(node_id)
-            print("The node {} has become a source.".format(node_id))
-        elif state == "unset":
-            if node_id in self.source_ids:
-                self.source_ids.remove(node_id)
 
-                print("The node {} has become a normal.".format(node_id))
+            self.became_source_times.setdefault(node_id, []).append(time)
+
+        elif state == "unset":
+            self.source_ids.remove(node_id)
+
+            self.became_normal_after_source_times.setdefault(node_id, []).append(time)
+
         else:
             raise RuntimeError("Unknown state {}".format(state))
 
@@ -131,6 +138,25 @@ class MetricsCommon(object):
             in enumerate(self.sim.attackers)
         }
 
+    def node_was_source(self):
+        result = {}
+
+        for node_id in self.became_source_times.keys() + self.became_normal_after_source_times.keys():
+            started_times = self.became_source_times.get(node_id, [])
+            stopped_times = self.became_normal_after_source_times.get(node_id, [])
+
+            res_lst = []
+
+            for (start, stop) in itertools.izip_longest(started_times, stopped_times):
+                if stop is None:
+                    stop = float('inf')
+
+                res_lst.append((start, stop))
+
+            result[node_id] = res_lst
+
+        return result
+
     @staticmethod
     def items():
         d = OrderedDict()
@@ -148,6 +174,7 @@ class MetricsCommon(object):
         d["NormalLatency"]          = lambda x: x.average_normal_latency()
         d["NormalSinkSourceHops"]   = lambda x: x.average_sink_source_hops()
         d["NormalSent"]             = lambda x: x.number_sent("Normal")
+        d["NodeWasSource"]          = lambda x: x.node_was_source()
         d["SentHeatMap"]            = lambda x: x.sent_heat_map()
         d["ReceivedHeatMap"]        = lambda x: x.received_heat_map()
 
