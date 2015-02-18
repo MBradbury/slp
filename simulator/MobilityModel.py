@@ -23,6 +23,9 @@ class MobilityModel(object):
             if node_id > num_nodes:
                 raise RuntimeError("Invalid node id {}.".format(node_id))
 
+            if node_id == self.configuration.sink_id:
+                raise RuntimeError("The source node cannot move onto the sink as it cannot detect it")
+
     def build_arguments(self):
         build_arguments = {}
 
@@ -54,8 +57,6 @@ class MobilityModel(object):
         build_arguments["SOURCE_DETECTED_PERIODS"] = "{ " + ", ".join(periods) + " }"
         build_arguments["SOURCE_DETECTED_PERIODS_LENGTHS"] = "{ " + ", ".join(periods_lengths) + " }"
         build_arguments["SOURCE_DETECTED_NUM_NODES"] = len(indexes)
-
-        print(build_arguments)
 
         return build_arguments
 
@@ -101,6 +102,9 @@ class TowardsSinkMobilityModel(MobilityModel):
 
     def setup(self, configuration):
         path = configuration.shortest_path(configuration.source_id, configuration.sink_id)
+
+        # Remove the last element from the list as the sink cannot become a source
+        path = path[:-1]
 
         times = OrderedDict()
 
