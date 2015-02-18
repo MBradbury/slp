@@ -25,6 +25,8 @@ implementation
 {
 	AwayChooseMessage original_message;
 
+	bool is_expired = FALSE;
+
 	// Network variables
 
 	bool busy = FALSE;
@@ -113,11 +115,16 @@ implementation
 
 		send_fake_message();
 
-		period = signal FakeMessageGenerator.calculatePeriod();
-
-		if (period > 0)
+		// It is possible that send_fake_message will lead to the node
+		// becoming normal.
+		if (!is_expired)
 		{
-			call SendFakeTimer.startOneShot(period);
+			period = signal FakeMessageGenerator.calculatePeriod();
+
+			if (period > 0)
+			{
+				call SendFakeTimer.startOneShot(period);
+			}
 		}
 	}
 
@@ -140,6 +147,7 @@ implementation
 
 	command void FakeMessageGenerator.expireDuration()
 	{
+		is_expired = TRUE;
 		call SendFakeTimer.stop();
 		signal FakeMessageGenerator.durationExpired(&original_message);
 	}
