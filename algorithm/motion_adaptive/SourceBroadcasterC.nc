@@ -602,7 +602,7 @@ implementation
 		// If the source has changed or this is the first time that we have received a Normal message
 		if (rcvd->source_id != source_node_id)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE_DETECT", "%u,%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
+			dbg_clear("Metric-SOURCE_CHANGE_DETECT", "%" PRIu64 ",%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
 
 			source_node_id = rcvd->source_id;
 

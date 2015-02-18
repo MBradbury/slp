@@ -4,6 +4,8 @@ import sys, re
 
 from collections import Counter
 
+from numpy import mean
+
 from simulator.Simulator import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
@@ -40,6 +42,8 @@ class Metrics(MetricsCommon):
         self.tfs_created = 0
         self.pfs_created = 0
         self.fake_to_normal = 0
+
+        self.source_change_detected = {}
 
     def process_RCV(self, line):
         (kind, time, node_id, neighbour_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
@@ -92,21 +96,23 @@ class Metrics(MetricsCommon):
         # TODO: proper metrics for this information
         # Ideas:
         # - Delay between a source change and a node detecting it
-        #
-        #
-        print("On {} source changes from {} to {} at {}".format(
-            node_id, previous_source_id, current_source_id, time))
 
+        self.source_change_detected.setdefault((previous_source_id, current_source_id), {})[node_id] = time
+
+    def number_of_nodes_detected_change(self):
+        return { k: len(times) for (k, times) in sorted(self.source_change_detected.items()) }
 
     @staticmethod
     def items():
         d = MetricsCommon.items()
-        d["FakeSent"]               = lambda x: x.numberSent("Fake")
-        d["ChooseSent"]             = lambda x: x.numberSent("Choose")
-        d["AwaySent"]               = lambda x: x.numberSent("Away")
+        d["FakeSent"]               = lambda x: x.number_sent("Fake")
+        d["ChooseSent"]             = lambda x: x.number_sent("Choose")
+        d["AwaySent"]               = lambda x: x.number_sent("Away")
         d["TFS"]                    = lambda x: x.tfs_created
         d["PFS"]                    = lambda x: x.pfs_created
         d["FakeToNormal"]           = lambda x: x.fake_to_normal
+        d["SourceChangeDetected"]   = lambda x: x.source_change_detected
+        d["NodesDetectedSrcChange"] = lambda x: x.number_of_nodes_detected_change()
         
         return d
 

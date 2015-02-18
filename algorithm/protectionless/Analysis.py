@@ -64,6 +64,8 @@ class Analyzer:
         d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
         d['normal']             = lambda x: format_results(x, 'NormalSent')
         d['ssd']                = lambda x: format_results(x, 'NormalSinkSourceHops')
+
+        d['node was source']    = lambda x: format_results(x, 'NodeWasSource')
         
         d['sent heatmap']       = lambda x: format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: format_results(x, 'ReceivedHeatMap')

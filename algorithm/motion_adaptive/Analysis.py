@@ -44,6 +44,10 @@ class Analyzer:
         d['fake to normal']     = lambda x: format_results(x, 'FakeToNormal')
         d['ssd']                = lambda x: format_results(x, 'NormalSinkSourceHops')
 
+        d['node was source']    = lambda x: format_results(x, 'NodeWasSource')
+        d['src change detected'] = lambda x: format_results(x, 'SourceChangeDetected')
+        d['detected src change'] = lambda x: format_results(x, 'NodesDetectedSrcChange')
+
         d['wall time']          = lambda x: format_results(x, 'WallTime')
         d['event count']        = lambda x: format_results(x, 'EventCount')
         
