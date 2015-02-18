@@ -358,7 +358,7 @@ implementation
 			duration -= get_away_delay();
 		}
 
-		//dbg("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		//dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
 		return duration;
 	}
