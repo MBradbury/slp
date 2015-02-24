@@ -16,13 +16,16 @@ class Grapher(GrapherBase):
         self.shows = shows
         self.extractor = extractor
 
+        self.xaxis_label = 'Parameters'
+        self.yaxis_label = None
+
     def create(self):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
         print('Creating {} graph files'.format(self.result_name))
 
-        data = {}
+        dat = {}
 
         for ((size, config), items1) in self.results.data.items():
             for (src_period, items2) in items1.items():
@@ -36,9 +39,9 @@ class Grapher(GrapherBase):
                     for show in self.shows:
                         yvalues.append( self.extractor(results[ self.results.result_names.index(show) ]) )
 
-                    data.setdefault((key_names, key_values), {})[params] = yvalues
+                    dat.setdefault((key_names, key_values), {})[params] = yvalues
 
-        for ((key_names, key_values), values) in data.items():
+        for ((key_names, key_values), values) in dat.items():
             self._create_plot(key_names, key_values, values)
 
         self._create_graphs(self.result_name)
@@ -81,8 +84,11 @@ class Grapher(GrapherBase):
 
             graph_p.write('set terminal pdf enhanced\n')
 
-            graph_p.write('set xlabel "Parameters"\n')
-            #graph_p.write('set ylabel "{}"\n'.format(self.show))
+            if self.xaxis_label is not None:
+                graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
+
+            if self.yaxis_label is not None:
+                graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
 
             graph_p.write('set style data histogram\n')
             graph_p.write('set style histogram cluster gap 1\n')
@@ -124,7 +130,7 @@ class DiffGrapher(Grapher):
 
         print('Creating {} graph files'.format(self.result_name))
 
-        data = {}
+        dat = {}
 
         for ((size, config), items1) in self.results.diff.items():
             for (comp_params, items2) in items1.items():
@@ -139,9 +145,9 @@ class DiffGrapher(Grapher):
                         for show in self.shows:
                             yvalues.append( self.extractor(results[ self.results.comparison_results.result_names.index(show) ]) )
 
-                        data.setdefault((key_names, key_values), {})[params] = yvalues
+                        dat.setdefault((key_names, key_values), {})[params] = yvalues
 
-        for ((key_names, key_values), values) in data.items():
+        for ((key_names, key_values), values) in dat.items():
             self._create_plot(key_names, key_values, values)
 
         self._create_graphs(self.result_name)
