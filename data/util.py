@@ -1,4 +1,4 @@
-import os, shutil, stat, errno
+import os, shutil, stat, errno, math
 
 def create_dirtree(path):
     if not os.path.exists(path):
@@ -45,3 +45,14 @@ def silent_remove(path):
         # errno.ENOENT = no such file or directory
         if ex.errno != errno.ENOENT:
             raise
+
+def useful_log10(data):
+    if data is None:
+        return None
+
+    if data > 0:
+        return math.log10(data)
+    elif data == 0:
+        return 0
+    else:
+        return -math.log10(-data)

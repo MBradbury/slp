@@ -17,7 +17,7 @@ from data.table import safety_period, fake_result, direct_comparison
 from data.graph import summary, heatmap, versus, bar
 from data import results, latex
 
-from data.util import create_dirtree, recreate_dirtree, touch
+from data.util import create_dirtree, recreate_dirtree, touch, useful_log10
 
 import numpy
 
@@ -226,13 +226,24 @@ if 'ccpe-comparison-graph' in args:
         create_ccpe_comp_bar(result_name, pc=True)
         create_ccpe_comp_bar(result_name, pc=False)
 
-    def create_ccpe_comp_bar_pcdiff():
+    def create_ccpe_comp_bar_pcdiff(modified=lambda x: x, name_addition=None):
         name = 'ccpe-comp-pcdiff'
+        if name_addition is not None:
+            name += '-{}'.format(name_addition)
 
-        bar.Grapher(template.graphs_path, result_table, name,
+        g = bar.Grapher(template.graphs_path, result_table, name,
             shows=results_to_compare,
-            extractor=lambda (diff, pcdiff): pcdiff).create()
+            extractor=lambda (diff, pcdiff): modified(pcdiff))
+
+        g.yaxis_label = 'Percentage Difference'
+        if name_addition is not None:
+            g.yaxis_label += ' ({})'.format(name_addition)
+
+        g.xaxis_label = 'Parameters (P_{TFS}, D_{TFS}, Pr(TFS), Pr(PFS))'
+
+        g.create()
 
         summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-{}'.format(name).replace(" ", "_")).run()
 
     create_ccpe_comp_bar_pcdiff()
+    create_ccpe_comp_bar_pcdiff(useful_log10, 'log10')
