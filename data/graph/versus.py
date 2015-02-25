@@ -7,12 +7,11 @@ from data import latex
 from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
-    def __init__(self, output_directory, results, result_name,
+    def __init__(self, output_directory, result_name,
                  xaxis, yaxis, vary, yextractor=lambda x: x):
 
         super(Grapher, self).__init__(output_directory)
 
-        self.results = results
         self.result_name = result_name
 
         self.xaxis = xaxis
@@ -28,19 +27,18 @@ class Grapher(GrapherBase):
 
         self.yextractor = yextractor
 
-    def create(self):
+    @staticmethod        
+    def remove_index(names, values, index_name):
+        idx = names.index(index_name)
 
-        def remove_index(names, values, index_name):
-            idx = names.index(index_name)
+        value = values[idx]
 
-            value = values[idx]
+        del names[idx]
+        del values[idx]
 
-            del names[idx]
-            del values[idx]
+        return (names, values, value)
 
-            return (names, values, value)
-
-
+    def create(self, simulation_results):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
@@ -48,23 +46,21 @@ class Grapher(GrapherBase):
 
         dat = {}
 
-        for ((size, config), items1) in self.results.data.items():
+        for ((size, config), items1) in simulation_results.data.items():
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
 
-                    key_names = ['size', 'configuration', 'source period'] + self.results.parameter_names
-
-                    #print(key_names)
+                    key_names = ['size', 'configuration', 'source period'] + simulation_results.parameter_names
 
                     values = [size, config, src_period] + list(params)
 
-                    (key_names, values, xvalue) = remove_index(key_names, values, self.xaxis)
-                    (key_names, values, vvalue) = remove_index(key_names, values, self.vary)
+                    (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
+                    (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
 
                     key_names = tuple(key_names)
                     values = tuple(values)
 
-                    yvalue = results[ self.results.result_names.index(self.yaxis) ]
+                    yvalue = results[ simulation_results.result_names.index(self.yaxis) ]
 
                     dat.setdefault((key_names, values), {})[(xvalue, vvalue)] = self.yextractor(yvalue)
 
@@ -129,7 +125,7 @@ class Grapher(GrapherBase):
             plots = []
 
             for x in range(1, columnCount + 1):
-                plots.append('"graph.dat" u 1:{} w lp ti "{} {}{}"'.format(
+                plots.append('"graph.dat" u 1:{} w lp ti \'{} {}{}\''.format(
                     x + 1, self.vary_label, vvalues[ x - 1 ], self.vary_prefix))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))

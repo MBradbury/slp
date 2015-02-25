@@ -15,11 +15,11 @@ import algorithm.template as template
 import algorithm.adaptive as adaptive
 
 from data.table import safety_period, fake_result, comparison
-from data.graph import summary, heatmap, versus, bar
+from data.graph import summary, heatmap, versus, bar, min_max_versus
 
 from data import results, latex
 
-from data.util import create_dirtree, recreate_dirtree, touch, useful_log10
+from data.util import create_dirtree, recreate_dirtree, touch, useful_log10, scalar_extractor
 
 import numpy
 
@@ -106,14 +106,7 @@ if 'analyse' in args:
     prelim_analyzer.run(adaptive.result_file)
 
 if 'graph' in args:
-    def extract(x):
-        if numpy.isscalar(x):
-            return x
-        else:
-            (val, stddev) = x
-            return val
-
-    versus_results = {
+    graph_parameters = {
         'normal latency': ('Normal Message Latency (seconds)', 'left top'),
         'ssd': ('Sink-Source Distance (hops)', 'left top'),
         'captured': ('Capture Ratio (%)', 'left top'),
@@ -127,17 +120,17 @@ if 'graph' in args:
 
     adaptive_results = results.Results(adaptive.result_file_path,
         parameters=parameter_names,
-        results=tuple(versus_results.keys() + heatmap_results))
+        results=tuple(graph_parameters.keys() + heatmap_results))    
 
     for name in heatmap_results:
         heatmap.Grapher(adaptive.graphs_path, adaptive_results, name).create()
         summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-' + name.replace(" ", "_")).run()
 
-    for (yaxis, (yaxis_label, key_position)) in versus_results.items():
+    for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
         name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
-        g = versus.Grapher(adaptive.graphs_path, adaptive_results, name,
-            xaxis='size', yaxis=yaxis, vary='source period', yextractor=extract)
+        g = versus.Grapher(adaptive.graphs_path, name,
+            xaxis='size', yaxis=yaxis, vary='source period', yextractor=scalar_extractor)
 
         g.xaxis_label = 'Network Size'
         g.yaxis_label = yaxis_label
@@ -145,7 +138,7 @@ if 'graph' in args:
         g.vary_prefix = ' seconds'
         g.key_position = key_position
 
-        g.create()
+        g.create(adaptive_results)
 
         summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-' + name).run()
 
@@ -245,6 +238,47 @@ if 'comparison-graph' in args:
 
     create_comp_bar_pcdiff()
     create_comp_bar_pcdiff(useful_log10, 'log10')
+
+if 'min-max-versus' in args:
+    graph_parameters = {
+        'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+        'ssd': ('Sink-Source Distance (hops)', 'left top'),
+        'captured': ('Capture Ratio (%)', 'right top'),
+        'fake': ('Fake Messages Sent', 'left top'),
+        'received ratio': ('Receive Ratio (%)', 'left bottom'),
+        'tfs': ('Number of TFS Created', 'left top'),
+        'pfs': ('Number of PFS Created', 'left top'),
+    }
+
+    adaptive_results = results.Results(adaptive.result_file_path,
+        parameters=parameter_names,
+        results=graph_parameters.keys())
+
+    template_results = results.Results(template.result_file_path,
+        parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
+        results=graph_parameters.keys())
+
+    def graph_min_max_versus(result_name):
+        name = 'min-max-template-versus-{}'.format(result_name)
+
+        g = min_max_versus.Grapher(adaptive.graphs_path, name,
+            xaxis='size', yaxis=result_name, vary='approach', yextractor=scalar_extractor)
+
+        g.xaxis_label = 'Network Size'
+        g.yaxis_label = graph_parameters[result_name][0]
+        g.key_position = graph_parameters[result_name][1]
+
+        g.min_label = 'Min Template'
+        g.max_label = 'Max Template'
+        g.comparison_label = 'Adaptive'
+        g.vary_label = ''
+
+        g.create(template_results, adaptive_results)
+
+        summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-{}'.format(name).replace(" ", "_")).run()
+
+    for result_name in graph_parameters.keys():
+        graph_min_max_versus(result_name)
 
 if 'time-taken-table' in args:
     adaptive_results = results.Results(adaptive.result_file_path,

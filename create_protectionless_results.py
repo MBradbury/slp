@@ -164,9 +164,9 @@ if 'ccpe-comparison-graph' in args:
     def create_ccpe_comp_versus(yxaxis, pc=False):
         name = 'ccpe-comp-{}-{}'.format(yxaxis, "pcdiff" if pc else "diff")
 
-        versus.Grapher(protectionless.graphs_path, result_table, name,
+        versus.Grapher(protectionless.graphs_path, name,
             xaxis='size', yaxis=yxaxis, vary='source period',
-            yextractor=lambda (diff, pcdiff): pcdiff if pc else diff).create()
+            yextractor=lambda (diff, pcdiff): pcdiff if pc else diff).create(result_table)
 
         summary.GraphSummary(os.path.join(protectionless.graphs_path, name), 'protectionless-{}'.format(name).replace(" ", "_")).run()
 

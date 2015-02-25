@@ -141,8 +141,8 @@ if 'graph' in args:
     #for yaxis in versus_results:
     #    name = '{}-v-fake-period'.format(yaxis.replace(" ", "_"))
     #
-    #    versus.Grapher(template.graphs_path, template_results, name,
-    #        xaxis='size', yaxis=yaxis, vary='fake period', yextractor=extract).create()
+    #    versus.Grapher(template.graphs_path, name,
+    #        xaxis='size', yaxis=yaxis, vary='fake period', yextractor=extract).create(template_results)
     #
     #    summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-' + name).run()
 

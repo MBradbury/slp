@@ -1,5 +1,7 @@
 import os, shutil, stat, errno, math
 
+import numpy
+
 def create_dirtree(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -56,3 +58,10 @@ def useful_log10(data):
         return 0
     else:
         return -math.log10(-data)
+
+def scalar_extractor(x):
+    if numpy.isscalar(x):
+        return x
+    else:
+        (val, stddev) = x
+        return val
