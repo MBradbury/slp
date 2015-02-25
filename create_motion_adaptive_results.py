@@ -123,8 +123,8 @@ if 'graph' in args:
     summary.GraphSummary(os.path.join(motion_adaptive.graphs_path, 'sent heatmap'), 'motion_adaptive-SentHeatMap').run()
     summary.GraphSummary(os.path.join(motion_adaptive.graphs_path, 'received heatmap'), 'motion_adaptive-ReceivedHeatMap').run()
 
-    versus.Grapher(motion_adaptive.graphs_path, results, 'captured-v-source-period',
-        xaxis='size', yaxis='captured', vary='source period').create()
+    versus.Grapher(motion_adaptive.graphs_path, 'captured-v-source-period',
+        xaxis='size', yaxis='captured', vary='source period').create(results)
 
 if 'table' in args:
     results = results.Results(adaptive.result_file_path,

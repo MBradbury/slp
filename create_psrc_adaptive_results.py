@@ -126,8 +126,8 @@ if 'graph' in args:
     for yaxis in versus_results:
         name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
-        versus.Grapher(psrc_adaptive.graphs_path, psrc_adaptive_results, name,
-            xaxis='size', yaxis=yaxis, vary='source period', yextractor=extract).create()
+        versus.Grapher(psrc_adaptive.graphs_path, name,
+            xaxis='size', yaxis=yaxis, vary='source period', yextractor=extract).create(psrc_adaptive_results)
 
         summary.GraphSummary(os.path.join(psrc_adaptive.graphs_path, name), 'psrc_adaptive-' + name).run()
 
