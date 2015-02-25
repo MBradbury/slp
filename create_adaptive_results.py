@@ -113,22 +113,39 @@ if 'graph' in args:
             (val, stddev) = x
             return val
 
-    versus_results = ['normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs']
+    versus_results = {
+        'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+        'ssd': ('Sink-Source Distance (hops)', 'left top'),
+        'captured': ('Capture Ratio (%)', 'left top'),
+        'fake': ('Fake Messages Sent', 'left top'),
+        'received ratio': ('Receive Ratio (%)', 'left bottom'),
+        'tfs': ('Number of TFS Created', 'left top'),
+        'pfs': ('Number of PFS Created', 'left top'),
+    }
+
     heatmap_results = ['sent heatmap', 'received heatmap']
 
     adaptive_results = results.Results(adaptive.result_file_path,
         parameters=parameter_names,
-        results=tuple(versus_results + heatmap_results))
+        results=tuple(versus_results.keys() + heatmap_results))
 
     for name in heatmap_results:
         heatmap.Grapher(adaptive.graphs_path, adaptive_results, name).create()
         summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-' + name.replace(" ", "_")).run()
 
-    for yaxis in versus_results:
+    for (yaxis, (yaxis_label, key_position)) in versus_results.items():
         name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
-        versus.Grapher(adaptive.graphs_path, adaptive_results, name,
-            xaxis='size', yaxis=yaxis, vary='source period', yextractor=extract).create()
+        g = versus.Grapher(adaptive.graphs_path, adaptive_results, name,
+            xaxis='size', yaxis=yaxis, vary='source period', yextractor=extract)
+
+        g.xaxis_label = 'Network Size'
+        g.yaxis_label = yaxis_label
+        g.vary_label = 'Source Period'
+        g.vary_prefix = ' seconds'
+        g.key_position = key_position
+
+        g.create()
 
         summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-' + name).run()
 

@@ -7,7 +7,8 @@ from data import latex
 from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
-    def __init__(self, output_directory, results, result_name, xaxis, yaxis, vary, yextractor = lambda x: x):
+    def __init__(self, output_directory, results, result_name,
+                 xaxis, yaxis, vary, yextractor=lambda x: x):
 
         super(Grapher, self).__init__(output_directory)
 
@@ -17,6 +18,13 @@ class Grapher(GrapherBase):
         self.xaxis = xaxis
         self.yaxis = yaxis
         self.vary = vary
+
+        self.xaxis_label = xaxis
+        self.yaxis_label = yaxis
+        self.vary_label =  vary
+        self.vary_prefix = ''
+
+        self.key_position = 'right top'
 
         self.yextractor = yextractor
 
@@ -99,10 +107,10 @@ class Grapher(GrapherBase):
 
             graph_p.write('set terminal pdf enhanced\n')
 
-            graph_p.write('set xlabel "{}"\n'.format(self.xaxis))
-            graph_p.write('set ylabel "{}"\n'.format(self.yaxis))
+            graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
+            graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
             graph_p.write('set pointsize 1\n')
-            graph_p.write('set key right top\n')
+            graph_p.write('set key {}\n'.format(self.key_position))
 
             # Should remain the same as we are testing with
             # a limited sized grid of nodes
@@ -121,7 +129,8 @@ class Grapher(GrapherBase):
             plots = []
 
             for x in range(1, columnCount + 1):
-                plots.append('"graph.dat" u 1:{} w lp ti "{}={}"'.format(x + 1, self.vary, vvalues[ x - 1 ]))
+                plots.append('"graph.dat" u 1:{} w lp ti "{} {}{}"'.format(
+                    x + 1, self.vary_label, vvalues[ x - 1 ], self.vary_prefix))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
         
