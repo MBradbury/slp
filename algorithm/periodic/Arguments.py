@@ -6,7 +6,7 @@ import simulator.MobilityModel
 
 class Arguments:
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Protectionless", add_help=True)
+        parser = argparse.ArgumentParser(description="SLP Periodic", add_help=True)
         parser.add_argument("--mode", type=str, choices=["GUI", "PARALLEL", "CLUSTER"], required=True)
 
         parser.add_argument("--seed", type=int)
@@ -16,6 +16,7 @@ class Arguments:
 
         parser.add_argument("--source-period",
             type=simulator.SourcePeriodModel.eval_input, required=True)
+        parser.add_argument("--broadcast-period", type=float, required=True)
         parser.add_argument("--source-mobility",
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
@@ -46,6 +47,8 @@ class Arguments:
 
         if self.args.verbose:
             result["SLP_VERBOSE_DEBUG"] = 1
+
+        result["BROADCAST_PERIOD_MS"] = self.args.broadcast_period * 1000
 
         result.update(self.args.source_period.build_arguments())
         result.update(self.args.source_mobility.build_arguments())

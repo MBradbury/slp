@@ -69,7 +69,7 @@ event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t le
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
-	dbg_clear("Attacker-RCV", "%" PRIu64 ",%u,%u,%u,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->sequence_number); \
+	dbg_clear("Attacker-RCV", "%" PRIu64 ",%s,%u,%u,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->sequence_number); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
@@ -165,8 +165,7 @@ implementation
 
 		uint32_t period = -1;
 
-		// TODO: PUT THIS BACK!
-		//assert(type == SourceNode);
+		assert(type == SourceNode);
 
 		//dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
 		//	current_time, times_length);
@@ -195,13 +194,10 @@ implementation
 
 	uint32_t get_broadcast_period()
 	{
-		// TODO: FIX ME I'm CHEATING!
-		return get_source_period();
-		//return 1000;
+		return BROADCAST_PERIOD_MS;
 	}
 
 	SequenceNumber normal_sequence_counter;
-	SequenceNumber dummynormal_sequence_counter;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -325,14 +321,9 @@ implementation
 		}
 		else
 		{
-			// TODO: Get attacker to consider dummy messages
 			DummyNormalMessage dummy_message;
-			dummy_message.sequence_number = sequence_number_next(&dummynormal_sequence_counter);
 
-			if (send_DummyNormal_message(&dummy_message))
-			{
-				sequence_number_increment(&dummynormal_sequence_counter);
-			}
+			send_DummyNormal_message(&dummy_message);
 		}
 
 		call BroadcastTimer.startOneShot(get_broadcast_period());
@@ -386,22 +377,12 @@ implementation
 
 	void Normal_receive_DummyNormal(const DummyNormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (sequence_number_before(&dummynormal_sequence_counter, rcvd->sequence_number))
-		{
-			sequence_number_update(&dummynormal_sequence_counter, rcvd->sequence_number);
-
-			METRIC_RCV(DummyNormal, 0);
-		}
+		METRIC_RCV(DummyNormal, 0);
 	}
 
 	void Sink_receive_DummyNormal(const DummyNormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (sequence_number_before(&dummynormal_sequence_counter, rcvd->sequence_number))
-		{
-			sequence_number_update(&dummynormal_sequence_counter, rcvd->sequence_number);
-
-			METRIC_RCV(DummyNormal, 0);
-		}
+		METRIC_RCV(DummyNormal, 0);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(DummyNormal)

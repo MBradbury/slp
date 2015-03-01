@@ -114,7 +114,7 @@ event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t le
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
-	dbg_clear("Attacker-RCV", "%" PRIu64 ",%u,%u,%u,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->sequence_number); \
+	dbg_clear("Attacker-RCV", "%" PRIu64 ",%s,%u,%u,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->sequence_number); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
