@@ -94,7 +94,9 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
 
         (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
 
-        if self.position == node_id and self.previous_location != from_id:
+        if self.position == node_id and \
+            (msg_type == 'DummyNormal' or
+            self.previous_location != from_id):
 
             self.move(from_id)
 
@@ -116,7 +118,10 @@ class SeqNoReactiveAttacker(Attacker):
 
         (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
 
-        if self.position == node_id and (msg_type not in self.sequence_numbers or self.sequence_numbers[msg_type] < sequence_number):
+        if self.position == node_id and \
+            (msg_type == 'DummyNormal' or
+             msg_type not in self.sequence_numbers or 
+             self.sequence_numbers[msg_type] < sequence_number):
 
             self.sequence_numbers[msg_type] = sequence_number
             
