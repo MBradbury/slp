@@ -40,7 +40,7 @@ class RunSimulations(RunSimulationsCommon):
 
                 optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
 
-                options = 'algorithm.adaptive ' + " ".join(optItems)
+                options = 'algorithm.psrc_adaptive ' + " ".join(optItems)
 
                 filenameItems = (
                     size,

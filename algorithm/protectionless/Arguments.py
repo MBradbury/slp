@@ -19,7 +19,7 @@ class Arguments:
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
 
-        parser.add_argument("--distance", type=float, required=True)
+        parser.add_argument("--distance", type=float, default=4.5)
 
         parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
 
