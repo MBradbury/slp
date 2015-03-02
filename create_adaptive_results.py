@@ -193,7 +193,7 @@ if 'comparison-table' in args:
 
 
 if 'comparison-graph' in args:
-    results_to_compare = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
+    results_to_compare = ('normal latency', 'ssd', 'captured', 'sent', 'received', 'normal', 'fake', 'away', 'choose', 'received ratio', 'tfs', 'pfs')
 
     adaptive_results = results.Results(adaptive.result_file_path,
         parameters=parameter_names,
@@ -218,16 +218,24 @@ if 'comparison-graph' in args:
         create_comp_bar(result_name, pc=True)
         create_comp_bar(result_name, pc=False)
 
-    def create_comp_bar_pcdiff(modified=lambda x: x, name_addition=None):
-        name = 'template-comp-pcdiff'
+    def create_comp_bar_pcdiff(pc=True, modified=lambda x: x, name_addition=None, shows=results_to_compare):
+        name = 'template-comp-{}'.format("pcdiff" if pc else "diff")
         if name_addition is not None:
             name += '-{}'.format(name_addition)
 
-        g = bar.DiffGrapher(adaptive.graphs_path, result_table, name,
-            shows=results_to_compare,
-            extractor=lambda (diff, pcdiff): modified(pcdiff))
+        # Normalise wrt to the number of nodes in the network
+        def normalisor(key_names, key_values, params, yvalue):
+            size = key_values[ key_names.index('size') ]
+            result = yvalue / (size * size)
 
-        g.yaxis_label = 'Percentage Difference'
+            return modified(result)
+
+        g = bar.DiffGrapher(adaptive.graphs_path, result_table, name,
+            shows=shows,
+            extractor=lambda (diff, pcdiff): pcdiff if pc else diff,
+            normalisor=normalisor)
+
+        g.yaxis_label = 'Percentage Difference per Node' if pc else 'Average Difference per Node'
         if name_addition is not None:
             g.yaxis_label += ' ({})'.format(name_addition)
 
@@ -237,8 +245,11 @@ if 'comparison-graph' in args:
 
         summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-{}'.format(name).replace(" ", "_")).run()
 
-    create_comp_bar_pcdiff()
-    create_comp_bar_pcdiff(useful_log10, 'log10')
+    results_to_show = ('normal', 'fake', 'away', 'choose')
+
+    create_comp_bar_pcdiff(pc=True,  shows=results_to_show)
+    create_comp_bar_pcdiff(pc=False, shows=results_to_show)
+    create_comp_bar_pcdiff(pc=True,  shows=results_to_show, modified=useful_log10, name_addition='log10')
 
 if 'min-max-versus' in args:
     graph_parameters = {
