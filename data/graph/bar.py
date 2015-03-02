@@ -7,14 +7,15 @@ from data import latex
 from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
-    def __init__(self, output_directory, results, result_name, shows, extractor=lambda x: x):
+    def __init__(self, output_directory, results, result_name, shows, extractor=None, normalisor=None):
         super(Grapher, self).__init__(output_directory)
 
         self.results = results
         self.result_name = result_name
 
         self.shows = shows
-        self.extractor = extractor
+        self.extractor = extractor if extractor is not None else lambda x: x
+        self.normalisor = normalisor if normalisor is not None else lambda (kn, kv, p, v): v
 
         self.xaxis_label = 'Parameters'
         self.yaxis_label = None
@@ -37,7 +38,9 @@ class Grapher(GrapherBase):
                     yvalues = []
 
                     for show in self.shows:
-                        yvalues.append( self.extractor(results[ self.results.result_names.index(show) ]) )
+                        extracted = self.extractor(results[ self.results.result_names.index(show) ])
+                        normalised = self.normalisor(key_names, key_values, params, extracted)
+                        yvalues.append(normalised)
 
                     dat.setdefault((key_names, key_values), {})[params] = yvalues
 
@@ -143,7 +146,9 @@ class DiffGrapher(Grapher):
                         yvalues = []
 
                         for show in self.shows:
-                            yvalues.append( self.extractor(results[ self.results.comparison_results.result_names.index(show) ]) )
+                            extracted = self.extractor(results[ self.results.comparison_results.result_names.index(show) ])
+                            normalised = self.normalisor(key_names, key_values, params, extracted)
+                            yvalues.append(normalised)
 
                         dat.setdefault((key_names, key_values), {})[params] = yvalues
 
