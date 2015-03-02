@@ -32,7 +32,7 @@ class RunSimulations(RunSimulationsCommon):
 
                 optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
 
-                options = 'algorithm.protectionless ' + " ".join(optItems)
+                options = 'algorithm.periodic ' + " ".join(optItems)
 
                 filenameItems = (
                     size,

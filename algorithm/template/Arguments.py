@@ -25,7 +25,7 @@ class Arguments:
         parser.add_argument("--pr-tfs", type=restricted_float, required=True)
         parser.add_argument("--pr-pfs", type=restricted_float, required=True)
 
-        parser.add_argument("--distance", type=float, required=True)
+        parser.add_argument("--distance", type=float, default=4.5)
 
         parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
 

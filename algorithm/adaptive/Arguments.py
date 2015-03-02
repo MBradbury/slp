@@ -18,7 +18,7 @@ class Arguments:
 
         parser.add_argument("--approach", type=str, choices=approaches, required=True)
 
-        parser.add_argument("--distance", type=float, required=True)
+        parser.add_argument("--distance", type=float, default=4.5)
 
         parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
 

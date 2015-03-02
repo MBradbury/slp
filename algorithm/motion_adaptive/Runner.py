@@ -24,8 +24,6 @@ class RunSimulations(RunSimulationsCommon):
                 except KeyError as e:
                     raise KeyError("Failed to find the key {}".format((configuration, size, source_period)), e)
 
-                receive_ratio = "{:.5f}".format(receive_ratio)
-
                 executable = 'python {} {}'.format(
                     self.optimisations,
                     exe_path)
