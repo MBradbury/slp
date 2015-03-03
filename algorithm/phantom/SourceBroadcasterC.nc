@@ -228,7 +228,7 @@ implementation
 
 	typedef enum
 	{
-		CloserSet = 0, FurtherSet = 1
+		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
 	} SetType;
 
 	const char* type_to_string()
@@ -248,6 +248,11 @@ implementation
 	int16_t sink_distance = BOTTOM;
 
 	Neighbours neighbours;
+
+
+	NormalMessage repeat_message;
+	am_addr_t repeat_target;
+	uint32_t repeat_count;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -316,6 +321,56 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+	SetType random_walk_direction()
+	{
+		uint32_t i;
+		uint32_t possible_sets = 0;
+
+		assert(type == SourceNode);
+
+		if (sink_distance != BOTTOM)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				NeighbourDetail const* const neighbour = &neighbours.data[i];
+
+				if (sink_distance < neighbour->sink_distance)
+				{
+					possible_sets |= FurtherSet;
+				}
+				else if (sink_distance > neighbour->sink_distance)
+				{
+					possible_sets |= CloserSet;
+				}
+			}
+		}
+
+		if (possible_sets == (FurtherSet | CloserSet))
+		{
+			const uint16_t rnd = call Random.rand16() % 2;
+			if (rnd == 0)
+			{
+				return FurtherSet;
+			}
+			else
+			{
+				return CloserSet;
+			}
+		}
+		else if ((possible_sets & FurtherSet) != 0)
+		{
+			return FurtherSet;
+		}
+		else if ((possible_sets & CloserSet) != 0)
+		{
+			return CloserSet;
+		}
+		else
+		{
+			return UnknownSet;
+		}
+	}
+
 	am_addr_t random_walk_target(NormalMessage const* rcvd)
 	{
 		am_addr_t chosen_address;
@@ -328,7 +383,7 @@ implementation
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
-				NeighbourDetail const* neighbour = &neighbours.data[i];
+				NeighbourDetail const* const neighbour = &neighbours.data[i];
 
 				//dbgverbose("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
 				//	neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->sink_distance);
@@ -343,7 +398,7 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			//dbg("stdout", "dsink=%d neighbours-size=%u \n", sink_distance, neighbours.size);
+			//dbgverbose("stdout", "dsink=%d neighbours-size=%u \n", sink_distance, neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
@@ -446,8 +501,9 @@ implementation
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
+		message.sink_distance_of_sender = sink_distance;
 
-		message.further_or_closer_set = CloserSet;// call Random.rand16() % 2;
+		message.further_or_closer_set = random_walk_direction();
 
 		target = random_walk_target(&message);
 
@@ -481,8 +537,7 @@ implementation
 		}
 
 		dbgverbose("stdout", "Away sent\n");
-	}
-	
+	}	
 
 	void Normal_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -499,6 +554,7 @@ implementation
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
+			forwarding_message.sink_distance_of_sender = sink_distance;
 
 			if (rcvd->source_distance < RANDOM_WALK_HOPS)
 			{
@@ -507,7 +563,7 @@ implementation
 				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
-				extra_to_send = 3;
+				//extra_to_send = 3;
 				send_Normal_message(&forwarding_message, target);
 			}
 			else
@@ -519,6 +575,8 @@ implementation
 
 	void Sink_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
+
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
@@ -529,6 +587,7 @@ implementation
 
 	void Source_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal)
