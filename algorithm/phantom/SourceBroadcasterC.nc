@@ -127,6 +127,8 @@ typedef struct
 {
 	am_addr_t address;
 	int16_t sink_distance;
+	uint16_t received_count;
+	float rssi_average;
 } NeighbourDetail;
 
 enum { MaxNeighbours = 10 };
@@ -136,60 +138,6 @@ typedef struct
 	NeighbourDetail data[MaxNeighbours];
 	uint32_t size;
 } Neighbours;
-
-void init_neighbours(Neighbours* neighbours)
-{
-	neighbours->size = 0;
-}
-
-NeighbourDetail* find_neighbour(Neighbours* neighbours, am_addr_t address)
-{
-	uint32_t i;
-	for (i = 0; i != neighbours->size; ++i)
-	{
-		if (neighbours->data[i].address == address)
-		{
-			return &neighbours->data[i];
-		}
-	}
-	return NULL;
-}
-
-bool insert_neighbour(Neighbours* neighbours, am_addr_t address, int16_t sink_distance)
-{
-	NeighbourDetail* find = find_neighbour(neighbours, address);
-	if (find != NULL)
-	{
-		find->sink_distance = minbot(find->sink_distance, sink_distance);
-	}
-	else
-	{
-		if (neighbours->size < MaxNeighbours)
-		{
-			find = &neighbours->data[neighbours->size];
-
-			find->address = address;
-			find->sink_distance = sink_distance;
-
-			neighbours->size += 1;
-		}
-	}
-
-	return find != NULL;
-}
-
-void print_neighbours(char * name, Neighbours const* neighbours)
-{
-	uint32_t i;
-	dbg(name, "Neighbours(size=%d, values=", neighbours->size);
-	for (i = 0; i != neighbours->size; ++i)
-	{
-		NeighbourDetail const* neighbour = &neighbours->data[i];
-		dbg_clear(name, "[%u] => %u / %d, ", i, neighbour->address, neighbour->sink_distance);
-	}
-	dbg_clear(name, ")\n");
-}
-
 
 module SourceBroadcasterC
 {
@@ -202,6 +150,7 @@ module SourceBroadcasterC
 
 	uses interface Packet;
 	uses interface AMPacket;
+	uses interface TossimPacket;
 
 	uses interface SplitControl as RadioControl;
 
@@ -218,6 +167,72 @@ module SourceBroadcasterC
 
 implementation 
 {
+	void init_neighbours(Neighbours* neighbours)
+	{
+		neighbours->size = 0;
+	}
+
+	NeighbourDetail* find_neighbour(Neighbours* neighbours, am_addr_t address)
+	{
+		uint32_t i;
+		for (i = 0; i != neighbours->size; ++i)
+		{
+			if (neighbours->data[i].address == address)
+			{
+				return &neighbours->data[i];
+			}
+		}
+		return NULL;
+	}
+
+	bool insert_neighbour(Neighbours* neighbours, am_addr_t address, int16_t sink_distance, message_t* msg)
+	{
+		NeighbourDetail* find = find_neighbour(neighbours, address);
+
+		const int8_t rssi = msg == NULL ? 0 : call TossimPacket.strength(msg);
+
+		if (find != NULL)
+		{
+			find->sink_distance = minbot(find->sink_distance, sink_distance);
+			find->received_count += 1;
+			find->rssi_average += (rssi - find->rssi_average) / find->received_count;
+		}
+		else
+		{
+			if (neighbours->size < MaxNeighbours)
+			{
+				find = &neighbours->data[neighbours->size];
+
+				find->address = address;
+				find->sink_distance = sink_distance;
+				find->received_count = 1;
+				find->rssi_average = rssi;
+
+				neighbours->size += 1;
+			}
+		}
+
+		return find != NULL;
+	}
+
+	void print_neighbours(char * name, Neighbours const* neighbours)
+	{
+		uint32_t i;
+		dbg(name, "Neighbours(size=%d, values=", neighbours->size);
+		for (i = 0; i != neighbours->size; ++i)
+		{
+			NeighbourDetail const* neighbour = &neighbours->data[i];
+			dbg_clear(name, "[%u] => %u / %d / %u / %f",
+				i, neighbour->address, neighbour->sink_distance,
+				neighbour->received_count, neighbour->rssi_average);
+
+			if ((i + 1) != neighbours->size)
+			{
+				dbg_clear(name, ", ");
+			}
+		}
+		dbg_clear(name, ")\n");
+	}
 
 	typedef enum
 	{
@@ -391,7 +406,7 @@ implementation
 				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance <= neighbour->sink_distance) ||
 					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->sink_distance))
 				{
-					insert_neighbour(&local_neighbours, neighbour->address, neighbour->sink_distance);
+					insert_neighbour(&local_neighbours, neighbour->address, neighbour->sink_distance, NULL);
 				}
 			}
 		}
@@ -507,8 +522,8 @@ implementation
 
 		target = random_walk_target(&message);
 
-		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u\n",
-			sim_time_string(), target);
+		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
+			sim_time_string(), target, message.further_or_closer_set);
 
 		extra_to_send = 1;
 		if (send_Normal_message(&message, target))
@@ -539,8 +554,10 @@ implementation
 		dbgverbose("stdout", "Away sent\n");
 	}	
 
-	void Normal_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, msg);
+
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
@@ -573,9 +590,9 @@ implementation
 		}
 	}
 
-	void Sink_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, msg);
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -585,23 +602,23 @@ implementation
 		}
 	}
 
-	void Source_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, msg);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal)
-		case SourceNode: Source_receieve_Normal(rcvd, source_addr); break;
-		case SinkNode: Sink_receieve_Normal(rcvd, source_addr); break;
-		case NormalNode: Normal_receieve_Normal(rcvd, source_addr); break;
+		case SourceNode: Source_receieve_Normal(msg, rcvd, source_addr); break;
+		case SinkNode: Sink_receieve_Normal(msg, rcvd, source_addr); break;
+		case NormalNode: Normal_receieve_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 
-	void x_receieve_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
+	void x_receieve_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance);
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance, msg);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -622,7 +639,7 @@ implementation
 	}  
 
 	RECEIVE_MESSAGE_BEGIN(Away)
-		case NormalNode: x_receieve_Away(rcvd, source_addr); break;
-		case SourceNode: x_receieve_Away(rcvd, source_addr); break;
+		case NormalNode: x_receieve_Away(msg, rcvd, source_addr); break;
+		case SourceNode: x_receieve_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 }
