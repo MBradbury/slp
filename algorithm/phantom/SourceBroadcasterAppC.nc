@@ -54,7 +54,6 @@ implementation
 
 	App.ObjectDetector -> ObjectDetectorP;
 
-
     //Random
     components RandomC;
 	

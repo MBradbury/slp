@@ -155,7 +155,7 @@ NeighbourDetail* find_neighbour(Neighbours* neighbours, am_addr_t address)
 	return NULL;
 }
 
-void insert_neighbour(Neighbours* neighbours, am_addr_t address, int16_t sink_distance)
+bool insert_neighbour(Neighbours* neighbours, am_addr_t address, int16_t sink_distance)
 {
 	NeighbourDetail* find = find_neighbour(neighbours, address);
 	if (find != NULL)
@@ -174,6 +174,8 @@ void insert_neighbour(Neighbours* neighbours, am_addr_t address, int16_t sink_di
 			neighbours->size += 1;
 		}
 	}
+
+	return find != NULL;
 }
 
 void print_neighbours(char * name, Neighbours const* neighbours)
@@ -328,8 +330,8 @@ implementation
 			{
 				NeighbourDetail const* neighbour = &neighbours.data[i];
 
-				dbg("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
-					neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->sink_distance);
+				//dbgverbose("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
+				//	neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->sink_distance);
 
 				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance <= neighbour->sink_distance) ||
 					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->sink_distance))
@@ -341,13 +343,13 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			dbg("stdout", "dsink=%d neighbours-size=%u \n", sink_distance, neighbours.size);
+			//dbg("stdout", "dsink=%d neighbours-size=%u \n", sink_distance, neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
 		else
 		{
-			uint16_t rnd = call Random.rand16() % local_neighbours.size;
+			const uint16_t rnd = call Random.rand16() % local_neighbours.size;
 
 			chosen_address = local_neighbours.data[rnd].address;
 		}
@@ -444,18 +446,18 @@ implementation
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
-		message.sink_distance = sink_distance;
 
 		message.further_or_closer_set = CloserSet;// call Random.rand16() % 2;
 
 		target = random_walk_target(&message);
 
-		dbgverbose("stdout", "forwarding normal to target = %u\n", target);
+		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u\n",
+			sim_time_string(), target);
 
 		extra_to_send = 1;
 		if (send_Normal_message(&message, target))
 		{
-			 sequence_number_increment(&normal_sequence_counter);
+			sequence_number_increment(&normal_sequence_counter);
 		}
 
 		call BroadcastNormalTimer.startOneShot(get_source_period());
@@ -486,25 +488,26 @@ implementation
 	{
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
-			NormalMessage forwarding_message = *rcvd;
+			NormalMessage forwarding_message;
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
-			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
+			dbgverbose("stdout", "%s: Received unseen Normal seqno=%u from %u (dsrc=%u).\n",
+				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
 
-
+			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
-			forwarding_message.sink_distance = sink_distance;
 
 			if (rcvd->source_distance < RANDOM_WALK_HOPS)
 			{
-				am_addr_t target = random_walk_target(&forwarding_message);
+				const am_addr_t target = random_walk_target(&forwarding_message);
 
-				dbg("stdout", "forwarding normal to target = %u\n", target);
+				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+					sim_time_string(), TOS_NODE_ID, target);
 
-				extra_to_send = 1;
+				extra_to_send = 3;
 				send_Normal_message(&forwarding_message, target);
 			}
 			else
@@ -519,19 +522,13 @@ implementation
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
-			
+
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 		}
 	}
 
 	void Source_receieve_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (rcvd->sink_distance != BOTTOM)
-		{
-			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
-		}
-
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal)
@@ -549,12 +546,13 @@ implementation
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
-			AwayMessage forwarding_message = *rcvd;
+			AwayMessage forwarding_message;
 
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 			
 			METRIC_RCV(Away, rcvd->sink_distance + 1);
 
+			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
 
 			extra_to_send = 1;

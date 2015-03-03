@@ -157,11 +157,6 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef struct {
-		uint32_t end;
-		uint32_t period;
-	} local_end_period_t;
-
 	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode, TempFakeNode, PermFakeNode
@@ -400,6 +395,11 @@ implementation
 	// DO NOT use this for nodes other than the source!
 	uint32_t get_source_period()
 	{
+		typedef struct {
+			uint32_t end;
+			uint32_t period;
+		} local_end_period_t;
+
 		const local_end_period_t times[] = PERIOD_TIMES_MS;
 		const uint32_t else_time = PERIOD_ELSE_TIME_MS;
 
