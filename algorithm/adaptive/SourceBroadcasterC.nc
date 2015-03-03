@@ -35,16 +35,16 @@ bool send_##NAME##_message(const NAME##Message* tosend) \
 	{ \
 		error_t status; \
  \
- 		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
- 		NAME##Message* const message = (NAME##Message*)void_message; \
+		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
+		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
 			dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string()); \
 			return FALSE; \
 		} \
  \
- 		if (tosend != NULL) \
- 		{ \
+		if (tosend != NULL) \
+		{ \
 			*message = *tosend; \
 		} \
 		else \
