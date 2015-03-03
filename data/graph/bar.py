@@ -15,7 +15,7 @@ class Grapher(GrapherBase):
 
         self.shows = shows
         self.extractor = extractor if extractor is not None else lambda x: x
-        self.normalisor = normalisor if normalisor is not None else lambda (kn, kv, p, v): v
+        self.normalisor = normalisor if normalisor is not None else lambda kn, kv, p, v: v
 
         self.xaxis_label = 'Parameters'
         self.yaxis_label = None
