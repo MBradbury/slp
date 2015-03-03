@@ -1,6 +1,6 @@
 COMPONENT = SourceBroadcasterAppC
 
-CFLAGS += -Wnonnull  -Wpointer-arith -Wshadow
+CFLAGS += -Wnonnull -Wpointer-arith -Wshadow
 
 # See http://www.ti.com/lit/ds/symlink/cc2420.pdf
 # Section 28
@@ -11,6 +11,3 @@ CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
 #include $(TINYOS_ROOT_DIR)/Makefile.include
 include $(MAKERULES)
-
-
-

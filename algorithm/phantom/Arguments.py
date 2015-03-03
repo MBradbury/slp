@@ -12,6 +12,7 @@ class Arguments:
 		parser.add_argument("--seed", type=int)
 
 		parser.add_argument("--network-size", type=int, required=True)
+		parser.add_argument("--safety-period", type=float, required=True)
 
 		parser.add_argument("--source-period",
 			type=simulator.SourcePeriodModel.eval_input, required=True)
