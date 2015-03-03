@@ -1,20 +1,10 @@
-# This file runs the analysis script on the raw data
-# and then saves it all in one big csv file.
-#
-# Author: Matthew Bradbury
-
-from __future__ import print_function
-
-import os, fnmatch
 
 from collections import OrderedDict
 
-from data.analysis import Analyse, AnalysisResults, EmptyFileError
+from data.analysis import AnalyzerCommon
 
-class Analyzer:
+class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
-        self.results_directory = results_directory
-
         d = OrderedDict()
         d['network size']       = lambda x: x.opts['network_size']
         d['configuration']      = lambda x: x.opts['configuration']
@@ -54,36 +44,4 @@ class Analyzer:
         d['sent heatmap']       = lambda x: format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: format_results(x, 'ReceivedHeatMap')
 
-        self.values = d
-
-    def run(self, summary_file):
-        summary_file_path = os.path.join(self.results_directory, summary_file)
-
-        # The output files we need to process
-        files = fnmatch.filter(os.listdir(self.results_directory), '*.txt')
-
-        with open(summary_file_path, 'w') as out:
-
-            print("|".join(self.values.keys()), file=out)
-
-            for infile in files:
-                path = os.path.join(self.results_directory, infile)
-
-                print('Analysing {0}'.format(path))
-            
-                try:
-                    result = AnalysisResults(Analyse(path))
-                    
-                    # Skip 0 length results
-                    if len(result.data) == 0:
-                        print("Skipping as there is no data.")
-                        continue
-
-                    lineData = [f(result) for f in self.values.values()]
-
-                    print("|".join(lineData), file=out)
-
-                except EmptyFileError as e:
-                    print(e)
-
-            print('Finished writing {}'.format(summary_file))
+        super(Analyzer, self).__init__(results_directory, d)

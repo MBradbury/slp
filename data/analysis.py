@@ -3,7 +3,7 @@ from __future__ import print_function
 from numpy import mean
 from numpy import var as variance
 
-import sys, ast, math
+import sys, ast, math, os, fnmatch
 from collections import Counter
 
 class EmptyFileError(RuntimeError):
@@ -165,3 +165,44 @@ class AnalysisResults:
         self.opts = analysis.opts
         self.data = analysis.data
         self.results = analysis.results
+
+class AnalyzerCommon(object):
+    def __init__(self, results_directory, values):
+        self.results_directory = results_directory
+        self.values = values
+
+    def analyse_path(self, path):
+        return AnalysisResults(Analyse(path))
+
+    def run(self, summary_file):
+        summary_file_path = os.path.join(self.results_directory, summary_file)
+
+        # The output files we need to process
+        files = fnmatch.filter(os.listdir(self.results_directory), '*.txt')
+
+        with open(summary_file_path, 'w') as out:
+
+            print("|".join(self.values.keys()), file=out)
+
+            for infile in files:
+                path = os.path.join(self.results_directory, infile)
+
+                print('Analysing {0}'.format(path))
+            
+                try:
+                    result = self.analyse_path(path)
+                    
+                    # Skip 0 length results
+                    if len(result.data) == 0:
+                        print("Skipping as there is no data.")
+                        continue
+
+                    lineData = [f(result) for f in self.values.values()]
+
+                    print("|".join(lineData), file=out)
+
+                except EmptyFileError as e:
+                    print(e)
+
+            print('Finished writing {}'.format(summary_file))
+
