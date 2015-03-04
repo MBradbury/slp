@@ -1,6 +1,6 @@
 
 from collections import Counter, OrderedDict
-import itertools
+import itertools, re
 
 from numpy import mean
 from scipy.spatial.distance import euclidean
@@ -59,6 +59,20 @@ class MetricsCommon(object):
         if node_id in self.sink_ids and kind == "Normal":
             self.normal_latency[sequence_number] = time - self.normal_sent_time[sequence_number]
             self.normal_hop_count.append(hop_count)
+
+    COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')
+
+    def process_COLLISIONS(self, line):
+        match = self.COLLSIONS_RE.match(line)
+        if match is None:
+            return None
+
+        node_id = int(match.group(1))
+        node_from = int(match.group(2))
+        node_to = int(match.group(3))
+        reason = match.group(4)
+
+        print(line)
 
     def process_SOURCE_CHANGE(self, line):
         (state, node_id) = line.strip().split(',')

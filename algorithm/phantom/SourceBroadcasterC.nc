@@ -185,11 +185,9 @@ implementation
 		return NULL;
 	}
 
-	bool insert_neighbour(Neighbours* neighbours, am_addr_t address, int16_t sink_distance, message_t* msg)
+	bool insert_neighbour(Neighbours* neighbours, am_addr_t address, int16_t sink_distance, float rssi)
 	{
 		NeighbourDetail* find = find_neighbour(neighbours, address);
-
-		const int8_t rssi = msg == NULL ? 0 : call TossimPacket.strength(msg);
 
 		if (find != NULL)
 		{
@@ -406,7 +404,7 @@ implementation
 				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance <= neighbour->sink_distance) ||
 					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->sink_distance))
 				{
-					insert_neighbour(&local_neighbours, neighbour->address, neighbour->sink_distance, NULL);
+					insert_neighbour(&local_neighbours, neighbour->address, neighbour->sink_distance, neighbour->rssi_average);
 				}
 			}
 		}
@@ -419,9 +417,44 @@ implementation
 		}
 		else
 		{
-			const uint16_t rnd = call Random.rand16() % local_neighbours.size;
+			const float rnd = random_float();
 
-			chosen_address = local_neighbours.data[rnd].address;
+			double total_rssi = 0;
+			double pr_start = 0;
+
+			for (i = 0; i != local_neighbours.size; ++i)
+			{
+				NeighbourDetail* const neighbour = &local_neighbours.data[i];
+
+				neighbour->rssi_average += 100;
+
+				total_rssi += neighbour->rssi_average;
+			}
+
+			for (i = 0; i != local_neighbours.size; ++i)
+			{
+				local_neighbours.data[i].rssi_average /= total_rssi;
+			}
+
+			//dbg("stdout", "rnd=%f  ", rnd);
+			//print_neighbours("stdout", &local_neighbours);
+
+			for (i = 0; i != local_neighbours.size; ++i)
+			{
+				NeighbourDetail* const neighbour = &local_neighbours.data[i];
+
+				const double pr = neighbour->rssi_average;
+
+				//dbg("stdout", "%f <= %f <= %f\n", pr_start, rnd, pr_start + pr);
+
+				if (pr_start <= rnd && rnd <= pr_start + pr)
+				{
+					chosen_address = neighbour->address;
+					break;
+				}
+
+				pr_start += pr;
+			}
 		}
 
 		return chosen_address;
@@ -556,7 +589,7 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, msg);
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, call TossimPacket.strength(msg));
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -592,7 +625,7 @@ implementation
 
 	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, msg);
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, call TossimPacket.strength(msg));
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -604,7 +637,7 @@ implementation
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, msg);
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender, call TossimPacket.strength(msg));
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal)
@@ -618,7 +651,7 @@ implementation
 	{
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance, msg);
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance, call TossimPacket.strength(msg));
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
