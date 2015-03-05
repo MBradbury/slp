@@ -11,10 +11,13 @@ else:
     args = sys.argv[1:]
 
 import algorithm.phantom as phantom
+import algorithm.protectionless as protectionless
 
 from data.table import safety_period
 from data.graph import summary, heatmap
 from data import results, latex
+
+from data.util import create_dirtree, recreate_dirtree, touch
 
 import numpy
 
@@ -23,16 +26,15 @@ numpy.seterr(all='raise')
 
 jar_path = 'run.py'
 
-results_directory = 'results/phantom'
 analysis_result_file = 'phantom-results.csv'
 
-graphs_directory = os.path.join(results_directory, 'Graphs')
+graphs_directory = os.path.join(phantom.results_path, 'Graphs')
 
 distance = 4.5
 
 sizes = [ 11 ]
 
-periods = [ 1.0, 0.5, 0.25, 0.125 ]
+source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
 configurations = [
     'SourceCorner',
@@ -50,28 +52,26 @@ configurations = [
     #'CircleSinkCentre',
 ]
 
+walk_hop_lengths = [ 3, 5, 7 ]
+
 repeats = 20
 
 parameter_names = tuple()
 
-def create_dirtree(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
+create_dirtree(phantom.results_path)
+create_dirtree(phantom.graphs_path)
 
-def recreate_dirtree(path):
-    if os.path.exists(path):
-        shutil.rmtree(path)
-    os.makedirs(path)
+def run(driver, results_directory, skip_completed_simulations):
+    safety_period_table_generator = safety_period.TableGenerator()
+    safety_period_table_generator.analyse(protectionless.result_file_path)
 
-def touch(fname, times=None):
-    with open(fname, 'a'):
-        os.utime(fname, times)
+    safety_periods = safety_period_table_generator.safety_periods()
 
-create_dirtree(results_directory)
-create_dirtree(graphs_directory)
+    runner = phantom.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
+    runner.run(jar_path, distance, sizes, source_periods, walk_hop_lengths, configurations, repeats)
 
 if 'cluster' in args:
-    cluster_directory = "cluster/phantom"
+    cluster_directory = os.path.join("cluster", phantom.name)
 
     from data import cluster_manager
 
@@ -82,34 +82,31 @@ if 'cluster' in args:
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
 
-        runner = phantom.Runner.RunSimulations(cluster.builder(), cluster_directory, False)
-        runner.run(jar_path, distance, sizes, periods, configurations, repeats)
+        run(cluster.builder(), cluster_directory, False)
 
     if 'copy' in args:
         cluster.copy_to()
 
     if 'submit' in args:
-        runner = phantom.Runner.RunSimulations(cluster.submitter(), cluster_directory, False)
-        runner.run(jar_path, distance, sizes, periods, configurations, repeats)
+        run(cluster.submitter(), cluster_directory, False)
 
     if 'copy-back' in args:
         cluster.copy_back("phantom")
 
     sys.exit(0)
 
-if 'all' in args or 'run' in args:
+if 'run' in args:
     from data.run.driver import local as LocalDriver
 
-    runner = phantom.Runner.RunSimulations(LocalDriver.Runner(), results_directory)
-    runner.run(jar_path, distance, sizes, periods, configurations, repeats)
+    run(LocalDriver.Runner(), phantom.results_path, True)
 
-if 'all' in args or 'analyse' in args:
-    analyzer = phantom.Analysis.Analyzer(results_directory)
+if 'analyse' in args:
+    analyzer = phantom.Analysis.Analyzer(phantom.results_path)
     analyzer.run(analysis_result_file)
 
-if 'all' in args or 'table' in args:
+if 'table' in args:
     safety_period_table_generator = safety_period.TableGenerator()
-    safety_period_table_generator.analyse(os.path.join(results_directory, analysis_result_file))
+    safety_period_table_generator.analyse(os.path.join(phantom.results_path, analysis_result_file))
 
     safety_period_table_path = 'safety_period_table.tex'
 
@@ -120,10 +117,8 @@ if 'all' in args or 'table' in args:
 
     latex.compile(safety_period_table_path)
 
-analysis_result_path = os.path.join(results_directory, analysis_result_file)
-
-if 'all' in args or 'graph' in args:
-    phantom_results = results.Results(analysis_result_path,
+if 'graph' in args:
+    phantom_results = results.Results(phantom.result_file_path,
         parameters=parameter_names,
         results=('sent heatmap', 'received heatmap'))
 

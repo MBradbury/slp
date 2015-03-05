@@ -99,7 +99,7 @@ if 'cluster' in args:
 if 'run' in args:
     from data.run.driver import local as LocalDriver
 
-    run(LocalDriver.Runner(), adaptive_results_directory, True)
+    run(LocalDriver.Runner(), adaptive.results_path, True)
 
 if 'analyse' in args:
     prelim_analyzer = adaptive.Analysis.Analyzer(adaptive.results_path)
