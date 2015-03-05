@@ -151,6 +151,8 @@ module SourceBroadcasterC
 	uses interface Packet;
 	uses interface AMPacket;
 	uses interface TossimPacket;
+	uses interface PacketLink;
+	uses interface PacketAcknowledgements;
 
 	uses interface SplitControl as RadioControl;
 
@@ -360,6 +362,7 @@ implementation
 
 		if (possible_sets == (FurtherSet | CloserSet))
 		{
+			// Both directions possible, so randomly pick one of them
 			const uint16_t rnd = call Random.rand16() % 2;
 			if (rnd == 0)
 			{
@@ -380,13 +383,32 @@ implementation
 		}
 		else
 		{
-			return UnknownSet;
+			if (neighbours.size > 0)
+			{
+				// There are neighbours, but none with sensible distances...
+				// Or we don't know our sink distance
+				const uint16_t rnd = call Random.rand16() % 2;
+				if (rnd == 0)
+				{
+					return FurtherSet;
+				}
+				else
+				{
+					return CloserSet;
+				}
+			}
+			else
+			{
+				// No known neighbour, so have a go at flooding.
+				// Someone might get this message
+				return UnknownSet;
+			}
 		}
 	}
 
 	am_addr_t random_walk_target(NormalMessage const* rcvd)
 	{
-		am_addr_t chosen_address;
+		am_addr_t chosen_address = AM_BROADCAST_ADDR;
 		uint32_t i;
 
 		Neighbours local_neighbours;
@@ -417,6 +439,9 @@ implementation
 		}
 		else
 		{
+			// Weighted probability distribution towards the neighbour,
+			// with the best signal strength.
+
 			const float rnd = random_float();
 
 			double total_rssi = 0;
@@ -545,7 +570,13 @@ implementation
 		NormalMessage message;
 		am_addr_t target;
 
+		const uint32_t source_period = get_source_period();
+
 		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+
+#ifdef SLP_VERBOSE_DEBUG
+		print_neighbours("stdout", &neighbours);
+#endif
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
@@ -558,13 +589,16 @@ implementation
 		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
 			sim_time_string(), target, message.further_or_closer_set);
 
-		extra_to_send = 1;
+		call PacketLink.setRetries(&packet, RANDOM_WALK_RETRIES);
+		call PacketLink.setRetryDelay(&packet, RANDOM_WALK_DELAY_MS);
+		call PacketAcknowledgements.requestAck(&packet);
+
 		if (send_Normal_message(&message, target))
 		{
 			sequence_number_increment(&normal_sequence_counter);
 		}
 
-		call BroadcastNormalTimer.startOneShot(get_source_period());
+		call BroadcastNormalTimer.startOneShot(source_period);
 	}
 
 	event void AwaySenderTimer.fired()
@@ -585,6 +619,8 @@ implementation
 		}
 
 		dbgverbose("stdout", "Away sent\n");
+
+		call AwaySenderTimer.startOneShot(10 * 1000);
 	}	
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -613,7 +649,10 @@ implementation
 				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
-				//extra_to_send = 3;
+				call PacketLink.setRetries(&packet, RANDOM_WALK_RETRIES);
+				call PacketLink.setRetryDelay(&packet, RANDOM_WALK_DELAY_MS);
+				call PacketAcknowledgements.requestAck(&packet);
+
 				send_Normal_message(&forwarding_message, target);
 			}
 			else
@@ -668,7 +707,9 @@ implementation
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 
+#ifdef SLP_VERBOSE_DEBUG
 		print_neighbours("stdout", &neighbours);
+#endif
 	}  
 
 	RECEIVE_MESSAGE_BEGIN(Away)
