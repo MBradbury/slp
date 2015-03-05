@@ -72,7 +72,7 @@ class MetricsCommon(object):
         node_to = int(match.group(3))
         reason = match.group(4)
 
-        print(line)
+        # TODO:
 
     def process_SOURCE_CHANGE(self, line):
         (state, node_id) = line.strip().split(',')

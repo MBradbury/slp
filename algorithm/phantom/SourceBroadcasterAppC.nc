@@ -43,7 +43,7 @@ implementation
 
 	// Networking
 	components
-		new AMSenderC(NORMAL_CHANNEL) as NormalSender,
+		new ReliableUnicastP(NORMAL_CHANNEL) as NormalSender,
 		new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver;
 
 	components
@@ -59,8 +59,10 @@ implementation
     //Random
     components RandomC;
 	
-	App.Packet -> NormalSender; // TODO: is this right?
-	App.AMPacket -> NormalSender; // TODO: is this right?
+	App.Packet -> AwaySender; // TODO: is this right?
+	App.AMPacket -> AwaySender; // TODO: is this right?
+	App.PacketLink -> NormalSender;
+	App.PacketAcknowledgements -> NormalSender;
 	
 	App.NormalSend -> NormalSender;
 	App.NormalReceive -> NormalReceiver;
