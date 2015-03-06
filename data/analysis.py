@@ -5,6 +5,7 @@ from numpy import var as variance
 
 import sys, ast, math, os, fnmatch
 from collections import Counter
+from numbers import Number
 
 class EmptyFileError(RuntimeError):
     def __init__(self, filename):
@@ -32,7 +33,8 @@ class Analyse(object):
                     # We are reading the options so record them
                     opt = line.split('=')
 
-                    self.opts[opt[0]] = opt[1]
+                    # Need to handle values that have an "=" in them
+                    self.opts[opt[0]] = '='.join(opt[1:])
 
                 elif line.startswith('#'):
                     # Read the headings
@@ -41,7 +43,7 @@ class Analyse(object):
                 elif '|' in line:
                     try:
                         # Read the actual data
-                        values = map(ast.literal_eval, line.split('|'))
+                        values = self._better_literal_eval(line_number, line.split('|'))
 
                         self.check_consistent(values, line_number)
 
@@ -49,17 +51,34 @@ class Analyse(object):
 
                         self.data.append(values)
 
-                    except RuntimeError as e:
+                    except (TypeError, RuntimeError) as e:
                         print("Unable to process line {} due to {}".format(line_number, e), file=sys.stderr)
-
-                    except ValueError as e:
-                        print("Unable to process line {} due to {} ({})".format(line_number, e, line), file=sys.stderr)
 
                 else:
                     print("Unable to parse line {} : '{}'".format(line_number, line))
 
             if line_number == 0:
                 raise EmptyFileError(infile)
+
+    def _better_literal_eval(self, line_number, items):
+        values = []
+
+        for (heading, item) in zip(self.headings, items):
+
+            # ast.literal_eval will not parse inf correctly.
+            # passing 2e308 will return a float('inf') instead.
+            item = item.replace('inf', '2e308')
+
+            try:
+                lit = ast.literal_eval(item)
+            except ValueError as e:
+                print("Unable to process line {} due to {} ({}={})".format(line_number, e, heading, item), file=sys.stderr)
+                lit = None
+
+            values.append(lit)
+
+        return values
+
 
     def check_consistent(self, values, line_number):
         """Perform multiple sanity checks on the data generated"""
@@ -72,6 +91,8 @@ class Analyse(object):
         network_size = int(self.opts['network_size'])
         number_nodes = network_size * network_size
 
+        # This check doesn't always make sense
+        """
         for (heading, value) in zip(self.headings, values):
             if type(value) is dict:
                 
@@ -83,16 +104,9 @@ class Analyse(object):
                 for k in value.keys():
                     if k < 0 or k >= number_nodes:
                         raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
+        """
 
-        # If captured is set to true, there should be an attacker at the source location
-        captured_index = self.headings.index("Captured")
-        captured = values[captured_index]
-
-        attacker_distance_index = self.headings.index("AttackerDistance")
-        attacker_distance = values[attacker_distance_index]
-
-        if captured != any(v == 0.0 for (k, v) in attacker_distance.items()):
-            raise RuntimeError("There is a discrepancy between captured ({}) and the attacker distances {}.".format(captured, attacker_distance))
+        self._check_captured_consistent(values, line_number)
 
         # Check NormalLatency is not 0
         latency_index = self.headings.index("NormalLatency")
@@ -103,7 +117,29 @@ class Analyse(object):
 
         if latency <= 0:
             raise RuntimeError("The NormalLatency {} is less than or equal to 0.".format(latency))
-        
+    
+    def _check_captured_consistent(self, values, line_number):
+        # If captured is set to true, there should be an attacker at the source location
+        captured_index = self.headings.index("Captured")
+        captured = values[captured_index]
+
+        attacker_distance_index = self.headings.index("AttackerDistance")
+        attacker_distance = values[attacker_distance_index]
+
+        def close(x, y, rtol=1.e-5, atol=1.e-8):
+            return abs(x-y) <= atol + rtol * abs(y)
+
+        # Handle two sorts of attacker distance dicts
+        # 1. {attacker_id: distance}
+        # 2. {(source_id, attacker_id): distance}}
+        any_at_source = any(
+            close(dist, 0.0) if isinstance(dist, Number) else any(close(v, 0.0) for (k, v) in dist.items())
+            for (attacker, dist)
+            in attacker_distance.items()
+        )
+
+        if captured != any_at_source:
+            raise RuntimeError("There is a discrepancy between captured ({}) and the attacker distances {}.".format(captured, attacker_distance))
 
 
     def detect_outlier(self, values):

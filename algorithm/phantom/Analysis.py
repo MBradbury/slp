@@ -9,7 +9,8 @@ class Analyzer(AnalyzerCommon):
         d['network size']       = lambda x: x.opts['network_size']
         d['configuration']      = lambda x: x.opts['configuration']
         d['source period']      = lambda x: x.opts['source_period']
-        d['approach']           = lambda x: x.opts['approach']
+        d['walk length']        = lambda x: x.opts['random_walk_hops']
+        d['walk retries']       = lambda x: x.opts['random_walk_retries']
 
         def format_results(x, name):
             if name in x.variance_of:

@@ -60,7 +60,7 @@ class ResultTable(object):
         return "        " + " & ".join(titles) + "\\\\"
 
     def _var_fmt(self, name, value):
-        if name == "source period" or name == "fake period":
+        if name in {"source period", "fake period", "walk length", "walk retries"}:
             return "${}$".format(value)
         elif name == "duration" or name == "temp fake duration":
             return "${:.0f}$".format(value)

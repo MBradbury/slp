@@ -1,6 +1,8 @@
 from __future__ import print_function
 import os, math, select, random, gc
 
+from scipy.spatial.distance import euclidean
+
 class Node(object):
     def __init__(self, node_id, location, tossim_node):
         self.nid = node_id
@@ -72,6 +74,9 @@ class Simulator(object):
     def add_output_processor(self, op):
         self.out_procs.append(op)
 
+    def node_distance(self, left, right):
+        return euclidean(self.nodes[left].location, self.nodes[right].location)
+
     def sim_time(self):
         """Returns the current simulation time in seconds"""
         return float(self.tossim.time())/self.tossim.ticksPerSecond()
@@ -89,8 +94,9 @@ class Simulator(object):
         for node in self.nodes:
             self.create_noise_model(node)
 
-    def setup_radio(self):
-        """Creates radio links for node pairs that are in range"""
+    # DO NOT USE THIS!
+    """def setup_radio(self):
+        '''Creates radio links for node pairs that are in range'''
         num_nodes = len(self.nodes)
         for i, ni in enumerate(self.nodes):
             for j, nj in enumerate(self.nodes):
@@ -99,7 +105,7 @@ class Simulator(object):
                     if is_linked:
                         self.radio.add(i, j, gain)
                         #if self.drawNeighborLinks:
-                        #   self.scene.execute(0, 'addlink(%d,%d,1)' % (i,j))
+                        #   self.scene.execute(0, 'addlink(%d,%d,1)' % (i,j))"""
 
     @staticmethod
     def read_noise_from_file(path):
@@ -109,16 +115,18 @@ class Simulator(object):
                 if len(line) != 0:
                     yield int(line)
 
-    def create_noise_model(self, node):
+    # DO NOT USE THIS!
+    """def create_noise_model(self, node):
         '''
         Either override this method or setup_noise_models to use a better noise model.
         For example use a noise trace file such as meyer-heavy.txt.
         '''
         for i in range(100):
             node.tossim_node.addNoiseTraceReading(int(random.random()*20)-75)
-        node.tossim_node.createNoiseModel()
+        node.tossim_node.createNoiseModel()"""
 
-    def compute_rf_gain(self, src, dst):
+    # DO NOT USE THIS!
+    """def compute_rf_gain(self, src, dst):
         '''
         Returns signal reception gain between src and dst using a simple
         range-threshold model.  Should be overridden with a more realistic
@@ -134,7 +142,7 @@ class Simulator(object):
         if math.sqrt(dx*dx + dy*dy) <= self.range:
             return (True, -55)
         else:
-            return (False, None)
+            return (False, None)"""
 
     def set_boot_time(self, node):
         node.tossim_node.bootAtTime(int(random.random() * self.tossim.ticksPerSecond()))
