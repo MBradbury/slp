@@ -9,19 +9,15 @@ class RunSimulations(RunSimulationsCommon):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
-    def run(self, exe_path, distance, sizes, source_periods, walk_hop_lengths, configurations, repeats):
+    def run(self, exe_path, distance, sizes, source_periods, walk_hop_lengths, walk_retries, configurations, repeats):
         if self.skip_completed_simulations:
-            self._check_existing_results(['network_size', 'source_period', 'configuration'])
+            self._check_existing_results(['network_size', 'source_period', 'random_walk_hops', 'random_walk_retries', 'configuration'])
         
         if not os.path.exists(exe_path):
-            raise Exception("The file {} doesn't exist".format(exe_path))
+            raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
-        # TODO Pass these along properly
-        retries = 5
-        delay = 0.050
-
-        for (size, source_period, walk_length, configuration) in itertools.product(sizes, source_periods, walk_hop_lengths, configurations):
-            if not self._already_processed(repeats, size, source_period, walk_length, configuration):
+        for (size, source_period, walk_length, retries, configuration) in itertools.product(sizes, source_periods, walk_hop_lengths, walk_retries, configurations):
+            if not self._already_processed(repeats, size, source_period, walk_length, retries, configuration):
 
                 try:
                     safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
@@ -40,7 +36,6 @@ class RunSimulations(RunSimulationsCommon):
                 opts["--source-period"] = source_period
                 opts["--random-walk-hops"] = walk_length
                 opts["--random-walk-retries"] = retries
-                opts["--random-walk-delay"] = delay
                 opts["--distance"] = distance
                 opts["--job-size"] = repeats
 
@@ -54,7 +49,6 @@ class RunSimulations(RunSimulationsCommon):
                     source_period,
                     walk_length,
                     retries,
-                    delay,
                     distance
                 )
 

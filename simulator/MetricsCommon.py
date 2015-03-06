@@ -130,17 +130,12 @@ class MetricsCommon(object):
         return self.sim.any_attacker_found_source()
 
     def attacker_distance(self):
-        def attacker_distance_from_src(source_id):
-            source_location = self.sim.nodes[source_id].location
-
-            return {
-                i: euclidean(source_location, self.sim.nodes[attacker.position].location)
-                for i, attacker
-                in enumerate(self.sim.attackers)
-            }
-
         return {
-            source_id: attacker_distance_from_src(source_id)
+            (source_id, i): self.sim.node_distance(source_id, attacker.position)
+
+            for i, attacker
+            in enumerate(self.sim.attackers)
+
             for source_id
             in self.source_ids
         }

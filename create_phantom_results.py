@@ -13,7 +13,7 @@ else:
 import algorithm.protectionless as protectionless
 import algorithm.phantom as phantom
 
-from data.table import safety_period
+from data.table import fake_result
 from data.graph import summary, heatmap
 
 from data import results, latex
@@ -49,11 +49,12 @@ configurations = [
     #'CircleSinkCentre',
 ]
 
-walk_hop_lengths = [ 3, 5, 7 ]
+walk_hop_lengths = [ 3, 5, 7, 9 ]
+walk_retries = [ 5, 10, 15 ]
 
 repeats = 20
 
-parameter_names = tuple()
+parameter_names = ('walk length', 'walk retries')
 
 create_dirtree(phantom.results_path)
 create_dirtree(phantom.graphs_path)
@@ -65,7 +66,7 @@ def run(driver, results_directory, skip_completed_simulations):
     safety_periods = safety_period_table_generator.safety_periods()
 
     runner = phantom.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
-    runner.run(jar_path, distance, sizes, source_periods, walk_hop_lengths, configurations, repeats)
+    runner.run(jar_path, distance, sizes, source_periods, walk_hop_lengths, walk_retries, configurations, repeats)
 
 if 'cluster' in args:
     cluster_directory = os.path.join("cluster", phantom.name)

@@ -30,7 +30,7 @@ class Results(object):
                 if seen_first:
 
                     size = int(values[ headers.index('network size') ])
-                    src_period = float(values[ headers.index('source period') ])
+                    src_period = values[ headers.index('source period') ]
                     config = values[ headers.index('configuration') ]
 
                     table_key = (size, config)
