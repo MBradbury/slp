@@ -13,7 +13,7 @@ else:
 import algorithm.protectionless as protectionless
 import algorithm.phantom as phantom
 
-from data.table import fake_result
+from data.table import safety_period, fake_result
 from data.graph import summary, heatmap
 
 from data import results, latex
@@ -52,7 +52,7 @@ configurations = [
 walk_hop_lengths = [ 3, 5, 7, 9 ]
 walk_retries = [ 5, 10, 15 ]
 
-repeats = 20
+repeats = 300
 
 parameter_names = ('walk length', 'walk retries')
 
@@ -89,7 +89,7 @@ if 'cluster' in args:
         run(cluster.submitter(), cluster_directory, False)
 
     if 'copy-back' in args:
-        cluster.copy_back("phantom")
+        cluster.copy_back(phantom.name)
 
     sys.exit(0)
 
