@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, shutil
+import os, sys
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -10,11 +10,12 @@ if len(sys.argv[1:]) == 0:
 else:
     args = sys.argv[1:]
 
-import algorithm.phantom as phantom
 import algorithm.protectionless as protectionless
+import algorithm.phantom as phantom
 
 from data.table import safety_period
 from data.graph import summary, heatmap
+
 from data import results, latex
 
 from data.util import create_dirtree, recreate_dirtree, touch
@@ -25,10 +26,6 @@ import numpy
 numpy.seterr(all='raise')
 
 jar_path = 'run.py'
-
-analysis_result_file = 'phantom-results.csv'
-
-graphs_directory = os.path.join(phantom.results_path, 'Graphs')
 
 distance = 4.5
 
@@ -102,34 +99,40 @@ if 'run' in args:
 
 if 'analyse' in args:
     analyzer = phantom.Analysis.Analyzer(phantom.results_path)
-    analyzer.run(analysis_result_file)
+    analyzer.run(phantom.result_file)
 
 if 'table' in args:
-    safety_period_table_generator = safety_period.TableGenerator()
-    safety_period_table_generator.analyse(os.path.join(phantom.results_path, analysis_result_file))
+    phantom_results = results.Results(phantom.result_file_path,
+        parameters=parameter_names,
+        results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
-    safety_period_table_path = 'safety_period_table.tex'
+    result_table = fake_result.ResultTable(phantom_results)
 
-    with open(safety_period_table_path, 'w') as latex_safety_period_tables:
-        latex.print_header(latex_safety_period_tables)
-        safety_period_table_generator.print_table(latex_safety_period_tables)
-        latex.print_footer(latex_safety_period_tables)
+    def create_phantom_table(name, param_filter=lambda x: True):
+        filename = name + ".tex"
 
-    latex.compile(safety_period_table_path)
+        with open(filename, 'w') as result_file:
+            latex.print_header(result_file)
+            result_table.write_tables(result_file, param_filter)
+            latex.print_footer(result_file)
+
+        latex.compile_document(filename)
+
+    create_phantom_table("phantom-results")
 
 if 'graph' in args:
     phantom_results = results.Results(phantom.result_file_path,
         parameters=parameter_names,
         results=('sent heatmap', 'received heatmap'))
 
-    heatmap.Grapher(phantom_results, 'sent heatmap', graphs_directory).create()
-    heatmap.Grapher(phantom_results, 'received heatmap', graphs_directory).create()
+    heatmap.Grapher(phantom_results, 'sent heatmap', phantom.graphs_path).create()
+    heatmap.Grapher(phantom_results, 'received heatmap', phantom.graphs_path).create()
 
     # Don't need these as they are contained in the results file
     #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
     #    summary.GraphSummary(
-    #        os.path.join(graphs_directory, 'Versus/{}/Source-Period'.format(subdir)),
+    #        os.path.join(phantom.graphs_path, 'Versus/{}/Source-Period'.format(subdir)),
     #        subdir).run()
 
-    summary.GraphSummary(os.path.join(graphs_directory, 'sent heatmap'), 'phantom-SentHeatMap').run()
-    summary.GraphSummary(os.path.join(graphs_directory, 'received heatmap'), 'phantom-ReceivedHeatMap').run()
+    summary.GraphSummary(os.path.join(phantom.graphs_path, 'sent heatmap'), 'phantom-SentHeatMap').run()
+    summary.GraphSummary(os.path.join(phantom.graphs_path, 'received heatmap'), 'phantom-ReceivedHeatMap').run()
