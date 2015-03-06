@@ -18,15 +18,15 @@ enum Channels
 #endif
 
 #define max(a, b) \
-	({ const __typeof__(a) _a = (a), _b = (b); \
+	({ __typeof__(a) _a = (a), _b = (b); \
 	   _a > _b ? _a : _b; })
 
 #define min(a, b) \
-	({ const __typeof__(a) _a = (a), _b = (b); \
+	({ __typeof__(a) _a = (a), _b = (b); \
 	   _a < _b ? _a : _b; })
 
 #define minbot(a, b) \
-	({ const __typeof__(a) _a = (a), _b = (b); \
+	({ __typeof__(a) _a = (a), _b = (b); \
 	   (_a == BOTTOM || _b < _a) ? _b : _a; })
 
 #endif // SLP_CONSTANTS_H

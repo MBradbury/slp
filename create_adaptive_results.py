@@ -92,7 +92,7 @@ if 'cluster' in args:
         run(cluster.submitter(), cluster_directory, False)
 
     if 'copy-back' in args:
-        cluster.copy_back("adaptive")
+        cluster.copy_back(adaptive.name)
 
     sys.exit(0)
 
