@@ -322,6 +322,16 @@ implementation
 		return period;
 	}
 
+	uint16_t random_walk_retries()
+	{
+		return RANDOM_WALK_RETRIES;
+	}
+
+	uint16_t random_walk_delay(uint32_t source_period)
+	{
+		return random_walk_retries() / source_period;
+	}
+
 	// Produces a random float between 0 and 1
 	float random_float()
 	{
@@ -589,8 +599,8 @@ implementation
 		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
 			sim_time_string(), target, message.further_or_closer_set);
 
-		call PacketLink.setRetries(&packet, RANDOM_WALK_RETRIES);
-		call PacketLink.setRetryDelay(&packet, RANDOM_WALK_DELAY_MS);
+		call PacketLink.setRetries(&packet, random_walk_retries());
+		call PacketLink.setRetryDelay(&packet, random_walk_delay(source_period));
 		call PacketAcknowledgements.requestAck(&packet);
 
 		if (send_Normal_message(&message, target))
@@ -649,8 +659,8 @@ implementation
 				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
-				call PacketLink.setRetries(&packet, RANDOM_WALK_RETRIES);
-				call PacketLink.setRetryDelay(&packet, RANDOM_WALK_DELAY_MS);
+				call PacketLink.setRetries(&packet, random_walk_retries());
+				call PacketLink.setRetryDelay(&packet, random_walk_delay(rcvd->source_period));
 				call PacketAcknowledgements.requestAck(&packet);
 
 				send_Normal_message(&forwarding_message, target);
