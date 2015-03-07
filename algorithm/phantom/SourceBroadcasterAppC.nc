@@ -21,10 +21,8 @@ implementation
 
 	// Radio Control
 	components ActiveMessageC;
-	components TossimActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
-	App.TossimPacket -> TossimActiveMessageC;
 
 
 	// Timers
