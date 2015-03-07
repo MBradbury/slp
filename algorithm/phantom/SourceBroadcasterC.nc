@@ -351,7 +351,7 @@ implementation
 		uint32_t i;
 		uint32_t possible_sets = 0;
 
-		assert(type == SourceNode);
+		//assert(type == SourceNode);
 
 		if (sink_distance != BOTTOM)
 		{
@@ -416,7 +416,7 @@ implementation
 		}
 	}
 
-	am_addr_t random_walk_target(NormalMessage const* rcvd)
+	am_addr_t random_walk_target(NormalMessage const* rcvd, const am_addr_t* to_ignore)
 	{
 		am_addr_t chosen_address = AM_BROADCAST_ADDR;
 		uint32_t i;
@@ -429,6 +429,12 @@ implementation
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				NeighbourDetail const* const neighbour = &neighbours.data[i];
+
+				// Skip neighbours we have been asked to
+				if (to_ignore != NULL && *to_ignore == neighbour->address)
+				{
+					continue;
+				}
 
 				//dbgverbose("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
 				//	neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->sink_distance);
@@ -594,7 +600,7 @@ implementation
 
 		message.further_or_closer_set = random_walk_direction();
 
-		target = random_walk_target(&message);
+		target = random_walk_target(&message, NULL);
 
 		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
 			sim_time_string(), target, message.further_or_closer_set);
@@ -622,6 +628,10 @@ implementation
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.sink_distance = sink_distance;
 
+		call PacketLink.setRetries(&packet, 0);
+		call PacketLink.setRetryDelay(&packet, 0);
+		call PacketAcknowledgements.noAck(&packet);
+
 		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -629,8 +639,6 @@ implementation
 		}
 
 		dbgverbose("stdout", "Away sent\n");
-
-		call AwaySenderTimer.startOneShot(10 * 1000);
 	}	
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -654,7 +662,16 @@ implementation
 
 			if (rcvd->source_distance < RANDOM_WALK_HOPS)
 			{
-				const am_addr_t target = random_walk_target(&forwarding_message);
+				am_addr_t target;
+
+				// The previous node(s) were unable to choose a direction,
+				// so lets try to
+				if (forwarding_message.further_or_closer_set == UnknownSet)
+				{
+					forwarding_message.further_or_closer_set = random_walk_direction();
+				}
+
+				target = random_walk_target(&forwarding_message, &source_addr);
 
 				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
@@ -667,6 +684,10 @@ implementation
 			}
 			else
 			{
+				call PacketLink.setRetries(&packet, 0);
+				call PacketLink.setRetryDelay(&packet, 0);
+				call PacketAcknowledgements.noAck(&packet);
+
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
 		}
@@ -712,6 +733,10 @@ implementation
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
+
+			call PacketLink.setRetries(&packet, 0);
+			call PacketLink.setRetryDelay(&packet, 0);
+			call PacketAcknowledgements.noAck(&packet);
 
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
