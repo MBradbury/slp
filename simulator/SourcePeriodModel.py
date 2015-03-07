@@ -38,7 +38,7 @@ class PeriodModel(object):
         ][0]
 
         build_arguments["PERIOD_TIMES_MS"] = "{ " + ", ".join(periods) + " }"
-        build_arguments["PERIOD_ELSE_TIME_MS"] = "{}U".format(end_period)
+        build_arguments["PERIOD_ELSE_TIME_MS"] = int(end_period)
 
         return build_arguments
 
