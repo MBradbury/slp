@@ -50,9 +50,9 @@ else:
     import subprocess, multiprocessing.pool, traceback
     from threading import Lock
 
-    def runner(args):
-        print_lock = Lock()
+    print_lock = Lock()
 
+    def runner(args):
         def runner_impl(args):
             process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             try:
