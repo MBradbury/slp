@@ -163,7 +163,17 @@ class Analyse(object):
         if type(self.data[0][index]) is dict:
             return self.dict_mean(index)
         else:
-            return mean([self.to_float(values[index]) for values in self.data])
+            # Some values may be inf, if they are lets ignore
+            # the values that were inf.
+            values = [self.to_float(values[index]) for values in self.data]
+            filtered = [x for x in values if not math.isinf(x)]
+
+            # Unless all the values are inf, when we should probably pass this
+            # fact onwards.
+            if len(filtered) != 0:
+                return mean(filtered)
+            else:
+                return float('inf')
 
     def variance_of(self, header):
         # Find the index that header refers to
@@ -172,12 +182,27 @@ class Analyse(object):
         if type(self.data[0][index]) is dict:
             raise NotImplementedError()
         else:
-            return variance([self.to_float(values[index]) for values in self.data])
+            # Some values may be inf, if they are lets ignore
+            # the values that were inf.
+            values = [self.to_float(values[index]) for values in self.data]
+            filtered = [x for x in values if not math.isinf(x)]
+
+            # Unless all the values are inf, when we should probably pass this
+            # fact onwards.
+            if len(filtered) != 0:
+                return variance(filtered)
+            else:
+                return float('nan')
+
 
     def dict_mean(self, index):
         dict_list = (Counter(values[index]) for values in self.data)
 
-        return { k: float(v) / len(self.data) for (k, v) in dict(sum(dict_list, Counter())).items() }
+        return {
+            k: float(v) / len(self.data)
+            for (k, v)
+            in dict(sum(dict_list, Counter())).items()
+        }
 
 
 class AnalysisResults:
