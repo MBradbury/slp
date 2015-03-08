@@ -57,7 +57,7 @@ class Analyse(object):
                 else:
                     print("Unable to parse line {} : '{}'".format(line_number, line))
 
-            if line_number == 0:
+            if line_number == 0 or len(self.data) == 0:
                 raise EmptyFileError(infile)
 
     def _better_literal_eval(self, line_number, items):
