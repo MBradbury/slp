@@ -22,7 +22,7 @@ class RunSimulations(RunSimulationsCommon):
                 try:
                     safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
                 except KeyError as e:
-                    raise KeyError("Failed to find the key {}".format((configuration, size, source_period)), e)
+                    raise KeyError("Failed to find the safety period key {}".format((configuration, size, source_period)), e)
 
                 executable = 'python {} {}'.format(
                     self.optimisations,
