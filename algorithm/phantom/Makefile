@@ -2,7 +2,7 @@ COMPONENT = SourceBroadcasterAppC
 
 CFLAGS += -DPACKET_LINK=1
 
-CFLAGS += -Wnonnull -Wpointer-arith -Wshadow
+CFLAGS += -Wnonnull -Wpointer-arith -Wshadow -Wformat
 
 # See http://www.ti.com/lit/ds/symlink/cc2420.pdf
 # Section 28

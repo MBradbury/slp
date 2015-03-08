@@ -210,7 +210,7 @@ implementation
 		return find != NULL;
 	}
 
-	void print_neighbours(char * name, Neighbours const* neighbours)
+	void print_neighbours(char* name, Neighbours const* neighbours)
 	{
 #ifdef TOSSIM
 		uint32_t i;

@@ -1,6 +1,6 @@
 COMPONENT = SourceBroadcasterAppC
 
-CFLAGS += -Wnonnull -Wpointer-arith -Wshadow
+CFLAGS += -Wnonnull -Wpointer-arith -Wshadow -Wformat
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
