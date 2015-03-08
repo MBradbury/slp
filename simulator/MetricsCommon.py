@@ -118,13 +118,21 @@ class MetricsCommon(object):
         return dict(sum(self.received.values(), Counter()))
 
     def average_normal_latency(self):
-        return mean(self.normal_latency.values())
+        # It is possible that the sink has received no Normal messages
+        if len(self.normal_latency) != 0:
+            return mean(self.normal_latency.values())
+        else:
+            return float('inf')
 
     def receive_ratio(self):
         return float(len(self.normal_latency)) / len(self.normal_sent_time)
 
     def average_sink_source_hops(self):
-        return mean(self.normal_hop_count)
+        # It is possible that the sink has received no Normal messages
+        if len(self.normal_hop_count) != 0:
+            return mean(self.normal_hop_count)
+        else:
+            return float('inf')
 
     def captured(self):
         return self.sim.any_attacker_found_source()
