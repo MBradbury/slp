@@ -34,11 +34,17 @@ class Analyzer(AnalyzerCommon):
         d['configuration']      = lambda x: x.opts['configuration']
         d['source period']      = lambda x: x.opts['source_period']
 
-        def format_results(x, name):
+        def format_results(x, name, allow_missing=False):
             if name in x.variance_of:
                 return "{}({})".format(x.average_of[name], x.variance_of[name])
             else:
-                return "{}".format(x.average_of[name])
+                try:
+                    return "{}".format(x.average_of[name])
+                except KeyError:
+                    if not allow_missing:
+                        raise
+                    else:
+                        return "None"
         
         d['sent']               = lambda x: format_results(x, 'Sent')
         d['received']           = lambda x: format_results(x, 'Received')
@@ -52,7 +58,7 @@ class Analyzer(AnalyzerCommon):
         d['normal']             = lambda x: format_results(x, 'NormalSent')
         d['ssd']                = lambda x: format_results(x, 'NormalSinkSourceHops')
 
-        d['node was source']    = lambda x: format_results(x, 'NodeWasSource')
+        d['node was source']    = lambda x: format_results(x, 'NodeWasSource', allow_missing=True)
         
         d['sent heatmap']       = lambda x: format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: format_results(x, 'ReceivedHeatMap')
