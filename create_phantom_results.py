@@ -49,10 +49,10 @@ configurations = [
     #'CircleSinkCentre',
 ]
 
-walk_hop_lengths = [ 3, 5, 7, 9 ]
-walk_retries = [ 5, 10, 15 ]
+walk_hop_lengths = [ 6, 10, 14, 18 ]
+walk_retries = [ 0, 5, 10 ]
 
-repeats = 300
+repeats = 500
 
 parameter_names = ('walk length', 'walk retries')
 
