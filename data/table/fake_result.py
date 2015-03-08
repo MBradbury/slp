@@ -45,9 +45,12 @@ class ResultTable(object):
                 "safety period": ("Safety Period", "(sec)"),
                 "wall time": ("Wall Time", "(sec)"),
                 "event count": ("Event Count", ""),
+                
+                "walk length": ("Walk Length", "(hops)"),
+                "walk retries": ("Walk", "Retries"),
             }[name][row]
         except KeyError as ex:
-            print("Failed to find the name {} for row {} : {}".format(name, row, ex), file=sys.stderr)
+            print("Failed to find the name '{}' for row {}. Using default. : {}".format(name, row, ex), file=sys.stderr)
             return name
 
     def _title_row(self, row):
