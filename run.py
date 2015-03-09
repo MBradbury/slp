@@ -72,9 +72,16 @@ else:
                         sys.stderr.write(line)
                     sys.stderr.flush()
 
+                if process.returncode != 0:
+                    with print_lock:
+                        print("Bad return code {}".format(process.returncode), file=sys.stderr)
+                    raise RuntimeError("Bad return code {}".format(process.returncode))
+
             except (KeyboardInterrupt, SystemExit) as e:
-                print("Killing process due to {}".format(e), file=sys.stderr)
+                with print_lock:
+                    print("Killing process due to {}".format(e), file=sys.stderr)
                 process.terminate()
+                raise
 
         max_retries = 3
         tries = 0
@@ -86,15 +93,22 @@ else:
                 runner_impl(args)
                 done = True
             except Exception as e:
-                print("Encountered (try {}): {}".format(tries, e), file=sys.stderr)
-                print(traceback.format_exc(), file=sys.stderr)
+                with print_lock:
+                    print("Encountered (try {}): {}".format(tries, e), file=sys.stderr)
+                    print(traceback.format_exc(), file=sys.stderr)
 
     subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
 
-    p = multiprocessing.pool.ThreadPool(a.args.thread_count)
+    p = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
     try:
         r = p.map_async(runner, [subprocess_args] * a.args.job_size)
-        r.wait()
+
+        # Use get so any exceptions are rethrown
+        r.get()
+
+        if not r.successful():
+            print("The map_async was not successful", file=sys.stderr)
+
     except (KeyboardInterrupt, SystemExit) as e:
         print("Killing thread pool due to {}".format(e), file=sys.stderr)
     except Exception as e:

@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys
+import os, sys, itertools
 
 args = []
 if len(sys.argv[1:]) == 0:
@@ -50,7 +50,9 @@ configurations = [
 ]
 
 walk_hop_lengths = [ 6, 10, 14, 18 ]
-walk_retries = [ 0, 5, 10 ]
+walk_retries = [ 5, 10 ]
+
+walk_length_retries = [(0, 0)] + list(itertools.product(walk_hop_lengths, walk_retries))
 
 repeats = 500
 
@@ -66,7 +68,7 @@ def run(driver, results_directory, skip_completed_simulations):
     safety_periods = safety_period_table_generator.safety_periods()
 
     runner = phantom.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
-    runner.run(jar_path, distance, sizes, source_periods, walk_hop_lengths, walk_retries, configurations, repeats)
+    runner.run(jar_path, distance, sizes, source_periods, walk_length_retries, configurations, repeats)
 
 if 'cluster' in args:
     cluster_directory = os.path.join("cluster", phantom.name)
