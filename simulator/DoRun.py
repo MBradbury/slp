@@ -30,7 +30,7 @@ with Simulation(module, configuration, a.args) as sim:
     try:
         sim.run()
     except RuntimeError as e:
-        print(e)
-        print(traceback.format_exc())
+        print(e, file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
     else:
         sim.metrics.print_results()
