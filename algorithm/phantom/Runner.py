@@ -9,14 +9,14 @@ class RunSimulations(RunSimulationsCommon):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
-    def run(self, exe_path, distance, sizes, source_periods, walk_length_retries, configurations, repeats):
+    def run(self, exe_path, distance, sizes, source_periods, walk_hop_lengths, walk_retries, configurations, repeats):
         if self.skip_completed_simulations:
             self._check_existing_results(['network_size', 'source_period', 'random_walk_hops', 'random_walk_retries', 'configuration'])
         
         if not os.path.exists(exe_path):
             raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
-        for (size, source_period, (walk_length, retries), configuration) in itertools.product(sizes, source_periods, walk_length_retries, configurations):
+        for (size, source_period, walk_length, retries, configuration) in itertools.product(sizes, source_periods, walk_hop_lengths, walk_retries, configurations):
             if not self._already_processed(repeats, size, source_period, walk_length, retries, configuration):
 
                 try:
