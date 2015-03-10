@@ -379,7 +379,7 @@ implementation
 		}
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Normal)
+	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 		case TempFakeNode:
@@ -462,7 +462,7 @@ implementation
 		}
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Away)
+	RECEIVE_MESSAGE_BEGIN(Away, Receive)
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
@@ -500,7 +500,7 @@ implementation
 		}
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Choose)
+	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
 		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Choose)
 
@@ -607,7 +607,7 @@ implementation
 		}
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Fake)
+	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
 		case SinkNode: Sink_receive_Fake(rcvd, source_addr); break;
 		case SourceNode: Source_receive_Fake(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;

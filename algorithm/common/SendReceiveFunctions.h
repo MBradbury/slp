@@ -80,8 +80,8 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 	} \
 }
 
-#define RECEIVE_MESSAGE_BEGIN(NAME) \
-event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t len) \
+#define RECEIVE_MESSAGE_BEGIN(NAME, KIND) \
+event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) \
 { \
 	const NAME##Message* const rcvd = (const NAME##Message*)payload; \
  \

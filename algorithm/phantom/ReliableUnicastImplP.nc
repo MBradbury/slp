@@ -34,6 +34,7 @@ implementation
 	/** The length of the current send message */
 	uint16_t totalRetries;
 
+	/** The address of the current target */
 	am_addr_t currentSendAddr;
 	
 	

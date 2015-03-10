@@ -52,6 +52,7 @@ module SourceBroadcasterC
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
+	uses interface Receive as NormalSnoop;
 
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
@@ -431,7 +432,7 @@ implementation
 
 		call PacketLink.setRetries(&packet, random_walk_retries());
 		call PacketLink.setRetryDelay(&packet, random_walk_delay(source_period));
-		call PacketAcknowledgements.requestAck(&packet);
+		call PacketAcknowledgements.noAck(&packet);
 
 		if (send_Normal_message(&message, target))
 		{
@@ -549,10 +550,43 @@ implementation
 		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Normal)
+	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
 		case SourceNode: Source_receieve_Normal(msg, rcvd, source_addr); break;
 		case SinkNode: Sink_receieve_Normal(msg, rcvd, source_addr); break;
 		case NormalNode: Normal_receieve_Normal(msg, rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Normal)
+
+	// If the sink snoops a normal message, we may as well just deliver it
+	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
+
+		// TODO: Enable this when the sink can snoop and then correctly
+		// respond to a message being received.
+		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV(Normal, rcvd->source_distance + 1);
+
+			dbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
+				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
+		}*/
+	}
+
+	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
+
+		dbgverbose("stdout", "Snooped a normal from %u intended for %u\n", source_addr, call AMPacket.destination(msg));
+	}
+
+	// We need to snoop packets that may be unicasted,
+	// so the attacker properly responds to them.
+	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
+		case SourceNode: x_snoop_Normal(msg, rcvd, source_addr); break;
+		case SinkNode: x_snoop_Normal(msg, rcvd, source_addr); break;
+		case NormalNode: x_snoop_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 
@@ -588,7 +622,7 @@ implementation
 #endif
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Away)
+	RECEIVE_MESSAGE_BEGIN(Away, Receive)
 		case NormalNode: x_receieve_Away(msg, rcvd, source_addr); break;
 		case SourceNode: x_receieve_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
@@ -599,7 +633,7 @@ implementation
 		insert_neighbour(&neighbours, source_addr, rcvd->sender_sink_distance);
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Beacon)
+	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
 		case NormalNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
 		case SourceNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
