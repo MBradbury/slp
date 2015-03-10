@@ -34,9 +34,9 @@ implementation
 
 	App.AwaySenderTimer -> AwaySenderTimer;
 
-	// LocalTime
-	components LocalTimeMilliC;
-	App.LocalTime -> LocalTimeMilliC;
+	components new TimerMilliC() as BeaconSenderTimer;
+
+	App.BeaconSenderTimer -> BeaconSenderTimer;
 
 
 	// Networking
@@ -48,15 +48,10 @@ implementation
 		new AMSenderC(AWAY_CHANNEL) as AwaySender,
 		new AMReceiverC(AWAY_CHANNEL) as AwayReceiver;
 
+	components
+		new AMSenderC(BEACON_CHANNEL) as BeaconSender,
+		new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;
 
-	// Object Detector - For Source movement
-	components ObjectDetectorP;
-
-	App.ObjectDetector -> ObjectDetectorP;
-
-    //Random
-    components RandomC;
-	
 	App.Packet -> AwaySender; // TODO: is this right?
 	App.AMPacket -> AwaySender; // TODO: is this right?
 	App.PacketLink -> NormalSender;
@@ -67,6 +62,19 @@ implementation
 
 	App.AwaySend -> AwaySender;
 	App.AwayReceive -> AwayReceiver;
-        
-    App.Random->RandomC;
+
+	App.BeaconSend -> BeaconSender;
+	App.BeaconReceive -> BeaconReceiver;
+
+	// Object Detector - For Source movement
+	components ObjectDetectorP;
+	App.ObjectDetector -> ObjectDetectorP;
+
+	// SourcePeriodModel - for source periods
+	components SourcePeriodModelP;
+	App.SourcePeriodModel -> SourcePeriodModelP;
+       
+    // Random
+    components RandomC;
+    App.Random -> RandomC;
 }

@@ -1,120 +1,15 @@
 #include "Constants.h"
+#include "Common.h"
+#include "SendReceiveFunctions.h"
+
 #include "NormalMessage.h"
 #include "AwayMessage.h"
+#include "BeaconMessage.h"
 
 #include <Timer.h>
 #include <TinyError.h>
 
 #include <assert.h>
-
-#define SEND_MESSAGE(NAME) \
-bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
-{ \
-	if (!busy || tosend == NULL) \
-	{ \
-		error_t status; \
- \
-		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
-		NAME##Message* const message = (NAME##Message*)void_message; \
-		if (message == NULL) \
-		{ \
-			dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string()); \
-			return FALSE; \
-		} \
- \
-		if (tosend != NULL) \
-		{ \
-			*message = *tosend; \
-		} \
-		else \
-		{ \
-			/* Need tosend set, so that the metrics recording works. */ \
-			tosend = message; \
-		} \
- \
-		status = call NAME##Send.send(target, &packet, sizeof(NAME##Message)); \
-		if (status == SUCCESS) \
-		{ \
-			call Leds.led0On(); \
-			busy = TRUE; \
- \
-			METRIC_BCAST(NAME, "success"); \
- \
-			return TRUE; \
-		} \
-		else \
-		{ \
-			METRIC_BCAST(NAME, "failed"); \
- \
-			return FALSE; \
-		} \
-	} \
-	else \
-	{ \
-		dbgverbose("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
- \
-		METRIC_BCAST(NAME, "busy"); \
- \
-		return FALSE; \
-	} \
-}
-
-#define SEND_DONE(NAME) \
-event void NAME##Send.sendDone(message_t* msg, error_t error) \
-{ \
-	dbgverbose("SourceBroadcasterC", "%s: " #NAME "Send sendDone with status %i.\n", sim_time_string(), error); \
- \
-	if (&packet == msg) \
-	{ \
-		if (extra_to_send > 0) \
-		{ \
-			if (send_##NAME##_message(NULL, call AMPacket.destination(msg))) \
-			{ \
-				--extra_to_send; \
-			} \
-			else \
-			{ \
-				call Leds.led0Off(); \
-				busy = FALSE; \
-			} \
-		} \
-		else \
-		{ \
-			call Leds.led0Off(); \
-			busy = FALSE; \
-		} \
-	} \
-}
-
-#define RECEIVE_MESSAGE_BEGIN(NAME) \
-event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t len) \
-{ \
-	const NAME##Message* const rcvd = (const NAME##Message*)payload; \
- \
-	const am_addr_t source_addr = call AMPacket.source(msg); \
- \
-	dbg_clear("Attacker-RCV", "%" PRIu64 ",%s,%u,%u,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->sequence_number); \
- \
-	if (len != sizeof(NAME##Message)) \
-	{ \
-		dbgerror("SourceBroadcasterC", "%s: Received " #NAME " of invalid length %hhu.\n", sim_time_string(), len); \
-		return msg; \
-	} \
- \
-	dbgverbose("SourceBroadcasterC", "%s: Received valid " #NAME ".\n", sim_time_string()); \
- \
-	switch (type) \
-	{
-
-#define RECEIVE_MESSAGE_END(NAME) \
-		default: \
-		{ \
-			dbgerror("SourceBroadcasterC", "%s: Unknown node type %s. Cannot process " #NAME " message\n", sim_time_string(), type_to_string()); \
-		} break; \
-	} \
- \
-	return msg; \
-}
 
 #define METRIC_RCV(TYPE, DISTANCE) \
 	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number, DISTANCE)
@@ -144,9 +39,9 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-	uses interface LocalTime<TMilli>;
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
+	uses interface Timer<TMilli> as BeaconSenderTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -161,6 +56,10 @@ module SourceBroadcasterC
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
 
+	uses interface AMSend as BeaconSend;
+	uses interface Receive as BeaconReceive;
+
+	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 	 
 	uses interface Random;
@@ -260,62 +159,15 @@ implementation
 
 	Neighbours neighbours;
 
-
-	NormalMessage repeat_message;
-	am_addr_t repeat_target;
-	uint32_t repeat_count;
-
 	bool busy = FALSE;
 	message_t packet;
 
 	uint32_t extra_to_send = 0;
 
-	// This function is to be used by the source node to get the
-	// period it should use at the current time.
-	// DO NOT use this for nodes other than the source!
 	uint32_t get_source_period()
 	{
-		typedef struct {
-			uint32_t end;
-			uint32_t period;
-		} local_end_period_t;
-
-		const local_end_period_t times[] = PERIOD_TIMES_MS;
-		const uint32_t else_time = PERIOD_ELSE_TIME_MS;
-
-		const unsigned int times_length = ARRAY_LENGTH(times);
-
-		const uint32_t current_time = call LocalTime.get();
-
-		unsigned int i;
-
-		uint32_t period = -1;
-
 		assert(type == SourceNode);
-
-		dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
-			current_time, times_length);
-
-		for (i = 0; i != times_length; ++i)
-		{
-			//dbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
-			//	i, current_time, times[i].end, times[i].period);
-
-			if (current_time < times[i].end)
-			{
-				period = times[i].period;
-				break;
-			}
-		}
-
-		if (i == times_length)
-		{
-			period = else_time;
-		}
-
-		dbgverbose("stdout", "Providing source period %u at time=%u\n",
-			period, current_time);
-		return period;
+		return call SourcePeriodModel.get();
 	}
 
 	uint16_t random_walk_retries()
@@ -453,23 +305,31 @@ implementation
 		}
 		else
 		{
-			// Weighted probability distribution towards the neighbour,
-			// with the best signal strength.
+			// Choose a neighbour with equal probabilities.
+			const uint16_t rnd = call Random.rand16();
+			const uint16_t neighbour_index = rnd % local_neighbours.size;
 
-			const uint16_t rnd = call Random.rand16() % local_neighbours.size;
+#ifdef SLP_VERBOSE_DEBUG
+			print_neighbours("stdout", &local_neighbours);
+#endif
 
-			chosen_address = local_neighbours.data[rnd].address;
+			chosen_address = local_neighbours.data[neighbour_index].address;
+
+			dbgverbose("stdout", "Chosen %u at index %u (%u) out of %u neighbours\n", chosen_address, neighbour_index, rnd, local_neighbours.size);
 		}
 
 		return chosen_address;
 	}
 
+	uint32_t beacon_send_wait()
+	{
+		return 75U + (uint32_t)(50U * random_float());
+	}
 
-	SEND_MESSAGE(Normal);
-	SEND_MESSAGE(Away);
 
-	SEND_DONE(Normal);
-	SEND_DONE(Away);
+	USE_MESSAGE(Normal);
+	USE_MESSAGE(Away);
+	USE_MESSAGE(Beacon);
 	
 
 	event void Boot.booted()
@@ -560,6 +420,7 @@ implementation
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
 		message.sink_distance_of_sender = sink_distance;
+		message.source_period = source_period;
 
 		message.further_or_closer_set = random_walk_direction();
 
@@ -602,6 +463,22 @@ implementation
 		}
 
 		dbgverbose("stdout", "Away sent\n");
+	}
+
+	event void BeaconSenderTimer.fired()
+	{
+		BeaconMessage message;
+
+		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+
+		message.sequence_number = 0;
+		message.sender_sink_distance = sink_distance;
+
+		call PacketLink.setRetries(&packet, 0);
+		call PacketLink.setRetryDelay(&packet, 0);
+		call PacketAcknowledgements.noAck(&packet);
+
+		send_Beacon_message(&message, AM_BROADCAST_ADDR);
 	}
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -702,15 +579,28 @@ implementation
 
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
+
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_neighbours("stdout", &neighbours);
 #endif
-	}  
+	}
 
 	RECEIVE_MESSAGE_BEGIN(Away)
 		case NormalNode: x_receieve_Away(msg, rcvd, source_addr); break;
 		case SourceNode: x_receieve_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
+
+
+	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
+	{
+		insert_neighbour(&neighbours, source_addr, rcvd->sender_sink_distance);
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Beacon)
+		case NormalNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
+		case SourceNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Beacon)
 }
