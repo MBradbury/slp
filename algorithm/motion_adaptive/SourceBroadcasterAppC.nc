@@ -34,11 +34,6 @@ implementation
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
 
-	// LocalTime
-	components LocalTimeMilliC;
-	App.LocalTime -> LocalTimeMilliC;
-
-
 	// Networking
 	components
 		new AMSenderC(NORMAL_CHANNEL) as NormalSender,
@@ -78,6 +73,8 @@ implementation
 
 	// Object Detector - For Source movement
 	components ObjectDetectorP;
-
 	App.ObjectDetector -> ObjectDetectorP;
+
+	components SourcePeriodModelP;
+	App.SourcePeriodModel -> SourcePeriodModelP;
 }

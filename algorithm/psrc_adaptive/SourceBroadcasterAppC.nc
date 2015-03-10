@@ -34,10 +34,6 @@ implementation
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
 
-	// LocalTime
-	components LocalTimeMilliC;
-	App.LocalTime -> LocalTimeMilliC;
-
 
 	// Networking
 	components
@@ -72,6 +68,8 @@ implementation
 	App.FakeReceive -> FakeReceiver;
 
 	components FakeMessageGeneratorP;
-
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
+
+	components SourcePeriodModelP;
+	App.SourcePeriodModel -> SourcePeriodModelP;
 }

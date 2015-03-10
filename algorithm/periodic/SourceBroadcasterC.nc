@@ -1,96 +1,14 @@
 #include "Constants.h"
+#include "Common.h"
+#include "SendReceiveFunctions.h"
+
 #include "NormalMessage.h"
 #include "DummyNormalMessage.h"
 
-#include <assert.h>
 #include <Timer.h>
 #include <TinyError.h>
 
-#define SEND_MESSAGE(NAME) \
-bool send_##NAME##_message(const NAME##Message* tosend) \
-{ \
-	error_t status; \
- \
-	if (!busy) \
-	{ \
-		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
-		NAME##Message* const message = (NAME##Message*)void_message; \
-		if (message == NULL) \
-		{ \
-			dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string()); \
-			return FALSE; \
-		} \
- \
-		*message = *tosend; \
- \
-		status = call NAME##Send.send(AM_BROADCAST_ADDR, &packet, sizeof(NAME##Message)); \
-		if (status == SUCCESS) \
-		{ \
-			call Leds.led0On(); \
-			busy = TRUE; \
- \
-			METRIC_BCAST(NAME, "success"); \
- \
-			return TRUE; \
-		} \
-		else \
-		{ \
-			METRIC_BCAST(NAME, "failed"); \
- \
-			return FALSE; \
-		} \
-	} \
-	else \
-	{ \
-		dbgverbose("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
- \
-		METRIC_BCAST(NAME, "busy"); \
- \
-		return FALSE; \
-	} \
-}
-
-#define SEND_DONE(NAME) \
-event void NAME##Send.sendDone(message_t* msg, error_t error) \
-{ \
-	dbgverbose("SourceBroadcasterC", "%s: " #NAME "Send sendDone with status %i.\n", sim_time_string(), error); \
- \
-	if (&packet == msg) \
-	{ \
-		call Leds.led0Off(); \
-		busy = FALSE; \
-	} \
-}
-
-#define RECEIVE_MESSAGE_BEGIN(NAME) \
-event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t len) \
-{ \
-	const NAME##Message* const rcvd = (const NAME##Message*)payload; \
- \
-	const am_addr_t source_addr = call AMPacket.source(msg); \
- \
-	dbg_clear("Attacker-RCV", "%" PRIu64 ",%s,%u,%u,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->sequence_number); \
- \
-	if (len != sizeof(NAME##Message)) \
-	{ \
-		dbgerror("SourceBroadcasterC", "%s: Received " #NAME " of invalid length %hhu.\n", sim_time_string(), len); \
-		return msg; \
-	} \
- \
-	dbgverbose("SourceBroadcasterC", "%s: Received valid " #NAME ".\n", sim_time_string()); \
- \
-	switch (type) \
-	{
-
-#define RECEIVE_MESSAGE_END(NAME) \
-		default: \
-		{ \
-			dbgerror("SourceBroadcasterC", "%s: Unknown node type %s. Cannot process " #NAME " message\n", sim_time_string(), type_to_string()); \
-		} break; \
-	} \
- \
-	return msg; \
-}
+#include <assert.h>
 
 #define METRIC_RCV(TYPE, DISTANCE) \
 	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number, DISTANCE)
@@ -103,7 +21,6 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-	uses interface LocalTime<TMilli>;
 	uses interface Timer<TMilli> as EnqueueNormalTimer;
 	uses interface Timer<TMilli> as BroadcastTimer;
 
@@ -122,15 +39,11 @@ module SourceBroadcasterC
 	uses interface Receive as DummyNormalReceive;
 
 	uses interface ObjectDetector;
+	uses interface SourcePeriodModel;
 }
 
 implementation
 {
-	typedef struct {
-		uint32_t end;
-		uint32_t period;
-	} local_end_period_t;
-
 	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode
@@ -154,42 +67,8 @@ implementation
 	// DO NOT use this for nodes other than the source!
 	uint32_t get_source_period()
 	{
-		const local_end_period_t times[] = PERIOD_TIMES_MS;
-		const uint32_t else_time = PERIOD_ELSE_TIME_MS;
-
-		const unsigned int times_length = ARRAY_LENGTH(times);
-
-		const uint32_t current_time = call LocalTime.get();
-
-		unsigned int i;
-
-		uint32_t period = -1;
-
 		assert(type == SourceNode);
-
-		//dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
-		//	current_time, times_length);
-
-		for (i = 0; i != times_length; ++i)
-		{
-			//dbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
-			//	i, current_time, times[i].end, times[i].period);
-
-			if (current_time < times[i].end)
-			{
-				period = times[i].period;
-				break;
-			}
-		}
-
-		if (i == times_length)
-		{
-			period = else_time;
-		}
-
-		dbgverbose("stdout", "Providing source period %u at time=%u\n",
-			period, current_time);
-		return period;
+		return call SourcePeriodModel.get();
 	}
 
 	uint32_t get_broadcast_period()
@@ -198,6 +77,8 @@ implementation
 	}
 
 	SequenceNumber normal_sequence_counter;
+
+	uint32_t extra_to_send = 0;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -266,11 +147,8 @@ implementation
 		}
 	}
 
-	SEND_DONE(Normal);
-	SEND_DONE(DummyNormal);
-
-	SEND_MESSAGE(Normal);
-	SEND_MESSAGE(DummyNormal);
+	USE_MESSAGE(Normal);
+	USE_MESSAGE(DummyNormal);
 
 	event void EnqueueNormalTimer.fired()
 	{
@@ -310,7 +188,7 @@ implementation
 
 		if (message != NULL)
 		{
-			if (send_Normal_message(message))
+			if (send_Normal_message(message, AM_BROADCAST_ADDR))
 			{
 				call MessagePool.put(message);
 			}
@@ -323,7 +201,7 @@ implementation
 		{
 			DummyNormalMessage dummy_message;
 
-			send_DummyNormal_message(&dummy_message);
+			send_DummyNormal_message(&dummy_message, AM_BROADCAST_ADDR);
 		}
 
 		call BroadcastTimer.startOneShot(get_broadcast_period());
