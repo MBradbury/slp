@@ -1,122 +1,15 @@
-#include "AwayChooseMessage.h"
 #include "Constants.h"
+#include "Common.h"
+#include "SendReceiveFunctions.h"
+
+#include "AwayChooseMessage.h"
 #include "FakeMessage.h"
 #include "NormalMessage.h"
-#include "SequenceNumber.h"
 
 #include <Timer.h>
 #include <TinyError.h>
 
 #include <assert.h>
-
-#define SEND_MESSAGE(NAME) \
-bool send_##NAME##_message(const NAME##Message* tosend) \
-{ \
-	if (!busy || tosend == NULL) \
-	{ \
-		error_t status; \
- \
- 		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
- 		NAME##Message* const message = (NAME##Message*)void_message; \
-		if (message == NULL) \
-		{ \
-			dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string()); \
-			return FALSE; \
-		} \
- \
- 		if (tosend != NULL) \
- 		{ \
-			*message = *tosend; \
-		} \
-		else \
-		{ \
-			/* Need tosend set, so that the metrics recording works. */ \
-			tosend = message; \
-		} \
- \
-		status = call NAME##Send.send(AM_BROADCAST_ADDR, &packet, sizeof(NAME##Message)); \
-		if (status == SUCCESS) \
-		{ \
-			call Leds.led0On(); \
-			busy = TRUE; \
- \
-			METRIC_BCAST(NAME, "success"); \
- \
-			return TRUE; \
-		} \
-		else \
-		{ \
-			METRIC_BCAST(NAME, "failed"); \
- \
-			return FALSE; \
-		} \
-	} \
-	else \
-	{ \
-		dbgverbose("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
- \
-		METRIC_BCAST(NAME, "busy"); \
- \
-		return FALSE; \
-	} \
-}
-
-#define SEND_DONE(NAME) \
-event void NAME##Send.sendDone(message_t* msg, error_t error) \
-{ \
-	dbgverbose("SourceBroadcasterC", "%s: " #NAME "Send sendDone with status %i.\n", sim_time_string(), error); \
- \
-	if (&packet == msg) \
-	{ \
-		if (extra_to_send > 0) \
-		{ \
-			if (send_##NAME##_message(NULL)) \
-			{ \
-				--extra_to_send; \
-			} \
-			else \
-			{ \
-				call Leds.led0Off(); \
-				busy = FALSE; \
-			} \
-		} \
-		else \
-		{ \
-			call Leds.led0Off(); \
-			busy = FALSE; \
-		} \
-	} \
-}
-
-#define RECEIVE_MESSAGE_BEGIN(NAME) \
-event message_t* NAME##Receive.receive(message_t* msg, void* payload, uint8_t len) \
-{ \
-	const NAME##Message* const rcvd = (const NAME##Message*)payload; \
- \
-	const am_addr_t source_addr = call AMPacket.source(msg); \
- \
-	dbg_clear("Attacker-RCV", "%" PRIu64 ",%s,%u,%u,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->sequence_number); \
- \
-	if (len != sizeof(NAME##Message)) \
-	{ \
-		dbgerror("SourceBroadcasterC", "%s: Received " #NAME " of invalid length %hhu.\n", sim_time_string(), len); \
-		return msg; \
-	} \
- \
-	dbgverbose("SourceBroadcasterC", "%s: Received valid " #NAME ".\n", sim_time_string()); \
- \
-	switch (type) \
-	{
-
-#define RECEIVE_MESSAGE_END(NAME) \
-		default: \
-		{ \
-			dbgerror("SourceBroadcasterC", "%s: Unknown node type %s. Cannot process " #NAME " message\n", sim_time_string(), type_to_string()); \
-		} break; \
-	} \
- \
-	return msg; \
-}
 
 #define METRIC_RCV(TYPE, DISTANCE) \
 	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->source_id, rcvd->sequence_number, DISTANCE)
@@ -130,7 +23,6 @@ module SourceBroadcasterC
 	uses interface Leds;
 	uses interface Random;
 
-	uses interface LocalTime<TMilli>;
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 
@@ -153,6 +45,7 @@ module SourceBroadcasterC
 
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
+	uses interface SourcePeriodModel;
 }
 
 implementation
@@ -395,47 +288,8 @@ implementation
 	// DO NOT use this for nodes other than the source!
 	uint32_t get_source_period()
 	{
-		typedef struct {
-			uint32_t end;
-			uint32_t period;
-		} local_end_period_t;
-
-		const local_end_period_t times[] = PERIOD_TIMES_MS;
-		const uint32_t else_time = PERIOD_ELSE_TIME_MS;
-
-		const unsigned int times_length = ARRAY_LENGTH(times);
-
-		const uint32_t current_time = call LocalTime.get();
-
-		unsigned int i;
-
-		uint32_t period = -1;
-
 		assert(type == SourceNode);
-
-		dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
-			current_time, times_length);
-
-		for (i = 0; i != times_length; ++i)
-		{
-			//dbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
-			//	i, current_time, times[i].end, times[i].period);
-
-			if (current_time < times[i].end)
-			{
-				period = times[i].period;
-				break;
-			}
-		}
-
-		if (i == times_length)
-		{
-			period = else_time;
-		}
-
-		dbgverbose("stdout", "Providing source period %u at time=%u\n",
-			period, current_time);
-		return period;
+		return call SourcePeriodModel.get();;
 	}
 
 	bool busy = FALSE;
@@ -510,15 +364,10 @@ implementation
 		}
 	}
 
-	SEND_MESSAGE(Normal);
-	SEND_MESSAGE(Away);
-	SEND_MESSAGE(Choose);
-	SEND_MESSAGE(Fake);
-
-	SEND_DONE(Normal);
-	SEND_DONE(Away);
-	SEND_DONE(Choose);
-	SEND_DONE(Fake);
+	USE_MESSAGE(Normal);
+	USE_MESSAGE(Away);
+	USE_MESSAGE(Choose);
+	USE_MESSAGE(Fake);
 
 	void become_Normal()
 	{
@@ -568,7 +417,7 @@ implementation
 
 		message.source_period = source_period;
 
-		if (send_Normal_message(&message))
+		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&normal_sequence_counter);
 		}
@@ -591,7 +440,7 @@ implementation
 
 		// TODO sense repeat 3 in (Psource / 2)
 		extra_to_send = 2;
-		if (send_Away_message(&message))
+		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			sink_sent_away = TRUE;
 		}
@@ -662,7 +511,7 @@ implementation
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
-			send_Normal_message(&forwarding_message);
+			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
@@ -721,7 +570,7 @@ implementation
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
-			send_Normal_message(&forwarding_message);
+			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
@@ -766,7 +615,7 @@ implementation
 
 			// TODO: repeat 2
 			extra_to_send = 1;
-			send_Away_message(&forwarding_message);
+			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
@@ -815,7 +664,7 @@ implementation
 
 			// TODO: repeat 2
 			extra_to_send = 1;
-			send_Away_message(&forwarding_message);
+			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
@@ -883,7 +732,7 @@ implementation
 
 			message.sink_source_distance = sink_source_distance;
 
-			send_Fake_message(&message);
+			send_Fake_message(&message, AM_BROADCAST_ADDR);
 		}
 	}
 
@@ -925,7 +774,7 @@ implementation
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
 
-			send_Fake_message(&forwarding_message);
+			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
@@ -952,7 +801,7 @@ implementation
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
 
-			send_Fake_message(&forwarding_message);
+			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			if (pfs_can_become_normal() &&
 				type == PermFakeNode &&
@@ -1019,7 +868,7 @@ implementation
 
 		// TODO: repeat 3
 		extra_to_send = 2;
-		send_Choose_message(&message);
+		send_Choose_message(&message, AM_BROADCAST_ADDR);
 
 		become_Normal();
 	}

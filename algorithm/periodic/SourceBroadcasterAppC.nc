@@ -33,10 +33,6 @@ implementation
     App.BroadcastTimer -> BroadcastTimer;
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
 
-    // LocalTime
-    components LocalTimeMilliC;
-    App.LocalTime -> LocalTimeMilliC;
-
 
     // Networking
     components
@@ -67,6 +63,8 @@ implementation
 
     // Object Detector - For Source movement
     components ObjectDetectorP;
-
     App.ObjectDetector -> ObjectDetectorP;
+
+    components SourcePeriodModelP;
+    App.SourcePeriodModel -> SourcePeriodModelP;
 }
