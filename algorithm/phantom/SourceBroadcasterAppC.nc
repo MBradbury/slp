@@ -42,7 +42,8 @@ implementation
 	// Networking
 	components
 		new ReliableUnicastP(NORMAL_CHANNEL) as NormalSender,
-		new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver;
+		new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver,
+		new AMSnooperC(NORMAL_CHANNEL) as NormalSnooper;
 
 	components
 		new AMSenderC(AWAY_CHANNEL) as AwaySender,
@@ -59,6 +60,7 @@ implementation
 	
 	App.NormalSend -> NormalSender;
 	App.NormalReceive -> NormalReceiver;
+	App.NormalSnoop -> NormalSnooper;
 
 	App.AwaySend -> AwaySender;
 	App.AwayReceive -> AwayReceiver;
