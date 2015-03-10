@@ -44,7 +44,10 @@ class Simulator(object):
         self.out_procs = []
         self.nodes = []
 
+        # Set tossim seed
         self.tossim.randomSeed(seed)
+
+        # Record the seed we are using
         self.seed = seed
 
         # It is important to seed python's random number generator

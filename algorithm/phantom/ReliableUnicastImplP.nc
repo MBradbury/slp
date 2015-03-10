@@ -70,7 +70,7 @@ implementation
 	/**
 	 * Set a delay between each retry attempt
 	 * @param msg
-	 * @param retryDelay the delay betweeen retry attempts, in milliseconds
+	 * @param retryDelay the delay between retry attempts, in milliseconds
 	 */
 	command void PacketLink.setRetryDelay(message_t *msg, uint16_t retryDelay)
 	{
