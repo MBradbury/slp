@@ -65,10 +65,10 @@ class DebugAnalyzer:
 ###############################################
 class TosVis(Simulator):
     ####################
-    def __init__(self, TOSSIM, node_locations, wireless_range, seed=None):
+    def __init__(self, module_name, node_locations, wireless_range, seed=None):
 
         super(TosVis, self).__init__(
-            TOSSIM,
+            module_name=module_name,
             node_locations=node_locations,
             wireless_range=wireless_range,
             seed=seed)
@@ -203,7 +203,7 @@ class TosVis(Simulator):
             self.tkplot = Plotter()
             self.scene.addPlotter(self.tkplot)
 
-            # set line style used for neighbor relationship
+            # set line style used for neighbour relationship
             self.scene.execute(time, 'linestyle(1,color=(.7,.7,.7))')
 
             # draw nodes on animating canvas

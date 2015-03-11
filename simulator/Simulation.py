@@ -10,7 +10,7 @@ class Simulation(TosVis):
     def __init__(self, module_name, configuration, args):
 
         super(Simulation, self).__init__(
-            importlib.import_module('{}.TOSSIM'.format(module_name)),
+            module_name=module_name,
             node_locations=configuration.topology.nodes,
             wireless_range=args.distance,
             seed=args.seed if args.seed is not None else self.secure_random()
