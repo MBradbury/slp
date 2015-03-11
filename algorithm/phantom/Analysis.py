@@ -28,6 +28,7 @@ class Analyzer(AnalyzerCommon):
         d['time taken']         = lambda x: format_results(x, 'TimeTaken')
         d['normal']             = lambda x: format_results(x, 'NormalSent')
         d['away']               = lambda x: format_results(x, 'AwaySent')
+        d['beacon']             = lambda x: format_results(x, 'BeaconSent')
         d['ssd']                = lambda x: format_results(x, 'NormalSinkSourceHops')
 
         d['wall time']          = lambda x: format_results(x, 'WallTime')

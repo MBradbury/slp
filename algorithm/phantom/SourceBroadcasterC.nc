@@ -200,10 +200,11 @@ implementation
 		uint32_t i;
 		uint32_t possible_sets = 0;
 
-		//assert(type == SourceNode);
-
+		// We want compare sink distance if we do not know our sink distance
 		if (sink_distance != BOTTOM)
 		{
+			// Find nodes whose sink distance is less than or greater than
+			// our sink distance.
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				NeighbourDetail const* const neighbour = &neighbours.data[i];
@@ -244,8 +245,8 @@ implementation
 		{
 			if (neighbours.size > 0)
 			{
-				// There are neighbours, but none with sensible distances...
-				// Or we don't know our sink distance
+				// There are neighbours, but none with sensible distances (i.e., their distance is the same as ours)...
+				// Or we don't know our sink distance.
 				const uint16_t rnd = call Random.rand16() % 2;
 				if (rnd == 0)
 				{
@@ -267,7 +268,7 @@ implementation
 
 	am_addr_t random_walk_target(NormalMessage const* rcvd, const am_addr_t* to_ignore)
 	{
-		am_addr_t chosen_address = AM_BROADCAST_ADDR;
+		am_addr_t chosen_address;
 		uint32_t i;
 
 		Neighbours local_neighbours;
@@ -300,7 +301,8 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			//dbgverbose("stdout", "dsink=%d neighbours-size=%u \n", sink_distance, neighbours.size);
+			dbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dsink=%d, my-neighbours-size=%u)\n",
+				sink_distance, neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
@@ -309,14 +311,17 @@ implementation
 			// Choose a neighbour with equal probabilities.
 			const uint16_t rnd = call Random.rand16();
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
+			const NeighbourDetail* const neighbour = &local_neighbours.data[neighbour_index];
 
 #ifdef SLP_VERBOSE_DEBUG
 			print_neighbours("stdout", &local_neighbours);
 #endif
 
-			chosen_address = local_neighbours.data[neighbour_index].address;
+			chosen_address = neighbour->address;
 
-			dbgverbose("stdout", "Chosen %u at index %u (%u) out of %u neighbours\n", chosen_address, neighbour_index, rnd, local_neighbours.size);
+			dbgverbose("stdout", "Chosen %u at index %u (%u) out of %u neighbours (their-dsink=%d my-dsink=%d)\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				neighbour->sink_distance, sink_distance);
 		}
 
 		return chosen_address;
@@ -422,6 +427,7 @@ implementation
 		message.source_distance = 0;
 		message.sink_distance_of_sender = sink_distance;
 		message.source_period = source_period;
+		message.force_broadcast = FALSE;
 
 		message.further_or_closer_set = random_walk_direction();
 
@@ -473,7 +479,7 @@ implementation
 		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
 		message.sequence_number = 0;
-		message.sender_sink_distance = sink_distance;
+		message.sink_distance_of_sender = sink_distance;
 
 		call PacketLink.setRetries(&packet, 0);
 		call PacketLink.setRetryDelay(&packet, 0);
@@ -482,7 +488,7 @@ implementation
 		send_Beacon_message(&message, AM_BROADCAST_ADDR);
 	}
 
-	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 
@@ -494,14 +500,14 @@ implementation
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
-			dbgverbose("stdout", "%s: Received unseen Normal seqno=%u from %u (dsrc=%u).\n",
+			dbgverbose("stdout", "%s: Received unseen Normal seqno=%u from %u (dsrc=%d).\n",
 				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
 			forwarding_message.sink_distance_of_sender = sink_distance;
 
-			if (rcvd->source_distance < RANDOM_WALK_HOPS)
+			if (rcvd->source_distance < RANDOM_WALK_HOPS && !rcvd->force_broadcast)
 			{
 				am_addr_t target;
 
@@ -515,14 +521,23 @@ implementation
 						sim_time_string(), forwarding_message.further_or_closer_set);
 				}
 
+				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(&forwarding_message, &source_addr);
+
+				// Once the target becomes a broadcast we need to keep it as
+				// a broadcast. Not doing so can lead to message losses
+				// when unicasted to a node that has received that normal message before.
+				if (target == AM_BROADCAST_ADDR)
+				{
+					forwarding_message.force_broadcast = TRUE;
+				}
 
 				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
 				call PacketLink.setRetries(&packet, random_walk_retries());
 				call PacketLink.setRetryDelay(&packet, random_walk_delay(rcvd->source_period));
-				call PacketAcknowledgements.requestAck(&packet);
+				call PacketAcknowledgements.noAck(&packet);
 
 				send_Normal_message(&forwarding_message, target);
 			}
@@ -534,7 +549,15 @@ implementation
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
-		}
+		}	
+	}
+
+	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (rcvd->sink_distance_of_sender != BOTTOM)
+			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
+
+		process_normal(msg, rcvd, source_addr);
 	}
 
 	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -542,11 +565,14 @@ implementation
 		// It is helpful to have the sink forward Normal messages onwards
 		// Otherwise there is a chance the random walk would terminate at the sink and
 		// not flood the network.
-		Normal_receieve_Normal(msg, rcvd, source_addr);
+		process_normal(msg, rcvd, source_addr);
 	}
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		if (rcvd->sink_distance_of_sender != BOTTOM)
+			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
+
 		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 	}
 
@@ -576,9 +602,13 @@ implementation
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		if (rcvd->sink_distance_of_sender != BOTTOM)
+			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
+
 		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 
-		dbgverbose("stdout", "Snooped a normal from %u intended for %u\n", source_addr, call AMPacket.destination(msg));
+		//dbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dsink=%d, my-dsink=%d)\n",
+		//	source_addr, call AMPacket.destination(msg), rcvd->sink_distance_of_sender, sink_distance);
 	}
 
 	// We need to snoop packets that may be unicasted,
@@ -630,7 +660,10 @@ implementation
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		insert_neighbour(&neighbours, source_addr, rcvd->sender_sink_distance);
+		if (rcvd->sink_distance_of_sender != BOTTOM)
+			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
+
+		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
