@@ -1,5 +1,7 @@
 from __future__ import print_function
-import os, math, select, random, gc
+import os, math, select, random, gc, importlib
+
+from tinyos.tossim.TossimApp import NescApp
 
 from scipy.spatial.distance import euclidean
 
@@ -37,8 +39,14 @@ class OutputCatcher(object):
         self.write = None
 
 class Simulator(object):
-    def __init__(self, TOSSIM, node_locations, wireless_range, seed):
-        self.tossim = TOSSIM.Tossim([])
+    def __init__(self, module_name, node_locations, wireless_range, seed):
+
+        TOSSIM = importlib.import_module('{}.TOSSIM'.format(module_name))
+
+        app_path = os.path.join(module_name.replace('.', os.sep), 'app.xml')
+
+        self.nesc_app = NescApp(xmlFile=app_path)
+        self.tossim = TOSSIM.Tossim(self.nesc_app.variables.variables())
         self.radio = self.tossim.radio()
 
         self.out_procs = []
