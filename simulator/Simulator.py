@@ -177,7 +177,7 @@ class Simulator(object):
     def _post_run(self, event_count):
         pass
 
-    def _during_run(self):
+    def _during_run(self, event_count):
         for op in self.out_procs:
             op.process()
 
@@ -198,7 +198,7 @@ class Simulator(object):
                     print("Run next event returned 0 ({})".format(event_count))
                     break
 
-                self._during_run()
+                self._during_run(event_count)
 
                 event_count += 1
 

@@ -118,7 +118,7 @@ implementation
 		for (i = 0; i != neighbours->size; ++i)
 		{
 			NeighbourDetail const* neighbour = &neighbours->data[i];
-			dbg_clear(name, "[%u] => %u / %d",
+			dbg_clear(name, "[%u] => addr=%u / dsink=%d",
 				i, neighbour->address, neighbour->sink_distance);
 
 			if ((i + 1) != neighbours->size)
@@ -308,18 +308,73 @@ implementation
 		}
 		else
 		{
+#if 0 
+			// Weighted probability distribution towards the neighbour,
+			// with the best signal strength.
+
+			const float rnd = random_float();
+
+			double total_forwarded = 0;
+			double pr_start = 0;
+
+			NeighbourDetail* neighbour = NULL;
+
+			for (i = 0; i != local_neighbours.size; ++i)
+			{
+				neighbour = &local_neighbours.data[i];
+
+				total_forwarded += neighbour->number_forwarded;
+			}
+
+			
+			for (i = 0; i != local_neighbours.size; ++i)
+			{
+				neighbour = &local_neighbours.data[i];
+
+				if (total_forwarded != 0)
+				{
+					neighbour->number_forwarded /= total_forwarded;
+				}
+				else
+				{
+					neighbour->number_forwarded = 1.0 / local_neighbours.size;
+				}
+			}
+
+			//dbg("stdout", "rnd=%f  ", rnd);
+			//print_neighbours("stdout", &local_neighbours);
+
+			for (i = 0; i != local_neighbours.size; ++i)
+			{
+				double pr;
+
+				neighbour = &local_neighbours.data[i];
+
+				pr = neighbour->number_forwarded;
+
+				dbg("stdout", "%u: (pr=%f) %f <= %f <= %f\n", neighbour->address, pr, pr_start, rnd, pr_start + pr);
+
+				if (pr_start <= rnd && rnd <= pr_start + pr)
+				{
+					break;
+				}
+
+				pr_start += pr;
+			}
+#endif
+
 			// Choose a neighbour with equal probabilities.
 			const uint16_t rnd = call Random.rand16();
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const NeighbourDetail* const neighbour = &local_neighbours.data[neighbour_index];
 
+			chosen_address = neighbour->address;
+
 #ifdef SLP_VERBOSE_DEBUG
 			print_neighbours("stdout", &local_neighbours);
 #endif
 
-			chosen_address = neighbour->address;
-
-			dbgverbose("stdout", "Chosen %u at index %u (%u) out of %u neighbours (their-dsink=%d my-dsink=%d)\n",
+			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d)\n",
 				chosen_address, neighbour_index, rnd, local_neighbours.size,
 				neighbour->sink_distance, sink_distance);
 		}

@@ -74,6 +74,7 @@ class TosVis(Simulator):
             seed=seed)
 
         self.run_gui = False
+        self.node_label = None
 
         self.debug_analyzer = None
         self.scene = None
@@ -85,6 +86,8 @@ class TosVis(Simulator):
             return
 
         self.run_gui = True
+
+        #self.node_label = "SourceBroadcasterC.sink_distance"
 
         self.debug_analyzer = DebugAnalyzer()
 
@@ -210,5 +213,16 @@ class TosVis(Simulator):
             for node in self.nodes:
                 self.scene.execute(time,
                     'node({},{},{})'.format(node.nid, *self.adjust_location(node.location)))
+
+    def _during_run(self, event_count):
+        super(TosVis, self)._during_run(event_count)
+
+        if self.run_gui and event_count % 1000 == 0 and self.node_label is not None:
+            for node in self.nodes:
+                time = self.sim_time()
+
+                value = node.tossim_node.getVariable(self.node_label).getData()
+
+                self.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 
 ###############################################

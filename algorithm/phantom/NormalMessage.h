@@ -17,7 +17,7 @@ typedef nx_struct NormalMessage
   nx_int16_t sink_distance_of_sender;
 
   nx_uint8_t further_or_closer_set;
-  
+
   nx_uint8_t force_broadcast;
 
   nx_uint32_t source_period;
