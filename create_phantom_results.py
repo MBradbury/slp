@@ -29,7 +29,7 @@ jar_path = 'run.py'
 
 distance = 4.5
 
-sizes = [ 11 ]
+sizes = [ 11, 15, 21, 25 ]
 
 source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
@@ -49,7 +49,7 @@ configurations = [
     #'CircleSinkCentre',
 ]
 
-walk_hop_lengths = [ 6, 10, 14, 18 ]
+walk_hop_lengths = { 11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28] }
 walk_retries = [ 0, 5, 10 ]
 
 repeats = 500
