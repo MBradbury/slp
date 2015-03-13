@@ -34,3 +34,5 @@ with Simulation(module, configuration, a.args) as sim:
         print(traceback.format_exc(), file=sys.stderr)
     else:
         sim.metrics.print_results()
+
+        sys.exit(0)
