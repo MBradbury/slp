@@ -38,7 +38,8 @@ class Runner:
             "Arguments.py",
             "Runner.py",
             "Metrics.py",
-            "__init__.py"
+            "__init__.py",
+            "app.xml",
         ]
         for name in files_to_move:
             shutil.copy(os.path.join(module_path, name), target_directory)
