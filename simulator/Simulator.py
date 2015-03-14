@@ -43,7 +43,7 @@ class Simulator(object):
 
         TOSSIM = importlib.import_module('{}.TOSSIM'.format(module_name))
 
-        app_path = os.path.join(module_name.replace('.', os.sep), 'app.xml')
+        app_path = os.path.join('.', module_name.replace('.', os.sep), 'app.xml')
 
         self.nesc_app = NescApp(xmlFile=app_path)
         self.tossim = TOSSIM.Tossim(self.nesc_app.variables.variables())
