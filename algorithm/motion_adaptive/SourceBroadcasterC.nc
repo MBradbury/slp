@@ -447,28 +447,6 @@ implementation
 		}
 	}
 
-	// Returns true if the source id has changed
-	bool handle_source_id_changed(const NormalMessage* const rcvd)
-	{
-		// If the source has changed or this is the first time that we have received a Normal message
-		if (rcvd->source_id != source_node_id)
-		{
-			dbg_clear("Metric-SOURCE_CHANGE_DETECT", "%" PRIu64 ",%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
-
-			source_node_id = rcvd->source_id;
-
-			// Reset variables to the new values
-			update_source_distance(rcvd->source_distance + 1);
-			update_sink_source_distance(rcvd->sink_source_distance);
-
-			return TRUE;
-		}
-		else
-		{
-			return FALSE;
-		}
-	}
-
 #define EWMA_FACTOR 0.7
 
 	int32_t ewma_update(int32_t store, uint32_t new_value)
@@ -508,6 +486,29 @@ implementation
 		//source_distance = minbot(source_distance, provided_source_distance);
 
 		source_distance = ewma_update(source_distance, provided_source_distance);
+	}
+
+
+	// Returns true if the source id has changed
+	bool handle_source_id_changed(const NormalMessage* const rcvd)
+	{
+		// If the source has changed or this is the first time that we have received a Normal message
+		if (rcvd->source_id != source_node_id)
+		{
+			dbg_clear("Metric-SOURCE_CHANGE_DETECT", "%" PRIu64 ",%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
+
+			source_node_id = rcvd->source_id;
+
+			// Reset variables to the new values
+			update_source_distance(rcvd->source_distance + 1);
+			update_sink_source_distance(rcvd->sink_source_distance);
+
+			return TRUE;
+		}
+		else
+		{
+			return FALSE;
+		}
 	}
 
 
