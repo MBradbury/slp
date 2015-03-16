@@ -458,8 +458,8 @@ implementation
 			source_node_id = rcvd->source_id;
 
 			// Reset variables to the new values
-			source_distance = rcvd->source_distance + 1;
-			sink_source_distance = rcvd->sink_source_distance;
+			update_source_distance(rcvd->source_distance + 1);
+			update_sink_source_distance(rcvd->sink_source_distance);
 
 			return TRUE;
 		}
