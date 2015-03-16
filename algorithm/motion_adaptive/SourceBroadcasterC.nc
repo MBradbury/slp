@@ -310,6 +310,7 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
+			sink_distance = 0;
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
@@ -446,6 +447,7 @@ implementation
 		}
 	}
 
+	// Returns true if the source id has changed
 	bool handle_source_id_changed(const NormalMessage* const rcvd)
 	{
 		// If the source has changed or this is the first time that we have received a Normal message
@@ -467,6 +469,48 @@ implementation
 		}
 	}
 
+#define EWMA_FACTOR 0.7
+
+	int32_t ewma_update(int32_t store, uint32_t new_value)
+	{
+		if (store == BOTTOM)
+		{
+			return new_value;
+		}
+		else
+		{
+			const double intermediate = EWMA_FACTOR * new_value + (1.0 - EWMA_FACTOR) * store;
+
+			// Round to the nearest whole number
+			return (int32_t)floor(intermediate + 0.5);
+		}
+	}
+
+	void update_sink_source_distance(int32_t provided_sink_source_distance)
+	{
+		//sink_source_distance = minbot(sink_source_distance, provided_sink_source_distance);
+
+		if (provided_sink_source_distance != BOTTOM)
+		{
+			sink_source_distance = ewma_update(sink_source_distance, provided_sink_source_distance);
+		}
+	}
+
+	void update_sink_distance(uint32_t provided_sink_distance)
+	{
+		//sink_distance = minbot(sink_distance, provided_sink_distance);
+
+		sink_distance = ewma_update(sink_distance, provided_sink_distance);
+	}
+
+	void update_source_distance(uint32_t provided_source_distance)
+	{
+		//source_distance = minbot(source_distance, provided_source_distance);
+
+		source_distance = ewma_update(source_distance, provided_source_distance);
+	}
+
+
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
@@ -475,7 +519,7 @@ implementation
 			call Leds.led1Off();
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -502,7 +546,7 @@ implementation
 				call Leds.led1On();
 			}
 
-			source_distance = minbot(source_distance, rcvd->source_distance + 1);
+			update_source_distance(rcvd->source_distance + 1);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -530,7 +574,7 @@ implementation
 
 			handle_source_id_changed(rcvd);
 
-			sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
+			update_sink_source_distance(rcvd->source_distance + 1);
 
 			if (!sink_sent_away)
 			{
@@ -541,7 +585,7 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -590,7 +634,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -605,8 +649,8 @@ implementation
 				source_period = rcvd->source_period;
 			}
 
-			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
-			sink_source_distance = minbot(sink_source_distance, sink_distance);
+			update_sink_distance(rcvd->sink_distance + 1);
+			update_sink_source_distance(sink_distance);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -632,7 +676,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -647,7 +691,7 @@ implementation
 				source_period = rcvd->source_period;
 			}
 
-			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+			update_sink_distance(rcvd->sink_distance + 1);
 
 			if (rcvd->sink_distance == 0)
 			{
@@ -687,8 +731,8 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		update_sink_source_distance(rcvd->sink_source_distance);
+		update_sink_distance(rcvd->sink_distance + 1);
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && should_process_choose())
 		{
@@ -720,7 +764,7 @@ implementation
 
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -738,7 +782,7 @@ implementation
 
 	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -759,7 +803,7 @@ implementation
 			call Leds.led1Off();
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -786,7 +830,7 @@ implementation
 			call Leds.led1Off();
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{

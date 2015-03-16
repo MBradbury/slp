@@ -36,6 +36,9 @@ implementation
 
 	command void FakeMessageGenerator.start(const AwayChooseMessage* original)
 	{
+		// Shouldn't start sending fake messages when already sending them
+		assert(!(call SendFakeTimer.isRunning()));
+
 		original_message = *original;
 
 		// The first fake message is to be sent half way through the period.
