@@ -87,7 +87,7 @@ class TosVis(Simulator):
 
         self.run_gui = True
 
-        #self.node_label = "SourceBroadcasterC.sink_distance"
+        #self.node_label = "SourceBroadcasterC.sink_source_distance_ewma"
 
         self.debug_analyzer = DebugAnalyzer()
 
@@ -221,7 +221,7 @@ class TosVis(Simulator):
             for node in self.nodes:
                 time = self.sim_time()
 
-                value = node.tossim_node.getVariable(self.node_label).getData()
+                value = int(round(float(node.tossim_node.getVariable(self.node_label).getData())))
 
                 self.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 

@@ -78,9 +78,17 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint64_t source_fake_sequence_increments;
 
-	int32_t sink_source_distance = BOTTOM;
+	/*int32_t sink_source_distance = BOTTOM;
 	int32_t source_distance = BOTTOM;
-	int32_t sink_distance = BOTTOM;
+	int32_t sink_distance = BOTTOM;*/
+
+	double sink_source_distance_ewma;
+	double source_distance_ewma;
+	double sink_distance_ewma;
+
+	bool sink_source_distance_set = FALSE;
+	bool source_distance_set = FALSE;
+	bool sink_distance_set = FALSE;
 
 	int32_t source_period = BOTTOM;
 
@@ -126,17 +134,30 @@ implementation
 		return distance;
 	}
 
+	int32_t get_sink_source_distance()
+	{
+		return sink_source_distance_set ? (int32_t)floor(sink_source_distance_ewma + 0.5) : BOTTOM;
+	}
+	int32_t get_source_distance()
+	{
+		return source_distance_set ? (int32_t)floor(source_distance_ewma + 0.5) : BOTTOM;
+	}
+	int32_t get_sink_distance()
+	{
+		return sink_distance_set ? (int32_t)floor(sink_distance_ewma + 0.5) : BOTTOM;
+	}
+
 	bool should_process_choose()
 	{
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			return !(sink_source_distance != BOTTOM &&
-				source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
+			return !(get_sink_source_distance() != BOTTOM &&
+				get_source_distance() <= ignore_choose_distance((4 * get_sink_source_distance()) / 5));
 
 		case FurtherAlgorithm:
-			return !seen_pfs && !(sink_source_distance != BOTTOM &&
-				source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
+			return !seen_pfs && !(get_sink_source_distance() != BOTTOM &&
+				get_source_distance() <= ignore_choose_distance(((1 * get_sink_source_distance()) / 2) - 1));
 
 		default:
 			return TRUE;
@@ -178,19 +199,19 @@ implementation
 			// It has the added benefit that this is only true when the TFS is further from
 			// the source than the sink is.
 			// This means that TFSs near the source will send fewer messages.
-			if (source_distance == BOTTOM || sink_source_distance == BOTTOM)
+			if (get_source_distance() == BOTTOM || get_sink_source_distance() == BOTTOM)
 			{
-				distance = sink_distance;
+				distance = get_sink_distance();
 			}
 			else
 			{
-				distance = source_distance - sink_source_distance;
+				distance = get_source_distance() - get_sink_source_distance();
 			}
 			break;
 
 		default:
 		case FurtherAlgorithm:
-			distance = max(sink_source_distance, sink_distance);
+			distance = max(get_sink_source_distance(), get_sink_distance());
 			break;
 		}
 
@@ -207,12 +228,12 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			distance = sink_distance + sink_distance;
+			distance = get_sink_distance() * 2;
 			break;
 
 		default:
 		case FurtherAlgorithm:
-			distance = max(sink_source_distance, sink_distance);
+			distance = max(get_sink_source_distance(), get_sink_distance());
 			break;
 		}
 
@@ -229,8 +250,8 @@ implementation
 	{
 		uint32_t distance = get_dist_to_pull_back();
 
-		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
-			distance, source_distance, sink_distance, sink_source_distance);
+		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%f, Dsink=%f, Dss=%f)\n",
+			distance, source_distance_ewma, sink_distance_ewma, sink_source_distance_ewma);
 
 		return distance;
 	}
@@ -241,12 +262,13 @@ implementation
 
 		assert(source_period != BOTTOM);
 
-		if (sink_distance <= 1)
+		if (get_sink_distance() <= 1)
 		{
 			duration -= get_away_delay();
 		}
 
-		dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%f)\n",
+			duration, sink_distance_ewma);
 
 		return duration;
 	}
@@ -310,7 +332,8 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			sink_distance = 0;
+			sink_distance_ewma = 0;
+			sink_distance_set = TRUE;
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
@@ -411,7 +434,7 @@ implementation
 		message.source_distance = 0;
 		message.max_hop = first_source_distance;
 		message.source_id = TOS_NODE_ID;
-		message.sink_source_distance = sink_distance;
+		message.sink_source_distance = get_sink_distance();
 
 		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
 		message.fake_sequence_increments = source_fake_sequence_increments;
@@ -431,8 +454,8 @@ implementation
 		AwayMessage message;
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.sink_distance = 0;
-		message.sink_source_distance = sink_source_distance;
-		message.max_hop = sink_source_distance;
+		message.sink_source_distance = get_sink_source_distance();
+		message.max_hop = get_sink_source_distance();
 		message.source_id = TOS_NODE_ID;
 		message.algorithm = ALGORITHM;
 		message.source_period = source_period;
@@ -449,43 +472,43 @@ implementation
 
 #define EWMA_FACTOR 0.7
 
-	int32_t ewma_update(int32_t store, uint32_t new_value)
-	{
-		if (store == BOTTOM)
-		{
-			return new_value;
-		}
-		else
-		{
-			const double intermediate = EWMA_FACTOR * new_value + (1.0 - EWMA_FACTOR) * store;
+#define EWMA_UPDATE(NAME, NEW_VALUE) \
+	do \
+	{ \
+		if (!NAME##_set) \
+		{ \
+			NAME##_ewma = NEW_VALUE; \
+		} \
+		else \
+		{ \
+			NAME##_ewma = EWMA_FACTOR * NEW_VALUE + (1.0 - EWMA_FACTOR) * NAME##_ewma; \
+		} \
+		NAME##_set = TRUE; \
+	} \
+	while (FALSE)
 
-			// Round to the nearest whole number
-			return (int32_t)floor(intermediate + 0.5);
-		}
-	}
-
-	void update_sink_source_distance(int32_t provided_sink_source_distance)
+	void update_sink_source_distance(int32_t provided)
 	{
 		//sink_source_distance = minbot(sink_source_distance, provided_sink_source_distance);
 
-		if (provided_sink_source_distance != BOTTOM)
+		if (provided != BOTTOM)
 		{
-			sink_source_distance = ewma_update(sink_source_distance, provided_sink_source_distance);
+			EWMA_UPDATE(sink_source_distance, provided);
 		}
 	}
 
-	void update_sink_distance(uint32_t provided_sink_distance)
+	void update_sink_distance(uint32_t provided)
 	{
-		//sink_distance = minbot(sink_distance, provided_sink_distance);
+		//sink_distance = minbot(sink_distance, provided);
 
-		sink_distance = ewma_update(sink_distance, provided_sink_distance);
+		EWMA_UPDATE(sink_distance, provided);
 	}
 
-	void update_source_distance(uint32_t provided_source_distance)
+	void update_source_distance(uint32_t provided)
 	{
-		//source_distance = minbot(source_distance, provided_source_distance);
+		//source_distance = minbot(source_distance, provided);
 
-		source_distance = ewma_update(source_distance, provided_source_distance);
+		EWMA_UPDATE(source_distance, provided);
 	}
 
 
@@ -520,8 +543,6 @@ implementation
 			call Leds.led1Off();
 		}
 
-		update_sink_source_distance(rcvd->sink_source_distance);
-
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -534,6 +555,8 @@ implementation
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
 
 			source_period = rcvd->source_period;
+
+			update_sink_source_distance(rcvd->sink_source_distance);
 
 			handle_source_id_changed(rcvd);
 
@@ -550,7 +573,7 @@ implementation
 			update_source_distance(rcvd->source_distance + 1);
 
 			forwarding_message = *rcvd;
-			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.source_distance += 1;
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
@@ -575,6 +598,7 @@ implementation
 
 			handle_source_id_changed(rcvd);
 
+			update_source_distance(rcvd->source_distance + 1);
 			update_sink_source_distance(rcvd->source_distance + 1);
 
 			if (!sink_sent_away)
@@ -586,8 +610,6 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		update_sink_source_distance(rcvd->sink_source_distance);
-
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -601,6 +623,8 @@ implementation
 
 			source_period = rcvd->source_period;
 
+			update_sink_source_distance(rcvd->sink_source_distance);
+
 			if (handle_source_id_changed(rcvd))
 			{
 				// TODO:
@@ -609,7 +633,7 @@ implementation
 			}
 
 			forwarding_message = *rcvd;
-			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.source_distance += 1;
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
@@ -635,8 +659,6 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		update_sink_source_distance(rcvd->sink_source_distance);
-
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
@@ -650,11 +672,13 @@ implementation
 				source_period = rcvd->source_period;
 			}
 
+			update_sink_source_distance(rcvd->sink_source_distance);
+
 			update_sink_distance(rcvd->sink_distance + 1);
-			update_sink_source_distance(sink_distance);
+			update_sink_source_distance(rcvd->sink_distance + 1);
 
 			forwarding_message = *rcvd;
-			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 
@@ -677,8 +701,6 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		update_sink_source_distance(rcvd->sink_source_distance);
-
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
@@ -692,6 +714,8 @@ implementation
 				source_period = rcvd->source_period;
 			}
 
+			update_sink_source_distance(rcvd->sink_source_distance);
+
 			update_sink_distance(rcvd->sink_distance + 1);
 
 			if (rcvd->sink_distance == 0)
@@ -702,7 +726,7 @@ implementation
 			}
 
 			forwarding_message = *rcvd;
-			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
@@ -732,9 +756,6 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		update_sink_source_distance(rcvd->sink_source_distance);
-		update_sink_distance(rcvd->sink_distance + 1);
-
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && should_process_choose())
 		{
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
@@ -745,6 +766,9 @@ implementation
 			{
 				source_period = rcvd->source_period;
 			}
+
+			update_sink_source_distance(rcvd->sink_source_distance);
+			update_sink_distance(rcvd->sink_distance + 1);
 
 			if (is_pfs_candidate)
 			{
@@ -765,17 +789,17 @@ implementation
 
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		update_sink_source_distance(rcvd->sink_source_distance);
-
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage message = *rcvd;
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
+			update_sink_source_distance(rcvd->sink_source_distance);
+
 			METRIC_RCV(Fake, 0);
 
-			message.sink_source_distance = sink_source_distance;
+			message.sink_source_distance = get_sink_source_distance();
 
 			send_Fake_message(&message, AM_BROADCAST_ADDR);
 		}
@@ -783,12 +807,12 @@ implementation
 
 	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		update_sink_source_distance(rcvd->sink_source_distance);
-
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 			source_fake_sequence_increments += 1;
+
+			update_sink_source_distance(rcvd->sink_source_distance);
 
 			METRIC_RCV(Fake, 0);
 
@@ -804,19 +828,19 @@ implementation
 			call Leds.led1Off();
 		}
 
-		update_sink_source_distance(rcvd->sink_source_distance);
-
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
+			update_sink_source_distance(rcvd->sink_source_distance);
+
 			METRIC_RCV(Fake, 0);
 
 			seen_pfs |= rcvd->from_pfs;
 
-			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
@@ -831,19 +855,19 @@ implementation
 			call Leds.led1Off();
 		}
 
-		update_sink_source_distance(rcvd->sink_source_distance);
-
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
+			update_sink_source_distance(rcvd->sink_source_distance);
+
 			METRIC_RCV(Fake, 0);
 
 			seen_pfs |= rcvd->from_pfs;
 
-			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
@@ -852,9 +876,9 @@ implementation
 				type == PermFakeNode &&
 				rcvd->from_pfs &&
 				(
-					(rcvd->source_distance > source_distance) ||
-					(rcvd->source_distance == source_distance && sink_distance < rcvd->sink_distance) ||
-					(rcvd->source_distance == source_distance && sink_distance == rcvd->sink_distance && TOS_NODE_ID < rcvd->source_id)
+					(rcvd->source_distance > get_source_distance()) ||
+					(rcvd->source_distance == get_source_distance() && get_sink_distance() < rcvd->sink_distance) ||
+					(rcvd->source_distance == get_source_distance() && get_sink_distance() == rcvd->sink_distance && TOS_NODE_ID < rcvd->source_id)
 				)
 				)
 			{
@@ -892,10 +916,10 @@ implementation
 	event void FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
 	{
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
-		message->sink_source_distance = sink_source_distance;
-		message->source_distance = source_distance;
+		message->sink_source_distance = get_sink_source_distance();
+		message->source_distance = get_source_distance();
 		message->max_hop = first_source_distance;
-		message->sink_distance = sink_distance;
+		message->sink_distance = get_sink_distance();
 		message->from_pfs = (type == PermFakeNode);
 		message->source_id = TOS_NODE_ID;
 	}
@@ -908,7 +932,7 @@ implementation
 
 		// When finished sending fake messages from a TFS
 
-		message.sink_source_distance = sink_source_distance;
+		message.sink_source_distance = get_sink_source_distance();
 		message.sink_distance += 1;
 
 		// TODO: repeat 3
