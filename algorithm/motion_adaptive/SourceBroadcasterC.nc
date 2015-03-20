@@ -628,7 +628,7 @@ implementation
 			if (handle_source_id_changed(rcvd))
 			{
 				// TODO:
-				// Consider changing the pater of fake sources to reflect
+				// Consider changing the pattern of fake sources to reflect
 				// the new source location
 			}
 
