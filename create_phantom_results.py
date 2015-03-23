@@ -14,11 +14,11 @@ import algorithm.protectionless as protectionless
 import algorithm.phantom as phantom
 
 from data.table import safety_period, fake_result
-from data.graph import summary, heatmap
+from data.graph import summary, heatmap, versus
 
 from data import results, latex
 
-from data.util import create_dirtree, recreate_dirtree, touch
+from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
 
 import numpy
 
@@ -122,18 +122,43 @@ if 'table' in args:
     create_phantom_table("phantom-results")
 
 if 'graph' in args:
+    graph_parameters = {
+        'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+        'ssd': ('Sink-Source Distance (hops)', 'left top'),
+        'captured': ('Capture Ratio (%)', 'right top'),
+        'sent': ('Total Messages Sent', 'left top'),
+        'received ratio': ('Receive Ratio (%)', 'left bottom'),
+    }
+
+    heatmap_results = ['sent heatmap', 'received heatmap']
+
     phantom_results = results.Results(phantom.result_file_path,
         parameters=parameter_names,
-        results=('sent heatmap', 'received heatmap'))
+        results=tuple(graph_parameters.keys() + heatmap_results))    
 
-    heatmap.Grapher(phantom_results, 'sent heatmap', phantom.graphs_path).create()
-    heatmap.Grapher(phantom_results, 'received heatmap', phantom.graphs_path).create()
+    #for name in heatmap_results:
+    #    heatmap.Grapher(phantom.graphs_path, phantom_results, name).create()
+    #    summary.GraphSummary(os.path.join(phantom.graphs_path, name), 'phantom-' + name.replace(" ", "_")).run()
 
-    # Don't need these as they are contained in the results file
-    #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
-    #    summary.GraphSummary(
-    #        os.path.join(phantom.graphs_path, 'Versus/{}/Source-Period'.format(subdir)),
-    #        subdir).run()
+    parameters = [
+        ('source period', ' seconds'),
+        ('walk length', ' hops'),
+        ('walk retries', '')
+    ]
 
-    summary.GraphSummary(os.path.join(phantom.graphs_path, 'sent heatmap'), 'phantom-SentHeatMap').run()
-    summary.GraphSummary(os.path.join(phantom.graphs_path, 'received heatmap'), 'phantom-ReceivedHeatMap').run()
+    for (parameter_name, parameter_unit) in parameters:
+        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+            name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
+
+            g = versus.Grapher(phantom.graphs_path, name,
+                xaxis='size', yaxis=yaxis, vary=parameter_name, yextractor=scalar_extractor)
+
+            g.xaxis_label = 'Network Size'
+            g.yaxis_label = yaxis_label
+            g.vary_label = parameter_name.title()
+            g.vary_prefix = parameter_unit
+            g.key_position = key_position
+
+            g.create(phantom_results)
+
+            summary.GraphSummary(os.path.join(phantom.graphs_path, name), 'phantom-' + name).run()
