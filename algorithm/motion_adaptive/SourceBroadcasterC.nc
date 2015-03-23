@@ -78,10 +78,6 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint64_t source_fake_sequence_increments;
 
-	/*int32_t sink_source_distance = BOTTOM;
-	int32_t source_distance = BOTTOM;
-	int32_t sink_distance = BOTTOM;*/
-
 	double sink_source_distance_ewma;
 	double source_distance_ewma;
 	double sink_distance_ewma;
@@ -667,19 +663,13 @@ implementation
 
 			METRIC_RCV(Away, rcvd->sink_distance + 1);
 
-			if (source_period == BOTTOM)
-			{
-				source_period = rcvd->source_period;
-			}
-
-			update_sink_source_distance(rcvd->sink_source_distance);
-
 			update_sink_distance(rcvd->sink_distance + 1);
 			update_sink_source_distance(rcvd->sink_distance + 1);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.sink_distance += 1;
+			forwarding_message.source_period = source_period;
 			forwarding_message.algorithm = algorithm;
 
 			// TODO: repeat 2
