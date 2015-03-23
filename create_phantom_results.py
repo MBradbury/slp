@@ -136,9 +136,9 @@ if 'graph' in args:
         parameters=parameter_names,
         results=tuple(graph_parameters.keys() + heatmap_results))    
 
-    #for name in heatmap_results:
-    #    heatmap.Grapher(phantom.graphs_path, phantom_results, name).create()
-    #    summary.GraphSummary(os.path.join(phantom.graphs_path, name), 'phantom-' + name.replace(" ", "_")).run()
+    for name in heatmap_results:
+        heatmap.Grapher(phantom.graphs_path, phantom_results, name).create()
+        summary.GraphSummary(os.path.join(phantom.graphs_path, name), 'phantom-' + name.replace(" ", "_")).run()
 
     parameters = [
         ('source period', ' seconds'),
