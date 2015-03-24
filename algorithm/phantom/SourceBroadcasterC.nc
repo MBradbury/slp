@@ -1,6 +1,7 @@
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
+#include "NeighbourDetail.h"
 
 #include "NormalMessage.h"
 #include "AwayMessage.h"
@@ -20,19 +21,21 @@
 
 typedef struct
 {
-	am_addr_t address;
 	int16_t sink_distance;
-} NeighbourDetail;
+} sink_distance_container_t;
 
-// The maximum size of the 2-hop neighbourhood,
-// When the 1-hop neighbourhood has a maximum size of 4 nodes.
-enum { MaxNeighbours = 16 };
-
-typedef struct
+void dsink_update(sink_distance_container_t* find, sink_distance_container_t const* given)
 {
-	NeighbourDetail data[MaxNeighbours];
-	uint32_t size;
-} Neighbours;
+	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
+}
+
+void dsink_print(char* name, size_t i, am_addr_t address, sink_distance_container_t const* contents)
+{
+	dbg_clear(name, "[%u] => addr=%u / dsink=%d",
+		i, address, contents->sink_distance);
+}
+
+DEFINE_NEIGHBOUR_DETAIL(sink_distance_container_t, dsink, dsink_update, dsink_print, 16);
 
 module SourceBroadcasterC
 {
@@ -68,68 +71,6 @@ module SourceBroadcasterC
 
 implementation 
 {
-	inline void init_neighbours(Neighbours* neighbours)
-	{
-		neighbours->size = 0;
-	}
-
-	NeighbourDetail* find_neighbour(Neighbours* neighbours, am_addr_t address)
-	{
-		uint32_t i;
-		for (i = 0; i != neighbours->size; ++i)
-		{
-			if (neighbours->data[i].address == address)
-			{
-				return &neighbours->data[i];
-			}
-		}
-		return NULL;
-	}
-
-	bool insert_neighbour(Neighbours* neighbours, am_addr_t address, int16_t sink_distance)
-	{
-		NeighbourDetail* find = find_neighbour(neighbours, address);
-
-		if (find != NULL)
-		{
-			find->sink_distance = minbot(find->sink_distance, sink_distance);
-		}
-		else
-		{
-			if (neighbours->size < MaxNeighbours)
-			{
-				find = &neighbours->data[neighbours->size];
-
-				find->address = address;
-				find->sink_distance = sink_distance;
-
-				neighbours->size += 1;
-			}
-		}
-
-		return find != NULL;
-	}
-
-	void print_neighbours(char* name, Neighbours const* neighbours)
-	{
-#ifdef TOSSIM
-		uint32_t i;
-		dbg(name, "Neighbours(size=%d, values=", neighbours->size);
-		for (i = 0; i != neighbours->size; ++i)
-		{
-			NeighbourDetail const* neighbour = &neighbours->data[i];
-			dbg_clear(name, "[%u] => addr=%u / dsink=%d",
-				i, neighbour->address, neighbour->sink_distance);
-
-			if ((i + 1) != neighbours->size)
-			{
-				dbg_clear(name, ", ");
-			}
-		}
-		dbg_clear(name, ")\n");
-#endif
-	}
-
 	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode
@@ -158,7 +99,7 @@ implementation
 
 	int16_t sink_distance = BOTTOM;
 
-	Neighbours neighbours;
+	dsink_neighbours_t neighbours;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -207,7 +148,7 @@ implementation
 			// our sink distance.
 			for (i = 0; i != neighbours.size; ++i)
 			{
-				NeighbourDetail const* const neighbour = &neighbours.data[i];
+				sink_distance_container_t const* const neighbour = &neighbours.data[i].contents;
 
 				if (sink_distance < neighbour->sink_distance)
 				{
@@ -271,8 +212,8 @@ implementation
 		am_addr_t chosen_address;
 		uint32_t i;
 
-		Neighbours local_neighbours;
-		init_neighbours(&local_neighbours);
+		dsink_neighbours_t local_neighbours;
+		init_dsink_neighbours(&local_neighbours);
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
@@ -280,7 +221,7 @@ implementation
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
-				NeighbourDetail const* const neighbour = &neighbours.data[i];
+				dsink_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
 				// Skip neighbours we have been asked to
 				if (to_ignore != NULL && *to_ignore == neighbour->address)
@@ -289,12 +230,12 @@ implementation
 				}
 
 				//dbgverbose("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
-				//	neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->sink_distance);
+				//	neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->contents.sink_distance);
 
-				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance <= neighbour->sink_distance) ||
-					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->sink_distance))
+				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance <= neighbour->contents.sink_distance) ||
+					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->contents.sink_distance))
 				{
-					insert_neighbour(&local_neighbours, neighbour->address, neighbour->sink_distance);
+					insert_dsink_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
 			}
 		}
@@ -366,17 +307,17 @@ implementation
 			// Choose a neighbour with equal probabilities.
 			const uint16_t rnd = call Random.rand16();
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
-			const NeighbourDetail* const neighbour = &local_neighbours.data[neighbour_index];
+			const dsink_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
 			chosen_address = neighbour->address;
 
 #ifdef SLP_VERBOSE_DEBUG
-			print_neighbours("stdout", &local_neighbours);
+			print_dsink_neighbours("stdout", &local_neighbours);
 #endif
 
 			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d)\n",
 				chosen_address, neighbour_index, rnd, local_neighbours.size,
-				neighbour->sink_distance, sink_distance);
+				neighbour->contents.sink_distance, sink_distance);
 		}
 
 		return chosen_address;
@@ -400,7 +341,7 @@ implementation
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
 
-		init_neighbours(&neighbours);
+		init_dsink_neighbours(&neighbours);
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
@@ -475,7 +416,7 @@ implementation
 		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
-		print_neighbours("stdout", &neighbours);
+		print_dsink_neighbours("stdout", &neighbours);
 #endif
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
@@ -545,7 +486,8 @@ implementation
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
+		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
+		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -625,10 +567,11 @@ implementation
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
+		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
+
 		if (rcvd->sink_distance_of_sender != BOTTOM)
 			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
-
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
@@ -640,7 +583,8 @@ implementation
 	// If the sink snoops a normal message, we may as well just deliver it
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
+		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
+		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
@@ -657,10 +601,11 @@ implementation
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
+		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
+
 		if (rcvd->sink_distance_of_sender != BOTTOM)
 			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
-
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 
 		//dbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dsink=%d, my-dsink=%d)\n",
 		//	source_addr, call AMPacket.destination(msg), rcvd->sink_distance_of_sender, sink_distance);
@@ -677,9 +622,10 @@ implementation
 
 	void x_receieve_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		const sink_distance_container_t dsink = { rcvd->sink_distance };
+		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance);
+		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -703,7 +649,7 @@ implementation
 		}
 
 #ifdef SLP_VERBOSE_DEBUG
-		print_neighbours("stdout", &neighbours);
+		print_dsink_neighbours("stdout", &neighbours);
 #endif
 	}
 
@@ -715,10 +661,11 @@ implementation
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
+		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
+		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
+
 		if (rcvd->sink_distance_of_sender != BOTTOM)
 			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
-
-		insert_neighbour(&neighbours, source_addr, rcvd->sink_distance_of_sender);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
