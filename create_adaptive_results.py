@@ -283,7 +283,7 @@ if 'min-max-versus' in args:
 
         g.min_label = 'Min Template'
         g.max_label = 'Max Template'
-        g.comparison_label = 'Adaptive'
+        g.comparison_label = 'Dynamic'
         g.vary_label = ''
 
         g.create(template_results, adaptive_results)
