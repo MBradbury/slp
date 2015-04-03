@@ -16,6 +16,8 @@ class Grapher(GrapherBase):
         self.min_label = 'Minimum'
         self.comparison_label = 'Comparison'
 
+        self.vvalue_label_converter = lambda x: x
+
     def create(self, comparison_results, actual_results):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
@@ -63,7 +65,7 @@ class Grapher(GrapherBase):
                     yvalue = results[ actual_results.result_names.index(self.yaxis) ]
                     yvalue = self.yextractor(yvalue)
 
-                    comp_label = "{} ({})".format(self.comparison_label, latex.escape(vvalue))
+                    comp_label = "{} ({})".format(self.comparison_label, latex.escape(self.vvalue_label_converter(vvalue)))
 
                     dat.setdefault((key_names, values), {})[(xvalue, self.max_label)] = max_comparison_results[(size, config)].get(src_period)
                     dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue

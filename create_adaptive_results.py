@@ -281,10 +281,17 @@ if 'min-max-versus' in args:
         g.yaxis_label = graph_parameters[result_name][0]
         g.key_position = graph_parameters[result_name][1]
 
-        g.min_label = 'Min Template'
-        g.max_label = 'Max Template'
+        g.min_label = 'Static - Lowest'
+        g.max_label = 'Static - Highest'
         g.comparison_label = 'Dynamic'
         g.vary_label = ''
+
+        def vvalue_converter(name):
+            return {
+                'PB_SINK_APPROACH': 'Pull Sink',
+                'PB_ATTACKER_EST_APPROACH': 'Pull Attacker'
+            }[name]
+        g.vvalue_label_converter = vvalue_converter
 
         g.create(template_results, adaptive_results)
 
