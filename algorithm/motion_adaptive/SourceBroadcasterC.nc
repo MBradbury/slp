@@ -1,10 +1,12 @@
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
+#include "NeighbourDetail.h"
 
 #include "AwayChooseMessage.h"
 #include "FakeMessage.h"
 #include "NormalMessage.h"
+#include "MoveMessage.h"
 
 #include <Timer.h>
 #include <TinyError.h>
@@ -17,6 +19,25 @@
 #define METRIC_BCAST(TYPE, STATUS) \
 	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, (tosend != NULL) ? tosend->sequence_number : (uint32_t)-1)
 
+typedef struct
+{
+	int16_t sink_distance;
+	int16_t source_distance;
+} distance_container_t;
+
+void dist_update(distance_container_t* find, distance_container_t const* given)
+{
+	memcpy(find, given, sizeof(distance_container_t));
+}
+
+void dist_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+{
+	dbg_clear(name, "[%u] => addr=%u / dsink=%d / dsrc=%d",
+		i, address, contents->sink_distance, contents->source_distance);
+}
+
+DEFINE_NEIGHBOUR_DETAIL(distance_container_t, dist, dist_update, dist_print, 16);
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -28,6 +49,8 @@ module SourceBroadcasterC
 
 	uses interface Packet;
 	uses interface AMPacket;
+	uses interface PacketLink;
+	uses interface PacketAcknowledgements;
 
 	uses interface SplitControl as RadioControl;
 
@@ -42,6 +65,9 @@ module SourceBroadcasterC
 
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
+
+	uses interface AMSend as MoveSend;
+	uses interface Receive as MoveReceive;
 
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
@@ -70,6 +96,8 @@ implementation
 		}
 	}
 
+	dist_neighbours_t neighbours;
+
 	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
 	SequenceNumber choose_sequence_counter;
@@ -90,7 +118,11 @@ implementation
 
 	bool sink_sent_away = FALSE;
 	bool seen_pfs = FALSE;
+
 	bool is_pfs_candidate = FALSE;
+	bool forced_pfs = FALSE;
+	int32_t waiting_for_forced_pfs = -1;
+	int32_t forced_pfs_creator = -1;
 
 	uint32_t first_source_distance = 0;
 	bool first_source_distance_set = FALSE;
@@ -162,6 +194,13 @@ implementation
 
 	bool pfs_can_become_normal()
 	{
+		//if (forced_pfs)
+		//	return FALSE;
+
+		if (type != PermFakeNode)
+			return FALSE;
+
+		// Now decide based on the algorithm running
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
@@ -170,6 +209,8 @@ implementation
 		case FurtherAlgorithm:
 			return FALSE;
 
+		// When the algorithm hasn't been set, don't allow
+		// PFSs to become normal.
 		default:
 			return FALSE;
 		}
@@ -310,12 +351,33 @@ implementation
 		return call SourcePeriodModel.get();;
 	}
 
+	am_addr_t choose_pfs_on_source_move()
+	{
+#if 1
+		// Choose a random neighbour or the current node
+		const size_t num_nodes = neighbours.size;
+
+		const uint16_t rand_index = call Random.rand16() % (num_nodes + 1);
+
+		return num_nodes == rand_index ? TOS_NODE_ID : neighbours.data[rand_index].address;
+
+
+		// TODO: move smartly based on how the real source has moved
+
+#else
+		// Static PFS
+		return TOS_NODE_ID;
+#endif
+	}
+
 	bool busy = FALSE;
 	message_t packet;
 
 	event void Boot.booted()
 	{
 		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+
+		init_dist_neighbours(&neighbours);
 
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
@@ -388,6 +450,7 @@ implementation
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Choose);
 	USE_MESSAGE(Fake);
+	USE_MESSAGE(Move);
 
 	void become_Normal()
 	{
@@ -416,6 +479,10 @@ implementation
 
 			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
 		}
+
+#ifdef SLP_VERBOSE_DEBUG
+		print_dist_neighbours("stdout", &neighbours);
+#endif
 	}
 
 	event void BroadcastNormalTimer.fired()
@@ -437,6 +504,9 @@ implementation
 
 		message.source_period = source_period;
 
+		message.source_distance_of_sender = get_source_distance();
+		message.sink_distance_of_sender = get_sink_distance();
+
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&normal_sequence_counter);
@@ -455,6 +525,9 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.algorithm = ALGORITHM;
 		message.source_period = source_period;
+
+		message.source_distance_of_sender = get_source_distance();
+		message.sink_distance_of_sender = get_sink_distance();
 
 		sequence_number_increment(&away_sequence_counter);
 
@@ -518,9 +591,13 @@ implementation
 
 			source_node_id = rcvd->source_id;
 
-			// Reset variables to the new values
-			update_source_distance(rcvd->source_distance + 1);
-			update_sink_source_distance(rcvd->sink_source_distance);
+			// Reset variables to the new values, we do not want to update the ewma here
+			// as these are new values for a new source location.
+			source_distance_ewma = rcvd->source_distance + 1;
+			source_distance_set = TRUE;
+
+			sink_source_distance_ewma = rcvd->sink_source_distance;
+			sink_source_distance_set = TRUE;
 
 			return TRUE;
 		}
@@ -533,6 +610,9 @@ implementation
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
@@ -575,12 +655,18 @@ implementation
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
+			forwarding_message.source_distance_of_sender = get_source_distance();
+			forwarding_message.sink_distance_of_sender = get_sink_distance();
+
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -606,6 +692,9 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -621,11 +710,30 @@ implementation
 
 			update_sink_source_distance(rcvd->sink_source_distance);
 
-			if (handle_source_id_changed(rcvd))
+			if (handle_source_id_changed(rcvd) && type == PermFakeNode)
 			{
-				// TODO:
-				// Consider changing the pattern of fake sources to reflect
-				// the new source location
+				const am_addr_t next_pfs = choose_pfs_on_source_move();
+
+				if (next_pfs != TOS_NODE_ID)
+				{
+					MoveMessage message;
+					message.sequence_number = 0;
+
+					call PacketLink.setRetries(&packet, 3);
+					call PacketLink.setRetryDelay(&packet, 100);
+					call PacketAcknowledgements.noAck(&packet);
+
+					if (send_Move_message(&message, next_pfs))
+					{
+						dbgverbose("stdout", "sent move message\n");
+
+						// TODO: this node needs to stop being a PFS
+					}
+
+					// When we receive a fake message from this node,
+					// then the current node will become normal.
+					waiting_for_forced_pfs = next_pfs;
+				}
 			}
 
 			forwarding_message = *rcvd;
@@ -634,6 +742,9 @@ implementation
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
+
+			forwarding_message.source_distance_of_sender = get_source_distance();
+			forwarding_message.sink_distance_of_sender = get_sink_distance();
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -650,6 +761,9 @@ implementation
 
 	void Source_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		if (algorithm == UnknownAlgorithm)
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
@@ -672,6 +786,9 @@ implementation
 			forwarding_message.source_period = source_period;
 			forwarding_message.algorithm = algorithm;
 
+			forwarding_message.source_distance_of_sender = get_source_distance();
+			forwarding_message.sink_distance_of_sender = get_sink_distance();
+
 			// TODO: repeat 2
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
@@ -680,6 +797,9 @@ implementation
 
 	void Normal_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
@@ -721,6 +841,9 @@ implementation
 			forwarding_message.algorithm = algorithm;
 			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 
+			forwarding_message.source_distance_of_sender = get_source_distance();
+			forwarding_message.sink_distance_of_sender = get_sink_distance();
+
 			// TODO: repeat 2
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
@@ -735,6 +858,9 @@ implementation
 
 	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
@@ -779,9 +905,12 @@ implementation
 
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
-			FakeMessage message = *rcvd;
+			FakeMessage forwarding_message = *rcvd;
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
@@ -789,14 +918,20 @@ implementation
 
 			METRIC_RCV(Fake, 0);
 
-			message.sink_source_distance = get_sink_source_distance();
+			forwarding_message.sink_source_distance = get_sink_source_distance();
 
-			send_Fake_message(&message, AM_BROADCAST_ADDR);
+			forwarding_message.source_distance_of_sender = get_source_distance();
+			forwarding_message.sink_distance_of_sender = get_sink_distance();
+
+			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
 	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
@@ -812,6 +947,9 @@ implementation
 
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
@@ -832,6 +970,9 @@ implementation
 
 			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
+
+			forwarding_message.source_distance_of_sender = get_source_distance();
+			forwarding_message.sink_distance_of_sender = get_sink_distance();
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -839,6 +980,9 @@ implementation
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		const distance_container_t dist = { rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender };
+		insert_dist_neighbour(&neighbours, source_addr, &dist);
+
 		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
@@ -860,11 +1004,14 @@ implementation
 			forwarding_message.sink_source_distance = get_sink_source_distance();
 			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
 
+			forwarding_message.source_distance_of_sender = get_source_distance();
+			forwarding_message.sink_distance_of_sender = get_sink_distance();
+
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			if (pfs_can_become_normal() &&
-				type == PermFakeNode &&
 				rcvd->from_pfs &&
+				(forced_pfs_creator == -1 || forced_pfs_creator != source_addr) &&
 				(
 					(rcvd->source_distance > get_source_distance()) ||
 					(rcvd->source_distance == get_source_distance() && get_sink_distance() < rcvd->sink_distance) ||
@@ -872,7 +1019,20 @@ implementation
 				)
 				)
 			{
+				// Stop being a PFS and send a choose message
 				call FakeMessageGenerator.expireDuration();
+			}
+			else if (waiting_for_forced_pfs >= 0 && waiting_for_forced_pfs == source_addr)
+			{
+				// This node was waiting for a fake message from
+				// the PFS this fake source was moved to.
+
+				// Stop being a PFS and do not send a choose message
+				call FakeMessageGenerator.stop();
+
+				// We are no longer waiting for a PFS.
+				forced_pfs = FALSE;
+				waiting_for_forced_pfs = -1;
 			}
 		}
 	}
@@ -884,6 +1044,33 @@ implementation
 		case TempFakeNode:
 		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
+
+
+	void Normal_receive_Move(const MoveMessage* const rcvd, am_addr_t source_addr)
+	{
+		forced_pfs = TRUE;
+		forced_pfs_creator = source_addr;
+
+		become_Fake(NULL, PermFakeNode);
+	}
+
+	void Fake_receive_Move(const MoveMessage* const rcvd, am_addr_t source_addr)
+	{
+		forced_pfs = TRUE;
+		forced_pfs_creator = source_addr;
+
+		// Stop being a TFS and becomes PFS without sending a choose message
+		call FakeMessageGenerator.stop();
+
+		become_Fake(NULL, PermFakeNode);
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Move, Receive)
+		case SinkNode: break;
+		case NormalNode: Normal_receive_Move(rcvd, source_addr); break;
+		case TempFakeNode: 
+		case PermFakeNode: Fake_receive_Move(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Move)
 
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
@@ -899,6 +1086,7 @@ implementation
 		else
 		{
 			dbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
+			assert(FALSE);
 			return 0;
 		}
 	}
@@ -912,6 +1100,9 @@ implementation
 		message->sink_distance = get_sink_distance();
 		message->from_pfs = (type == PermFakeNode);
 		message->source_id = TOS_NODE_ID;
+
+		message->source_distance_of_sender = get_source_distance();
+		message->sink_distance_of_sender = get_sink_distance();
 	}
 
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
@@ -924,6 +1115,9 @@ implementation
 
 		message.sink_source_distance = get_sink_source_distance();
 		message.sink_distance += 1;
+
+		message.source_distance_of_sender = get_source_distance();
+		message.sink_distance_of_sender = get_sink_distance();
 
 		// TODO: repeat 3
 		extra_to_send = 2;
@@ -953,9 +1147,9 @@ implementation
 
 		METRIC_BCAST(Fake, result);
 
-		if (pfs_can_become_normal())
+		if (pfs_can_become_normal() && !forced_pfs)
 		{
-			if (type == PermFakeNode && !is_pfs_candidate)
+			if (!is_pfs_candidate)
 			{
 				call FakeMessageGenerator.expireDuration();
 			}

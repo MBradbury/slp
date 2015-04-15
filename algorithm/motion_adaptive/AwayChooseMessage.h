@@ -21,6 +21,10 @@ typedef nx_struct AwayChooseMessage {
 
   nx_uint32_t source_period;
 
+  // Distances of 1-hop sender
+  nx_int16_t source_distance_of_sender;
+  nx_int16_t sink_distance_of_sender;
+
 } AwayChooseMessage;
 
 typedef AwayChooseMessage AwayMessage;
