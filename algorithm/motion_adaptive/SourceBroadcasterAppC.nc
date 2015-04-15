@@ -66,6 +66,16 @@ implementation
 	App.FakeSend -> FakeSender;
 	App.FakeReceive -> FakeReceiver;
 
+	components
+		new ReliableUnicastP(MOVE_CHANNEL) as MoveSender,
+		new AMReceiverC(MOVE_CHANNEL) as MoveReceiver;
+
+	App.MoveSend -> MoveSender;
+	App.MoveReceive -> MoveReceiver;
+
+	App.PacketLink -> MoveSender;
+	App.PacketAcknowledgements -> MoveSender;
+
 	components FakeMessageGeneratorP;
 
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;

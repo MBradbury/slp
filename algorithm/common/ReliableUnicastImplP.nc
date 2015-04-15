@@ -1,4 +1,3 @@
-#include "Constants.h"
 
 // Modified to add metadata:
 #include "TossimRadioMsg.h"

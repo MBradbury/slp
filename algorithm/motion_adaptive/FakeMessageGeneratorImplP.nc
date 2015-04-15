@@ -24,6 +24,7 @@ module FakeMessageGeneratorImplP
 implementation
 {
 	AwayChooseMessage original_message;
+	bool original_message_set = FALSE;
 
 	bool is_expired = FALSE;
 
@@ -39,7 +40,11 @@ implementation
 		// Shouldn't start sending fake messages when already sending them
 		assert(!(call SendFakeTimer.isRunning()));
 
-		original_message = *original;
+		if (original != NULL)
+		{
+			original_message = *original;
+			original_message_set = TRUE;
+		}
 
 		// The first fake message is to be sent half way through the period.
 		// After this message is sent, all other messages are sent with an interval
@@ -150,6 +155,8 @@ implementation
 
 	command void FakeMessageGenerator.expireDuration()
 	{
+		assert(original_message_set);
+
 		is_expired = TRUE;
 		call SendFakeTimer.stop();
 		signal FakeMessageGenerator.durationExpired(&original_message);

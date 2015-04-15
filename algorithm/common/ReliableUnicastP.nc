@@ -1,4 +1,3 @@
-#include "Constants.h"
 
 generic configuration ReliableUnicastP(am_id_t AMId)
 {
