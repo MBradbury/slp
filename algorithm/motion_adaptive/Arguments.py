@@ -4,7 +4,8 @@ import simulator.Attacker as Attacker
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
-approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
+pb_approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
+move_approaches = [ "PFS_MOVE_RANDOM", "PFS_MOVE_MIRROR" ]
 
 class Arguments:
     def __init__(self):
@@ -22,7 +23,8 @@ class Arguments:
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
 
-        parser.add_argument("--approach", type=str, choices=approaches, required=True)
+        parser.add_argument("--pull-back-approach", type=str, choices=pb_approaches, required=True)
+        parser.add_argument("--pfs-move-approach", type=str, choices=move_approaches, required=True)
 
         parser.add_argument("--distance", type=float, default=4.5)
 
@@ -52,8 +54,11 @@ class Arguments:
             result["SLP_VERBOSE_DEBUG"] = 1
 
         result.update({
-            "APPROACH": self.args.approach,
-            self.args.approach: 1,
+            "PULL_BACK_APPROACH": self.args.pull_back_approach,
+            self.args.pull_back_approach: 1,
+
+            "PFS_MOVE_APPROACH": self.args.pfs_move_approach,
+            self.args.pfs_move_approach: 1,
         })
 
         result.update(self.args.source_period.build_arguments())

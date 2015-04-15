@@ -25,6 +25,7 @@ implementation
 {
 	AwayChooseMessage original_message;
 	bool original_message_set = FALSE;
+	bool stopped = FALSE;
 
 	bool is_expired = FALSE;
 
@@ -64,6 +65,7 @@ implementation
 
 	command void FakeMessageGenerator.stop()
 	{
+		stopped = TRUE;
 		call DurationTimer.stop();
 		call SendFakeTimer.stop();
 	}
@@ -155,6 +157,11 @@ implementation
 
 	command void FakeMessageGenerator.expireDuration()
 	{
+		// If we have been stopped, do not inform the user
+		// that the duration has expired.
+		if (stopped)
+			return;
+
 		assert(original_message_set);
 
 		is_expired = TRUE;

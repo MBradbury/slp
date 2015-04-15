@@ -121,8 +121,8 @@ implementation
 
 	bool is_pfs_candidate = FALSE;
 	bool forced_pfs = FALSE;
-	int32_t waiting_for_forced_pfs = -1;
-	int32_t forced_pfs_creator = -1;
+	int32_t waiting_for_forced_pfs = BOTTOM;
+	int32_t forced_pfs_creator = BOTTOM;
 
 	uint32_t first_source_distance = 0;
 	bool first_source_distance_set = FALSE;
@@ -194,8 +194,8 @@ implementation
 
 	bool pfs_can_become_normal()
 	{
-		//if (forced_pfs)
-		//	return FALSE;
+		if (forced_pfs)
+			return FALSE;
 
 		if (type != PermFakeNode)
 			return FALSE;
@@ -351,9 +351,9 @@ implementation
 		return call SourcePeriodModel.get();;
 	}
 
-	am_addr_t choose_pfs_on_source_move()
+	am_addr_t choose_pfs_on_source_move(int32_t source_distance_old, int32_t sink_source_distance_old)
 	{
-#if 1
+#if defined(PFS_MOVE_RANDOM)
 		// Choose a random neighbour or the current node
 		const size_t num_nodes = neighbours.size;
 
@@ -363,6 +363,72 @@ implementation
 
 
 		// TODO: move smartly based on how the real source has moved
+#elif defined(PFS_MOVE_MIRROR)
+
+		const int32_t source_distance_current = get_source_distance();
+		//const int32_t sink_source_distance_current = get_sink_source_distance();
+
+		const int32_t source_distance_diff = source_distance_current - source_distance_old;
+		//const int32_t sink_source_distance_diff = sink_source_distance_current - sink_source_distance_old;
+
+		size_t i;
+
+		dist_neighbours_t local_neighbours;
+		init_dist_neighbours(&local_neighbours);
+
+		dbgverbose("stdout", "MIRROR dsrc=%d diffdsrc:%d\n", source_distance_current, source_distance_diff);//, sink_source_distance_diff);
+
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			const dist_neighbour_detail_t* neighbour = &neighbours.data[i];
+
+			const int32_t neighbour_source_distance_diff = source_distance_current - neighbour->contents.source_distance;
+			//const int32_t neighbour_sink_source_distance_diff = sink_source_distance_current - neighbour->contents.sink_source_distance;
+
+			dbgverbose("stdout", "MIRROR: neighbour %d src dist diff = %d\n", neighbour->address, neighbour_source_distance_diff);
+
+			if (source_distance_current != BOTTOM)
+			{
+				// If the PFS is closer to the source,
+				// do not move to a node that is even closer to the source than we are.
+				if (source_distance_diff < 0 && neighbour_source_distance_diff > 0)
+				{
+					continue;
+				}
+			}
+
+			/*if (sink_source_distance_current != BOTTOM)
+			{
+				if (!(sink_source_distance_diff < 0 && neighbour_sink_source_distance_diff < 0))
+				{
+					continue;
+				}
+			}*/
+
+			insert_dist_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+		}
+
+#ifdef SLP_VERBOSE_DEBUG
+		dbgverbose("stdout", "Potential targets to move the PFS to:\n");
+		print_dist_neighbours("stdout", &local_neighbours);
+#endif
+
+		if (local_neighbours.size == 0)
+		{
+			// No good neighbours to move to,
+
+			// TODO:
+			// - Stay on current node?
+			// - Move to random node?
+
+			return TOS_NODE_ID;
+		}
+		else
+		{
+			const uint16_t rand_index = call Random.rand16() % local_neighbours.size;
+
+			return local_neighbours.data[rand_index].address;
+		}
 
 #else
 		// Static PFS
@@ -702,6 +768,9 @@ implementation
 		{
 			NormalMessage forwarding_message;
 
+			const int32_t source_distance_old = get_source_distance();
+			const int32_t sink_source_distance_old = get_sink_source_distance();
+
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1);
@@ -712,7 +781,7 @@ implementation
 
 			if (handle_source_id_changed(rcvd) && type == PermFakeNode)
 			{
-				const am_addr_t next_pfs = choose_pfs_on_source_move();
+				const am_addr_t next_pfs = choose_pfs_on_source_move(source_distance_old, sink_source_distance_old);
 
 				if (next_pfs != TOS_NODE_ID)
 				{
@@ -1011,7 +1080,6 @@ implementation
 
 			if (pfs_can_become_normal() &&
 				rcvd->from_pfs &&
-				(forced_pfs_creator == -1 || forced_pfs_creator != source_addr) &&
 				(
 					(rcvd->source_distance > get_source_distance()) ||
 					(rcvd->source_distance == get_source_distance() && get_sink_distance() < rcvd->sink_distance) ||
@@ -1147,7 +1215,7 @@ implementation
 
 		METRIC_BCAST(Fake, result);
 
-		if (pfs_can_become_normal() && !forced_pfs)
+		if (pfs_can_become_normal())
 		{
 			if (!is_pfs_candidate)
 			{
