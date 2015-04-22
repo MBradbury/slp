@@ -1,6 +1,10 @@
 
 from simulator.Simulator import OutputCatcher
 
+# When an attacker receives any of these messages,
+# do not check the seqno just move.
+_messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
+
 class Attacker(object):
     def __init__(self, sim, source_id, start_node_id):
         self.sim = sim
@@ -95,7 +99,7 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
         (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
 
         if self.position == node_id and \
-            (msg_type == 'DummyNormal' or
+            (msg_type in _messages_without_sequence_numbers or
             self.previous_location != from_id):
 
             self.move(from_id)
@@ -119,7 +123,7 @@ class SeqNoReactiveAttacker(Attacker):
         (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
 
         if self.position == node_id and \
-            (msg_type == 'DummyNormal' or
+            (msg_type in _messages_without_sequence_numbers or
              msg_type not in self.sequence_numbers or 
              self.sequence_numbers[msg_type] < sequence_number):
 
