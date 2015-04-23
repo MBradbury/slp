@@ -9,8 +9,8 @@
 
 #include <assert.h>
 
-#define METRIC_RCV(TYPE, DISTANCE) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number, DISTANCE)
+#define METRIC_RCV(TYPE, DISTANCE, SOURCE) \
+	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%d,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, SOURCE, rcvd->sequence_number, DISTANCE)
 
 #define METRIC_BCAST(TYPE, STATUS) \
 	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, tosend->sequence_number)
@@ -32,6 +32,8 @@ module SourceBroadcasterC
 
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
+
+	uses interface SequenceNumbers as NormalSeqNos;
 }
 
 implementation
@@ -63,8 +65,6 @@ implementation
 		return call SourcePeriodModel.get();
 	}
 
-	SequenceNumber normal_sequence_counter;
-
 	uint32_t extra_to_send = 0;
 
 	bool busy = FALSE;
@@ -73,8 +73,6 @@ implementation
 	event void Boot.booted()
 	{
 		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
-
-		sequence_number_init(&normal_sequence_counter);
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
@@ -141,13 +139,13 @@ implementation
 
 		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
-		message.sequence_number = sequence_number_next(&normal_sequence_counter);
+		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
 		message.source_id = TOS_NODE_ID;
 
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
-			sequence_number_increment(&normal_sequence_counter);
+			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
 
 		call BroadcastNormalTimer.startOneShot(get_source_period());
@@ -155,13 +153,13 @@ implementation
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 
 			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
@@ -174,11 +172,11 @@ implementation
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 		}
 	}
 

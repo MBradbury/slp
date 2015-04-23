@@ -43,7 +43,12 @@ module SourceBroadcasterC
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
 
+	uses interface ObjectDetector;
 	uses interface FakeMessageGenerator;
+
+	uses interface SequenceNumbers as NormalSeqNos;
+
+	uses interface Dictionary<am_addr_t, int32_t> as SourceDistances;
 }
 
 implementation
@@ -68,7 +73,7 @@ implementation
 		}
 	}
 
-	SequenceNumber normal_sequence_counter;
+
 	SequenceNumber away_sequence_counter;
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
@@ -128,7 +133,7 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			return !(sink_source_distance != BOTTOM &&
+			return !(l != BOTTOM &&
 				source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
 
 		case FurtherAlgorithm:
@@ -142,6 +147,9 @@ implementation
 
 	bool pfs_can_become_normal()
 	{
+		if (type != PermFakeNode)
+			return FALSE;
+
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
@@ -269,6 +277,27 @@ implementation
 		return result_period;
 	}
 
+	void update_sink_source_distance(int32_t provided, am_addr_t from_id)
+	{
+		sink_source_distance = minbot(sink_source_distance, provided); // Old-style
+	}
+
+	void update_sink_distance(uint32_t provided)
+	{
+		sink_distance = minbot(sink_distance, provided); // Old-style
+	}
+
+	void update_source_distance(uint32_t provided, am_addr_t from_id)
+	{
+		const int32_t stored = call SourceDistances.get_or_default(from_id, BOTTOM);
+		const int32_t updated = minbot(stored, provided);
+
+		call SourceDistances.put(from_id, updated);
+
+		source_distance = minbot(source_distance, provided); // Old-style
+	}
+
+
 	bool busy = FALSE;
 	message_t packet;
 
@@ -276,7 +305,6 @@ implementation
 	{
 		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
-		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
@@ -284,12 +312,7 @@ implementation
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
 
-		if (TOS_NODE_ID == SOURCE_NODE_ID)
-		{
-			type = SourceNode;
-			dbg("Node-Change-Notification", "The node has become a Source\n");
-		}
-		else if (TOS_NODE_ID == SINK_NODE_ID)
+		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
@@ -304,10 +327,7 @@ implementation
 		{
 			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			if (type == SourceNode)
-			{
-				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
-			}
+			call ObjectDetector.start();
 		}
 		else
 		{
@@ -320,6 +340,33 @@ implementation
 	event void RadioControl.stopDone(error_t err)
 	{
 		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+	}
+
+	event void ObjectDetector.detect()
+	{
+		// The sink node cannot become a source node
+		if (type != SinkNode)
+		{
+			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			dbg("Node-Change-Notification", "The node has become a Source\n");
+
+			type = SourceNode;
+
+			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
+		}
+	}
+
+	event void ObjectDetector.stoppedDetecting()
+	{
+		if (type == SourceNode)
+		{
+			call BroadcastNormalTimer.stop();
+
+			type = NormalNode;
+
+			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			dbg("Node-Change-Notification", "The node has become a Normal\n");
+		}
 	}
 
 	USE_MESSAGE(Normal);
@@ -365,7 +412,7 @@ implementation
 
 		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
-		message.sequence_number = sequence_number_next(&normal_sequence_counter);
+		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
 		message.max_hop = first_source_distance;
 		message.source_id = TOS_NODE_ID;
@@ -376,7 +423,7 @@ implementation
 
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
-			sequence_number_increment(&normal_sequence_counter);
+			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
 	}
 
@@ -384,6 +431,7 @@ implementation
 	{
 		AwayMessage message;
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
+		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
 		message.sink_source_distance = sink_source_distance;
 		message.max_hop = sink_source_distance;
@@ -407,16 +455,16 @@ implementation
 			call Leds.led1Off();
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_sink_source_distance(rcvd->sink_source_distance, rcvd->source_id);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 
@@ -430,7 +478,7 @@ implementation
 				call Leds.led1On();
 			}
 
-			source_distance = minbot(source_distance, rcvd->source_distance + 1);
+			update_source_distance(rcvd->source_distance + 1, rcvd->source_id);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -448,13 +496,14 @@ implementation
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 
-			sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
+			update_source_distance(rcvd->source_distance + 1, rcvd->source_id);
+			update_sink_source_distance(rcvd->source_distance + 1, rcvd->source_id);
 
 			if (!sink_sent_away)
 			{
@@ -470,13 +519,15 @@ implementation
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
+
+			update_source_distance(rcvd->source_distance + 1, rcvd->source_id);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -551,7 +602,7 @@ implementation
 
 			METRIC_RCV(Away, rcvd->sink_distance + 1, rcvd->source_id);
 
-			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+			update_sink_distance(rcvd->sink_distance + 1);
 
 			if (rcvd->sink_distance == 0)
 			{
@@ -592,13 +643,13 @@ implementation
 		}
 
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		update_sink_distance(rcvd->sink_distance + 1);
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && should_process_choose())
 		{
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Choose, rcvd->sink_distance + 1, BOTTOM);
+			METRIC_RCV(Choose, rcvd->sink_distance + 1, rcvd->source_id);
 
 			if (is_pfs_candidate)
 			{
@@ -644,7 +695,7 @@ implementation
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 			source_fake_sequence_increments += 1;
 
-			METRIC_RCV(Fake, 0, BOTTOM);
+			METRIC_RCV(Fake, 0, rcvd->source_id);
 
 			seen_pfs |= rcvd->from_pfs;
 		}
@@ -666,7 +717,7 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Fake, 0, BOTTOM);
+			METRIC_RCV(Fake, 0, rcvd->source_id);
 
 			seen_pfs |= rcvd->from_pfs;
 
@@ -693,7 +744,7 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Fake, 0, BOTTOM);
+			METRIC_RCV(Fake, 0, rcvd->source_id);
 
 			seen_pfs |= rcvd->from_pfs;
 
@@ -703,7 +754,6 @@ implementation
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			if (pfs_can_become_normal() &&
-				type == PermFakeNode &&
 				rcvd->from_pfs &&
 				(
 					(rcvd->source_distance > source_distance) ||
@@ -794,7 +844,7 @@ implementation
 
 		if (pfs_can_become_normal())
 		{
-			if (type == PermFakeNode && !is_pfs_candidate)
+			if (!is_pfs_candidate)
 			{
 				call FakeMessageGenerator.expireDuration();
 			}

@@ -24,10 +24,6 @@ module FakeMessageGeneratorImplP
 implementation
 {
 	AwayChooseMessage original_message;
-	bool original_message_set = FALSE;
-	bool should_send_choose = TRUE;
-
-	bool is_expired = FALSE;
 
 	// Network variables
 
@@ -38,14 +34,7 @@ implementation
 
 	command void FakeMessageGenerator.start(const AwayChooseMessage* original)
 	{
-		// Shouldn't start sending fake messages when already sending them
-		assert(!(call SendFakeTimer.isRunning()));
-
-		if (original != NULL)
-		{
-			original_message = *original;
-			original_message_set = TRUE;
-		}
+		original_message = *original;
 
 		// The first fake message is to be sent half way through the period.
 		// After this message is sent, all other messages are sent with an interval
@@ -63,12 +52,10 @@ implementation
 		mydbg("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %u ms.\n", duration_ms);
 	}
 
-	command void FakeMessageGenerator.stop(bool send_choose)
+	command void FakeMessageGenerator.stop()
 	{
-		should_send_choose = send_choose;
 		call DurationTimer.stop();
 		call SendFakeTimer.stop();
-		should_send_choose = TRUE;
 	}
 
 	default event uint32_t FakeMessageGenerator.calculatePeriod()
@@ -126,16 +113,11 @@ implementation
 
 		send_fake_message();
 
-		// It is possible that send_fake_message will lead to the node
-		// becoming normal.
-		if (!is_expired)
-		{
-			period = signal FakeMessageGenerator.calculatePeriod();
+		period = signal FakeMessageGenerator.calculatePeriod();
 
-			if (period > 0)
-			{
-				call SendFakeTimer.startOneShot(period);
-			}
+		if (period > 0)
+		{
+			call SendFakeTimer.startOneShot(period);
 		}
 	}
 
@@ -158,8 +140,7 @@ implementation
 
 	command void FakeMessageGenerator.expireDuration()
 	{
-		is_expired = TRUE;
 		call SendFakeTimer.stop();
-		signal FakeMessageGenerator.durationExpired(&original_message, original_message_set, should_send_choose);
+		signal FakeMessageGenerator.durationExpired(&original_message);
 	}
 }

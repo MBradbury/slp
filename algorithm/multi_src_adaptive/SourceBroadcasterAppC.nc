@@ -14,9 +14,11 @@ implementation
 	// Low levels events such as boot and LED control
 	components MainC;
 	components LedsC;
+	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
+	App.Random -> RandomC;
 
 
 	// Radio Control
@@ -27,8 +29,10 @@ implementation
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
+	components new TimerMilliC() as AwaySenderTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
+	App.AwaySenderTimer -> AwaySenderTimer;
 
 
 	// Networking
@@ -42,15 +46,39 @@ implementation
 	App.NormalSend -> NormalSender;
 	App.NormalReceive -> NormalReceiver;
 
+	components
+		new AMSenderC(AWAY_CHANNEL) as AwaySender,
+		new AMReceiverC(AWAY_CHANNEL) as AwayReceiver;
 
-	// Object Detector - For Source movement
+	App.AwaySend -> AwaySender;
+	App.AwayReceive -> AwayReceiver;
+
+	components
+		new AMSenderC(CHOOSE_CHANNEL) as ChooseSender,
+		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver;
+
+	App.ChooseSend -> ChooseSender;
+	App.ChooseReceive -> ChooseReceiver;
+
+	components
+		new AMSenderC(FAKE_CHANNEL) as FakeSender,
+		new AMReceiverC(FAKE_CHANNEL) as FakeReceiver;
+
+	App.FakeSend -> FakeSender;
+	App.FakeReceive -> FakeReceiver;
+
+	components FakeMessageGeneratorP;
+
+	App.FakeMessageGenerator -> FakeMessageGeneratorP;
+
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
-
-	components SourcePeriodModelP;
-	App.SourcePeriodModel -> SourcePeriodModelP;
 
 	components
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
+
+	components
+		new DictionaryP(am_addr_t, int32_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
+	App.SourceDistances -> SourceDistances;
 }

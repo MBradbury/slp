@@ -122,7 +122,6 @@ implementation
 	bool is_pfs_candidate = FALSE;
 	bool forced_pfs = FALSE;
 	int32_t waiting_for_forced_pfs = BOTTOM;
-	int32_t forced_pfs_creator = BOTTOM;
 
 	uint32_t first_source_distance = 0;
 	bool first_source_distance_set = FALSE;
@@ -211,7 +210,12 @@ implementation
 
 		// When the algorithm hasn't been set, don't allow
 		// PFSs to become normal.
+		case UnknownAlgorithm:
+			return FALSE;
+
+		// Don't recognise this algorithm
 		default:
+			dbgerror("stdout", "unknown algorithm %d\n", algorithm);
 			return FALSE;
 		}
 	}
@@ -287,8 +291,8 @@ implementation
 	{
 		uint32_t distance = get_dist_to_pull_back();
 
-		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%f, Dsink=%f, Dss=%f)\n",
-			distance, source_distance_ewma, sink_distance_ewma, sink_source_distance_ewma);
+		//("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%f, Dsink=%f, Dss=%f)\n",
+		//	distance, source_distance_ewma, sink_distance_ewma, sink_source_distance_ewma);
 
 		return distance;
 	}
@@ -304,8 +308,8 @@ implementation
 			duration -= get_away_delay();
 		}
 
-		dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%f)\n",
-			duration, sink_distance_ewma);
+		//dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%f)\n",
+		//	duration, sink_distance_ewma);
 
 		return duration;
 	}
@@ -318,7 +322,7 @@ implementation
 
 		const uint32_t result_period = period;
 
-		dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		//dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -336,8 +340,8 @@ implementation
 
 		assert(source_period != BOTTOM);
 
-		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
-			result_period, counter, seq_inc, x);
+		//dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
+		//	result_period, counter, seq_inc, x);
 
 		return result_period;
 	}
@@ -395,6 +399,14 @@ implementation
 				{
 					continue;
 				}
+
+				// If the PFS is further than the source,
+				// do not move to a node further from the source than we are.
+				// TODO: Controversial as this moves closer to the source.
+				if (source_distance_diff > 0 && neighbour_source_distance_diff < 0)
+				{
+					continue;
+				}
 			}
 
 			/*if (sink_source_distance_current != BOTTOM)
@@ -408,10 +420,10 @@ implementation
 			insert_dist_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 		}
 
-#ifdef SLP_VERBOSE_DEBUG
+#	ifdef SLP_VERBOSE_DEBUG
 		dbgverbose("stdout", "Potential targets to move the PFS to:\n");
 		print_dist_neighbours("stdout", &local_neighbours);
-#endif
+#	endif
 
 		if (local_neighbours.size == 0)
 		{
@@ -436,6 +448,47 @@ implementation
 #endif
 	}
 
+
+#define EWMA_FACTOR 0.7
+
+	void ewma_update(double* ewma, bool* is_set, double new_value)
+	{
+		if (!*is_set)
+		{
+			*ewma = new_value;
+		}
+		else
+		{
+			*ewma = EWMA_FACTOR * new_value + (1.0 - EWMA_FACTOR) * *ewma;
+		}
+		*is_set = TRUE;
+	}
+
+	void update_sink_source_distance(int32_t provided)
+	{
+		//sink_source_distance = minbot(sink_source_distance, provided_sink_source_distance); // Old-style
+
+		if (provided != BOTTOM)
+		{
+			ewma_update(&sink_source_distance_ewma, &sink_source_distance_set, provided);
+		}
+	}
+
+	void update_sink_distance(uint32_t provided)
+	{
+		//sink_distance = minbot(sink_distance, provided); // Old-style
+
+		ewma_update(&sink_distance_ewma, &sink_distance_set, provided);
+	}
+
+	void update_source_distance(uint32_t provided)
+	{
+		//source_distance = minbot(source_distance, provided); // Old-style
+
+		ewma_update(&source_distance_ewma, &source_distance_set, provided);
+	}
+
+
 	bool busy = FALSE;
 	message_t packet;
 
@@ -456,8 +509,7 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			sink_distance_ewma = 0;
-			sink_distance_set = TRUE;
+			update_sink_distance(0);
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
@@ -518,11 +570,17 @@ implementation
 	USE_MESSAGE(Fake);
 	USE_MESSAGE(Move);
 
-	void become_Normal()
+	void become_Normal(bool should_send_choose)
 	{
+		assert(type == PermFakeNode || type == TempFakeNode);
+
 		type = NormalNode;
 
-		call FakeMessageGenerator.stop();
+		// If this was a forced PFS, then it isn't any more.
+		forced_pfs = FALSE;
+		waiting_for_forced_pfs = BOTTOM;
+
+		call FakeMessageGenerator.stop(should_send_choose);
 
 		dbg("Fake-Notification", "The node has become a Normal\n");
 	}
@@ -549,6 +607,12 @@ implementation
 #ifdef SLP_VERBOSE_DEBUG
 		print_dist_neighbours("stdout", &neighbours);
 #endif
+	}
+
+	void become_forced_PFS()
+	{
+		forced_pfs = TRUE;
+		become_Fake(NULL, PermFakeNode);
 	}
 
 	event void BroadcastNormalTimer.fired()
@@ -595,57 +659,14 @@ implementation
 		message.source_distance_of_sender = get_source_distance();
 		message.sink_distance_of_sender = get_sink_distance();
 
-		sequence_number_increment(&away_sequence_counter);
-
 		// TODO sense repeat 3 in (Psource / 2)
 		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			sink_sent_away = TRUE;
+			sequence_number_increment(&away_sequence_counter);
 		}
 	}
-
-#define EWMA_FACTOR 0.7
-
-#define EWMA_UPDATE(NAME, NEW_VALUE) \
-	do \
-	{ \
-		if (!NAME##_set) \
-		{ \
-			NAME##_ewma = NEW_VALUE; \
-		} \
-		else \
-		{ \
-			NAME##_ewma = EWMA_FACTOR * NEW_VALUE + (1.0 - EWMA_FACTOR) * NAME##_ewma; \
-		} \
-		NAME##_set = TRUE; \
-	} \
-	while (FALSE)
-
-	void update_sink_source_distance(int32_t provided)
-	{
-		//sink_source_distance = minbot(sink_source_distance, provided_sink_source_distance);
-
-		if (provided != BOTTOM)
-		{
-			EWMA_UPDATE(sink_source_distance, provided);
-		}
-	}
-
-	void update_sink_distance(uint32_t provided)
-	{
-		//sink_distance = minbot(sink_distance, provided);
-
-		EWMA_UPDATE(sink_distance, provided);
-	}
-
-	void update_source_distance(uint32_t provided)
-	{
-		//source_distance = minbot(source_distance, provided);
-
-		EWMA_UPDATE(source_distance, provided);
-	}
-
 
 	// Returns true if the source id has changed
 	bool handle_source_id_changed(const NormalMessage* const rcvd)
@@ -779,10 +800,13 @@ implementation
 
 			update_sink_source_distance(rcvd->sink_source_distance);
 
-			if (handle_source_id_changed(rcvd) && type == PermFakeNode)
+			// Do not want to move this PFS, it is has already been
+			// moved but has not yet received confirmation.
+			if (handle_source_id_changed(rcvd) && type == PermFakeNode && waiting_for_forced_pfs == BOTTOM)
 			{
 				const am_addr_t next_pfs = choose_pfs_on_source_move(source_distance_old, sink_source_distance_old);
 
+				// Only send the message if the target is not the current node
 				if (next_pfs != TOS_NODE_ID)
 				{
 					MoveMessage message;
@@ -794,9 +818,7 @@ implementation
 
 					if (send_Move_message(&message, next_pfs))
 					{
-						dbgverbose("stdout", "sent move message\n");
-
-						// TODO: this node needs to stop being a PFS
+						dbgverbose("stdout", "sent move message to %u\n", next_pfs);
 					}
 
 					// When we receive a fake message from this node,
@@ -1058,6 +1080,15 @@ implementation
 			call Leds.led1Off();
 		}
 
+		if (waiting_for_forced_pfs != BOTTOM && waiting_for_forced_pfs == source_addr)
+		{
+			// This node was waiting for a fake message from
+			// the PFS this fake source was moved to.
+
+			// Stop being a PFS and do not send a choose message
+			become_Normal(FALSE);
+		}
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
@@ -1090,18 +1121,6 @@ implementation
 				// Stop being a PFS and send a choose message
 				call FakeMessageGenerator.expireDuration();
 			}
-			else if (waiting_for_forced_pfs >= 0 && waiting_for_forced_pfs == source_addr)
-			{
-				// This node was waiting for a fake message from
-				// the PFS this fake source was moved to.
-
-				// Stop being a PFS and do not send a choose message
-				call FakeMessageGenerator.stop();
-
-				// We are no longer waiting for a PFS.
-				forced_pfs = FALSE;
-				waiting_for_forced_pfs = -1;
-			}
 		}
 	}
 
@@ -1116,21 +1135,15 @@ implementation
 
 	void Normal_receive_Move(const MoveMessage* const rcvd, am_addr_t source_addr)
 	{
-		forced_pfs = TRUE;
-		forced_pfs_creator = source_addr;
-
-		become_Fake(NULL, PermFakeNode);
+		become_forced_PFS();
 	}
 
 	void Fake_receive_Move(const MoveMessage* const rcvd, am_addr_t source_addr)
 	{
-		forced_pfs = TRUE;
-		forced_pfs_creator = source_addr;
+		// Stop being a TFS/PFS and become a forced PFS without sending a choose message
+		call FakeMessageGenerator.stop(FALSE);
 
-		// Stop being a TFS and becomes PFS without sending a choose message
-		call FakeMessageGenerator.stop();
-
-		become_Fake(NULL, PermFakeNode);
+		become_forced_PFS();
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Move, Receive)
@@ -1154,13 +1167,15 @@ implementation
 		else
 		{
 			dbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
-			assert(FALSE);
+			assert(type == PermFakeNode || type == TempFakeNode);
 			return 0;
 		}
 	}
 
 	event void FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
 	{
+		assert(message != NULL);
+
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
 		message->sink_source_distance = get_sink_source_distance();
 		message->source_distance = get_source_distance();
@@ -1173,25 +1188,31 @@ implementation
 		message->sink_distance_of_sender = get_sink_distance();
 	}
 
-	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
+	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message, bool original_message_set, bool should_send_choose)
 	{
-		ChooseMessage message = *original_message;
+		if (should_send_choose)
+		{
+			ChooseMessage message = *original_message;
 
-		dbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
+			assert(original_message_set);
 
-		// When finished sending fake messages from a TFS
+			dbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
-		message.sink_source_distance = get_sink_source_distance();
-		message.sink_distance += 1;
+			// When finished sending fake messages from a TFS
 
-		message.source_distance_of_sender = get_source_distance();
-		message.sink_distance_of_sender = get_sink_distance();
+			message.sink_source_distance = get_sink_source_distance();
+			message.sink_distance += 1;
 
-		// TODO: repeat 3
-		extra_to_send = 2;
-		send_Choose_message(&message, AM_BROADCAST_ADDR);
+			message.source_distance_of_sender = get_source_distance();
+			message.sink_distance_of_sender = get_sink_distance();
 
-		become_Normal();
+			// TODO: repeat 3
+			extra_to_send = 2;
+			send_Choose_message(&message, AM_BROADCAST_ADDR);
+		}
+
+		// If we have just sent a choose message, we don't want to send another.
+		become_Normal(FALSE);
 	}
 
 	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)

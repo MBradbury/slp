@@ -12,8 +12,8 @@
 
 #include <assert.h>
 
-#define METRIC_RCV(TYPE, DISTANCE) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number, DISTANCE)
+#define METRIC_RCV(TYPE, DISTANCE, SOURCE) \
+	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%d,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, SOURCE, rcvd->sequence_number, DISTANCE)
 
 #define METRIC_BCAST(TYPE, STATUS) \
 	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, (tosend != NULL) ? tosend->sequence_number : (uint32_t)-1)
@@ -65,6 +65,9 @@ module SourceBroadcasterC
 
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
+
+	uses interface SequenceNumbers as NormalSeqNos;
+	uses interface SequenceNumbers as AwaySeqNos;
 	 
 	uses interface Random;
 }
@@ -93,9 +96,6 @@ implementation
 		default:              return "<unknown> ";
 		}
 	}
-
-	SequenceNumber normal_sequence_counter;
-	SequenceNumber away_sequence_counter;
 
 	int16_t sink_distance = BOTTOM;
 
@@ -338,9 +338,6 @@ implementation
 	{
 		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
-		sequence_number_init(&normal_sequence_counter);
-		sequence_number_init(&away_sequence_counter);
-
 		init_dsink_neighbours(&neighbours);
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
@@ -419,7 +416,8 @@ implementation
 		print_dsink_neighbours("stdout", &neighbours);
 #endif
 
-		message.sequence_number = sequence_number_next(&normal_sequence_counter);
+		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 		message.sink_distance_of_sender = sink_distance;
 		message.source_period = source_period;
@@ -438,7 +436,7 @@ implementation
 
 		if (send_Normal_message(&message, target))
 		{
-			sequence_number_increment(&normal_sequence_counter);
+			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
 
 		call BroadcastNormalTimer.startOneShot(source_period);
@@ -452,7 +450,8 @@ implementation
 
 		sink_distance = 0;
 
-		message.sequence_number = sequence_number_next(&away_sequence_counter);
+		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		message.source_id = TOS_NODE_ID;
 		message.sink_distance = sink_distance;
 
 		call PacketLink.setRetries(&packet, 0);
@@ -462,7 +461,7 @@ implementation
 		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
-			sequence_number_increment(&away_sequence_counter);
+			call AwaySeqNos.increment(TOS_NODE_ID);
 		}
 
 		dbgverbose("stdout", "Away sent\n");
@@ -475,6 +474,7 @@ implementation
 		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
 		message.sequence_number = 0;
+		message.source_id = 0;
 		message.sink_distance_of_sender = sink_distance;
 
 		call PacketLink.setRetries(&packet, 0);
@@ -489,13 +489,13 @@ implementation
 		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
 		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 
 			dbgverbose("stdout", "%s: Received unseen Normal seqno=%u from %u (dsrc=%d).\n",
 				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
@@ -592,7 +592,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 
 			dbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
 				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
@@ -627,13 +627,13 @@ implementation
 
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
-		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
+		if (call AwaySeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
 
-			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
+			call AwaySeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 			
-			METRIC_RCV(Away, rcvd->sink_distance + 1);
+			METRIC_RCV(Away, rcvd->sink_distance + 1, BOTTOM);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
@@ -666,6 +666,8 @@ implementation
 
 		if (rcvd->sink_distance_of_sender != BOTTOM)
 			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
+
+		METRIC_RCV(Beacon, 0, BOTTOM);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
