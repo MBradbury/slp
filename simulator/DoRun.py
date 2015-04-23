@@ -22,7 +22,7 @@ with Simulation(module, configuration, a.args) as sim:
 
     AttackerClass = getattr(Attacker, a.args.attacker_model)
 
-    sim.add_attacker(AttackerClass(sim, configuration.source_id, configuration.sink_id))
+    sim.add_attacker(AttackerClass(sim, configuration.sink_id))
 
     if a.args.mode == "GUI":
         sim.setup_gui()

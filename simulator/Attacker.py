@@ -6,7 +6,7 @@ from simulator.Simulator import OutputCatcher
 _messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
 
 class Attacker(object):
-    def __init__(self, sim, source_id, start_node_id):
+    def __init__(self, sim, start_node_id):
         self.sim = sim
 
         out = OutputCatcher(self.process)
@@ -62,14 +62,15 @@ class Attacker(object):
         self.sim.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
 
     def _process_line(self, line):
-        (time, msg_type, node_id, from_id, sequence_number) = line.split(',')
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = line.split(',')
 
         time = float(time) / self.sim.tossim.ticksPerSecond() # Get time to be in sec
         node_id = int(node_id)
-        from_id = int(from_id)
+        prox_from_id = int(prox_from_id)
+        ult_from_id = int(ult_from_id)
         sequence_number = int(sequence_number)
 
-        return (time, msg_type, node_id, from_id, sequence_number)
+        return (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
 
 class BasicReactiveAttacker(Attacker):
@@ -78,17 +79,17 @@ class BasicReactiveAttacker(Attacker):
         if self.found_source():
             return
 
-        (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
 
         if self.position == node_id:
 
-            self.move(from_id)
+            self.move(prox_from_id)
             
             self.draw(time, self.position)
 
 class IgnorePreviousLocationReactiveAttacker(Attacker):
-    def __init__(self, sim, source_id, start_node_id):
-        super(IgnorePreviousLocationReactiveAttacker, self).__init__(sim, source_id, start_node_id)
+    def __init__(self, sim, start_node_id):
+        super(IgnorePreviousLocationReactiveAttacker, self).__init__(sim, start_node_id)
         self.previous_location = None
 
     def process(self, line):
@@ -96,13 +97,13 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
         if self.found_source():
             return
 
-        (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
 
         if self.position == node_id and \
             (msg_type in _messages_without_sequence_numbers or
-            self.previous_location != from_id):
+            self.previous_location != prox_from_id):
 
-            self.move(from_id)
+            self.move(prox_from_id)
 
             self.draw(time, self.position)
 
@@ -110,9 +111,11 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
         self.previous_location = self.position
         super(IgnorePreviousLocationReactiveAttacker, self).move(node_id)
 
+# This attacker can determine the type of a message and its sequence number,
+# but is unaware of the ultimate source of the message.
 class SeqNoReactiveAttacker(Attacker):
-    def __init__(self, sim, source_id, start_node_id):
-        super(SeqNoReactiveAttacker, self).__init__(sim, source_id, start_node_id)
+    def __init__(self, sim, start_node_id):
+        super(SeqNoReactiveAttacker, self).__init__(sim, start_node_id)
         self.sequence_numbers = {}
 
     def process(self, line):
@@ -120,16 +123,45 @@ class SeqNoReactiveAttacker(Attacker):
         if self.found_source():
             return
 
-        (time, msg_type, node_id, from_id, sequence_number) = self._process_line(line)
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
+
+        seqno_key = (msg_type,)
 
         if self.position == node_id and \
             (msg_type in _messages_without_sequence_numbers or
-             msg_type not in self.sequence_numbers or 
-             self.sequence_numbers[msg_type] < sequence_number):
+             seqno_key not in self.sequence_numbers or 
+             self.sequence_numbers[seqno_key] < sequence_number):
 
-            self.sequence_numbers[msg_type] = sequence_number
+            self.sequence_numbers[seqno_key] = sequence_number
             
-            self.move(from_id)
+            self.move(prox_from_id)
+
+            self.draw(time, self.position)
+
+# This attacker can determine the source node of certain messages
+# that can be sent from multiple sources.
+class SeqNosReactiveAttacker(Attacker):
+    def __init__(self, sim, start_node_id):
+        super(SeqNosReactiveAttacker, self).__init__(sim, start_node_id)
+        self.sequence_numbers = {}
+
+    def process(self, line):
+        # Don't want to move if the source has been found
+        if self.found_source():
+            return
+
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
+
+        seqno_key = (ult_from_id, msg_type)
+
+        if self.position == node_id and \
+            (msg_type in _messages_without_sequence_numbers or
+             seqno_key not in self.sequence_numbers or 
+             self.sequence_numbers[seqno_key] < sequence_number):
+
+            self.sequence_numbers[seqno_key] = sequence_number
+            
+            self.move(prox_from_id)
 
             self.draw(time, self.position)
 

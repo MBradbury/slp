@@ -10,7 +10,7 @@ class MetricsCommon(object):
         self.sim = sim
         self.configuration = configuration
 
-        self.source_ids = set([ configuration.source_id ])
+        self.source_ids = set(configuration.source_ids)
         self.sink_ids = set([ configuration.sink_id ])
 
         self.sent = {}
@@ -40,7 +40,7 @@ class MetricsCommon(object):
             self.sent[kind][node_id] += 1
 
             if node_id in self.source_ids and kind == "Normal":
-                self.normal_sent_time[sequence_number] = time
+                self.normal_sent_time[(node_id, sequence_number)] = time
 
     def process_RCV(self, line):
         (kind, time, node_id, source_id, sequence_number, hop_count) = line.split(',')
@@ -57,7 +57,7 @@ class MetricsCommon(object):
         self.received[kind][node_id] += 1
 
         if node_id in self.sink_ids and kind == "Normal":
-            self.normal_latency[sequence_number] = time - self.normal_sent_time[sequence_number]
+            self.normal_latency[(source_id, sequence_number)] = time - self.normal_sent_time[(source_id, sequence_number)]
             self.normal_hop_count.append(hop_count)
 
     COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')

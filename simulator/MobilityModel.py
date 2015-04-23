@@ -66,7 +66,9 @@ class StationaryMobilityModel(MobilityModel):
 
     def setup(self, configuration):
         times = OrderedDict()
-        times[configuration.source_id] = [(0, float('inf'))]
+
+        for source_id in configuration.source_ids:
+            times[source_id] = [(0, float('inf'))]
 
         super(StationaryMobilityModel, self).setup(configuration, times)
 

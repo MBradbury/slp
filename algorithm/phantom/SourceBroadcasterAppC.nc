@@ -75,6 +75,12 @@ implementation
 	// SourcePeriodModel - for source periods
 	components SourcePeriodModelP;
 	App.SourcePeriodModel -> SourcePeriodModelP;
+
+	components
+		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos,
+		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as AwaySeqNos;
+	App.NormalSeqNos -> NormalSeqNos;
+	App.AwaySeqNos -> AwaySeqNos;
        
     // Random
     components RandomC;

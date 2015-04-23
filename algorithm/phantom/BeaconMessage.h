@@ -4,6 +4,7 @@
 typedef nx_struct BeaconMessage
 {
   nx_uint64_t sequence_number; // unused
+  nx_am_addr_t source_id; // unused
   
   nx_int16_t sink_distance_of_sender;
 
