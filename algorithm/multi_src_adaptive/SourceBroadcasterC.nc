@@ -118,27 +118,17 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	int32_t ignore_choose_distance(int32_t distance)
-	{
-		// We contemplated changing this versus the original algorithm,
-		// but decided against it.
-		// By randomising this, the capture rates for the Sink Corner
-		// are very bad.
-		//return (int32_t)ceil(distance * random_float());
-		return distance;
-	}
-
 	bool should_process_choose()
 	{
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			return !(l != BOTTOM &&
-				source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
+			return !(sink_source_distance != BOTTOM &&
+				source_distance <= (4 * sink_source_distance) / 5);
 
 		case FurtherAlgorithm:
 			return !seen_pfs && !(sink_source_distance != BOTTOM &&
-				source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
+				source_distance <= ((1 * sink_source_distance) / 2) - 1);
 
 		default:
 			return TRUE;
