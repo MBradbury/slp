@@ -68,7 +68,6 @@ implementation
 	App.FakeReceive -> FakeReceiver;
 
 	components FakeMessageGeneratorP;
-
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
 
 	components ObjectDetectorP;
