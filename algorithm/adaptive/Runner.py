@@ -9,15 +9,15 @@ class RunSimulations(RunSimulationsCommon):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
-    def run(self, exe_path, distance, sizes, source_periods, approaches, configurations, repeats):
+    def run(self, exe_path, distance, sizes, source_periods, approaches, configurations, attacker_models, repeats):
         if self.skip_completed_simulations:
-            self._check_existing_results(['network_size', 'source_period', 'approach', 'configuration'])
+            self._check_existing_results(['network_size', 'source_period', 'approach', 'configuration', 'attacker_model'])
     
         if not os.path.exists(exe_path):
             raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
-        for (size, source_period, approach, (configuration, algorithm)) in itertools.product(sizes, source_periods, approaches, configurations):
-            if not self._already_processed(repeats, size, source_period, approach, configuration):
+        for (size, source_period, approach, (configuration, algorithm), attacker_model) in itertools.product(sizes, source_periods, approaches, configurations, attacker_models):
+            if not self._already_processed(repeats, size, source_period, approach, configuration, attacker_model):
 
                 try:
                     safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
@@ -37,6 +37,7 @@ class RunSimulations(RunSimulationsCommon):
                 opts["--approach"] = approach
                 opts["--distance"] = distance
                 opts["--job-size"] = repeats
+                opts["--attacker-model"] = attacker_model
 
                 optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
 
