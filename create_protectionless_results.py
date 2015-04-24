@@ -32,9 +32,9 @@ sizes = [ 11, 15, 21, 25 ]
 periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
 configurations = [
-    'SourceCorner',
-    'SinkCorner',
-    'FurtherSinkCorner',
+    #'SourceCorner',
+    #'SinkCorner',
+    #'FurtherSinkCorner',
     #'Generic1',
     #'Generic2',
     
@@ -45,14 +45,22 @@ configurations = [
     #'CircleEdges',
     #'CircleSourceCentre',
     #'CircleSinkCentre',
+
+    'Source2Corners',
 ]
 
 repeats = 750
+
+attacker_models = ['SeqNoReactiveAttacker', 'SeqNosReactiveAttacker']
 
 parameter_names = tuple()
 
 create_dirtree(protectionless.results_path)
 create_dirtree(protectionless.graphs_path)
+
+def run(driver, results_directory, skip_completed_simulations=True):
+    runner = protectionless.Runner.RunSimulations(driver, results_directory, skip_completed_simulations)
+    runner.run(jar_path, distance, sizes, periods, configurations, attacker_models, repeats)
 
 if 'cluster' in args:
     cluster_directory = os.path.join("cluster", protectionless.name)
@@ -66,15 +74,13 @@ if 'cluster' in args:
         touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
         touch("{}/__init__.py".format(cluster_directory))
 
-        runner = protectionless.Runner.RunSimulations(cluster.builder(), cluster_directory, False)
-        runner.run(jar_path, distance, sizes, periods, configurations, repeats)
+        run(cluster.builder(), cluster_directory, False)
 
     if 'copy' in args:
         cluster.copy_to()
 
     if 'submit' in args:
-        runner = protectionless.Runner.RunSimulations(cluster.submitter(), cluster_directory, False)
-        runner.run(jar_path, distance, sizes, periods, configurations, repeats)
+        run(cluster.submitter(), cluster_directory, False)
 
     if 'copy-back' in args:
         cluster.copy_back("protectionless")
@@ -83,9 +89,7 @@ if 'cluster' in args:
 
 if 'run' in args:
     from data.run.driver import local as LocalDriver
-
-    runner = protectionless.Runner.RunSimulations(LocalDriver.Runner(), protectionless.results_path)
-    runner.run(jar_path, distance, sizes, periods, configurations, repeats)
+    run(LocalDriver.Runner(), protectionless.results_path)
 
 if 'analyse' in args:
     analyzer = protectionless.Analysis.Analyzer(protectionless.results_path)
