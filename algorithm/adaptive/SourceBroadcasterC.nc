@@ -398,6 +398,8 @@ implementation
 		{
 			sequence_number_increment(&normal_sequence_counter);
 		}
+
+		call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 	}
 
 	event void AwaySenderTimer.fired()
