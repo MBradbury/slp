@@ -6,6 +6,8 @@
 typedef nx_struct AwayChooseMessage {
   nx_uint64_t sequence_number;
 
+  nx_am_addr_t source_id;
+
   // The sink and sink-source distances must be known
   // by the time an away or choose message is sent.
   // Although not necessarily the correct distance,

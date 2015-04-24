@@ -44,6 +44,7 @@ module SourceBroadcasterC
 	uses interface Receive as FakeReceive;
 
 	uses interface FakeMessageGenerator;
+	uses interface ObjectDetector;
 }
 
 implementation
@@ -284,12 +285,7 @@ implementation
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
 
-		if (TOS_NODE_ID == SOURCE_NODE_ID)
-		{
-			type = SourceNode;
-			dbg("Node-Change-Notification", "The node has become a Source\n");
-		}
-		else if (TOS_NODE_ID == SINK_NODE_ID)
+		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
@@ -304,10 +300,7 @@ implementation
 		{
 			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			if (type == SourceNode)
-			{
-				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
-			}
+			call ObjectDetector.start();
 		}
 		else
 		{
@@ -320,6 +313,33 @@ implementation
 	event void RadioControl.stopDone(error_t err)
 	{
 		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+	}
+
+	event void ObjectDetector.detect()
+	{
+		// The sink node cannot become a source node
+		if (type != SinkNode)
+		{
+			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			dbg("Node-Change-Notification", "The node has become a Source\n");
+
+			type = SourceNode;
+
+			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
+		}
+	}
+
+	event void ObjectDetector.stoppedDetecting()
+	{
+		if (type == SourceNode)
+		{
+			call BroadcastNormalTimer.stop();
+
+			type = NormalNode;
+
+			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			dbg("Node-Change-Notification", "The node has become a Normal\n");
+		}
 	}
 
 	USE_MESSAGE(Normal);
@@ -366,9 +386,9 @@ implementation
 		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
+		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 		message.max_hop = first_source_distance;
-		message.source_id = TOS_NODE_ID;
 		message.sink_source_distance = sink_source_distance;
 
 		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
@@ -384,6 +404,7 @@ implementation
 	{
 		AwayMessage message;
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
+		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
 		message.sink_source_distance = sink_source_distance;
 		message.max_hop = sink_source_distance;
