@@ -102,7 +102,7 @@ class TosVis(Simulator):
 
     @staticmethod
     def adjust_location(loc):
-        factor = 5
+        factor = 6
         return (loc[0] * factor, loc[1] * factor)
 
     def node_location(self, node_id):
