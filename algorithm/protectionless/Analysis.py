@@ -3,6 +3,8 @@ from collections import OrderedDict
 
 from data.analysis import Analyse, AnalysisResults, AnalyzerCommon
 
+from simulator import SourcePeriodModel
+
 class AnalyseWithOutlierDetection(Analyse):
     def detect_outlier(self, values):
         # Discard simulations that didn't capture the source
@@ -17,7 +19,7 @@ class AnalyseWithOutlierDetection(Analyse):
         time_taken = float(values[time_index])
 
         network_size = int(self.opts['network_size'])
-        source_period = float(self.opts['source_period'])
+        source_period = float(SourcePeriodModel.eval_input(self.opts['source_period']))
 
         upper_bound = (network_size ** 2) * source_period
 
@@ -33,6 +35,7 @@ class Analyzer(AnalyzerCommon):
         d['network size']       = lambda x: x.opts['network_size']
         d['configuration']      = lambda x: x.opts['configuration']
         d['source period']      = lambda x: x.opts['source_period']
+        d['attacker model']     = lambda x: x.opts['attacker_model']
 
         def format_results(x, name, allow_missing=False):
             if name in x.variance_of:
