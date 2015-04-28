@@ -9,7 +9,8 @@ class Analyzer(AnalyzerCommon):
         d['network size']       = lambda x: x.opts['network_size']
         d['configuration']      = lambda x: x.opts['configuration']
         d['source period']      = lambda x: x.opts['source_period']
-
+        d['attacker model']     = lambda x: x.opts['attacker_model']
+        
         def format_results(x, name):
             if name in x.variance_of:
                 return "{}({})".format(x.average_of[name], x.variance_of[name])
