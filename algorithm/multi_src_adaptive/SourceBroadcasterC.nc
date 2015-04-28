@@ -92,9 +92,6 @@ implementation
 	bool seen_pfs = FALSE;
 	bool is_pfs_candidate = FALSE;
 
-	uint32_t first_source_distance = 0;
-	bool first_source_distance_set = FALSE;
-
 	uint32_t extra_to_send = 0;
 
 	typedef enum
@@ -287,6 +284,18 @@ implementation
 		source_distance = minbot(source_distance, provided); // Old-style
 	}
 
+	int32_t average_source_distance()
+	{
+		double average = 0;
+		int32_t* iter = NULL;
+		for (iter = call SourceDistances.begin(); iter != call SourceDistances.end(); ++iter)
+		{
+			average += *iter;
+		}
+		average /= call SourceDistances.count();
+		return (int32_t)floor(average + 0.5);
+	}
+
 
 	bool busy = FALSE;
 	message_t packet;
@@ -404,7 +413,7 @@ implementation
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
-		message.max_hop = first_source_distance;
+		message.average_1hop_source_distance = 0;
 		message.source_id = TOS_NODE_ID;
 		message.sink_source_distance = sink_source_distance;
 
@@ -426,7 +435,6 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
 		message.sink_source_distance = sink_source_distance;
-		message.max_hop = sink_source_distance;
 		message.algorithm = ALGORITHM;
 
 		sequence_number_increment(&away_sequence_counter);
@@ -441,12 +449,6 @@ implementation
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
-
 		update_sink_source_distance(rcvd->sink_source_distance, rcvd->source_id);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
@@ -462,24 +464,27 @@ implementation
 
 			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
-			if (!first_source_distance_set)
-			{
-				first_source_distance = rcvd->source_distance + 1;
-				is_pfs_candidate = TRUE;
-				first_source_distance_set = TRUE;
-				call Leds.led1On();
-			}
-
 			update_source_distance(rcvd->source_distance + 1, rcvd->source_id);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
-			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+			forwarding_message.average_1hop_source_distance = average_source_distance();
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+		}
+
+		if (average_source_distance() > rcvd->average_1hop_source_distance)
+		{
+			is_pfs_candidate = TRUE;
+			call Leds.led1On();
+		}
+		else if (average_source_distance() < rcvd->average_1hop_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 	}
 
@@ -524,11 +529,17 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
-			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+			forwarding_message.average_1hop_source_distance = average_source_distance();
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+		}
+
+		if (average_source_distance() < rcvd->average_1hop_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 	}
 
@@ -573,12 +584,6 @@ implementation
 
 	void Normal_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
-
 		if (algorithm == UnknownAlgorithm)
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
@@ -607,7 +612,6 @@ implementation
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
-			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
 
 			// TODO: repeat 2
 			extra_to_send = 1;
@@ -623,12 +627,6 @@ implementation
 
 	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
-
 		if (algorithm == UnknownAlgorithm)
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
@@ -666,15 +664,16 @@ implementation
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
-			FakeMessage message = *rcvd;
+			FakeMessage forwarding_message = *rcvd;
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV(Fake, 0, BOTTOM);
 
-			message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.average_1hop_source_distance = average_source_distance();
 
-			send_Fake_message(&message, AM_BROADCAST_ADDR);
+			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
@@ -695,12 +694,6 @@ implementation
 
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
-
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
@@ -714,20 +707,20 @@ implementation
 			seen_pfs |= rcvd->from_pfs;
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
+			forwarding_message.average_1hop_source_distance = average_source_distance();
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
+		}
+
+		if (average_source_distance() < rcvd->average_1hop_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 	}
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
-
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
@@ -741,11 +734,11 @@ implementation
 			seen_pfs |= rcvd->from_pfs;
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
+			forwarding_message.average_1hop_source_distance = average_source_distance();
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (pfs_can_become_normal() &&
+			/*if (pfs_can_become_normal() &&
 				rcvd->from_pfs &&
 				(
 					(rcvd->source_distance > source_distance) ||
@@ -755,7 +748,13 @@ implementation
 				)
 			{
 				call FakeMessageGenerator.expireDuration();
-			}
+			}*/
+		}
+
+		if (average_source_distance() < rcvd->average_1hop_source_distance)
+		{
+			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
 		}
 	}
 
@@ -789,10 +788,10 @@ implementation
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
 		message->sink_source_distance = sink_source_distance;
 		message->source_distance = source_distance;
-		message->max_hop = first_source_distance;
 		message->sink_distance = sink_distance;
 		message->from_pfs = (type == PermFakeNode);
 		message->source_id = TOS_NODE_ID;
+		message->average_1hop_source_distance = average_source_distance();
 	}
 
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
@@ -834,12 +833,9 @@ implementation
 
 		METRIC_BCAST(Fake, result);
 
-		if (pfs_can_become_normal())
+		if (pfs_can_become_normal() && !is_pfs_candidate)
 		{
-			if (!is_pfs_candidate)
-			{
-				call FakeMessageGenerator.expireDuration();
-			}
+			call FakeMessageGenerator.expireDuration();
 		}
 	}
 }
