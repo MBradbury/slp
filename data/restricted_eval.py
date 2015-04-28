@@ -2,7 +2,7 @@ import ast
 
 # From: https://stackoverflow.com/questions/14611352/malformed-string-valueerror-ast-literal-eval-with-string-representation-of-tup
 def restricted_eval(source, available):
-    allowed = [cls.__name__ for cls in available]
+    allowed = {cls.__name__ for cls in available}
     restricted_globals = {cls.__name__: cls for cls in available}
 
     tree = ast.parse(source, mode='eval')
@@ -11,8 +11,8 @@ def restricted_eval(source, available):
     # however in this example NodeVisitor could do as we are raising exceptions
     # only.
     class Transformer(ast.NodeTransformer):
-        ALLOWED_NAMES = set(allowed + ['None', 'False', 'True'])
-        ALLOWED_NODE_TYPES = set([
+        ALLOWED_NAMES = allowed | {'None', 'False', 'True'}
+        ALLOWED_NODE_TYPES = {
             'Expression', # a top node for an expression
             'Tuple',      # makes a tuple
             'Call',       # a function call (hint, Decimal())
@@ -23,11 +23,13 @@ def restricted_eval(source, available):
             'Num',        # allow numbers too
             'List',       # and list literals
         	'Dict',       # and dicts...
-        ])
+
+            'keyword',    # Keyword arguments
+        }
 
         def visit_Name(self, node):
-            if not node.id in self.ALLOWED_NAMES:
-                raise RuntimeError("Name access to %s is not allowed" % node.id)
+            if node.id not in self.ALLOWED_NAMES:
+                raise RuntimeError("Name access to {} is not allowed".format(node.id))
 
             # traverse to child nodes
             return self.generic_visit(node)
@@ -35,7 +37,7 @@ def restricted_eval(source, available):
         def generic_visit(self, node):
             nodetype = type(node).__name__
             if nodetype not in self.ALLOWED_NODE_TYPES:
-                raise RuntimeError("Invalid expression: %s not allowed" % nodetype)
+                raise RuntimeError("Invalid expression: {} not allowed".format(nodetype))
 
             return ast.NodeTransformer.generic_visit(self, node)
 
