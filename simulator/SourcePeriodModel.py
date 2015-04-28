@@ -58,6 +58,9 @@ class FixedPeriodModel(PeriodModel):
     def __repr__(self):
         return "FixedPeriodModel(period={})".format(self.period)
 
+    def __float__(self):
+        return self.period
+
 class FactoringPeriodModel(PeriodModel):
     def __init__(self, starting_period, max_period, duration, factor):
 
