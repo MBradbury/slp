@@ -7,6 +7,8 @@ import sys, ast, math, os, fnmatch
 from collections import Counter
 from numbers import Number
 
+from simulator import Attacker
+
 class EmptyFileError(RuntimeError):
     def __init__(self, filename):
         super(EmptyFileError, self).__init__("The file '{}' is empty.".format(filename))
@@ -42,6 +44,9 @@ class Analyse(object):
 
                 elif '|' in line:
                     try:
+                        # Some options may be missing
+                        self._fix_opts()
+
                         # Read the actual data
                         values = self._better_literal_eval(line_number, line.split('|'))
 
@@ -59,6 +64,12 @@ class Analyse(object):
 
             if line_number == 0 or len(self.data) == 0:
                 raise EmptyFileError(infile)
+
+    def _fix_opts(self):
+        # The attacker model may not be included in old results, so
+        # provide the default in this case.
+        if 'attacker_model' not in self.opts:
+            self.opts['attacker_model'] = Attacker.default()
 
     def _better_literal_eval(self, line_number, items):
         values = []
