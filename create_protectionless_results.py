@@ -32,9 +32,9 @@ sizes = [ 11, 15, 21, 25 ]
 periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
 configurations = [
-    #'SourceCorner',
-    #'SinkCorner',
-    #'FurtherSinkCorner',
+    'SourceCorner',
+    'SinkCorner',
+    'FurtherSinkCorner',
     #'Generic1',
     #'Generic2',
     
@@ -51,7 +51,7 @@ configurations = [
 
 repeats = 750
 
-attacker_models = ['SeqNoReactiveAttacker', 'SeqNosReactiveAttacker']
+attacker_models = ['BasicReactiveAttacker', 'IgnorePreviousLocationReactiveAttacker']
 
 parameter_names = tuple()
 
