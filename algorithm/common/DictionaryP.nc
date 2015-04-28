@@ -10,6 +10,21 @@ implementation
 	Value values[MAX_SIZE];
 	uint16_t count = 0;
 
+	command uint16_t Dictionary.count()
+	{
+		return count;
+	}
+
+	command Value* Dictionary.begin()
+	{
+		return values;
+	}
+
+	command Value* Dictionary.end()
+	{
+		return values + count;
+	}
+
 	command bool Dictionary.put(Key key, Value value)
 	{
 		Value* stored_value = call Dictionary.get(key);
