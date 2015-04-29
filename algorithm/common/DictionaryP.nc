@@ -25,6 +25,16 @@ implementation
 		return values + count;
 	}
 
+	command Key* Dictionary.beginKeys()
+	{
+		return keys;
+	}
+
+	command Key* Dictionary.endKeys()
+	{
+		return keys + count;
+	}
+
 	command bool Dictionary.put(Key key, Value value)
 	{
 		Value* stored_value = call Dictionary.get(key);

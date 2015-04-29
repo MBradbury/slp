@@ -9,4 +9,7 @@ interface Dictionary<Key, Value>
 
 	command Value* begin();
 	command Value* end();
+
+	command Key* beginKeys();
+	command Key* endKeys();
 }
