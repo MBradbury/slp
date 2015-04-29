@@ -48,7 +48,7 @@ module SourceBroadcasterC
 
 	uses interface SequenceNumbers as NormalSeqNos;
 
-	uses interface Dictionary<am_addr_t, int32_t> as SourceDistances;
+	//uses interface Dictionary<am_addr_t, int32_t> as SourceDistances;
 }
 
 implementation
@@ -85,7 +85,7 @@ implementation
 	const uint32_t away_delay = SOURCE_PERIOD_MS / 2;
 
 	int32_t sink_source_distance = BOTTOM;
-	int32_t source_distance = BOTTOM;
+	int32_t min_source_distance = BOTTOM;
 	int32_t sink_distance = BOTTOM;
 
 	bool sink_sent_away = FALSE;
@@ -115,17 +115,31 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+	void set_pfs_candidate(bool value)
+	{
+		is_pfs_candidate = value;
+
+		if (value)
+		{
+			call Leds.led1On();
+		}
+		else
+		{
+			call Leds.led1Off();
+		}
+	}
+
 	bool should_process_choose()
 	{
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
 			return !(sink_source_distance != BOTTOM &&
-				source_distance <= (4 * sink_source_distance) / 5);
+				min_source_distance <= (4 * sink_source_distance) / 5);
 
 		case FurtherAlgorithm:
 			return !seen_pfs && !(sink_source_distance != BOTTOM &&
-				source_distance <= ((1 * sink_source_distance) / 2) - 1);
+				min_source_distance <= ((1 * sink_source_distance) / 2) - 1);
 
 		default:
 			return TRUE;
@@ -163,13 +177,13 @@ implementation
 			// It has the added benefit that this is only true when the TFS is further from
 			// the source than the sink is.
 			// This means that TFSs near the source will send fewer messages.
-			if (source_distance == BOTTOM || sink_source_distance == BOTTOM)
+			if (min_source_distance == BOTTOM || sink_source_distance == BOTTOM)
 			{
 				distance = sink_distance;
 			}
 			else
 			{
-				distance = source_distance - sink_source_distance;
+				distance = min_source_distance - sink_source_distance;
 			}
 			break;
 
@@ -181,7 +195,7 @@ implementation
 
 		distance = max(distance, 1);
 		
-		return distance;	
+		return distance;
 	}
 
 #elif defined(PB_ATTACKER_EST_APPROACH)
@@ -215,7 +229,7 @@ implementation
 		uint32_t distance = get_dist_to_pull_back();
 
 		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
-			distance, source_distance, sink_distance, sink_source_distance);
+			distance, min_source_distance, sink_distance, sink_source_distance);
 
 		return distance;
 	}
@@ -276,24 +290,12 @@ implementation
 
 	void update_source_distance(uint32_t provided, am_addr_t from_id)
 	{
-		const int32_t stored = call SourceDistances.get_or_default(from_id, BOTTOM);
+		/*const int32_t stored = call SourceDistances.get_or_default(from_id, BOTTOM);
 		const int32_t updated = minbot(stored, provided);
 
-		call SourceDistances.put(from_id, updated);
+		call SourceDistances.put(from_id, updated);*/
 
-		source_distance = minbot(source_distance, provided); // Old-style
-	}
-
-	int32_t average_source_distance()
-	{
-		double average = 0;
-		int32_t* iter = NULL;
-		for (iter = call SourceDistances.begin(); iter != call SourceDistances.end(); ++iter)
-		{
-			average += *iter;
-		}
-		average /= call SourceDistances.count();
-		return (int32_t)floor(average + 0.5);
+		min_source_distance = minbot(min_source_distance, provided); // Old-style
 	}
 
 
@@ -314,6 +316,7 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
+			sink_distance = 0;
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
@@ -350,6 +353,7 @@ implementation
 			dbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
+			min_source_distance = 0;
 
 			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 		}
@@ -362,6 +366,7 @@ implementation
 			call BroadcastNormalTimer.stop();
 
 			type = NormalNode;
+			min_source_distance = BOTTOM;
 
 			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			dbg("Node-Change-Notification", "The node has become a Normal\n");
@@ -375,9 +380,9 @@ implementation
 
 	void become_Normal()
 	{
-		type = NormalNode;
-
 		call FakeMessageGenerator.stop();
+
+		type = NormalNode;
 
 		dbg("Fake-Notification", "The node has become a Normal\n");
 	}
@@ -413,7 +418,7 @@ implementation
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
-		message.average_1hop_source_distance = 0;
+		message.sender_min_source_distance = 0;
 		message.source_id = TOS_NODE_ID;
 		message.sink_source_distance = sink_source_distance;
 
@@ -469,22 +474,23 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
-			forwarding_message.average_1hop_source_distance = average_source_distance();
+			forwarding_message.sender_min_source_distance = min_source_distance;
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 
-		if (average_source_distance() > rcvd->average_1hop_source_distance)
+		if (rcvd->sender_min_source_distance != BOTTOM && min_source_distance != BOTTOM)
 		{
-			is_pfs_candidate = TRUE;
-			call Leds.led1On();
-		}
-		else if (average_source_distance() < rcvd->average_1hop_source_distance)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
+			if (min_source_distance > rcvd->source_distance)
+			{
+				set_pfs_candidate(TRUE);
+			}
+			else if (min_source_distance < rcvd->source_distance)
+			{
+				set_pfs_candidate(FALSE);
+			}
 		}
 	}
 
@@ -529,17 +535,11 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
-			forwarding_message.average_1hop_source_distance = average_source_distance();
+			forwarding_message.sender_min_source_distance = min_source_distance;
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
-		}
-
-		if (average_source_distance() < rcvd->average_1hop_source_distance)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
 		}
 	}
 
@@ -671,7 +671,7 @@ implementation
 			METRIC_RCV(Fake, 0, BOTTOM);
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.average_1hop_source_distance = average_source_distance();
+			forwarding_message.sender_min_source_distance = min_source_distance;
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -707,15 +707,31 @@ implementation
 			seen_pfs |= rcvd->from_pfs;
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.average_1hop_source_distance = average_source_distance();
+			forwarding_message.sender_min_source_distance = min_source_distance;
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 
-		if (average_source_distance() < rcvd->average_1hop_source_distance)
+		if (min_source_distance != BOTTOM)
 		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
+			if (rcvd->sender_min_source_distance != BOTTOM)
+			{
+				if (min_source_distance < rcvd->sender_min_source_distance)
+				{
+					set_pfs_candidate(FALSE);
+				}
+				else if (min_source_distance > rcvd->sender_min_source_distance)
+				{
+					set_pfs_candidate(TRUE);
+				}
+			}
+
+			// If there is a TFS/PFS with a greater source distance than this
+			// node, we do not want it to possibly become a PFS.
+			if (rcvd->source_distance != BOTTOM && min_source_distance < rcvd->source_distance)
+			{
+				set_pfs_candidate(FALSE);
+			}
 		}
 	}
 
@@ -734,27 +750,14 @@ implementation
 			seen_pfs |= rcvd->from_pfs;
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.average_1hop_source_distance = average_source_distance();
+			forwarding_message.sender_min_source_distance = min_source_distance;
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			/*if (pfs_can_become_normal() &&
-				rcvd->from_pfs &&
-				(
-					(rcvd->source_distance > source_distance) ||
-					(rcvd->source_distance == source_distance && sink_distance < rcvd->sink_distance) ||
-					(rcvd->source_distance == source_distance && sink_distance == rcvd->sink_distance && TOS_NODE_ID < rcvd->source_id)
-				)
-				)
+			if (pfs_can_become_normal() && rcvd->from_pfs && rcvd->source_distance > min_source_distance)
 			{
 				call FakeMessageGenerator.expireDuration();
-			}*/
-		}
-
-		if (average_source_distance() < rcvd->average_1hop_source_distance)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
+			}
 		}
 	}
 
@@ -787,11 +790,11 @@ implementation
 	{
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
 		message->sink_source_distance = sink_source_distance;
-		message->source_distance = source_distance;
+		message->source_distance = min_source_distance;
 		message->sink_distance = sink_distance;
 		message->from_pfs = (type == PermFakeNode);
 		message->source_id = TOS_NODE_ID;
-		message->average_1hop_source_distance = average_source_distance();
+		message->sender_min_source_distance = min_source_distance;
 	}
 
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)

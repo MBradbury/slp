@@ -77,7 +77,7 @@ implementation
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 
-	components
-		new DictionaryP(am_addr_t, int32_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
-	App.SourceDistances -> SourceDistances;
+	//components
+	//	new DictionaryP(am_addr_t, int32_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
+	//App.SourceDistances -> SourceDistances;
 }

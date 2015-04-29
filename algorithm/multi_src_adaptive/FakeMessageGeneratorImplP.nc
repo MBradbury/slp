@@ -140,7 +140,7 @@ implementation
 
 	command void FakeMessageGenerator.expireDuration()
 	{
-		call SendFakeTimer.stop();
+		call FakeMessageGenerator.stop();
 		signal FakeMessageGenerator.durationExpired(&original_message);
 	}
 }
