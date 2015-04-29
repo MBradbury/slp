@@ -216,6 +216,49 @@ class Source4Corners(Configuration):
             space_behind_sink=True
         )
 
+class Source2Edges(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Source2Edges, self).__init__(
+            grid,
+            source_ids={
+                    (network_size - 1) / 2,
+                    len(grid.nodes) - ((network_size - 1) / 2) - 1
+                },
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
+class Source4Edges(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Source4Edges, self).__init__(
+            grid,
+            source_ids={
+                    (network_size - 1) / 2,
+                    
+                    ((len(grid.nodes) - 1) / 2) - (network_size - 1) / 2,
+                    ((len(grid.nodes) - 1) / 2) + (network_size - 1) / 2,
+
+                    len(grid.nodes) - ((network_size - 1) / 2) - 1
+                },
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
+class Source2Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Source2Corner, self).__init__(
+            grid,
+            source_ids={3, network_size * 3},
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
 def Configurations():
     """A list of the available configuration classes."""
     return [cls for cls in Configuration.__subclasses__()]
