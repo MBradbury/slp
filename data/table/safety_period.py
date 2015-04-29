@@ -107,14 +107,16 @@ class TableGenerator:
                 print('', file=stream)
 
     def safety_periods(self):
-        # type -> configuration -> size -> source rate -> safety period
+        # attacker model -> configuration -> size -> source rate -> safety period
         result = {}
 
-        for (config, config_list) in self.data.items():
-            result[config] = {}
-            for (size, size_list) in config_list.items():
-                result[config][size] = {}
-                for (src_period, time_taken, safety_period, rcv, latency, ssd) in size_list:
-                    result[config][size][src_period] = safety_period
+        for (attacker_model, attacker_model_list) in self.data.items():
+            result[attacker_model] = {}
+            for (config, config_list) in attacker_model_list.items():
+                result[attacker_model][config] = {}
+                for (size, size_list) in config_list.items():
+                    result[attacker_model][config][size] = {}
+                    for (src_period, time_taken, safety_period, rcv, latency, ssd) in size_list:
+                        result[attacker_model][config][size][src_period] = safety_period
 
         return result
