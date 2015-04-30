@@ -69,7 +69,7 @@ class CLI(CommandLineCommon.CLI):
     
 
     def __init__(self):
-        pass
+        super(CLI, self).__init__(__package__)
 
 
     def _execute_runner(self, driver, results_directory, skip_completed_simulations=True):
@@ -213,13 +213,13 @@ class CLI(CommandLineCommon.CLI):
     def run(self, args):
 
         if 'cluster' in args:
-            self._run_cluster(args, template.name)
+            self._run_cluster(args)
 
         if 'run' in args:
-            self._run_run(args, template)
+            self._run_run(args)
 
         if 'analyse' in args:
-            self._run_analyse(args, template)
+            self._run_analyse(args)
 
         if 'table' in args:
             self._run_table(args)

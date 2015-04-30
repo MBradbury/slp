@@ -3,22 +3,22 @@ import os, sys
 from data.util import recreate_dirtree, touch
 
 class CLI(object):
-    def __init__(self):
-        pass
+    def __init__(self, package):
+        self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
 
     def _execute_runner(self, driver, results_directory, skip_completed_simulations):
         raise NotImplemented()
 
-    def _run_run(self, args, algorithm_module):
+    def _run_run(self, args):
         from data.run.driver import local as LocalDriver
-        self._execute_runner(LocalDriver.Runner(), algorithm_module.results_path)
+        self._execute_runner(LocalDriver.Runner(), self.algorithm_module.results_path)
 
-    def _run_analyse(self, args, algorithm_module):
-        analyzer = algorithm_module.Analysis.Analyzer(algorithm_module.results_path)
-        analyzer.run(algorithm_module.result_file)
+    def _run_analyse(self, args):
+        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
+        analyzer.run(self.algorithm_module.result_file)
 
-    def _run_cluster(self, args, algorithm_name):
-        cluster_directory = os.path.join("cluster", algorithm_name)
+    def _run_cluster(self, args):
+        cluster_directory = os.path.join("cluster", self.algorithm_module.name)
 
         from data import cluster_manager
 
@@ -38,6 +38,6 @@ class CLI(object):
             self._execute_runner(cluster.submitter(), cluster_directory, False)
 
         if 'copy-back' in args:
-            cluster.copy_back(algorithm_name)
+            cluster.copy_back(self.algorithm_module.name)
 
         sys.exit(0)
