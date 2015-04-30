@@ -58,7 +58,7 @@ class CLI(CommandLineCommon.CLI):
     parameter_names = ('approach',)
 
     def __init__(self):
-        pass
+        super(CLI, self).__init__(__package__)
 
 
     def _execute_runner(self, driver, results_directory, skip_completed_simulations):
@@ -76,10 +76,10 @@ class CLI(CommandLineCommon.CLI):
     def run(self, args):
         
         if 'cluster' in args:
-            self._run_cluster(args, multi_src_adaptive.name)
+            self._run_cluster(args)
 
         if 'run' in args:
-            self._run_run(args, multi_src_adaptive)
+            self._run_run(args)
 
         if 'analyse' in args:
-            self._run_analyse(args, multi_src_adaptive)
+            self._run_analyse(args)

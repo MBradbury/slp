@@ -26,9 +26,9 @@ class CLI(CommandLineCommon.CLI):
     periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
     configurations = [
-        'SourceCorner',
-        'SinkCorner',
-        'FurtherSinkCorner',
+        #'SourceCorner',
+        #'SinkCorner',
+        #'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
         
@@ -41,21 +41,24 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSinkCentre',
 
         'Source2Corners',
+        'Source4Corners',
+        'Source2Edges',
+        'Source4Edges',
+        'Source2Corner',
     ]
 
     repeats = 750
 
-    attacker_models = ['BasicReactiveAttacker', 'IgnorePreviousLocationReactiveAttacker']
+    attacker_models = ['SeqNoReactiveAttacker']
 
     parameter_names = tuple()
 
     def __init__(self):
-        pass
-
+        super(CLI, self).__init__(__package__)
 
     def _execute_runner(self, driver, results_directory, skip_completed_simulations=True):
         runner = protectionless.Runner.RunSimulations(driver, results_directory, skip_completed_simulations)
-        runner.run(self.lexecutable_path, distance, sizes, periods, configurations, attacker_models, repeats)
+        runner.run(self.executable_path, self.distance, self.sizes, self.periods, self.configurations, self.attacker_models, self.repeats)
 
     def _run_table(self, args):
         safety_period_table_generator = safety_period.TableGenerator()
@@ -143,13 +146,13 @@ class CLI(CommandLineCommon.CLI):
     def run(self, args):
 
         if 'cluster' in args:
-            self._run_cluster(args, protectionless.name)
+            self._run_cluster(args)
 
         if 'run' in args:
-            self._run_run(args, protectionless)
+            self._run_run(args)
 
         if 'analyse' in args:
-            self._run_analyse(args, protectionless)
+            self._run_analyse(args)
 
         if 'table' in args:
             self._run_table(args)
