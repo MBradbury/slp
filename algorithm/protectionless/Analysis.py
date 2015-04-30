@@ -11,8 +11,8 @@ class AnalyseWithOutlierDetection(Analyse):
         captured_index = self.headings.index("Captured")
         captured = bool(values[captured_index])
 
-        if not captured:
-            raise RuntimeError("Detected outlier, the source was not captured")
+        #if not captured:
+        #    raise RuntimeError("Detected outlier, the source was not captured")
 
         # Discard simulations that took too long
         time_index = self.headings.index("TimeTaken")
@@ -25,9 +25,9 @@ class AnalyseWithOutlierDetection(Analyse):
 
         # This can be much stricter than the protectionless upper bound on time.
         # As it can be changed once the simulations have been run.
-        if time_taken >= upper_bound:
-            raise RuntimeError("Detected outlier, the time taken is {}, upper bound is {}".format(
-                time_taken, upper_bound))
+        #if time_taken >= upper_bound:
+        #    raise RuntimeError("Detected outlier, the time taken is {}, upper bound is {}".format(
+        #        time_taken, upper_bound))
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):

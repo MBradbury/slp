@@ -4,7 +4,7 @@ import simulator.Attacker as Attacker
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
-approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
+approaches = [ "PB_AWAY_SRC_APPROACH" ]
 
 class Arguments:
     def __init__(self):

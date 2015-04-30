@@ -87,7 +87,7 @@ class TosVis(Simulator):
 
         self.run_gui = True
 
-        #self.node_label = "SourceBroadcasterC.sink_source_distance_ewma"
+        #self.node_label = "SourceBroadcasterC.min_source_distance"
 
         self.debug_analyzer = DebugAnalyzer()
 
