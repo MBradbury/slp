@@ -101,20 +101,6 @@ implementation
 
 	Algorithm algorithm = UnknownAlgorithm;
 
-	// Produces a random float between 0 and 1
-	float random_float()
-	{
-		// There appears to be problem with the 32 bit random number generator
-		// in TinyOS that means it will not generate numbers in the full range
-		// that a 32 bit integer can hold. So use the 16 bit value instead.
-		// With the 16 bit integer we get better float values to compared to the
-		// fake source probability.
-		// Ref: https://github.com/tinyos/tinyos-main/issues/248
-		const uint16_t rnd = call Random.rand16();
-
-		return ((float)rnd) / UINT16_MAX;
-	}
-
 	void set_pfs_candidate(bool value)
 	{
 		is_pfs_candidate = value;
@@ -164,7 +150,7 @@ implementation
 		}
 	}
 
-#if defined(PB_SINK_APPROACH)
+#if defined(PB_AWAY_SRC_APPROACH)
 	uint32_t get_dist_to_pull_back()
 	{
 		int32_t distance = 0;
@@ -172,14 +158,10 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			// When reasoning we want to pull back in terms of the sink distance.
-			// However, the Dsrc - the Dss gives a good approximation of the Dsink.
-			// It has the added benefit that this is only true when the TFS is further from
-			// the source than the sink is.
-			// This means that TFSs near the source will send fewer messages.
+		default:
 			if (min_source_distance == BOTTOM || sink_source_distance == BOTTOM)
 			{
-				distance = sink_distance;
+				distance = 1;
 			}
 			else
 			{
@@ -187,31 +169,10 @@ implementation
 			}
 			break;
 
-		default:
 		case FurtherAlgorithm:
-			distance = max(sink_source_distance, sink_distance);
-			break;
-		}
-
-		distance = max(distance, 1);
-		
-		return distance;
-	}
-
-#elif defined(PB_ATTACKER_EST_APPROACH)
-	uint32_t get_dist_to_pull_back()
-	{
-		int32_t distance = 0;
-
-		switch (algorithm)
-		{
-		case GenericAlgorithm:
-			distance = sink_distance + sink_distance;
-			break;
-
-		default:
-		case FurtherAlgorithm:
-			distance = max(sink_source_distance, sink_distance);
+			// TODO: implement this
+		//	distance = max(sink_source_distance, sink_distance);
+			assert(algorithm == GenericAlgorithm);
 			break;
 		}
 
