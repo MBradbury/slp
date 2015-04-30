@@ -14,6 +14,24 @@ class RunSimulationsCommon(object):
 
         self.existing_results = {}
 
+    def _get_safety_period(self, attacker_model, configuration, size, source_period):
+
+        if not hasattr(self, 'safety_periods'):
+            return None
+
+        if self.safety_periods is None:
+            return 0
+
+        attacker_model = str(attacker_model)
+        configuration = str(configuration)
+        size = int(size)
+        source_period = str(source_period)
+
+        try:
+            return self.safety_periods[attacker_model][configuration][size][source_period]
+        except KeyError as e:
+            raise KeyError("Failed to find the safety period key {}".format((attacker_model, configuration, size, source_period)), e)
+
     def _check_existing_results(self, names):
         self.existing_results = {}
 

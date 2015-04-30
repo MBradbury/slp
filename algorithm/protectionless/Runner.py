@@ -15,7 +15,9 @@ class RunSimulations(RunSimulationsCommon):
         if not os.path.exists(exe_path):
             raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
-        for (size, source_period, configuration, attacker_model) in itertools.product(sizes, source_periods, configurations, attacker_models):
+        argument_product = itertools.product(sizes, source_periods, configurations, attacker_models)
+
+        for (size, source_period, configuration, attacker_model) in argument_product:
             if not self._already_processed(repeats, size, source_period, configuration):
 
                 executable = 'python {} {}'.format(
@@ -26,10 +28,10 @@ class RunSimulations(RunSimulationsCommon):
                 opts["--mode"] = self.driver.mode()
                 opts["--network-size"] = size
                 opts["--configuration"] = configuration
+                opts["--attacker-model"] = attacker_model
                 opts["--source-period"] = source_period
                 opts["--distance"] = distance
                 opts["--job-size"] = repeats
-                opts["--attacker-model"] = attacker_model
 
                 optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
 

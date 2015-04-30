@@ -9,20 +9,20 @@ class RunSimulations(RunSimulationsCommon):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
-    def run(self, exe_path, distance, sizes, source_periods, approaches, configurations, repeats):
+    def run(self, exe_path, distance, sizes, source_periods, approaches, configurations, attacker_models, repeats):
         if self.skip_completed_simulations:
-            self._check_existing_results(['network_size', 'source_period', 'approach', 'configuration'])
+            self._check_existing_results(['network_size', 'source_period', 'approach', 'configuration', 'attacker_model'])
     
         if not os.path.exists(exe_path):
             raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
-        for (size, source_period, approach, (configuration, algorithm)) in itertools.product(sizes, source_periods, approaches, configurations):
-            if not self._already_processed(repeats, size, source_period, approach, configuration):
+        argument_product = itertools.product(sizes, source_periods, approaches, configurations, attacker_models)
 
-                try:
-                    safety_period = 0 if self.safety_periods is None else self.safety_periods[configuration][size][source_period]
-                except KeyError as e:
-                    raise KeyError("Failed to find the safety period key {}".format((configuration, size, source_period)), e)
+        for (size, source_period, approach, (configuration, algorithm), attacker_model) in argument_product:
+
+            if not self._already_processed(repeats, size, source_period, approach, configuration, attacker_model):
+
+                safety_period = self._get_safety_period(attacker_model, configuration, size, source_period)
 
                 executable = 'python {} {}'.format(
                     self.optimisations,
@@ -32,6 +32,7 @@ class RunSimulations(RunSimulationsCommon):
                 opts["--mode"] = self.driver.mode()
                 opts["--network-size"] = size
                 opts["--configuration"] = configuration
+                opts["--attacker-model"] = attacker_model
                 opts["--safety-period"] = safety_period
                 opts["--source-period"] = source_period
                 opts["--approach"] = approach
@@ -45,6 +46,7 @@ class RunSimulations(RunSimulationsCommon):
                 filenameItems = (
                     size,
                     configuration,
+                    attacker_model,
                     source_period,
                     approach,
                     distance

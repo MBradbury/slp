@@ -116,7 +116,7 @@ class TableGenerator:
                 result[attacker_model][config] = {}
                 for (size, size_list) in config_list.items():
                     result[attacker_model][config][size] = {}
-                    for (src_period, time_taken, safety_period, rcv, latency, ssd) in size_list:
+                    for (src_period, time_taken, safety_period, rcv, latency, ssd, captured) in size_list:
                         result[attacker_model][config][size][src_period] = safety_period
 
         return result

@@ -1,4 +1,4 @@
-import Analysis, Arguments, Runner, Metrics
+import Analysis, Arguments, CommandLine, Runner, Metrics
 
 def _setup():
 	import algorithm
