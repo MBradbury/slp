@@ -93,47 +93,47 @@ class GenericPlotter:
     # The following methods are supposed to be overridden
     #######################################################
     def init(self, tx, ty):
-        raise NotImplementedError()
+        pass
     def setTime(self, time):
-        raise NotImplementedError()
+        pass
     def node(self, ident, x, y):
-        raise NotImplementedError()
+        pass
     def nodemove(self, ident, x, y):
-        raise NotImplementedError()
+        pass
     def nodehollow(self, ident, flag):
-        raise NotImplementedError()
+        pass
     def nodedouble(self, ident, flag):
-        raise NotImplementedError()
+        pass
     def nodecolor(self, ident, r, g, b):
-        raise NotImplementedError()
+        pass
     def nodewidth(self, ident, width):
-        raise NotImplementedError()
+        pass
     def nodelabel(self, ident, label):
-        raise NotImplementedError()
+        pass
     def nodescale(self, ident, scale):
-        raise NotImplementedError()
+        pass
     def addlink(self, src, dst, style):
-        raise NotImplementedError()
+        pass
     def dellink(self, src, dst, style):
-        raise NotImplementedError()
+        pass
     def clearlinks(self):
-        raise NotImplementedError()
+        pass
     def show(self):
-        raise NotImplementedError()
+        pass
     def circle(self, x, y, r, ident, linestyle, fillstyle):
-        raise NotImplementedError()
+        pass
     def line(self, x1, y1, x2, y2, ident, linestyle):
-        raise NotImplementedError()
+        pass
     def rect(self, x1, y1, x2, y2, ident, linestyle, fillstyle):
-        raise NotImplementedError()
+        pass
     def delshape(self, ident):
-        raise NotImplementedError()
+        pass
     def linestyle(self, ident, **kwargs):
-        raise NotImplementedError()
+        pass
     def fillstyle(self, ident, **kwargs):
-        raise NotImplementedError()
+        pass
     def textstyle(self, ident, **kwargs):
-        raise NotImplementedError()
+        pass
 
 ###############################################
 def informPlotters(_func_):

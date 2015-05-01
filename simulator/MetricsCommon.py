@@ -11,7 +11,7 @@ class MetricsCommon(object):
         self.configuration = configuration
 
         self.source_ids = set(configuration.source_ids)
-        self.sink_ids = set([ configuration.sink_id ])
+        self.sink_ids = { configuration.sink_id }
 
         self.sent = {}
         self.received = {}
@@ -27,7 +27,7 @@ class MetricsCommon(object):
         self.became_normal_after_source_times = {}
 
     def process_COMMUNICATE(self, line):
-        print(line.strip())
+        #print(line.strip())
 
         (comm_type, contents) = line.split(':')
 

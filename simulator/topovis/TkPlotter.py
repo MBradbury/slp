@@ -5,7 +5,7 @@ from simulator.topovis import GenericPlotter
 arrowMap = { 'head' : LAST, 'tail' : FIRST, 'both' : BOTH, 'none' : NONE }
 
 def colorStr(color):
-    if color == None:
+    if color is None:
         return ''
     else:
         return '#%02x%02x%02x' % tuple(int(x*255) for x in color)
