@@ -23,7 +23,7 @@ class Arguments:
 
         parser.add_argument("--distance", type=float, default=4.5)
 
-        parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
+        parser.add_argument("--configuration", type=str, required=True, choices=Configuration.names())
 
         parser.add_argument("--attacker-model", type=str, choices=Attacker.models(), default=Attacker.default())
 
@@ -37,7 +37,7 @@ class Arguments:
     def parse(self, argv):
         self.args = self.parser.parse_args(argv)
 
-        configuration = Configuration.Create(self.args.configuration, self.args)
+        configuration = Configuration.create(self.args.configuration, self.args)
         self.args.source_mobility.setup(configuration)
 
         return self.args

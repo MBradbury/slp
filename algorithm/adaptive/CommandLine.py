@@ -1,7 +1,7 @@
 
 from __future__ import print_function
 
-import os, sys
+import os
 
 from algorithm.common import CommandLineCommon
 
@@ -17,9 +17,7 @@ from data.graph import summary, heatmap, versus, bar, min_max_versus
 
 from data import results, latex
 
-from data.util import create_dirtree, recreate_dirtree, touch, useful_log10, scalar_extractor
-
-import numpy
+from data.util import useful_log10, scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
 

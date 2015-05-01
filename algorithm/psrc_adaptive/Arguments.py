@@ -22,7 +22,7 @@ class Arguments:
 
         parser.add_argument("--distance", type=float, default=4.5)
 
-        parser.add_argument("--configuration", type=str, required=True, choices=Configuration.Names())
+        parser.add_argument("--configuration", type=str, required=True, choices=Configuration.names())
 
         parser.add_argument("--attacker-model", type=str, choices=Attacker.models(), default=Attacker.default())
 
