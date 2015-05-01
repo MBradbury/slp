@@ -1,6 +1,35 @@
 #ifndef SLP_SENDRECEIVEFUNCTIONS_H
 #define SLP_SENDRECEIVEFUNCTIONS_H
 
+#include "pp.h"
+
+#define PROXIMATE_SOURCE_SPEC "%u"
+#define ULTIMATE_SOURCE_SPEC "%d"
+#define SEQUENCE_NUMBER_SPEC "%" PRIi64
+#define DISTANCE_SPEC "%d"
+
+#define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
+	dbg_clear("Metric-COMMUNICATE", \
+		"RCV:%s,%" PRIu64 ",%u," \
+		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n", \
+		#TYPE, sim_time(), TOS_NODE_ID, \
+		PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE)
+
+#define METRIC_BCAST(TYPE, STATUS, SEQUENCE_NUMBER) \
+	dbg_clear("Metric-COMMUNICATE", \
+		"BCAST:%s,%" PRIu64 ",%u,%s," SEQUENCE_NUMBER_SPEC "\n", \
+		#TYPE, sim_time(), TOS_NODE_ID, \
+		STATUS, SEQUENCE_NUMBER)
+
+#define METRIC_DELIVER(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
+	dbg_clear("Metric-COMMUNICATE", \
+		"DELIVER:%s,%" PRIu64 ",%u," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
+		#TYPE, sim_time(), TOS_NODE_ID, \
+		PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
+
+#define MSG_GET_NAME(TYPE, NAME) PPCAT(PPCAT(TYPE, _get_), NAME)
+#define MSG_GET(TYPE, NAME, MSG) MSG_GET_NAME(TYPE, NAME)(MSG)
+
 #define SEND_MESSAGE(NAME) \
 bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
 { \
@@ -32,13 +61,13 @@ bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
 			call Leds.led0On(); \
 			busy = TRUE; \
  \
-			METRIC_BCAST(NAME, "success"); \
+			METRIC_BCAST(NAME, "success", MSG_GET(NAME, sequence_number, tosend)); \
  \
 			return TRUE; \
 		} \
 		else \
 		{ \
-			METRIC_BCAST(NAME, "failed"); \
+			METRIC_BCAST(NAME, "failed", MSG_GET(NAME, sequence_number, tosend)); \
  \
 			return FALSE; \
 		} \
@@ -47,7 +76,7 @@ bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
 	{ \
 		dbgverbose("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
  \
-		METRIC_BCAST(NAME, "busy"); \
+		METRIC_BCAST(NAME, "busy", MSG_GET(NAME, sequence_number, tosend)); \
  \
 		return FALSE; \
 	} \
@@ -87,7 +116,8 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
-	dbg_clear("Attacker-RCV", "%" PRIu64 ",%s,%u,%u,%d,%u\n", sim_time(), #NAME, TOS_NODE_ID, source_addr, rcvd->source_id, rcvd->sequence_number); \
+	dbg_clear("Attacker-RCV", "%" PRIu64 ",%s,%u,%u,%d,%d\n", sim_time(), #NAME, TOS_NODE_ID, \
+		source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
@@ -96,6 +126,8 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	} \
  \
 	dbgverbose("SourceBroadcasterC", "%s: Received valid " #NAME ".\n", sim_time_string()); \
+ \
+ 	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
 	switch (type) \
 	{

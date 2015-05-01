@@ -12,12 +12,9 @@
 
 #include <assert.h>
 
-#define METRIC_RCV(TYPE, DISTANCE, SOURCE) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%d,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, SOURCE, rcvd->sequence_number, DISTANCE)
-
-#define METRIC_BCAST(TYPE, STATUS) \
-	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, (tosend != NULL) ? tosend->sequence_number : (uint32_t)-1)
-
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Normal, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 typedef struct
 {
@@ -473,8 +470,6 @@ implementation
 
 		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
-		message.sequence_number = 0;
-		message.source_id = 0;
 		message.sink_distance_of_sender = sink_distance;
 
 		call PacketLink.setRetries(&packet, 0);
@@ -495,10 +490,7 @@ implementation
 
 			call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
-
-			dbgverbose("stdout", "%s: Received unseen Normal seqno=%u from %u (dsrc=%d).\n",
-				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
+			METRIC_RCV_NORMAL(rcvd);
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
@@ -592,7 +584,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
+			METRIC_RCV_NORMAL(rcvd);
 
 			dbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
 				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
@@ -633,7 +625,7 @@ implementation
 
 			call AwaySeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 			
-			METRIC_RCV(Away, rcvd->sink_distance + 1, BOTTOM);
+			METRIC_RCV_AWAY(rcvd);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
@@ -667,7 +659,7 @@ implementation
 		if (rcvd->sink_distance_of_sender != BOTTOM)
 			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
 
-		METRIC_RCV(Beacon, 0, BOTTOM);
+		METRIC_RCV_BEACON(rcvd);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)

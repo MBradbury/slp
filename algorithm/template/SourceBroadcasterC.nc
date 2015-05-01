@@ -11,11 +11,10 @@
 
 #include <assert.h>
 
-#define METRIC_RCV(TYPE, DISTANCE) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number, DISTANCE)
-
-#define METRIC_BCAST(TYPE, STATUS) \
-	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, (tosend != NULL) ? tosend->sequence_number : (uint32_t)-1)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, BOTTOM, msg->sequence_number, msg->sink_distance + 1)
+#define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, BOTTOM, msg->sequence_number, msg->sink_distance + 1)
+#define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM);
 
 module SourceBroadcasterC
 {
@@ -318,9 +317,7 @@ implementation
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
-
-			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
+			METRIC_RCV_NORMAL(rcvd);
 
 			if (!first_source_distance_set)
 			{
@@ -347,7 +344,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV_NORMAL(rcvd);
 
 			sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
 
@@ -368,7 +365,7 @@ implementation
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV_NORMAL(rcvd);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -403,7 +400,7 @@ implementation
 
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Away, rcvd->sink_distance + 1);
+			METRIC_RCV_AWAY(rcvd);
 
 			sink_source_distance = minbot(sink_source_distance, rcvd->sink_distance + 1);
 
@@ -439,7 +436,7 @@ implementation
 
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Away, rcvd->sink_distance + 1);
+			METRIC_RCV_AWAY(rcvd);
 
 			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
@@ -487,7 +484,7 @@ implementation
 		{
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Choose, rcvd->sink_distance + 1);
+			METRIC_RCV_CHOOSE(rcvd);
 
 			if (is_pfs_candidate)
 			{
@@ -516,7 +513,7 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Fake, 0);
+			METRIC_RCV_FAKE(rcvd);
 
 			message.sink_source_distance = sink_source_distance;
 
@@ -532,7 +529,7 @@ implementation
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Fake, 0);
+			METRIC_RCV_FAKE(rcvd);
 
 			seen_pfs |= rcvd->from_pfs;
 		}
@@ -554,7 +551,7 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Fake, 0);
+			METRIC_RCV_FAKE(rcvd);
 
 			seen_pfs |= rcvd->from_pfs;
 
@@ -583,7 +580,7 @@ implementation
 
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Fake, 0);
+			METRIC_RCV_FAKE(rcvd);
 
 			seen_pfs |= rcvd->from_pfs;
 
@@ -660,7 +657,7 @@ implementation
 		default: result = "failed"; break;
 		}
 
-		METRIC_BCAST(Fake, result);
+		METRIC_BCAST(Fake, result, (tosend != NULL) ? tosend->sequence_number : BOTTOM);
 
 		if (pfs_can_become_normal())
 		{

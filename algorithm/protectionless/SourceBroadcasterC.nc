@@ -9,11 +9,7 @@
 
 #include <assert.h>
 
-#define METRIC_RCV(TYPE, DISTANCE, SOURCE) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%d,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, SOURCE, rcvd->sequence_number, DISTANCE)
-
-#define METRIC_BCAST(TYPE, STATUS) \
-	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, tosend->sequence_number)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
 module SourceBroadcasterC
 {
@@ -159,7 +155,7 @@ implementation
 
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
+			METRIC_RCV_NORMAL(rcvd);
 
 			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
@@ -176,7 +172,7 @@ implementation
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
+			METRIC_RCV_NORMAL(rcvd);
 		}
 	}
 

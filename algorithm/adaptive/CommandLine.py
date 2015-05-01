@@ -7,10 +7,9 @@ from algorithm.common import CommandLineCommon
 
 
 import algorithm.protectionless as protectionless
-import algorithm.template as template
 
 # The import statement doesn't work, so we need to use __import__ instead
-#import algorithm.adaptive as adaptive
+template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
 adaptive = __import__(__package__, globals(), locals(), ['object'], -1)
 
 from data.table import safety_period, fake_result, comparison
@@ -30,7 +29,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [ 11, 15, 21, 25 ]
 
-    periods = [ 1.0, 0.5, 0.25, 0.125 ]
+    source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
     configurations = [
         ('SourceCorner', 'CHOOSE'),
@@ -70,7 +69,9 @@ class CLI(CommandLineCommon.CLI):
         safety_periods = safety_period_table_generator.safety_periods()
 
         runner = adaptive.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
-        runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, attacker_models, repeats)
+        runner.run(
+            self.executable_path, self.distance, self.sizes, self.source_periods, self.approaches,
+            self.configurations, self.attacker_models, self.repeats)
 
 
     def _run_table(self, args):

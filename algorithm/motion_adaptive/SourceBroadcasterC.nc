@@ -13,11 +13,8 @@
 
 #include <assert.h>
 
-#define METRIC_RCV(TYPE, DISTANCE) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->source_id, rcvd->sequence_number, DISTANCE)
-
-#define METRIC_BCAST(TYPE, STATUS) \
-	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, (tosend != NULL) ? tosend->sequence_number : (uint32_t)-1)
+#define METRIC_RCV(TYPE, DISTANCE, ULTIMATE_SOURCE) \
+	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, ULTIMATE_SOURCE, rcvd->sequence_number, DISTANCE)
 
 typedef struct
 {
@@ -715,7 +712,7 @@ implementation
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 
 			source_period = rcvd->source_period;
 
@@ -761,7 +758,7 @@ implementation
 		{
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 
 			source_period = rcvd->source_period;
 
@@ -794,7 +791,7 @@ implementation
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Normal, rcvd->source_distance + 1);
+			METRIC_RCV(Normal, rcvd->source_distance + 1, rcvd->source_id);
 
 			source_period = rcvd->source_period;
 
@@ -866,7 +863,7 @@ implementation
 
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Away, rcvd->sink_distance + 1);
+			METRIC_RCV(Away, rcvd->sink_distance + 1, rcvd->source_id);
 
 			update_sink_distance(rcvd->sink_distance + 1);
 			update_sink_source_distance(rcvd->sink_distance + 1);
@@ -908,7 +905,7 @@ implementation
 
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Away, rcvd->sink_distance + 1);
+			METRIC_RCV(Away, rcvd->sink_distance + 1, rcvd->source_id);
 
 			if (source_period == BOTTOM)
 			{
@@ -967,7 +964,7 @@ implementation
 		{
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
-			METRIC_RCV(Choose, rcvd->sink_distance + 1);
+			METRIC_RCV(Choose, rcvd->sink_distance + 1, rcvd->source_id);
 
 			if (source_period == BOTTOM)
 			{
@@ -1007,7 +1004,7 @@ implementation
 
 			update_sink_source_distance(rcvd->sink_source_distance);
 
-			METRIC_RCV(Fake, 0);
+			METRIC_RCV(Fake, 0, rcvd->source_id);
 
 			forwarding_message.sink_source_distance = get_sink_source_distance();
 
@@ -1030,7 +1027,7 @@ implementation
 
 			update_sink_source_distance(rcvd->sink_source_distance);
 
-			METRIC_RCV(Fake, 0);
+			METRIC_RCV(Fake, 0, rcvd->source_id);
 
 			seen_pfs |= rcvd->from_pfs;
 		}
@@ -1055,7 +1052,7 @@ implementation
 
 			update_sink_source_distance(rcvd->sink_source_distance);
 
-			METRIC_RCV(Fake, 0);
+			METRIC_RCV(Fake, 0, rcvd->source_id);
 
 			seen_pfs |= rcvd->from_pfs;
 
@@ -1097,7 +1094,7 @@ implementation
 
 			update_sink_source_distance(rcvd->sink_source_distance);
 
-			METRIC_RCV(Fake, 0);
+			METRIC_RCV(Fake, 0, rcvd->source_id);
 
 			seen_pfs |= rcvd->from_pfs;
 
@@ -1234,7 +1231,7 @@ implementation
 		default: result = "failed"; break;
 		}
 
-		METRIC_BCAST(Fake, result);
+		METRIC_BCAST(Fake, result, (tosend != NULL) ? tosend->sequence_number : BOTTOM);
 
 		if (pfs_can_become_normal())
 		{

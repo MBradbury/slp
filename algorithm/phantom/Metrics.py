@@ -9,19 +9,9 @@ class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
 
-        self.BCAST = OutputCatcher(self.process_BCAST)
-        self.sim.tossim.addChannel('Metric-BCAST', self.BCAST.write)
-        self.sim.add_output_processor(self.BCAST)
-
-        # Should be CpmModelC, but that has a very large performance impact
-        # So the source was modified to add PacketLoss.
-        #self.COLLISIONS = OutputCatcher(self.process_COLLISIONS)
-        #self.sim.tossim.addChannel('PacketLoss', self.COLLISIONS.write)
-        #self.sim.add_output_processor(self.COLLISIONS)    
-
-        self.RCV = OutputCatcher(self.process_RCV)
-        self.sim.tossim.addChannel('Metric-RCV', self.RCV.write)
-        self.sim.add_output_processor(self.RCV)
+        self.COMMUNICATE = OutputCatcher(self.process_COMMUNICATE)
+        self.sim.tossim.addChannel('Metric-COMMUNICATE', self.COMMUNICATE.write)
+        self.sim.add_output_processor(self.COMMUNICATE)
 
         # Normal nodes becoming the source, or source nodes becoming normal
         self.SOURCE_CHANGE = OutputCatcher(self.process_SOURCE_CHANGE)
