@@ -3,11 +3,11 @@
 
 typedef nx_struct BeaconMessage
 {
-  nx_uint64_t sequence_number; // unused
-  nx_am_addr_t source_id; // unused
-  
   nx_int16_t sink_distance_of_sender;
 
 } BeaconMessage;
+
+inline int64_t Beacon_get_sequence_number(const BeaconMessage* msg) { return BOTTOM; }
+inline int32_t Beacon_get_source_id(const BeaconMessage* msg) { return BOTTOM; }
 
 #endif // SLP_MESSAGES_BEACONMESSAGE_H

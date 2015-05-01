@@ -1,16 +1,16 @@
 
 from __future__ import print_function
 
-import os, sys
+import os, sys, itertools
 
 from algorithm.common import CommandLineCommon
-
 
 import algorithm.protectionless as protectionless
 
 # The import statement doesn't work, so we need to use __import__ instead
 #import algorithm.template as template
 template = __import__(__package__, globals(), locals(), ['object'], -1)
+adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
 
 from data.table import safety_period, fake_result, comparison
 from data.graph import summary, heatmap, versus, bar, min_max_versus
@@ -78,8 +78,11 @@ class CLI(CommandLineCommon.CLI):
 
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = adaptive.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
-        runner.run(jar_path, distance, sizes, source_periods, approaches, configurations, attacker_models, repeats)
+        runner = template.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
+        runner.run(
+            self.executable_path, self.distance, self.sizes, self.periods, self.temp_fake_durations,
+            self.prs_tfs, self.prs_pfs, self.configurations, self.attacker_models, self.repeats
+        )
 
 
     def _run_table(self, args):

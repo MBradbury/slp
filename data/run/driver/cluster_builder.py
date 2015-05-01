@@ -36,6 +36,7 @@ class Runner:
             "TOSSIM.py",
             "Analysis.py",
             "Arguments.py",
+            "CommandLine.py",
             "Runner.py",
             "Metrics.py",
             "__init__.py",

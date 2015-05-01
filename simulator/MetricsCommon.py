@@ -26,6 +26,20 @@ class MetricsCommon(object):
         self.became_source_times = {}
         self.became_normal_after_source_times = {}
 
+    def process_COMMUNICATE(self, line):
+        print(line.strip())
+
+        (comm_type, contents) = line.split(':')
+
+        if comm_type == 'BCAST':
+            return self.process_BCAST(contents)
+        elif comm_type == 'RCV':
+            return self.process_RCV(contents)
+        elif comm_type == 'DELIVER':
+            pass
+        else:
+            raise RuntimeError("Unknown communication type of {}".format(comm_type))
+
     def process_BCAST(self, line):
         (kind, time, node_id, status, sequence_number) = line.split(',')
 
@@ -43,11 +57,12 @@ class MetricsCommon(object):
                 self.normal_sent_time[(node_id, sequence_number)] = time
 
     def process_RCV(self, line):
-        (kind, time, node_id, source_id, sequence_number, hop_count) = line.split(',')
+        (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
         node_id = int(node_id)
-        source_id = int(source_id)
+        proximate_source_id = int(proximate_source_id)
+        ultimate_source_id = int(ultimate_source_id)
         sequence_number = int(sequence_number)
         hop_count = int(hop_count)
 
@@ -57,7 +72,7 @@ class MetricsCommon(object):
         self.received[kind][node_id] += 1
 
         if node_id in self.sink_ids and kind == "Normal":
-            self.normal_latency[(source_id, sequence_number)] = time - self.normal_sent_time[(source_id, sequence_number)]
+            self.normal_latency[(ultimate_source_id, sequence_number)] = time - self.normal_sent_time[(ultimate_source_id, sequence_number)]
             self.normal_hop_count.append(hop_count)
 
     COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')

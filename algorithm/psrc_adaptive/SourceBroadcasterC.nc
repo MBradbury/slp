@@ -14,9 +14,6 @@
 #define METRIC_RCV(TYPE, DISTANCE) \
 	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, rcvd->sequence_number, DISTANCE)
 
-#define METRIC_BCAST(TYPE, STATUS) \
-	dbg_clear("Metric-BCAST", "%s,%" PRIu64 ",%u,%s,%u\n", #TYPE, sim_time(), TOS_NODE_ID, STATUS, (tosend != NULL) ? tosend->sequence_number : (uint32_t)-1)
-
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -835,7 +832,7 @@ implementation
 		default: result = "failed"; break;
 		}
 
-		METRIC_BCAST(Fake, result);
+		METRIC_BCAST(Fake, result, (tosend != NULL) ? tosend->sequence_number : BOTTOM);
 
 		if (pfs_can_become_normal())
 		{
