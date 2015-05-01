@@ -47,7 +47,7 @@ class Runner:
 
         # Create the topology of this configuration
         print("Creating topology file")
-        configuration = Configuration.Create(a.args.configuration, a.args)
+        configuration = Configuration.create(a.args.configuration, a.args)
         Simulation.Simulation.write_topology_file(configuration.topology.nodes, target_directory)
 
     def mode(self):
@@ -65,7 +65,7 @@ class Runner:
     def build_arguments(a):
         build_args = a.build_arguments()
 
-        configuration = Configuration.Create(a.args.configuration, a.args)
+        configuration = Configuration.create(a.args.configuration, a.args)
 
         build_args.update(configuration.build_arguments())
 

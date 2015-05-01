@@ -16,7 +16,7 @@ Arguments = importlib.import_module("{}.Arguments".format(module))
 a = Arguments.Arguments()
 a.parse(sys.argv[2:])
 
-configuration = Configuration.Create(a.args.configuration, a.args)
+configuration = Configuration.create(a.args.configuration, a.args)
 
 with Simulation(module, configuration, a.args) as sim:
 

@@ -19,7 +19,7 @@ if a.args.mode != "CLUSTER":
     from simulator.Simulation import Simulation
     import simulator.Configuration as Configuration
 
-    configuration = Configuration.Create(a.args.configuration, a.args)
+    configuration = Configuration.create(a.args.configuration, a.args)
 
     build_arguments = a.build_arguments()
 

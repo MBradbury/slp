@@ -13,10 +13,14 @@ class Configuration(object):
         self.space_behind_sink = space_behind_sink
 
         if self.sink_id >= len(self.topology.nodes):
-            raise RuntimeError("There are not enough nodes ({}) to have a sink id of {}".format(len(self.topology.nodes), self.sink_id))
+            raise RuntimeError(
+                "There are not enough nodes ({}) to have a sink id of {}".format(
+                    len(self.topology.nodes), self.sink_id))
 
         if any(source_id >= len(self.topology.nodes) for source_id in self.source_ids):
-            raise RuntimeError("There are not enough nodes ({}) to have a source id of {}".format(len(self.topology.nodes), self.source_ids))
+            raise RuntimeError(
+                "There are not enough nodes ({}) to have a source id of {}".format(
+                    len(self.topology.nodes), self.source_ids))
 
         self._dist_matrix = None
         self._predecessors = None
@@ -39,8 +43,7 @@ class Configuration(object):
         )
 
     def build_connectivity_matrix(self, return_predecessors=False):
-        if (self._dist_matrix is None or
-           (self._predecessors is None and return_predecessors)):
+        if self._dist_matrix is None or (self._predecessors is None and return_predecessors):
             import numpy
             from scipy.sparse import csr_matrix
             from scipy.sparse.csgraph import shortest_path
@@ -120,7 +123,7 @@ class SinkCorner(Configuration):
 
         super(SinkCorner, self).__init__(
             grid,
-           source_ids={(len(grid.nodes) - 1) / 2},
+            source_ids={(len(grid.nodes) - 1) / 2},
             sink_id=len(grid.nodes) - 1,
             space_behind_sink=False
         )
@@ -223,9 +226,9 @@ class Source2Edges(Configuration):
         super(Source2Edges, self).__init__(
             grid,
             source_ids={
-                    (network_size - 1) / 2,
-                    len(grid.nodes) - ((network_size - 1) / 2) - 1
-                },
+                (network_size - 1) / 2,
+                len(grid.nodes) - ((network_size - 1) / 2) - 1
+            },
             sink_id=(len(grid.nodes) - 1) / 2,
             space_behind_sink=True
         )
@@ -237,13 +240,13 @@ class Source4Edges(Configuration):
         super(Source4Edges, self).__init__(
             grid,
             source_ids={
-                    (network_size - 1) / 2,
-                    
-                    ((len(grid.nodes) - 1) / 2) - (network_size - 1) / 2,
-                    ((len(grid.nodes) - 1) / 2) + (network_size - 1) / 2,
+                (network_size - 1) / 2,
 
-                    len(grid.nodes) - ((network_size - 1) / 2) - 1
-                },
+                ((len(grid.nodes) - 1) / 2) - (network_size - 1) / 2,
+                ((len(grid.nodes) - 1) / 2) + (network_size - 1) / 2,
+
+                len(grid.nodes) - ((network_size - 1) / 2) - 1
+            },
             sink_id=(len(grid.nodes) - 1) / 2,
             space_behind_sink=True
         )
@@ -259,7 +262,7 @@ class Source2Corner(Configuration):
             space_behind_sink=True
         )
 
-def Configurations():
+def configurations():
     """A list of the available configuration classes."""
     return [cls for cls in Configuration.__subclasses__()]
 
@@ -279,8 +282,8 @@ CONFIGURATION_RANK = {
     'RingOpposite': 11,
 }
 
-def Names():
-    return [cls.__name__ for cls in Configurations()]
+def names():
+    return [cls.__name__ for cls in configurations()]
 
-def Create(name, args):
-    return [cls for cls in Configurations() if cls.__name__ == name][0](args.network_size, args.distance)
+def create(name, args):
+    return [cls for cls in configurations() if cls.__name__ == name][0](args.network_size, args.distance)

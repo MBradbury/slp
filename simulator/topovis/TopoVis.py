@@ -92,27 +92,48 @@ class GenericPlotter:
     #######################################################
     # The following methods are supposed to be overridden
     #######################################################
-    def init(self, tx, ty): pass
-    def setTime(self, time): pass
-    def node(self, ident, x, y): pass
-    def nodemove(self, ident, x, y): pass
-    def nodehollow(self, ident, flag): pass
-    def nodedouble(self, ident, flag): pass
-    def nodecolor(self, ident, r, g, b): pass
-    def nodewidth(self, ident, width): pass
-    def nodelabel(self, ident, label): pass
-    def nodescale(self, ident, scale): pass
-    def addlink(self, src, dst, style): pass
-    def dellink(self, src, dst, style): pass
-    def clearlinks(self): pass
-    def show(self): pass
-    def circle(self, x, y, r, ident, linestyle, fillstyle): pass
-    def line(self, x1, y1, x2, y2, ident, linestyle): pass
-    def rect(self, x1, y1, x2, y2, ident, linestyle, fillstyle): pass
-    def delshape(self, ident): pass
-    def linestyle(self, ident, **kwargs): pass
-    def fillstyle(self, ident, **kwargs): pass
-    def textstyle(self, ident, **kwargs): pass
+    def init(self, tx, ty):
+        raise NotImplementedError()
+    def setTime(self, time):
+        raise NotImplementedError()
+    def node(self, ident, x, y):
+        raise NotImplementedError()
+    def nodemove(self, ident, x, y):
+        raise NotImplementedError()
+    def nodehollow(self, ident, flag):
+        raise NotImplementedError()
+    def nodedouble(self, ident, flag):
+        raise NotImplementedError()
+    def nodecolor(self, ident, r, g, b):
+        raise NotImplementedError()
+    def nodewidth(self, ident, width):
+        raise NotImplementedError()
+    def nodelabel(self, ident, label):
+        raise NotImplementedError()
+    def nodescale(self, ident, scale):
+        raise NotImplementedError()
+    def addlink(self, src, dst, style):
+        raise NotImplementedError()
+    def dellink(self, src, dst, style):
+        raise NotImplementedError()
+    def clearlinks(self):
+        raise NotImplementedError()
+    def show(self):
+        raise NotImplementedError()
+    def circle(self, x, y, r, ident, linestyle, fillstyle):
+        raise NotImplementedError()
+    def line(self, x1, y1, x2, y2, ident, linestyle):
+        raise NotImplementedError()
+    def rect(self, x1, y1, x2, y2, ident, linestyle, fillstyle):
+        raise NotImplementedError()
+    def delshape(self, ident):
+        raise NotImplementedError()
+    def linestyle(self, ident, **kwargs):
+        raise NotImplementedError()
+    def fillstyle(self, ident, **kwargs):
+        raise NotImplementedError()
+    def textstyle(self, ident, **kwargs):
+        raise NotImplementedError()
 
 ###############################################
 def informPlotters(_func_):

@@ -42,11 +42,11 @@ class Plotter(GenericPlotter):
         p = self.params
         c = self.canvas
         if ident not in self.nodes.keys():
-            node_tag = c.create_oval(0,0,0,0)
-            label_tag = c.create_text(0,0,text=str(ident))
+            node_tag = c.create_oval(0, 0, 0, 0)
+            label_tag = c.create_text(0, 0, text=str(ident))
             self.nodes[ident] = (node_tag,label_tag)
         else:
-            (node_tag,label_tag) = self.nodes[ident]
+            (node_tag, label_tag) = self.nodes[ident]
 
         node = self.scene.nodes[ident]
         nodesize = node.scale*p.nodesize
@@ -72,9 +72,9 @@ class Plotter(GenericPlotter):
     def configPolygon(self, tagOrId, lineStyle, fillStyle):
         config = {}
         config['outline'] = colorStr(lineStyle.color)
-        config['width']    = lineStyle.width
-        config['dash']     = lineStyle.dash
-        config['fill']     = colorStr(fillStyle.color)
+        config['width']   = lineStyle.width
+        config['dash']    = lineStyle.dash
+        config['fill']    = colorStr(fillStyle.color)
         self.canvas.itemconfigure(tagOrId,**config)
 
     ###################

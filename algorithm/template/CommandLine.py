@@ -1,7 +1,7 @@
 
 from __future__ import print_function
 
-import os, sys, itertools
+import os, itertools
 
 from algorithm.common import CommandLineCommon
 
@@ -12,12 +12,12 @@ import algorithm.protectionless as protectionless
 template = __import__(__package__, globals(), locals(), ['object'], -1)
 adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
 
-from data.table import safety_period, fake_result, comparison
-from data.graph import summary, heatmap, versus, bar, min_max_versus
+from data.table import safety_period, fake_result
+from data.graph import summary, heatmap, bar
 
 from data import results, latex
 
-from data.util import create_dirtree, recreate_dirtree, touch, useful_log10, scalar_extractor
+from data.util import useful_log10
 
 import numpy
 
@@ -182,7 +182,8 @@ class CLI(CommandLineCommon.CLI):
 
             bar.Grapher(template.graphs_path, result_table, name,
                 shows=[show],
-                extractor=lambda (diff, pcdiff): pcdiff if pc else diff).create()
+                extractor=lambda (diff, pcdiff): pcdiff if pc else diff
+            ).create()
 
             summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-{}'.format(name).replace(" ", "_")).run()
 
