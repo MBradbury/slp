@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from collections import Counter, OrderedDict
 import itertools, re
@@ -27,7 +28,8 @@ class MetricsCommon(object):
         self.became_normal_after_source_times = {}
 
     def process_COMMUNICATE(self, line):
-        #print(line.strip())
+        if self.sim.log_communications is not None:
+            print(line.strip(), file=self.sim.log_communications)
 
         (comm_type, contents) = line.split(':')
 
