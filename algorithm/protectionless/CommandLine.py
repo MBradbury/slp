@@ -144,15 +144,7 @@ class CLI(CommandLineCommon.CLI):
             create_ccpe_comp_versus(result_name, pc=False)
 
     def run(self, args):
-
-        if 'cluster' in args:
-            self._run_cluster(args)
-
-        if 'run' in args:
-            self._run_run(args)
-
-        if 'analyse' in args:
-            self._run_analyse(args)
+        super(CLI, self).run(args)
 
         if 'table' in args:
             self._run_table(args)
