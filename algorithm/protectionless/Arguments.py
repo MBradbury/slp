@@ -29,6 +29,7 @@ class Arguments:
         parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
 
         parser.add_argument("-v", "--verbose", action="store_true")
+        parser.add_argument("-lc", "--log-communications", type=str, default=None)
 
         self.parser = parser
 

@@ -37,6 +37,16 @@ class Simulation(TosVis):
 
         self.start_time = None
 
+        self.log_communications = None
+        if hasattr(args, "log_communications"):
+            self.log_communications = open(args.log_communications, "w")
+
+    def __exit__(self, tp, value, tb):
+        super(Simulation, self).__exit__(tp, value, tb)
+
+        if self.log_communications is not None:
+            self.log_communications.close()
+
     def _pre_run(self):
         super(Simulation, self)._pre_run()
 
