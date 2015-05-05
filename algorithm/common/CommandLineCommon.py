@@ -41,3 +41,39 @@ class CLI(object):
             cluster.copy_back(self.algorithm_module.name)
 
         sys.exit(0)
+
+    def _run_time_taken_table(self, args):
+        from data import results, latex
+        from data.table import fake_result
+
+        results = results.Results(self.algorithm_module.result_file_path,
+            parameters=self.parameter_names,
+            results=('wall time', 'event count'))
+
+        result_table = fake_result.ResultTable(results)
+
+        def create_table(name, param_filter=lambda x: True):
+            filename = name + ".tex"
+
+            with open(filename, 'w') as result_file:
+                latex.print_header(result_file)
+                result_table.write_tables(result_file, param_filter)
+                latex.print_footer(result_file)
+
+            latex.compile_document(filename)
+
+        create_table(self.algorithm_module.name + "-time-taken")
+
+    def run(self, args):
+
+        if 'cluster' in args:
+            self._run_cluster(args)
+
+        if 'run' in args:
+            self._run_run(args)
+
+        if 'analyse' in args:
+            self._run_analyse(args)
+
+        if 'time-taken-table' in args:
+            self._run_time_taken_table(args)

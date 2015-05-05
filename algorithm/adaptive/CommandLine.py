@@ -266,36 +266,11 @@ class CLI(CommandLineCommon.CLI):
         for result_name in graph_parameters.keys():
             graph_min_max_versus(result_name)
 
-    def _run_time_taken_table(self, args):
-        adaptive_results = results.Results(adaptive.result_file_path,
-            parameters=parameter_names,
-            results=('wall time', 'event count'))
-
-        result_table = fake_result.ResultTable(adaptive_results)
-
-        def create_adaptive_table(name, param_filter=lambda x: True):
-            filename = name + ".tex"
-
-            with open(filename, 'w') as result_file:
-                latex.print_header(result_file)
-                result_table.write_tables(result_file, param_filter)
-                latex.print_footer(result_file)
-
-            latex.compile_document(filename)
-
     def run(self, args):
-
-        if 'cluster' in args:
-            self._run_cluster(args)
-
-        if 'run' in args:
-            self._run_run(args)
-
-        if 'analyse' in args:
-            self._run_analyse(args)
+        super(CLI, self).run(args)
 
         if 'table' in args:
-            self._run_table(args)
+            self._run_table(self, args)
 
         if 'graph' in args:
             self._run_graph(self, args)
@@ -308,6 +283,3 @@ class CLI(CommandLineCommon.CLI):
 
         if 'min-max-versus' in args:
             self._run_min_max_versus(args)
-
-        if 'time-taken-table' in args:
-            self._run_time_taken_table(args)
