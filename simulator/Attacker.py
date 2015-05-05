@@ -72,6 +72,10 @@ class Attacker(object):
 
         return (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
+class DeafAttacker(Attacker):
+    """An attacker that does nothing when it receives a message"""
+    def process(self, line):
+        pass
 
 class BasicReactiveAttacker(Attacker):
     def process(self, line):
