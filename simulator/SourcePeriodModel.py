@@ -17,6 +17,10 @@ class PeriodModel(object):
         """Returns the smallest period possible with this model"""
         raise NotImplemented()
 
+    def slowest(self):
+        """Returns the largest period possible with this model"""
+        raise NotImplemented()
+
     def build_arguments(self):
         build_arguments = {}
 
@@ -55,6 +59,9 @@ class FixedPeriodModel(PeriodModel):
     def fastest(self):
         return self.period
 
+    def slowest(self):
+        return self.period
+
     def __repr__(self):
         return "FixedPeriodModel(period={})".format(self.period)
 
@@ -86,10 +93,15 @@ class FactoringPeriodModel(PeriodModel):
             current_time = end_time
             period *= factor
 
+        self.ending_period = period
+
         super(FactoringPeriodModel, self).__init__(times)
 
     def fastest(self):
         return self.starting_period
+
+    def slowest(self):
+        return self.ending_period
 
     def __repr__(self):
         return "FactoringPeriodModel(starting_period={}, max_period={}, duration={}, factor={})".format(
