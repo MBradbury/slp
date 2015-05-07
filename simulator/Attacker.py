@@ -1,12 +1,17 @@
 
 from simulator.Simulator import OutputCatcher
 
+from data.restricted_eval import restricted_eval
+
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
 _messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
 
 class Attacker(object):
-    def __init__(self, sim, start_node_id):
+    def __init__(self):
+        pass
+
+    def setup(self, sim, start_node_id):
         self.sim = sim
 
         out = OutputCatcher(self.process)
@@ -72,6 +77,9 @@ class Attacker(object):
 
         return (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
+    def __str__(self):
+        return type(self).__name__ + "()"
+
 class DeafAttacker(Attacker):
     """An attacker that does nothing when it receives a message"""
     def process(self, line):
@@ -92,8 +100,8 @@ class BasicReactiveAttacker(Attacker):
             self.draw(time, self.position)
 
 class IgnorePreviousLocationReactiveAttacker(Attacker):
-    def __init__(self, sim, start_node_id):
-        super(IgnorePreviousLocationReactiveAttacker, self).__init__(sim, start_node_id)
+    def __init__(self):
+        super(IgnorePreviousLocationReactiveAttacker, self).__init__()
         self.previous_location = None
 
     def process(self, line):
@@ -117,8 +125,8 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
 
 
 class TimeSensitiveReactiveAttacker(Attacker):
-    def __init__(self, sim, start_node_id, wait_time=0.010):
-        super(TimeSensitiveReactiveAttacker, self).__init__(sim, start_node_id)
+    def __init__(self, wait_time):
+        super(TimeSensitiveReactiveAttacker, self).__init__()
         self.previous_location = None
         self.last_moved_time = None
         self.wait_time = wait_time
@@ -146,12 +154,15 @@ class TimeSensitiveReactiveAttacker(Attacker):
         self.previous_location = self.position
         super(TimeSensitiveReactiveAttacker, self).move(node_id)
 
+    def __str__(self):
+        return type(self).__name__ + "(wait_time={})".format(self.wait_time)
+
 
 # This attacker can determine the type of a message and its sequence number,
 # but is unaware of the ultimate source of the message.
 class SeqNoReactiveAttacker(Attacker):
-    def __init__(self, sim, start_node_id):
-        super(SeqNoReactiveAttacker, self).__init__(sim, start_node_id)
+    def __init__(self):
+        super(SeqNoReactiveAttacker, self).__init__()
         self.sequence_numbers = {}
 
     def process(self, line):
@@ -177,8 +188,8 @@ class SeqNoReactiveAttacker(Attacker):
 # This attacker can determine the source node of certain messages
 # that can be sent from multiple sources.
 class SeqNosReactiveAttacker(Attacker):
-    def __init__(self, sim, start_node_id):
-        super(SeqNosReactiveAttacker, self).__init__(sim, start_node_id)
+    def __init__(self):
+        super(SeqNosReactiveAttacker, self).__init__()
         self.sequence_numbers = {}
 
     def process(self, line):
@@ -202,9 +213,17 @@ class SeqNosReactiveAttacker(Attacker):
             self.draw(time, self.position)
 
 def models():
-    """A list of the names of the available attacker models."""
-    return [cls.__name__ for cls in Attacker.__subclasses__()]
+    """A list of the the available attacker models."""
+    return [cls for cls in Attacker.__subclasses__()]
 
 def default():
-    """Gets the name of the default attacker model"""
-    return SeqNoReactiveAttacker.__name__
+    """Gets the the default attacker model"""
+    return SeqNoReactiveAttacker()
+
+def eval_input(source):
+    result = restricted_eval(source, models())
+
+    if not isinstance(result, Attacker):
+        raise RuntimeError("The source ({}) is not valid.".format(source))
+
+    return result

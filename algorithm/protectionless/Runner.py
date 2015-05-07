@@ -33,7 +33,7 @@ class RunSimulations(RunSimulationsCommon):
                 opts["--distance"] = distance
                 opts["--job-size"] = repeats
 
-                optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
+                optItems = ["{} \"{}\"".format(k, v) for (k,v) in opts.items()]
 
                 options = 'algorithm.protectionless ' + " ".join(optItems)
 

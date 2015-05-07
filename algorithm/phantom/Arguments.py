@@ -24,7 +24,7 @@ class Arguments:
 
 		parser.add_argument("--configuration", type=str, required=True, choices=Configuration.names())
 
-		parser.add_argument("--attacker-model", type=str, choices=Attacker.models(), default=Attacker.default())
+		parser.add_argument("--attacker-model", type=Attacker.eval_input, default=Attacker.default())
 
 		parser.add_argument("--random-walk-hops", type=int, required=True)
 		parser.add_argument("--random-walk-retries", type=int, required=True)

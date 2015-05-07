@@ -26,9 +26,9 @@ class CLI(CommandLineCommon.CLI):
     periods = [ 1.0, 0.5, 0.25, 0.125 ]
 
     configurations = [
-        #'SourceCorner',
-        #'SinkCorner',
-        #'FurtherSinkCorner',
+        'SourceCorner',
+        'SinkCorner',
+        'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
         
@@ -49,7 +49,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 750
 
-    attacker_models = ['SeqNoReactiveAttacker']
+    attacker_models = ['BasicReactiveAttacker()', 'IgnorePreviousLocationReactiveAttacker()']
 
     parameter_names = tuple()
 
