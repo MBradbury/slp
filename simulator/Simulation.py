@@ -29,16 +29,16 @@ class Simulation(TosVis):
 
         self.attackers = []
 
-        Metrics = importlib.import_module('{}.Metrics'.format(module_name))
+        metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
 
-        self.metrics = Metrics.Metrics(self, configuration)
+        self.metrics = metrics_module.Metrics(self, configuration)
 
         self.topology_path = topology_path(module_name, args)
 
         self.start_time = None
 
         self.log_communications = None
-        if hasattr(args, "log_communications"):
+        if hasattr(args, "log_communications") and args.log_communications is not None:
             self.log_communications = open(args.log_communications, "w")
 
     def __exit__(self, tp, value, tb):
@@ -46,6 +46,7 @@ class Simulation(TosVis):
 
         if self.log_communications is not None:
             self.log_communications.close()
+            self.log_communications = None
 
     def _pre_run(self):
         super(Simulation, self)._pre_run()

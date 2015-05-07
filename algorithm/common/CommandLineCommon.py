@@ -1,10 +1,22 @@
 import os, sys
 
-from data.util import recreate_dirtree, touch
+from data import results, latex
+from data.table import fake_result
+from data.util import recreate_dirtree, touch        
 
 class CLI(object):
     def __init__(self, package):
         self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
+
+    def _create_table(self, name, result_table, param_filter=lambda x: True):
+        filename = name + ".tex"
+
+        with open(filename, 'w') as result_file:
+            latex.print_header(result_file)
+            result_table.write_tables(result_file, param_filter)
+            latex.print_footer(result_file)
+
+        latex.compile_document(filename)
 
     def _execute_runner(self, driver, results_directory, skip_completed_simulations):
         raise NotImplementedError()
@@ -43,26 +55,14 @@ class CLI(object):
         sys.exit(0)
 
     def _run_time_taken_table(self, args):
-        from data import results, latex
-        from data.table import fake_result
 
-        results = results.Results(self.algorithm_module.result_file_path,
+        result = results.Results(self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('wall time', 'event count'))
+            results=('time taken', 'wall time', 'event count'))
 
-        result_table = fake_result.ResultTable(results)
+        result_table = fake_result.ResultTable(result)
 
-        def create_table(name, param_filter=lambda x: True):
-            filename = name + ".tex"
-
-            with open(filename, 'w') as result_file:
-                latex.print_header(result_file)
-                result_table.write_tables(result_file, param_filter)
-                latex.print_footer(result_file)
-
-            latex.compile_document(filename)
-
-        create_table(self.algorithm_module.name + "-time-taken")
+        self._create_table(self.algorithm_module.name + "-time-taken", result_table)
 
     def run(self, args):
 

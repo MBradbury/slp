@@ -41,12 +41,12 @@ class OutputCatcher(object):
 class Simulator(object):
     def __init__(self, module_name, node_locations, wireless_range, seed):
 
-        TOSSIM = importlib.import_module('{}.TOSSIM'.format(module_name))
+        tossim_module = importlib.import_module('{}.TOSSIM'.format(module_name))
 
         app_path = os.path.join('.', module_name.replace('.', os.sep), 'app.xml')
 
         self.nesc_app = NescApp(xmlFile=app_path)
-        self.tossim = TOSSIM.Tossim(self.nesc_app.variables.variables())
+        self.tossim = tossim_module.Tossim(self.nesc_app.variables.variables())
         self.radio = self.tossim.radio()
 
         self.out_procs = []
@@ -156,6 +156,10 @@ class Simulator(object):
             return (False, None)"""
 
     def set_boot_time(self, node):
+        """
+        Sets the boot time of the given node to be at a
+        random time between 0 and 1 seconds.
+        """
         node.tossim_node.bootAtTime(int(random.random() * self.tossim.ticksPerSecond()))
 
     def move_node(self, node, location, time=None):
@@ -168,16 +172,20 @@ class Simulator(object):
         raise NotImplementedError("Need TOSSIM patching")
 
     def continue_predicate(self):
+        """Specifies if the simulator run loop should continue executing."""
         return True
 
     def _pre_run(self):
+        """Called before the simulator run loop starts"""
         self.setup_radio()
         self.setup_noise_models()
 
     def _post_run(self, event_count):
+        """Called after the simulator run loop finishes"""
         pass
 
     def _during_run(self, event_count):
+        """Called after every simulation event is executed"""
         for op in self.out_procs:
             op.process()
 
