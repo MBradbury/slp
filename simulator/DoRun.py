@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import sys, importlib, traceback
+import sys, importlib, traceback, copy
 
 import simulator.Attacker as Attacker
 from simulator.Builder import build
@@ -20,9 +20,13 @@ configuration = Configuration.create(a.args.configuration, a.args)
 
 with Simulation(module, configuration, a.args) as sim:
 
-    AttackerClass = getattr(Attacker, a.args.attacker_model)
+    # Create a copy of the provided attacker model
+    attacker = copy.deepcopy(a.args.attacker_model)
 
-    sim.add_attacker(AttackerClass(sim, configuration.sink_id))
+    # Setup each attacker model
+    attacker.setup(sim, configuration.sink_id)
+
+    sim.add_attacker(attacker)
 
     if a.args.mode == "GUI":
         sim.setup_gui()
@@ -35,4 +39,4 @@ with Simulation(module, configuration, a.args) as sim:
     else:
         sim.metrics.print_results()
 
-        sys.exit(0)
+sys.exit(0)

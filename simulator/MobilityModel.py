@@ -133,6 +133,6 @@ def eval_input(source):
     result = restricted_eval(source, models())
 
     if isinstance(result, MobilityModel):
-        return result
-    else:
         raise RuntimeError("The source ({}) is not valid.".format(source))
+
+    return result

@@ -4,6 +4,8 @@ import simulator.Attacker as Attacker
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
+import json
+
 class Arguments:
     def __init__(self):
         parser = argparse.ArgumentParser(description="SLP Protectionless", add_help=True)
@@ -23,7 +25,7 @@ class Arguments:
 
         parser.add_argument("--configuration", type=str, required=True, choices=Configuration.names())
 
-        parser.add_argument("--attacker-model", type=str, choices=Attacker.models(), default=Attacker.default())
+        parser.add_argument("--attacker-model", type=Attacker.eval_input, default=Attacker.default())
 
         parser.add_argument("--job-size", type=int, default=1)
         parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
