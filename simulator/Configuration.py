@@ -282,6 +282,9 @@ CONFIGURATION_RANK = {
     'RingOpposite': 11,
 }
 
+def configuration_rank(configuration):
+    return CONFIGURATION_RANK[configuration] if configuration in CONFIGURATION_RANK else len(CONFIGURATION_RANK) + 1
+
 def names():
     return [cls.__name__ for cls in configurations()]
 

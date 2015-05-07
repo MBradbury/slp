@@ -1,9 +1,9 @@
 # Author: Matthew Bradbury
 from __future__ import print_function
 
-import sys
+import sys, itertools
 
-from simulator.Configuration import CONFIGURATION_RANK
+from simulator.Configuration import configuration_rank
 
 from data import latex
 
@@ -63,7 +63,9 @@ class ResultTable(object):
         return "        " + " & ".join(titles) + "\\\\"
 
     def _var_fmt(self, name, value):
-        if name in {"source period", "fake period", "walk length", "walk retries"}:
+        if value is None:
+            return "None"
+        elif name in {"source period", "fake period", "walk length", "walk retries"}:
             return "${}$".format(value)
         elif name == "duration" or name == "temp fake duration":
             return "${:.0f}$".format(value)
@@ -90,38 +92,45 @@ class ResultTable(object):
     def write_tables(self, stream, param_filter=lambda x: True):
         print('\\vspace{-0.3cm}', file=stream)
 
-        for configuration in sorted(self.results.configurations, key=lambda x: CONFIGURATION_RANK[x]):
-            for size in sorted(self.results.sizes):
-                print('\\begin{table}[H]', file=stream)
-                print('    \\centering', file=stream)
-                print('    \\begin{{tabular}}{{{}}}'.format(self._column_layout()), file=stream)
-                print('        \\hline', file=stream)
-                print(self._title_row(0), file=stream)
-                print(self._title_row(1), file=stream)
-                print('        \\hline', file=stream)
+        sizes = sorted(self.results.sizes)
+        configurations = sorted(self.results.configurations, key=lambda x: configuration_rank(x))
+        attacker_models = sorted(self.results.attacker_models)
 
-                table_key = (size, configuration)
+        for (size, configuration, attacker_model) in itertools.product(sizes, configurations, attacker_models):
 
+            table_key = (size, configuration, attacker_model)
+            try:
                 source_periods = sorted(set(self.results.data[table_key].keys()))
+            except KeyError:
+                continue
 
-                for source_period in source_periods:
-                    items = self.results.data[table_key][source_period].items()
+            print('\\begin{table}[H]', file=stream)
+            print('    \\centering', file=stream)
+            print('    \\begin{{tabular}}{{{}}}'.format(self._column_layout()), file=stream)
+            print('        \\hline', file=stream)
+            print(self._title_row(0), file=stream)
+            print(self._title_row(1), file=stream)
+            print('        \\hline', file=stream)
 
-                    items = [(k, v) for (k, v) in items if param_filter(k)]
+            for source_period in source_periods:
+                items = self.results.data[table_key][source_period].items()
 
-                    for (params, results) in sorted(items, key=lambda (x, y): x):
-                        to_print = [self._var_fmt("source period", source_period)]
+                items = [(k, v) for (k, v) in items if param_filter(k)]
 
-                        for name, value in zip(self.results.parameter_names, params):
-                            to_print.append(self._var_fmt(name, value))
+                for (params, results) in sorted(items, key=lambda (x, y): x):
+                    to_print = [self._var_fmt("source period", source_period)]
 
-                        for name, value in zip(self.results.result_names, results):
-                            to_print.append(self._var_fmt(name, value))
+                    for name, value in zip(self.results.parameter_names, params):
+                        to_print.append(self._var_fmt(name, value))
 
-                        print(" & ".join(to_print) + "\\\\", file=stream)
-                    print('        \\hline', file=stream)
+                    for name, value in zip(self.results.result_names, results):
+                        to_print.append(self._var_fmt(name, value))
 
-                print('    \\end{tabular}', file=stream)
-                print('\\caption{{Template results for the size {} and configuration {}}}'.format(size, configuration), file=stream)
-                print('\\end{table}', file=stream)
-                print('', file=stream)
+                    print(" & ".join(to_print) + "\\\\", file=stream)
+                print('        \\hline', file=stream)
+
+            print('    \\end{tabular}', file=stream)
+            print('\\caption{{Results for the size {} and configuration {} and attacker mode {}}}'.format(
+                size, configuration, attacker_model), file=stream)
+            print('\\end{table}', file=stream)
+            print('', file=stream)

@@ -12,6 +12,7 @@ class Results(object):
 
         self.sizes = set()
         self.configurations = set()
+        self.attacker_models = set()
 
         self._read_results(result_file)
 
@@ -32,14 +33,16 @@ class Results(object):
                     size = int(values[ headers.index('network size') ])
                     src_period = values[ headers.index('source period') ]
                     config = values[ headers.index('configuration') ]
+                    attacker_model = values[ headers.index('attacker model') ]
 
-                    table_key = (size, config)
+                    table_key = (size, config, attacker_model)
 
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
                 
                     self.sizes.add(size)
                     self.configurations.add(config)
+                    self.attacker_models.add(attacker_model)
 
                     self.data.setdefault(table_key, {}).setdefault(src_period, {})[params] = results
 

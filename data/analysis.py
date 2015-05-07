@@ -17,7 +17,6 @@ class Analyse(object):
     def __init__(self, infile):
 
         self.opts = {}
-        self.results = {}
         
         self.headings = []
         self.data = []
@@ -236,12 +235,24 @@ class AnalysisResults:
 
         self.opts = analysis.opts
         self.data = analysis.data
-        self.results = analysis.results
 
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values):
         self.results_directory = results_directory
         self.values = values
+
+    @staticmethod
+    def _format_results(x, name, allow_missing=False):
+        if name in x.variance_of:
+            return "{}({})".format(x.average_of[name], x.variance_of[name])
+        else:
+            try:
+                return "{}".format(x.average_of[name])
+            except KeyError:
+                if not allow_missing:
+                    raise
+                else:
+                    return "None"
 
     def analyse_path(self, path):
         return AnalysisResults(Analyse(path))
