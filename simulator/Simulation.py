@@ -22,7 +22,7 @@ class Simulation(TosVis):
             # To make simulations safer an upper bound on the simulation time
             # is used when no safety period makes sense. This upper bound is the
             # time it would have otherwise taken the attacker to scan the whole network.
-            self.safety_period = len(configuration.topology.nodes) * max(1.0, 2.0 * args.source_period.fastest())
+            self.safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
 
         if args.mode == "GUI" or args.verbose:
             self.tossim.addChannel("stdout", sys.stdout)

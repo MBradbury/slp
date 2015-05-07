@@ -104,7 +104,7 @@ class Random:
             raise RuntimeError("Unable to allocate a valid set of random node positions in {} loops.".format(max_loops))
 
     def __str__(self):
-        return "Random<seed={},network_size={},area={}>".format(self.seed,self.size, self.area)
+        return "Random<seed={},network_size={},area={}>".format(self.seed, self.size, self.area)
 
 def topology_path(module, args):
     if args.mode == "CLUSTER":
