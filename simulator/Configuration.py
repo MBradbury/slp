@@ -1,7 +1,7 @@
 
 import itertools
 
-from simulator.Topology import Ring, Grid
+from simulator.Topology import Ring, Grid, Random
 
 from scipy.spatial.distance import euclidean
 
@@ -259,6 +259,17 @@ class Source2Corner(Configuration):
             grid,
             source_ids={3, network_size * 3},
             sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
+class RandomConnected(Configuration):
+    def __init__(self, network_size, distance):
+        random = Random(network_size, distance)
+
+        super(RandomConnected, self).__init__(
+            random,
+            source_ids={len(random.nodes) - 1},
+            sink_id=0,
             space_behind_sink=True
         )
 
