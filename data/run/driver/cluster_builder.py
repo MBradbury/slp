@@ -1,4 +1,5 @@
-import os, importlib, shlex, shutil
+from __future__ import print_function
+import os, importlib, shlex, shutil, time
 
 import data.util
 
@@ -27,13 +28,19 @@ class Runner:
         # Build the binary
         build_args = self.build_arguments(a)        
 
-        print("building for {}".format(build_args))
+        print("Building for {}".format(build_args))
 
-        LocalBuilder.build(module_path, **build_args)
+        build_result = LocalBuilder.build(module_path, **build_args)
+
+        print("Build finished with result {}, waiting for a bit...".format(build_result))
+
+        # For some reason, we seemed to be copying files before
+        # they had finished being written. So wait a  bit here.
+        time.sleep(1)
+
+        print("Copying files...")
 
         files_to_move = [
-            "_TOSSIMmodule.so",
-            "TOSSIM.py",
             "Analysis.py",
             "Arguments.py",
             "CommandLine.py",
@@ -41,23 +48,28 @@ class Runner:
             "Metrics.py",
             "__init__.py",
             "app.xml",
+            "_TOSSIMmodule.so",
+            "TOSSIM.py",
         ]
         for name in files_to_move:
             shutil.copy(os.path.join(module_path, name), target_directory)
 
         # Create the topology of this configuration
-        print("Creating topology file")
+        print("Creating topology file...")
         configuration = Configuration.create(a.args.configuration, a.args)
         Simulation.Simulation.write_topology_file(configuration.topology.nodes, target_directory)
+
+        print("All Done!")
+        print()
 
     def mode(self):
         return "CLUSTER"
 
     @staticmethod
     def parse_arguments(module, argv):
-        Arguments = importlib.import_module("{}.Arguments".format(module))
+        arguments_module = importlib.import_module("{}.Arguments".format(module))
 
-        a = Arguments.Arguments()
+        a = arguments_module.Arguments()
         a.parse(argv)
         return a
 
