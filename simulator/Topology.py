@@ -1,4 +1,4 @@
-import os
+import os, random, itertools
 from scipy.spatial.distance import euclidean
 
 class Grid:
@@ -57,8 +57,54 @@ class Ring:
         return "Ring<diameter={}>".format(self.diameter)
 
 class Random:
-    def __init__(self, size_root, initial_position=10.0):
-        raise NotImplementedError()
+    def __init__(self, network_size, distance, initial_position=10.0):
+        self.seed = random.random()
+        self.size = network_size
+
+        rnd = random.Random()
+        rnd.seed(self.seed)
+
+        min_x_pos = 0
+        min_y_pos = 0
+        max_x_pos = network_size * distance * 2
+        max_y_pos = network_size * distance * 2
+
+        self.area = ((min_x_pos, max_x_pos), (min_y_pos, max_y_pos))
+
+        min_x_pos += initial_position
+        max_x_pos += initial_position
+        min_y_pos += initial_position
+        max_y_pos += initial_position
+
+        # Due to LinkLayerModel, the distance between nodes must be greater than or equal to 1.
+
+        def random_coordinate():
+            return (
+                min_x_pos + rnd.random() * ((max_x_pos - min_x_pos) + 1),
+                min_y_pos + rnd.random() * ((max_y_pos - min_y_pos) + 1)
+            )
+
+        def create_nodes():
+            self.nodes = [random_coordinate() for n in xrange(network_size ** 2)]
+
+        def check_nodes():
+            return all(
+                i == j or euclidean(node1, node2) > 1.0
+                for ((i, node1), (j, node2))
+                in itertools.product(enumerate(self.nodes), enumerate(self.nodes))
+            )
+
+        max_loops = 20
+
+        for loops in xrange(max_loops):
+            create_nodes()
+            if check_nodes():
+                break
+        else:
+            raise RuntimeError("Unable to allocate a valid set of random node positions in {} loops.".format(max_loops))
+
+    def __str__(self):
+        return "Random<seed={},network_size={},area={}>".format(self.seed,self.size, self.area)
 
 def topology_path(module, args):
     if args.mode == "CLUSTER":
