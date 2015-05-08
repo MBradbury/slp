@@ -53,7 +53,7 @@ class RunSimulations(RunSimulationsCommon):
 
                 filename = os.path.join(
                     self.results_directory,
-                    '-'.join(map(str, filenameItems)).replace(".", "_") + ".txt"
+                    '-'.join(map(self._sanitize_job_name, filenameItems)) + ".txt"
                 )
 
                 self.driver.add_job(executable, options, filename)

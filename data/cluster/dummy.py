@@ -28,7 +28,7 @@ def submitter():
 
     ram_per_job_mb = 1000
 
-    cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime=500:00:00 -l mem={}mb -N {{}}".format(ppn(), ppn() * ram_per_job_mb)
+    cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime=500:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
 
     prepare_command = " <prepare> "
 
