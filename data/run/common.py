@@ -85,3 +85,17 @@ class RunSimulationsCommon(object):
         # actually executed are greater than or equal to the number of jobs
         # requested then everything is okay.
         return jobs >= repeats and results >= repeats
+
+    @staticmethod
+    def _sanitize_job_name(name):
+
+        name = str(name)
+
+        # These characters cause issues in file names.
+        # They also need to be valid python module names.
+        chars = ".()="
+
+        for char in chars:
+            name = name.replace(char, "_")
+
+        return name
