@@ -14,7 +14,7 @@ class Runner(object):
 
         cluster_command = self.cluster_command.format(module)
 
-        script_command = '{} {} {} > {}'.format(executable, module, options, name)
+        script_command = '{} {} {} > "{}"'.format(executable, module, options, name)
 
         # Print out any useful information that could aid in debugging
         debug_command = 'hostname ; pwd'
