@@ -19,7 +19,7 @@ class Runner(object):
         # Print out any useful information that could aid in debugging
         debug_command = 'hostname ; pwd'
 
-        command = 'echo \'cd \\$PBS_O_WORKDIR ; {} ; {} ; {}\' | {}'.format(
+        command = 'echo \'cd $PBS_O_WORKDIR ; {} ; {} ; {}\' | {}'.format(
             debug_command, self.prepare_command, script_command, cluster_command)
 
         self._submit_job(command)
