@@ -1,3 +1,4 @@
+import collections
 
 from simulator.Simulator import OutputCatcher
 
@@ -99,6 +100,7 @@ class BasicReactiveAttacker(Attacker):
             
             self.draw(time, self.position)
 
+# Same as IgnorePastNLocationsReactiveAttacker(1)
 class IgnorePreviousLocationReactiveAttacker(Attacker):
     def __init__(self):
         super(IgnorePreviousLocationReactiveAttacker, self).__init__()
@@ -123,6 +125,29 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
         self.previous_location = self.position
         super(IgnorePreviousLocationReactiveAttacker, self).move(node_id)
 
+class IgnorePastNLocationsReactiveAttacker(Attacker):
+    def __init__(self, memory_size):
+        self.memory_size = memory_size
+        self.previous_locations = collections.deque(maxlen=memory_size)
+
+    def process(self, line):
+        # Don't want to move if the source has been found
+        if self.found_source():
+            return
+
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
+
+        if self.position == node_id and \
+            (msg_type in _messages_without_sequence_numbers or
+            prox_from_id not in self.previous_locations):
+
+            self.move(prox_from_id)
+            self.previous_locations.append(node_id)
+
+            self.draw(time, self.position)
+
+    def __str__(self):
+        return type(self).__name__ + "(memory_size={})".format(self.memory_size)
 
 class TimeSensitiveReactiveAttacker(Attacker):
     def __init__(self, wait_time):
