@@ -25,6 +25,7 @@ class Analyzer(AnalyzerCommon):
         d['away']               = lambda x: self._format_results(x, 'AwaySent')
         d['beacon']             = lambda x: self._format_results(x, 'BeaconSent')
         d['ssd']                = lambda x: self._format_results(x, 'NormalSinkSourceHops')
+        d['paths reached end']  = lambda x: self._format_results(x, 'PathsReachedEnd')
 
         d['wall time']          = lambda x: self._format_results(x, 'WallTime')
         d['event count']        = lambda x: self._format_results(x, 'EventCount')
