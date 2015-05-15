@@ -246,61 +246,6 @@ implementation
 		}
 		else
 		{
-#if 0 
-			// Weighted probability distribution towards the neighbour,
-			// with the best signal strength.
-
-			const float rnd = random_float();
-
-			double total_forwarded = 0;
-			double pr_start = 0;
-
-			NeighbourDetail* neighbour = NULL;
-
-			for (i = 0; i != local_neighbours.size; ++i)
-			{
-				neighbour = &local_neighbours.data[i];
-
-				total_forwarded += neighbour->number_forwarded;
-			}
-
-			
-			for (i = 0; i != local_neighbours.size; ++i)
-			{
-				neighbour = &local_neighbours.data[i];
-
-				if (total_forwarded != 0)
-				{
-					neighbour->number_forwarded /= total_forwarded;
-				}
-				else
-				{
-					neighbour->number_forwarded = 1.0 / local_neighbours.size;
-				}
-			}
-
-			//dbg("stdout", "rnd=%f  ", rnd);
-			//print_neighbours("stdout", &local_neighbours);
-
-			for (i = 0; i != local_neighbours.size; ++i)
-			{
-				double pr;
-
-				neighbour = &local_neighbours.data[i];
-
-				pr = neighbour->number_forwarded;
-
-				dbg("stdout", "%u: (pr=%f) %f <= %f <= %f\n", neighbour->address, pr, pr_start, rnd, pr_start + pr);
-
-				if (pr_start <= rnd && rnd <= pr_start + pr)
-				{
-					break;
-				}
-
-				pr_start += pr;
-			}
-#endif
-
 			// Choose a neighbour with equal probabilities.
 			const uint16_t rnd = call Random.rand16();
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
@@ -324,7 +269,6 @@ implementation
 	{
 		return 75U + (uint32_t)(50U * random_float());
 	}
-
 
 	USE_MESSAGE(Normal);
 	USE_MESSAGE(Away);
@@ -496,13 +440,22 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.sink_distance_of_sender = sink_distance;
 
-			if (rcvd->source_distance < RANDOM_WALK_HOPS && !rcvd->force_broadcast)
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->force_broadcast)
 			{
 				am_addr_t target;
 
+				// TODO: look into this more
+				/*if (forwarding_message.further_or_closer_set == FurtherSet)
+				{
+					forwarding_message.further_or_closer_set = CloserSet;
+				}
+				else if (forwarding_message.further_or_closer_set == CloserSet)
+				{
+					forwarding_message.further_or_closer_set = FurtherSet;
+				}
 				// The previous node(s) were unable to choose a direction,
 				// so lets try to
-				if (forwarding_message.further_or_closer_set == UnknownSet)
+				else */ if (forwarding_message.further_or_closer_set == UnknownSet)
 				{
 					forwarding_message.further_or_closer_set = random_walk_direction();
 
@@ -532,6 +485,13 @@ implementation
 			}
 			else
 			{
+				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->force_broadcast)
+				{
+					dbg("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+						sim_time(), TOS_NODE_ID, source_addr,
+						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+				}
+
 				call PacketLink.setRetries(&packet, 0);
 				call PacketLink.setRetryDelay(&packet, 0);
 				call PacketAcknowledgements.noAck(&packet);

@@ -86,10 +86,11 @@ bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
 	} \
 }
 
-#define SEND_DONE(NAME) \
+#define SEND_DONE(NAME, CALLBACK) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
 { \
-	dbgverbose("SourceBroadcasterC", "%s: " #NAME "Send sendDone with status %i.\n", sim_time_string(), error); \
+	dbgverbose("stdout", "%s: " #NAME "Send sendDone with status %i.\n", \
+		sim_time_string(), error); \
  \
 	if (&packet == msg) \
 	{ \
@@ -111,6 +112,8 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 			busy = FALSE; \
 		} \
 	} \
+ \
+	(CALLBACK)(msg, error); \
 }
 
 #define RECEIVE_MESSAGE_BEGIN(NAME, KIND) \
@@ -148,6 +151,13 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 
 #define USE_MESSAGE(NAME) \
 	SEND_MESSAGE(NAME); \
-	SEND_DONE(NAME)
+	inline void send_##NAME##_done(message_t* msg, error_t error); \
+	SEND_DONE(NAME, send_##NAME##_done); \
+	inline void send_##NAME##_done(message_t* msg, error_t error) {}
+
+#define USE_MESSAGE_WITH_CALLBACK(NAME) \
+	SEND_MESSAGE(NAME); \
+	void send_##NAME##_done(message_t* msg, error_t error); \
+	SEND_DONE(NAME, send_##NAME##_done)
 
 #endif // SLP_SEQUENCENUMBER_H
