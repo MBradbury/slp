@@ -167,7 +167,7 @@ class RingTop(Configuration):
     def __init__(self, network_size, distance):
         ring = Ring(network_size, distance)
 
-        super(SourceCorners, self).__init__(
+        super(RingTop, self).__init__(
             ring,
             source_ids={network_size - 1},
             sink_id=0,
@@ -178,7 +178,7 @@ class RingMiddle(Configuration):
     def __init__(self, network_size, distance):
         ring = Ring(network_size, distance)
 
-        super(SourceCorners, self).__init__(
+        super(RingMiddle, self).__init__(
             ring,
             source_ids={(4 * network_size - 5) / 2 + 1},
             sink_id=(4 * network_size - 5) / 2,
@@ -189,7 +189,7 @@ class RingOpposite(Configuration):
     def __init__(self, network_size, distance):
         ring = Ring(network_size, distance)
 
-        super(SourceCorners, self).__init__(
+        super(RingOpposite, self).__init__(
             ring,
             source_ids={len(ring.nodes) - 1},
             sink_id=0,
