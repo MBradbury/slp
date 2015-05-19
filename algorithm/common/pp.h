@@ -12,4 +12,6 @@
  */
 #define PPCAT(A, B) PPCAT_NX(A, B)
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(*a))
+
 #endif // SLP_PP_H
