@@ -78,9 +78,15 @@ implementation
 
 	components
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos,
-		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as AwaySeqNos;
+		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as SnoopedNormalSeqNos,
+		new SequenceNumbersP(SLP_MAX_NUM_SINKS) as AwaySeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
+	App.SnoopedNormalSeqNos -> SnoopedNormalSeqNos;
 	App.AwaySeqNos -> AwaySeqNos;
+
+	components
+		new DictionaryP(am_addr_t, int32_t, SLP_MAX_NUM_SOURCES) as SnoopedNormalSeqNosSrcDist;
+	App.SnoopedNormalSeqNosSrcDist -> SnoopedNormalSeqNosSrcDist;
        
     // Random
     components RandomC;
