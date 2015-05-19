@@ -311,7 +311,7 @@ implementation
 			return;
 		}
 
-		// We have snooped this message, so give up trying to forward it.
+		// We have snooped this message from a node further from the source, so give up trying to forward it.
 		if (!call SnoopedNormalSeqNos.before(message->source_id, message->sequence_number) &&
 			*call SnoopedNormalSeqNosSrcDist.get(message->source_id) > message->source_distance)
 		{
