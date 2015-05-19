@@ -7,6 +7,7 @@ from data.restricted_eval import restricted_eval
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
 _messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
+_messages_to_ignore ={'Beacon'}
 
 class Attacker(object):
     def __init__(self):
@@ -94,7 +95,7 @@ class BasicReactiveAttacker(Attacker):
 
         (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
 
-        if self.position == node_id:
+        if self.position == node_id and msg_type not in _messages_to_ignore:
 
             self.move(prox_from_id)
             
@@ -115,7 +116,8 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
 
         if self.position == node_id and \
             (msg_type in _messages_without_sequence_numbers or
-            self.previous_location != prox_from_id):
+            self.previous_location != prox_from_id) and \
+            msg_type not in _messages_to_ignore:
 
             self.move(prox_from_id)
 
@@ -139,7 +141,8 @@ class IgnorePastNLocationsReactiveAttacker(Attacker):
 
         if self.position == node_id and \
             (msg_type in _messages_without_sequence_numbers or
-            prox_from_id not in self.previous_locations):
+            prox_from_id not in self.previous_locations) and \
+            msg_type not in _messages_to_ignore:
 
             self.move(prox_from_id)
             self.previous_locations.append(node_id)
@@ -168,7 +171,8 @@ class TimeSensitiveReactiveAttacker(Attacker):
 
         if self.position == node_id and \
             (msg_type in _messages_without_sequence_numbers or
-            self.previous_location != prox_from_id):
+            self.previous_location != prox_from_id) and \
+            msg_type not in _messages_to_ignore:
 
             self.last_moved_time = time
             self.move(prox_from_id)
@@ -202,7 +206,8 @@ class SeqNoReactiveAttacker(Attacker):
         if self.position == node_id and \
             (msg_type in _messages_without_sequence_numbers or
              seqno_key not in self.sequence_numbers or 
-             self.sequence_numbers[seqno_key] < sequence_number):
+             self.sequence_numbers[seqno_key] < sequence_number) and \
+            msg_type not in _messages_to_ignore:
 
             self.sequence_numbers[seqno_key] = sequence_number
             
@@ -229,7 +234,8 @@ class SeqNosReactiveAttacker(Attacker):
         if self.position == node_id and \
             (msg_type in _messages_without_sequence_numbers or
              seqno_key not in self.sequence_numbers or 
-             self.sequence_numbers[seqno_key] < sequence_number):
+             self.sequence_numbers[seqno_key] < sequence_number) and \
+            msg_type not in _messages_to_ignore:
 
             self.sequence_numbers[seqno_key] = sequence_number
             

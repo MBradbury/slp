@@ -13,8 +13,8 @@
 #include <assert.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Normal, source_addr, BOTTOM, BOTTOM, BOTTOM)
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 typedef struct
 {
@@ -64,10 +64,7 @@ module SourceBroadcasterC
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
-	uses interface SequenceNumbers as SnoopedNormalSeqNos;
 	uses interface SequenceNumbers as AwaySeqNos;
-
-	uses interface Dictionary<am_addr_t, int32_t> as SnoopedNormalSeqNosSrcDist;
 	 
 	uses interface Random;
 }
@@ -145,7 +142,7 @@ implementation
 				{
 					possible_sets |= FurtherSet;
 				}
-				else if (sink_distance > neighbour->sink_distance)
+				else if (sink_distance >= neighbour->sink_distance)
 				{
 					possible_sets |= CloserSet;
 				}
@@ -177,8 +174,7 @@ implementation
 		{
 			if (sink_distance != BOTTOM && neighbours.size > 0)
 			{
-				// There are neighbours, but none with sensible distances (i.e., their distance is the same as ours)...
-				// Or we don't know our sink distance.
+				// There are neighbours, but none with sensible distances
 				const uint16_t rnd = call Random.rand16() % 2;
 				if (rnd == 0)
 				{
@@ -236,7 +232,7 @@ implementation
 				//dbgverbose("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
 				//  neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->contents.sink_distance);
 
-				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance <= neighbour->contents.sink_distance) ||
+				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance < neighbour->contents.sink_distance) ||
 					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->contents.sink_distance))
 				{
 					insert_dsink_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
@@ -544,12 +540,6 @@ implementation
 		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
 		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
-		if (call SnoopedNormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
-		{
-			call SnoopedNormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-			call SnoopedNormalSeqNosSrcDist.put(rcvd->source_id, rcvd->source_distance + 1);
-		}
-
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
 		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
@@ -571,12 +561,6 @@ implementation
 		if (rcvd->sink_distance_of_sender != BOTTOM)
 		{
 			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
-		}
-
-		if (call SnoopedNormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
-		{
-			call SnoopedNormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-			call SnoopedNormalSeqNosSrcDist.put(rcvd->source_id, rcvd->source_distance + 1);
 		}
 
 		//dbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dsink=%d, my-dsink=%d)\n",

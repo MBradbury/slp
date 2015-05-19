@@ -13,8 +13,8 @@
 #include <assert.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Normal, source_addr, BOTTOM, BOTTOM, BOTTOM)
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 typedef struct
 {
@@ -155,7 +155,7 @@ implementation
 				{
 					possible_sets |= FurtherSet;
 				}
-				else if (sink_distance > neighbour->sink_distance)
+				else if (sink_distance >= neighbour->sink_distance)
 				{
 					possible_sets |= CloserSet;
 				}
@@ -246,7 +246,7 @@ implementation
 				//dbgverbose("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
 				//  neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->contents.sink_distance);
 
-				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance <= neighbour->contents.sink_distance) ||
+				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance < neighbour->contents.sink_distance) ||
 					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->contents.sink_distance))
 				{
 					insert_dsink_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
