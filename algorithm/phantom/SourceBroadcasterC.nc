@@ -64,7 +64,10 @@ module SourceBroadcasterC
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
+	uses interface SequenceNumbers as SnoopedNormalSeqNos;
 	uses interface SequenceNumbers as AwaySeqNos;
+
+	uses interface Dictionary<am_addr_t, int32_t> as SnoopedNormalSeqNosSrcDist;
 	 
 	uses interface Random;
 }
@@ -135,12 +138,13 @@ implementation
 
 	SetType random_walk_direction()
 	{
-		uint32_t i;
-		uint32_t possible_sets = 0;
+		uint32_t possible_sets = UnknownSet;
 
 		// We want compare sink distance if we do not know our sink distance
 		if (sink_distance != BOTTOM)
 		{
+			uint32_t i;
+
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
 			for (i = 0; i != neighbours.size; ++i)
@@ -181,7 +185,7 @@ implementation
 		}
 		else
 		{
-			if (neighbours.size > 0)
+			if (sink_distance != BOTTOM && neighbours.size > 0)
 			{
 				// There are neighbours, but none with sensible distances (i.e., their distance is the same as ours)...
 				// Or we don't know our sink distance.
@@ -197,14 +201,14 @@ implementation
 			}
 			else
 			{
-				// No known neighbour, so have a go at flooding.
+				// No known neighbours, so have a go at flooding.
 				// Someone might get this message
 				return UnknownSet;
 			}
 		}
 	}
 
-	am_addr_t random_walk_target(NormalMessage const* rcvd, const am_addr_t* to_ignore)
+	am_addr_t random_walk_target(NormalMessage const* rcvd, const am_addr_t* to_ignore, size_t to_ignore_length)
 	{
 		am_addr_t chosen_address;
 		uint32_t i;
@@ -221,13 +225,26 @@ implementation
 				dsink_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
 				// Skip neighbours we have been asked to
-				if (to_ignore != NULL && *to_ignore == neighbour->address)
+				if (to_ignore != NULL)
 				{
-					continue;
+					size_t j;
+					bool found = FALSE;
+					for (j = 0; j != to_ignore_length; ++j)
+					{
+						if (to_ignore[j] == neighbour->address)
+						{
+							found = TRUE;
+							break;
+						}
+					}
+					if (found)
+					{
+						continue;
+					}
 				}
 
 				//dbgverbose("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
-				//	neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->contents.sink_distance);
+				//  neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->contents.sink_distance);
 
 				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance <= neighbour->contents.sink_distance) ||
 					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->contents.sink_distance))
@@ -270,9 +287,58 @@ implementation
 		return 75U + (uint32_t)(50U * random_float());
 	}
 
-	USE_MESSAGE(Normal);
+	USE_MESSAGE_WITH_CALLBACK(Normal);
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Beacon);
+
+	void send_Normal_done(message_t* msg, error_t error)
+	{
+		const NormalMessage* const message = call Packet.getPayload(msg, sizeof(NormalMessage));
+		am_addr_t previous_target;
+		am_addr_t target;
+
+		if (call PacketLink.getRetries(msg) <= 0)
+		{
+			return;
+		}
+
+		// If the message wasn't delivered and we are unicasting,
+		// then try and find another target to send to.
+		if (call PacketLink.wasDelivered(msg))
+		{
+			//dbg("slp-debug", "Dropping message %u as it has been delivered.\n",
+			//	message->sequence_number);
+			return;
+		}
+
+		// We have snooped this message, so give up trying to forward it.
+		if (!call SnoopedNormalSeqNos.before(message->source_id, message->sequence_number) &&
+			*call SnoopedNormalSeqNosSrcDist.get(message->source_id) > message->source_distance)
+		{
+			//dbg("slp-debug", "Dropping message as we have snooped a further message (dist %u > %u).\n",
+			//	*call SnoopedNormalSeqNosSrcDist.get(message->source_id), message->source_distance);
+			return;
+		}
+
+		previous_target = call AMPacket.destination(msg);
+
+		// Get a target, ignoring the previous target
+		// TODO: really the sender of this message should also be ignored.
+		target = random_walk_target(message, &previous_target, 1);
+
+		// Can't decide on a target, then give up.
+		if (target != AM_BROADCAST_ADDR)
+		{
+			dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u. THIS IS A NTH ATTEMPT AT A UNICAST!!!!!!!!\n",
+				sim_time_string(), TOS_NODE_ID, target);
+
+			call PacketLink.setRetries(msg, random_walk_retries());
+			call PacketLink.setRetryDelay(msg, random_walk_delay(message->source_period));
+			call PacketAcknowledgements.noAck(msg);
+
+			send_Normal_message(message, target);
+		}
+	}
 	
 
 	event void Boot.booted()
@@ -362,15 +428,15 @@ implementation
 		message.source_distance = 0;
 		message.sink_distance_of_sender = sink_distance;
 		message.source_period = source_period;
-		message.force_broadcast = FALSE;
 
 		message.further_or_closer_set = random_walk_direction();
 
-		target = random_walk_target(&message, NULL);
+		target = random_walk_target(&message, NULL, 0);
 
 		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
 			sim_time_string(), target, message.further_or_closer_set);
 
+		call Packet.clear(&packet);
 		call PacketLink.setRetries(&packet, random_walk_retries());
 		call PacketLink.setRetryDelay(&packet, random_walk_delay(source_period));
 		call PacketAcknowledgements.noAck(&packet);
@@ -395,6 +461,7 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = sink_distance;
 
+		call Packet.clear(&packet);
 		call PacketLink.setRetries(&packet, 0);
 		call PacketLink.setRetryDelay(&packet, 0);
 		call PacketAcknowledgements.noAck(&packet);
@@ -416,6 +483,7 @@ implementation
 
 		message.sink_distance_of_sender = sink_distance;
 
+		call Packet.clear(&packet);
 		call PacketLink.setRetries(&packet, 0);
 		call PacketLink.setRetryDelay(&packet, 0);
 		call PacketAcknowledgements.noAck(&packet);
@@ -428,11 +496,11 @@ implementation
 		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
 		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -440,65 +508,63 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.sink_distance_of_sender = sink_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->force_broadcast)
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS)
 			{
 				am_addr_t target;
 
-				// TODO: look into this more
-				/*if (forwarding_message.further_or_closer_set == FurtherSet)
-				{
-					forwarding_message.further_or_closer_set = CloserSet;
-				}
-				else if (forwarding_message.further_or_closer_set == CloserSet)
-				{
-					forwarding_message.further_or_closer_set = FurtherSet;
-				}
 				// The previous node(s) were unable to choose a direction,
-				// so lets try to
-				else */ if (forwarding_message.further_or_closer_set == UnknownSet)
+				// so lets try to work out the direction the message should go in.
+				if (forwarding_message.further_or_closer_set == UnknownSet)
 				{
-					forwarding_message.further_or_closer_set = random_walk_direction();
+					const dsink_neighbour_detail_t* neighbour_detail = find_dsink_neighbour(&neighbours, source_addr);
+					if (neighbour_detail != NULL)
+					{
+						forwarding_message.further_or_closer_set =
+							neighbour_detail->contents.sink_distance < sink_distance ? FurtherSet : CloserSet;
+					}
+					else
+					{
+						forwarding_message.further_or_closer_set = random_walk_direction();
+					}
 
 					dbgverbose("stdout", "%s: Unknown direction, setting to %d\n",
 						sim_time_string(), forwarding_message.further_or_closer_set);
 				}
 
 				// Get a target, ignoring the node that sent us this message
-				target = random_walk_target(&forwarding_message, &source_addr);
+				target = random_walk_target(&forwarding_message, &source_addr, 1);
 
-				// Once the target becomes a broadcast we need to keep it as
-				// a broadcast. Not doing so can lead to message losses
-				// when unicasted to a node that has received that normal message before.
-				if (target == AM_BROADCAST_ADDR)
+				// If we can't decide on a target, then give up.
+				if (target != AM_BROADCAST_ADDR)
 				{
-					forwarding_message.force_broadcast = TRUE;
+					dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+						sim_time_string(), TOS_NODE_ID, target);
+
+					call Packet.clear(&packet);
+					call PacketLink.setRetries(&packet, random_walk_retries());
+					call PacketLink.setRetryDelay(&packet, random_walk_delay(forwarding_message.source_period));
+					call PacketAcknowledgements.noAck(&packet);
+
+					send_Normal_message(&forwarding_message, target);
 				}
-
-				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
-					sim_time_string(), TOS_NODE_ID, target);
-
-				call PacketLink.setRetries(&packet, random_walk_retries());
-				call PacketLink.setRetryDelay(&packet, random_walk_delay(rcvd->source_period));
-				call PacketAcknowledgements.noAck(&packet);
-
-				send_Normal_message(&forwarding_message, target);
 			}
 			else
 			{
-				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->force_broadcast)
+				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS)
 				{
-					dbg("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+					dbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
 						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
+				call Packet.clear(&packet);
 				call PacketLink.setRetries(&packet, 0);
 				call PacketLink.setRetryDelay(&packet, 0);
 				call PacketAcknowledgements.noAck(&packet);
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
-		}	
+		}
 	}
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -538,6 +604,12 @@ implementation
 		const sink_distance_container_t dsink = { rcvd->sink_distance_of_sender };
 		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
+		if (call SnoopedNormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		{
+			call SnoopedNormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			call SnoopedNormalSeqNosSrcDist.put(rcvd->source_id, rcvd->source_distance + 1);
+		}
+
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
 		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
@@ -557,17 +629,25 @@ implementation
 		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
 		if (rcvd->sink_distance_of_sender != BOTTOM)
+		{
 			sink_distance = minbot(sink_distance, rcvd->sink_distance_of_sender + 1);
+		}
+
+		if (call SnoopedNormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		{
+			call SnoopedNormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			call SnoopedNormalSeqNosSrcDist.put(rcvd->source_id, rcvd->source_distance + 1);
+		}
 
 		//dbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dsink=%d, my-dsink=%d)\n",
-		//	source_addr, call AMPacket.destination(msg), rcvd->sink_distance_of_sender, sink_distance);
+		//  source_addr, call AMPacket.destination(msg), rcvd->sink_distance_of_sender, sink_distance);
 	}
 
 	// We need to snoop packets that may be unicasted,
 	// so the attacker properly responds to them.
 	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
 		case SourceNode: x_snoop_Normal(msg, rcvd, source_addr); break;
-		case SinkNode: x_snoop_Normal(msg, rcvd, source_addr); break;
+		case SinkNode: Sink_snoop_Normal(msg, rcvd, source_addr); break;
 		case NormalNode: x_snoop_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
@@ -579,17 +659,18 @@ implementation
 
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
-		if (call AwaySeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
 
-			call AwaySeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
+			call AwaySeqNos.update(rcvd->source_id, rcvd->sequence_number);
 			
 			METRIC_RCV_AWAY(rcvd);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
 
+			call Packet.clear(&packet);
 			call PacketLink.setRetries(&packet, 0);
 			call PacketLink.setRetryDelay(&packet, 0);
 			call PacketAcknowledgements.noAck(&packet);
