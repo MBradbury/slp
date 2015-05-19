@@ -13,7 +13,7 @@ class Simulation(TosVis):
             module_name=module_name,
             node_locations=configuration.topology.nodes,
             wireless_range=args.distance,
-            seed=args.seed if args.seed is not None else self.secure_random()
+            seed=args.seed if args.seed is not None else self._secure_random()
             )
 
         if hasattr(args, "safety_period"):
@@ -26,6 +26,7 @@ class Simulation(TosVis):
 
         if args.mode == "GUI" or args.verbose:
             self.tossim.addChannel("stdout", sys.stdout)
+            self.tossim.addChannel("slp-debug", sys.stdout)
 
         self.attackers = []
 
@@ -93,6 +94,7 @@ class Simulation(TosVis):
 
     def setup_noise_models(self):
         path = "meyer-heavy.txt"
+        path = "casino-lab.txt"
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.
@@ -115,5 +117,5 @@ class Simulation(TosVis):
         return any(attacker.found_source() for attacker in self.attackers)
 
     @staticmethod
-    def secure_random():
+    def _secure_random():
         return struct.unpack("<i", os.urandom(4))[0]
