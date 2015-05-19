@@ -112,6 +112,16 @@ implementation
 		return call SourcePeriodModel.get();
 	}
 
+	uint16_t random_walk_retries()
+	{
+		return RANDOM_WALK_RETRIES;
+	}
+
+	uint16_t random_walk_delay(uint32_t source_period)
+	{
+		return random_walk_retries() / source_period;
+	}
+
 	// Produces a random float between 0 and 1
 	float random_float()
 	{
@@ -277,9 +287,59 @@ implementation
 		return 75U + (uint32_t)(50U * random_float());
 	}
 
-	USE_MESSAGE(Normal);
+	USE_MESSAGE_WITH_CALLBACK(Normal);
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Beacon);
+
+	void send_Normal_done(message_t* msg, error_t error)
+	{
+		const NormalMessage* const message = call Packet.getPayload(msg, sizeof(NormalMessage));
+		am_addr_t previous_target;
+		am_addr_t target;
+
+		if (call PacketLink.getRetries(msg) <= 0)
+		{
+			return;
+		}
+
+		// If the message wasn't delivered and we are unicasting,
+		// then try and find another target to send to.
+		if (call PacketLink.wasDelivered(msg))
+		{
+			//dbg("slp-debug", "Dropping message %u as it has been delivered.\n",
+			//	message->sequence_number);
+			return;
+		}
+
+		// We have snooped this message from a node further from the source, so give up trying to forward it.
+		if (!call SnoopedNormalSeqNos.before(message->source_id, message->sequence_number) &&
+			*call SnoopedNormalSeqNosSrcDist.get(message->source_id) > message->source_distance)
+		{
+			//dbg("slp-debug", "Dropping message as we have snooped a further message (dist %u > %u).\n",
+			//	*call SnoopedNormalSeqNosSrcDist.get(message->source_id), message->source_distance);
+			return;
+		}
+
+		previous_target = call AMPacket.destination(msg);
+
+		// Get a target, ignoring the previous target
+		// TODO: really the sender of this message should also be ignored.
+		target = random_walk_target(message, &previous_target, 1);
+
+		// Can't decide on a target, then give up.
+		if (target != AM_BROADCAST_ADDR)
+		{
+			dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u. THIS IS A NTH ATTEMPT AT A UNICAST!!!!!!!!\n",
+				sim_time_string(), TOS_NODE_ID, target);
+
+			call PacketLink.setRetries(msg, random_walk_retries());
+			call PacketLink.setRetryDelay(msg, random_walk_delay(message->source_period));
+			call PacketAcknowledgements.noAck(msg);
+
+			send_Normal_message(message, target);
+		}
+	}
+	
 
 	event void Boot.booted()
 	{
@@ -377,8 +437,8 @@ implementation
 			sim_time_string(), target, message.further_or_closer_set);
 
 		call Packet.clear(&packet);
-		call PacketLink.setRetries(&packet, 0);
-		call PacketLink.setRetryDelay(&packet, 0);
+		call PacketLink.setRetries(&packet, random_walk_retries());
+		call PacketLink.setRetryDelay(&packet, random_walk_delay(source_period));
 		call PacketAcknowledgements.noAck(&packet);
 
 		if (send_Normal_message(&message, target))
@@ -481,8 +541,8 @@ implementation
 						sim_time_string(), TOS_NODE_ID, target);
 
 					call Packet.clear(&packet);
-					call PacketLink.setRetries(&packet, 0);
-					call PacketLink.setRetryDelay(&packet, 0);
+					call PacketLink.setRetries(&packet, random_walk_retries());
+					call PacketLink.setRetryDelay(&packet, random_walk_delay(forwarding_message.source_period));
 					call PacketAcknowledgements.noAck(&packet);
 
 					send_Normal_message(&forwarding_message, target);

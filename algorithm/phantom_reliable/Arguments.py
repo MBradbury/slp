@@ -27,6 +27,7 @@ class Arguments:
 		parser.add_argument("--attacker-model", type=Attacker.eval_input, default=Attacker.default())
 
 		parser.add_argument("--random-walk-hops", type=int, required=True)
+		parser.add_argument("--random-walk-retries", type=int, required=True)
 
 		parser.add_argument("--job-size", type=int, default=1)
 		parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
@@ -50,6 +51,7 @@ class Arguments:
 			result["SLP_VERBOSE_DEBUG"] = 1
 
 		result["RANDOM_WALK_HOPS"] = int(self.args.random_walk_hops)
+		result["RANDOM_WALK_RETRIES"] = int(self.args.random_walk_retries)
 
 		result.update(self.args.source_period.build_arguments())
 		result.update(self.args.source_mobility.build_arguments())
