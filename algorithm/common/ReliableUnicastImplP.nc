@@ -172,10 +172,11 @@ implementation
 			}
 			else if (totalRetries < call PacketLink.getRetries(currentSendMsg) && currentSendAddr != AM_BROADCAST_ADDR)
 			{
-				if (call PacketLink.getRetryDelay(currentSendMsg) > 0)
+				const uint16_t retry_delay = call PacketLink.getRetryDelay(currentSendMsg);
+				if (retry_delay > 0)
 				{
 					// Resend after some delay
-					call DelayTimer.startOneShot(call PacketLink.getRetryDelay(currentSendMsg));	
+					call DelayTimer.startOneShot(retry_delay);	
 				}
 				else
 				{
