@@ -45,8 +45,6 @@ module SourceBroadcasterC
 
 	uses interface Packet;
 	uses interface AMPacket;
-	uses interface PacketLink;
-	uses interface PacketAcknowledgements;
 
 	uses interface SplitControl as RadioControl;
 
@@ -372,9 +370,6 @@ implementation
 			sim_time_string(), target, message.further_or_closer_set);
 
 		call Packet.clear(&packet);
-		call PacketLink.setRetries(&packet, 0);
-		call PacketLink.setRetryDelay(&packet, 0);
-		call PacketAcknowledgements.noAck(&packet);
 
 		if (send_Normal_message(&message, target))
 		{
@@ -397,9 +392,6 @@ implementation
 		message.sink_distance = sink_distance;
 
 		call Packet.clear(&packet);
-		call PacketLink.setRetries(&packet, 0);
-		call PacketLink.setRetryDelay(&packet, 0);
-		call PacketAcknowledgements.noAck(&packet);
 
 		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
@@ -419,9 +411,6 @@ implementation
 		message.sink_distance_of_sender = sink_distance;
 
 		call Packet.clear(&packet);
-		call PacketLink.setRetries(&packet, 0);
-		call PacketLink.setRetryDelay(&packet, 0);
-		call PacketAcknowledgements.noAck(&packet);
 
 		send_Beacon_message(&message, AM_BROADCAST_ADDR);
 	}
@@ -476,9 +465,6 @@ implementation
 						sim_time_string(), TOS_NODE_ID, target);
 
 					call Packet.clear(&packet);
-					call PacketLink.setRetries(&packet, 0);
-					call PacketLink.setRetryDelay(&packet, 0);
-					call PacketAcknowledgements.noAck(&packet);
 
 					send_Normal_message(&forwarding_message, target);
 				}
@@ -493,9 +479,6 @@ implementation
 				}
 
 				call Packet.clear(&packet);
-				call PacketLink.setRetries(&packet, 0);
-				call PacketLink.setRetryDelay(&packet, 0);
-				call PacketAcknowledgements.noAck(&packet);
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
@@ -594,10 +577,7 @@ implementation
 			forwarding_message.sink_distance += 1;
 
 			call Packet.clear(&packet);
-			call PacketLink.setRetries(&packet, 0);
-			call PacketLink.setRetryDelay(&packet, 0);
-			call PacketAcknowledgements.noAck(&packet);
-
+			
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 
