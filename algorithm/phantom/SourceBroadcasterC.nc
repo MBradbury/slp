@@ -204,7 +204,7 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (sink_distance != BOTTOM)
+		if (sink_distance != BOTTOM && rcvd->further_or_closer_set != UnknownSet)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -363,7 +363,6 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 		message.sink_distance_of_sender = sink_distance;
-		message.source_period = source_period;
 
 		message.further_or_closer_set = random_walk_direction();
 

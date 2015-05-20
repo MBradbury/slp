@@ -32,8 +32,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        'SinkCorner',
-        'FurtherSinkCorner',
+        #'SinkCorner',
+        #'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
         
@@ -45,17 +45,16 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSourceCentre',
         #'CircleSinkCentre',
 
-        'Source2Corners',
+        #'Source2Corners',
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker']
+    attacker_models = ['SeqNoReactiveAttacker()']
 
     walk_hop_lengths = { 11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28] }
-    walk_retries = [ 0, 5, 10 ]
 
     repeats = 500
 
-    parameter_names = ('walk length', 'walk retries')
+    parameter_names = ('walk length',)
 
 
     def __init__(self):
@@ -71,7 +70,7 @@ class CLI(CommandLineCommon.CLI):
         runner = phantom.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
         runner.run(
             self.executable_path, self.distance, self.sizes, self.source_periods, self.walk_hop_lengths,
-            self.walk_retries, self.configurations, self.attacker_models, self.repeats
+            self.configurations, self.attacker_models, self.repeats
         )
 
 
