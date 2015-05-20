@@ -28,6 +28,8 @@ class Simulation(TosVis):
             self.tossim.addChannel("stdout", sys.stdout)
             self.tossim.addChannel("slp-debug", sys.stdout)
 
+        self.noise_model = args.noise_model
+
         self.attackers = []
 
         metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
@@ -82,8 +84,7 @@ class Simulation(TosVis):
                 self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
 
     def setup_noise_models(self):
-        path = "noise/meyer-heavy.txt"
-        path = "noise/casino-lab.txt"
+        path = "noise/{}.txt".format(self.noise_model)
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.
