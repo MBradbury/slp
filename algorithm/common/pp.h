@@ -14,4 +14,6 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(*a))
 
+#define CHAR_BIT 8
+
 #endif // SLP_PP_H
