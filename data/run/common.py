@@ -47,11 +47,13 @@ class RunSimulationsCommon(object):
                 results_count = 0
 
                 for line in f:
+                    line = line.strip()
+
                     if '=' in line:
                         # We are reading the options so record them
                         opt = line.split('=')
 
-                        fileopts[opt[0].strip()] = opt[1].strip()
+                        fileopts[opt[0]] = '='.join(opt[1:])
 
                     elif line.startswith('#'):
                         seen_hash = True
