@@ -214,3 +214,12 @@ class Simulator(object):
             gc.enable()
 
             self._post_run(event_count)
+
+    @staticmethod
+    def available_noise_models():
+        import glob
+        return [
+            os.path.splitext(os.path.basename(noise_file))[0]
+            for noise_file
+            in glob.glob('noise/*.txt')
+        ]
