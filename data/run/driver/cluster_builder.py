@@ -1,5 +1,5 @@
-from __future__ import print_function
-import os, importlib, shlex, shutil, time
+from __future__ import print_function, division
+import os, importlib, shlex, shutil, time, timeit, datetime
 
 import data.util
 
@@ -8,7 +8,9 @@ from simulator import Configuration, Simulation
 
 class Runner:
     def __init__(self):
-        pass
+        self._start_time = timeit.default_timer()
+        self.total_job_size = None
+        self._jobs_executed = 0
 
     def add_job(self, executable, options, name):
         print(name)
@@ -60,7 +62,23 @@ class Runner:
         Simulation.Simulation.write_topology_file(configuration.topology.nodes, target_directory)
 
         print("All Done!")
+
+        job_num = self._jobs_executed + 1
+
+        current_time_taken = timeit.default_timer() - self._start_time
+        time_per_job = current_time_taken / job_num
+        estimated_total = time_per_job * self.total_job_size
+        estimated_remaining = estimated_total - current_time_taken
+
+        current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
+        estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
+
+        print("Finished building file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
+            job_num, self.total_job_size, (job_num / self.total_job_size) * 100.0, current_time_taken_str, estimated_remaining_str))
+
         print()
+
+        self._jobs_executed += 1
 
     def mode(self):
         return "CLUSTER"

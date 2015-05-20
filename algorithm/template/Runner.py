@@ -16,7 +16,9 @@ class RunSimulations(RunSimulationsCommon):
         if not os.path.exists(exe_path):
             raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
-        argument_product = itertools.product(sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, attacker_models)
+        argument_product = list(itertools.product(sizes, periods, temp_fake_durations, prs_tfs, prs_pfs, configurations, attacker_models))
+
+        self.driver.total_job_size = len(argument_product)
 
         for (size, (source_period, fake_period), tfs_duration, pr_tfs, pr_pfs, (configuration, algorithm), attacker_model) in argument_product:
             if not self._already_processed(repeats, size, configuration, source_period, fake_period, tfs_duration, pr_tfs, pr_pfs, attacker_model):
