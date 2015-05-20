@@ -79,7 +79,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         phantom_results = results.Results(phantom.result_file_path,
             parameters=self.parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
+            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end'))
 
         result_table = fake_result.ResultTable(phantom_results)
 
