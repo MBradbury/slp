@@ -16,7 +16,11 @@ class RunSimulations(RunSimulationsCommon):
         if not os.path.exists(exe_path):
             raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
-        for (size, source_period, approach, (configuration, algorithm)) in itertools.product(sizes, source_periods, approaches, configurations):
+        argument_product = list(itertools.product(sizes, source_periods, approaches, configurations))
+
+        self.driver.total_job_size = len(argument_product)
+
+        for (size, source_period, approach, (configuration, algorithm)) in argument_product:
             if not self._already_processed(repeats, size, source_period, approach, configuration):
 
                 try:
