@@ -9,18 +9,18 @@ class RunSimulations(RunSimulationsCommon):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
-    def run(self, exe_path, distance, sizes, source_periods, walk_hop_lengths, walk_retries, configurations, attacker_models, repeats):
+    def run(self, exe_path, distance, sizes, source_periods, walk_hop_lengths, configurations, attacker_models, repeats):
         if self.skip_completed_simulations:
-            self._check_existing_results(['network_size', 'source_period', 'random_walk_hops', 'random_walk_retries', 'configuration', 'attacker_model'])
+            self._check_existing_results(['network_size', 'source_period', 'random_walk_hops', 'configuration', 'attacker_model'])
         
         if not os.path.exists(exe_path):
             raise RuntimeError("The file {} doesn't exist".format(exe_path))
 
-        argument_product = itertools.product(sizes, source_periods, walk_retries, configurations, attacker_models)
+        argument_product = itertools.product(sizes, source_periods, configurations, attacker_models)
 
-        for (size, source_period, retries, configuration, attacker_model) in argument_product:
+        for (size, source_period, configuration, attacker_model) in argument_product:
             for walk_length in walk_hop_lengths[size]:
-                if not self._already_processed(repeats, size, source_period, walk_length, retries, configuration, attacker_model):
+                if not self._already_processed(repeats, size, source_period, walk_length, configuration, attacker_model):
 
                     safety_period = self._get_safety_period(attacker_model, configuration, size, source_period)
 
@@ -36,7 +36,6 @@ class RunSimulations(RunSimulationsCommon):
                     opts["--safety-period"] = safety_period
                     opts["--source-period"] = source_period
                     opts["--random-walk-hops"] = walk_length
-                    opts["--random-walk-retries"] = retries
                     opts["--distance"] = distance
                     opts["--job-size"] = repeats
 
@@ -50,7 +49,6 @@ class RunSimulations(RunSimulationsCommon):
                         attacker_model,
                         source_period,
                         walk_length,
-                        retries,
                         distance
                     )
 
