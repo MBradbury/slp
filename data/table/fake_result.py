@@ -48,6 +48,7 @@ class ResultTable(object):
                 
                 "walk length": ("Walk Length", "(hops)"),
                 "walk retries": ("Walk", "Retries"),
+                "paths reached end": ("Paths Ended", "(\\%)"),
             }[name][row]
         except KeyError as ex:
             print("Failed to find the name '{}' for row {}. Using default. : {}".format(name, row, ex), file=sys.stderr)
@@ -85,6 +86,8 @@ class ResultTable(object):
             return "${:.1f} \\pm {:.1f}$".format(*value)
         elif name == "normal latency":
             return "${:.0f} \\pm {:.0f}$".format(*(value * 1000))
+        elif name == "paths reached end":
+            return "${:.1f} \\pm {:.1f}$".format(*(value * 100))
         else:
             return "${:.3f} \\pm {:.3f}$".format(*value)
 
