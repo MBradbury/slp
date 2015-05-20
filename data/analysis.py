@@ -1,9 +1,9 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 from numpy import mean
 from numpy import var as variance
 
-import sys, ast, math, os, fnmatch
+import sys, ast, math, os, fnmatch, timeit, datetime
 from collections import Counter
 from numbers import Number
 
@@ -41,9 +41,6 @@ class Analyse(object):
 
                 elif '|' in line:
                     try:
-                        # Some options may be missing
-                        self._fix_opts()
-
                         # Read the actual data
                         values = self._better_literal_eval(line_number, line.split('|'))
 
@@ -61,13 +58,6 @@ class Analyse(object):
 
             if line_number == 0 or len(self.data) == 0:
                 raise EmptyFileError(infile)
-
-    def _fix_opts(self):
-        # The attacker model may not be included in old results, so
-        # provide the default in this case.
-        if 'attacker_model' not in self.opts:
-            from simulator import Attacker
-            self.opts['attacker_model'] = str(Attacker.default())
 
     def _better_literal_eval(self, line_number, items):
         values = []
@@ -135,14 +125,14 @@ class Analyse(object):
         attacker_distance_index = self.headings.index("AttackerDistance")
         attacker_distance = values[attacker_distance_index]
 
-        def close(x, y, rtol=1.e-5, atol=1.e-8):
+        def is_close(x, y, rtol=1.e-5, atol=1.e-8):
             return abs(x-y) <= atol + rtol * abs(y)
 
         # Handle two sorts of attacker distance dicts
         # 1. {attacker_id: distance}
         # 2. {(source_id, attacker_id): distance}}
         any_at_source = any(
-            close(dist, 0.0) if isinstance(dist, Number) else any(close(v, 0.0) for (k, v) in dist.items())
+            is_close(dist, 0.0) if isinstance(dist, Number) else any(is_close(v, 0.0) for (k, v) in dist.items())
             for (attacker, dist)
             in attacker_distance.items()
         )
@@ -259,14 +249,19 @@ class AnalyzerCommon(object):
     def run(self, summary_file):
         summary_file_path = os.path.join(self.results_directory, summary_file)
 
-        # The output files we need to process
-        files = fnmatch.filter(os.listdir(self.results_directory), '*.txt')
+        # The output files we need to process.
+        # These are sorted to give anyone watching the output a sense of progress.
+        files = sorted(fnmatch.filter(os.listdir(self.results_directory), '*.txt'))
+
+        total = len(files)
 
         with open(summary_file_path, 'w') as out:
 
             print("|".join(self.values.keys()), file=out)
 
-            for infile in files:
+            start_time = timeit.default_timer()
+
+            for (num, infile) in enumerate(files):
                 path = os.path.join(self.results_directory, infile)
 
                 print('Analysing {0}'.format(path))
@@ -285,6 +280,17 @@ class AnalyzerCommon(object):
 
                 except EmptyFileError as e:
                     print(e)
+
+                current_time_taken = timeit.default_timer() - start_time
+                time_per_job = current_time_taken / (num + 1)
+                estimated_total = time_per_job * total
+                estimated_remaining = estimated_total - current_time_taken
+
+                current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
+                estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
+
+                print("Finished analysing file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
+                    num + 1, total, ((num + 1) / total) * 100.0, current_time_taken_str, estimated_remaining_str))
 
             print('Finished writing {}'.format(summary_file))
 
