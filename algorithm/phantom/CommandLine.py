@@ -26,6 +26,8 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
+    noise_model = "casino-lab"
+
     sizes = [ 11, 15, 21, 25 ]
 
     source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
@@ -69,7 +71,7 @@ class CLI(CommandLineCommon.CLI):
 
         runner = phantom.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
         runner.run(
-            self.executable_path, self.distance, self.sizes, self.source_periods, self.walk_hop_lengths,
+            self.executable_path, self.distance, self.noise_model, self.sizes, self.source_periods, self.walk_hop_lengths,
             self.configurations, self.attacker_models, self.repeats
         )
 
@@ -114,8 +116,7 @@ class CLI(CommandLineCommon.CLI):
 
         parameters = [
             ('source period', ' seconds'),
-            ('walk length', ' hops'),
-            ('walk retries', '')
+            ('walk length', ' hops')
         ]
 
         for (parameter_name, parameter_unit) in parameters:
