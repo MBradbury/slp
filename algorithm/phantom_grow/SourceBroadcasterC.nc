@@ -151,7 +151,7 @@ implementation
 				}
 				if (found)
 				{
-					dbg("slp-test", "Ignoring %u as we have been asked to\n", neighbour->address);
+					dbgverbose("slp-debug", "Ignoring %u as we have been asked to\n", neighbour->address);
 					continue;
 				}
 			}
@@ -159,7 +159,7 @@ implementation
 			// Skip neighbours that are neighbours of the previous node
 			if (bloom != NULL && bloom_filter_test(bloom, neighbour->address))
 			{
-				dbg("slp-test", "Dropping the node %u as it is in the bloom filter\n", neighbour->address);
+				dbgverbose("slp-debug", "Dropping the node %u as it is in the bloom filter\n", neighbour->address);
 				continue;
 			}
 
@@ -168,7 +168,7 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			dbg("slp-test", "No local neighbours to choose so broadcasting. (my-dsink=%d, my-neighbours-size=%u)\n",
+			dbgverbose("slp-debug", "No local neighbours to choose so broadcasting. (my-dsink=%d, my-neighbours-size=%u)\n",
 				sink_distance, neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;

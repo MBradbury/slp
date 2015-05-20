@@ -7,9 +7,9 @@ typedef nx_struct bloom_filter
 {
 	nx_uint8_t data[4];
 
-} bloom_filter_t;
+} nx_bloom_filter_t;
 
-typedef bloom_filter_t nx_bloom_filter_t;
+typedef nx_bloom_filter_t bloom_filter_t;
 
 #define BLOOM_MAX_BITS (sizeof(bloom_filter_t) * CHAR_BIT)
 
