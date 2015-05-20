@@ -12,7 +12,6 @@ build
 linkgain.out
 topology.out
 topology.txt
-results/
 cluster/
-
-
+*/Graphs/*
+results/*/*.csv
