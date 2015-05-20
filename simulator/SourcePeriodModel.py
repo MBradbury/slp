@@ -46,6 +46,9 @@ class PeriodModel(object):
 
         return build_arguments
 
+    def simple_str(self):
+        return repr(self)
+
 class FixedPeriodModel(PeriodModel):
     def __init__(self, period):
 
@@ -61,6 +64,9 @@ class FixedPeriodModel(PeriodModel):
 
     def slowest(self):
         return self.period
+
+    def simple_str(self):
+        return str(self.period)
 
     def __repr__(self):
         return "FixedPeriodModel(period={})".format(self.period)

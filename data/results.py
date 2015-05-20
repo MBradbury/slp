@@ -3,6 +3,8 @@ import csv, math, ast
 
 import numpy
 
+from simulator import SourcePeriodModel
+
 class Results(object):
     def __init__(self, result_file, parameters, results):
         self.parameter_names = list(parameters)
@@ -31,7 +33,7 @@ class Results(object):
                 if seen_first:
 
                     size = int(values[ headers.index('network size') ])
-                    src_period = values[ headers.index('source period') ]
+                    src_period = SourcePeriodModel.eval_input(values[ headers.index('source period') ]).simple_str()
                     config = values[ headers.index('configuration') ]
                     attacker_model = values[ headers.index('attacker model') ]
 
