@@ -9,9 +9,11 @@ class RunSimulations(RunSimulationsCommon):
         super(RunSimulations, self).__init__(driver, results_directory, skip_completed_simulations)
         self.safety_periods = safety_periods
 
-    def run(self, exe_path, distance, sizes, source_periods, walk_hop_lengths, configurations, attacker_models, repeats):
+    def run(self, exe_path, distance, noise_model, sizes, source_periods, walk_hop_lengths, configurations, attacker_models, repeats):
         if self.skip_completed_simulations:
-            self._check_existing_results(['network_size', 'source_period', 'random_walk_hops', 'configuration', 'attacker_model'])
+            self._check_existing_results([
+                'distance', 'noise_model', 'network_size', 'source_period',
+                'random_walk_hops', 'configuration', 'attacker_model'])
         
         if not os.path.exists(exe_path):
             raise RuntimeError("The file {} doesn't exist".format(exe_path))
@@ -20,7 +22,9 @@ class RunSimulations(RunSimulationsCommon):
 
         for (size, source_period, configuration, attacker_model) in argument_product:
             for walk_length in walk_hop_lengths[size]:
-                if not self._already_processed(repeats, size, source_period, walk_length, configuration, attacker_model):
+                if not self._already_processed(
+                        repeats, size, distance, noise_model, source_period,
+                        walk_length, configuration, attacker_model):
 
                     safety_period = self._get_safety_period(attacker_model, configuration, size, source_period)
 
@@ -30,6 +34,7 @@ class RunSimulations(RunSimulationsCommon):
 
                     opts = OrderedDict()
                     opts["--mode"] = self.driver.mode()
+                    opts["--noise-model"] = noise_model
                     opts["--network-size"] = size
                     opts["--configuration"] = configuration
                     opts["--attacker-model"] = attacker_model
@@ -39,7 +44,7 @@ class RunSimulations(RunSimulationsCommon):
                     opts["--distance"] = distance
                     opts["--job-size"] = repeats
 
-                    optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
+                    optItems = ["{} \"{}\"".format(k, v) for (k,v) in opts.items()]
 
                     options = 'algorithm.phantom ' + " ".join(optItems)
 
@@ -49,6 +54,7 @@ class RunSimulations(RunSimulationsCommon):
                         attacker_model,
                         source_period,
                         walk_length,
+                        noise_model,
                         distance
                     )
 
