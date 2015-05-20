@@ -1,53 +1,25 @@
-import argparse, multiprocessing
-import simulator.Configuration as Configuration
-import simulator.Attacker as Attacker
+import argparse
+from algorithm.common.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 
 approaches = [ "PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH" ]
 
-class Arguments:
+class Arguments(ArgumentsCommon):
     def __init__(self):
         parser = argparse.ArgumentParser(description="SLP Adaptive", add_help=True)
-        parser.add_argument("--mode", type=str, choices=["GUI", "PARALLEL", "CLUSTER"], required=True)
-
-        parser.add_argument("--seed", type=int)
-
-        parser.add_argument("--network-size", type=int, required=True)
-        parser.add_argument("--safety-period", type=float, required=True)
+        super(Arguments, self).__init__(parser, has_safety_period=True)
 
         parser.add_argument("--source-period",
             type=simulator.SourcePeriodModel.eval_input, required=True)
 
         parser.add_argument("--approach", type=str, choices=approaches, required=True)
 
-        parser.add_argument("--distance", type=float, default=4.5)
-
-        parser.add_argument("--configuration", type=str, required=True, choices=Configuration.names())
-
-        parser.add_argument("--attacker-model", type=Attacker.eval_input, default=Attacker.default())
-
-        parser.add_argument("--job-size", type=int, default=1)
-        parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
-
-        parser.add_argument("-v", "--verbose", action="store_true")
-
-        self.parser = parser
-
-    def parse(self, argv):
-        self.args = self.parser.parse_args(argv)
-        return self.args
-
     def build_arguments(self):
-        result = {}
-
-        if self.args.verbose:
-            result["SLP_VERBOSE_DEBUG"] = 1
+        result = super(Arguments, self).build_arguments()
 
         result.update({
             "APPROACH": self.args.approach,
             self.args.approach: 1,
         })
-
-        result.update(self.args.source_period.build_arguments())
 
         return result

@@ -1,17 +1,13 @@
-import argparse, multiprocessing
-import simulator.Configuration as Configuration
-import simulator.Attacker as Attacker
+import argparse
+from algorithm.common.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
-class Arguments:
+class Arguments(ArgumentsCommon):
 	def __init__(self):
-		parser = argparse.ArgumentParser(description="SLP Phantom", add_help=True)
-		parser.add_argument("--mode", type=str, choices=["GUI", "PARALLEL", "CLUSTER"], required=True)
+		parser = argparse.ArgumentParser(description="SLP Phantom Reliable", add_help=True)
+		super(Arguments, self).__init__(parser, has_safety_period=True)
 
-		parser.add_argument("--seed", type=int)
-
-		parser.add_argument("--network-size", type=int, required=True)
 		parser.add_argument("--safety-period", type=float, required=True)
 
 		parser.add_argument("--source-period",
@@ -20,40 +16,13 @@ class Arguments:
 			type=simulator.MobilityModel.eval_input,
 			default=simulator.MobilityModel.StationaryMobilityModel())
 
-		parser.add_argument("--distance", type=float, default=4.5)
-
-		parser.add_argument("--configuration", type=str, required=True, choices=Configuration.names())
-
-		parser.add_argument("--attacker-model", type=Attacker.eval_input, default=Attacker.default())
-
 		parser.add_argument("--random-walk-hops", type=int, required=True)
 		parser.add_argument("--random-walk-retries", type=int, required=True)
 
-		parser.add_argument("--job-size", type=int, default=1)
-		parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
-
-		parser.add_argument("-v", "--verbose", action="store_true")
-
-		self.parser = parser
-
-	def parse(self, argv):
-		self.args = self.parser.parse_args(argv)
-
-		configuration = Configuration.create(self.args.configuration, self.args)
-		self.args.source_mobility.setup(configuration)
-		
-		return self.args
-
 	def build_arguments(self):
-		result = {}
-
-		if self.args.verbose:
-			result["SLP_VERBOSE_DEBUG"] = 1
+		result = super(Arguments, self).build_arguments()
 
 		result["RANDOM_WALK_HOPS"] = int(self.args.random_walk_hops)
 		result["RANDOM_WALK_RETRIES"] = int(self.args.random_walk_retries)
-
-		result.update(self.args.source_period.build_arguments())
-		result.update(self.args.source_mobility.build_arguments())
 
 		return result

@@ -38,17 +38,6 @@ class Simulation(TosVis):
 
         self.start_time = None
 
-        self.log_communications = None
-        if hasattr(args, "log_communications") and args.log_communications is not None:
-            self.log_communications = open(args.log_communications, "w")
-
-    def __exit__(self, tp, value, tb):
-        super(Simulation, self).__exit__(tp, value, tb)
-
-        if self.log_communications is not None:
-            self.log_communications.close()
-            self.log_communications = None
-
     def _pre_run(self):
         super(Simulation, self)._pre_run()
 
@@ -93,8 +82,8 @@ class Simulation(TosVis):
                 self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
 
     def setup_noise_models(self):
-        path = "meyer-heavy.txt"
-        path = "casino-lab.txt"
+        path = "noise/meyer-heavy.txt"
+        path = "noise/casino-lab.txt"
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.

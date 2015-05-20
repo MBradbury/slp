@@ -28,9 +28,6 @@ class MetricsCommon(object):
         self.became_normal_after_source_times = {}
 
     def process_COMMUNICATE(self, line):
-        if self.sim.log_communications is not None:
-            print(line.strip(), file=self.sim.log_communications)
-
         (comm_type, contents) = line.split(':')
 
         if comm_type == 'BCAST':
