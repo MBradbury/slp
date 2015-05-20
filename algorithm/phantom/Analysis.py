@@ -11,7 +11,6 @@ class Analyzer(AnalyzerCommon):
         d['source period']      = lambda x: x.opts['source_period']
         d['attacker model']     = lambda x: x.opts['attacker_model']
         d['walk length']        = lambda x: x.opts['random_walk_hops']
-        d['walk retries']       = lambda x: x.opts['random_walk_retries']
         
         d['sent']               = lambda x: self._format_results(x, 'Sent')
         d['received']           = lambda x: self._format_results(x, 'Received')
