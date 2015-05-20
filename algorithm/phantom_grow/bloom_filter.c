@@ -1,11 +1,13 @@
 #include "bloom_filter.h"
 
-bool get_bit(const bloom_filter_t* bloom, size_t bit)
+typedef uint16_t bloom_filter_size_t;
+
+bool get_bit(const bloom_filter_t* bloom, bloom_filter_size_t bit)
 {
 	return (bloom->data[bit / CHAR_BIT] & (1 << (bit % CHAR_BIT))) != 0;
 }
 
-void set_bit(bloom_filter_t* bloom, size_t bit)
+void set_bit(bloom_filter_t* bloom, bloom_filter_size_t bit)
 {
 	bloom->data[bit / CHAR_BIT] |= (1 << (bit % CHAR_BIT));
 }
@@ -54,7 +56,7 @@ void bloom_filter_clear(bloom_filter_t* bloom)
 
 void bloom_filter_add(bloom_filter_t* bloom, uint16_t data)
 {
-	size_t n;
+	bloom_filter_size_t n;
 
 	for (n = 0; n < ARRAY_SIZE(bloom_hashes); ++n)
 	{
@@ -64,7 +66,7 @@ void bloom_filter_add(bloom_filter_t* bloom, uint16_t data)
 
 bool bloom_filter_test(const bloom_filter_t* bloom, uint16_t data)
 {
-	size_t n;
+	bloom_filter_size_t n;
 
 	for (n = 0; n < ARRAY_SIZE(bloom_hashes); ++n)
 	{
