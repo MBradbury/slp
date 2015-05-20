@@ -78,7 +78,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         phantom_results = results.Results(phantom.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
         result_table = fake_result.ResultTable(phantom_results)
@@ -107,7 +107,7 @@ class CLI(CommandLineCommon.CLI):
         heatmap_results = ['sent heatmap', 'received heatmap']
 
         phantom_results = results.Results(phantom.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=tuple(graph_parameters.keys() + heatmap_results))    
 
         for name in heatmap_results:
@@ -140,7 +140,7 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).run(args)
 
         if 'table' in args:
-            self._run_table(self, args)
+            self._run_table(args)
 
         if 'graph' in args:
-            self._run_graph(self, args)
+            self._run_graph(args)
