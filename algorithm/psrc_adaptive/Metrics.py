@@ -30,7 +30,7 @@ class Metrics(MetricsCommon):
         if match is None:
             return None
 
-        id = int(match.group(1))
+        mode_id = int(match.group(1))
         detail = match.group(2)
 
         match = self.FAKE_RE.match(detail)

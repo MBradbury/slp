@@ -12,7 +12,7 @@ class Analyzer(AnalyzerCommon):
         d['attacker model']     = lambda x: x.opts['attacker_model']
         d['walk length']        = lambda x: x.opts['random_walk_hops']
         d['walk retries']       = lambda x: x.opts['random_walk_retries']
-        
+
         d['sent']               = lambda x: self._format_results(x, 'Sent')
         d['received']           = lambda x: self._format_results(x, 'Received')
         d['captured']           = lambda x: str(x.average_of['Captured'])

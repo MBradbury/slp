@@ -28,6 +28,9 @@ class ArgumentsCommon(object):
 
         self.parser = parser
 
+        # Haven't parsed anything yet
+        self.args = None
+
     def parse(self, argv):
         self.args = self.parser.parse_args(argv)
 
@@ -51,5 +54,8 @@ class ArgumentsCommon(object):
 
         if hasattr(self.args, 'source_mobility'):
             result.update(self.args.source_mobility.build_arguments())
+        else:
+            configuration = Configuration.create(self.args.configuration, self.args)
+            result["SOURCE_NODE_ID"] = list(configuration.source_ids)[0]
 
         return result
