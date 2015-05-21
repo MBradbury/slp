@@ -3,6 +3,8 @@
 
 #include "pp.h"
 
+// Adapted From: http://en.literateprograms.org/Bloom_filter_%28C%29
+
 typedef nx_struct bloom_filter
 {
 	nx_uint8_t data[4];
