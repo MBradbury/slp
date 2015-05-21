@@ -8,7 +8,10 @@ class MobilityModel(object):
     def __init__(self):
         pass
 
-    def setup(self, configuration, times):
+    def setup(self, configuration):
+        raise NotImplementedError()
+
+    def _setup_impl(self, configuration, times):
         self.configuration = configuration
         self.active_times = times
 
@@ -70,7 +73,7 @@ class StationaryMobilityModel(MobilityModel):
         for source_id in configuration.source_ids:
             times[source_id] = [(0, float('inf'))]
 
-        super(StationaryMobilityModel, self).setup(configuration, times)
+        self._setup_impl(configuration, times)
 
     def __repr__(self):
         return "StationaryMobilityModel()"
@@ -86,13 +89,9 @@ class RandomWalkMobilityModel(MobilityModel):
         super(RandomWalkMobilityModel, self).__init__()
 
     def setup(self, configuration):
-
-        raise NotImplemented()
-
         # TODO: Use configuration.connectivity_matrix to choose which node
         # to move the source to after the duration
-
-        super(RandomWalkMobilityModel, self).__init__(configuration)
+        raise NotImplementedError()
 
     def __repr__(self):
         return "RandomWalkMobilityModel(max_time={}, duration={})".format(
@@ -101,6 +100,7 @@ class RandomWalkMobilityModel(MobilityModel):
 
 class TowardsSinkMobilityModel(MobilityModel):
     def __init__(self, duration):
+        super(TowardsSinkMobilityModel, self).__init__()
         self.duration = duration
 
     def setup(self, configuration):
@@ -120,7 +120,7 @@ class TowardsSinkMobilityModel(MobilityModel):
 
             current_time += self.duration
 
-        super(TowardsSinkMobilityModel, self).setup(configuration, times)
+        self._setup_impl(configuration, times)
 
     def __repr__(self):
         return "TowardsSinkMobilityModel(duration={})".format(self.duration)

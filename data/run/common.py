@@ -5,14 +5,15 @@ from collections import OrderedDict
 class RunSimulationsCommon(object):
     optimisations = '-OO'
 
-    def __init__(self, driver, algorithm_module, skip_completed_simulations=True, safety_periods=None):
+    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=True, safety_periods=None):
         self.driver = driver
         self.algorithm_module = algorithm_module
+        self._result_path = result_path
         self._skip_completed_simulations = skip_completed_simulations
         self.safety_periods = safety_periods
 
-        if not os.path.exists(self.algorithm_module.results_path):
-            raise RuntimeError("{} is not a directory".format(self.algorithm_module.results_path))
+        if not os.path.exists(self._result_path):
+            raise RuntimeError("{} is not a directory".format(self._result_path))
 
         self._existing_results = {}
 
@@ -49,7 +50,7 @@ class RunSimulationsCommon(object):
                 options = 'algorithm.{} '.format(self.algorithm_module.name) + " ".join(opt_items)
 
                 filename = os.path.join(
-                    self.algorithm_module.results_path,
+                    self._result_path,
                     '-'.join(map(self._sanitize_job_name, arguments)) + ".txt"
                 )
 
@@ -75,10 +76,10 @@ class RunSimulationsCommon(object):
         self._existing_results = {}
 
         # The output files we need to process
-        files = fnmatch.filter(os.listdir(self.algorithm_module.results_path), '*.txt')
+        files = fnmatch.filter(os.listdir(self._result_path), '*.txt')
 
         for infile in files:
-            with open(os.path.join(self.algorithm_module.results_path, infile)) as f:
+            with open(os.path.join(self._result_path, infile)) as f:
 
                 fileopts = {}
 
