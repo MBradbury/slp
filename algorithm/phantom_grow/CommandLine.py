@@ -8,8 +8,8 @@ from algorithm.common import CommandLineCommon
 import algorithm.protectionless as protectionless
 
 # The import statement doesn't work, so we need to use __import__ instead
-#import algorithm.phantom as phantom
-phantom = __import__(__package__, globals(), locals(), ['object'], -1)
+#import algorithm.phantom_grow as phantom_grow
+phantom_grow = __import__(__package__, globals(), locals(), ['object'], -1)
 
 from data.table import safety_period, fake_result
 from data.graph import summary, heatmap, versus
@@ -34,8 +34,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        #'SinkCorner',
-        #'FurtherSinkCorner',
+        'SinkCorner',
+        'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
         
@@ -69,7 +69,7 @@ class CLI(CommandLineCommon.CLI):
 
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = phantom.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
+        runner = phantom_grow.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
         runner.run(
             self.executable_path, self.distance, self.noise_model, self.sizes, self.source_periods, self.walk_hop_lengths,
             self.configurations, self.attacker_models, self.repeats
@@ -77,7 +77,7 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_table(self, args):
-        phantom_results = results.Results(phantom.result_file_path,
+        phantom_results = results.Results(phantom_grow.result_file_path,
             parameters=self.parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
@@ -106,13 +106,13 @@ class CLI(CommandLineCommon.CLI):
 
         heatmap_results = ['sent heatmap', 'received heatmap']
 
-        phantom_results = results.Results(phantom.result_file_path,
+        phantom_results = results.Results(phantom_grow.result_file_path,
             parameters=self.parameter_names,
             results=tuple(graph_parameters.keys() + heatmap_results))    
 
         for name in heatmap_results:
-            heatmap.Grapher(phantom.graphs_path, phantom_results, name).create()
-            summary.GraphSummary(os.path.join(phantom.graphs_path, name), 'phantom-' + name.replace(" ", "_")).run()
+            heatmap.Grapher(phantom_grow.graphs_path, phantom_results, name).create()
+            summary.GraphSummary(os.path.join(phantom_grow.graphs_path, name), phantom_grow.name + '-' + name.replace(" ", "_")).run()
 
         parameters = [
             ('source period', ' seconds'),
@@ -123,7 +123,7 @@ class CLI(CommandLineCommon.CLI):
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
 
-                g = versus.Grapher(phantom.graphs_path, name,
+                g = versus.Grapher(phantom_grow.graphs_path, name,
                     xaxis='size', yaxis=yaxis, vary=parameter_name, yextractor=scalar_extractor)
 
                 g.xaxis_label = 'Network Size'
@@ -134,7 +134,7 @@ class CLI(CommandLineCommon.CLI):
 
                 g.create(phantom_results)
 
-                summary.GraphSummary(os.path.join(phantom.graphs_path, name), 'phantom-' + name).run()
+                summary.GraphSummary(os.path.join(phantom_grow.graphs_path, name), phantom_grow.name + '-' + name).run()
 
     def run(self, args):
         super(CLI, self).run(args)
