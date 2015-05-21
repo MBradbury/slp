@@ -11,7 +11,10 @@ _messages_to_ignore = {'Beacon'}
 
 class Attacker(object):
     def __init__(self):
-        pass
+        self.sim = None
+        self.position = None
+        self.has_found_source = None
+        self.moves = None
 
     def setup(self, sim, start_node_id):
         self.sim = sim

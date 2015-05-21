@@ -1,11 +1,8 @@
 #!/usr/bin/python
-
 from __future__ import print_function
 
 import sys, importlib, traceback, copy
 
-import simulator.Attacker as Attacker
-from simulator.Builder import build
 import simulator.Configuration as Configuration
 from simulator.Simulation import Simulation
 
@@ -33,8 +30,8 @@ with Simulation(module, configuration, a.args) as sim:
 
     try:
         sim.run()
-    except RuntimeError as e:
-        print(e, file=sys.stderr)
+    except RuntimeError as ex:
+        print(ex, file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
     else:
         sim.metrics.print_results()

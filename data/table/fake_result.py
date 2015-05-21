@@ -78,12 +78,10 @@ class ResultTable(object):
             return latex.escape(value)
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
-        elif name == "received ratio":
+        elif name in {"received ratio", "ssd"}:
             return "${:.1f} \\pm {:.1f}$".format(*value)
         elif name == "fake":
             return "${:.0f} \\pm {:.0f}$".format(*value)
-        elif name == "ssd":
-            return "${:.1f} \\pm {:.1f}$".format(*value)
         elif name == "normal latency":
             return "${:.0f} \\pm {:.0f}$".format(*(value * 1000))
         elif name == "paths reached end":

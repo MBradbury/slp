@@ -76,6 +76,8 @@ class Random:
         min_y_pos += initial_position
         max_y_pos += initial_position
 
+        self.nodes = None
+
         # Due to LinkLayerModel, the distance between nodes must be greater than or equal to 1.
 
         def random_coordinate():
@@ -85,7 +87,7 @@ class Random:
             )
 
         def create_nodes():
-            self.nodes = [random_coordinate() for n in xrange(network_size ** 2)]
+            return [random_coordinate() for n in xrange(network_size ** 2)]
 
         def check_nodes():
             return all(
@@ -97,7 +99,7 @@ class Random:
         max_loops = 20
 
         for loops in xrange(max_loops):
-            create_nodes()
+            self.nodes = create_nodes()
             if check_nodes():
                 break
         else:

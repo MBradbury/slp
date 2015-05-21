@@ -26,14 +26,14 @@ class LineStyle(object):
         self.width = 1
         self.arrow = 'none'
         for (k, v) in kwargs.items():
-            if k in ['color', 'dash', 'width', 'arrow']:
+            if k in ('color', 'dash', 'width', 'arrow'):
                 setattr(self, k, v)
             else:
                 raise RuntimeError('Unknown option "%s"' % k)
 
     def __repr__(self):
         return '[color=%s,dash=%s,width=%s,arrow=%s]' % (
-                self.color, self.dash, self.width, self.arrow)
+            self.color, self.dash, self.width, self.arrow)
 
 ###############################################
 class FillStyle(object):

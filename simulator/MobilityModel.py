@@ -6,7 +6,8 @@ import math
 
 class MobilityModel(object):
     def __init__(self):
-        pass
+        self.configuration = None
+        self.active_times = None
 
     def setup(self, configuration):
         raise NotImplementedError()
@@ -47,8 +48,8 @@ class MobilityModel(object):
             indexes.append("{}U".format(node_id))
 
             period = [
-                "{{{}, {}}}".format(*map(to_tinyos_format, v))
-                for v
+                "{{{}, {}}}".format(to_tinyos_format(begin), to_tinyos_format(end))
+                for (begin, end)
                 in intervals
             ]
 

@@ -147,8 +147,8 @@ class TosVis(Simulator):
         scene = self.scene
         (x, y) = self.node_location(receiver)
         scene.execute(time,
-                'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
-                % (x, y, 10))
+            'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
+            % (x, y, 10))
 
     def _animate_change_state(self, time, node, detail):
         (kind,) = detail
