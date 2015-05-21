@@ -53,8 +53,9 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _execute_runner(self, driver, skip_completed_simulations=True):
-        runner = RunSimulations(driver, self.algorithm_module, skip_completed_simulations=skip_completed_simulations)
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        runner = RunSimulations(driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations)
 
         argument_product = list(itertools.product(
                 self.sizes, self.source_periods, self.configurations,

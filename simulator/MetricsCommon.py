@@ -1,10 +1,9 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 from collections import Counter, OrderedDict
 import itertools, re
 
 from numpy import mean
-from scipy.spatial.distance import euclidean
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration):
@@ -12,7 +11,7 @@ class MetricsCommon(object):
         self.configuration = configuration
 
         self.source_ids = set(configuration.source_ids)
-        self.sink_ids = { configuration.sink_id }
+        self.sink_ids = {configuration.sink_id}
 
         self.sent = {}
         self.received = {}

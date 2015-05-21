@@ -15,11 +15,11 @@ class PeriodModel(object):
 
     def fastest(self):
         """Returns the smallest period possible with this model"""
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def slowest(self):
         """Returns the largest period possible with this model"""
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def build_arguments(self):
         build_arguments = {}

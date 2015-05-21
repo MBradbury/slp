@@ -40,7 +40,7 @@ class Runner:
         # they had finished being written. So wait a  bit here.
         time.sleep(1)
 
-        print("Copying files...")
+        print("Copying files to {}...".format(target_directory))
 
         files_to_move = [
             "Analysis.py",

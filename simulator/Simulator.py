@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os, math, select, random, gc, importlib
+import os, select, random, gc, importlib
 
 from tinyos.tossim.TossimApp import NescApp
 

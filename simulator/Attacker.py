@@ -7,7 +7,7 @@ from data.restricted_eval import restricted_eval
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
 _messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
-_messages_to_ignore ={'Beacon'}
+_messages_to_ignore = {'Beacon'}
 
 class Attacker(object):
     def __init__(self):
@@ -129,6 +129,7 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
 
 class IgnorePastNLocationsReactiveAttacker(Attacker):
     def __init__(self, memory_size):
+        super(IgnorePastNLocationsReactiveAttacker, self).__init__()
         self.memory_size = memory_size
         self.previous_locations = collections.deque(maxlen=memory_size)
 

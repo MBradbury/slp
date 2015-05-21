@@ -72,7 +72,8 @@ class Node:
     """
     Define a dummy node structure to keep track of arbitrary node attributes
     """
-    pass
+    def __init__(self):
+        pass
 
 ###############################################
 class GenericPlotter:
@@ -200,10 +201,10 @@ class Scene:
 
     ###################
     def setTiming(self, scale=1, realtime=False):
-		self.timescale = scale
-		self.realtime = realtime
-		if realtime:
-			self.startTime = systime() - self.time
+        self.timescale = scale
+        self.realtime = realtime
+        if realtime:
+            self.startTime = systime() - self.time
 
     ###################
     def _getUniqueId(self):
