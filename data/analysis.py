@@ -15,7 +15,7 @@ class Analyse(object):
     def __init__(self, infile):
 
         self.opts = {}
-        
+
         self.headings = []
         self.data = []
 
@@ -24,7 +24,7 @@ class Analyse(object):
             for line in f:
 
                 line_number += 1
-        
+
                 # We need to remove the new line at the end of the line
                 line = line.strip()
 
@@ -94,7 +94,7 @@ class Analyse(object):
         """
         for (heading, value) in zip(self.headings, values):
             if type(value) is dict:
-                
+
                 # Check that there aren't too many nodes
                 if len(value) > number_nodes:
                     raise RuntimeError("There are too many nodes in this map {} called {}, when there should be {} maximum.".format(len(value), heading, number_nodes))

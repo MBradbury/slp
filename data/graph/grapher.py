@@ -4,6 +4,7 @@
 # It also produces the files that the graphs are generated from.
 #
 # Author: Matthew Bradbury
+from __future__ import print_function
 
 import os
 import subprocess

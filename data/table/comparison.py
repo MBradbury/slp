@@ -91,7 +91,7 @@ class ResultTable(BaseResultTable):
 
                         items = self.diff[table_key][comp_param][source_period].items()
 
-                        items =  [(k, v) for (k, v) in items if param_filter(k)]
+                        items = [(k, v) for (k, v) in items if param_filter(k)]
 
                         for (params, results) in sorted(items, key=lambda (x, y): x):
                             to_print = [self._var_fmt("source period", source_period)]

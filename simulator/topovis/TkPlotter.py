@@ -2,7 +2,7 @@ from simulator.topovis.common import computeLinkEndPoints
 from Tkinter import LAST, FIRST, BOTH, NONE, Tk, Canvas, YES, NW
 from simulator.topovis import GenericPlotter
 
-arrowMap = { 'head' : LAST, 'tail' : FIRST, 'both' : BOTH, 'none' : NONE }
+arrowMap = {'head' : LAST, 'tail' : FIRST, 'both' : BOTH, 'none' : NONE}
 
 def colorStr(color):
     if color is None:
@@ -79,8 +79,8 @@ class Plotter(GenericPlotter):
 
     ###################
     def createLink(self, src, dst, style):
-        if src is dst:
-            raise('Source and destination are the same node')
+        if src == dst:
+            raise RuntimeError('Source and destination are the same node')
         p = self.params
         c = self.canvas
         (x1,y1,x2,y2) = computeLinkEndPoints(

@@ -1,5 +1,6 @@
-import os
-import subprocess
+from __future__ import print_function
+
+import os, subprocess
 
 class Runner:
     def __init__(self):
