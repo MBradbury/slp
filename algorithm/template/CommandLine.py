@@ -87,7 +87,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         template_results = results.Results(template.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
         result_table = fake_result.ResultTable(template_results)
@@ -120,7 +120,7 @@ class CLI(CommandLineCommon.CLI):
         heatmap_results = ['sent heatmap', 'received heatmap']
 
         template_results = results.Results(template.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=tuple(versus_results + heatmap_results))
 
         for name in heatmap_results:
@@ -141,11 +141,11 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(template.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=results_to_compare)
 
         result_table = direct_comparison.ResultTable(old_results, template_results)
@@ -168,11 +168,11 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(template.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=results_to_compare)
 
         result_table = direct_comparison.ResultTable(old_results, template_results)
@@ -224,7 +224,7 @@ class CLI(CommandLineCommon.CLI):
             self._run_graph(self, args)
 
         if 'ccpe-comparison-table' in args:
-            self._run_comparison_table(args)
+            self._run_ccpe_comparison_table(args)
 
         if 'ccpe-comparison-graph' in args:
-            self._run_comparison_graph(args)
+            self._run_ccpe_comparison_graph(args)

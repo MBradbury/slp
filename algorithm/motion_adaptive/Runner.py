@@ -41,9 +41,9 @@ class RunSimulations(RunSimulationsCommon):
                 opts["--distance"] = distance
                 opts["--job-size"] = repeats
 
-                optItems = ["{} {}".format(k, v) for (k,v) in opts.items()]
+                opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
 
-                options = 'algorithm.motion_adaptive ' + " ".join(optItems)
+                options = 'algorithm.motion_adaptive ' + " ".join(opt_items)
 
                 filenameItems = (
                     size,

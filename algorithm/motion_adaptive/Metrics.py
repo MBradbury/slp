@@ -4,8 +4,6 @@ import sys, re
 
 from collections import Counter
 
-from numpy import mean
-
 from simulator.Simulator import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
@@ -113,7 +111,7 @@ class Metrics(MetricsCommon):
         return d
 
     @staticmethod
-    def printHeader(stream=sys.stdout):
+    def print_header(stream=sys.stdout):
         print("#" + "|".join(Metrics.items().keys()), file=stream)
 
     def print_results(self, stream=sys.stdout):

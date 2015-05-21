@@ -1,7 +1,7 @@
 
 from __future__ import print_function
 
-import os, sys
+import os
 
 from algorithm.common import CommandLineCommon
 
@@ -12,8 +12,6 @@ protectionless = __import__(__package__, globals(), locals(), ['object'], -1)
 from data.table import safety_period, direct_comparison
 from data.graph import summary, heatmap, versus
 from data import results, latex
-
-import numpy
 
 class CLI(CommandLineCommon.CLI):
 
@@ -75,7 +73,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         protectionless_results = results.Results(protectionless.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=('sent heatmap', 'received heatmap'))
 
         heatmap.Grapher(protectionless.graphs_path, protectionless_results, 'sent heatmap').create()
@@ -98,7 +96,7 @@ class CLI(CommandLineCommon.CLI):
             results=('time taken', 'received ratio', 'safety period'))
 
         protectionless_results = results.Results(protectionless.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=('time taken', 'received ratio', 'safety period'))
 
         result_table = direct_comparison.ResultTable(old_results, protectionless_results)
@@ -121,11 +119,11 @@ class CLI(CommandLineCommon.CLI):
         result_names = ('time taken', 'received ratio', 'safety period')
 
         old_results = OldResults('results/CCPE/protectionless-results.csv',
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=result_names)
 
         protectionless_results = results.Results(protectionless.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=result_names)
 
         result_table = direct_comparison.ResultTable(old_results, protectionless_results)

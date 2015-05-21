@@ -15,8 +15,6 @@ from data.table import safety_period, direct_comparison
 from data.graph import summary, heatmap, versus
 from data import results, latex
 
-import numpy
-
 class CLI(CommandLineCommon.CLI):
 
     executable_path = 'run.py'

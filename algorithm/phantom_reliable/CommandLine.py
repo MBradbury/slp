@@ -1,7 +1,7 @@
 
 from __future__ import print_function
 
-import os, sys
+import os
 
 from algorithm.common import CommandLineCommon
 
@@ -16,9 +16,7 @@ from data.graph import summary, heatmap, versus
 
 from data import results, latex
 
-from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
-
-import numpy
+from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
 
@@ -36,11 +34,11 @@ class CLI(CommandLineCommon.CLI):
         'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
-        
+
         #'RingTop',
         #'RingOpposite',
         #'RingMiddle',
-        
+
         #'CircleEdges',
         #'CircleSourceCentre',
         #'CircleSinkCentre',

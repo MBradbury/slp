@@ -39,7 +39,7 @@ if a.args.mode != "CLUSTER":
 for (k, v) in vars(a.args).items():
     print("{}={}".format(k, v))
 
-Metrics.Metrics.printHeader()
+Metrics.Metrics.print_header()
 
 # Because of the way TOSSIM is architectured each individual simulation
 # needs to be run in a separate process.
