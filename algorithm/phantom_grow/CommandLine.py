@@ -1,24 +1,18 @@
-
 from __future__ import print_function
 
-import os, sys
+import os, itertools
 
 from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-# The import statement doesn't work, so we need to use __import__ instead
-#import algorithm.phantom_grow as phantom_grow
-phantom_grow = __import__(__package__, globals(), locals(), ['object'], -1)
+from data import results, latex
 
 from data.table import safety_period, fake_result
 from data.graph import summary, heatmap, versus
+from data.util import scalar_extractor
 
-from data import results, latex
-
-from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
-
-import numpy
+from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
@@ -28,9 +22,9 @@ class CLI(CommandLineCommon.CLI):
 
     noise_model = "casino-lab"
 
-    sizes = [ 11, 15, 21, 25 ]
+    sizes = [11, 15, 21, 25]
 
-    source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
         'SourceCorner',
@@ -62,22 +56,29 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-
-    def _execute_runner(self, driver, results_directory, skip_completed_simulations=True):
+    def _execute_runner(self, driver, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(protectionless.result_file_path)
-
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = phantom_grow.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
-        runner.run(
-            self.executable_path, self.distance, self.noise_model, self.sizes, self.source_periods, self.walk_hop_lengths,
-            self.configurations, self.attacker_models, self.repeats
-        )
+        runner = RunSimulations(driver, self.algorithm_module,
+            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
+        argument_product = list(itertools.ifilter(
+            lambda (size, _1, _2, _3, _4, _5, walk_length): walk_length in self.walk_hop_lengths[size],
+            itertools.product(
+                self.sizes, self.source_periods, self.configurations,
+                self.attacker_models, [self.noise_model], [self.distance],
+                set(itertools.chain(*self.walk_hop_lengths.values())))
+        ))
+
+        names = ('network_size', 'source_period', 'configuration',
+            'attacker_model', 'noise_model', 'distance', 'random_walk_hops')
+
+        runner.run(self.executable_path, self.repeats, names, argument_product)
 
     def _run_table(self, args):
-        phantom_results = results.Results(phantom_grow.result_file_path,
+        phantom_results = results.Results(self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
@@ -106,13 +107,13 @@ class CLI(CommandLineCommon.CLI):
 
         heatmap_results = ['sent heatmap', 'received heatmap']
 
-        phantom_results = results.Results(phantom_grow.result_file_path,
+        phantom_results = results.Results(self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=tuple(graph_parameters.keys() + heatmap_results))    
 
         for name in heatmap_results:
-            heatmap.Grapher(phantom_grow.graphs_path, phantom_results, name).create()
-            summary.GraphSummary(os.path.join(phantom_grow.graphs_path, name), phantom_grow.name + '-' + name.replace(" ", "_")).run()
+            heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name).create()
+            summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), self.algorithm_module.name + '-' + name.replace(" ", "_")).run()
 
         parameters = [
             ('source period', ' seconds'),
@@ -123,7 +124,7 @@ class CLI(CommandLineCommon.CLI):
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
 
-                g = versus.Grapher(phantom_grow.graphs_path, name,
+                g = versus.Grapher(self.algorithm_module.graphs_path, name,
                     xaxis='size', yaxis=yaxis, vary=parameter_name, yextractor=scalar_extractor)
 
                 g.xaxis_label = 'Network Size'
@@ -134,7 +135,7 @@ class CLI(CommandLineCommon.CLI):
 
                 g.create(phantom_results)
 
-                summary.GraphSummary(os.path.join(phantom_grow.graphs_path, name), phantom_grow.name + '-' + name).run()
+                summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), self.algorithm_module.name + '-' + name).run()
 
     def run(self, args):
         super(CLI, self).run(args)

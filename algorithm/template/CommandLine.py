@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 
 import os, itertools
@@ -12,14 +11,13 @@ import algorithm.protectionless as protectionless
 template = __import__(__package__, globals(), locals(), ['object'], -1)
 adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
 
-from data.table import safety_period, fake_result
-from data.graph import summary, heatmap, bar
-
 from data import results, latex
 
+from data.table import safety_period, fake_result
+from data.graph import summary, heatmap, bar
 from data.util import useful_log10
 
-import numpy
+from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
@@ -27,16 +25,18 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    sizes = [ 11, 15, 21, 25 ]
+    noise_model = "meyer-heavy"
+
+    sizes = [11, 15, 21, 25]
 
     # Note that our simulation only has millisecond resolution,
     # so periods that require a resolution greater than 0.001 will be
     # truncated. An important example of this is 0.0625 which will be truncated
     # to 0.062. So 0.0625 has been rounded up.
-    source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
-    fake_periods = [ 0.5, 0.25, 0.125, 0.063 ]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
+    fake_periods = [0.5, 0.25, 0.125, 0.063]
 
-    periods = [ (src, fake) for (src, fake) in itertools.product(source_periods, fake_periods) if src / 4.0 <= fake < src ]
+    periods = [(src, fake) for (src, fake) in itertools.product(source_periods, fake_periods) if src / 4.0 <= fake < src]
 
     configurations = [
         ('SourceCorner', 'CHOOSE'),
@@ -54,35 +54,49 @@ class CLI(CommandLineCommon.CLI):
         #('CircleSinkCentre', 'CHOOSE'),
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker']
+    attacker_models = ['SeqNoReactiveAttacker()']
 
-    temp_fake_durations = [ 1, 2, 4 ]
+    temp_fake_durations = [1, 2, 4]
 
-    prs_tfs = [ 1.0, 0.9, 0.8 ]
-    prs_pfs = [ 1.0 ]
+    prs_tfs = [1.0, 0.9, 0.8]
+    prs_pfs = [1.0]
 
     repeats = 500
 
     parameter_names = ('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)')
 
-    protectionless_configurations = [(a) for (a, build) in configurations]
+    protectionless_configurations = [name for (name, build) in configurations]
     
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
 
-    def _execute_runner(self, driver, results_directory, skip_completed_simulations=True):
+    def _execute_runner(self, driver, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(protectionless.result_file_path)
-
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = template.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
-        runner.run(
-            self.executable_path, self.distance, self.sizes, self.periods, self.temp_fake_durations,
-            self.prs_tfs, self.prs_pfs, self.configurations, self.attacker_models, self.repeats
+        runner = RunSimulations(driver, self.algorithm_module,
+            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
+
+        argument_product = itertools.product(
+                self.sizes, self.periods, self.protectionless_configurations,
+                self.attacker_models, [self.noise_model], [self.distance],
+                self.temp_fake_durations, self.prs_tfs, self.prs_pfs
         )
+
+        argument_product = [
+            (size, src_period, config, attacker, noise, distance, fake_period, fake_dur, pr_tfs, pr_pfs)
+            for (size, (src_period, fake_period), config, attacker, noise, distance, fake_dur, pr_tfs, pr_pfs)
+            in argument_product
+        ]
+
+        names = ('network_size', 'source_period', 'configuration',
+            'attacker_model', 'noise_model', 'distance',
+            'fake_period', 'temp_fake_duration', 'pr_tfs', 'pr_pfs')
+
+        runner.run(self.executable_path, self.repeats, names, argument_product)
 
 
     def _run_table(self, args):

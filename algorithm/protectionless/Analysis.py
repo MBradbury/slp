@@ -9,7 +9,9 @@ class AnalyseWithOutlierDetection(Analyse):
     def detect_outlier(self, values):
         return None
 
-        # Discard simulations that didn't capture the source
+        # Disable outlier detection, as we handle failing to capture
+        # the source differently now
+        """# Discard simulations that didn't capture the source
         captured_index = self.headings.index("Captured")
         captured = bool(values[captured_index])
 
@@ -29,7 +31,7 @@ class AnalyseWithOutlierDetection(Analyse):
         # As it can be changed once the simulations have been run.
         if time_taken >= upper_bound:
             raise RuntimeError("Detected outlier, the time taken is {}, upper bound is {}".format(
-                time_taken, upper_bound))
+                time_taken, upper_bound))"""
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
@@ -38,7 +40,7 @@ class Analyzer(AnalyzerCommon):
         d['configuration']      = lambda x: x.opts['configuration']
         d['source period']      = lambda x: x.opts['source_period']
         d['attacker model']     = lambda x: x.opts['attacker_model']
-        
+
         d['sent']               = lambda x: self._format_results(x, 'Sent')
         d['received']           = lambda x: self._format_results(x, 'Received')
         d['captured']           = lambda x: str(x.average_of['Captured'])

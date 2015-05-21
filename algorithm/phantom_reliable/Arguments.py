@@ -8,8 +8,6 @@ class Arguments(ArgumentsCommon):
         parser = argparse.ArgumentParser(description="SLP Phantom Reliable", add_help=True)
         super(Arguments, self).__init__(parser, has_safety_period=True)
 
-        parser.add_argument("--safety-period", type=float, required=True)
-
         parser.add_argument("--source-period",
             type=simulator.SourcePeriodModel.eval_input, required=True)
         parser.add_argument("--source-mobility",

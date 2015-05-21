@@ -1,20 +1,17 @@
+rom __future__ import print_function
 
-from __future__ import print_function
-
-import os
+import os, itertools
 
 from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-# The import statement doesn't work, so we need to use __import__ instead
-#import algorithm.phantom as phantom
-phantom = __import__(__package__, globals(), locals(), ['object'], -1)
+from data import results, latex
 
 from data.table import safety_period, fake_result
 from data.graph import summary, heatmap, versus
 
-from data import results, latex
+from data.run.common import RunSimulationsCommon as RunSimulations
 
 from data.util import scalar_extractor
 
@@ -24,9 +21,11 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    sizes = [ 11, 15, 21, 25 ]
+    noise_model = "casino-lab"
 
-    source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
+    sizes = [11, 15, 21, 25]
+
+    source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
         'SourceCorner',
@@ -43,13 +42,13 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSourceCentre',
         #'CircleSinkCentre',
 
-        'Source2Corners',
+        #'Source2Corners',
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker']
+    attacker_models = ['SeqNoReactiveAttacker()']
 
-    walk_hop_lengths = { 11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28] }
-    walk_retries = [ 0, 5, 10 ]
+    walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
+    walk_retries = [0, 2, 4]
 
     repeats = 500
 
@@ -59,22 +58,29 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-
-    def _execute_runner(self, driver, results_directory, skip_completed_simulations=True):
+    def _execute_runner(self, driver, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(protectionless.result_file_path)
-
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = phantom.Runner.RunSimulations(driver, results_directory, safety_periods, skip_completed_simulations)
-        runner.run(
-            self.executable_path, self.distance, self.sizes, self.source_periods, self.walk_hop_lengths,
-            self.walk_retries, self.configurations, self.attacker_models, self.repeats
-        )
+        runner = RunSimulations(driver, self.algorithm_module,
+            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
+        argument_product = list(itertools.ifilter(
+            lambda (size, _1, _2, _3, _4, _5, _6, walk_length): walk_length in self.walk_hop_lengths[size],
+            itertools.product(
+                self.sizes, self.source_periods, self.walk_retries, self.configurations,
+                self.attacker_models, [self.noise_model], [self.distance],
+                set(itertools.chain(*self.walk_hop_lengths.values())))
+        ))
+
+        names = ('network_size', 'source_period', 'random_walk_retries', 'configuration',
+            'attacker_model', 'noise_model', 'distance', 'random_walk_hops')
+
+        runner.run(self.executable_path, self.repeats, names, argument_product)
 
     def _run_table(self, args):
-        phantom_results = results.Results(phantom.result_file_path,
+        phantom_results = results.Results(self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
@@ -90,7 +96,7 @@ class CLI(CommandLineCommon.CLI):
 
             latex.compile_document(filename)
 
-        create_phantom_table("phantom-results")
+        create_phantom_table("{}-results".format(self.algorithm_module.name))
 
     def _run_graph(self, args):
         graph_parameters = {
@@ -103,13 +109,13 @@ class CLI(CommandLineCommon.CLI):
 
         heatmap_results = ['sent heatmap', 'received heatmap']
 
-        phantom_results = results.Results(phantom.result_file_path,
+        phantom_results = results.Results(self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=tuple(graph_parameters.keys() + heatmap_results))    
+            results=tuple(graph_parameters.keys() + heatmap_results))
 
         for name in heatmap_results:
-            heatmap.Grapher(phantom.graphs_path, phantom_results, name).create()
-            summary.GraphSummary(os.path.join(phantom.graphs_path, name), 'phantom-' + name.replace(" ", "_")).run()
+            heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name).create()
+            summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), self.algorithm_module.name + '-' + name.replace(" ", "_")).run()
 
         parameters = [
             ('source period', ' seconds'),
@@ -121,7 +127,7 @@ class CLI(CommandLineCommon.CLI):
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
 
-                g = versus.Grapher(phantom.graphs_path, name,
+                g = versus.Grapher(self.algorithm_module.graphs_path, name,
                     xaxis='size', yaxis=yaxis, vary=parameter_name, yextractor=scalar_extractor)
 
                 g.xaxis_label = 'Network Size'
@@ -132,7 +138,7 @@ class CLI(CommandLineCommon.CLI):
 
                 g.create(phantom_results)
 
-                summary.GraphSummary(os.path.join(phantom.graphs_path, name), 'phantom-' + name).run()
+                summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), self.algorithm_module.name + '-' + name).run()
 
     def run(self, args):
         super(CLI, self).run(args)

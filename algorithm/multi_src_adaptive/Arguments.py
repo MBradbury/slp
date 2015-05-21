@@ -3,7 +3,7 @@ from algorithm.common.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
-approaches = [ "PB_AWAY_SRC_APPROACH" ]
+approaches = ["PB_AWAY_SRC_APPROACH"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
