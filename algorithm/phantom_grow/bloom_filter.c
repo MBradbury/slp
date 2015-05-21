@@ -1,5 +1,7 @@
 #include "bloom_filter.h"
 
+// Adapted From: http://en.literateprograms.org/Bloom_filter_%28C%29
+
 typedef uint16_t bloom_filter_size_t;
 
 bool get_bit(const bloom_filter_t* bloom, bloom_filter_size_t bit)
