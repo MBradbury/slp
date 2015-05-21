@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, importlib
+import sys, importlib
 
 from data.util import create_dirtree
 
@@ -13,6 +13,9 @@ if len(sys.argv[1:]) == 0:
     raise RuntimeError("No arguments provided!")
 else:
     args = sys.argv[1:]
+
+if len(args) <= 1:
+    raise RuntimeError("No arguments other than algorithm name provided!")
 
 algorithm_name = args[0]
 args = args[1:]

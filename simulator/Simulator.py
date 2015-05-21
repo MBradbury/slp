@@ -102,21 +102,12 @@ class Simulator(object):
             self.nodes.append(new_node)
 
     def setup_noise_models(self):
-        for node in self.nodes:
-            self.create_noise_model(node)
+        """Create the noise model for each of the nodes in the network."""
+        raise NotImplementedError()
 
-    # DO NOT USE THIS!
-    """def setup_radio(self):
-        '''Creates radio links for node pairs that are in range'''
-        num_nodes = len(self.nodes)
-        for i, ni in enumerate(self.nodes):
-            for j, nj in enumerate(self.nodes):
-                if i != j:
-                    (is_linked, gain) = self.compute_rf_gain(ni, nj)
-                    if is_linked:
-                        self.radio.add(i, j, gain)
-                        #if self.drawNeighborLinks:
-                        #   self.scene.execute(0, 'addlink(%d,%d,1)' % (i,j))"""
+    def setup_radio(self):
+        """Creates radio links for node pairs that are in range."""
+        raise NotImplementedError()
 
     @staticmethod
     def read_noise_from_file(path):
@@ -125,35 +116,6 @@ class Simulator(object):
                 line = line.strip()
                 if len(line) != 0:
                     yield int(line)
-
-    # DO NOT USE THIS!
-    """def create_noise_model(self, node):
-        '''
-        Either override this method or setup_noise_models to use a better noise model.
-        For example use a noise trace file such as meyer-heavy.txt.
-        '''
-        for i in range(100):
-            node.tossim_node.addNoiseTraceReading(int(random.random()*20)-75)
-        node.tossim_node.createNoiseModel()"""
-
-    # DO NOT USE THIS!
-    """def compute_rf_gain(self, src, dst):
-        '''
-        Returns signal reception gain between src and dst using a simple
-        range-threshold model.  Should be overridden with a more realistic
-        propagation model.
-        '''
-        if src == dst:
-            return (False, None)
-
-        (x1, y1) = src.location
-        (x2, y2) = dst.location
-        dx = x1 - x2
-        dy = y1 - y2
-        if math.sqrt(dx*dx + dy*dy) <= self.range:
-            return (True, -55)
-        else:
-            return (False, None)"""
 
     def set_boot_time(self, node):
         """

@@ -144,7 +144,7 @@ class Generic1(Configuration):
         grid = Grid(network_size, distance)
         node_count = len(grid.nodes)
 
-        super(SourceCorners, self).__init__(
+        super(Generic1, self).__init__(
             grid,
             source_ids={(network_size / 2) - (node_count / 3)},
             sink_id=(network_size / 2) + (node_count / 3),
@@ -155,7 +155,7 @@ class Generic2(Configuration):
     def __init__(self, network_size, distance):
         grid = Grid(network_size, distance)
 
-        super(SourceCorners, self).__init__(
+        super(Generic2, self).__init__(
             grid,
             source_ids={(network_size * (network_size - 2)) - 2 - 1},
             sink_id=(network_size * 2) + 2,
