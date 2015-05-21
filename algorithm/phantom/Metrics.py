@@ -42,7 +42,7 @@ class Metrics(MetricsCommon):
         return d
 
     @staticmethod
-    def printHeader(stream=sys.stdout):
+    def print_header(stream=sys.stdout):
         print("#" + "|".join(Metrics.items().keys()), file=stream)
 
     def print_results(self, stream=sys.stdout):

@@ -1,12 +1,11 @@
-import argparse, multiprocessing
-import simulator.Configuration as Configuration
-import simulator.Attacker as Attacker
+import argparse
+from algorithm.common.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
 approaches = [ "PB_AWAY_SRC_APPROACH" ]
 
-class Arguments:
+class Arguments(ArgumentsCommon):
     def __init__(self):
         parser = argparse.ArgumentParser(description="SLP Adaptive", add_help=True)
         super(Arguments, self).__init__(parser, has_safety_period=True)

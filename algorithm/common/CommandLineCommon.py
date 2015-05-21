@@ -2,7 +2,7 @@ import os, sys
 
 from data import results, latex
 from data.table import fake_result
-from data.util import recreate_dirtree, touch        
+from data.util import recreate_dirtree, touch
 
 class CLI(object):
     def __init__(self, package):

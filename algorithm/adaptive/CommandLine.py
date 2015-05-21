@@ -74,7 +74,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         adaptive_results = results.Results(adaptive.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
         result_table = fake_result.ResultTable(adaptive_results)
@@ -106,8 +106,8 @@ class CLI(CommandLineCommon.CLI):
         heatmap_results = ['sent heatmap', 'received heatmap']
 
         adaptive_results = results.Results(adaptive.result_file_path,
-            parameters=parameter_names,
-            results=tuple(graph_parameters.keys() + heatmap_results))    
+            parameters=self.parameter_names,
+            results=tuple(graph_parameters.keys() + heatmap_results))
 
         for name in heatmap_results:
             heatmap.Grapher(adaptive.graphs_path, adaptive_results, name).create()
@@ -133,7 +133,7 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         adaptive_results = results.Results(adaptive.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(template.result_file_path,
@@ -162,7 +162,7 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('normal latency', 'ssd', 'captured', 'sent', 'received', 'normal', 'fake', 'away', 'choose', 'received ratio', 'tfs', 'pfs')
 
         adaptive_results = results.Results(adaptive.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(template.result_file_path,
@@ -230,7 +230,7 @@ class CLI(CommandLineCommon.CLI):
         }
 
         adaptive_results = results.Results(adaptive.result_file_path,
-            parameters=parameter_names,
+            parameters=self.parameter_names,
             results=graph_parameters.keys())
 
         template_results = results.Results(template.result_file_path,
