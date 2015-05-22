@@ -16,21 +16,21 @@ class Metrics(MetricsCommon):
         super(Metrics, self).__init__(sim, configuration)
 
         self.COMMUNICATE = OutputCatcher(self.process_COMMUNICATE)
-        self.sim.tossim.addChannel('Metric-COMMUNICATE', self.COMMUNICATE.write)
+        self.COMMUNICATE.register(self.sim, 'Metric-COMMUNICATE')
         self.sim.add_output_processor(self.COMMUNICATE)
 
         self.FAKE_NOTIFICATION = OutputCatcher(self.process_FAKE_NOTIFICATION)
-        self.sim.tossim.addChannel('Fake-Notification', self.FAKE_NOTIFICATION.write)
+        self.FAKE_NOTIFICATION.register(self.sim, 'Fake-Notification')
         self.sim.add_output_processor(self.FAKE_NOTIFICATION)
 
         # Normal nodes becoming the source, or source nodes becoming normal
         self.SOURCE_CHANGE = OutputCatcher(self.process_SOURCE_CHANGE)
-        self.sim.tossim.addChannel('Metric-SOURCE_CHANGE', self.SOURCE_CHANGE.write)
+        self.SOURCE_CHANGE.register(self.sim, 'Metric-SOURCE_CHANGE')
         self.sim.add_output_processor(self.SOURCE_CHANGE)
 
         # Non-source nodes detecting the source has changed
         self.SOURCE_CHANGE_DETECT = OutputCatcher(self.process_SOURCE_CHANGE_DETECT)
-        self.sim.tossim.addChannel('Metric-SOURCE_CHANGE_DETECT', self.SOURCE_CHANGE_DETECT.write)
+        self.SOURCE_CHANGE_DETECT.register(self.sim, 'Metric-SOURCE_CHANGE_DETECT')
         self.sim.add_output_processor(self.SOURCE_CHANGE_DETECT)
 
         self.tfs_created = 0

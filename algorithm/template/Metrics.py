@@ -14,11 +14,11 @@ class Metrics(MetricsCommon):
         super(Metrics, self).__init__(sim, configuration)
 
         self.COMMUNICATE = OutputCatcher(self.process_COMMUNICATE)
-        self.sim.tossim.addChannel('Metric-COMMUNICATE', self.COMMUNICATE.write)
+        self.COMMUNICATE.register(self.sim, 'Metric-COMMUNICATE')
         self.sim.add_output_processor(self.COMMUNICATE)
 
         self.FAKE_NOTIFICATION = OutputCatcher(self.process_FAKE_NOTIFICATION)
-        self.sim.tossim.addChannel('Fake-Notification', self.FAKE_NOTIFICATION.write)
+        self.FAKE_NOTIFICATION.register(self.sim, 'Fake-Notification')
         self.sim.add_output_processor(self.FAKE_NOTIFICATION)
 
         self.tfs_created = 0
