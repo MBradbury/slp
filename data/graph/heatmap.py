@@ -36,7 +36,7 @@ class Grapher(GrapherBase):
 
         dat = results[self.result_index]
 
-        if type(dat) is not dict:
+        if not isinstance(dat, dict):
             raise RuntimeError("The data is not a dict")
 
         dir_name = os.path.join(
