@@ -20,7 +20,7 @@ class Attacker(object):
         self.sim = sim
 
         out = OutputCatcher(self.process)
-        self.sim.tossim.addChannel('Attacker-RCV', out.write)
+        out.register(self.sim, 'Attacker-RCV')
         self.sim.add_output_processor(out)
 
         self.position = None

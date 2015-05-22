@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 import os, select, random, gc, importlib
 
 from tinyos.tossim.TossimApp import NescApp
@@ -14,29 +14,34 @@ class Node(object):
 class OutputCatcher(object):
     def __init__(self, linefn):
         (read, write) = os.pipe()
-        self.read = os.fdopen(read, 'r')
-        self.write = os.fdopen(write, 'w')
-        self.linefn = linefn
+        self._read = os.fdopen(read, 'r')
+        self._write = os.fdopen(write, 'w')
+        self._linefn = linefn
 
     def process(self):
         """Consumes any lines that have been caught."""
         while True:
-            (read, write, error) = select.select([self.read.fileno()], [], [], 0)
+            (read, write, error) = select.select([self._read.fileno()], [], [], 0)
             if len(read) == 1:
-                line = self.read.readline()
-                self.linefn(line)
+                line = self._read.readline()
+                self._linefn(line)
             else:
                 break
 
+    def register(self, sim, name):
+        """Registers this class to catch the output from the simulation on the given channel."""
+        sim.tossim.addChannel(name, self._write)
+
     def close(self):
-        if self.read is not None:
-            self.read.close()
+        """Closes the file handles opened."""
+        if self._read is not None:
+            self._read.close()
 
-        if self.write is not None:
-            self.write.close()
+        if self._write is not None:
+            self._write.close()
 
-        self.read = None
-        self.write = None
+        self._read = None
+        self._write = None
 
 class Simulator(object):
     def __init__(self, module_name, node_locations, wireless_range, seed):
@@ -179,6 +184,7 @@ class Simulator(object):
 
     @staticmethod
     def available_noise_models():
+        """Gets the names of the noise models available in the noise directory"""
         import glob
         return [
             os.path.splitext(os.path.basename(noise_file))[0]

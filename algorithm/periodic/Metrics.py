@@ -10,12 +10,12 @@ class Metrics(MetricsCommon):
         super(Metrics, self).__init__(sim, configuration)
 
         self.COMMUNICATE = OutputCatcher(self.process_COMMUNICATE)
-        self.sim.tossim.addChannel('Metric-COMMUNICATE', self.COMMUNICATE.write)
+        self.COMMUNICATE.register(self.sim, 'Metric-COMMUNICATE')
         self.sim.add_output_processor(self.COMMUNICATE)
 
         # Normal nodes becoming the source, or source nodes becoming normal
         self.SOURCE_CHANGE = OutputCatcher(self.process_SOURCE_CHANGE)
-        self.sim.tossim.addChannel('Metric-SOURCE_CHANGE', self.SOURCE_CHANGE.write)
+        self.SOURCE_CHANGE.register(self.sim, 'Metric-SOURCE_CHANGE')
         self.sim.add_output_processor(self.SOURCE_CHANGE)
 
     @staticmethod

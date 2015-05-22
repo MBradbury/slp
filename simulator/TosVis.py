@@ -91,13 +91,12 @@ class TosVis(Simulator):
 
         self.debug_analyzer = DebugAnalyzer()
 
-        # setup a pipe for monitoring dbg messages
+        # Setup a pipe for monitoring dbg messages
         dbg = OutputCatcher(self._process_message)
-        self.tossim.addChannel('LedsC', dbg.write)
-        self.tossim.addChannel('AM', dbg.write)
-        self.tossim.addChannel('Fake-Notification', dbg.write)
-        self.tossim.addChannel('Node-Change-Notification', dbg.write)
-
+        dbg.register(self, 'LedsC')
+        dbg.register(self, 'AM')
+        dbg.register(self, 'Fake-Notification')
+        dbg.register(self, 'Node-Change-Notification')
         self.add_output_processor(dbg)
 
     @staticmethod
