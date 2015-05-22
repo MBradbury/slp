@@ -5,7 +5,7 @@ import simulator.MobilityModel
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Phantom GROW", add_help=True)
+        parser = argparse.ArgumentParser(description="SLP Phantom GROW Reliable", add_help=True)
         super(Arguments, self).__init__(parser, has_safety_period=True)
 
         parser.add_argument("--source-period",
@@ -15,10 +15,13 @@ class Arguments(ArgumentsCommon):
             default=simulator.MobilityModel.StationaryMobilityModel())
 
         parser.add_argument("--random-walk-hops", type=int, required=True)
+        parser.add_argument("--random-walk-retries", type=int, required=True)
+
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
         result["RANDOM_WALK_HOPS"] = int(self.args.random_walk_hops)
+        result["RANDOM_WALK_RETRIES"] = int(self.args.random_walk_retries)
 
         return result
