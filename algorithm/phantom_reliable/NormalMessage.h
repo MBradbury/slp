@@ -18,6 +18,8 @@ typedef nx_struct NormalMessage
 
   nx_uint8_t further_or_closer_set;
 
+  nx_uint8_t forced_broadcast;
+
   nx_uint32_t source_period;
 
 } NormalMessage;

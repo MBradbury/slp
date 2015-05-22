@@ -351,6 +351,8 @@ implementation
 		{
 			type = SinkNode;
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
+
+			sink_distance = 0;
 		}
 
 		call RadioControl.start();
@@ -508,7 +510,7 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.sink_distance_of_sender = sink_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS)
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
 			{
 				am_addr_t target;
 
@@ -535,22 +537,24 @@ implementation
 				target = random_walk_target(&forwarding_message, &source_addr, 1);
 
 				// If we can't decide on a target, then give up.
-				if (target != AM_BROADCAST_ADDR)
+				if (target == AM_BROADCAST_ADDR)
 				{
-					dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
-						sim_time_string(), TOS_NODE_ID, target);
-
-					call Packet.clear(&packet);
-					call PacketLink.setRetries(&packet, random_walk_retries());
-					call PacketLink.setRetryDelay(&packet, random_walk_delay(forwarding_message.source_period));
-					call PacketAcknowledgements.noAck(&packet);
-
-					send_Normal_message(&forwarding_message, target);
+					forwarding_message.forced_broadcast = TRUE;
 				}
+
+				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+					sim_time_string(), TOS_NODE_ID, target);
+
+				call Packet.clear(&packet);
+				call PacketLink.setRetries(&packet, random_walk_retries());
+				call PacketLink.setRetryDelay(&packet, random_walk_delay(forwarding_message.source_period));
+				call PacketAcknowledgements.noAck(&packet);
+
+				send_Normal_message(&forwarding_message, target);
 			}
 			else
 			{
-				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS)
+				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
 				{
 					dbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
