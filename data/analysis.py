@@ -159,7 +159,7 @@ class Analyse(object):
         # Find the index that header refers to
         index = self.headings.index(header)
 
-        if type(self.data[0][index]) is dict:
+        if isinstance(self.data[0][index], dict):
             return self.dict_mean(index)
         else:
             # Some values may be inf, if they are lets ignore
@@ -178,7 +178,7 @@ class Analyse(object):
         # Find the index that header refers to
         index = self.headings.index(header)
 
-        if type(self.data[0][index]) is dict:
+        if isinstance(self.data[0][index], dict):
             raise NotImplementedError()
         else:
             # Some values may be inf, if they are lets ignore
