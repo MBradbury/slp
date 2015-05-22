@@ -278,10 +278,10 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).run(args)
 
         if 'table' in args:
-            self._run_table(self, args)
+            self._run_table(args)
 
         if 'graph' in args:
-            self._run_graph(self, args)
+            self._run_graph(args)
 
         if 'comparison-table' in args:
             self._run_comparison_table(args)

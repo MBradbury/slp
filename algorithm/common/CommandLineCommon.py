@@ -55,10 +55,9 @@ class CLI(object):
         sys.exit(0)
 
     def _run_time_taken_table(self, args):
-
         result = results.Results(self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
-            results=('time taken', 'wall time', 'event count'))
+                                 parameters=self.parameter_names,
+                                 results=('time taken', 'wall time', 'event count'))
 
         result_table = fake_result.ResultTable(result)
 

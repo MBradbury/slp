@@ -13,11 +13,13 @@ adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
 
 from data import results, latex
 
-from data.table import safety_period, fake_result
+from data.table import safety_period, fake_result, direct_comparison
 from data.graph import summary, heatmap, bar
 from data.util import useful_log10
 
 from data.run.common import RunSimulationsCommon as RunSimulations
+
+import numpy
 
 class CLI(CommandLineCommon.CLI):
 
@@ -71,19 +73,19 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 
         runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
+                                skip_completed_simulations=skip_completed_simulations,
+                                safety_periods=safety_periods)
 
         argument_product = itertools.product(
-                self.sizes, self.periods, self.protectionless_configurations,
-                self.attacker_models, [self.noise_model], [self.distance],
-                self.temp_fake_durations, self.prs_tfs, self.prs_pfs
+            self.sizes, self.periods, self.protectionless_configurations,
+            self.attacker_models, [self.noise_model], [self.distance],
+            self.temp_fake_durations, self.prs_tfs, self.prs_pfs
         )
 
         argument_product = [
@@ -93,8 +95,8 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         names = ('network_size', 'source_period', 'configuration',
-            'attacker_model', 'noise_model', 'distance',
-            'fake_period', 'temp_fake_duration', 'pr_tfs', 'pr_pfs')
+                 'attacker_model', 'noise_model', 'distance',
+                 'fake_period', 'temp_fake_duration', 'pr_tfs', 'pr_pfs')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
@@ -235,7 +237,7 @@ class CLI(CommandLineCommon.CLI):
             self._run_table(args)
 
         if 'graph' in args:
-            self._run_graph(self, args)
+            self._run_graph(args)
 
         if 'ccpe-comparison-table' in args:
             self._run_ccpe_comparison_table(args)
