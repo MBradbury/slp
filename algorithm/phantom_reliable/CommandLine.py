@@ -1,4 +1,4 @@
-rom __future__ import print_function
+from __future__ import print_function
 
 import os, itertools
 
@@ -58,12 +58,12 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _execute_runner(self, driver, skip_completed_simulations=True):
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator()
         safety_period_table_generator.analyse(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = RunSimulations(driver, self.algorithm_module,
+        runner = RunSimulations(driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.ifilter(

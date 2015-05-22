@@ -6,9 +6,6 @@ from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-# The import statement doesn't work, so we need to use __import__ instead
-psrc_adaptive = __import__(__package__, globals(), locals(), ['object'], -1)
-
 from data import results, latex
 
 from data.table import safety_period, fake_result, comparison
@@ -54,7 +51,7 @@ class CLI(CommandLineCommon.CLI):
     parameter_names = ('approach',)
 
     protectionless_configurations = [name for (name, build) in configurations]
-    
+
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -65,16 +62,17 @@ class CLI(CommandLineCommon.CLI):
         safety_periods = safety_period_table_generator.safety_periods()
 
         runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
+                                skip_completed_simulations=skip_completed_simulations,
+                                safety_periods=safety_periods)
 
         argument_product = list(itertools.product(
-                self.sizes, self.source_periods, self.protectionless_configurations,
-                self.attacker_models, [self.noise_model], [self.distance],
-                self.approaches
+            self.sizes, self.source_periods, self.protectionless_configurations,
+            self.attacker_models, [self.noise_model], [self.distance],
+            self.approaches
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-            'attacker_model', 'noise_model', 'distance', 'approach')
+                 'attacker_model', 'noise_model', 'distance', 'approach')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 

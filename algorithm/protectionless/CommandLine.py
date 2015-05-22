@@ -20,7 +20,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11, 15, 21, 25]
 
-    source_periods = [ 1.0, 0.5, 0.25, 0.125 ]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
         'SourceCorner',
@@ -28,11 +28,11 @@ class CLI(CommandLineCommon.CLI):
         #'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
-        
+
         #'RingTop',
         #'RingOpposite',
         #'RingMiddle',
-        
+
         #'CircleEdges',
         #'CircleSourceCentre',
         #'CircleSinkCentre',
@@ -46,7 +46,9 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 750
 
-    attacker_models = ['BasicReactiveAttacker()', 'IgnorePreviousLocationReactiveAttacker()', 'IgnorePastNLocationsReactiveAttacker(4)']
+    attacker_models = ['BasicReactiveAttacker()',
+                       'IgnorePreviousLocationReactiveAttacker()',
+                       'IgnorePastNLocationsReactiveAttacker(4)']
 
     parameter_names = tuple()
 
@@ -55,15 +57,15 @@ class CLI(CommandLineCommon.CLI):
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations)
+                                skip_completed_simulations=skip_completed_simulations)
 
         argument_product = list(itertools.product(
-                self.sizes, self.source_periods, self.configurations,
-                self.attacker_models, [self.noise_model], [self.distance]
+            self.sizes, self.source_periods, self.configurations,
+            self.attacker_models, [self.noise_model], [self.distance]
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-            'attacker_model', 'noise_model', 'distance')
+                 'attacker_model', 'noise_model', 'distance')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
@@ -81,9 +83,11 @@ class CLI(CommandLineCommon.CLI):
         latex.compile_document(safety_period_table_path)
 
     def _run_graph(self, args):
-        protectionless_results = results.Results(self.algorithm_module.result_file_path,
+        protectionless_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('sent heatmap', 'received heatmap'))
+            results=('sent heatmap', 'received heatmap')
+        )
 
         heatmap.Grapher(self.algorithm_module.graphs_path, protectionless_results, 'sent heatmap').create()
         heatmap.Grapher(self.algorithm_module.graphs_path, protectionless_results, 'received heatmap').create()
@@ -98,15 +102,19 @@ class CLI(CommandLineCommon.CLI):
         summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, 'received heatmap'), '{}-ReceivedHeatMap'.format(self.algorithm_module.name)).run()
 
     def _run_ccpe_comparison_table(self, args):
-        from data.old_results import OldResults 
+        from data.old_results import OldResults
 
-        old_results = OldResults('results/CCPE/protectionless-results.csv',
+        old_results = OldResults(
+            'results/CCPE/protectionless-results.csv',
             parameters=tuple(),
-            results=('time taken', 'received ratio', 'safety period'))
+            results=('time taken', 'received ratio', 'safety period')
+        )
 
-        protectionless_results = results.Results(self.algorithm_module.result_file_path,
+        protectionless_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('time taken', 'received ratio', 'safety period'))
+            results=('time taken', 'received ratio', 'safety period')
+        )
 
         result_table = direct_comparison.ResultTable(old_results, protectionless_results)
 
@@ -127,24 +135,33 @@ class CLI(CommandLineCommon.CLI):
 
         result_names = ('time taken', 'received ratio', 'safety period')
 
-        old_results = OldResults('results/CCPE/protectionless-results.csv',
+        old_results = OldResults(
+            'results/CCPE/protectionless-results.csv',
             parameters=self.parameter_names,
-            results=result_names)
+            results=result_names
+        )
 
-        protectionless_results = results.Results(self.algorithm_module.result_file_path,
+        protectionless_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=result_names)
+            results=result_names
+        )
 
         result_table = direct_comparison.ResultTable(old_results, protectionless_results)
 
         def create_ccpe_comp_versus(yxaxis, pc=False):
             name = 'ccpe-comp-{}-{}'.format(yxaxis, "pcdiff" if pc else "diff")
 
-            versus.Grapher(self.algorithm_module.graphs_path, name,
+            versus.Grapher(
+                self.algorithm_module.graphs_path, name,
                 xaxis='size', yaxis=yxaxis, vary='source period',
-                yextractor=lambda (diff, pcdiff): pcdiff if pc else diff).create(result_table)
+                yextractor=lambda (diff, pcdiff): pcdiff if pc else diff
+            ).create(result_table)
 
-            summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+            ).run()
 
         for result_name in result_names:
             create_ccpe_comp_versus(result_name, pc=True)
@@ -157,7 +174,7 @@ class CLI(CommandLineCommon.CLI):
             self._run_table(args)
 
         if 'graph' in args:
-            self._run_graph(self, args)
+            self._run_graph(args)
 
         if 'ccpe-comparison-table' in args:
             self._run_ccpe_comparison_table(args)
