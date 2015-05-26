@@ -1,12 +1,12 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
-import os, itertools
+import os.path, itertools
 
 from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-from data import results, latex
+from data import results
 
 from data.table import safety_period, fake_result
 from data.graph import summary, heatmap, versus
@@ -46,7 +46,7 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNoReactiveAttacker()']
 
-    walk_hop_lengths = { 11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28] }
+    walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
 
     repeats = 500
 
@@ -80,7 +80,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         phantom_results = results.Results(self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
+            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end'))
 
         result_table = fake_result.ResultTable(phantom_results)
 
@@ -93,17 +93,23 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'paths reached end': ('Paths Reached End (%)', 'right top'),
         }
 
         heatmap_results = ['sent heatmap', 'received heatmap']
 
-        phantom_results = results.Results(self.algorithm_module.result_file_path,
+        phantom_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=tuple(graph_parameters.keys() + heatmap_results))    
+            results=tuple(graph_parameters.keys() + heatmap_results)
+        )    
 
         for name in heatmap_results:
             heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name).create()
-            summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), self.algorithm_module.name + '-' + name.replace(" ", "_")).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                self.algorithm_module.name + '-' + name.replace(" ", "_")
+            ).run()
 
         parameters = [
             ('source period', ' seconds'),
@@ -125,7 +131,10 @@ class CLI(CommandLineCommon.CLI):
 
                 g.create(phantom_results)
 
-                summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), self.algorithm_module.name + '-' + name).run()
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    self.algorithm_module.name + '-' + name
+                ).run()
 
     def run(self, args):
         super(CLI, self).run(args)
