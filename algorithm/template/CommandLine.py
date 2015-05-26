@@ -108,21 +108,11 @@ class CLI(CommandLineCommon.CLI):
 
         result_table = fake_result.ResultTable(template_results)
 
-        def create_template_table(name, param_filter):
-            filename = name + ".tex"
+        self._create_table("template-results", result_table,
+                           lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
 
-            with open(filename, 'w') as result_file:
-                latex.print_header(result_file)
-                result_table.write_tables(result_file, param_filter)
-                latex.print_footer(result_file)
-
-            latex.compile_document(filename)
-
-        create_template_table("template-results",
-            lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
-
-        create_template_table("template-results-low-prob",
-            lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
+        self._create_table("template-results-low-prob", result_table,
+                            lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
 
     def _run_graph(self, args):
         def extract(x):
@@ -166,17 +156,7 @@ class CLI(CommandLineCommon.CLI):
 
         result_table = direct_comparison.ResultTable(old_results, template_results)
 
-        def create_comparison_table(name, param_filter=lambda x: True):
-            filename = name + ".tex"
-
-            with open(filename, 'w') as result_file:
-                latex.print_header(result_file)
-                result_table.write_tables(result_file, param_filter)
-                latex.print_footer(result_file)
-
-            latex.compile_document(filename)
-
-        create_comparison_table('template-ccpe-comparison')
+        self._create_table(self.algorithm_module.name + '-ccpe-comparison', result_table)
 
     def _run_ccpe_comparison_graph(self, args):
         from data.old_results import OldResults 

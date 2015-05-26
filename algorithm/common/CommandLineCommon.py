@@ -8,7 +8,8 @@ class CLI(object):
     def __init__(self, package):
         self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
 
-    def _create_table(self, name, result_table, param_filter=lambda x: True):
+    @staticmethod
+    def _create_table(name, result_table, param_filter=lambda x: True):
         filename = name + ".tex"
 
         with open(filename, 'w') as result_file:
