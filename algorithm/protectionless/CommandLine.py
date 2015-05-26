@@ -118,17 +118,7 @@ class CLI(CommandLineCommon.CLI):
 
         result_table = direct_comparison.ResultTable(old_results, protectionless_results)
 
-        def create_comparison_table(name, param_filter=lambda x: True):
-            filename = name + ".tex"
-
-            with open(filename, 'w') as result_file:
-                latex.print_header(result_file)
-                result_table.write_tables(result_file, param_filter)
-                latex.print_footer(result_file)
-
-            latex.compile_document(filename)
-
-        create_comparison_table('{}-ccpe-comparison'.format(self.algorithm_module.name))
+        self._create_table('{}-ccpe-comparison'.format(self.algorithm_module.name), result_table)
 
     def _run_ccpe_comparison_graphs(self, args):
         from data.old_results import OldResults

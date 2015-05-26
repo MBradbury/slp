@@ -6,7 +6,7 @@ from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-from data import results, latex
+from data import results
 
 from data.table import safety_period, fake_result
 from data.graph import summary, heatmap, versus
@@ -73,7 +73,7 @@ class CLI(CommandLineCommon.CLI):
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-            'attacker_model', 'noise_model', 'distance', 'random_walk_hops')
+                 'attacker_model', 'noise_model', 'distance', 'random_walk_hops')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
@@ -85,17 +85,7 @@ class CLI(CommandLineCommon.CLI):
 
         result_table = fake_result.ResultTable(phantom_results)
 
-        def create_phantom_table(name, param_filter=lambda x: True):
-            filename = name + ".tex"
-
-            with open(filename, 'w') as result_file:
-                latex.print_header(result_file)
-                result_table.write_tables(result_file, param_filter)
-                latex.print_footer(result_file)
-
-            latex.compile_document(filename)
-
-        create_phantom_table("{}-results".format(self.algorithm_module.name))
+        self._create_table("{}-results".format(self.algorithm_module.name), result_table)
 
     def _run_graph(self, args):
         graph_parameters = {
@@ -108,9 +98,11 @@ class CLI(CommandLineCommon.CLI):
 
         heatmap_results = ['sent heatmap', 'received heatmap']
 
-        phantom_results = results.Results(self.algorithm_module.result_file_path,
+        phantom_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=tuple(graph_parameters.keys() + heatmap_results))    
+            results=tuple(graph_parameters.keys() + heatmap_results)
+        )    
 
         for name in heatmap_results:
             heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name).create()
@@ -125,8 +117,11 @@ class CLI(CommandLineCommon.CLI):
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
 
-                g = versus.Grapher(self.algorithm_module.graphs_path, name,
-                    xaxis='size', yaxis=yaxis, vary=parameter_name, yextractor=scalar_extractor)
+                g = versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis='size', yaxis=yaxis, vary=parameter_name,
+                    yextractor=scalar_extractor
+                )
 
                 g.xaxis_label = 'Network Size'
                 g.yaxis_label = yaxis_label
@@ -136,7 +131,10 @@ class CLI(CommandLineCommon.CLI):
 
                 g.create(phantom_results)
 
-                summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), self.algorithm_module.name + '-' + name).run()
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    self.algorithm_module.name + '-' + name
+                ).run()
 
     def run(self, args):
         super(CLI, self).run(args)

@@ -84,17 +84,7 @@ class CLI(CommandLineCommon.CLI):
 
         result_table = fake_result.ResultTable(phantom_results)
 
-        def create_phantom_table(name, param_filter=lambda x: True):
-            filename = name + ".tex"
-
-            with open(filename, 'w') as result_file:
-                latex.print_header(result_file)
-                result_table.write_tables(result_file, param_filter)
-                latex.print_footer(result_file)
-
-            latex.compile_document(filename)
-
-        create_phantom_table("phantom-results")
+        self._create_table(self.algorithm_module.name + "-results", result_table)
 
     def _run_graph(self, args):
         graph_parameters = {
