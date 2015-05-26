@@ -94,6 +94,7 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'paths reached end': ('Paths Reached End (%)', 'right top'),
         }
 
         heatmap_results = ['sent heatmap', 'received heatmap']
@@ -106,7 +107,10 @@ class CLI(CommandLineCommon.CLI):
 
         for name in heatmap_results:
             heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name).create()
-            summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), self.algorithm_module.name + '-' + name.replace(" ", "_")).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                self.algorithm_module.name + '-' + name.replace(" ", "_")
+            ).run()
 
         parameters = [
             ('source period', ' seconds'),
