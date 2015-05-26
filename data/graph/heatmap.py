@@ -21,14 +21,14 @@ class Grapher(GrapherBase):
 
         print('Creating {} graph files'.format(self.result_name))
 
-        for ((size, config), items1) in self.results.data.items():
+        for ((size, config, attacker), items1) in self.results.data.items():
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
-                    self._create_plot(size, config, src_period, params, results)
+                    self._create_plot(size, config, attacker, src_period, params, results)
 
         self._create_graphs(self.result_name)
 
-    def _create_plot(self, size, config, src_period, params, results):
+    def _create_plot(self, size, config, attacker, src_period, params, results):
         def chunks(l, n):
             """ Yield successive n-sized chunks from l."""
             for i in xrange(0, len(l), n):
@@ -41,7 +41,8 @@ class Grapher(GrapherBase):
 
         dir_name = os.path.join(
             self.output_directory,
-            self.result_name, config, str(size), str(src_period), *map(str, params))
+            self.result_name, config, attacker,
+            str(size), str(src_period), *map(str, params))
 
         print(dir_name)
 
@@ -90,5 +91,6 @@ class Grapher(GrapherBase):
             graph_caption.write('Source Period: {0} second\\newline\n'.format(src_period))
             graph_caption.write('Network Size: {0}\\newline\n'.format(size))
             graph_caption.write('Configuration: {0}\\newline\n'.format(config))
+            graph_caption.write('Attacker Model: {0}\\newline\n'.format(attacker))
             for (name, value) in zip(self.results.parameter_names, params):
                 graph_caption.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
