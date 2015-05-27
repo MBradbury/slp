@@ -20,14 +20,14 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_model = "casino-lab"
+    noise_model = "meyer-heavy"
 
     sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        #'SourceCorner',
+        'SourceCorner',
         'SinkCorner',
         'FurtherSinkCorner',
         #'Generic1',

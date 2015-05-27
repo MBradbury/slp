@@ -1,16 +1,12 @@
 from __future__ import print_function
 
-import os, itertools
+import itertools
 
 from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-from data import results, latex
-
-from data.table import safety_period, fake_result, comparison
-from data.graph import summary, heatmap, versus, bar, min_max_versus
-from data.util import useful_log10, scalar_extractor
+from data.table import safety_period
 
 from data.run.common import RunSimulationsCommon as RunSimulations
 

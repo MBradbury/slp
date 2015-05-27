@@ -1,6 +1,5 @@
-from __future__ import print_function
 
-import sys, re
+import re
 
 from collections import Counter
 
@@ -69,7 +68,7 @@ class Metrics(MetricsCommon):
         match = self.FAKE_RE.match(detail)
         if match is not None:
             kind = match.group(1)
-            
+
             if kind == "TFS":
                 self.tfs_created += 1
             elif kind == "PFS":
@@ -94,7 +93,7 @@ class Metrics(MetricsCommon):
         self.source_change_detected.setdefault((previous_source_id, current_source_id), {})[node_id] = time
 
     def number_of_nodes_detected_change(self):
-        return { k: len(times) for (k, times) in sorted(self.source_change_detected.items()) }
+        return {k: len(times) for (k, times) in sorted(self.source_change_detected.items())}
 
     @staticmethod
     def items():
@@ -107,14 +106,5 @@ class Metrics(MetricsCommon):
         d["FakeToNormal"]           = lambda x: x.fake_to_normal
         d["SourceChangeDetected"]   = lambda x: x.source_change_detected
         d["NodesDetectedSrcChange"] = lambda x: x.number_of_nodes_detected_change()
-        
+
         return d
-
-    @staticmethod
-    def print_header(stream=sys.stdout):
-        print("#" + "|".join(Metrics.items().keys()), file=stream)
-
-    def print_results(self, stream=sys.stdout):
-        results = [str(f(self)) for f in Metrics.items().values()]
-        
-        print("|".join(results), file=stream)
