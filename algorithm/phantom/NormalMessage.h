@@ -18,6 +18,8 @@ typedef nx_struct NormalMessage
 
   nx_uint8_t further_or_closer_set;
 
+  nx_uint8_t forced_broadcast;
+
 } NormalMessage;
 
 inline int64_t Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }

@@ -155,7 +155,7 @@ implementation
 				{
 					possible_sets |= FurtherSet;
 				}
-				else if (sink_distance >= neighbour->sink_distance)
+				else //if (sink_distance >= neighbour->sink_distance)
 				{
 					possible_sets |= CloserSet;
 				}
@@ -185,26 +185,9 @@ implementation
 		}
 		else
 		{
-			if (sink_distance != BOTTOM && neighbours.size > 0)
-			{
-				// There are neighbours, but none with sensible distances (i.e., their distance is the same as ours)...
-				// Or we don't know our sink distance.
-				const uint16_t rnd = call Random.rand16() % 2;
-				if (rnd == 0)
-				{
-					return FurtherSet;
-				}
-				else
-				{
-					return CloserSet;
-				}
-			}
-			else
-			{
-				// No known neighbours, so have a go at flooding.
-				// Someone might get this message
-				return UnknownSet;
-			}
+			// No known neighbours, so have a go at flooding.
+			// Someone might get this message
+			return UnknownSet;
 		}
 	}
 
@@ -656,12 +639,13 @@ implementation
 	RECEIVE_MESSAGE_END(Normal)
 
 
-	void x_receieve_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
 		const sink_distance_container_t dsink = { rcvd->sink_distance };
 		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		if (rcvd->sink_distance != BOTTOM)
+			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -691,8 +675,8 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
-		case NormalNode: x_receieve_Away(msg, rcvd, source_addr); break;
-		case SourceNode: x_receieve_Away(msg, rcvd, source_addr); break;
+		case NormalNode: x_receive_Away(msg, rcvd, source_addr); break;
+		case SourceNode: x_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
