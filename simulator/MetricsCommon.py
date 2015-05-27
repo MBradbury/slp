@@ -1,7 +1,7 @@
 from __future__ import print_function, division
 
 from collections import Counter, OrderedDict
-import itertools, re
+import itertools, re, sys
 
 from numpy import mean
 
@@ -209,3 +209,12 @@ class MetricsCommon(object):
         d["ReceivedHeatMap"]        = lambda x: x.received_heat_map()
 
         return d
+
+    @classmethod
+    def print_header(cls, stream=sys.stdout):
+        print("#" + "|".join(cls.items().keys()), file=stream)
+
+    def print_results(self, stream=sys.stdout):
+        results = [str(fn(self)) for fn in self.items().values()]
+        
+        print("|".join(results), file=stream)
