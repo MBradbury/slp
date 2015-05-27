@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os, itertools
+import os.path, itertools
 
 from algorithm.common import CommandLineCommon
 
@@ -8,9 +8,8 @@ import algorithm.protectionless as protectionless
 
 # The import statement doesn't work, so we need to use __import__ instead
 template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
-adaptive = __import__(__package__, globals(), locals(), ['object'], -1)
 
-from data import results, latex
+from data import results
 
 from data.table import safety_period, fake_result, comparison
 from data.graph import summary, heatmap, versus, bar, min_max_versus
@@ -55,7 +54,6 @@ class CLI(CommandLineCommon.CLI):
     parameter_names = ('approach',)
 
     protectionless_configurations = [name for (name, build) in configurations]
-    
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -66,22 +64,24 @@ class CLI(CommandLineCommon.CLI):
         safety_period_table_generator.analyse(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
+        runner = RunSimulations(
+            driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.product(
-                self.sizes, self.source_periods, self.protectionless_configurations,
-                self.attacker_models, [self.noise_model], [self.distance], self.approaches
+            self.sizes, self.source_periods, self.protectionless_configurations,
+            self.attacker_models, [self.noise_model], [self.distance], self.approaches
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-            'attacker_model', 'noise_model', 'distance', 'approach')
+                 'attacker_model', 'noise_model', 'distance', 'approach')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
 
     def _run_table(self, args):
-        adaptive_results = results.Results(adaptive.result_file_path,
+        adaptive_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
@@ -103,19 +103,25 @@ class CLI(CommandLineCommon.CLI):
 
         heatmap_results = ['sent heatmap', 'received heatmap']
 
-        adaptive_results = results.Results(adaptive.result_file_path,
+        adaptive_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=tuple(graph_parameters.keys() + heatmap_results))
 
         for name in heatmap_results:
-            heatmap.Grapher(adaptive.graphs_path, adaptive_results, name).create()
-            summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-' + name.replace(" ", "_")).run()
+            heatmap.Grapher(self.algorithm_module.graphs_path, adaptive_results, name).create()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_"))
+            ).run()
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
             name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
-            g = versus.Grapher(adaptive.graphs_path, name,
-                xaxis='size', yaxis=yaxis, vary='source period', yextractor=scalar_extractor)
+            g = versus.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis='size', yaxis=yaxis, vary='source period',
+                yextractor=scalar_extractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = yaxis_label
@@ -125,16 +131,22 @@ class CLI(CommandLineCommon.CLI):
 
             g.create(adaptive_results)
 
-            summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-' + name).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name)
+            ).run()
 
     def _run_comparison_table(self, args):
-        results_to_compare = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
+        results_to_compare = ('normal latency', 'ssd', 'captured',
+                              'fake', 'received ratio', 'tfs', 'pfs')
 
-        adaptive_results = results.Results(adaptive.result_file_path,
+        adaptive_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=results_to_compare)
 
-        template_results = results.Results(template.result_file_path,
+        template_results = results.Results(
+            template.result_file_path,
             parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
             results=results_to_compare)
 
@@ -147,13 +159,17 @@ class CLI(CommandLineCommon.CLI):
                            lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
 
     def _run_comparison_graph(self, args):
-        results_to_compare = ('normal latency', 'ssd', 'captured', 'sent', 'received', 'normal', 'fake', 'away', 'choose', 'received ratio', 'tfs', 'pfs')
+        results_to_compare = ('normal latency', 'ssd', 'captured', 'sent', 'received',
+                              'normal', 'fake', 'away', 'choose', 'received ratio',
+                              'tfs', 'pfs')
 
-        adaptive_results = results.Results(adaptive.result_file_path,
+        adaptive_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=results_to_compare)
 
-        template_results = results.Results(template.result_file_path,
+        template_results = results.Results(
+            template.result_file_path,
             parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
             results=results_to_compare)
 
@@ -162,11 +178,16 @@ class CLI(CommandLineCommon.CLI):
         def create_comp_bar(show, pc=False):
             name = 'template-comp-{}-{}'.format(show, "pcdiff" if pc else "diff")
 
-            bar.DiffGrapher(adaptive.graphs_path, result_table, name,
+            bar.DiffGrapher(
+                self.algorithm_module.graphs_path, result_table, name,
                 shows=[show],
-                extractor=lambda (diff, pcdiff): pcdiff if pc else diff).create()
+                extractor=lambda (diff, pcdiff): pcdiff if pc else diff
+            ).create()
 
-            summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-{}'.format(name).replace(" ", "_")).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+            ).run()
 
         for result_name in results_to_compare:
             create_comp_bar(result_name, pc=True)
@@ -184,7 +205,8 @@ class CLI(CommandLineCommon.CLI):
 
                 return modified(result)
 
-            g = bar.DiffGrapher(adaptive.graphs_path, result_table, name,
+            g = bar.DiffGrapher(
+                self.algorithm_module.graphs_path, result_table, name,
                 shows=shows,
                 extractor=lambda (diff, pcdiff): pcdiff if pc else diff,
                 normalisor=normalisor)
@@ -197,7 +219,10 @@ class CLI(CommandLineCommon.CLI):
 
             g.create()
 
-            summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-{}'.format(name).replace(" ", "_")).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+            ).run()
 
         results_to_show = ('normal', 'fake', 'away', 'choose')
 
@@ -217,18 +242,21 @@ class CLI(CommandLineCommon.CLI):
             'pfs': ('Number of PFS Created', 'left top'),
         }
 
-        adaptive_results = results.Results(adaptive.result_file_path,
+        adaptive_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=graph_parameters.keys())
 
-        template_results = results.Results(template.result_file_path,
+        template_results = results.Results(
+            template.result_file_path,
             parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
             results=graph_parameters.keys())
 
         def graph_min_max_versus(result_name):
             name = 'min-max-template-versus-{}'.format(result_name)
 
-            g = min_max_versus.Grapher(adaptive.graphs_path, name,
+            g = min_max_versus.Grapher(
+                self.algorithm_module.graphs_path, name,
                 xaxis='size', yaxis=result_name, vary='approach', yextractor=scalar_extractor)
 
             g.xaxis_label = 'Network Size'
@@ -249,7 +277,10 @@ class CLI(CommandLineCommon.CLI):
 
             g.create(template_results, adaptive_results)
 
-            summary.GraphSummary(os.path.join(adaptive.graphs_path, name), 'adaptive-{}'.format(name).replace(" ", "_")).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+            ).run()
 
         for result_name in graph_parameters.keys():
             graph_min_max_versus(result_name)

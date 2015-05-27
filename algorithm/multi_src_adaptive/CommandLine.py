@@ -1,14 +1,12 @@
 from __future__ import print_function
 
-import os, itertools
+import itertools
 
 from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-from data import results, latex
-from data.table import safety_period, direct_comparison
-from data.graph import summary, heatmap, versus
+from data.table import safety_period
 
 from data.run.common import RunSimulationsCommon as RunSimulations
 
@@ -65,16 +63,19 @@ class CLI(CommandLineCommon.CLI):
         safety_period_table_generator.analyse(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
+        runner = RunSimulations(
+            driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations,
+            safety_periods=safety_periods
+        )
 
         argument_product = list(itertools.product(
-                self.sizes, self.source_periods, self.protectionless_configurations,
-                self.attacker_models, [self.noise_model], [self.distance], self.approaches
+            self.sizes, self.source_periods, self.protectionless_configurations,
+            self.attacker_models, [self.noise_model], [self.distance], self.approaches
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-            'attacker_model', 'noise_model', 'distance', 'approach')
+                 'attacker_model', 'noise_model', 'distance', 'approach')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 

@@ -73,7 +73,7 @@ class CLI(CommandLineCommon.CLI):
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-            'attacker_model', 'noise_model', 'distance', 'random_walk_hops')
+                 'attacker_model', 'noise_model', 'distance', 'random_walk_hops')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 

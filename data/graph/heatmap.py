@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os
+import os.path
 
 import data.util
 from data import latex
@@ -8,7 +8,6 @@ from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
     def __init__(self, output_directory, results, result_name):
-
         super(Grapher, self).__init__(output_directory)
 
         self.results = results
