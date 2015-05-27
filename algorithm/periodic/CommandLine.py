@@ -1,16 +1,12 @@
 from __future__ import print_function
 
-import os, itertools
+import itertools
 
 from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-from data import results, latex
-
-from data.table import safety_period, fake_result
-from data.graph import summary, heatmap, versus
-from data.util import scalar_extractor
+from data.table import safety_period
 
 from data.run.common import RunSimulationsCommon as RunSimulations
 
@@ -38,7 +34,7 @@ class CLI(CommandLineCommon.CLI):
         #'RingTop',
         #'RingOpposite',
         #'RingMiddle',
-        
+
         #'CircleEdges',
         #'CircleSourceCentre',
         #'CircleSinkCentre',
@@ -62,12 +58,15 @@ class CLI(CommandLineCommon.CLI):
         safety_period_table_generator.analyse(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
+        runner = RunSimulations(
+            driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations,
+            safety_periods=safety_periods
+        )
 
         argument_product = itertools.product(
-                self.sizes, self.periods, self.configurations,
-                self.attacker_models, [self.noise_model], [self.distance]
+            self.sizes, self.periods, self.configurations,
+            self.attacker_models, [self.noise_model], [self.distance]
         )
 
         argument_product = [
@@ -77,7 +76,7 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         names = ('network_size', 'source_period', 'configuration',
-            'attacker_model', 'noise_model', 'distance', 'broadcast_period')
+                 'attacker_model', 'noise_model', 'distance', 'broadcast_period')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
