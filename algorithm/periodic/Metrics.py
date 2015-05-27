@@ -1,6 +1,3 @@
-from __future__ import print_function
-
-import sys
 
 from simulator.Simulator import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
@@ -24,12 +21,3 @@ class Metrics(MetricsCommon):
         d["DummyNormalSent"]               = lambda x: x.number_sent("DummyNormal")
 
         return d
-
-    @staticmethod
-    def print_header(stream=sys.stdout):
-        print("#" + "|".join(Metrics.items().keys()), file=stream)
-
-    def print_results(self, stream=sys.stdout):
-        results = [str(f(self)) for f in Metrics.items().values()]
-
-        print("|".join(results), file=stream)
