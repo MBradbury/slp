@@ -140,7 +140,7 @@ implementation
 				{
 					possible_sets |= FurtherSet;
 				}
-				else if (sink_distance >= neighbour->sink_distance)
+				else //if (sink_distance >= neighbour->sink_distance)
 				{
 					possible_sets |= CloserSet;
 				}
@@ -170,29 +170,13 @@ implementation
 		}
 		else
 		{
-			if (sink_distance != BOTTOM && neighbours.size > 0)
-			{
-				// There are neighbours, but none with sensible distances
-				const uint16_t rnd = call Random.rand16() % 2;
-				if (rnd == 0)
-				{
-					return FurtherSet;
-				}
-				else
-				{
-					return CloserSet;
-				}
-			}
-			else
-			{
-				// No known neighbours, so have a go at flooding.
-				// Someone might get this message
-				return UnknownSet;
-			}
+			// No known neighbours, so have a go at flooding.
+			// Someone might get this message
+			return UnknownSet;
 		}
 	}
 
-	am_addr_t random_walk_target(NormalMessage const* rcvd, const am_addr_t* to_ignore, size_t to_ignore_length)
+	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
 	{
 		am_addr_t chosen_address;
 		uint32_t i;
@@ -202,7 +186,7 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (sink_distance != BOTTOM && rcvd->further_or_closer_set != UnknownSet)
+		if (sink_distance != BOTTOM && further_or_closer_set != UnknownSet)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -228,10 +212,10 @@ implementation
 				}
 
 				//dbgverbose("stdout", "[%u]: further_or_closer_set=%d, dsink=%d neighbour.dsink=%d \n",
-				//  neighbour->address, rcvd->further_or_closer_set, sink_distance, neighbour->contents.sink_distance);
+				//  neighbour->address, further_or_closer_set, sink_distance, neighbour->contents.sink_distance);
 
-				if ((rcvd->further_or_closer_set == FurtherSet && sink_distance < neighbour->contents.sink_distance) ||
-					(rcvd->further_or_closer_set == CloserSet && sink_distance >= neighbour->contents.sink_distance))
+				if ((further_or_closer_set == FurtherSet && sink_distance < neighbour->contents.sink_distance) ||
+					(further_or_closer_set == CloserSet && sink_distance >= neighbour->contents.sink_distance))
 				{
 					insert_dsink_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -285,6 +269,8 @@ implementation
 		{
 			type = SinkNode;
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
+
+			sink_distance = 0;
 		}
 
 		call RadioControl.start();
@@ -364,7 +350,7 @@ implementation
 
 		message.further_or_closer_set = random_walk_direction();
 
-		target = random_walk_target(&message, NULL, 0);
+		target = random_walk_target(message.further_or_closer_set, NULL, 0);
 
 		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
 			sim_time_string(), target, message.further_or_closer_set);
@@ -384,8 +370,6 @@ implementation
 		AwayMessage message;
 
 		dbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
-
-		sink_distance = 0;
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -432,7 +416,7 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.sink_distance_of_sender = sink_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS)
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
 			{
 				am_addr_t target;
 
@@ -456,22 +440,24 @@ implementation
 				}
 
 				// Get a target, ignoring the node that sent us this message
-				target = random_walk_target(&forwarding_message, &source_addr, 1);
+				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 
-				// If we can't decide on a target, then give up.
-				if (target != AM_BROADCAST_ADDR)
+				if (target == AM_BROADCAST_ADDR)
 				{
-					dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
-						sim_time_string(), TOS_NODE_ID, target);
-
-					call Packet.clear(&packet);
-
-					send_Normal_message(&forwarding_message, target);
+					forwarding_message.forced_broadcast = TRUE;
+					return;
 				}
+
+				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+					sim_time_string(), TOS_NODE_ID, target);
+
+				call Packet.clear(&packet);
+
+				send_Normal_message(&forwarding_message, target);
 			}
 			else
 			{
-				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS)
+				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
 				{
 					dbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
@@ -558,12 +544,13 @@ implementation
 	RECEIVE_MESSAGE_END(Normal)
 
 
-	void x_receieve_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
 		const sink_distance_container_t dsink = { rcvd->sink_distance };
 		insert_dsink_neighbour(&neighbours, source_addr, &dsink);
 
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		if (rcvd->sink_distance != BOTTOM)
+			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -590,8 +577,8 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
-		case NormalNode: x_receieve_Away(msg, rcvd, source_addr); break;
-		case SourceNode: x_receieve_Away(msg, rcvd, source_addr); break;
+		case NormalNode: x_receive_Away(msg, rcvd, source_addr); break;
+		case SourceNode: x_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
