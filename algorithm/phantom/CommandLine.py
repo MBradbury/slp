@@ -20,7 +20,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_model = "meyer-heavy"
+    noise_models = ["meyer-heavy", "casino-lab"]
 
     sizes = [11, 15, 21, 25]
 
@@ -68,7 +68,7 @@ class CLI(CommandLineCommon.CLI):
             lambda (size, _1, _2, _3, _4, _5, walk_length): walk_length in self.walk_hop_lengths[size],
             itertools.product(
                 self.sizes, self.source_periods, self.configurations,
-                self.attacker_models, [self.noise_model], [self.distance],
+                self.attacker_models, self.noise_models, [self.distance],
                 set(itertools.chain(*self.walk_hop_lengths.values())))
         ))
 
