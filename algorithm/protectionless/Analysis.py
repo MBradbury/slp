@@ -38,8 +38,9 @@ class Analyzer(AnalyzerCommon):
         d = OrderedDict()
         d['network size']       = lambda x: x.opts['network_size']
         d['configuration']      = lambda x: x.opts['configuration']
-        d['source period']      = lambda x: x.opts['source_period']
         d['attacker model']     = lambda x: x.opts['attacker_model']
+        d['noise model']        = lambda x: x.opts['noise_model']
+        d['source period']      = lambda x: x.opts['source_period']
 
         d['sent']               = lambda x: self._format_results(x, 'Sent')
         d['received']           = lambda x: self._format_results(x, 'Received')

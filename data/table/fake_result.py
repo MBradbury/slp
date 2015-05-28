@@ -96,10 +96,12 @@ class ResultTable(object):
         sizes = sorted(self.results.sizes)
         configurations = sorted(self.results.configurations, key=lambda x: configuration_rank(x))
         attacker_models = sorted(self.results.attacker_models)
+        noise_models = sorted(self.results.noise_models)
 
-        for (size, configuration, attacker_model) in itertools.product(sizes, configurations, attacker_models):
+        for table_key in itertools.product(sizes, configurations, attacker_models, noise_models):
 
-            table_key = (size, configuration, attacker_model)
+            (size, configuration, attacker_model, noise_model) = table_key
+
             try:
                 source_periods = sorted(set(self.results.data[table_key].keys()))
             except KeyError:
@@ -131,7 +133,7 @@ class ResultTable(object):
                 print('        \\hline', file=stream)
 
             print('    \\end{tabular}', file=stream)
-            print('\\caption{{Results for the size {} and configuration {} and attacker mode {}}}'.format(
-                size, configuration, attacker_model), file=stream)
+            print('\\caption{{Results for the size {} and configuration {} and attacker model {} and noise model {}}}'.format(
+                size, configuration, attacker_model, noise_model), file=stream)
             print('\\end{table}', file=stream)
             print('', file=stream)

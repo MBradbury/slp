@@ -15,6 +15,7 @@ class Results(object):
         self.sizes = set()
         self.configurations = set()
         self.attacker_models = set()
+        self.noise_models = set()
 
         self._read_results(result_file)
 
@@ -32,12 +33,16 @@ class Results(object):
                 # We do this because we want to ignore it
                 if seen_first:
 
-                    size = int(values[ headers.index('network size') ])
-                    src_period = SourcePeriodModel.eval_input(values[ headers.index('source period') ]).simple_str()
-                    config = values[ headers.index('configuration') ]
-                    attacker_model = values[ headers.index('attacker model') ]
+                    def _get_value_for(name):
+                        return values[headers.index(name)]
 
-                    table_key = (size, config, attacker_model)
+                    size = int(_get_value_for('network size'))
+                    src_period = SourcePeriodModel.eval_input(_get_value_for('source period')).simple_str()
+                    config = _get_value_for('configuration')
+                    attacker_model = _get_value_for('attacker model')
+                    noise_model = _get_value_for('noise model')
+
+                    table_key = (size, config, attacker_model, noise_model)
 
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
@@ -45,12 +50,15 @@ class Results(object):
                     self.sizes.add(size)
                     self.configurations.add(config)
                     self.attacker_models.add(attacker_model)
+                    self.noise_models.add(noise_model)
 
                     self.data.setdefault(table_key, {}).setdefault(src_period, {})[params] = results
 
                 else:
                     seen_first = True
                     headers = values
+
+                    print(headers)
 
     def _process(self, name, headers, values):
         index = headers.index(name)
