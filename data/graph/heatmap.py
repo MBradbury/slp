@@ -14,20 +14,23 @@ class Grapher(GrapherBase):
         self.result_name = result_name
         self.result_index = results.result_names.index(result_name)
 
+        # Nice default of blue being cold and red being hot
+        self.palette = "rgbformulae 22,13,10"
+
     def create(self):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
         print('Creating {} graph files'.format(self.result_name))
 
-        for ((size, config, attacker), items1) in self.results.data.items():
+        for ((size, config, attacker, noise_model), items1) in self.results.data.items():
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
-                    self._create_plot(size, config, attacker, src_period, params, results)
+                    self._create_plot(size, config, attacker, noise_model, src_period, params, results)
 
         self._create_graphs(self.result_name)
 
-    def _create_plot(self, size, config, attacker, src_period, params, results):
+    def _create_plot(self, size, config, attacker, noise_model, src_period, params, results):
         def chunks(l, n):
             """ Yield successive n-sized chunks from l."""
             for i in xrange(0, len(l), n):
@@ -40,7 +43,7 @@ class Grapher(GrapherBase):
 
         dir_name = os.path.join(
             self.output_directory,
-            self.result_name, config, attacker,
+            self.result_name, config, attacker, noise_model,
             str(size), str(src_period), *map(str, params))
 
         print(dir_name)
@@ -56,12 +59,13 @@ class Grapher(GrapherBase):
 
         array = list(chunks(array, size))
 
-        with open(os.path.join(dir_name, 'graph.p'), 'w') as graph_p:
+        with open(os.path.join(dir_name, 'graph.gp'), 'w') as graph_p:
         
             graph_p.write('set terminal pdf enhanced\n')
             graph_p.write('set output "graph.pdf" \n')
-                
-            graph_p.write('set palette rgbformulae 22,13,10\n')
+               
+            if self.palette is not None:
+                graph_p.write('set palette {}\n'.format(self.palette))
         
             #graph_p.write('set title "Heat Map of Messages Sent"\n')
             graph_p.write('unset key\n')
@@ -91,5 +95,6 @@ class Grapher(GrapherBase):
             graph_caption.write('Network Size: {0}\\newline\n'.format(size))
             graph_caption.write('Configuration: {0}\\newline\n'.format(config))
             graph_caption.write('Attacker Model: {0}\\newline\n'.format(attacker))
+            graph_caption.write('Noise Model: {0}\\newline\n'.format(noise_model))
             for (name, value) in zip(self.results.parameter_names, params):
                 graph_caption.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
