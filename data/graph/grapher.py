@@ -51,7 +51,7 @@ class GrapherBase(object):
         for (root, subdirs, files) in os.walk(walk_dir):
             for filename in files:
                 (name_without_ext, extension) = os.path.splitext(filename)
-                if extension == '.p':
+                if extension in {'.p', '.gp', '.gnuplot', '.gnu', '.plot', '.plt'}:
                     pdf_filename = '{}.pdf'.format(name_without_ext)
 
                     queue.put((
