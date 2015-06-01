@@ -81,7 +81,7 @@ class Grapher(GrapherBase):
             self._pprint_table(graph_dat, table)
 
 
-        with open(os.path.join(dir_name, 'graph.p'), 'w') as graph_p:
+        with open(os.path.join(dir_name, 'graph.gp'), 'w') as graph_p:
 
             graph_p.write('#!/usr/bin/gnuplot\n')
 
