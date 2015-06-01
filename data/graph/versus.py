@@ -46,13 +46,13 @@ class Grapher(GrapherBase):
 
         dat = {}
 
-        for ((size, config, attacker), items1) in simulation_results.data.items():
+        for ((size, config, attacker, noise_model), items1) in simulation_results.data.items():
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
 
-                    key_names = ['size', 'configuration', 'attacker model', 'source period'] + simulation_results.parameter_names
+                    key_names = ['size', 'configuration', 'attacker model', 'noise model', 'source period'] + simulation_results.parameter_names
 
-                    values = [size, config, attacker, src_period] + list(params)
+                    values = [size, config, attacker, noise_model, src_period] + list(params)
 
                     (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
@@ -97,7 +97,7 @@ class Grapher(GrapherBase):
         columnCount = len(vvalues)
 
 
-        with open(os.path.join(dir_name, 'graph.p'), 'w') as graph_p:
+        with open(os.path.join(dir_name, 'graph.gp'), 'w') as graph_p:
 
             graph_p.write('#!/usr/bin/gnuplot\n')
 
