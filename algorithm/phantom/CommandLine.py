@@ -79,7 +79,8 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_table(self, args):
-        phantom_results = results.Results(self.algorithm_module.result_file_path,
+        phantom_results = results.Results(
+            self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end'))
 
@@ -106,7 +107,10 @@ class CLI(CommandLineCommon.CLI):
         )    
 
         for name in heatmap_results:
-            heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name).create()
+            g = heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name)
+            g.palette = "defined(0 'white', 1 'black')"
+            g.create()
+
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
                 self.algorithm_module.name + '-' + name.replace(" ", "_")
