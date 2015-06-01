@@ -1,4 +1,3 @@
 #!/bin/bash
 
-head -n $2 $1 | awk '{ total += $1; count++ } END { print total/count }'
-
+R -q -e "x <- read.csv('$1', nrows=$2, header = F); summary(x); sd(x[ , 1])"
