@@ -253,7 +253,7 @@ class CLI(CommandLineCommon.CLI):
             results=graph_parameters.keys())
 
         def graph_min_max_versus(result_name):
-            name = 'min-max-template-versus-{}'.format(result_name)
+            name = 'min-max-{}-versus-{}'.format(template.name, result_name)
 
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,

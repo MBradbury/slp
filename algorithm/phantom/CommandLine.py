@@ -6,10 +6,13 @@ from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
+# The import statement doesn't work, so we need to use __import__ instead
+adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
+
 from data import results
 
 from data.table import safety_period, fake_result
-from data.graph import summary, heatmap, versus
+from data.graph import summary, heatmap, versus, min_max_versus
 from data.util import scalar_extractor
 
 from data.run.common import RunSimulationsCommon as RunSimulations
@@ -144,6 +147,55 @@ class CLI(CommandLineCommon.CLI):
                     self.algorithm_module.name + '-' + name
                 ).run()
 
+    def _run_min_max_versus(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+        }
+
+        adaptive_results = results.Results(
+            adaptive.result_file_path,
+            parameters=('approach',),
+            results=tuple(set(graph_parameters.keys()) - {'paths reached end'})
+        )
+
+        phantom_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.parameter_names,
+            results=graph_parameters.keys()
+        )
+
+        def graph_min_max_versus(result_name):
+            name = 'min-max-{}-versus-{}'.format(result_name, adaptive.name)
+
+            g = min_max_versus.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis='size', yaxis=result_name, vary='walk length', yextractor=scalar_extractor)
+
+            g.xaxis_label = 'Network Size'
+            g.yaxis_label = graph_parameters[result_name][0]
+            g.key_position = graph_parameters[result_name][1]
+
+            g.min_label = 'Dynamic - Lowest'
+            g.max_label = 'Dynamic - Highest'
+            g.comparison_label = 'Phantom'
+            g.vary_label = ''
+
+            g.vvalue_label_converter = lambda name: "Walk Length {} Hops".format(name)
+
+            g.create(adaptive_results, phantom_results)
+
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+            ).run()
+
+        for result_name in graph_parameters.keys():
+            graph_min_max_versus(result_name)
+
     def run(self, args):
         super(CLI, self).run(args)
 
@@ -152,3 +204,6 @@ class CLI(CommandLineCommon.CLI):
 
         if 'graph' in args:
             self._run_graph(args)
+
+        if 'min-max-versus' in args:
+            self._run_min_max_versus(args)
