@@ -19,7 +19,7 @@ class Runner(object):
         script_command = '{} {} {} > "{}"'.format(executable, module, options, name)
 
         # Print out any useful information that could aid in debugging
-        debug_command = 'hostname ; pwd'
+        debug_command = 'hostname ; pwd ; echo $LD_LIBRARY_PATH'
 
         command = 'echo \'cd $PBS_O_WORKDIR ; {} ; {} ; {}\' | {}'.format(
             debug_command, self.prepare_command, script_command, cluster_command)
