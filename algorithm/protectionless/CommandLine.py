@@ -68,17 +68,11 @@ class CLI(CommandLineCommon.CLI):
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
     def _run_table(self, args):
-        safety_period_table_generator = safety_period.TableGenerator()
-        safety_period_table_generator.analyse(self.algorithm_module.result_file_path)
+        safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
 
-        safety_period_table_path = '{}-results.tex'.format(self.algorithm_module.name)
+        filename = '{}-results'.format(self.algorithm_module.name)
 
-        with open(safety_period_table_path, 'w') as latex_safety_period_tables:
-            latex.print_header(latex_safety_period_tables)
-            safety_period_table_generator.print_table(latex_safety_period_tables)
-            latex.print_footer(latex_safety_period_tables)
-
-        latex.compile_document(safety_period_table_path)
+        self._create_table(filename, safety_period_table)
 
     def _run_graph(self, args):
         protectionless_results = results.Results(

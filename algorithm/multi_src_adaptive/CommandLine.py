@@ -59,8 +59,7 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations):
-        safety_period_table_generator = safety_period.TableGenerator()
-        safety_period_table_generator.analyse(protectionless.result_file_path)
+        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 
         runner = RunSimulations(
