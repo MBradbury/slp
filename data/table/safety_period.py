@@ -2,12 +2,11 @@
 
 from __future__ import print_function
 
-import csv
-import math
-import sys
-import numpy
+import itertools
 
 from simulator.Configuration import CONFIGURATION_RANK
+
+from data import results
 
 class TableGenerator:
 
@@ -15,108 +14,95 @@ class TableGenerator:
     def _configuration_rank(configuration):
         return CONFIGURATION_RANK[configuration] if configuration in CONFIGURATION_RANK else len(CONFIGURATION_RANK) + 1
 
-    def __init__(self):
-        self.data = {}
+    def __init__(self, result_file):
+        self._result_names = ['time taken', 'received ratio', 'safety period', 'normal latency', 'ssd', 'captured']
 
-    def analyse(self, result_file):
-        def extract_average(value):
-            return float(value.split('(')[0])
+        self._results = results.Results(
+            result_file,
+            parameters=tuple(),
+            results=self._result_names
+        )
 
-        def extract_average_and_stddev(value):
-            split = value.split('(')
+    def write_tables(self, stream, param_filter=lambda x: True):
 
-            mean = float(split[0])
-            var = float(split[1].strip(')'))
+        noise_models = sorted(self._results.noise_models)
+        attacker_models = sorted(self._results.attacker_models)
+        configurations = sorted(self._results.configurations, key=self._configuration_rank)
+        sizes = sorted(self._results.sizes)
 
-            return numpy.array((mean, math.sqrt(var)))
+        product_all = list(itertools.product(sizes, configurations, attacker_models, noise_models))
 
-        with open(result_file, 'r') as f:
+        product_three = list(itertools.ifilter(
+            lambda x: x in {(n, a, c) for (s, c, a, n) in self._results.data.keys()},
+            itertools.product(noise_models, attacker_models, configurations)
+        ))
 
-            seen_first = False
-            
-            reader = csv.reader(f, delimiter='|')
-            
-            headers = []
-            
-            for values in reader:
-                # Check if we have seen the first line
-                # We do this because we want to ignore it
-                if seen_first:
-                    size = int(values[ headers.index('network size') ])
-                    src_period = values[ headers.index('source period') ]
-                    configuration = values[ headers.index('configuration') ]
-                    attacker_model = values[ headers.index('attacker model') ]
+        for (noise_model, attacker_model, config) in product_three:
+
+            if not any(table_key in self._results.data for table_key in product_all):
+                continue
+
+            print('\\begin{table}', file=stream)
+            print('\\vspace{-0.35cm}', file=stream)
+            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model}}'.format(config, attacker_model, noise_model), file=stream)
+            print('\\centering', file=stream)
+            print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
+            print('\\hline', file=stream)
+            print('Size & Period & Received & Source-Sink   & Latency   & Average Time    & Safety Period & Captured \\tabularnewline', file=stream)
+            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Taken (seconds) & (seconds)     & (\\%)    \\tabularnewline', file=stream)
+            print('\\hline', file=stream)
+            print('', file=stream)
+
+            for size in sorted(self._results.sizes):
+
+                data_key = (size, config, attacker_model, noise_model)
+
+                if data_key not in self._results.data:
+                    continue
+
+                for src_period in sorted(self._results.data[data_key]):
+
+                    results = self._results.data[data_key][src_period][tuple()]
+
+                    def _get_value(name):
+                        return results[self._result_names.index(name)]
+
+                    rcv = _get_value('received ratio')
+                    ssd = _get_value('ssd')
+                    latency = _get_value('normal latency') * 1000.0
+                    time_taken = _get_value('time taken')
+                    safety_period = _get_value('safety period')
+                    captured = _get_value('captured')
+                
+                    print('{} & {} & {:0.0f} $\\pm$ {:0.2f} & {:.1f} $\\pm$ {:.2f} & {:0.1f} $\\pm$ {:0.1f} & {:0.2f} $\\pm$ {:0.2f} & {:0.2f} & {:0.0f} \\tabularnewline'.format(
+                            size,
+                            src_period,
+                            rcv[0], rcv[1],
+                            ssd[0], ssd[1],
+                            latency[0], latency[1],
+                            time_taken[0], time_taken[1],
+                            safety_period,
+                            captured),
+                        file=stream)
                     
-                    time_taken = extract_average_and_stddev(values[ headers.index('time taken') ])
-                    rcv = extract_average_and_stddev(values[ headers.index('received ratio') ]) * 100.0
-
-                    safety_period = float(values[ headers.index('safety period') ])
-
-                    latency = extract_average_and_stddev(values[ headers.index('normal latency') ]) * 1000
-                    ssd = extract_average_and_stddev(values[ headers.index('ssd') ])
-
-                    captured = float(values[ headers.index('captured') ]) * 100.0
-                    
-                    self.data \
-                        .setdefault(attacker_model, {}) \
-                        .setdefault(configuration, {}) \
-                        .setdefault(size, []) \
-                        .append( (src_period, time_taken, safety_period, rcv, latency, ssd, captured) )
-                else:
-                    seen_first = True
-                    headers = values
-
-    def print_table(self, stream=sys.stdout):
-        for attacker_model in sorted(self.data.keys()):
-            for config in sorted(self.data[attacker_model].keys(), key=self._configuration_rank):
-                print('\\begin{table}', file=stream)
-                print('\\vspace{-0.35cm}', file=stream)
-                print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model}}'.format(config, attacker_model), file=stream)
-                print('\\centering', file=stream)
-                print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
-                print('\\hline', file=stream)
-                print('Size & Period & Received & Source-Sink   & Latency   & Average Time    & Safety Period & Captured \\tabularnewline', file=stream)
-                print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Taken (seconds) & (seconds)     & (\\%)    \\tabularnewline', file=stream)
                 print('\\hline', file=stream)
                 print('', file=stream)
 
-                for size in sorted(self.data[attacker_model][config].keys()):
-
-                    # Sort by src_period
-                    sorted_data = sorted(self.data[attacker_model][config][size], key=lambda x: x[0])
-
-                    for (src_period, time_taken, safety_period, rcv, latency, ssd, captured) in sorted_data:
-                    
-                        print('{} & {} & {:0.0f} $\\pm$ {:0.2f} & {:.1f} $\\pm$ {:.2f} & {:0.1f} $\\pm$ {:0.1f} & {:0.2f} $\\pm$ {:0.2f} & {:0.2f} & {:0.0f} \\tabularnewline'.format(
-                                size,
-                                src_period,
-                                rcv[0], rcv[1],
-                                ssd[0], ssd[1],
-                                latency[0], latency[1],
-                                time_taken[0], time_taken[1],
-                                safety_period,
-                                captured),
-                            file=stream)
-                        
-                    print('\\hline', file=stream)
-                    print('', file=stream)
-
-                print('\\end{tabular}', file=stream)
-                print('\\label{{tab:safety-periods-{}}}'.format(config), file=stream)
-                print('\\end{table}', file=stream)
-                print('', file=stream)
+            print('\\end{tabular}', file=stream)
+            print('\\label{{tab:safety-periods-{}}}'.format(config), file=stream)
+            print('\\end{table}', file=stream)
+            print('', file=stream)
 
     def safety_periods(self):
-        # attacker model -> configuration -> size -> source rate -> safety period
+        # (size, configuration, attacker model, noise model) -> source rate -> safety period
         result = {}
 
-        for (attacker_model, attacker_model_list) in self.data.items():
-            result[attacker_model] = {}
-            for (config, config_list) in attacker_model_list.items():
-                result[attacker_model][config] = {}
-                for (size, size_list) in config_list.items():
-                    result[attacker_model][config][size] = {}
-                    for (src_period, time_taken, safety_period, rcv, latency, ssd, captured) in size_list:
-                        result[attacker_model][config][size][src_period] = safety_period
+        for (table_key, other_items) in self._results.data.items():
+            for (source_period, items) in other_items.item():
+
+                index = items.keys().indexof('safety period')
+                safety_period = items.values()[index]
+
+                result.setdefault(table_key, {})[src_period] = safety_period
 
         return result
