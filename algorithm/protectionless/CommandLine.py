@@ -16,7 +16,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_model = "meyer-heavy"
+    noise_models = ["casino-lab"]
 
     sizes = [11, 15, 21, 25]
 
@@ -46,9 +46,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 750
 
-    attacker_models = ['BasicReactiveAttacker()',
-                       'IgnorePreviousLocationReactiveAttacker()',
-                       'IgnorePastNLocationsReactiveAttacker(4)']
+    attacker_models = ['SeqNoReactiveAttacker()']
 
     parameter_names = tuple()
 
@@ -61,7 +59,7 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = list(itertools.product(
             self.sizes, self.source_periods, self.configurations,
-            self.attacker_models, [self.noise_model], [self.distance]
+            self.attacker_models, self.noise_models, [self.distance]
         ))
 
         names = ('network_size', 'source_period', 'configuration',
