@@ -16,7 +16,7 @@ class Grapher(GrapherBase):
         self.min_label = 'Minimum'
         self.comparison_label = 'Comparison'
 
-        self.vvalue_label_converter = lambda x: x
+        self.vvalue_label_converter = str
 
     def create(self, comparison_results, actual_results):
         print('Removing existing directories')
@@ -30,31 +30,35 @@ class Grapher(GrapherBase):
         max_comparison_results = {}
 
         # Find the min and max results over all parameter combinations 
-        for ((size, config), items1) in comparison_results.data.items():
+        for (data_key, items1) in comparison_results.data.items():
             for (src_period, items2) in items1.items():
+
+                (size, config, attacker, noise_model) = data_key
 
                 local_min = None
                 local_max = None
 
                 for (params, results) in items2.items():
-                    yvalue = results[ comparison_results.result_names.index(self.yaxis) ]
+                    yvalue_index = comparison_results.result_names.index(self.yaxis)
+                    yvalue = results[yvalue_index]
                     yvalue = self.yextractor(yvalue)
 
                     local_min = yvalue if local_min is None else min(local_min, yvalue)
                     local_max = yvalue if local_max is None else max(local_max, yvalue)
 
-                min_comparison_results.setdefault((size, config), {})[src_period] = local_min
-                max_comparison_results.setdefault((size, config), {})[src_period] = local_max
-
+                min_comparison_results.setdefault(data_key, {})[src_period] = local_min
+                max_comparison_results.setdefault(data_key, {})[src_period] = local_max
 
         # Extract the data we want to display
-        for ((size, config), items1) in actual_results.data.items():
+        for (data_key, items1) in actual_results.data.items():
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
 
-                    key_names = ['size', 'configuration', 'source period'] + actual_results.parameter_names
+                    (size, config, attacker, noise_model) = data_key
 
-                    values = [size, config, src_period] + list(params)
+                    key_names = ['size', 'configuration', 'attacker model', 'noise model', 'source period'] + actual_results.parameter_names
+
+                    values = [size, config, attacker, noise_model, src_period] + list(params)
 
                     (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
@@ -62,15 +66,17 @@ class Grapher(GrapherBase):
                     key_names = tuple(key_names)
                     values = tuple(values)
 
-                    yvalue = results[ actual_results.result_names.index(self.yaxis) ]
-                    yvalue = self.yextractor(yvalue)
+                    yvalue_index = actual_results.result_names.index(self.yaxis)
+                    yvalue = self.yextractor(results[yvalue_index])
 
                     comp_label = "{} ({})".format(self.comparison_label, latex.escape(self.vvalue_label_converter(vvalue)))
 
-                    dat.setdefault((key_names, values), {})[(xvalue, self.max_label)] = max_comparison_results[(size, config)].get(src_period)
-                    dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue
-                    dat.setdefault((key_names, values), {})[(xvalue, self.min_label)] = min_comparison_results[(size, config)].get(src_period)
+                    if data_key in max_comparison_results:
+                        dat.setdefault((key_names, values), {})[(xvalue, self.max_label)] = max_comparison_results[data_key].get(src_period)
 
+                        dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue
+
+                        dat.setdefault((key_names, values), {})[(xvalue, self.min_label)] = min_comparison_results[data_key].get(src_period)
 
         for ((key_names, key_values), values) in dat.items():
             self._create_plot(key_names, key_values, values)
