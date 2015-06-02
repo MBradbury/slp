@@ -17,7 +17,10 @@ class Results(object):
         self.attacker_models = set()
         self.noise_models = set()
 
-        self._read_results(result_file)
+        try:
+            self._read_results(result_file)
+        except BaseException as ex:
+            raise RuntimeError("Failure reading {}".format(result_file), ex)
 
     def _read_results(self, result_file):
         with open(result_file, 'r') as f:
