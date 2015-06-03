@@ -23,7 +23,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_model = "meyer-heavy"
+    noise_models = ["casino-lab"]
 
     sizes = [11, 15, 21, 25]
 
@@ -69,7 +69,7 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = list(itertools.product(
             self.sizes, self.source_periods, self.protectionless_configurations,
-            self.attacker_models, [self.noise_model], [self.distance], self.approaches
+            self.attacker_models, self.noise_models, [self.distance], self.approaches
         ))
 
         names = ('network_size', 'source_period', 'configuration',

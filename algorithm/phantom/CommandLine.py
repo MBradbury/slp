@@ -23,7 +23,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["meyer-heavy", "casino-lab"]
+    noise_models = ["casino-lab"]
 
     sizes = [11, 15, 21, 25]
 
@@ -31,8 +31,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        'SinkCorner',
-        'FurtherSinkCorner',
+        #'SinkCorner',
+        #'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
         
