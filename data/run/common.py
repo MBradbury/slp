@@ -61,7 +61,7 @@ class RunSimulationsCommon(object):
         if self.safety_periods is None:
             return None
 
-        noise_model = str(arguments[argument_names.index('noise')])
+        noise_model = str(arguments[argument_names.index('noise_model')])
         attacker_model = str(arguments[argument_names.index('attacker_model')])
         configuration = str(arguments[argument_names.index('configuration')])
         size = int(arguments[argument_names.index('network_size')])

@@ -61,8 +61,6 @@ class Results(object):
                     seen_first = True
                     headers = values
 
-                    print(headers)
-
     def _process(self, name, headers, values):
         index = headers.index(name)
         value = values[index]
