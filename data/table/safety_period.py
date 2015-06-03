@@ -4,15 +4,11 @@ from __future__ import print_function
 
 import itertools
 
-from simulator.Configuration import CONFIGURATION_RANK
+from simulator.Configuration import configuration_rank
 
 from data import results
 
 class TableGenerator:
-
-    @staticmethod
-    def _configuration_rank(configuration):
-        return CONFIGURATION_RANK[configuration] if configuration in CONFIGURATION_RANK else len(CONFIGURATION_RANK) + 1
 
     def __init__(self, result_file):
         self._result_names = ['time taken', 'received ratio', 'safety period', 'normal latency', 'ssd', 'captured']
@@ -27,7 +23,7 @@ class TableGenerator:
 
         noise_models = sorted(self._results.noise_models)
         attacker_models = sorted(self._results.attacker_models)
-        configurations = sorted(self._results.configurations, key=self._configuration_rank)
+        configurations = sorted(self._results.configurations, key=configuration_rank)
         sizes = sorted(self._results.sizes)
 
         product_all = list(itertools.product(sizes, configurations, attacker_models, noise_models))
