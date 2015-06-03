@@ -24,7 +24,7 @@ class CLI(object):
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
-        self._execute_runner(LocalDriver.Runner(), self.algorithm_module.result_path, skip_completed_simulations=True)
+        self._execute_runner(LocalDriver.Runner(), self.algorithm_module.results_path, skip_completed_simulations=True)
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)

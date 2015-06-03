@@ -94,11 +94,11 @@ class TableGenerator:
         result = {}
 
         for (table_key, other_items) in self._results.data.items():
-            for (source_period, items) in other_items.item():
+            for (source_period, items) in other_items.items():
 
-                index = items.keys().indexof('safety period')
-                safety_period = items.values()[index]
+                index = self._result_names.index('safety period')
+                safety_period = items[tuple()][index]
 
-                result.setdefault(table_key, {})[src_period] = safety_period
+                result.setdefault(table_key, {})[source_period] = safety_period
 
         return result
