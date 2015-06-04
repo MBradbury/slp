@@ -1,5 +1,8 @@
 import os, subprocess
 
+def name():
+    return __name__
+
 def url():
     return "minerva.csc.warwick.ac.uk"
 
@@ -7,16 +10,16 @@ def ppn():
     return 12
 
 def builder():
-    from data.run.driver.cluster_builder import Runner
-    return Runner()
+    from data.run.driver.cluster_builder import Runner as Builder
+    return Builder()
 
 def copy_to():
-    username = raw_input("Enter your Minerva username: ")
+    username = raw_input("Enter your {} username: ".format(name().title()))
     subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" --delete cluster {1}@{2}:~/slp-algorithm-tinyos".format(
         os.environ['HOME'], username, url()), shell=True)
 
 def copy_back(dirname):
-    username = raw_input("Enter your Minerva username: ")
+    username = raw_input("Enter your {} username: ".format(name().title()))
     subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" {1}@{2}:~/slp-algorithm-tinyos/cluster/{3}/*.txt results/{3}".format(
         os.environ['HOME'], username, url(), dirname), shell=True)
 

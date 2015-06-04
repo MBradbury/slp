@@ -4,10 +4,10 @@ def name():
     return __name__
 
 def url():
-    return "caffeine.dcs.warwick.ac.uk"
+    return "frontend1.apocrita.hpc.qmul.ac.uk"
 
 def ppn():
-    return 4
+    return 12
 
 def builder():
     from data.run.driver.cluster_builder import Runner as Builder
@@ -26,11 +26,11 @@ def copy_back(dirname):
 def submitter():
     from data.run.driver.cluster_submitter import Runner as Submitter
 
-    ram_per_job_mb = 850
+    # Size 25 network seem to take ~500mb per instance, so use 1500mb per instance to be safe
+    ram_per_job_mb = 1500
 
-    # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
-    cluster_command = "qsub -q blend -j oe -h -l nodes=1:ppn={} -l walltime=500:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
+    cluster_command = "qsub -V -j oe -pe smp {} -l h_rt=30:00:00 -l h_vmem={}mb -N \"{{}}\"".format(ppn(), ram_per_job_mb)
 
-    prepare_command = "module load jdk/1.7.0_07 ; module load python/2.7.8 ; LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH:/opt/share/lib\""
+    prepare_command = "module load java/oracle/1.7.0_65 ; module load python2.7.8 ; . sci/bin/activate"
 
     return Submitter(cluster_command, prepare_command)
