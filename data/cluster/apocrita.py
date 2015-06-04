@@ -31,7 +31,7 @@ def copy_back(dirname):
     subprocess.check_call("rsync -avz -e ssh {0}@{1}:~/slp-algorithm-tinyos/cluster/{2}/*.txt results/{2}".format(
         username, url(), dirname), shell=True)
 
-def submitter():
+def submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
 
     ram_for_os_mb = 1024
@@ -39,9 +39,12 @@ def submitter():
 
     cluster_command = "qsub -cwd -V -j yes -S /bin/bash -pe smp {} -l h_rt=24:00:00 -l h_vmem={}M -N \"{{}}\"".format(ppn(), ram_per_job_mb)
 
+    if notify_emails is not None and len(notify_emails) > 0:
+        cluster_command += " -m ae -M {}".format(",".join(notify_emails))
+
     #module_commands = "module load java/oracle/1.7.0_65 ; module load python2.7.8"
 
-    prepare_command = ". sci/bin/activate ; cd slp-algorithm-tinyos"
+    prepare_command = ". sci/bin/activate"
 
     # There is only 24GB available and there are 48 threads that can be used for execution.
     # There is no way that all the TOSSIM instances will not run over the memory limit!
