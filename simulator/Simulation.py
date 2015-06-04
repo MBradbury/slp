@@ -67,7 +67,7 @@ class Simulation(TosVis):
 
     def setup_radio(self):
         output = subprocess.check_output(
-            "java -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel model.txt {} {}".format(self.topology_path, self.seed),
+            "java -Xms256m -Xmx512m -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel model.txt {} {}".format(self.topology_path, self.seed),
             shell=True)
 
         for line in output.splitlines():
