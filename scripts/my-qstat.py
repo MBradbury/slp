@@ -12,7 +12,7 @@ username = sys.argv[1]
 
 qstat_output = subprocess.check_output('qstat -x', shell=True)
 
-dom = xml.dom.minidom.parse(qstat_output)
+dom = xml.dom.minidom.parseString(qstat_output)
 
 jobs = dom.getElementsByTagName('Job')
 
