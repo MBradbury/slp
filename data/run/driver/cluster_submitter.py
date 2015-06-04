@@ -22,8 +22,8 @@ class Runner(object):
         # Print out any useful information that could aid in debugging
         debug_command = 'hostname ; pwd ; echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" ; echo "TOSROOT: $TOSROOT" ; echo "PYTHONPATH: $PYTHONPATH"'
 
-        command = 'echo \'cd $PBS_O_WORKDIR ; {} ; {} ; {}\' | {}'.format(
-            debug_command, self.prepare_command, script_command, cluster_command)
+        command = 'echo \'{} ; {} ; {}\' | {}'.format(
+            self.prepare_command, debug_command, script_command, cluster_command)
 
         self._submit_job(command)
 
