@@ -9,6 +9,9 @@ def url():
 def ppn():
     return 12
 
+def threads_per_processor():
+    return 1
+
 def builder():
     from data.run.driver.cluster_builder import Runner as Builder
     return Builder()
@@ -33,4 +36,4 @@ def submitter():
 
     prepare_command = "module swap oldmodules minerva-2.0 ; module load iomkl/13.1.3/ScientificPython/2.8-python-2.7.6"
 
-    return Submitter(cluster_command, prepare_command)
+    return Submitter(cluster_command, prepare_command, ppn() * threads_per_processor())

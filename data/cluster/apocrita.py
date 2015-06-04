@@ -1,6 +1,6 @@
 from __future__ import division
 
-import subprocess
+import math, subprocess
 
 def name():
     return __name__
@@ -10,6 +10,9 @@ def url():
 
 def ppn():
     return 12
+
+def theads_per_processor():
+    return 4
 
 def ram_per_node():
     return 2 * 1024
@@ -32,7 +35,7 @@ def submitter():
     from data.run.driver.cluster_submitter import Runner as Submitter
 
     ram_for_os_mb = 1024
-    ram_per_job_mb = ram_per_node() - (ram_for_os_mb / ppn())
+    ram_per_job_mb = math.floor(ram_per_node() - (ram_for_os_mb / ppn()))
 
     cluster_command = "qsub -cwd -V -j yes -S /bin/bash -pe smp {} -l h_rt=24:00:00 -l h_vmem={}M -N \"{{}}\"".format(ppn(), ram_per_job_mb)
 
@@ -40,4 +43,9 @@ def submitter():
 
     prepare_command = ". sci/bin/activate ; cd slp-algorithm-tinyos"
 
-    return Submitter(cluster_command, prepare_command)
+    # There is only 24GB available and there are 48 threads that can be used for execution.
+    # There is no way that all the TOSSIM instances will not run over the memory limit!
+    # So lets use every node, but only 2 threads per node
+    threads_to_use = 2
+
+    return Submitter(cluster_command, prepare_command, ppn() * threads_to_use)

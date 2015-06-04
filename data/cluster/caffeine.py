@@ -9,6 +9,9 @@ def url():
 def ppn():
     return 4
 
+def threads_per_processor():
+    return 1
+
 def builder():
     from data.run.driver.cluster_builder import Runner as Builder
     return Builder()
@@ -33,4 +36,4 @@ def submitter():
 
     prepare_command = "module load jdk/1.7.0_07 ; module load python/2.7.8 ; LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH:/opt/share/lib\""
 
-    return Submitter(cluster_command, prepare_command)
+    return Submitter(cluster_command, prepare_command, ppn() * threads_per_processor())

@@ -37,6 +37,9 @@ class RunSimulationsCommon(object):
                 opts["--mode"] = self.driver.mode()
                 opts["--job-size"] = repeats
 
+                if hasattr(self.driver, 'job_thread_count') and self.driver.job_thread_count is not None:
+                    opts["--thread-count"] = self.driver.job_thread_count
+
                 for (name, value) in zip(argument_names, arguments):
                     flag = "--" + name.replace("_", "-")
                     opts[flag] = value
