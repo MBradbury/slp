@@ -1,3 +1,5 @@
+from __future__ import division
+
 import subprocess
 
 def name():
@@ -8,6 +10,9 @@ def url():
 
 def ppn():
     return 12
+
+def ram_per_node():
+    return 2 * 1024
 
 def builder():
     from data.run.driver.cluster_builder import Runner as Builder
@@ -26,11 +31,13 @@ def copy_back(dirname):
 def submitter():
     from data.run.driver.cluster_submitter import Runner as Submitter
 
-    # Size 25 network seem to take ~500mb per instance, so use 1500mb per instance to be safe
-    ram_per_job_mb = 1500
+    ram_for_os_mb = 1024
+    ram_per_job_mb = ram_per_node() - (ram_for_os_mb / ppn())
 
-    cluster_command = "qsub -V -j oe -pe smp {} -l h_rt=30:00:00 -l h_vmem={}mb -N \"{{}}\"".format(ppn(), ram_per_job_mb)
+    cluster_command = "qsub -cwd -V -j yes -S /bin/bash -pe smp {} -l h_rt=24:00:00 -l h_vmem={}M -N \"{{}}\"".format(ppn(), ram_per_job_mb)
 
-    prepare_command = "module load java/oracle/1.7.0_65 ; module load python2.7.8 ; . sci/bin/activate"
+    #module_commands = "module load java/oracle/1.7.0_65 ; module load python2.7.8"
+
+    prepare_command = ". sci/bin/activate ; cd slp-algorithm-tinyos"
 
     return Submitter(cluster_command, prepare_command)
