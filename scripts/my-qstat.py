@@ -1,28 +1,30 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 import xml.dom.minidom
-import os, sys, string
+import sys, subprocess
 
 if len(sys.argv) != 2:
-        raise RuntimeError("Usage my-qstat.py <username>")
+    raise RuntimeError("Usage my-qstat.py <username>")
 
 username = sys.argv[1]
 
+qstat_output = subprocess.check_output('qstat -x', shell=True)
 
-f = os.popen('qstat -x')
-
-dom=xml.dom.minidom.parse(f)
+dom = xml.dom.minidom.parse(qstat_output)
 
 jobs = dom.getElementsByTagName('Job')
 
 def fakeqstat(joblist):
-        for r in joblist:
-                id = r.getElementsByTagName('Job_Id')[0].childNodes[0].data
-                name = r.getElementsByTagName('Job_Name')[0].childNodes[0].data
-                state = r.getElementsByTagName('job_state')[0].childNodes[0].data
+    for job in joblist:
+        job_id = job.getElementsByTagName('Job_Id')[0].childNodes[0].data
+        job_name = job.getElementsByTagName('Job_Name')[0].childNodes[0].data
+        job_state = job.getElementsByTagName('job_state')[0].childNodes[0].data
 
-                owner = r.getElementsByTagName('Job_Owner')[0].childNodes[0].data
+        job_owner = job.getElementsByTagName('Job_Owner')[0].childNodes[0].data
 
-                if username in owner:
-                        print id, state, name                
+        if username in job_owner:
+            print(job_id, job_state, job_name)     
 
 fakeqstat(jobs)

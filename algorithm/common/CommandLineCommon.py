@@ -9,6 +9,11 @@ class CLI(object):
         self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
 
     @staticmethod
+    def _get_args_for(args, name):
+        name += "="
+        return [arg[len(name):] for arg in args if arg.startswith(name)]
+
+    @staticmethod
     def _create_table(name, result_table, param_filter=lambda x: True):
         filename = name + ".tex"
 
@@ -48,7 +53,9 @@ class CLI(object):
             cluster.copy_to()
 
         if 'submit' in args:
-            self._execute_runner(cluster.submitter(), cluster_directory, skip_completed_simulations=False)
+            emails_to_notify = self._get_args_for(args, 'notify')
+
+            self._execute_runner(cluster.submitter(emails_to_notify), cluster_directory, skip_completed_simulations=False)
 
         if 'copy-back' in args:
             cluster.copy_back(self.algorithm_module.name)
