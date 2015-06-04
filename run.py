@@ -99,6 +99,8 @@ else:
 
     subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
 
+    print("Creating a process pool with {} processes.".format(a.args.thread_count), file=sys.stderr)
+
     p = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
     try:
         r = p.map_async(runner, [subprocess_args] * a.args.job_size)
