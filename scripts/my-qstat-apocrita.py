@@ -1,24 +1,23 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 import xml.dom.minidom
-import os
-import sys
-import string
+import sys, subprocess
 
 if len(sys.argv) != 2:
         raise RuntimeError("Usage my-qstat.py <username>")
 
 username = sys.argv[1]
 
-f = os.popen('qstat -u \* -xml -r')
+qstat_output = subprocess.check_output('qstat -xml -r', shell=True)
 
-dom=xml.dom.minidom.parse(f)
+dom = xml.dom.minidom.parseString(qstat_output)
 
+jobs = dom.getElementsByTagName('job_info')
+run = jobs[0]
 
-jobs=dom.getElementsByTagName('job_info')
-run=jobs[0]
-
-runjobs=run.getElementsByTagName('job_list')
-
+runjobs = run.getElementsByTagName('job_list')
 
 def fakeqstat(joblist):
         for r in joblist:
@@ -36,7 +35,7 @@ def fakeqstat(joblist):
                         jobtime=r.getElementsByTagName('JB_submission_time')[0].childNodes[0].data
 
                 if jobown == username:
-                        print  jobnum, '\t', jobown.ljust(16), '\t', jobname.ljust(16),'\t', jobstate,'\t',jobtime
+                        print(jobnum, '\t', jobown.ljust(16), '\t', jobname.ljust(16), '\t', jobstate, '\t', jobtime)
 
 
 fakeqstat(runjobs)
