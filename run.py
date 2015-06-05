@@ -36,9 +36,11 @@ if a.args.mode != "CLUSTER":
     # The assumption is that any processes running are of the same topology
     Simulation.write_topology_file(configuration.topology.nodes)
 
+# Print out the argument settings
 for (k, v) in vars(a.args).items():
     print("{}={}".format(k, v))
 
+# Print the header for the results
 Metrics.Metrics.print_header()
 
 # Because of the way TOSSIM is architectured each individual simulation
@@ -56,7 +58,7 @@ else:
         def runner_impl(args):
             process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             try:
-                process.wait()
+                (stdoutdata, stderrdata) = process.communicate()
 
                 # Multiple processes may be attempting to write out at the same
                 # time, so this needs to be protected with a lock.
@@ -64,22 +66,21 @@ else:
                 # Also the streams write method needs to be called directly,
                 # as print has issues with newline printing and multithreading.
                 with print_lock:
-                    for line in process.stdout:
-                        sys.stdout.write(line)
+                    sys.stdout.write(stdoutdata)
                     sys.stdout.flush()
 
-                    for line in process.stderr:
-                        sys.stderr.write(line)
+                    sys.stderr.write(stderrdata)
                     sys.stderr.flush()
 
                 if process.returncode != 0:
+                    error_message = "Bad return code {}".format(process.returncode)
                     with print_lock:
-                        print("Bad return code {}".format(process.returncode), file=sys.stderr)
-                    raise RuntimeError("Bad return code {}".format(process.returncode))
+                        print(error_message, file=sys.stderr)
+                    raise RuntimeError(error_message)
 
-            except (KeyboardInterrupt, SystemExit) as e:
+            except (KeyboardInterrupt, SystemExit) as ex:
                 with print_lock:
-                    print("Killing process due to {}".format(e), file=sys.stderr)
+                    print("Killing process due to {}".format(ex), file=sys.stderr)
                 process.terminate()
                 raise
 
@@ -101,21 +102,21 @@ else:
 
     print("Creating a process pool with {} processes.".format(a.args.thread_count), file=sys.stderr)
 
-    p = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
+    job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
     try:
-        r = p.map_async(runner, [subprocess_args] * a.args.job_size)
+        result = job_pool.map_async(runner, [subprocess_args] * a.args.job_size)
 
         # Use get so any exceptions are rethrown
-        r.get()
+        result.get()
 
-        if not r.successful():
+        if not result.successful():
             print("The map_async was not successful", file=sys.stderr)
 
-    except (KeyboardInterrupt, SystemExit) as e:
-        print("Killing thread pool due to {}".format(e), file=sys.stderr)
-    except Exception as e:
-        print("Encountered: {}".format(e), file=sys.stderr)
+    except (KeyboardInterrupt, SystemExit) as ex:
+        print("Killing thread pool due to {}".format(ex), file=sys.stderr)
+    except Exception as ex:
+        print("Encountered: {}".format(ex), file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
     finally:
-        p.terminate()
-        p.join()
+        job_pool.terminate()
+        job_pool.join()
