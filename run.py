@@ -93,9 +93,9 @@ else:
                 tries += 1
                 runner_impl(args)
                 done = True
-            except Exception as e:
+            except Exception as ex:
                 with print_lock:
-                    print("Encountered (try {}): {}".format(tries, e), file=sys.stderr)
+                    print("Encountered (try {}): {}".format(tries, ex), file=sys.stderr)
                     print(traceback.format_exc(), file=sys.stderr)
 
     subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
