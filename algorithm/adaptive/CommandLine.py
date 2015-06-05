@@ -262,6 +262,12 @@ class CLI(CommandLineCommon.CLI):
             g.yaxis_label = graph_parameters[result_name][0]
             g.key_position = graph_parameters[result_name][1]
 
+            g.key_font = "',20'"
+            g.key_spacing = "2"
+            g.key_width = "+6"
+
+            g.pointsize = '2'
+
             g.min_label = 'Static - Lowest'
             g.max_label = 'Static - Highest'
             g.comparison_label = 'Dynamic'

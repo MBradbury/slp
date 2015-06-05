@@ -24,6 +24,12 @@ class Grapher(GrapherBase):
         self.vary_prefix = ''
 
         self.key_position = 'right top'
+        self.key_font = None
+        self.key_spacing = None
+        self.key_width = None
+        self.key_height = None
+
+        self.pointsize = '1'
 
         self.yextractor = yextractor
 
@@ -105,8 +111,20 @@ class Grapher(GrapherBase):
 
             graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
             graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
-            graph_p.write('set pointsize 1\n')
+            graph_p.write('set pointsize {}\n'.format(self.pointsize))
             graph_p.write('set key {}\n'.format(self.key_position))
+
+            if self.key_font is not None:
+                graph_p.write('set key font {}\n'.format(self.key_font))
+
+            if self.key_spacing is not None:
+                graph_p.write('set key spacing {}\n'.format(self.key_spacing))
+
+            if self.key_width is not None:
+                graph_p.write('set key width {}\n'.format(self.key_width))
+
+            if self.key_height is not None:
+                graph_p.write('set key height {}\n'.format(self.key_height))
 
             # Should remain the same as we are testing with
             # a limited sized grid of nodes
