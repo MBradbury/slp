@@ -8,25 +8,26 @@ from data.util import create_dirtree
 
 import numpy
 
-args = []
-if len(sys.argv[1:]) == 0:
-    raise RuntimeError("No arguments provided!")
-else:
-    args = sys.argv[1:]
+if __name__ == "__main__":
+    args = []
+    if len(sys.argv[1:]) == 0:
+        raise RuntimeError("No arguments provided!")
+    else:
+        args = sys.argv[1:]
 
-if len(args) <= 1:
-    raise RuntimeError("No arguments other than algorithm name provided!")
+    if len(args) <= 1:
+        raise RuntimeError("No arguments other than algorithm name provided!")
 
-algorithm_name = args[0]
-args = args[1:]
+    algorithm_name = args[0]
+    args = args[1:]
 
-algorithm = importlib.import_module("algorithm.{}".format(algorithm_name))
+    algorithm = importlib.import_module("algorithm.{}".format(algorithm_name))
 
-# Raise all numpy errors
-numpy.seterr(all='raise')
+    # Raise all numpy errors
+    numpy.seterr(all='raise')
 
-create_dirtree(algorithm.results_path)
-create_dirtree(algorithm.graphs_path)
+    create_dirtree(algorithm.results_path)
+    create_dirtree(algorithm.graphs_path)
 
-cli = algorithm.CommandLine.CLI()
-cli.run(args)
+    cli = algorithm.CommandLine.CLI()
+    cli.run(args)
