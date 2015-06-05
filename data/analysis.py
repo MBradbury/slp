@@ -90,20 +90,17 @@ class Analyse(object):
         network_size = int(self.opts['network_size'])
         number_nodes = network_size * network_size
 
-        # This check doesn't always make sense
-        """
         for (heading, value) in zip(self.headings, values):
-            if type(value) is dict:
+            if type(value) is dict and heading in {'SentHeatMap', 'ReceivedHeatMap'}:
 
                 # Check that there aren't too many nodes
                 if len(value) > number_nodes:
                     raise RuntimeError("There are too many nodes in this map {} called {}, when there should be {} maximum.".format(len(value), heading, number_nodes))
 
                 # Check that the node ids are in the right range
-                for k in value.keys():
-                    if k < 0 or k >= number_nodes:
-                        raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
-        """
+                #for k in value.keys():
+                #    if k < 0 or k >= number_nodes:
+                #        raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
 
         self._check_captured_consistent(values, line_number)
 
