@@ -25,8 +25,19 @@ class ResultTable(object):
         return inital_header + parameter_header + result_header
 
     def _convert_title_row(self, name, row):
+
+        if self.results.is_normalised_name(name):
+            (norm_name, div_name) = self.results.get_normalised_names(name)
+
+            norm_value = self._convert_title_row(norm_name, row)
+            div_value = self._convert_title_row(div_name, row)
+
+            return "{} / {}".format(norm_value, div_value)
+
         try:
             return {
+                "network size": ("Network Size", "nodes"),
+
                 "source period": ("$P_{src}$", "(sec)"),
                 "fake period": ("$P_{fs}$", "(sec)"),
                 "temp fake duration": ("Dur", "(sec)"),
@@ -123,10 +134,10 @@ class ResultTable(object):
                 for (params, results) in sorted(items, key=lambda (x, y): x):
                     to_print = [self._var_fmt("source period", source_period)]
 
-                    for name, value in zip(self.results.parameter_names, params):
+                    for (name, value) in zip(self.results.parameter_names, params):
                         to_print.append(self._var_fmt(name, value))
 
-                    for name, value in zip(self.results.result_names, results):
+                    for (name, value) in zip(self.results.result_names, results):
                         to_print.append(self._var_fmt(name, value))
 
                     print(" & ".join(to_print) + "\\\\", file=stream)

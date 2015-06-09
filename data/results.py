@@ -1,5 +1,7 @@
 # Author: Matthew Bradbury
-import csv, math, ast
+from __future__ import division
+
+import csv, math, ast, re, collections
 
 import numpy
 
@@ -61,7 +63,41 @@ class Results(object):
                     seen_first = True
                     headers = values
 
+    @staticmethod
+    def is_normalised_name(name):
+        return name.startswith('norm(') and name.endswith(')')
+
+    @staticmethod
+    def get_normalised_names(name):
+        if not Results.is_normalised_name(name):
+            raise RuntimeError("The name {} is not to be normalised".format(name))
+
+        name = name[len('norm('):-len(')')]
+
+        # Regex from: https://stackoverflow.com/questions/9644784/python-splitting-on-spaces-except-between-certain-characters
+
+        result = tuple(re.split(r",(?=[^()]*(?:\(|$))", name))
+
+        return result
+
     def _process(self, name, headers, values):
+
+        # Put special variable names here
+        if self.is_normalised_name(name):
+            (norm_name, div_name) = self.get_normalised_names(name)
+            norm_value = self._process(norm_name, headers, values)
+            div_value = self._process(div_name, headers, values)
+
+            result = norm_value / div_value
+
+            # Not sure if the stddev can be normalised like this
+            # So lets just not do this for now.
+            if isinstance(result, (collections.Sequence, numpy.ndarray)):
+                # Return just the mean
+                return result[0]
+            else:
+                return result
+
         index = headers.index(name)
         value = values[index]
 
