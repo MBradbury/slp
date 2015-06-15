@@ -23,6 +23,11 @@ class Grapher(GrapherBase):
         self.vary_label =  vary
         self.vary_prefix = ''
 
+        self.yaxis_range_max = '*'
+
+        self.yaxis_font = None
+        self.xaxis_font = None
+
         self.key_position = 'right top'
         self.key_font = None
         self.key_spacing = None
@@ -131,12 +136,14 @@ class Grapher(GrapherBase):
             graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues) - 1, max(xvalues) + 1))
             graph_p.write('set xtics ({})\n'.format(",".join(map(str, xvalues))))
 
-            #if rangeY is not None:
-            #    graph_p.write('set yrange [{0}:{1}]\n'.format(rangeY[0], rangeY[1]))
-            #else:
-            graph_p.write('set yrange [0:*]\n')
+            if self.xaxis_font is not None:
+                graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
+
+            graph_p.write('set yrange [0:{}]\n'.format(self.yaxis_range_max))
             graph_p.write('set ytics auto\n')
-            
+
+            if self.yaxis_font is not None:
+                graph_p.write('set ytics font {}\n'.format(self.yaxis_font))
             
             graph_p.write('set output "graph.pdf"\n')
             
