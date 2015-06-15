@@ -241,6 +241,11 @@ class CLI(CommandLineCommon.CLI):
             'pfs': ('Number of PFS Created', 'left top'),
         }
 
+        custom_yaxis_range_max = {
+            'fake': 600000,
+            'captured': 20
+        }
+
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
@@ -262,6 +267,8 @@ class CLI(CommandLineCommon.CLI):
             g.yaxis_label = graph_parameters[result_name][0]
             g.key_position = graph_parameters[result_name][1]
 
+            g.yaxis_font = g.xaxis_font = "',15'"
+
             g.key_font = "',20'"
             g.key_spacing = "2"
             g.key_width = "+6"
@@ -272,6 +279,9 @@ class CLI(CommandLineCommon.CLI):
             g.max_label = 'Static - Highest'
             g.comparison_label = 'Dynamic'
             g.vary_label = ''
+
+            if result_name in custom_yaxis_range_max:
+                g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
             def vvalue_converter(name):
                 return {
