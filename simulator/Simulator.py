@@ -189,5 +189,15 @@ class Simulator(object):
         return [
             os.path.splitext(os.path.basename(noise_file))[0]
             for noise_file
-            in glob.glob('noise/*.txt')
+            in glob.glob('models/noise/*.txt')
+        ]
+
+    @staticmethod
+    def available_communication_models():
+        """Gets the names of the communication models available in the models directory"""
+        import glob
+        return [
+            os.path.splitext(os.path.basename(model_file))[0]
+            for model_file
+            in glob.glob('models/communication/*.txt')
         ]

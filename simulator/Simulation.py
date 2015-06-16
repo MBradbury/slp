@@ -28,6 +28,7 @@ class Simulation(TosVis):
             self.tossim.addChannel("stdout", sys.stdout)
             self.tossim.addChannel("slp-debug", sys.stdout)
 
+        self.communication_model = args.comm_model
         self.noise_model = args.noise_model
 
         self.attackers = []
@@ -39,6 +40,14 @@ class Simulation(TosVis):
         self.topology_path = topology_path(module_name, args)
 
         self.start_time = None
+
+    def communications_model_path(self):
+        """The path to the communications model, specified in the algorithm arguments."""
+        return os.path.join('models', 'communication', self.communication_model + '.txt')
+
+    def noise_model_path(self):
+        """The path to the noise model, specified in the algorithm arguments."""
+        return os.path.join('models', 'noise', self.noise_model + '.txt')
 
     def _pre_run(self):
         super(Simulation, self)._pre_run()
@@ -67,7 +76,8 @@ class Simulation(TosVis):
 
     def setup_radio(self):
         output = subprocess.check_output(
-            "java -Xms256m -Xmx512m -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel model.txt {} {}".format(self.topology_path, self.seed),
+            "java -Xms256m -Xmx512m -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel {} {} {}".format(
+                self.communications_model_path(), self.topology_path, self.seed),
             shell=True)
 
         for line in output.splitlines():
@@ -84,7 +94,7 @@ class Simulation(TosVis):
                 self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
 
     def setup_noise_models(self):
-        path = "noise/{}.txt".format(self.noise_model)
+        path = self.noise_model_path()
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.
