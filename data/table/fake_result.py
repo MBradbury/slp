@@ -145,7 +145,7 @@ class ResultTable(object):
                 print('        \\hline', file=stream)
 
             print('    \\end{tabular}', file=stream)
-            print('\\caption{{Results for the size \\textbf{{{}}} and configuration \\textbf{{{}}} and attacker model \\textbf{{{}}} and noise model \\textbf{{{}}}}} and communication model \\textbf{{{}}}}}'.format(
+            print('\\caption{{Results for the size \\textbf{{{}}} and configuration \\textbf{{{}}} and attacker model \\textbf{{{}}} and noise model \\textbf{{{}}} and communication model \\textbf{{{}}} }} '.format(
                 size, configuration, attacker_model, noise_model, communication_model), file=stream)
             print('\\end{table}', file=stream)
             print('', file=stream)
