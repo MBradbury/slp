@@ -45,10 +45,10 @@ def submitter(notify_emails=None):
     # This means that more threads can run and the smaller jobs finish even quicker!
 
     ram_for_os_mb = 512
-    ram_per_job_mb = 1600
+    ram_per_job_mb = 1700
     jobs = int(math.floor(((ram_per_node() * ppn()) - ram_for_os_mb) / ram_per_job_mb))
 
-    cluster_command = "qsub -cwd -V -j yes -S /bin/bash -pe smp {} -l h_rt=72:00:00 -l h_vmem={}M -N \"{{}}\"".format(jobs, ram_per_job_mb)
+    cluster_command = "qsub -cwd -V -j yes -S /bin/bash -pe smp {} -l h_rt=48:00:00 -l h_vmem={}M -N \"{{}}\"".format(ppn(), ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
