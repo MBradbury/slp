@@ -6,11 +6,7 @@ from data.analysis import AnalyzerCommon
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         d = OrderedDict()
-        d['network size']       = lambda x: x.opts['network_size']
-        d['configuration']      = lambda x: x.opts['configuration']
-        d['attacker model']     = lambda x: x.opts['attacker_model']
-        d['noise model']        = lambda x: x.opts['noise_model']
-        d['source period']      = lambda x: x.opts['source_period']
+        self._set_results_header(d)]
         d['walk length']        = lambda x: x.opts['random_walk_hops']
         
         d['sent']               = lambda x: self._format_results(x, 'Sent')

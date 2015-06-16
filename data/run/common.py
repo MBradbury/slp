@@ -64,16 +64,19 @@ class RunSimulationsCommon(object):
         if self.safety_periods is None:
             return None
 
+        communication_model = str(arguments[argument_names.index('communication_model')])
         noise_model = str(arguments[argument_names.index('noise_model')])
         attacker_model = str(arguments[argument_names.index('attacker_model')])
         configuration = str(arguments[argument_names.index('configuration')])
         size = int(arguments[argument_names.index('network_size')])
         source_period = str(arguments[argument_names.index('source_period')])
 
+        key = (size, configuration, attacker_model, noise_model, communication_model)
+
         try:
-            return self.safety_periods[(size, configuration, attacker_model, noise_model)][source_period]
+            return self.safety_periods[key][source_period]
         except KeyError as ex:
-            raise KeyError("Failed to find the safety period key {}".format((size, configuration, attacker_model, noise_model, source_period)), ex)
+            raise KeyError("Failed to find the safety period key {} and source period {}".format(key, source_period), ex)
 
     def _check_existing_results(self, argument_names):
         self._existing_results = {}
