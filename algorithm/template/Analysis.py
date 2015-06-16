@@ -6,11 +6,7 @@ from data.analysis import AnalyzerCommon
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         d = OrderedDict()
-        d['network size']       = lambda x: x.opts['network_size']
-        d['configuration']      = lambda x: x.opts['configuration']
-        d['attacker model']     = lambda x: x.opts['attacker_model']
-        d['noise model']        = lambda x: x.opts['noise_model']
-        d['source period']      = lambda x: x.opts['source_period']
+        self._set_results_header(d)
         d['fake period']        = lambda x: x.opts['fake_period']
         d['temp fake duration'] = lambda x: x.opts['temp_fake_duration']
         d['pr(tfs)']            = lambda x: x.opts['pr_tfs']

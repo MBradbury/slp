@@ -18,6 +18,7 @@ class Results(object):
         self.configurations = set()
         self.attacker_models = set()
         self.noise_models = set()
+        self.communication_models = set()
 
         try:
             self._read_results(result_file)
@@ -46,8 +47,9 @@ class Results(object):
                     config = _get_value_for('configuration')
                     attacker_model = _get_value_for('attacker model')
                     noise_model = _get_value_for('noise model')
+                    communication_model = _get_value_for('communication model')
 
-                    table_key = (size, config, attacker_model, noise_model)
+                    table_key = (size, config, attacker_model, noise_model, communication_model)
 
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
@@ -56,6 +58,7 @@ class Results(object):
                     self.configurations.add(config)
                     self.attacker_models.add(attacker_model)
                     self.noise_models.add(noise_model)
+                    self.communication_models.add(communication_model)
 
                     self.data.setdefault(table_key, {}).setdefault(src_period, {})[params] = results
 

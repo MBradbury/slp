@@ -21,26 +21,28 @@ class TableGenerator:
 
     def write_tables(self, stream, param_filter=lambda x: True):
 
+        communication_models = sorted(self._results.communication_models)
         noise_models = sorted(self._results.noise_models)
         attacker_models = sorted(self._results.attacker_models)
         configurations = sorted(self._results.configurations, key=configuration_rank)
         sizes = sorted(self._results.sizes)
 
-        product_all = list(itertools.product(sizes, configurations, attacker_models, noise_models))
+        product_all = list(itertools.product(sizes, configurations, attacker_models, noise_models, communication_models))
 
         product_three = list(itertools.ifilter(
-            lambda x: x in {(n, a, c) for (s, c, a, n) in self._results.data.keys()},
-            itertools.product(noise_models, attacker_models, configurations)
+            lambda x: x in {(cm, n, a, c) for (s, c, a, n, cm) in self._results.data.keys()},
+            itertools.product(communication_models, noise_models, attacker_models, configurations)
         ))
 
-        for (noise_model, attacker_model, config) in product_three:
+        for (communication_model, noise_model, attacker_model, config) in product_three:
 
             if not any(table_key in self._results.data for table_key in product_all):
                 continue
 
             print('\\begin{table}', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
-            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model}}'.format(config, attacker_model, noise_model), file=stream)
+            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model}}'.format(
+                config, attacker_model, noise_model, communication_model), file=stream)
             print('\\centering', file=stream)
             print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
@@ -51,7 +53,7 @@ class TableGenerator:
 
             for size in sorted(self._results.sizes):
 
-                data_key = (size, config, attacker_model, noise_model)
+                data_key = (size, config, attacker_model, noise_model, communication_model)
 
                 if data_key not in self._results.data:
                     continue
@@ -90,7 +92,7 @@ class TableGenerator:
             print('', file=stream)
 
     def safety_periods(self):
-        # (size, configuration, attacker model, noise model) -> source rate -> safety period
+        # (size, configuration, attacker model, noise model, communication model) -> source period -> safety period
         result = {}
 
         for (table_key, other_items) in self._results.data.items():

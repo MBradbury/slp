@@ -228,6 +228,15 @@ class AnalyzerCommon(object):
         self.values = values
 
     @staticmethod
+    def _set_results_header(d):
+        d['network size']       = lambda x: x.opts['network_size']
+        d['configuration']      = lambda x: x.opts['configuration']
+        d['attacker model']     = lambda x: x.opts['attacker_model']
+        d['noise model']        = lambda x: x.opts['noise_model']
+        d['communication model']= lambda x: x.opts['communication_model']
+        d['source period']      = lambda x: x.opts['source_period']
+
+    @staticmethod
     def _format_results(x, name, allow_missing=False):
         if name in x.variance_of:
             return "{}({})".format(x.average_of[name], x.variance_of[name])
