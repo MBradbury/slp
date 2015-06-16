@@ -16,9 +16,9 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["casino-lab"]
+    noise_models = ["meyer-heavy", "casino-lab"]
 
-    communication_models = ["low-asymmetry"]
+    communication_models = ["no-asymmetry", "high-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
@@ -77,23 +77,28 @@ class CLI(CommandLineCommon.CLI):
         self._create_table(filename, safety_period_table)
 
     def _run_graph(self, args):
+        heatmap_parameters = ('sent heatmap', 'received heatmap')
+
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('sent heatmap', 'received heatmap')
+            results=heatmap_parameters
         )
 
-        heatmap.Grapher(self.algorithm_module.graphs_path, protectionless_results, 'sent heatmap').create()
-        heatmap.Grapher(self.algorithm_module.graphs_path, protectionless_results, 'received heatmap').create()
+        for name in heatmap_parameters:
+            grapher = heatmap.Grapher(self.algorithm_module.graphs_path, protectionless_results, name)
+            grapher.create()
 
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name.title().replace(" ", ""))
+            ).run()
+        
         # Don't need these as they are contained in the results file
         #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
         #    summary.GraphSummary(
         #        os.path.join(self.algorithm_module.graphs_path, 'Versus/{}/Source-Period'.format(subdir)),
         #        subdir).run()
-
-        summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, 'sent heatmap'), '{}-SentHeatMap'.format(self.algorithm_module.name)).run()
-        summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, 'received heatmap'), '{}-ReceivedHeatMap'.format(self.algorithm_module.name)).run()
 
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults
