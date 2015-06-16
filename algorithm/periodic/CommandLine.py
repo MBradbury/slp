@@ -16,7 +16,9 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_model = "casino-lab"
+    noise_models = ["casino-lab"]
+
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
@@ -65,7 +67,7 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = itertools.product(
             self.sizes, self.periods, self.configurations,
-            self.attacker_models, [self.noise_model], [self.distance]
+            self.attacker_models, self.noise_models, self.communication_models, [self.distance]
         )
 
         argument_product = [
@@ -75,7 +77,7 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'distance', 'broadcast_period')
+                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'broadcast_period')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
