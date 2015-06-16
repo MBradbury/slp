@@ -10,7 +10,7 @@ class ArgumentsCommon(object):
 
         parser.add_argument("--seed", type=int)
 
-        parser.add_argument("--comm-model", type=str, choices=Simulator.available_communication_models(), required=True)
+        parser.add_argument("--communication-model", type=str, choices=Simulator.available_communication_models(), required=True)
         parser.add_argument("--noise-model", type=str, choices=Simulator.available_noise_models(), required=True)
 
         parser.add_argument("--network-size", type=int, required=True)

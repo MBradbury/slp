@@ -28,7 +28,7 @@ class Simulation(TosVis):
             self.tossim.addChannel("stdout", sys.stdout)
             self.tossim.addChannel("slp-debug", sys.stdout)
 
-        self.communication_model = args.comm_model
+        self.communication_model = args.communication_model
         self.noise_model = args.noise_model
 
         self.attackers = []
