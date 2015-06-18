@@ -5,6 +5,8 @@ from simulator.Topology import Ring, Grid, Random
 
 from scipy.spatial.distance import euclidean
 
+from data.memoize import memoize
+
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_id, space_behind_sink):
         self.topology = topology
@@ -299,5 +301,10 @@ def configuration_rank(configuration):
 def names():
     return [cls.__name__ for cls in configurations()]
 
+# Memoize this call to eliminate the overhead of creating many identical configurations.
+@memoize
+def create_specific(name, network_size, distance):
+    return [cls for cls in configurations() if cls.__name__ == name][0](network_size, distance)
+
 def create(name, args):
-    return [cls for cls in configurations() if cls.__name__ == name][0](args.network_size, args.distance)
+    return create_specific(name, args.network_size, args.distance)
