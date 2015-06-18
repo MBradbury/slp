@@ -10,8 +10,8 @@ typedef nx_struct AwayMessage
   nx_am_addr_t source_id;
 
   // The number of hops that this message
-  // has travelled from the sink. 
-  nx_uint16_t sink_distance;
+  // has travelled from the landmark node. 
+  nx_uint16_t landmark_distance;
 
 } AwayMessage;
 

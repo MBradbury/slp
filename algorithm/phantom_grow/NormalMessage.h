@@ -15,7 +15,7 @@ typedef nx_struct NormalMessage
   // has travelled from the source. 
   nx_uint16_t source_distance;
 
-  nx_int16_t sink_distance_of_sender;
+  nx_int16_t landmark_distance_of_sender;
 
   nx_uint8_t forced_broadcast;
 
