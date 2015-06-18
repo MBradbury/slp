@@ -128,11 +128,11 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
-		dbgerror("SourceBroadcasterC", "%s: Received " #NAME " of invalid length %hhu.\n", sim_time_string(), len); \
+		dbgerror("SourceBroadcasterC", "%s: " #KIND "ed " #NAME " of invalid length %hhu.\n", sim_time_string(), len); \
 		return msg; \
 	} \
  \
-	dbgverbose("SourceBroadcasterC", "%s: Received valid " #NAME ".\n", sim_time_string()); \
+	dbgverbose("SourceBroadcasterC", "%s: " #KIND "ed valid " #NAME ".\n", sim_time_string()); \
  \
 	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
