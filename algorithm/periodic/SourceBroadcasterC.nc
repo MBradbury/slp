@@ -249,18 +249,13 @@ implementation
 	RECEIVE_MESSAGE_END(Normal)
 
 
-	void Normal_receive_DummyNormal(const DummyNormalMessage* const rcvd, am_addr_t source_addr)
-	{
-		METRIC_RCV_DUMMYNORMAL(rcvd);
-	}
-
-	void Sink_receive_DummyNormal(const DummyNormalMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_DummyNormal(const DummyNormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		METRIC_RCV_DUMMYNORMAL(rcvd);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(DummyNormal, Receive)
-		case SinkNode: Sink_receive_DummyNormal(rcvd, source_addr); break;
-		case NormalNode: Normal_receive_DummyNormal(rcvd, source_addr); break;
+		case SinkNode:
+		case NormalNode: x_receive_DummyNormal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(DummyNormal)
 }
