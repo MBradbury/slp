@@ -6,7 +6,7 @@ from data.analysis import AnalyzerCommon
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         d = OrderedDict()
-        self._set_results_header(d)]
+        self._set_results_header(d)
         d['walk length']        = lambda x: x.opts['random_walk_hops']
         
         d['sent']               = lambda x: self._format_results(x, 'Sent')

@@ -2,6 +2,7 @@ import argparse
 from algorithm.common.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
+import simulator.Configuration as Configuration
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
@@ -20,5 +21,8 @@ class Arguments(ArgumentsCommon):
         result = super(Arguments, self).build_arguments()
 
         result["RANDOM_WALK_HOPS"] = int(self.args.random_walk_hops)
+
+        configuration = Configuration.create(self.args.configuration, self.args)
+        result["LANDMARK_NODE_ID"] = configuration.sink_id
 
         return result
