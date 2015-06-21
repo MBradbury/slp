@@ -20,11 +20,13 @@ class OutputCatcher(object):
 
     def process(self):
         """Consumes any lines that have been caught."""
+        self_read = self._read
+        self_linefn = self._linefn
+
         while True:
-            (read, write, error) = select.select([self._read.fileno()], [], [], 0)
+            (read, write, error) = select.select([self_read], [], [], 0)
             if len(read) == 1:
-                line = self._read.readline()
-                self._linefn(line)
+                self_linefn(self_read.readline())
             else:
                 break
 
@@ -168,12 +170,18 @@ class Simulator(object):
 
             self._pre_run()
 
-            while self.continue_predicate():
-                if self.tossim.runNextEvent() == 0:
+            # Do less . access in this tight inner loop
+            local_continue_predicate = self.continue_predicate
+            local_run_next_event = self.tossim.runNextEvent
+            local_during_run = self._during_run
+
+            # This is a very tight loop, should it be implemented in C?
+            while local_continue_predicate():
+                if local_run_next_event() == 0:
                     print("Run next event returned 0 ({})".format(event_count))
                     break
 
-                self._during_run(event_count)
+                local_during_run(event_count)
 
                 event_count += 1
 
