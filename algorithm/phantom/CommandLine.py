@@ -154,7 +154,13 @@ class CLI(CommandLineCommon.CLI):
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'received ratio': ('Receive Ratio (%)', 'right top'),
+        }
+
+        custom_yaxis_range_max = {
+            'sent': 450000,
+            'captured': 20,
+            'received ratio': 100
         }
 
         adaptive_results = results.Results(
@@ -184,6 +190,9 @@ class CLI(CommandLineCommon.CLI):
             g.max_label = 'Dynamic - Highest'
             g.comparison_label = 'Phantom'
             g.vary_label = ''
+
+            if result_name in custom_yaxis_range_max:
+                g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
             g.vvalue_label_converter = lambda name: "Walk Length {} Hops".format(name)
 
