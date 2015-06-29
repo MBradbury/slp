@@ -191,13 +191,12 @@ implementation
 			}
 			else
 			{
-				dbgerror("stdout", "send failed, not returning memory to pool\n");
+				dbgerror("stdout", "send failed, not returning memory to pool so it will be tried again\n");
 			}
 		}
 		else
 		{
 			DummyNormalMessage dummy_message;
-			memset(&dummy_message, 0, sizeof(dummy_message));
 
 			send_DummyNormal_message(&dummy_message, AM_BROADCAST_ADDR);
 		}
@@ -255,6 +254,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(DummyNormal, Receive)
+		case SourceNode:
 		case SinkNode:
 		case NormalNode: x_receive_DummyNormal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(DummyNormal)
