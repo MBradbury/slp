@@ -7,6 +7,9 @@ from data import latex
 from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
+
+    _key_names_base = ['size', 'configuration', 'attacker model', 'noise model', 'communication model', 'source period']
+
     def __init__(self, output_directory, result_name,
                  xaxis, yaxis, vary, yextractor=lambda x: x):
 
@@ -57,11 +60,13 @@ class Grapher(GrapherBase):
 
         dat = {}
 
-        for ((size, config, attacker, noise_model), items1) in simulation_results.data.items():
+        for (data_key, items1) in simulation_results.data.items():
             for (src_period, items2) in items1.items():
-                for (params, results) in items2.items():
+                for (params, results) in items2.items:
 
-                    key_names = ['size', 'configuration', 'attacker model', 'noise model', 'source period'] + simulation_results.parameter_names
+                    (size, config, attacker, noise_model, communication_model) = data_key  
+
+                    key_names = self._key_names_base + simulation_results.parameter_names
 
                     values = [size, config, attacker, noise_model, src_period] + list(params)
 
