@@ -33,8 +33,6 @@ class Grapher(GrapherBase):
         for (data_key, items1) in comparison_results.data.items():
             for (src_period, items2) in items1.items():
 
-                (size, config, attacker, noise_model) = data_key
-
                 local_min = None
                 local_max = None
 
@@ -54,11 +52,11 @@ class Grapher(GrapherBase):
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
 
-                    (size, config, attacker, noise_model) = data_key
+                    (size, config, attacker, noise_model, communication_model) = data_key
 
-                    key_names = ['size', 'configuration', 'attacker model', 'noise model', 'source period'] + actual_results.parameter_names
+                    key_names = self._key_names_base + actual_results.parameter_names
 
-                    values = [size, config, attacker, noise_model, src_period] + list(params)
+                    values = [size, config, attacker, noise_model, communication_model, src_period] + list(params)
 
                     (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
