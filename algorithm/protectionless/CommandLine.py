@@ -16,9 +16,9 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["meyer-heavy", "casino-lab"]
+    noise_models = ["casino-lab"]
 
-    communication_models = ["no-asymmetry", "high-asymmetry"]
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
@@ -48,7 +48,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 750
 
-    attacker_models = ['SeqNoReactiveAttacker()']
+    attacker_models = ['BasicReactiveAttacker()', 'IgnorePreviousLocationReactiveAttacker()']
 
     parameter_names = tuple()
 
