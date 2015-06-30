@@ -52,11 +52,9 @@ class Grapher(GrapherBase):
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
 
-                    (size, config, attacker, noise_model, communication_model) = data_key
-
                     key_names = self._key_names_base + actual_results.parameter_names
 
-                    values = [size, config, attacker, noise_model, communication_model, src_period] + list(params)
+                    values = list(data_key) + [src_period] + list(params)
 
                     (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
