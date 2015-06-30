@@ -42,7 +42,7 @@ class Grapher(GrapherBase):
         self.yextractor = yextractor
 
     @staticmethod        
-    def remove_index(names, values, index_name):
+    def _remove_index(names, values, index_name):
         idx = names.index(index_name)
 
         value = values[idx]
@@ -68,8 +68,8 @@ class Grapher(GrapherBase):
 
                     values = list(data_key) + [src_period] + list(params)
 
-                    (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
-                    (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
+                    (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
+                    (key_names, values, vvalue) = self._remove_index(key_names, values, self.vary)
 
                     key_names = tuple(key_names)
                     values = tuple(values)

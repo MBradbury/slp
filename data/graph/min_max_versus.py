@@ -56,8 +56,8 @@ class Grapher(GrapherBase):
 
                     values = list(data_key) + [src_period] + list(params)
 
-                    (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
-                    (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
+                    (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
+                    (key_names, values, vvalue) = self._remove_index(key_names, values, self.vary)
 
                     key_names = tuple(key_names)
                     values = tuple(values)
