@@ -16,7 +16,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["casino-lab"]
+    noise_models = ["casino-lab", "meyer-heavy"]
 
     communication_models = ["low-asymmetry"]
 
@@ -25,7 +25,7 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        'SourceCorner',
+        #'SourceCorner',
         #'SinkCorner',
         #'FurtherSinkCorner',
         #'Generic1',
@@ -44,6 +44,9 @@ class CLI(CommandLineCommon.CLI):
         #'Source2Edges',
         #'Source4Edges',
         #'Source2Corner',
+
+        'LineSinkCentre',
+        'SimpleTreeSinkEnd'
     ]
 
     repeats = 750

@@ -157,11 +157,11 @@ class IgnorePastNLocationsReactiveAttacker(Attacker):
         return type(self).__name__ + "(memory_size={})".format(self.memory_size)
 
 class TimeSensitiveReactiveAttacker(Attacker):
-    def __init__(self, wait_time):
+    def __init__(self, wait_time_secs):
         super(TimeSensitiveReactiveAttacker, self).__init__()
         self.previous_location = None
         self.last_moved_time = None
-        self.wait_time = wait_time
+        self.wait_time_secs = wait_time_secs
 
     def process(self, line):
         # Don't want to move if the source has been found
@@ -170,7 +170,7 @@ class TimeSensitiveReactiveAttacker(Attacker):
 
         (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
 
-        if self.last_moved_time is not None and abs(time - self.last_moved_time) < self.wait_time:
+        if self.last_moved_time is not None and abs(time - self.last_moved_time) < self.wait_time_secs:
             return
 
         if self.position == node_id and \
@@ -188,7 +188,7 @@ class TimeSensitiveReactiveAttacker(Attacker):
         super(TimeSensitiveReactiveAttacker, self).move(node_id)
 
     def __str__(self):
-        return type(self).__name__ + "(wait_time={})".format(self.wait_time)
+        return type(self).__name__ + "(wait_time_secs={})".format(self.wait_time_secs)
 
 
 # This attacker can determine the type of a message and its sequence number,

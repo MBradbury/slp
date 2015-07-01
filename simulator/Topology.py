@@ -1,6 +1,23 @@
 import os, random, itertools
 from scipy.spatial.distance import euclidean
 
+class Line:
+    def __init__(self, size, distance, initial_position=10.0):
+        self.size = size
+        self.distance = distance
+
+        y = 0
+
+        self.nodes = [
+            (float(x * distance + initial_position), float(y * distance + initial_position))
+            for x in xrange(size)
+        ]
+
+        self.centre_node = self.nodes[(len(self.nodes) - 1) / 2]
+
+    def __str__(self):
+        return "Line<size={}>".format(self.size)
+
 class Grid:
     def __init__(self, size, distance, initial_position=10.0):
         self.size = size
@@ -55,6 +72,24 @@ class Ring:
 
     def __str__(self):
         return "Ring<diameter={}>".format(self.diameter)
+
+class SimpleTree:
+    """Creates a tree with a single branch."""
+    def __init__(self, size, distance, initial_position=10.0):
+        self.size = size
+        self.distance = distance
+
+        self.nodes = [
+            (float(x * distance + initial_position), float(y * distance + initial_position))
+            for y in xrange(size)
+            for x in xrange(size)
+            if (y == 0 or x == (size - 1) / 2)
+        ]
+
+        self.centre_node = self.nodes[(len(self.nodes) - 1) / 2]
+
+    def __str__(self):
+        return "SimpleTree<size={}>".format(self.size)
 
 class Random:
     def __init__(self, network_size, distance, initial_position=10.0):
