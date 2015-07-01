@@ -1,7 +1,7 @@
 
 import itertools
 
-from simulator.Topology import Ring, Grid, Random
+from simulator.Topology import SimpleTree, Line, Ring, Grid, Random
 
 from scipy.spatial.distance import euclidean
 
@@ -107,6 +107,28 @@ class Configuration(object):
 
         return path[::-1]
 
+
+class LineSinkCentre(Configuration):
+    def __init__(self, network_size, distance):
+        line = Line(network_size, distance)
+
+        super(LineSinkCentre, self).__init__(
+            line,
+            source_ids={0},
+            sink_id=(len(line.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
+class SimpleTreeSinkEnd(Configuration):
+    def __init__(self, network_size, distance):
+        tree = SimpleTree(network_size, distance)
+
+        super(SimpleTreeSinkEnd, self).__init__(
+            tree,
+            source_ids={0},
+            sink_id=network_size - 1,
+            space_behind_sink=True
+        )
 
 class SourceCorner(Configuration):
     def __init__(self, network_size, distance):

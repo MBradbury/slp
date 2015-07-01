@@ -6,7 +6,7 @@ approaches = ["PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Adaptive", add_help=True)
+        parser = argparse.ArgumentParser(description="SLP Psrc Adaptive", add_help=True)
         super(Arguments, self).__init__(parser, has_safety_period=True)
 
         parser.add_argument("--source-period",
