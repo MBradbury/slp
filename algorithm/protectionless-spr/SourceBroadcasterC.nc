@@ -43,7 +43,9 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 #define UPDATE_SINK_DISTANCE(rcvd, name) \
 { \
 	if (rcvd->name != BOTTOM) \
+	{ \
 		sink_distance = minbot(sink_distance, rcvd->name + 1); \
+	} \
 }
 
 module SourceBroadcasterC
