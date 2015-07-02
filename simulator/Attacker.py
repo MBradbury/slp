@@ -7,7 +7,7 @@ from data.restricted_eval import restricted_eval
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
 _messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
-_messages_to_ignore = {'Beacon'}
+_messages_to_ignore = {'Beacon', 'Away', 'Move'}
 
 class Attacker(object):
     def __init__(self):
