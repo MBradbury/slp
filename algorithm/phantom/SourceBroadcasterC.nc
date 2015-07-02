@@ -32,7 +32,7 @@ void distance_print(char* name, size_t i, am_addr_t address, distance_container_
 		i, address, contents->distance);
 }
 
-DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, 16);
+DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
 module SourceBroadcasterC
 {
