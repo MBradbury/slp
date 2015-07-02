@@ -34,6 +34,20 @@ void distance_print(char* name, size_t i, am_addr_t address, distance_container_
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
+#define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
+{ \
+	const distance_container_t dist = { rcvd->name }; \
+	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_LANDMARK_DISTANCE(rcvd, name) \
+{ \
+	if (rcvd->name != BOTTOM) \
+	{ \
+		landmark_distance = minbot(landmark_distance, rcvd->name + 1); \
+	} \
+}
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -403,8 +417,7 @@ implementation
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const distance_container_t dist = { rcvd->landmark_distance_of_sender };
-		insert_distance_neighbour(&neighbours, source_addr, &dist);
+		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -475,8 +488,7 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (rcvd->landmark_distance_of_sender != BOTTOM)
-			landmark_distance = minbot(landmark_distance, rcvd->landmark_distance_of_sender + 1);
+		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
 		process_normal(msg, rcvd, source_addr);
 	}
@@ -491,11 +503,9 @@ implementation
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const distance_container_t dist = { rcvd->landmark_distance_of_sender };
-		insert_distance_neighbour(&neighbours, source_addr, &dist);
+		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
-		if (rcvd->landmark_distance_of_sender != BOTTOM)
-			landmark_distance = minbot(landmark_distance, rcvd->landmark_distance_of_sender + 1);
+		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
@@ -507,8 +517,7 @@ implementation
 	// If the sink snoops a normal message, we may as well just deliver it
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const distance_container_t dist = { rcvd->landmark_distance_of_sender };
-		insert_distance_neighbour(&neighbours, source_addr, &dist);
+		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
@@ -525,13 +534,9 @@ implementation
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const distance_container_t dist = { rcvd->landmark_distance_of_sender };
-		insert_distance_neighbour(&neighbours, source_addr, &dist);
+		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
-		if (rcvd->landmark_distance_of_sender != BOTTOM)
-		{
-			landmark_distance = minbot(landmark_distance, rcvd->landmark_distance_of_sender + 1);
-		}
+		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
 		//dbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
@@ -548,11 +553,9 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		const distance_container_t dist = { rcvd->landmark_distance };
-		insert_distance_neighbour(&neighbours, source_addr, &dist);
+		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
 
-		if (rcvd->landmark_distance != BOTTOM)
-			landmark_distance = minbot(landmark_distance, rcvd->landmark_distance + 1);
+		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -586,11 +589,9 @@ implementation
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		const distance_container_t dist = { rcvd->landmark_distance_of_sender };
-		insert_distance_neighbour(&neighbours, source_addr, &dist);
+		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
-		if (rcvd->landmark_distance_of_sender != BOTTOM)
-			landmark_distance = minbot(landmark_distance, rcvd->landmark_distance_of_sender + 1);
+		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
 	}
