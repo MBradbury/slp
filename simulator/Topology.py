@@ -92,53 +92,50 @@ class SimpleTree:
         return "SimpleTree<size={}>".format(self.size)
 
 class Random:
-    def __init__(self, network_size, distance, initial_position=10.0):
-        self.seed = random.random()
+    def __init__(self, network_size, distance, seed=3, initial_position=10.0):
+        self.seed = seed
         self.size = network_size
+        self.distance = distance
 
         rnd = random.Random()
         rnd.seed(self.seed)
 
-        min_x_pos = 0
-        min_y_pos = 0
-        max_x_pos = network_size * distance * 2
-        max_y_pos = network_size * distance * 2
+        min_x_pos = initial_position
+        min_y_pos = initial_position
+        max_x_pos = initial_position + network_size * distance
+        max_y_pos = initial_position + network_size * distance
 
         self.area = ((min_x_pos, max_x_pos), (min_y_pos, max_y_pos))
 
-        min_x_pos += initial_position
-        max_x_pos += initial_position
-        min_y_pos += initial_position
-        max_y_pos += initial_position
-
-        self.nodes = None
-
-        # Due to LinkLayerModel, the distance between nodes must be greater than or equal to 1.
-
         def random_coordinate():
             return (
-                min_x_pos + rnd.random() * ((max_x_pos - min_x_pos) + 1),
-                min_y_pos + rnd.random() * ((max_y_pos - min_y_pos) + 1)
+                rnd.uniform(min_x_pos, max_x_pos),
+                rnd.uniform(min_y_pos, max_y_pos)
             )
 
-        def create_nodes():
-            return [random_coordinate() for n in xrange(network_size ** 2)]
-
-        def check_nodes():
+        def check_nodes(node):
+            """All nodes must not be closer than 1m, as TOSSIM doesn't allow this."""
             return all(
-                i == j or euclidean(node1, node2) > 1.0
-                for ((i, node1), (j, node2))
-                in itertools.product(enumerate(self.nodes), enumerate(self.nodes))
+                euclidean(node, other_node) > 1.0
+                for other_node
+                in self.nodes
             )
 
-        max_loops = 20
+        max_retries = 20
 
-        for loops in xrange(max_loops):
-            self.nodes = create_nodes()
-            if check_nodes():
-                break
-        else:
-            raise RuntimeError("Unable to allocate a valid set of random node positions in {} loops.".format(max_loops))
+        self.nodes = []
+        for i in xrange(network_size ** 2):
+            coord = None
+
+            for x in xrange(max_retries):
+                coord = random_coordinate()
+
+                if check_nodes(coord):
+                    break
+            else:
+                raise RuntimeError("Unable to allocate random node within {} tries.".format(max_retries))
+
+            self.nodes.append(coord)
 
     def __str__(self):
         return "Random<seed={},network_size={},area={}>".format(self.seed, self.size, self.area)
