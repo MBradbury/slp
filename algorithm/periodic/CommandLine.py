@@ -16,7 +16,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["casino-lab"]
+    noise_models = ["meyer-heavy", "casino-lab"]
 
     communication_models = ["low-asymmetry"]
 
@@ -28,8 +28,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        'SinkCorner',
-        'FurtherSinkCorner',
+        #'SinkCorner',
+        #'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
         
@@ -71,8 +71,8 @@ class CLI(CommandLineCommon.CLI):
         )
 
         argument_product = [
-            (size, src_period, config, attacker, noise, distance, broadcast_period)
-            for (size, (src_period, broadcast_period), config, attacker, noise, distance)
+            (size, src_period, config, attacker, noise, communication_model, distance, broadcast_period)
+            for (size, (src_period, broadcast_period), config, attacker, noise, communication_model, distance)
             in argument_product
         ]
 
