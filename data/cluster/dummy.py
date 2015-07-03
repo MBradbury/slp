@@ -1,9 +1,18 @@
 
+def name():
+    return __name__
+
 def url():
     return None
 
 def ppn():
     return 1
+
+def theads_per_processor():
+    return 1
+
+def ram_per_node():
+    return 1 * 1024
 
 def builder():
     from data.run.driver.cluster_builder import Runner as Builder
@@ -25,7 +34,7 @@ def submitter(notify_emails=None):
 
     ram_per_job_mb = 1000
 
-    cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime=500:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
+    cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime=500:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_node())
 
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
