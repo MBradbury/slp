@@ -61,6 +61,8 @@ class ArgumentsCommon(object):
             if len(configuration.source_ids) != 1:
                 raise RuntimeError("Invalid number of source ids in configuration {}, there must be exactly one.".format(configuration))
 
-            result["SOURCE_NODE_ID"] = list(configuration.source_ids)[0]
+            (source_id,) = configuration.source_ids
+
+            result["SOURCE_NODE_ID"] = source_id
 
         return result
