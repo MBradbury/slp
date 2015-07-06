@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import os, itertools
 
+from simulator.Simulator import Simulator
 from algorithm.common import CommandLineCommon
 
 from data import results, latex
@@ -75,9 +76,12 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
 
-        filename = '{}-results'.format(self.algorithm_module.name)
+        for noise_model in Simulator.available_noise_models():
 
-        self._create_table(filename, safety_period_table)
+            filename = '{}-{}-results'.format(self.algorithm_module.name, noise_model)
+
+            self._create_table(filename, safety_period_table,
+                               param_filter=lambda (cm, nm, am, c): nm == noise_model)
 
     def _run_graph(self, args):
         heatmap_parameters = ('sent heatmap', 'received heatmap')
