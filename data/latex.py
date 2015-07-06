@@ -32,7 +32,7 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
     data.util.silent_remove(os.path.join(path, name_without_ext + ".pdf"))
 
     try:
-        command = "{} {}".format(executable, path_and_name)
+        command = "{} \"{}\"".format(executable, path_and_name)
 
         subprocess.call(command, shell=True)
 
