@@ -1,3 +1,5 @@
+from __future__ import division
+
 import collections
 
 from simulator.Simulator import OutputCatcher
@@ -7,6 +9,9 @@ from data.restricted_eval import restricted_eval
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
 _messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
+
+# An attacker can detect these are not messages to follow,
+# so the attacker will ignore these messages.
 _messages_to_ignore = {'Beacon', 'Away', 'Move'}
 
 class Attacker(object):
@@ -46,6 +51,14 @@ class Attacker(object):
             return
 
         args = (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
+
+        # We get called any time a message is received anywhere,
+        # so first of all filter out messages being received by any node
+        # other than the node the attacker is co-located with.
+
+        # There are a number of message types an attacker will be able
+        # to identify as protocol support messages. The attacker does not move
+        # in response to these messages.
 
         if self.position == node_id and \
            msg_type not in _messages_to_ignore and \
@@ -112,6 +125,7 @@ class DeafAttacker(Attacker):
         return False
 
 class BasicReactiveAttacker(Attacker):
+    """An attacker that reacts to every message that it should react to."""
     def move_predicate(self, *args):
         return True
 
@@ -150,7 +164,8 @@ class TimeSensitiveReactiveAttacker(Attacker):
         self._wait_time_secs = wait_time_secs
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
-        return self._last_moved_time is None or abs(time - self._last_moved_time) >= self._wait_time_secs
+        return self._last_moved_time is None or \
+               abs(time - self._last_moved_time) >= self._wait_time_secs
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         self._previous_location = node_id
