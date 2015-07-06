@@ -155,12 +155,14 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'right top'),
+            'norm(captured,received ratio)': ('Captured (%) / Receive Ratio (%)', 'right top'),
         }
 
         custom_yaxis_range_max = {
             'sent': 450000,
             'captured': 20,
-            'received ratio': 100
+            'received ratio': 100,
+            'norm(captured,received ratio)': 10,
         }
 
         adaptive_results = results.Results(
