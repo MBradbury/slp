@@ -1,4 +1,3 @@
-from __future__ import division
 import os, random, itertools
 from scipy.spatial.distance import euclidean
 
