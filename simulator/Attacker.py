@@ -221,6 +221,9 @@ def default():
 def eval_input(source):
     result = restricted_eval(source, models())
 
+    if result in models():
+        raise RuntimeError("The source ({}) is not valid. (Did you forget the brackets after the name?)".format(source))
+
     if not isinstance(result, Attacker):
         raise RuntimeError("The source ({}) is not valid.".format(source))
 
