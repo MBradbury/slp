@@ -91,15 +91,25 @@ class Results(object):
             norm_value = self._process(norm_name, headers, values)
             div_value = self._process(div_name, headers, values)
 
-            result = norm_value / div_value
-
             # Not sure if the stddev can be normalised like this
             # So lets just not do this for now.
-            if isinstance(result, (collections.Sequence, numpy.ndarray)):
-                # Return just the mean
-                return result[0]
+            if isinstance(norm_value, (collections.Sequence, numpy.ndarray)):
+                norm_value = norm_value[0]
+
+            if isinstance(div_value, (collections.Sequence, numpy.ndarray)):
+                div_value = div_value[0]
+
+            if div_value == 0:
+                result = float('inf')
             else:
-                return result
+                result = norm_value / div_value
+
+            # Gnuplot will not graph infinity, so lets just give it a big value
+            if numpy.isinf(result):
+                result = 2e300
+
+            return result
+            
 
         index = headers.index(name)
         value = values[index]
