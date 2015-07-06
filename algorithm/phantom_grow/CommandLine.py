@@ -20,7 +20,9 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_model = "casino-lab"
+    noise_models = ["meyer-heavy", "casino-lab"]
+
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
@@ -28,8 +30,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        'SinkCorner',
-        'FurtherSinkCorner',
+        #'SinkCorner',
+        #'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
         
@@ -64,15 +66,15 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.ifilter(
-            lambda (size, _1, _2, _3, _4, _5, walk_length): walk_length in self.walk_hop_lengths[size],
+            lambda (size, _1, _2, _3, _4, _5, _6, walk_length): walk_length in self.walk_hop_lengths[size],
             itertools.product(
                 self.sizes, self.source_periods, self.configurations,
-                self.attacker_models, [self.noise_model], [self.distance],
+                self.attacker_models, self.noise_models, self.communication_models, [self.distance],
                 set(itertools.chain(*self.walk_hop_lengths.values())))
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'distance', 'random_walk_hops')
+                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'random_walk_hops')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
