@@ -34,10 +34,15 @@ class TableGenerator:
             itertools.product(communication_models, noise_models, attacker_models, configurations)
         ))
 
-        for (communication_model, noise_model, attacker_model, config) in product_three:
+        for product_three_key in product_three:
 
             if not any(table_key in self._results.data for table_key in product_all):
                 continue
+
+            if not param_filter(product_three_key):
+                continue
+
+            (communication_model, noise_model, attacker_model, config) = product_three_key
 
             print('\\begin{table}', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
