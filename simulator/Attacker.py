@@ -212,8 +212,7 @@ class SeqNosReactiveAttacker(Attacker):
 
 def models():
     """A list of the the available attacker models."""
-    print(Attacker.__subclasses__())
-    return [cls for cls in Attacker.__subclasses__()]
+    return Attacker.__subclasses__()
 
 def default():
     """Gets the the default attacker model"""
