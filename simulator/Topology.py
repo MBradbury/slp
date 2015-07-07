@@ -13,7 +13,7 @@ class Line:
             for x in xrange(size)
         ]
 
-        self.centre_node = self.nodes[(len(self.nodes) - 1) / 2]
+        self.centre_node = (len(self.nodes) - 1) / 2
 
     def __str__(self):
         return "Line<size={}>".format(self.size)
@@ -29,7 +29,11 @@ class Grid:
             for x in xrange(size)
         ]
 
-        self.centre_node = self.nodes[(len(self.nodes) - 1) / 2]
+        self.top_left = 0
+        self.top_right = size - 1
+        self.centre_node = (len(self.nodes) - 1) / 2
+        self.bottom_left = len(self.nodes) - size
+        self.bottom_right = len(self.nodes) - 1
 
     def __str__(self):
         return "Grid<size={}>".format(self.size)
@@ -85,8 +89,6 @@ class SimpleTree:
             for x in xrange(size)
             if (y == 0 or x == (size - 1) / 2)
         ]
-
-        self.centre_node = self.nodes[(len(self.nodes) - 1) / 2]
 
     def __str__(self):
         return "SimpleTree<size={}>".format(self.size)
