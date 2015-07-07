@@ -55,7 +55,7 @@ class GraphSummary:
             self._write_latex_header(output_latex)
 
             walk_dir = self.directory
-            print("Looking for graphs in {}".format(walk_dir))
+            print("Summary: Looking for graphs in {}".format(walk_dir))
 
             for (root, subdirs, files) in os.walk(walk_dir):
                 print(root)
@@ -69,7 +69,7 @@ class GraphSummary:
 
 
     def compile(self):
-        latex.compile_document(self.name + '.tex')
+        latex.compile_document('{}.tex'.format(self.name))
 
     def clean(self):
         extensions = ['.pdf', '.tex']
