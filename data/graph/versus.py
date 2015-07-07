@@ -62,7 +62,7 @@ class Grapher(GrapherBase):
 
         for (data_key, items1) in simulation_results.data.items():
             for (src_period, items2) in items1.items():
-                for (params, results) in items2.items:
+                for (params, results) in items2.items():
 
                     key_names = self._key_names_base + simulation_results.parameter_names
 
