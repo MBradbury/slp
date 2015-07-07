@@ -86,7 +86,7 @@ class Grapher(GrapherBase):
     def _create_plot(self, key_names, key_values, values):
         dir_name = os.path.join(self.output_directory, self.result_name, *map(str, key_values))
 
-        print(dir_name)
+        print("Currently in " + dir_name)
 
         # Ensure that the dir we want to put the files in actually exists
         data.util.create_dirtree(dir_name)

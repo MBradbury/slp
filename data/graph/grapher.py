@@ -29,7 +29,7 @@ class GrapherBase(object):
 
         walk_dir = os.path.abspath(os.path.join(self.output_directory, subdir))
 
-        print(walk_dir)
+        print("Walking {}:".format(walk_dir))
 
         def worker(queue):
             while True:
