@@ -431,7 +431,7 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->forced_broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
 			{
 				am_addr_t target;
 
@@ -457,9 +457,11 @@ implementation
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 
+				// A node on the path away from, or towards the landmark node
+				// doesn't have anyone to send to.
+				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					forwarding_message.forced_broadcast = TRUE;
 					return;
 				}
 
@@ -472,12 +474,15 @@ implementation
 			}
 			else
 			{
-				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
+				if ((rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->forced_broadcast) || TOS_NODE_ID == LANDMARK_NODE_ID)
 				{
 					dbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
 						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
+
+				// We want other nodes to continue broadcasting
+				forwarding_message.forced_broadcast = TRUE;
 
 				call Packet.clear(&packet);
 
@@ -495,6 +500,8 @@ implementation
 
 	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+
 		// It is helpful to have the sink forward Normal messages onwards
 		// Otherwise there is a chance the random walk would terminate at the sink and
 		// not flood the network.
@@ -518,6 +525,8 @@ implementation
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
+
+		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
@@ -584,6 +593,7 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
 		case NormalNode: x_receive_Away(msg, rcvd, source_addr); break;
 		case SourceNode: x_receive_Away(msg, rcvd, source_addr); break;
+		case SinkNode: x_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
@@ -599,5 +609,6 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
 		case NormalNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
 		case SourceNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
+		case SinkNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
 }

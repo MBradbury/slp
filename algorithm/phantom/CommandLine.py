@@ -23,7 +23,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["casino-lab"]
+    noise_models = ["meyer-heavy", "casino-lab"]
 
     communication_models = ["low-asymmetry"]
 
@@ -53,9 +53,11 @@ class CLI(CommandLineCommon.CLI):
 
     walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
 
+    landmark_nodes = ['sink_id', 'bottom_right']
+
     repeats = 500
 
-    parameter_names = ('walk length',)
+    parameter_names = ('walk length', 'landmark node')
 
 
     def __init__(self):
@@ -69,15 +71,15 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.ifilter(
-            lambda (size, _1, _2, _3, _4, _5, _6, walk_length): walk_length in self.walk_hop_lengths[size],
+            lambda (size, _1, _2, _3, _4, _5, _6, walk_length, _7): walk_length in self.walk_hop_lengths[size],
             itertools.product(
                 self.sizes, self.source_periods, self.configurations,
                 self.attacker_models, self.noise_models, self.communication_models, [self.distance],
-                set(itertools.chain(*self.walk_hop_lengths.values())))
+                set(itertools.chain(*self.walk_hop_lengths.values())), self.landmark_nodes)
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'random_walk_hops')
+                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'random_walk_hops', 'landmark_node')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
@@ -150,12 +152,12 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'right top'),
-            'norm(captured,received ratio)': ('Captured (%) / Receive Ratio (%)', 'right top'),
+            #'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            #'captured': ('Capture Ratio (%)', 'right top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            #'received ratio': ('Receive Ratio (%)', 'right top'),
+            #'norm(captured,received ratio)': ('Captured (%) / Receive Ratio (%)', 'right top'),
         }
 
         custom_yaxis_range_max = {
