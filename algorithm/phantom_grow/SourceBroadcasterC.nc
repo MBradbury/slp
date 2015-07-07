@@ -16,39 +16,28 @@
 #include <assert.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 typedef struct
 {
-	int16_t distance;
 } distance_container_t;
 
 void distance_container_update(distance_container_t* find, distance_container_t const* given)
 {
-	find->distance = minbot(find->distance, given->distance);
 }
 
 void distance_container_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
-	dbg_clear(name, "[%u] => addr=%u / dist=%d",
-		i, address, contents->distance);
+	dbg_clear(name, "[%u] => addr=%u", i, address);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_container_update, distance_container_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
-#define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
+#define UPDATE_NEIGHBOURS(rcvd, source_addr) \
 { \
-	const distance_container_t dist = { rcvd->name }; \
+	const distance_container_t dist = { }; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
-}
-
-#define UPDATE_LANDMARK_DISTANCE(rcvd, name) \
-{ \
-	if (rcvd->name != BOTTOM) \
-	{ \
-		landmark_distance = minbot(landmark_distance, rcvd->name + 1); \
-	} \
 }
 
 module SourceBroadcasterC
@@ -108,8 +97,6 @@ implementation
 		default:              return "<unknown> ";
 		}
 	}
-
-	int16_t landmark_distance = BOTTOM;
 
 	distance_neighbours_t neighbours;
 
@@ -182,8 +169,7 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			dbgverbose("slp-debug", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
-				landmark_distance, neighbours.size);
+			dbgverbose("slp-debug", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n", neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
@@ -200,9 +186,8 @@ implementation
 			print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
-			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
-				chosen_address, neighbour_index, rnd, local_neighbours.size,
-				neighbour->contents.distance, landmark_distance);
+			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size);
 		}
 
 		return chosen_address;
@@ -326,14 +311,14 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
-		message.landmark_distance_of_sender = landmark_distance;
+		message.forced_broadcast = FALSE;
 
 		fill_bloom_neighbours(&message.senders_neighbours);
 
 		target = random_walk_target(&message, NULL, NULL, 0);
 
 		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
-			sim_time_string(), target, message.further_or_closer_set);
+			sim_time_string(), target);
 
 		call Packet.clear(&packet);
 
@@ -349,13 +334,10 @@ implementation
 	{
 		AwayMessage message;
 
-		landmark_distance = 0;
-
 		dbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
-		message.landmark_distance = landmark_distance;
 
 		call Packet.clear(&packet);
 
@@ -374,8 +356,6 @@ implementation
 
 		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
-		message.landmark_distance_of_sender = landmark_distance;
-
 		call Packet.clear(&packet);
 
 		send_Beacon_message(&message, AM_BROADCAST_ADDR);
@@ -383,7 +363,7 @@ implementation
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS(rcvd, source_addr);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -395,7 +375,6 @@ implementation
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
-			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
 			fill_bloom_neighbours(&forwarding_message.senders_neighbours);
 
@@ -428,6 +407,9 @@ implementation
 						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
+				dbgverbose("stdout", "%s: Broadcasting normal from %u (forced bcast = %d)\n",
+					sim_time_string(), TOS_NODE_ID, rcvd->forced_broadcast);
+
 				call Packet.clear(&packet);
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
@@ -437,8 +419,6 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
-
 		process_normal(msg, rcvd, source_addr);
 	}
 
@@ -452,9 +432,7 @@ implementation
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
-
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS(rcvd, source_addr);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
@@ -466,7 +444,7 @@ implementation
 	// If the sink snoops a normal message, we may as well just deliver it
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS(rcvd, source_addr);
 
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
@@ -483,9 +461,7 @@ implementation
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
-
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS(rcvd, source_addr);
 
 		//dbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
@@ -502,9 +478,7 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
-
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
+		UPDATE_NEIGHBOURS(rcvd, source_addr);
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -515,7 +489,7 @@ implementation
 			METRIC_RCV_AWAY(rcvd);
 
 			forwarding_message = *rcvd;
-			forwarding_message.landmark_distance += 1;
+			forwarding_message.source_distance += 1;
 
 			call Packet.clear(&packet);
 
@@ -533,14 +507,13 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
 		case NormalNode: x_receive_Away(msg, rcvd, source_addr); break;
 		case SourceNode: x_receive_Away(msg, rcvd, source_addr); break;
+		case SinkNode: x_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
-
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS(rcvd, source_addr);
 
 		METRIC_RCV_BEACON(rcvd);
 	}
@@ -548,5 +521,6 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
 		case NormalNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
 		case SourceNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
+		case SinkNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
 }

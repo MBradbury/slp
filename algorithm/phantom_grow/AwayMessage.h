@@ -9,9 +9,7 @@ typedef nx_struct AwayMessage
 
   nx_am_addr_t source_id;
 
-  // The number of hops that this message
-  // has travelled from the landmark node. 
-  nx_uint16_t landmark_distance;
+  nx_uint16_t source_distance;
 
 } AwayMessage;
 
