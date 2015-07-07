@@ -5,16 +5,12 @@ import numpy
 from data.table.fake_result import ResultTable as BaseResultTable
 from data import latex
 
-from simulator.Configuration import CONFIGURATION_RANK
+from simulator.Configuration import configuration_rank
 
 class ResultTable(BaseResultTable):
     bad = '\\badcolour'
     good = '\\goodcolour'
     neutral = ''
-
-    @staticmethod
-    def _configuration_rank(configuration):
-        return CONFIGURATION_RANK[configuration] if configuration in CONFIGURATION_RANK else len(CONFIGURATION_RANK) + 1
 
     def __init__(self, base_results, comparison_results):
 
@@ -56,7 +52,8 @@ class ResultTable(BaseResultTable):
             for (src_period, items2) in items1.items():
                 for (base_params, base_values) in items2.items():
                     try:
-                        for (comp_params, comp_values) in self.comparison_results.data[(size, config)][src_period].items():
+                        items3 = self.comparison_results.data[(size, config)][src_period].items()
+                        for (comp_params, comp_values) in items3:
 
                             self.diff \
                                 .setdefault((size, config), {}) \
@@ -68,12 +65,14 @@ class ResultTable(BaseResultTable):
                             self.sizes.add(size)
 
                     except KeyError as ex:
-                        print("Skipping {} due to KeyError({})".format((size, config, src_period), ex))
+                        print("Skipping {} due to KeyError({})".format(
+                            (size, config, src_period), ex
+                        ))
 
     def write_tables(self, stream, param_filter=lambda x: True):
         print('\\vspace{-0.3cm}', file=stream)
 
-        for configuration in sorted(self.configurations, key=lambda x: CONFIGURATION_RANK[x]):
+        for configuration in sorted(self.configurations, key=configuration_rank):
             for size in sorted(self.sizes):
                 table_key = (size, configuration)
 
@@ -131,18 +130,18 @@ class ResultTable(BaseResultTable):
 
         def with_rel_diff(fn, value, fmt):
             if value[1] is not None:
-                return ("${} " + fmt + "$ $({:+.0f}\\%)$").format(fn(value[0]), *value)
+                return ("${} " + fmt + "$ $({:+.0f}\\%)$").format(fn(value[0]), value[0], value[1])
             else:
-                return ("${} " + fmt + "$ $(\\mathrm{{N/A}}\\%)$").format(fn(value[0]), *value)
+                return ("${} " + fmt + "$ $(\\mathrm{{N/A}}\\%)$").format(fn(value[0]), value[0])
 
         if name == "tfs" or name == "pfs":
-            return "${:+.1f}$".format(*value)
+            return "${:+.1f}$".format(value[0])
         elif name == "received ratio":
-            return "${} {:+.1f}$".format(colour_pos(value[0]), *value)
+            return "${} {:+.1f}$".format(colour_pos(value[0]), value[0])
         elif name == "fake":
             return with_rel_diff(colour_neg, value, "{:+.0f}")
         elif name == "ssd":
-            return "${} {:+.2f}$".format(colour_neg(value[0]), *value)
+            return "${} {:+.2f}$".format(colour_neg(value[0]), value[0])
         elif name == "normal latency":
             return "${} {:+.2f}$".format(colour_neg(value[0]), value[0] * 1000)
         elif name == "captured":

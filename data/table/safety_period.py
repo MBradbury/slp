@@ -65,10 +65,10 @@ class TableGenerator:
 
                 for src_period in sorted(self._results.data[data_key]):
 
-                    results = self._results.data[data_key][src_period][tuple()]
+                    result = self._results.data[data_key][src_period][tuple()]
 
                     def _get_value(name):
-                        return results[self._result_names.index(name)]
+                        return result[self._result_names.index(name)]
 
                     rcv = _get_value('received ratio')
                     ssd = _get_value('ssd')
@@ -77,7 +77,9 @@ class TableGenerator:
                     safety_period = _get_value('safety period')
                     captured = _get_value('captured')
                 
-                    print('{} & {} & {:0.0f} $\\pm$ {:0.2f} & {:.1f} $\\pm$ {:.2f} & {:0.1f} $\\pm$ {:0.1f} & {:0.2f} $\\pm$ {:0.2f} & {:0.2f} & {:0.0f} \\tabularnewline'.format(
+                    print('{} & {} & {:0.0f} $\\pm$ {:0.2f} & {:.1f} $\\pm$ {:.2f}'
+                          ' & {:0.1f} $\\pm$ {:0.1f} & {:0.2f} $\\pm$ {:0.2f}'
+                          ' & {:0.2f} & {:0.0f} \\tabularnewline'.format(
                             size,
                             src_period,
                             rcv[0], rcv[1],
@@ -86,7 +88,7 @@ class TableGenerator:
                             time_taken[0], time_taken[1],
                             safety_period,
                             captured),
-                        file=stream)
+                          file=stream)
                     
                 print('\\hline', file=stream)
                 print('', file=stream)

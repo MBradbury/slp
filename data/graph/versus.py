@@ -8,7 +8,9 @@ from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
 
-    _key_names_base = ['size', 'configuration', 'attacker model', 'noise model', 'communication model', 'source period']
+    _key_names_base = ['size', 'configuration', 'attacker model',
+                       'noise model', 'communication model',
+                       'source period']
 
     def __init__(self, output_directory, result_name,
                  xaxis, yaxis, vary, yextractor=lambda x: x):
@@ -41,7 +43,7 @@ class Grapher(GrapherBase):
 
         self.yextractor = yextractor
 
-    @staticmethod        
+    @staticmethod
     def _remove_index(names, values, index_name):
         idx = names.index(index_name)
 
@@ -83,19 +85,8 @@ class Grapher(GrapherBase):
 
         self._create_graphs(self.result_name)
 
-    def _create_plot(self, key_names, key_values, values):
-        dir_name = os.path.join(self.output_directory, self.result_name, *map(str, key_values))
-
-        print("Currently in " + dir_name)
-
-        # Ensure that the dir we want to put the files in actually exists
-        data.util.create_dirtree(dir_name)
-
-        # Write our data
+    def _write_plot_data(self, dir_name, values, xvalues, vvalues):
         with open(os.path.join(dir_name, 'graph.dat'), 'w') as graph_dat:
-
-            xvalues = list({x[0] for x in values.keys()})
-            vvalues = list(sorted({x[1] for x in values.keys()}))
 
             table =  [ [ '#' ] + vvalues ]
 
@@ -108,9 +99,9 @@ class Grapher(GrapherBase):
 
             self._pprint_table(graph_dat, table)
 
-        columnCount = len(vvalues)
+        return len(vvalues)
 
-
+    def _write_plot_graph(self, dir_name, xvalues, vvalues):
         with open(os.path.join(dir_name, 'graph.gp'), 'w') as graph_p:
 
             graph_p.write('#!/usr/bin/gnuplot\n')
@@ -147,19 +138,39 @@ class Grapher(GrapherBase):
 
             if self.yaxis_font is not None:
                 graph_p.write('set ytics font {}\n'.format(self.yaxis_font))
-            
+
             graph_p.write('set output "graph.pdf"\n')
-            
+
             plots = []
 
-            for x in range(1, columnCount + 1):
+            column_count = len(vvalues)
+
+            for x in range(1, column_count + 1):
                 plots.append('"graph.dat" u 1:{} w lp ti \'{} {}{}\''.format(
                     x + 1, self.vary_label, vvalues[ x - 1 ], self.vary_prefix))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
-        
 
+    def _write_plot_caption(self, dir_name, key_names, key_values):
         with open(os.path.join(dir_name, 'graph.caption'), 'w') as graph_caption:
             graph_caption.write('Parameters:\\newline\n')
             for (name, value) in zip(key_names, key_values):
                 graph_caption.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
+
+    def _create_plot(self, key_names, key_values, values):
+        dir_name = os.path.join(self.output_directory, self.result_name, *map(str, key_values))
+
+        print("Currently in " + dir_name)
+
+        # Ensure that the dir we want to put the files in actually exists
+        data.util.create_dirtree(dir_name)
+
+        xvalues = list({x[0] for x in values.keys()})
+        vvalues = list(sorted({x[1] for x in values.keys()}))
+
+        # Write our data
+        self._write_plot_data(dir_name, values, xvalues, vvalues)
+
+        self._write_plot_graph(dir_name, xvalues, vvalues)
+
+        self._write_plot_caption(dir_name, key_names, key_values)
