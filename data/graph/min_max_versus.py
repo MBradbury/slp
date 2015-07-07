@@ -8,9 +8,11 @@ from data.graph.versus import Grapher as GrapherBase
 
 class Grapher(GrapherBase):
     def __init__(self, output_directory,
-            result_name, xaxis, yaxis, vary, yextractor=lambda x: x):
+                 result_name, xaxis, yaxis, vary, yextractor=lambda x: x):
 
-        super(Grapher, self).__init__(output_directory, result_name, xaxis, yaxis, vary, yextractor)
+        super(Grapher, self).__init__(
+            output_directory, result_name, xaxis, yaxis, vary, yextractor
+        )
 
         self.max_label = 'Maximum'
         self.min_label = 'Minimum'

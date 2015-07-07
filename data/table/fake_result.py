@@ -90,22 +90,22 @@ class ResultTable(object):
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
         elif name in {"received ratio", "ssd"}:
-            return "${:.1f} \\pm {:.1f}$".format(*value)
+            return "${:.1f} \\pm {:.1f}$".format(value[0], value[1])
         elif name == "fake":
-            return "${:.0f} \\pm {:.0f}$".format(*value)
+            return "${:.0f} \\pm {:.0f}$".format(value[0], value[1])
         elif name == "normal latency":
-            return "${:.0f} \\pm {:.0f}$".format(*(value * 1000))
+            return "${:.0f} \\pm {:.0f}$".format(value[0] * 1000, value[1] * 1000)
         elif name == "paths reached end":
-            return "${:.1f} \\pm {:.1f}$".format(*(value * 100))
+            return "${:.1f} \\pm {:.1f}$".format(value[0] * 100, value[1] * 100)
         else:
-            return "${:.3f} \\pm {:.3f}$".format(*value)
+            return "${:.3f} \\pm {:.3f}$".format(value[0], value[1])
 
 
     def write_tables(self, stream, param_filter=lambda x: True):
         print('\\vspace{-0.3cm}', file=stream)
 
         sizes = sorted(self.results.sizes)
-        configurations = sorted(self.results.configurations, key=lambda x: configuration_rank(x))
+        configurations = sorted(self.results.configurations, key=configuration_rank)
         attacker_models = sorted(self.results.attacker_models)
         noise_models = sorted(self.results.noise_models)
         communication_models = sorted(self.results.communication_models)

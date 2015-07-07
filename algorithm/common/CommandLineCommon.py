@@ -5,7 +5,12 @@ from data.table import fake_result
 from data.util import recreate_dirtree, touch
 
 class CLI(object):
+
+    parameter_names = None
+
     def __init__(self, package):
+        super(CLI, self).__init__()
+        
         self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
 
     @staticmethod

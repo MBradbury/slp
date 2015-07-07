@@ -7,7 +7,8 @@ from data import latex
 from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
-    def __init__(self, output_directory, results, result_name, shows, extractor=None, normalisor=None):
+    def __init__(self, output_directory, results, result_name, shows,
+                 extractor=None, normalisor=None):
         super(Grapher, self).__init__(output_directory)
 
         self.results = results
@@ -59,8 +60,8 @@ class Grapher(GrapherBase):
 
         all_positive = True
 
-        def quote(s):
-            return "\"{}\"".format(s)
+        def quote(string):
+            return "\"{}\"".format(string)
 
         # Write our data
         with open(os.path.join(dir_name, 'graph.dat'), 'w') as graph_dat:
@@ -107,9 +108,9 @@ class Grapher(GrapherBase):
             # 0 on the y axis.
             if all_positive:
                 graph_p.write('set yrange [0:]\n')
-            
+
             graph_p.write('set output "graph.pdf"\n')
-            
+
             plots = []
 
             for i, show in enumerate(self.shows):
@@ -119,7 +120,6 @@ class Grapher(GrapherBase):
                     plots.append('"graph.dat" using {} ti "{}"'.format(i + 2, show))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
-        
 
         with open(os.path.join(dir_name, 'graph.caption'), 'w') as graph_caption:
             graph_caption.write('Parameters:\\newline\n')

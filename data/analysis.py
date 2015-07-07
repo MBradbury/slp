@@ -280,9 +280,9 @@ class AnalyzerCommon(object):
                         print("Skipping as there is no data.")
                         continue
 
-                    lineData = [f(result) for f in self.values.values()]
+                    line_data = [fn(result) for fn in self.values.values()]
 
-                    print("|".join(lineData), file=out)
+                    print("|".join(line_data), file=out)
 
                 except EmptyFileError as e:
                     print(e)
@@ -299,4 +299,3 @@ class AnalyzerCommon(object):
                     num + 1, total, ((num + 1) / total) * 100.0, current_time_taken_str, estimated_remaining_str))
 
             print('Finished writing {}'.format(summary_file))
-

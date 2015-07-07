@@ -39,10 +39,10 @@ class Attacker(object):
         self._move(start_node_id)
         self.moves = 0
 
-    def move_predicate(self, *args):
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         raise NotImplementedError()
 
-    def update_state(self, *args):
+    def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         pass
 
     def process(self, line):
@@ -50,7 +50,7 @@ class Attacker(object):
         if self.found_source():
             return
 
-        args = (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
 
         # We get called any time a message is received anywhere,
         # so first of all filter out messages being received by any node
@@ -62,11 +62,11 @@ class Attacker(object):
 
         if self.position == node_id and \
            msg_type not in _messages_to_ignore and \
-           self.move_predicate(*args):
+           self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
             self._move(prox_from_id)
 
-            self.update_state(*args)
+            self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
             
             self._draw(time, self.position)
 
@@ -121,12 +121,12 @@ class Attacker(object):
 
 class DeafAttacker(Attacker):
     """An attacker that does nothing when it receives a message"""
-    def move_predicate(self, *args):
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         return False
 
 class BasicReactiveAttacker(Attacker):
     """An attacker that reacts to every message that it should react to."""
-    def move_predicate(self, *args):
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         return True
 
 # Same as IgnorePastNLocationsReactiveAttacker(1)
