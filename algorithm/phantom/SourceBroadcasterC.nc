@@ -462,6 +462,7 @@ implementation
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
+					forwarding_message.forced_broadcast = TRUE;
 					return;
 				}
 
@@ -474,7 +475,7 @@ implementation
 			}
 			else
 			{
-				if ((rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->forced_broadcast) || TOS_NODE_ID == LANDMARK_NODE_ID)
+				if (!rcvd->forced_broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == LANDMARK_NODE_ID))
 				{
 					dbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
