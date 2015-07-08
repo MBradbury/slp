@@ -8,7 +8,7 @@ class Analyzer(AnalyzerCommon):
         d = OrderedDict()
         self._set_results_header(d)
         d['walk length']        = lambda x: x.opts['random_walk_hops']
-        d['landmark_node']      = lambda x: x.opts['landmark_node']
+        d['landmark node']      = lambda x: x.opts['landmark_node']
         
         d['sent']               = lambda x: self._format_results(x, 'Sent')
         d['received']           = lambda x: self._format_results(x, 'Received')
