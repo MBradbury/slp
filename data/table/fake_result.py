@@ -85,7 +85,7 @@ class ResultTable(object):
             return "${:.0f}$".format(value * 100.0)
         elif name == "tfs" or name == "pfs":
             return "${:.1f}$".format(value[0])
-        elif name == "approach":
+        elif name in {"approach", "landmark node"}:
             return latex.escape(value)
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
@@ -96,7 +96,7 @@ class ResultTable(object):
         elif name == "normal latency":
             return "${:.0f} \\pm {:.0f}$".format(value[0] * 1000, value[1] * 1000)
         elif name == "paths reached end":
-            return "${:.1f} \\pm {:.1f}$".format(value[0] * 100, value[1] * 100)
+            return "${:.1f} \\pm {:.1f}$".format(value[0], value[1])
         else:
             return "${:.3f} \\pm {:.3f}$".format(value[0], value[1])
 

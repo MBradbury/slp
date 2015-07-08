@@ -20,10 +20,7 @@ class Results(object):
         self.noise_models = set()
         self.communication_models = set()
 
-        try:
-            self._read_results(result_file)
-        except BaseException as ex:
-            raise RuntimeError("Failure reading {}".format(result_file), ex)
+        self._read_results(result_file)
 
     def _read_results(self, result_file):
         with open(result_file, 'r') as f:
@@ -118,9 +115,9 @@ class Results(object):
             return float(value) * 100.0
         elif name in {'received ratio', 'paths reached end'}:
             return self.extract_average_and_stddev(value) * 100.0
-        elif '(' in value:
+        elif '(' in value and ')' in value:
             return self.extract_average_and_stddev(value)
-        elif name == 'approach':
+        elif name in {'approach', 'landmark node'}:
             return value
         else:
             return ast.literal_eval(value)
