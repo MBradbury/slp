@@ -142,9 +142,9 @@ class Analyse(object):
         pass
 
     @staticmethod
-    def to_float(value):
-        # Convert boolean to floats to allow averaging
-        # the number of time the source was captured.
+    def _to_float(value):
+        """Convert boolean to floats to allow averaging
+        the number of time the source was captured."""
         if value is True:
             return 1.0
         elif value is False:
@@ -161,7 +161,7 @@ class Analyse(object):
         else:
             # Some values may be inf, if they are lets ignore
             # the values that were inf.
-            values = [self.to_float(values[index]) for values in self.data]
+            values = [self._to_float(values[index]) for values in self.data]
             filtered = [x for x in values if not math.isinf(x)]
 
             # Unless all the values are inf, when we should probably pass this
@@ -180,7 +180,7 @@ class Analyse(object):
         else:
             # Some values may be inf, if they are lets ignore
             # the values that were inf.
-            values = [self.to_float(values[index]) for values in self.data]
+            values = [self._to_float(values[index]) for values in self.data]
             filtered = [x for x in values if not math.isinf(x)]
 
             # Unless all the values are inf, when we should probably pass this
