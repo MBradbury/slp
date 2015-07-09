@@ -366,6 +366,8 @@ implementation
 
 		target = random_walk_target(message.further_or_closer_set, NULL, 0);
 
+		message.broadcast = (target == AM_BROADCAST_ADDR);
+
 		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
 			sim_time_string(), target, message.further_or_closer_set);
 
@@ -417,6 +419,8 @@ implementation
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
@@ -431,7 +435,7 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->forced_broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
 			{
 				am_addr_t target;
 
@@ -457,12 +461,13 @@ implementation
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 
+				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
+
 				// A node on the path away from, or towards the landmark node
 				// doesn't have anyone to send to.
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					forwarding_message.forced_broadcast = TRUE;
 					return;
 				}
 
@@ -475,7 +480,7 @@ implementation
 			}
 			else
 			{
-				if (!rcvd->forced_broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == LANDMARK_NODE_ID))
+				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == LANDMARK_NODE_ID))
 				{
 					dbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
@@ -483,7 +488,7 @@ implementation
 				}
 
 				// We want other nodes to continue broadcasting
-				forwarding_message.forced_broadcast = TRUE;
+				forwarding_message.broadcast = TRUE;
 
 				call Packet.clear(&packet);
 
@@ -494,15 +499,11 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
-
 		process_normal(msg, rcvd, source_addr);
 	}
 
 	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
-
 		// It is helpful to have the sink forward Normal messages onwards
 		// Otherwise there is a chance the random walk would terminate at the sink and
 		// not flood the network.
