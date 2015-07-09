@@ -17,10 +17,11 @@ class Grapher(GrapherBase):
         self.max_label = 'Maximum'
         self.min_label = 'Minimum'
         self.comparison_label = 'Comparison'
+        self.baseline_label = 'Baseline'
 
         self.vvalue_label_converter = str
 
-    def create(self, comparison_results, actual_results):
+    def create(self, comparison_results, actual_results, baseline_results=None):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
@@ -30,6 +31,7 @@ class Grapher(GrapherBase):
 
         min_comparison_results = {}
         max_comparison_results = {}
+        baseline_comparison_results = {}
 
         # Find the min and max results over all parameter combinations 
         for (data_key, items1) in comparison_results.data.items():
@@ -49,6 +51,17 @@ class Grapher(GrapherBase):
                 min_comparison_results.setdefault(data_key, {})[src_period] = local_min
                 max_comparison_results.setdefault(data_key, {})[src_period] = local_max
 
+        if baseline_results is not None:
+            for (data_key, items1) in baseline_results.data.items():
+                for (src_period, items2) in items1.items():
+                    results = items2[tuple()]
+
+                    yvalue_index = comparison_results.result_names.index(self.yaxis)
+                    yvalue = results[yvalue_index]
+                    yvalue = self.yextractor(yvalue)
+
+                    baseline_comparison_results.setdefault(data_key, {})[src_period] = yvalue
+
         # Extract the data we want to display
         for (data_key, items1) in actual_results.data.items():
             for (src_period, items2) in items1.items():
@@ -61,11 +74,15 @@ class Grapher(GrapherBase):
                     (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = self._remove_index(key_names, values, self.vary)
 
+                    #if self.xaxis == 'size':
+                    #    xvalue = xvalue ** 2
+
                     key_names = tuple(key_names)
                     values = tuple(values)
 
                     yvalue_index = actual_results.result_names.index(self.yaxis)
-                    yvalue = self.yextractor(results[yvalue_index])
+                    yvalue = results[yvalue_index]
+                    yvalue = self.yextractor(yvalue)
 
                     comp_label = "{} ({})".format(self.comparison_label, latex.escape(self.vvalue_label_converter(vvalue)))
 
@@ -75,6 +92,10 @@ class Grapher(GrapherBase):
                         dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue
 
                         dat.setdefault((key_names, values), {})[(xvalue, self.min_label)] = min_comparison_results[data_key].get(src_period)
+
+                        if baseline_results is not None:
+                            dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
+
 
         for ((key_names, key_values), values) in dat.items():
             self._create_plot(key_names, key_values, values)

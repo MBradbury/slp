@@ -152,25 +152,29 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            #'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            #'captured': ('Capture Ratio (%)', 'right top'),
-            #'sent': ('Total Messages Sent', 'left top'),
-            #'received ratio': ('Receive Ratio (%)', 'right top'),
-            #'norm(captured,received ratio)': ('Captured (%) / Receive Ratio (%)', 'right top'),
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'right top'),
         }
 
         custom_yaxis_range_max = {
             'sent': 450000,
             'captured': 20,
             'received ratio': 100,
-            'norm(captured,received ratio)': 10,
         }
+
+        protectionless_results = results.Results(
+            protectionless.result_file_path,
+            parameters=tuple(),
+            results=graph_parameters.keys()
+        )
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
             parameters=('approach',),
-            results=tuple(set(graph_parameters.keys()) - {'paths reached end'})
+            results=graph_parameters.keys()
         )
 
         phantom_results = results.Results(
@@ -193,6 +197,7 @@ class CLI(CommandLineCommon.CLI):
             g.min_label = 'Dynamic - Lowest'
             g.max_label = 'Dynamic - Highest'
             g.comparison_label = 'Phantom'
+            g.baseline_label = 'Protectionless - Baseline'
             g.vary_label = ''
 
             if result_name in custom_yaxis_range_max:
@@ -200,7 +205,7 @@ class CLI(CommandLineCommon.CLI):
 
             g.vvalue_label_converter = lambda name: "Walk Length {} Hops".format(name)
 
-            g.create(adaptive_results, phantom_results)
+            g.create(adaptive_results, phantom_results, protectionless_results)
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
