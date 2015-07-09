@@ -115,6 +115,8 @@ class Results(object):
             return float(value) * 100.0
         elif name in {'received ratio', 'paths reached end'}:
             return self.extract_average_and_stddev(value) * 100.0
+        elif name == 'normal latency':
+            return self.extract_average_and_stddev(value) * 1000.0
         elif '(' in value and ')' in value:
             return self.extract_average_and_stddev(value)
         elif name in {'approach', 'landmark node'}:
