@@ -10,7 +10,7 @@ class CLI(object):
 
     def __init__(self, package):
         super(CLI, self).__init__()
-        
+
         self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
 
     @staticmethod
@@ -34,7 +34,13 @@ class CLI(object):
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
-        self._execute_runner(LocalDriver.Runner(), self.algorithm_module.results_path, skip_completed_simulations=True)
+        driver = LocalDriver.Runner()
+
+        thread_count = self._get_args_for(args, 'thread_count')
+        if len(thread_count) == 1:
+            driver.job_thread_count = int(thread_count[0])
+
+        self._execute_runner(driver, self.algorithm_module.results_path, skip_completed_simulations=True)
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
