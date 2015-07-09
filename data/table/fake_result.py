@@ -94,7 +94,7 @@ class ResultTable(object):
         elif name == "fake":
             return "${:.0f} \\pm {:.0f}$".format(value[0], value[1])
         elif name == "normal latency":
-            return "${:.0f} \\pm {:.0f}$".format(value[0] * 1000, value[1] * 1000)
+            return "${:.0f} \\pm {:.0f}$".format(value[0], value[1])
         elif name == "paths reached end":
             return "${:.1f} \\pm {:.1f}$".format(value[0], value[1])
         else:
