@@ -20,15 +20,30 @@ class Metrics(MetricsCommon):
         self.PATH_END.register(self.sim, 'Metric-PATH-END')
         self.sim.add_output_processor(self.PATH_END)
 
+        self.SOURCE_DROPPED = OutputCatcher(self.process_SOURCE_DROPPED)
+        self.SOURCE_DROPPED.register(self.sim, 'Metric-SOURCE_DROPPED')
+        self.sim.add_output_processor(self.SOURCE_DROPPED)
+
         self._paths_reached_end = []
+        self._source_dropped = []
 
     def process_PATH_END(self, line):
         (time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
 
         self._paths_reached_end.append((ultimate_source_id, sequence_number))
 
+    def process_SOURCE_DROPPED(self, line):
+        (time, node_id, sequence_number) = line.split(',')
+
+        time = int(time)
+
+        self._source_dropped.append(time)
+
     def paths_reached_end(self):
         return len(self._paths_reached_end) / len(self.normal_sent_time)
+
+    def source_dropped(self):
+        return len(self._source_dropped) / (len(self._source_dropped) + len(self.normal_sent_time))
 
     @staticmethod
     def items():
@@ -36,5 +51,6 @@ class Metrics(MetricsCommon):
         d["AwaySent"]               = lambda x: x.number_sent("Away")
         d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
         d["PathsReachedEnd"]        = lambda x: x.paths_reached_end()
+        d["SourceDropped"]          = lambda x: x.source_dropped()
 
         return d

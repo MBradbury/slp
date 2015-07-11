@@ -366,16 +366,26 @@ implementation
 
 		target = random_walk_target(message.further_or_closer_set, NULL, 0);
 
-		message.broadcast = (target == AM_BROADCAST_ADDR);
-
-		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
-			sim_time_string(), target, message.further_or_closer_set);
-
-		call Packet.clear(&packet);
-
-		if (send_Normal_message(&message, target))
+		// If we don't know who our neighbours are, then we
+		// cannot unicast to one of them.
+		if (target != AM_BROADCAST_ADDR)
 		{
-			call NormalSeqNos.increment(TOS_NODE_ID);
+			message.broadcast = (target == AM_BROADCAST_ADDR);
+
+			dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
+				sim_time_string(), target, message.further_or_closer_set);
+
+			call Packet.clear(&packet);
+
+			if (send_Normal_message(&message, target))
+			{
+				call NormalSeqNos.increment(TOS_NODE_ID);
+			}
+		}
+		else
+		{
+			dbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
+				sim_time(), TOS_NODE_ID, message.sequence_number);
 		}
 
 		call BroadcastNormalTimer.startOneShot(source_period);
@@ -593,8 +603,8 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
-		case NormalNode: x_receive_Away(msg, rcvd, source_addr); break;
-		case SourceNode: x_receive_Away(msg, rcvd, source_addr); break;
+		case NormalNode:
+		case SourceNode:
 		case SinkNode: x_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
@@ -609,8 +619,8 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
-		case NormalNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
-		case SourceNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
+		case NormalNode:
+		case SourceNode:
 		case SinkNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
 }
