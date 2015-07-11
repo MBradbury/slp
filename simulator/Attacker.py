@@ -12,7 +12,7 @@ _messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
 
 # An attacker can detect these are not messages to follow,
 # so the attacker will ignore these messages.
-_messages_to_ignore = {'Beacon', 'Away', 'Move'}
+_messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose'}
 
 class Attacker(object):
     def __init__(self):
