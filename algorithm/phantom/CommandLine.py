@@ -88,7 +88,7 @@ class CLI(CommandLineCommon.CLI):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end'))
+            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end', 'source dropped'))
 
         result_table = fake_result.ResultTable(phantom_results)
 
@@ -102,6 +102,7 @@ class CLI(CommandLineCommon.CLI):
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'paths reached end': ('Paths Reached End (%)', 'right top'),
+            'source dropped': ('Source Dropped Messages (%)', 'right top'),
         }
 
         heatmap_results = ['sent heatmap', 'received heatmap']
