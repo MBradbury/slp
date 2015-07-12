@@ -113,7 +113,7 @@ class Results(object):
 
         if name == 'captured':
             return float(value) * 100.0
-        elif name in {'received ratio', 'paths reached end'}:
+        elif name in {'received ratio', 'paths reached end', 'source dropped'}:
             return self.extract_average_and_stddev(value) * 100.0
         elif name == 'normal latency':
             return self.extract_average_and_stddev(value) * 1000.0
