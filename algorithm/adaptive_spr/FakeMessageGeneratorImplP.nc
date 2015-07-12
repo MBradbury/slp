@@ -34,7 +34,8 @@ implementation
 
 	command void FakeMessageGenerator.start(const AwayChooseMessage* original)
 	{
-		original_message = *original;
+		if (&original_message != original)
+			original_message = *original;
 
 		// The first fake message is to be sent half way through the period.
 		// After this message is sent, all other messages are sent with an interval
@@ -48,6 +49,15 @@ implementation
 		call FakeMessageGenerator.start(original);
 
 		call DurationTimer.startOneShot(duration_ms);
+
+		mydbg("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %u ms.\n", duration_ms);
+	}
+
+	command void FakeMessageGenerator.startRepeated(const AwayChooseMessage* original, uint32_t duration_ms)
+	{
+		call FakeMessageGenerator.start(original);
+
+		call DurationTimer.startPeriodic(duration_ms);
 
 		mydbg("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %u ms.\n", duration_ms);
 	}
@@ -100,7 +110,7 @@ implementation
 		{
 			signal FakeMessageGenerator.sent(EBUSY, &message);
 
-			myerr("SourceBroadcasterC", "BroadcastAway busy, not forwarding Away message.\n");
+			myerr("FakeMessageGeneratorImplP", "BroadcastAway busy, not forwarding Away message.\n");
 			return FALSE;
 		}
 	}
@@ -118,6 +128,10 @@ implementation
 		if (period > 0)
 		{
 			call SendFakeTimer.startOneShot(period);
+		}
+		else
+		{
+			myerr("stdout", "SendFakeTimer stopped as the next period was calculated to be 0.\n");
 		}
 	}
 
@@ -140,7 +154,6 @@ implementation
 
 	command void FakeMessageGenerator.expireDuration()
 	{
-		call SendFakeTimer.stop();
 		signal FakeMessageGenerator.durationExpired(&original_message);
 	}
 }

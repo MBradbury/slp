@@ -81,7 +81,7 @@ implementation
 {
 	typedef enum
 	{
-		SourceNode, SinkNode, NormalNode, TempFakeNode, PermFakeNode
+		SourceNode, SinkNode, NormalNode, TempFakeNode, TailFakeNode, PermFakeNode
 	} NodeType;
 
 	NodeType type = NormalNode;
@@ -94,6 +94,7 @@ implementation
 		case SinkNode:				return "SinkNode  ";
 		case NormalNode:			return "NormalNode";
 		case TempFakeNode:			return "TempFakeNode";
+		case TailFakeNode:			return "TailFakeNode";
 		case PermFakeNode:			return "PermFakeNode";
 		default:					return "<unknown> ";
 		}
@@ -117,7 +118,6 @@ implementation
 	int32_t sink_distance = BOTTOM;
 
 	bool sink_sent_away = FALSE;
-	bool seen_pfs = FALSE;
 
 	uint32_t first_source_distance = 0;
 	bool first_source_distance_set = FALSE;
@@ -132,7 +132,7 @@ implementation
 	Algorithm algorithm = UnknownAlgorithm;
 
 	// Produces a random float between 0 and 1
-	float random_float()
+	float random_float(void)
 	{
 		// There appears to be problem with the 32 bit random number generator
 		// in TinyOS that means it will not generate numbers in the full range
@@ -145,34 +145,7 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	int32_t ignore_choose_distance(int32_t distance)
-	{
-		// We contemplated changing this versus the original algorithm,
-		// but decided against it.
-		// By randomising this, the capture rates for the Sink Corner
-		// are very bad.
-		//return (int32_t)ceil(distance * random_float());
-		return distance;
-	}
-
-	bool should_process_choose()
-	{
-		switch (algorithm)
-		{
-		case GenericAlgorithm:
-			return !(sink_source_distance != BOTTOM &&
-				source_distance <= ignore_choose_distance((4 * sink_source_distance) / 5));
-
-		case FurtherAlgorithm:
-			return !seen_pfs && !(sink_source_distance != BOTTOM &&
-				source_distance <= ignore_choose_distance(((1 * sink_source_distance) / 2) - 1));
-
-		default:
-			return TRUE;
-		}
-	}
-
-	bool pfs_can_become_normal()
+	bool pfs_can_become_normal(void)
 	{
 		switch (algorithm)
 		{
@@ -188,7 +161,7 @@ implementation
 	}
 
 #if defined(PB_SINK_APPROACH)
-	uint32_t get_dist_to_pull_back()
+	uint32_t get_dist_to_pull_back(void)
 	{
 		int32_t distance = 0;
 
@@ -356,7 +329,7 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
-	event void Boot.booted()
+	event void Boot.booted(void)
 	{
 		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
@@ -398,7 +371,7 @@ implementation
 		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
-	event void ObjectDetector.detect()
+	event void ObjectDetector.detect(void)
 	{
 		// The sink node cannot become a source node
 		if (type != SinkNode)
@@ -412,7 +385,7 @@ implementation
 		}
 	}
 
-	event void ObjectDetector.stoppedDetecting()
+	event void ObjectDetector.stoppedDetecting(void)
 	{
 		if (type == SourceNode)
 		{
@@ -425,7 +398,7 @@ implementation
 		}
 	}
 
-	uint32_t beacon_send_wait()
+	uint32_t beacon_send_wait(void)
 	{
 		return 75U + (uint32_t)(50U * random_float());
 	}
@@ -436,7 +409,7 @@ implementation
 	USE_MESSAGE(Fake);
 	USE_MESSAGE(Beacon);
 
-	void become_Normal()
+	void become_Normal(void)
 	{
 		type = NormalNode;
 
@@ -445,14 +418,16 @@ implementation
 		dbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
-	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
+	void become_Fake(const AwayChooseMessage* message, NodeType fake_type)
 	{
-		if (perm_type != PermFakeNode && perm_type != TempFakeNode)
+		if (fake_type != PermFakeNode && fake_type != TempFakeNode && fake_type != TailFakeNode)
 		{
 			assert("The perm type is not correct");
 		}
 
-		type = perm_type;
+		call FakeMessageGenerator.stop();
+
+		type = fake_type;
 
 		if (type == PermFakeNode)
 		{
@@ -460,7 +435,13 @@ implementation
 
 			call FakeMessageGenerator.start(message);
 		}
-		else
+		else if (type == TailFakeNode)
+		{
+			dbg("Fake-Notification", "The node has become a TailFS\n");
+
+			call FakeMessageGenerator.startRepeated(message, get_tfs_duration());
+		}
+		else //if (type == TempFakeNode)
 		{
 			dbg("Fake-Notification", "The node has become a TFS\n");
 
@@ -625,6 +606,7 @@ implementation
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 		case TempFakeNode:
+		case TailFakeNode:
 		case PermFakeNode: Fake_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
@@ -717,7 +699,7 @@ implementation
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
-		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && should_process_choose())
+		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
@@ -768,8 +750,6 @@ implementation
 			source_fake_sequence_increments += 1;
 
 			METRIC_RCV_FAKE(rcvd);
-
-			seen_pfs |= rcvd->from_pfs;
 		}
 	}
 
@@ -784,8 +764,6 @@ implementation
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
-
-			seen_pfs |= rcvd->from_pfs;
 
 			forwarding_message.sink_source_distance = sink_source_distance;
 
@@ -805,23 +783,33 @@ implementation
 
 			METRIC_RCV_FAKE(rcvd);
 
-			seen_pfs |= rcvd->from_pfs;
-
 			forwarding_message.sink_source_distance = sink_source_distance;
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 
-		if (pfs_can_become_normal() &&
-			type == PermFakeNode &&
-			rcvd->from_pfs &&
+		if ((
+				(rcvd->message_type == PermFakeNode && type == PermFakeNode && pfs_can_become_normal()) ||
+				(rcvd->message_type == TailFakeNode && type == PermFakeNode && pfs_can_become_normal()) ||
+				(rcvd->message_type == PermFakeNode && type == TailFakeNode) ||
+				(rcvd->message_type == TailFakeNode && type == TailFakeNode)
+			) &&
 			(
 				rcvd->sender_first_source_distance > first_source_distance ||
 				(rcvd->sender_first_source_distance == first_source_distance && rcvd->source_id > TOS_NODE_ID)
 			)
 			)
 		{
-			call FakeMessageGenerator.expireDuration();
+			if (type == PermFakeNode)
+			{
+				// Expire duration to send choose message
+				call FakeMessageGenerator.expireDuration();
+			}
+			else //if (type == TailFakeNode)
+			{
+				// Stop fake & choose sending and become a normal node
+				become_Normal();
+			}
 		}
 	}
 
@@ -830,6 +818,7 @@ implementation
 		case SourceNode: Source_receive_Fake(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;
 		case TempFakeNode:
+		case TailFakeNode:
 		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
@@ -846,13 +835,14 @@ implementation
 		case SourceNode:
 		case NormalNode:
 		case TempFakeNode:
+		case TailFakeNode:
 		case PermFakeNode: x_receieve_Beacon(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
 	{
-		if (type == PermFakeNode)
+		if (type == PermFakeNode || type == TailFakeNode)
 		{
 			return get_pfs_period();
 		}
@@ -873,7 +863,7 @@ implementation
 		message->sink_source_distance = sink_source_distance;
 		message->source_distance = source_distance;
 		message->sink_distance = sink_distance;
-		message->from_pfs = (type == PermFakeNode);
+		message->message_type = type;
 		message->source_id = TOS_NODE_ID;
 		message->sender_first_source_distance = first_source_distance_set ? first_source_distance : BOTTOM;
 	}
@@ -883,7 +873,7 @@ implementation
 		ChooseMessage message = *original_message;
 		am_addr_t target = fake_walk_target();
 
-		dbg("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
+		dbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
 
 		// When finished sending fake messages from a TFS
 
@@ -898,9 +888,12 @@ implementation
 		{
 			become_Normal();
 		}
-		else
+		else if (type == TempFakeNode)
 		{
-			become_Fake(original_message, PermFakeNode);
+			become_Fake(original_message, TailFakeNode);
+		}
+		else //if (type == TailFakeNode)
+		{
 		}
 	}
 
