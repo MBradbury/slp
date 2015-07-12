@@ -87,7 +87,7 @@ class TosVis(Simulator):
 
         self.run_gui = True
 
-        #self.node_label = "SourceBroadcasterC.landmark_distance"
+        #self.node_label = "SourceBroadcasterC.first_source_distance"
 
         self.debug_analyzer = DebugAnalyzer()
 
@@ -154,6 +154,7 @@ class TosVis(Simulator):
 
         pfs_colour = [x / 255.0 for x in (225, 41, 41)]
         tfs_colour = [x / 255.0 for x in (196, 196, 37)]
+        tailfs_colour = [x / 255.0 for x in (196, 146, 37)]
         source_colour = [x / 255.0 for x in (64, 168, 73)]
         sink_colour = [x / 255.0 for x in (36, 160, 201)]
         normal_colour = [0, 0, 0]
@@ -162,6 +163,8 @@ class TosVis(Simulator):
             colour = tfs_colour
         elif kind == "PFS":
             colour = pfs_colour
+        elif kind == "TailFS":
+            colour = tailfs_colour
         elif kind == "Normal":
             colour = normal_colour
         elif kind == "Source":
