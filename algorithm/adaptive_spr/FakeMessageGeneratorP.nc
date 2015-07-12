@@ -14,11 +14,9 @@ implementation
 
 	components
 		new TimerMilliC() as SendFakeTimer;
-
 	App.SendFakeTimer -> SendFakeTimer;
 
 	components new TimerMilliC() as DurationTimer;
-
 	App.DurationTimer -> DurationTimer;
 
 	components new AMSenderC(FAKE_CHANNEL) as FakeSender;

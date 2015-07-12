@@ -23,6 +23,7 @@ class Metrics(MetricsCommon):
 
         self.tfs_created = 0
         self.pfs_created = 0
+        self.tailfs_created = 0
         self.fake_to_normal = 0
 
     def process_FAKE_NOTIFICATION(self, line):
@@ -41,6 +42,8 @@ class Metrics(MetricsCommon):
                 self.tfs_created += 1
             elif kind == "PFS":
                 self.pfs_created += 1
+            elif kind == "TailFS":
+                self.tailfs_created += 1
             elif kind == "Normal":
                 self.fake_to_normal += 1
             else:

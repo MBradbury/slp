@@ -15,7 +15,7 @@ typedef nx_struct FakeMessage {
 
   nx_int16_t sender_first_source_distance;
 
-  nx_uint8_t from_pfs;
+  nx_uint8_t message_type;
 
 } FakeMessage;
 
