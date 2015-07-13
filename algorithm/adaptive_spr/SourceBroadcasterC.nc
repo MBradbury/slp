@@ -117,7 +117,7 @@ implementation
 	int32_t source_distance = BOTTOM;
 	int32_t sink_distance = BOTTOM;
 
-	bool sink_sent_away = FALSE;
+	bool sink_received_away_reponse = FALSE;
 
 	uint32_t first_source_distance = 0;
 	bool first_source_distance_set = FALSE;
@@ -484,10 +484,7 @@ implementation
 
 		// TODO sense repeat 3 in (Psource / 2)
 		extra_to_send = 2;
-		if (send_Away_message(&message, AM_BROADCAST_ADDR))
-		{
-			sink_sent_away = TRUE;
-		}
+		send_Away_message(&message, AM_BROADCAST_ADDR);
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -570,7 +567,7 @@ implementation
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
 			}
 
-			if (!sink_sent_away)
+			if (!sink_received_away_reponse)
 			{
 				call AwaySenderTimer.startOneShot(away_delay);
 			}
@@ -610,6 +607,11 @@ implementation
 		case PermFakeNode: Fake_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
+
+	void Sink_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
+	{
+		sink_received_away_reponse = TRUE;
+	}
 
 	void Source_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -664,11 +666,14 @@ implementation
 			{
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
-				if (neighbour == NULL || neighbour->contents.distance < first_source_distance)
+				if (neighbour == NULL || neighbour->contents.distance == BOTTOM ||
+					!first_source_distance_set || neighbour->contents.distance < first_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 
-					sequence_number_increment(&choose_sequence_counter);
+					// When receiving choose messages we do not want to reprocess this
+					// away message.
+					sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 				}
 			}
 
@@ -684,10 +689,16 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
+		case SinkNode: Sink_receive_Away(rcvd, source_addr); break;
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
+
+	void Sink_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
+	{
+		sink_received_away_reponse = TRUE;
+	}
 
 	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -722,6 +733,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
+		case SinkNode: Sink_receive_Choose(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Choose)
 
@@ -730,6 +742,8 @@ implementation
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+
+		sink_received_away_reponse = TRUE;
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -886,7 +900,7 @@ implementation
 		message.sink_distance += 1;
 
 		// TODO: repeat 3
-		extra_to_send = 3;
+		extra_to_send = 1;
 		send_Choose_message(&message, target);
 
 		if (type == PermFakeNode)
