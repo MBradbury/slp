@@ -285,13 +285,13 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (source_distance != BOTTOM)
+		if (first_source_distance_set)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-				if (neighbour->contents.distance > source_distance)
+				if (neighbour->contents.distance > first_source_distance)
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -701,16 +701,21 @@ implementation
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
 		{
+			am_addr_t target;
+
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_CHOOSE(rcvd);
 
-			if (fake_walk_target() == AM_BROADCAST_ADDR)
+			target = fake_walk_target();
+
+			if (target == AM_BROADCAST_ADDR)
 			{
 				become_Fake(rcvd, PermFakeNode);
 			}
 			else
 			{
+				//dbg("stdout", "Becoming a TFS because there is a node %u that can be next.\n", target);
 				become_Fake(rcvd, TempFakeNode);
 			}
 		}
