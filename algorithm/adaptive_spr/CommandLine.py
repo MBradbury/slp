@@ -23,7 +23,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["casino-lab"]
+    noise_models = ["casino-lab", "meyer-heavy"]
 
     communication_models = ["low-asymmetry"]
 
@@ -49,7 +49,7 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNoReactiveAttacker()']
 
-    approaches = ["PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"]
+    approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
 
     repeats = 300
 
