@@ -105,6 +105,11 @@ class CLI(CommandLineCommon.CLI):
             'source dropped': ('Source Dropped Messages (%)', 'right top'),
         }
 
+        custom_yaxis_range_max = {
+            'source dropped': 100,
+            'paths reached end': 5,
+        }
+
         heatmap_results = ['sent heatmap', 'received heatmap']
 
         phantom_results = results.Results(
@@ -144,6 +149,9 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
 
+                if yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
                 g.create(phantom_results)
 
                 summary.GraphSummary(
@@ -164,6 +172,7 @@ class CLI(CommandLineCommon.CLI):
             'sent': 450000,
             'captured': 20,
             'received ratio': 100,
+            'normal latency': 200,
         }
 
         protectionless_results = results.Results(
