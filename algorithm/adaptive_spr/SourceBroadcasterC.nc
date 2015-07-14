@@ -110,17 +110,13 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint64_t source_fake_sequence_increments;
 
-
-	const uint32_t away_delay = SOURCE_PERIOD_MS / 2;
-
-	int32_t sink_source_distance = BOTTOM;
-	int32_t source_distance = BOTTOM;
-	int32_t sink_distance = BOTTOM;
+	int16_t sink_source_distance = BOTTOM;
+	int16_t source_distance = BOTTOM;
+	int16_t sink_distance = BOTTOM;
 
 	bool sink_received_away_reponse = FALSE;
 
-	uint32_t first_source_distance = 0;
-	bool first_source_distance_set = FALSE;
+	int16_t first_source_distance = BOTTOM;
 
 	uint32_t extra_to_send = 0;
 
@@ -149,95 +145,52 @@ implementation
 	{
 		switch (algorithm)
 		{
-		case GenericAlgorithm:
-			return TRUE;
-
-		case FurtherAlgorithm:
-			return FALSE;
-
-		default:
-			return FALSE;
+		case GenericAlgorithm:	return TRUE;
+		case FurtherAlgorithm:	return FALSE;
+		default:				return FALSE;
 		}
 	}
 
-#if defined(PB_SINK_APPROACH)
+	uint32_t get_away_delay(void)
+	{
+		assert(SOURCE_PERIOD_MS != BOTTOM);
+
+		return SOURCE_PERIOD_MS / 2;
+	}
+
 	uint32_t get_dist_to_pull_back(void)
 	{
-		int32_t distance = 0;
+#if defined(PB_FIXED2_APPROACH)
+		return 2;
 
-		switch (algorithm)
-		{
-		case GenericAlgorithm:
-			// When reasoning we want to pull back in terms of the sink distance.
-			// However, the Dsrc - the Dss gives a good approximation of the Dsink.
-			// It has the added benefit that this is only true when the TFS is further from
-			// the source than the sink is.
-			// This means that TFSs near the source will send fewer messages.
-			if (source_distance == BOTTOM || sink_source_distance == BOTTOM)
-			{
-				distance = sink_distance;
-			}
-			else
-			{
-				distance = source_distance - sink_source_distance;
-			}
-			break;
+#elif defined(PB_FIXED1_APPROACH)
+		return 1;
 
-		default:
-		case FurtherAlgorithm:
-			distance = max(sink_source_distance, sink_distance);
-			break;
-		}
-
-		distance = max(distance, 1);
-		
-		return distance;	
-	}
-
-#elif defined(PB_ATTACKER_EST_APPROACH)
-	uint32_t get_dist_to_pull_back()
-	{
-		int32_t distance = 0;
-
-		switch (algorithm)
-		{
-		case GenericAlgorithm:
-			distance = sink_distance + sink_distance;
-			break;
-
-		default:
-		case FurtherAlgorithm:
-			distance = max(sink_source_distance, sink_distance);
-			break;
-		}
-
-		distance = max(distance, 1);
-		
-		return distance;
-	}
+#elif defined(PB_RND_APPROACH)
+		return 1 + (call Random.rand16() % 2);
 
 #else
 #	error "Technique not specified"
 #endif
+	}
 
-	uint32_t get_tfs_num_msg_to_send()
+	uint32_t get_tfs_num_msg_to_send(void)
 	{
-		/*uint32_t distance = get_dist_to_pull_back();
+		uint32_t distance = get_dist_to_pull_back();
 
 		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
 			distance, source_distance, sink_distance, sink_source_distance);
 
-		return distance;*/
-		return 2;
+		return distance;
 	}
 
-	uint32_t get_tfs_duration()
+	uint32_t get_tfs_duration(void)
 	{
 		uint32_t duration = SOURCE_PERIOD_MS;
 
 		if (sink_distance <= 1)
 		{
-			duration -= away_delay;
+			duration -= get_away_delay();
 		}
 
 		dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
@@ -245,7 +198,7 @@ implementation
 		return duration;
 	}
 
-	uint32_t get_tfs_period()
+	uint32_t get_tfs_period(void)
 	{
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
@@ -258,7 +211,7 @@ implementation
 		return result_period;
 	}
 
-	uint32_t get_pfs_period()
+	uint32_t get_pfs_period(void)
 	{
 		// Need to add one here because it is possible for the values to both be 0
 		// if no fake messages have ever been received.
@@ -275,7 +228,7 @@ implementation
 		return result_period;
 	}
 
-	am_addr_t fake_walk_target()
+	am_addr_t fake_walk_target(void)
 	{
 		am_addr_t chosen_address;
 		uint32_t i;
@@ -285,7 +238,7 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (first_source_distance_set)
+		if (first_source_distance != BOTTOM)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -329,7 +282,7 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
-	event void Boot.booted(void)
+	event void Boot.booted()
 	{
 		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
@@ -371,7 +324,7 @@ implementation
 		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
-	event void ObjectDetector.detect(void)
+	event void ObjectDetector.detect()
 	{
 		// The sink node cannot become a source node
 		if (type != SinkNode)
@@ -385,7 +338,7 @@ implementation
 		}
 	}
 
-	event void ObjectDetector.stoppedDetecting(void)
+	event void ObjectDetector.stoppedDetecting()
 	{
 		if (type == SourceNode)
 		{
@@ -494,7 +447,7 @@ implementation
 
 		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
-		message.source_distance_of_sender = first_source_distance_set ? first_source_distance : BOTTOM;
+		message.source_distance_of_sender = first_source_distance;
 
 		for (i = 0; i < sizeof(message.padding); ++i)
 		{
@@ -524,10 +477,9 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (!first_source_distance_set)
+			if (first_source_distance == BOTTOM)
 			{
 				first_source_distance = rcvd->source_distance + 1;
-				first_source_distance_set = TRUE;
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
@@ -558,18 +510,18 @@ implementation
 
 			sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
 
-			if (!first_source_distance_set)
+			if (first_source_distance == BOTTOM)
 			{
 				first_source_distance = rcvd->source_distance + 1;
-				first_source_distance_set = TRUE;
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
 			}
 
+			// Keep sending away messages until we get a valid response
 			if (!sink_received_away_reponse)
 			{
-				call AwaySenderTimer.startOneShot(away_delay);
+				call AwaySenderTimer.startOneShot(get_away_delay());
 			}
 		}
 	}
@@ -667,7 +619,7 @@ implementation
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
 				if (neighbour == NULL || neighbour->contents.distance == BOTTOM ||
-					!first_source_distance_set || neighbour->contents.distance < first_source_distance)
+					first_source_distance == BOTTOM || neighbour->contents.distance <= first_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 
@@ -819,16 +771,8 @@ implementation
 			)
 			)
 		{
-			if (type == PermFakeNode)
-			{
-				// Expire duration to send choose message
-				call FakeMessageGenerator.expireDuration();
-			}
-			else //if (type == TailFakeNode)
-			{
-				// Stop fake & choose sending and become a normal node
-				become_Normal();
-			}
+			// Stop fake & choose sending and become a normal node
+			become_Normal();
 		}
 	}
 
@@ -884,7 +828,7 @@ implementation
 		message->sink_distance = sink_distance;
 		message->message_type = type;
 		message->source_id = TOS_NODE_ID;
-		message->sender_first_source_distance = first_source_distance_set ? first_source_distance : BOTTOM;
+		message->sender_first_source_distance = first_source_distance;
 	}
 
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
