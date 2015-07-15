@@ -244,7 +244,7 @@ implementation
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-				if (neighbour->contents.distance > first_source_distance)
+				if (neighbour->contents.distance >= first_source_distance)
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -297,6 +297,7 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
+			sink_distance = 0;
 			dbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
@@ -333,6 +334,7 @@ implementation
 			dbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
+			source_distance = 0;
 
 			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 		}
@@ -345,6 +347,7 @@ implementation
 			call BroadcastNormalTimer.stop();
 
 			type = NormalNode;
+			source_distance = BOTTOM;
 
 			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			dbg("Node-Change-Notification", "The node has become a Normal\n");
@@ -364,41 +367,47 @@ implementation
 
 	void become_Normal(void)
 	{
+		const char* const old_type = type_to_string();
+
 		type = NormalNode;
 
 		call FakeMessageGenerator.stop();
 
-		dbg("Fake-Notification", "The node has become a Normal\n");
+		dbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType fake_type)
 	{
+		const char* const old_type = type_to_string();
+
 		if (fake_type != PermFakeNode && fake_type != TempFakeNode && fake_type != TailFakeNode)
 		{
 			assert("The perm type is not correct");
 		}
 
+		// Stop any existing fake message generation.
+		// This is necessary when transitioning from TempFS to TailFS.
 		call FakeMessageGenerator.stop();
 
 		type = fake_type;
 
+		dbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
+
 		if (type == PermFakeNode)
 		{
-			dbg("Fake-Notification", "The node has become a PFS\n");
-
 			call FakeMessageGenerator.start(message);
 		}
 		else if (type == TailFakeNode)
 		{
-			dbg("Fake-Notification", "The node has become a TailFS\n");
-
 			call FakeMessageGenerator.startRepeated(message, get_tfs_duration());
 		}
-		else //if (type == TempFakeNode)
+		else if (type == TempFakeNode)
 		{
-			dbg("Fake-Notification", "The node has become a TFS\n");
-
 			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
+		}
+		else
+		{
+			assert(FALSE);
 		}
 	}
 

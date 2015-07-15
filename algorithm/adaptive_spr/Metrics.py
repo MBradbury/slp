@@ -8,7 +8,7 @@ from simulator.MetricsCommon import MetricsCommon
 class Metrics(MetricsCommon):
 
     WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
-    FAKE_RE   = re.compile(r'The node has become a ([a-zA-Z]+)')
+    FAKE_RE   = re.compile(r'The node has become a ([a-zA-Z]+) was ([a-zA-Z]+)')
 
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
@@ -25,6 +25,7 @@ class Metrics(MetricsCommon):
         self.pfs_created = 0
         self.tailfs_created = 0
         self.fake_to_normal = 0
+        self.fake_to_fake = 0
 
     def process_FAKE_NOTIFICATION(self, line):
         match = self.WHOLE_RE.match(line)
@@ -36,18 +37,22 @@ class Metrics(MetricsCommon):
 
         match = self.FAKE_RE.match(detail)
         if match is not None:
-            kind = match.group(1)
+            new_kind = match.group(1)
+            old_kind = match.group(2)
+
+            if "FakeNode" in new_kind and "FakeNode" in old_kind:
+                self.fake_to_fake += 1
             
-            if kind == "TFS":
+            if new_kind == "TempFakeNode":
                 self.tfs_created += 1
-            elif kind == "PFS":
+            elif new_kind == "PermFakeNode":
                 self.pfs_created += 1
-            elif kind == "TailFS":
+            elif new_kind == "TailFakeNode":
                 self.tailfs_created += 1
-            elif kind == "Normal":
+            elif new_kind == "NormalNode":
                 self.fake_to_normal += 1
             else:
-                raise RuntimeError("Unknown kind {}".format(kind))
+                raise RuntimeError("Unknown kind {}".format(new_kind))
 
     @staticmethod
     def items():
@@ -58,5 +63,6 @@ class Metrics(MetricsCommon):
         d["TFS"]                    = lambda x: x.tfs_created
         d["PFS"]                    = lambda x: x.pfs_created
         d["FakeToNormal"]           = lambda x: x.fake_to_normal
-        
+        d["FakeToFake"]             = lambda x: x.fake_to_fake
+
         return d
