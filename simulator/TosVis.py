@@ -87,7 +87,7 @@ class TosVis(Simulator):
 
         self.run_gui = True
 
-        #self.node_label = "SourceBroadcasterC.first_source_distance"
+        self.node_label = "SourceBroadcasterC.first_source_distance"
 
         self.debug_analyzer = DebugAnalyzer()
 
@@ -159,17 +159,17 @@ class TosVis(Simulator):
         sink_colour = [x / 255.0 for x in (36, 160, 201)]
         normal_colour = [0, 0, 0]
 
-        if kind == "TFS":
+        if kind in {"TFS", "TempFakeNode"}:
             colour = tfs_colour
-        elif kind == "PFS":
+        elif kind in {"PFS", "PermFakeNode"}:
             colour = pfs_colour
-        elif kind == "TailFS":
+        elif kind in {"TailFS", "TailFakeNode"}:
             colour = tailfs_colour
-        elif kind == "Normal":
+        elif kind in {"Normal", "NormalNode"}:
             colour = normal_colour
-        elif kind == "Source":
+        elif kind in {"Source", "SourceNode"}:
             colour = source_colour
-        elif kind == "Sink":
+        elif kind in {"Sink", "SinkNode"}:
             colour = sink_colour
         else:
             raise RuntimeError("Unknown kind '{}'".format(kind))
