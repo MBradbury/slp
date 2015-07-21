@@ -72,7 +72,7 @@ class TableGenerator:
 
                     rcv = _get_value('received ratio')
                     ssd = _get_value('ssd')
-                    latency = _get_value('normal latency') * 1000.0
+                    latency = _get_value('normal latency')
                     time_taken = _get_value('time taken')
                     safety_period = _get_value('safety period')
                     captured = _get_value('captured')
