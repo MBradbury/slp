@@ -91,12 +91,12 @@ implementation
 		switch (type)
 		{
 		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode  ";
+		case SinkNode:				return "SinkNode";
 		case NormalNode:			return "NormalNode";
 		case TempFakeNode:			return "TempFakeNode";
 		case TailFakeNode:			return "TailFakeNode";
 		case PermFakeNode:			return "PermFakeNode";
-		default:					return "<unknown> ";
+		default:					return "<unknown>";
 		}
 	}
 
