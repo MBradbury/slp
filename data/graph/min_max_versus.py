@@ -56,7 +56,7 @@ class Grapher(GrapherBase):
                 for (src_period, items2) in items1.items():
                     results = items2[tuple()]
 
-                    yvalue_index = comparison_results.result_names.index(self.yaxis)
+                    yvalue_index = baseline_results.result_names.index(self.yaxis)
                     yvalue = results[yvalue_index]
                     yvalue = self.yextractor(yvalue)
 
