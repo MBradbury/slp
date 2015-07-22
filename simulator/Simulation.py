@@ -6,6 +6,8 @@ from itertools import islice
 from simulator.TosVis import TosVis
 from simulator.Topology import topology_path
 
+from scipy.spatial.distance import euclidean
+
 class Simulation(TosVis):
     def __init__(self, module_name, configuration, args):
 
@@ -74,7 +76,7 @@ class Simulation(TosVis):
             for (nid, loc) in enumerate(node_locations):
                 print("{}\t{}\t{}".format(nid, loc[0], loc[1]), file=of)
 
-    def setup_radio(self):
+    def _setup_radio_link_layer_model(self):
         output = subprocess.check_output(
             "java -Xms256m -Xmx512m -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel {} {} {}".format(
                 self.communications_model_path(), self.topology_path, self.seed),
@@ -92,6 +94,39 @@ class Simulation(TosVis):
                 (n, node_id, noise_floor, awgn) = parts
 
                 self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
+
+    def _setup_radio_ideal(self):
+        '''Creates radio links for node pairs that are in range'''
+
+        def compute_rf_gain(src, dst):
+            '''
+            Returns signal reception gain between src and dst using a simple
+            range-threshold model.
+            '''
+            if src != dst and euclidean(src.location, dst.location) <= self.range:
+                return (True, -55)
+            else:
+                return (False, None)
+
+        noise_floor = -105.0
+        white_gaussian_noise = 4.0
+
+        num_nodes = len(self.nodes)
+        for (i, ni) in enumerate(self.nodes):
+            for (j, nj) in enumerate(self.nodes):
+                if i != j:
+                    (is_linked, gain) = compute_rf_gain(ni, nj)
+                    if is_linked:
+                        self.radio.add(i, j, gain)
+
+            self.radio.setNoise(i, noise_floor, white_gaussian_noise)
+
+
+    def setup_radio(self):
+        if self.communication_model == "ideal":
+            self._setup_radio_ideal()
+        else:
+            self._setup_radio_link_layer_model()
 
     def setup_noise_models(self):
         path = self.noise_model_path()

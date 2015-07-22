@@ -208,4 +208,4 @@ class Simulator(object):
             os.path.splitext(os.path.basename(model_file))[0]
             for model_file
             in glob.glob('models/communication/*.txt')
-        ]
+        ] + ["ideal"]
