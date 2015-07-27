@@ -444,7 +444,6 @@ implementation
 
 		sequence_number_increment(&away_sequence_counter);
 
-		// TODO sense repeat 3 in (Psource / 2)
 		extra_to_send = 2;
 		send_Away_message(&message, AM_BROADCAST_ADDR);
 	}
@@ -598,7 +597,6 @@ implementation
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 
-			// TODO: repeat 2
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -643,7 +641,6 @@ implementation
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 
-			// TODO: repeat 2
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -852,7 +849,6 @@ implementation
 		message.sink_source_distance = sink_source_distance;
 		message.sink_distance += 1;
 
-		// TODO: repeat 3
 		extra_to_send = 1;
 		send_Choose_message(&message, target);
 
