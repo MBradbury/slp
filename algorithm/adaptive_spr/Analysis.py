@@ -21,9 +21,12 @@ class Analyzer(AnalyzerCommon):
         d['away']               = lambda x: self._format_results(x, 'AwaySent')
         d['choose']             = lambda x: self._format_results(x, 'ChooseSent')
         d['fake']               = lambda x: self._format_results(x, 'FakeSent')
+        d['beacon']             = lambda x: self._format_results(x, 'BeaconSent')
         d['tfs']                = lambda x: self._format_results(x, 'TFS')
         d['pfs']                = lambda x: self._format_results(x, 'PFS')
+        d['tailfs']             = lambda x: self._format_results(x, 'TailFS')
         d['fake to normal']     = lambda x: self._format_results(x, 'FakeToNormal')
+        d['fake to fake']       = lambda x: self._format_results(x, 'FakeToFake')
         d['ssd']                = lambda x: self._format_results(x, 'NormalSinkSourceHops')
 
         d['wall time']          = lambda x: self._format_results(x, 'WallTime')
