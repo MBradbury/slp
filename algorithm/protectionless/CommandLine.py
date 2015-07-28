@@ -78,6 +78,8 @@ class CLI(CommandLineCommon.CLI):
 
         for noise_model in Simulator.available_noise_models():
 
+            print("Writing results table for the {} noise model".format(noise_model))
+
             filename = '{}-{}-results'.format(self.algorithm_module.name, noise_model)
 
             self._create_table(filename, safety_period_table,
