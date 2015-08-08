@@ -87,6 +87,8 @@ class ResultTable(object):
             return "${:.1f}$".format(value[0])
         elif name in {"approach", "landmark node"}:
             return latex.escape(value)
+        elif isinstance(value, dict):
+            return latex.escape(str(value))
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
         elif name in {"received ratio", "ssd"}:
