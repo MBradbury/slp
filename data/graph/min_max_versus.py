@@ -84,7 +84,7 @@ class Grapher(GrapherBase):
                     yvalue = results[yvalue_index]
                     yvalue = self.yextractor(yvalue)
 
-                    comp_label = "{} ({})".format(self.comparison_label, latex.escape(self.vvalue_label_converter(vvalue)))
+                    comp_label = "{} ({})".format(self.comparison_label, self.vvalue_label_converter(vvalue))
 
                     if data_key in max_comparison_results:
                         dat.setdefault((key_names, values), {})[(xvalue, self.max_label)] = max_comparison_results[data_key].get(src_period)
