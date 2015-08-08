@@ -25,7 +25,7 @@ class CLI(CommandLineCommon.CLI):
 
     noise_models = ["casino-lab", "meyer-heavy"]
 
-    communication_models = ["low-asymmetry"]
+    communication_models = ["low-asymmetry", "no-asymmetry", "high-asymmetry", "ideal"]
 
     sizes = [11, 15, 21, 25]
 
@@ -51,7 +51,7 @@ class CLI(CommandLineCommon.CLI):
 
     approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
 
-    repeats = 300
+    repeats = 500
 
     parameter_names = ('approach',)
 
