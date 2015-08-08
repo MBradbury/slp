@@ -176,7 +176,7 @@ implementation
 
 	uint32_t get_tfs_num_msg_to_send(void)
 	{
-		uint32_t distance = get_dist_to_pull_back();
+		const uint32_t distance = get_dist_to_pull_back();
 
 		//dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
 		//	distance, source_distance, sink_distance, sink_source_distance);
@@ -218,12 +218,12 @@ implementation
 		const uint32_t seq_inc = source_fake_sequence_increments + 1;
 		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
 
-		const double x = seq_inc / (double)counter;
+		const double ratio = seq_inc / (double)counter;
 
-		const uint32_t result_period = ceil(SOURCE_PERIOD_MS * x);
+		const uint32_t result_period = ceil(SOURCE_PERIOD_MS * ratio);
 
 		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
-			result_period, counter, seq_inc, x);
+			result_period, counter, seq_inc, ratio);
 
 		return result_period;
 	}
