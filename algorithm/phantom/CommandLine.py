@@ -107,7 +107,7 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'source dropped': 100,
-            'paths reached end': 5,
+            'paths reached end': 4,
         }
 
         heatmap_results = ['sent heatmap', 'received heatmap']
@@ -161,7 +161,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            'normal latency': ('Normal Message Latency (ms)', 'at 17.5,290'),
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
@@ -172,8 +172,10 @@ class CLI(CommandLineCommon.CLI):
             'sent': 450000,
             'captured': 20,
             'received ratio': 100,
-            'normal latency': 200,
+            'normal latency': 300,
         }
+
+        nokey = {'sent', 'received ratio'}
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
@@ -204,6 +206,8 @@ class CLI(CommandLineCommon.CLI):
             g.yaxis_label = graph_parameters[result_name][0]
             g.key_position = graph_parameters[result_name][1]
 
+            g.nokey = result_name in nokey
+
             g.min_label = 'Dynamic - Lowest'
             g.max_label = 'Dynamic - Highest'
             g.comparison_label = 'Phantom'
@@ -213,7 +217,7 @@ class CLI(CommandLineCommon.CLI):
             if result_name in custom_yaxis_range_max:
                 g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
-            g.vvalue_label_converter = lambda name: "Walk Length {} Hops".format(name)
+            g.vvalue_label_converter = lambda value: "W_h = {}".format(value)
 
             g.create(adaptive_results, phantom_results, protectionless_results)
 
