@@ -13,7 +13,7 @@ typedef nx_struct AwayChooseMessage {
   // Although not necessarily the correct distance,
   // as the known distance may be higher.
   nx_uint16_t sink_distance;
-  nx_uint16_t sink_source_distance;
+  //nx_uint16_t sink_source_distance;
 
   nx_uint8_t algorithm;
 
