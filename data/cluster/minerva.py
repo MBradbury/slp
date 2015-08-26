@@ -32,7 +32,7 @@ def submitter(notify_emails=None):
     # Size 25 network seem to take ~500mb per instance, so use 1500mb per instance to be safe
     ram_per_job_mb = 1500
 
-    cluster_command = "msub -j oe -l nodes=1:ppn={} -l walltime=10:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
+    cluster_command = "msub -j oe -h -l nodes=1:ppn={} -l walltime=10:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
