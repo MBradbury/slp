@@ -18,6 +18,6 @@ class Arguments(ArgumentsCommon):
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        result["BROADCAST_PERIOD_MS"] = self.args.broadcast_period * 1000
+        result["BROADCAST_PERIOD_MS"] = int(self.args.broadcast_period * 1000)
 
         return result
