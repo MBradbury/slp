@@ -40,7 +40,8 @@ class Grapher(GrapherBase):
         self.key_width = None
         self.key_height = None
 
-        self.pointsize = '1'
+        self.line_width = 1
+        self.point_size = 1
 
         self.yextractor = yextractor
 
@@ -111,7 +112,7 @@ class Grapher(GrapherBase):
 
             graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
             graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
-            graph_p.write('set pointsize {}\n'.format(self.pointsize))
+            graph_p.write('set pointsize {}\n'.format(self.point_size))
 
             if self.nokey:
                 graph_p.write('set nokey\n')
@@ -151,8 +152,9 @@ class Grapher(GrapherBase):
             column_count = len(vvalues)
 
             for x in range(1, column_count + 1):
-                plots.append('"graph.dat" u 1:{} w lp ti \'{} {}{}\''.format(
-                    x + 1, self.vary_label, vvalues[ x - 1 ], self.vary_prefix))
+                plots.append('"graph.dat" using 1:{} with lp title \'{} {}{}\' linewidth {line_width}'.format(
+                    x + 1, self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
+                    line_width=self.line_width))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
