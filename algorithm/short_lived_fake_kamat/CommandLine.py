@@ -1,17 +1,13 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
-import os.path, itertools
+import itertools
 
 from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
 from data import results
-
-from data.table import safety_period, fake_result, comparison
-from data.graph import summary, heatmap, versus, bar, min_max_versus
-from data.util import useful_log10, scalar_extractor
-
+from data.table import safety_period, fake_result
 from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
@@ -46,11 +42,11 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNoReactiveAttacker()']
 
-    approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
+    pr_fake = lambda size: 1 / size
 
     repeats = 300
 
-    parameter_names = ('approach',)
+    parameter_names = ('pr_fake',)
 
     protectionless_configurations = [name for (name, build) in configurations]
 
@@ -68,11 +64,17 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = list(itertools.product(
             self.sizes, self.source_periods, self.protectionless_configurations,
-            self.attacker_models, self.noise_models, self.communication_models, [self.distance], self.approaches
+            self.attacker_models, self.noise_models, self.communication_models, [self.distance]
         ))
 
+        argument_product = [
+            (s, sp, c, am, nm, cm, d, self.pr_fake(s))
+            for (s, sp, c, am, nm, cm, d)
+            in argument_product
+        ]
+
         names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'approach')
+                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'pr_fake')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
