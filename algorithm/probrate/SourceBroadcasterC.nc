@@ -45,10 +45,11 @@ module SourceBroadcasterC
 
 implementation
 {
-	double exponential_dist(double mu)
+	double exponential_dist(double mean)
 	{
 		uint16_t rnd;
 		double uniform_random;
+		double result;
 
 		do
 		{
@@ -61,7 +62,11 @@ implementation
 
 		uniform_random = rnd / (double)UINT16_MAX;
 
-		return -(1.0 / mu) * log(uniform_random);
+		result = mean * -log(uniform_random);
+
+		//dbg("stdout", "rnd = %f, ln(rnd) = %f, result = %f\n", uniform_random, -log(uniform_random), result);
+
+		return result;
 	}
 
 	typedef enum
@@ -91,14 +96,14 @@ implementation
 		return call SourcePeriodModel.get();
 	}
 
-	//int32_t average_broadcast_period = 0;
-	//int32_t counts = 0;
-
 	uint32_t get_broadcast_period()
 	{
-		uint32_t broadcast_period = (uint32_t)ceil(BROADCAST_PERIOD_MS * exponential_dist(1.0));
+		uint32_t broadcast_period = (uint32_t)ceil(exponential_dist(BROADCAST_PERIOD_MS));
 
-		/*++counts;
+		static int32_t average_broadcast_period = 0;
+		static int32_t counts = 0;
+
+		++counts;
 		if (counts == 1)
 		{
 			average_broadcast_period = broadcast_period;
@@ -108,7 +113,7 @@ implementation
 			average_broadcast_period += ((int32_t)broadcast_period - average_broadcast_period) / counts;
 		}
 
-		dbg("stdout", "Broadcast period = %u ave = %d count = %u\n", broadcast_period, average_broadcast_period, counts);*/
+		dbg("stdout", "Broadcast period = %d then %u ave = %d count = %u\n", BROADCAST_PERIOD_MS, broadcast_period, average_broadcast_period, counts);
 
 		return broadcast_period;
 
