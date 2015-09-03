@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os
+import os, itertools
 
 import data.util
 from data import latex
@@ -45,6 +45,14 @@ class Grapher(GrapherBase):
 
         self.yextractor = yextractor
 
+        self.error_bars = False
+
+    def _value_extractor(self, yvalue):
+        if self.error_bars:
+            return yvalue
+        else:
+            return self.yextractor(yvalue)
+
     @staticmethod
     def _remove_index(names, values, index_name):
         idx = names.index(index_name)
@@ -80,7 +88,7 @@ class Grapher(GrapherBase):
 
                     yvalue = results[ simulation_results.result_names.index(self.yaxis) ]
 
-                    dat.setdefault((key_names, values), {})[(xvalue, vvalue)] = self.yextractor(yvalue)
+                    dat.setdefault((key_names, values), {})[(xvalue, vvalue)] = self._value_extractor(yvalue)
 
         for ((key_names, key_values), values) in dat.items():
             self._create_plot(key_names, key_values, values)
@@ -90,12 +98,22 @@ class Grapher(GrapherBase):
     def _write_plot_data(self, dir_name, values, xvalues, vvalues):
         with open(os.path.join(dir_name, 'graph.dat'), 'w') as graph_dat:
 
-            table =  [ [ '#' ] + vvalues ]
+            table =  [ ]
+
+            if self.error_bars:
+                table.append([ '#' ] + list(itertools.chain(*[[name, name + "-error"] for name in vvalues])))
+            else:
+                table.append([ '#' ] + vvalues))
 
             for xvalue in sorted(xvalues):
                 row = [ xvalue ]
                 for vvalue in vvalues:
-                    row.append(values.get((xvalue, vvalue), '?'))
+                    yvalue = values.get((xvalue, vvalue), '?')
+                    if self.error_bars:
+                        row.append(yvalue[0])
+                        row.append(yvalue[1])
+                    else:
+                        row.append(yvalue)
 
                 table.append(row)
 
@@ -151,10 +169,16 @@ class Grapher(GrapherBase):
 
             column_count = len(vvalues)
 
-            for x in range(1, column_count + 1):
-                plots.append('"graph.dat" using 1:{} with lp title \'{} {}{}\' linewidth {line_width}'.format(
-                    x + 1, self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
-                    line_width=self.line_width))
+            if self.error_bars:
+                for x in range(1, column_count + 1):
+                    plots.append('"graph.dat" using 1:{ycol}:{errcol} with errorbars title \'{} {}{}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
+                        self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
+                        x=x, ycol=x * 2, errcol=x * 2 + 1, line_width=self.line_width))
+            else:
+                for x in range(1, column_count + 1):
+                    plots.append('"graph.dat" using 1:{ycol} with lp title \'{} {}{}\' linewidth {line_width}'.format(
+                        self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
+                        ycol=x + 1, line_width=self.line_width))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
