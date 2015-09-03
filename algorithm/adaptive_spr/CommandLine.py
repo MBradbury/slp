@@ -120,7 +120,7 @@ class CLI(CommandLineCommon.CLI):
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
             name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor
+            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
 
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
@@ -195,7 +195,7 @@ class CLI(CommandLineCommon.CLI):
         def graph_min_max_versus(result_name):
             name = 'min-max-{}-versus-{}'.format(adaptive.name, result_name)
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if result_name == 'attacker distance' else scalar_extractor
+            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if result_name == 'attacker distance' else scalar_extractor(x)
 
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
