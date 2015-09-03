@@ -149,6 +149,11 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
 
+                g.point_size = 1.3
+                g.line_width = 4
+                g.yaxis_font = "',14'"
+                g.xaxis_font = "',12'"
+
                 if yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
@@ -213,6 +218,11 @@ class CLI(CommandLineCommon.CLI):
             g.comparison_label = 'Phantom'
             g.baseline_label = 'Protectionless - Baseline'
             g.vary_label = ''
+
+            g.point_size = 1.3
+            g.line_width = 4
+            g.yaxis_font = "',14'"
+            g.xaxis_font = "',12'"
 
             if result_name in custom_yaxis_range_max:
                 g.yaxis_range_max = custom_yaxis_range_max[result_name]
