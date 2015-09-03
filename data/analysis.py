@@ -237,12 +237,15 @@ class AnalyzerCommon(object):
         d['source period']      = lambda x: x.opts['source_period']
 
     @staticmethod
-    def _format_results(x, name, allow_missing=False):
+    def _format_results(x, name, allow_missing=False, average_corrector=lambda x: x, variance_corrector=lambda x: x):
         if name in x.variance_of:
-            return "{}({})".format(x.average_of[name], x.variance_of[name])
+            average = average_corrector(x.average_of[name])
+            variance = variance_corrector(x.variance_of[name])
+            return "{}({})".format(average, variance)
         else:
             try:
-                return "{}".format(x.average_of[name])
+                average = average_corrector(x.average_of[name])
+                return "{}".format(average)
             except KeyError:
                 if not allow_missing:
                     raise
