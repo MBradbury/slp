@@ -60,7 +60,9 @@ def useful_log10(data):
         return -math.log10(-data)
 
 def scalar_extractor(x):
-    if numpy.isscalar(x):
+    if x is None:
+        return None
+    elif numpy.isscalar(x):
         return x
     else:
         (val, stddev) = x
