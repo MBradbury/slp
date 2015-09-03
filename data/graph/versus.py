@@ -103,13 +103,13 @@ class Grapher(GrapherBase):
             if self.error_bars:
                 table.append([ '#' ] + list(itertools.chain(*[[name, name + "-error"] for name in vvalues])))
             else:
-                table.append([ '#' ] + vvalues))
+                table.append([ '#' ] + vvalues)
 
             for xvalue in sorted(xvalues):
                 row = [ xvalue ]
                 for vvalue in vvalues:
                     yvalue = values.get((xvalue, vvalue), '?')
-                    if self.error_bars:
+                    if self.error_bars and yvalue != '?':
                         row.append(yvalue[0])
                         row.append(yvalue[1])
                     else:
