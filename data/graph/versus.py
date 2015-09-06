@@ -110,8 +110,7 @@ class Grapher(GrapherBase):
                 for vvalue in vvalues:
                     yvalue = values.get((xvalue, vvalue), '?')
                     if self.error_bars and yvalue != '?':
-                        row.append(yvalue[0])
-                        row.append(yvalue[1])
+                        row.extend(yvalue)
                     else:
                         row.append(yvalue)
 
