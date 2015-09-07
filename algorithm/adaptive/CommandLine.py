@@ -84,7 +84,7 @@ class CLI(CommandLineCommon.CLI):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'fake', 'norm(fake,time taken)', 'received ratio', 'tfs', 'pfs'))
+            results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs', 'attacker distance'))
 
         result_table = fake_result.ResultTable(adaptive_results)
 
@@ -100,6 +100,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'tfs': ('Number of TFS Created', 'left top'),
             'pfs': ('Number of PFS Created', 'left top'),
+            'attacker distance': ('meters', 'left top'),
         }
 
         heatmap_results = ['sent heatmap', 'received heatmap']
@@ -119,15 +120,41 @@ class CLI(CommandLineCommon.CLI):
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
             name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
+            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
+
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
                 xaxis='size', yaxis=yaxis, vary='source period',
-                yextractor=scalar_extractor)
+                yextractor=yextractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = yaxis_label
             g.vary_label = 'Source Period'
             g.vary_prefix = ' seconds'
+            g.key_position = key_position
+
+            g.create(adaptive_results)
+
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name)
+            ).run()
+
+
+        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+            name = '{}-v-communication-model'.format(yaxis.replace(" ", "_"))
+
+            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
+
+            g = versus.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis='size', yaxis=yaxis, vary='communication model',
+                yextractor=yextractor)
+
+            g.xaxis_label = 'Network Size'
+            g.yaxis_label = yaxis_label
+            g.vary_label = 'Communication Model'
+            g.vary_prefix = ''
             g.key_position = key_position
 
             g.create(adaptive_results)
@@ -275,7 +302,7 @@ class CLI(CommandLineCommon.CLI):
             g.key_spacing = "2"
             g.key_width = "+6"
 
-            g.pointsize = '2'
+            g.point_size = '2'
 
             g.min_label = 'Static - Lowest'
             g.max_label = 'Static - Highest'
