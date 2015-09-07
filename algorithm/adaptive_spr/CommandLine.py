@@ -100,6 +100,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'tfs': ('Number of TFS Created', 'left top'),
             'pfs': ('Number of PFS Created', 'left top'),
+            'tailfs': ('Number of TailFS Created', 'left top'),
             'attacker distance': ('Meters', 'left top'),
         }
 
