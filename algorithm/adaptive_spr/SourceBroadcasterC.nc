@@ -512,7 +512,7 @@ implementation
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
-			NormalMessage forwarding_message;
+			
 
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
@@ -526,24 +526,26 @@ implementation
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
+
+				// Having the sink forward the normal message helps set up
+				// the source distance gradients.
+				// However, we don't want to keep doing this as it benefits the attacker.
+				{
+					NormalMessage forwarding_message = *rcvd;
+					//forwarding_message.sink_source_distance = sink_source_distance;
+					forwarding_message.source_distance += 1;
+					forwarding_message.fake_sequence_number = source_fake_sequence_counter;
+					forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
+
+					send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+				}
 			}
 
 			// Keep sending away messages until we get a valid response
 			if (!sink_received_away_reponse)
 			{
 				call AwaySenderTimer.startOneShot(get_away_delay());
-			}
-
-			// Having the sink forward the normal message helps set up
-			// the source distance gradients.
-
-			forwarding_message = *rcvd;
-			//forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.source_distance += 1;
-			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
-
-			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}			
 		}
 	}
 
