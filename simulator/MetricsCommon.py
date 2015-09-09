@@ -59,7 +59,7 @@ class MetricsCommon(object):
 
         time = float(time) / self.sim.tossim.ticksPerSecond()
         node_id = int(node_id)
-        proximate_source_id = int(proximate_source_id)
+        #proximate_source_id = int(proximate_source_id)
         ultimate_source_id = int(ultimate_source_id)
         sequence_number = int(sequence_number)
         hop_count = int(hop_count)
@@ -70,22 +70,24 @@ class MetricsCommon(object):
         self.received[kind][node_id] += 1
 
         if node_id in self.sink_ids and kind == "Normal":
-            self.normal_latency[(ultimate_source_id, sequence_number)] = time - self.normal_sent_time[(ultimate_source_id, sequence_number)]
+            key = (ultimate_source_id, sequence_number)
+            self.normal_latency[key] = time - self.normal_sent_time[key]
             self.normal_hop_count.append(hop_count)
 
     COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')
 
     def process_COLLISIONS(self, line):
-        match = self.COLLSIONS_RE.match(line)
+        # TODO:
+        """match = self.COLLSIONS_RE.match(line)
         if match is None:
             return None
 
         node_id = int(match.group(1))
         node_from = int(match.group(2))
         node_to = int(match.group(3))
-        reason = match.group(4)
+        reason = match.group(4)"""
 
-        # TODO:
+        pass
 
     def process_SOURCE_CHANGE(self, line):
         (state, node_id) = line.strip().split(',')
