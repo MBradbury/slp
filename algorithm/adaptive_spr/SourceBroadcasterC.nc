@@ -512,8 +512,6 @@ implementation
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
-			
-
 			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
