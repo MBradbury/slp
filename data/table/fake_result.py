@@ -24,15 +24,8 @@ class ResultTable(object):
 
         return inital_header + parameter_header + result_header
 
-    def _convert_title_row(self, name, row):
-
-        if self.results.is_normalised_name(name):
-            (norm_name, div_name) = self.results.get_normalised_names(name)
-
-            norm_value = self._convert_title_row(norm_name, row)
-            div_value = self._convert_title_row(div_name, row)
-
-            return "{} / {}".format(norm_value, div_value)
+    @staticmethod
+    def _convert_title_row(name, row):
 
         try:
             return {
@@ -60,6 +53,10 @@ class ResultTable(object):
                 "walk length": ("Walk Length", "(hops)"),
                 "walk retries": ("Walk", "Retries"),
                 "paths reached end": ("Paths Ended", "(\\%)"),
+
+                "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
+                "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\Sigma^{-1}$", "~"),
+                "norm(norm(norm(sent,time taken),network size),source rate)": ("$M$ $T^{-1}$ $\Sigma^{-1}$ $R^{-1}$", "~"),
             }[name][row]
         except KeyError as ex:
             print("Failed to find the name '{}' for row {}. Using default. : {}".format(name, row, ex), file=sys.stderr)
@@ -85,7 +82,9 @@ class ResultTable(object):
             return "${:.0f}$".format(value * 100.0)
         elif name == "tfs" or name == "pfs":
             return "${:.1f}$".format(value[0])
-        elif name in {"approach", "landmark node"}:
+        elif name == "approach":
+            return latex.escape(value.replace("_APPROACH", ""))
+        elif name in{"landmark node"}:
             return latex.escape(value)
         elif isinstance(value, dict):
             return latex.escape(str(value))
