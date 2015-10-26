@@ -478,6 +478,9 @@ implementation
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
+					dbg_clear("Metric-PATH_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+						sim_time(), TOS_NODE_ID, rcvd->sequence_number, rcvd->source_distance);
+
 					return;
 				}
 
