@@ -32,7 +32,18 @@ class Analyzer(AnalyzerCommon):
         d['sent heatmap']       = lambda x: self._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
 
-        super(Analyzer, self).__init__(results_directory, d)
+        d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
+       
+        d['norm(fake,time taken)']   = lambda x: self._format_results(x, 'norm(FakeSent,TimeTaken)')
+        d['norm(norm(fake,time taken),source rate)'] = lambda x: self._format_results(x, 'norm(norm(FakeSent,TimeTaken),source_rate)')
+
+        normalised = [
+            ('Sent', 'TimeTaken'),
+            ('FakeSent', 'TimeTaken'),
+            (('FakeSent', 'TimeTaken'), 'source_rate'),
+        ]
+
+        super(Analyzer, self).__init__(results_directory, d, normalised)
 
     @staticmethod
     def _correct_attacker_distance(x):

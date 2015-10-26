@@ -58,7 +58,13 @@ class Analyzer(AnalyzerCommon):
         d['sent heatmap']       = lambda x: self._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
 
-        super(Analyzer, self).__init__(results_directory, d)
+        d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
 
-    def analyse_path(self, path):
-        return AnalysisResults(AnalyseWithOutlierDetection(path))
+        normalised = [
+            ('Sent', 'TimeTaken'),
+        ]
+
+        super(Analyzer, self).__init__(results_directory, d, normalised)
+
+    #def analyse_path(self, path):
+    #    return AnalysisResults(AnalyseWithOutlierDetection(path))

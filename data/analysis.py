@@ -3,7 +3,7 @@ from __future__ import print_function, division
 from numpy import mean
 from numpy import var as variance
 
-import sys, ast, math, os, fnmatch, timeit, datetime
+import sys, ast, math, os, fnmatch, timeit, datetime, collections
 from collections import Counter
 from numbers import Number
 
@@ -11,16 +11,57 @@ class EmptyFileError(RuntimeError):
     def __init__(self, filename):
         super(EmptyFileError, self).__init__("The file '{}' is empty.".format(filename))
 
+
+def _normalised_value_name(value):
+    if isinstance(value, str):
+        return value
+    elif isinstance(value, collections.Sequence) and len(value) == 2:
+        return "norm({},{})".format(_normalised_value_name(value[0]), _normalised_value_name(value[1]))
+    else:
+        raise RuntimeError("Unknown type or length for value {}".format(value))
+
+def _normalised_value_names(values):
+    def _dfs_names(value):
+        result = []
+
+        if isinstance(value, str):
+            #result.append(value)
+            pass
+        elif isinstance(value, collections.Sequence) and len(value) == 2:
+            result.extend(_dfs_names(value[0]))
+            result.extend(_dfs_names(value[1]))
+            result.append(_normalised_value_name(value))
+        else:
+            raise RuntimeError("Unknown type or length for value {}".format(value))
+
+        return result
+
+    all_results = []
+
+    for value in values:
+        all_results.extend(_dfs_names(value))
+
+    # Get unique results maintaining insertion order
+    result = []
+    for r in all_results:
+        if r not in result:
+            result.append(r)
+
+    return result
+
 class Analyse(object):
-    def __init__(self, infile):
+    def __init__(self, infile, normalised_values):
 
         self.opts = {}
 
         self.headings = []
         self.data = []
 
+        self._unnormalised_headings_count = None
+
         with open(infile) as f:
             line_number = 0
+
             for line in f:
 
                 line_number += 1
@@ -39,6 +80,10 @@ class Analyse(object):
                     # Read the headings
                     self.headings = line[1:].split('|')
 
+                    self._unnormalised_headings_count = len(self.headings)
+
+                    self.headings.extend(_normalised_value_names(normalised_values))
+
                 elif '|' in line:
                     try:
                         # Read the actual data
@@ -48,7 +93,15 @@ class Analyse(object):
 
                         self.detect_outlier(values)
 
+                        # Create the per line normalised values
+                        for (num, den) in normalised_values:
+                            num_value = self._get_from_opts_or_values(_normalised_value_name(num), values)
+                            den_value = self._get_from_opts_or_values(_normalised_value_name(den), values)
+
+                            values.append(num_value / den_value)
+
                         self.data.append(values)
+
 
                     except (TypeError, RuntimeError) as e:
                         print("Unable to process line {} due to {}".format(line_number, e), file=sys.stderr)
@@ -58,6 +111,22 @@ class Analyse(object):
 
             if line_number == 0 or len(self.data) == 0:
                 raise EmptyFileError(infile)
+
+    def _get_from_opts_or_values(self, name, values):
+        try:
+            index = self.headings.index(_normalised_value_name(name))
+
+            return values[index]
+        except ValueError:
+            # Sorry for this horrible hack, but we really should
+            # have stored network size as its actual value from the start
+            if name == "network_size":
+                return float(self.opts[name]) ** 2
+            elif name == "source_rate":
+                return 1.0 / float(self.opts["source_period"])
+            else:
+                return float(self.opts[name])
+
 
     def _better_literal_eval(self, line_number, items):
         values = []
@@ -83,7 +152,7 @@ class Analyse(object):
         """Perform multiple sanity checks on the data generated"""
 
         # Check that the expected number of values are present
-        if len(values) != len(self.headings):
+        if len(values) != self._unnormalised_headings_count:
             raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
                 len(values), len(self.headings), line_number))
 
@@ -223,9 +292,10 @@ class AnalysisResults:
         self.data = analysis.data
 
 class AnalyzerCommon(object):
-    def __init__(self, results_directory, values):
+    def __init__(self, results_directory, values, normalised_values=tuple()):
         self.results_directory = results_directory
         self.values = values
+        self.normalised_values = normalised_values
 
     @staticmethod
     def _set_results_header(d):
@@ -253,7 +323,7 @@ class AnalyzerCommon(object):
                     return "None"
 
     def analyse_path(self, path):
-        return AnalysisResults(Analyse(path))
+        return AnalysisResults(Analyse(path, self.normalised_values))
 
     def run(self, summary_file):
         summary_file_path = os.path.join(self.results_directory, summary_file)
