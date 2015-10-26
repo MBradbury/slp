@@ -1,5 +1,7 @@
 from __future__ import print_function, division
 
+from simulator.Simulator import OutputCatcher
+
 from collections import Counter, OrderedDict
 import itertools, re, sys
 
@@ -25,6 +27,11 @@ class MetricsCommon(object):
 
         self.became_source_times = {}
         self.became_normal_after_source_times = {}
+
+    def register(self, name, function):
+        catcher = OutputCatcher(function)
+        catcher.register(self.sim, name)
+        self.sim.add_output_processor(catcher)
 
     def process_COMMUNICATE(self, line):
         (comm_type, contents) = line.split(':')
