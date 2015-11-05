@@ -37,10 +37,13 @@ class Analyzer(AnalyzerCommon):
         d['norm(fake,time taken)']   = lambda x: self._format_results(x, 'norm(FakeSent,TimeTaken)')
         d['norm(norm(fake,time taken),source rate)'] = lambda x: self._format_results(x, 'norm(norm(FakeSent,TimeTaken),source_rate)')
 
+        d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
+
         normalised = [
             ('Sent', 'TimeTaken'),
             ('FakeSent', 'TimeTaken'),
             (('FakeSent', 'TimeTaken'), 'source_rate'),
+            ('NormalSent', 'TimeTaken'),
         ]
 
         super(Analyzer, self).__init__(results_directory, d, normalised)

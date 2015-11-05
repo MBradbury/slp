@@ -84,7 +84,13 @@ class CLI(CommandLineCommon.CLI):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs', 'attacker distance'))
+            results=(
+                'sent', 'time taken',
+                #'normal latency', 'ssd', 'captured',
+                #'fake', 'received ratio', 'tfs', 'pfs',
+                'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
+                'norm(norm(norm(sent,time taken),network size),source rate)'
+            ))
 
         result_table = fake_result.ResultTable(adaptive_results)
 
@@ -164,23 +170,32 @@ class CLI(CommandLineCommon.CLI):
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
+            'normal': ('Normal Messages Sent', 'left top'),
             'fake': ('Fake Messages Sent', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'tfs': ('Number of TFS Created', 'left top'),
             'pfs': ('Number of PFS Created', 'left top'),
             'attacker distance': ('meters', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
         }
 
         custom_yaxis_range_max = {
-            'fake': 600000,
-            'captured': 20
+            'fake': 400000,
+            'captured': 20,
+            'received ratio': 100,
+            'norm(sent,time taken)': 15000,
+            'norm(fake,time taken)': 12000,
         }
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
             parameters=protectionless.CommandLine.CLI.parameter_names,
-            results=list(set(graph_parameters.keys()) - {'tfs', 'pfs', 'fake'})
+            results=list(set(graph_parameters.keys()) - {'tfs', 'pfs', 'fake', 'norm(fake,time taken)',
+                                                         'norm(norm(fake,time taken),source rate)'})
         )
 
         adaptive_spr_results = results.Results(
@@ -213,6 +228,7 @@ class CLI(CommandLineCommon.CLI):
             g.key_width = "+6"
 
             g.point_size = '2'
+            g.line_width = 4
 
             g.min_label = 'Dynamic - Lowest'
             g.max_label = 'Dynamic - Highest'
