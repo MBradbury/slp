@@ -59,9 +59,11 @@ class Analyzer(AnalyzerCommon):
         d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
 
         d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
 
         normalised = [
             ('Sent', 'TimeTaken'),
+            ('NormalSent', 'TimeTaken'),
         ]
 
         super(Analyzer, self).__init__(results_directory, d, normalised)
