@@ -47,6 +47,8 @@ class Grapher(GrapherBase):
 
         self.error_bars = False
 
+        self.generate_legend_graph = False
+
     def _value_extractor(self, yvalue):
         if self.error_bars:
             return yvalue
@@ -187,6 +189,40 @@ class Grapher(GrapherBase):
             for (name, value) in zip(key_names, key_values):
                 graph_caption.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
 
+    def _write_legend_plot(self, dir_name, vvalues):
+        with open(os.path.join(dir_name, 'legend.gp'), 'w') as graph_p:
+
+            graph_p.write('#!/usr/bin/gnuplot\n')
+
+            graph_p.write('set terminal pdf enhanced font ",14" size 9.8,0.6\n')
+
+            graph_p.write('set key horizontal\n')
+
+            graph_p.write('set xrange [0 : -1]\n')
+            graph_p.write('set yrange [0 : -1]\n')
+
+            graph_p.write('unset border\n')
+            graph_p.write('unset tics\n')
+
+            graph_p.write('set output "legend.pdf"\n')
+
+            plots = []
+
+            column_count = len(vvalues)
+
+            if self.error_bars:
+                for x in range(1, column_count + 1):
+                    plots.append('NaN with errorbars title \'{} {}{}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
+                        self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
+                        x=x, ycol=x * 2, errcol=x * 2 + 1, line_width=self.line_width))
+            else:
+                for x in range(1, column_count + 1):
+                    plots.append('NaN with lp title \'{} {}{}\' linewidth {line_width}'.format(
+                        self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
+                        ycol=x + 1, line_width=self.line_width))
+
+            graph_p.write('plot {}\n\n'.format(', '.join(plots)))
+
     def _create_plot(self, key_names, key_values, values):
         dir_name = os.path.join(self.output_directory, self.result_name, *map(str, key_values))
 
@@ -196,7 +232,7 @@ class Grapher(GrapherBase):
         data.util.create_dirtree(dir_name)
 
         xvalues = list({x[0] for x in values.keys()})
-        vvalues = list(sorted({x[1] for x in values.keys()}))
+        vvalues = list(self._order_keys({x[1] for x in values.keys()}))
 
         # Write our data
         self._write_plot_data(dir_name, values, xvalues, vvalues)
@@ -204,3 +240,11 @@ class Grapher(GrapherBase):
         self._write_plot_graph(dir_name, xvalues, vvalues)
 
         self._write_plot_caption(dir_name, key_names, key_values)
+
+        if self.generate_legend_graph:
+            self._write_legend_plot(dir_name, vvalues)
+
+    def _order_keys(self, keys):
+        """Sort the keys in the order in which they should be displayed in the graph.
+        The default is to order them alphabetically."""
+        return sorted(keys)
