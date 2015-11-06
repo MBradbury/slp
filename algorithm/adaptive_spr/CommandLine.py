@@ -185,10 +185,16 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'fake': 400000,
-            'captured': 20,
+            'captured': 10,
             'received ratio': 100,
-            'norm(sent,time taken)': 15000,
+            'attacker distance': 120,
+            'normal latency': 200,
+            'pfs': 30,
+            'tfs': 500,
+            'norm(sent,time taken)': 12000,
             'norm(fake,time taken)': 12000,
+            'norm(normal,time taken)': 4000,
+            'ssd': 30,
         }
 
         protectionless_results = results.Results(
@@ -223,9 +229,10 @@ class CLI(CommandLineCommon.CLI):
 
             g.yaxis_font = g.xaxis_font = "',15'"
 
-            g.key_font = "',20'"
-            g.key_spacing = "2"
-            g.key_width = "+6"
+            g.nokey = True
+            #g.key_font = "',20'"
+            #g.key_spacing = "2"
+            #g.key_width = "+6"
 
             g.point_size = '2'
             g.line_width = 4
@@ -245,6 +252,8 @@ class CLI(CommandLineCommon.CLI):
                     "PB_RND_APPROACH": "Rnd",
                 }[name]
             g.vvalue_label_converter = vvalue_converter
+
+            g.generate_legend_graph = True
 
             if result_name in protectionless_results.result_names:
                 g.create(adaptive_results, adaptive_spr_results, baseline_results=protectionless_results)

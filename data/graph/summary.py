@@ -61,7 +61,9 @@ class GraphSummary:
                 print(root)
                 for filename in files:
                     (name_without_ext, extension) = os.path.splitext(filename)
-                    if extension == '.pdf':
+
+                    # Do not include the legend graphs in the summary
+                    if extension == '.pdf' and name_without_ext != 'legend':
                         print(filename)
                         self._write_image(output_latex, root, name_without_ext)
 

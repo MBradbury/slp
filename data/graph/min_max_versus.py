@@ -101,3 +101,15 @@ class Grapher(GrapherBase):
             self._create_plot(key_names, key_values, values)
 
         self._create_graphs(self.result_name)
+
+    def _order_keys(self, keys):
+        """Order the keys alphabetically, except for the baseline label.
+        This is because it looks better if baseline is included last.
+        Some graphs will not include a baseline, so having baseline last
+        makes the key colours and point type the same, irrespective of
+        whether baseline is graphed or not."""
+        sorted_keys = list(sorted(keys))
+        if self.baseline_label in sorted_keys:
+            sorted_keys.remove(self.baseline_label)
+            sorted_keys.append(self.baseline_label)
+        return sorted_keys
