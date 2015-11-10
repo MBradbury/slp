@@ -193,7 +193,7 @@ class CLI(CommandLineCommon.CLI):
             'tfs': 500,
             'norm(sent,time taken)': 12000,
             'norm(fake,time taken)': 12000,
-            'norm(normal,time taken)': 4000,
+            'norm(normal,time taken)': 3500,
             'ssd': 30,
         }
 
