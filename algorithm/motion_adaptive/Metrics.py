@@ -14,23 +14,14 @@ class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
 
-        self.COMMUNICATE = OutputCatcher(self.process_COMMUNICATE)
-        self.COMMUNICATE.register(self.sim, 'Metric-COMMUNICATE')
-        self.sim.add_output_processor(self.COMMUNICATE)
-
-        self.FAKE_NOTIFICATION = OutputCatcher(self.process_FAKE_NOTIFICATION)
-        self.FAKE_NOTIFICATION.register(self.sim, 'Fake-Notification')
-        self.sim.add_output_processor(self.FAKE_NOTIFICATION)
+        self.register('Metric-COMMUNICATE', self.process_COMMUNICATE)
+        self.register('Fake-Notification', self.process_FAKE_NOTIFICATION)
 
         # Normal nodes becoming the source, or source nodes becoming normal
-        self.SOURCE_CHANGE = OutputCatcher(self.process_SOURCE_CHANGE)
-        self.SOURCE_CHANGE.register(self.sim, 'Metric-SOURCE_CHANGE')
-        self.sim.add_output_processor(self.SOURCE_CHANGE)
+        self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
 
         # Non-source nodes detecting the source has changed
-        self.SOURCE_CHANGE_DETECT = OutputCatcher(self.process_SOURCE_CHANGE_DETECT)
-        self.SOURCE_CHANGE_DETECT.register(self.sim, 'Metric-SOURCE_CHANGE_DETECT')
-        self.sim.add_output_processor(self.SOURCE_CHANGE_DETECT)
+        self.register('Metric-SOURCE_CHANGE_DETECT', self.process_SOURCE_CHANGE_DETECT)
 
         self.tfs_created = 0
         self.pfs_created = 0
