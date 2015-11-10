@@ -42,7 +42,7 @@ class Analyzer(AnalyzerCommon):
         d['received']           = lambda x: self._format_results(x, 'Received')
         d['captured']           = lambda x: str(x.average_of['Captured'])
         d['attacker moves']     = lambda x: self._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance')
+        d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance', average_corrector=Analyzer._correct_attacker_distance)
         d['received ratio']     = lambda x: self._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: self._format_results(x, 'NormalLatency')
         d['time taken']         = lambda x: self._format_results(x, 'TimeTaken')
@@ -70,3 +70,10 @@ class Analyzer(AnalyzerCommon):
 
     #def analyse_path(self, path):
     #    return AnalysisResults(AnalyseWithOutlierDetection(path))
+
+    @staticmethod
+    def _correct_attacker_distance(x):
+        if isinstance(x, dict) and 0 in x:
+            return {(0, 0): x[0]}
+        else:
+            return x
