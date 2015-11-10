@@ -13,13 +13,8 @@ class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
 
-        self.COMMUNICATE = OutputCatcher(self.process_COMMUNICATE)
-        self.COMMUNICATE.register(self.sim, 'Metric-COMMUNICATE')
-        self.sim.add_output_processor(self.COMMUNICATE)
-
-        self.FAKE_NOTIFICATION = OutputCatcher(self.process_FAKE_NOTIFICATION)
-        self.FAKE_NOTIFICATION.register(self.sim, 'Fake-Notification')
-        self.sim.add_output_processor(self.FAKE_NOTIFICATION)
+        self.register('Metric-COMMUNICATE', self.process_COMMUNICATE)
+        self.register('Fake-Notification', self.process_FAKE_NOTIFICATION)
 
         self.tfs_created = 0
         self.fake_to_normal = 0
@@ -37,15 +32,8 @@ class Metrics(MetricsCommon):
             new_kind = match.group(1)
             old_kind = match.group(2)
 
-            if "FakeNode" in new_kind and "FakeNode" in old_kind:
-                self.fake_to_fake += 1
-            
             if new_kind == "TempFakeNode":
                 self.tfs_created += 1
-            elif new_kind == "PermFakeNode":
-                self.pfs_created += 1
-            elif new_kind == "TailFakeNode":
-                self.tailfs_created += 1
             elif new_kind == "NormalNode":
                 self.fake_to_normal += 1
             else:
