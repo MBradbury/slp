@@ -259,15 +259,29 @@ class Analyse(object):
             else:
                 return float('nan')
 
+    @staticmethod
+    def dict_sum(dics):
+        result = {}
+        for d in dics:
+            for (key, value) in d.items():
+                if key not in result:
+                    result[key] = value
+                else:
+                    result[key] += value
+        return result
+
 
     def dict_mean(self, index):
-        dict_list = (Counter(values[index]) for values in self.data)
 
-        return {
+        dict_list = (values[index] for values in self.data)
+
+        result = {
             k: float(v) / len(self.data)
             for (k, v)
-            in dict(sum(dict_list, Counter())).items()
+            in self.dict_sum(dict_list).items()
         }
+
+        return result
 
 
 class AnalysisResults:
