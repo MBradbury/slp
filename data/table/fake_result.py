@@ -55,8 +55,8 @@ class ResultTable(object):
                 "paths reached end": ("Paths Ended", "(\\%)"),
 
                 "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
-                "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\Sigma^{-1}$", "~"),
-                "norm(norm(norm(sent,time taken),network size),source rate)": ("$M$ $T^{-1}$ $\Sigma^{-1}$ $R^{-1}$", "~"),
+                "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
+                "norm(norm(norm(sent,time taken),network size),source rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
             }[name][row]
         except KeyError as ex:
             print("Failed to find the name '{}' for row {}. Using default. : {}".format(name, row, ex), file=sys.stderr)

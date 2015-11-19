@@ -1,12 +1,12 @@
 from __future__ import print_function
 
-import os, itertools
+import itertools
 
 from simulator.Simulator import Simulator
 from algorithm.common import CommandLineCommon
 
 from data import results, latex
-from data.table import safety_period, direct_comparison
+from data.table import safety_period, direct_comparison, fake_result
 from data.graph import summary, heatmap, versus
 
 from data.run.common import RunSimulationsCommon as RunSimulations

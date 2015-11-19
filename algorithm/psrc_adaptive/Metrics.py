@@ -1,7 +1,6 @@
 
 import re
 
-from simulator.Simulator import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
@@ -30,7 +29,7 @@ class Metrics(MetricsCommon):
         match = self.FAKE_RE.match(detail)
         if match is not None:
             kind = match.group(1)
-            
+
             if kind == "TFS":
                 self.tfs_created += 1
             elif kind == "PFS":
@@ -49,5 +48,5 @@ class Metrics(MetricsCommon):
         d["TFS"]                    = lambda x: x.tfs_created
         d["PFS"]                    = lambda x: x.pfs_created
         d["FakeToNormal"]           = lambda x: x.fake_to_normal
-        
+
         return d

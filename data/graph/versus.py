@@ -214,12 +214,12 @@ class Grapher(GrapherBase):
                 for x in range(1, column_count + 1):
                     plots.append('NaN with errorbars title \'{} {}{}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
                         self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
-                        x=x, ycol=x * 2, errcol=x * 2 + 1, line_width=self.line_width))
+                        x=x, ycol=x * 2, line_width=self.line_width))
             else:
                 for x in range(1, column_count + 1):
                     plots.append('NaN with lp title \'{} {}{}\' linewidth {line_width}'.format(
                         self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
-                        ycol=x + 1, line_width=self.line_width))
+                        line_width=self.line_width))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
