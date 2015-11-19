@@ -4,7 +4,6 @@ from numpy import mean
 from numpy import var as variance
 
 import sys, ast, math, os, fnmatch, timeit, datetime, collections
-from collections import Counter
 from numbers import Number
 
 class EmptyFileError(RuntimeError):
@@ -160,7 +159,7 @@ class Analyse(object):
         number_nodes = network_size * network_size
 
         for (heading, value) in zip(self.headings, values):
-            if type(value) is dict and heading in {'SentHeatMap', 'ReceivedHeatMap'}:
+            if isinstance(value, dict) and heading in {'SentHeatMap', 'ReceivedHeatMap'}:
 
                 # Check that there aren't too many nodes
                 if len(value) > number_nodes:
@@ -323,13 +322,13 @@ class AnalyzerCommon(object):
     @staticmethod
     def _format_results(x, name, allow_missing=False, average_corrector=lambda x: x, variance_corrector=lambda x: x):
         if name in x.variance_of:
-            average = average_corrector(x.average_of[name])
-            variance = variance_corrector(x.variance_of[name])
-            return "{}({})".format(average, variance)
+            ave = average_corrector(x.average_of[name])
+            var = variance_corrector(x.variance_of[name])
+            return "{}({})".format(ave, var)
         else:
             try:
-                average = average_corrector(x.average_of[name])
-                return "{}".format(average)
+                ave = average_corrector(x.average_of[name])
+                return "{}".format(ave)
             except KeyError:
                 if not allow_missing:
                     raise

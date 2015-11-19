@@ -11,8 +11,8 @@ class Arguments(ArgumentsCommon):
 
         parser.add_argument("--source-period", type=float, required=True)
         parser.add_argument("--source-mobility",
-            type=simulator.MobilityModel.eval_input,
-            default=simulator.MobilityModel.StationaryMobilityModel())
+                            type=simulator.MobilityModel.eval_input,
+                            default=simulator.MobilityModel.StationaryMobilityModel())
 
         parser.add_argument("--approach", type=str, choices=approaches, required=True)
 

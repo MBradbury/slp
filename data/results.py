@@ -2,7 +2,7 @@
 from __future__ import division
 
 import csv, math, ast
-
+from functools import partial
 import numpy
 
 from simulator import SourcePeriodModel
@@ -30,27 +30,29 @@ class Results(object):
             reader = csv.reader(f, delimiter='|')
             
             headers = []
+
+            def _get_value_for(name, values):
+                return values[headers.index(name)]
             
             for values in reader:
                 # Check if we have seen the first line
                 # We do this because we want to ignore it
                 if seen_first:
 
-                    def _get_value_for(name):
-                        return values[headers.index(name)]
+                    get_value = partial(_get_value_for, values=values)
 
-                    size = int(_get_value_for('network size'))
-                    src_period = SourcePeriodModel.eval_input(_get_value_for('source period')).simple_str()
-                    config = _get_value_for('configuration')
-                    attacker_model = _get_value_for('attacker model')
-                    noise_model = _get_value_for('noise model')
-                    communication_model = _get_value_for('communication model')
+                    size = int(get_value('network size'))
+                    src_period = SourcePeriodModel.eval_input(get_value('source period')).simple_str()
+                    config = get_value('configuration')
+                    attacker_model = get_value('attacker model')
+                    noise_model = get_value('noise model')
+                    communication_model = get_value('communication model')
 
                     table_key = (size, config, attacker_model, noise_model, communication_model)
 
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
-                
+
                     self.sizes.add(size)
                     self.configurations.add(config)
                     self.attacker_models.add(attacker_model)
