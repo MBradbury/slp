@@ -73,23 +73,25 @@ class TosVis(Simulator):
             wireless_range=wireless_range,
             seed=seed)
 
-        self.run_gui = False
-        self.node_label = None
+        self._run_gui = False
+        self._node_label = None
 
-        self.debug_analyzer = None
+        self._debug_analyzer = None
         self.scene = None
-        self.tkplot = None
+
+    def is_run_gui(self):
+        return self._run_gui
 
     def setup_gui(self):
 
-        if self.run_gui:
+        if self._run_gui:
             return
 
-        self.run_gui = True
+        self._run_gui = True
 
-        #self.node_label = "SourceBroadcasterC.first_source_distance"
+        #self._node_label = "SourceBroadcasterC.first_source_distance"
 
-        self.debug_analyzer = DebugAnalyzer()
+        self._debug_analyzer = DebugAnalyzer()
 
         # Setup a pipe for monitoring dbg messages
         dbg = OutputCatcher(self._process_message)
@@ -110,12 +112,11 @@ class TosVis(Simulator):
     ####################
     def _animate_leds(self, time, node_id, detail):
         (ledno, state) = detail
-        scene = self.scene
         (x, y) = self.node_location(node_id)
         shape_id = '{}:{}'.format(node_id, ledno)
 
         if state == 0:
-            scene.execute(time, 'delshape("%s")' % shape_id)
+            self.scene.execute(time, 'delshape("%s")' % shape_id)
             return
 
         if ledno == 0:
@@ -128,24 +129,22 @@ class TosVis(Simulator):
             x, y = x-5, y+5
             color = '0,0,1'
         options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
-        scene.execute(time, 'circle({},{},2,ident="{}",{})'.format(x, y, shape_id, options))
+        self.scene.execute(time, 'circle({},{},2,ident="{}",{})'.format(x, y, shape_id, options))
 
     ####################
     def _animate_am_send(self, time, sender, detail):
         (amtype, amlen, amdst) = detail
-        scene = self.scene
         (x, y) = self.node_location(sender)
-        scene.execute(time)
-        #scene.execute(time,
+        self.scene.execute(time)
+        #self.scene.execute(time,
         #           'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.3)'
         #       % (x,y,self.range))
 
     ####################
     def _animate_am_receive(self, time, receiver, detail):
         (amtype, amlen) = detail
-        scene = self.scene
         (x, y) = self.node_location(receiver)
-        scene.execute(time,
+        self.scene.execute(time,
             'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
             % (x, y, 10))
 
@@ -174,12 +173,11 @@ class TosVis(Simulator):
         else:
             raise RuntimeError("Unknown kind '{}'".format(kind))
 
-        scene = self.scene
-        scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
+        self.scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
 
     ####################
     def _process_message(self, dbg):
-        result = self.debug_analyzer.analyze(dbg)
+        result = self._debug_analyzer.analyze(dbg)
         if result is None:
             return
 
@@ -197,7 +195,7 @@ class TosVis(Simulator):
     def _pre_run(self):
         super(TosVis, self)._pre_run()
 
-        if self.run_gui:
+        if self._run_gui:
             from simulator.topovis.TopoVis import Scene
             from simulator.topovis.TkPlotter import Plotter
 
@@ -205,8 +203,7 @@ class TosVis(Simulator):
 
             # Setup an animating canvas
             self.scene = Scene(timescale=1)
-            self.tkplot = Plotter()
-            self.scene.addPlotter(self.tkplot)
+            self.scene.addPlotter(Plotter())
 
             # set line style used for neighbour relationship
             self.scene.execute(time, 'linestyle(1,color=(.7,.7,.7))')
@@ -219,11 +216,11 @@ class TosVis(Simulator):
     def _during_run(self, event_count):
         super(TosVis, self)._during_run(event_count)
 
-        if self.run_gui and event_count % 1000 == 0 and self.node_label is not None:
+        if self._run_gui and event_count % 1000 == 0 and self._node_label is not None:
             for node in self.nodes:
                 time = self.sim_time()
 
-                value = int(round(float(node.tossim_node.getVariable(self.node_label).getData())))
+                value = int(round(float(node.tossim_node.getVariable(self._node_label).getData())))
 
                 self.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 
