@@ -91,7 +91,7 @@ class Attacker(object):
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
-        if not self._sim.run_gui:
+        if not self._sim.is_run_gui():
             return
 
         (x, y) = self._sim.node_location(node_id)
@@ -129,8 +129,11 @@ class BasicReactiveAttacker(Attacker):
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         return True
 
-# Same as IgnorePastNLocationsReactiveAttacker(1)
 class IgnorePreviousLocationReactiveAttacker(Attacker):
+    """
+    Same as IgnorePastNLocationsReactiveAttacker(1)
+    """
+
     def __init__(self):
         super(IgnorePreviousLocationReactiveAttacker, self).__init__()
         self._previous_location = None
@@ -175,9 +178,13 @@ class TimeSensitiveReactiveAttacker(Attacker):
         return type(self).__name__ + "(wait_time_secs={})".format(self._wait_time_secs)
 
 
-# This attacker can determine the type of a message and its sequence number,
-# but is unaware of the ultimate source of the message.
+
 class SeqNoReactiveAttacker(Attacker):
+    """
+    This attacker can determine the type of a message and its sequence number,
+    but is unaware of the ultimate source of the message.
+    """
+
     def __init__(self):
         super(SeqNoReactiveAttacker, self).__init__()
         self._sequence_numbers = {}
@@ -192,9 +199,11 @@ class SeqNoReactiveAttacker(Attacker):
         seqno_key = (msg_type,)
         self._sequence_numbers[seqno_key] = sequence_number
 
-# This attacker can determine the source node of certain messages
-# that can be sent from multiple sources.
 class SeqNosReactiveAttacker(Attacker):
+    """
+    This attacker can determine the source node of certain messages
+    that can be sent from multiple sources.
+    """
     def __init__(self):
         super(SeqNosReactiveAttacker, self).__init__()
         self._sequence_numbers = {}
@@ -208,6 +217,27 @@ class SeqNosReactiveAttacker(Attacker):
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
         self._sequence_numbers[seqno_key] = sequence_number
+
+
+class SingleTypeReactiveAttacker(Attacker):
+    """
+    This attacker is only reacts to receiving specific messages.
+    It also has access to the ultimate sender and sequence number header fields.
+    """
+    def __init__(self, msg_type):
+        super(SingleTypeReactiveAttacker, self).__init__()
+        self._sequence_numbers = {}
+        self._msg_type = msg_type
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type)
+        return msg_type == self._msg_type and \
+               self._sequence_numbers.get(seqno_key, -1) < sequence_number
+
+    def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type)
+        self._sequence_numbers[seqno_key] = sequence_number
+
 
 
 def models():
