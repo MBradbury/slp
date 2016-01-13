@@ -177,6 +177,29 @@ class MetricsCommon(object):
             in enumerate(self.sim.attackers)
         }
 
+    def attacker_steps_towards(self):
+        return {
+            (source_id, i): attacker.steps_towards[source_id]
+
+            for i, attacker
+            in enumerate(self.sim.attackers)
+
+            for source_id
+            in self.source_ids
+        }
+
+    def attacker_steps_away(self):
+        return {
+            (source_id, i): attacker.steps_away[source_id]
+
+            for i, attacker
+            in enumerate(self.sim.attackers)
+
+            for source_id
+            in self.source_ids
+        }
+
+
     def node_was_source(self):
         result = {}
 
@@ -210,6 +233,8 @@ class MetricsCommon(object):
         d["EventCount"]             = lambda x: x.event_count
         d["AttackerDistance"]       = lambda x: x.attacker_distance()
         d["AttackerMoves"]          = lambda x: x.attacker_moves()
+        d["AttackerStepsTowards"]   = lambda x: x.attacker_steps_towards()
+        d["AttackerStepsAway"]      = lambda x: x.attacker_steps_away()
         d["NormalLatency"]          = lambda x: x.average_normal_latency()
         d["NormalSinkSourceHops"]   = lambda x: x.average_sink_source_hops()
         d["NormalSent"]             = lambda x: x.number_sent("Normal")

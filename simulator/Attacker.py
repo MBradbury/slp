@@ -22,6 +22,9 @@ class Attacker(object):
         self._has_found_source = None
         self.moves = None
 
+        self.steps_towards = {}
+        self.steps_away = {}
+
     def setup(self, sim, start_node_id):
         self._sim = sim
 
@@ -38,6 +41,9 @@ class Attacker(object):
         self.moves = 0
         self._move(start_node_id)
         self.moves = 0
+
+        self.steps_towards = {source: 0 for source in self._sim.metrics.configuration.source_ids}
+        self.steps_away = {source: 0 for source in self._sim.metrics.configuration.source_ids}
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         raise NotImplementedError()
@@ -84,6 +90,18 @@ class Attacker(object):
 
     def _move(self, node_id):
         """Moved the source to a new location."""
+
+        # Record moves towards or away from every source present
+        for source in self._sim.metrics.configuration.source_ids:
+            if None not in {source, node_id, self.position}:
+                new_distance = self._sim.node_distance(source, node_id)
+                old_distance = self._sim.node_distance(source, self.position)
+
+                if new_distance > old_distance:
+                    self.steps_away[source] += 1
+                elif new_distance < old_distance:
+                    self.steps_towards[source] += 1
+
         self.position = node_id
         self._has_found_source = self.found_source_slow()
 
