@@ -36,9 +36,6 @@ class Attacker(object):
 
         self._has_found_source = False
 
-        # Create the moves variable and then make sure it
-        # is set to 0 after the position has been set up.
-        self.moves = 0
         self._move(start_node_id)
         self.moves = 0
 
@@ -92,8 +89,9 @@ class Attacker(object):
         """Moved the source to a new location."""
 
         # Record moves towards or away from every source present
-        for source in self._sim.metrics.configuration.source_ids:
-            if None not in {source, node_id, self.position}:
+        # Do not do this for the change when the position is being set
+        if self.position is not None:
+            for source in self._sim.metrics.configuration.source_ids:
                 new_distance = self._sim.node_distance(source, node_id)
                 old_distance = self._sim.node_distance(source, self.position)
 
@@ -102,10 +100,11 @@ class Attacker(object):
                 elif new_distance < old_distance:
                     self.steps_towards[source] += 1
 
+        if self.position is not None:
+            self.moves += 1
+
         self.position = node_id
         self._has_found_source = self.found_source_slow()
-
-        self.moves += 1
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
