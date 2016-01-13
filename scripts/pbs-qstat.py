@@ -6,7 +6,7 @@ import xml.dom.minidom
 import sys, subprocess
 
 if len(sys.argv) != 2:
-    raise RuntimeError("Usage my-qstat.py <username>")
+    raise RuntimeError("Usage {} <username>".format(sys.argv[0]))
 
 username = sys.argv[1]
 
