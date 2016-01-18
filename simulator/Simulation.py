@@ -119,7 +119,11 @@ class Simulation(TosVis):
                     if is_linked:
                         self.radio.add(i, j, gain)
 
+                        #print("Added link: {} <-> {} ({})".format(i, j, gain))
+
             self.radio.setNoise(i, noise_floor, white_gaussian_noise)
+
+            #print("Set Noise: {} = {} / {}".format(i, noise_floor, white_gaussian_noise))
 
 
     def setup_radio(self):
