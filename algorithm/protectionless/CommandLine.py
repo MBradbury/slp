@@ -26,7 +26,7 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        'SourceCorner',
+        #'SourceCorner',
         #'SinkCorner',
         #'FurtherSinkCorner',
         #'Generic1',
@@ -40,11 +40,12 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSourceCentre',
         #'CircleSinkCentre',
 
-        #'Source2Corners',
-        #'Source4Corners',
-        #'Source2Edges',
-        #'Source4Edges',
-        #'Source2Corner',
+        'Source2Corners',
+        'Source4Corners',
+        'Source2Edges',
+        'Source4Edges',
+        'Source2Corner',
+        'SourceEdgeCorner',
 
         #'LineSinkCentre',
         #'SimpleTreeSinkEnd'
@@ -52,7 +53,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 750
 
-    attacker_models = ['BasicReactiveAttacker()', 'IgnorePreviousLocationReactiveAttacker()']
+    attacker_models = ['SeqNoReactiveAttacker()', 'SeqNosReactiveAttacker()']
 
     parameter_names = tuple()
 
