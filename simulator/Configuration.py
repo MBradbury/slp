@@ -288,6 +288,20 @@ class Source2Corner(Configuration):
             space_behind_sink=True
         )
 
+class SourceEdgeCorner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(SourceEdgeCorner, self).__init__(
+            grid,
+            source_ids={
+                ((len(grid.nodes) - 1) / 2) + (network_size - 1) / 2,
+                len(grid.nodes) - 1
+            },
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
 class RandomConnected(Configuration):
     def __init__(self, network_size, distance):
         random = Random(network_size, distance)
