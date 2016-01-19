@@ -20,8 +20,16 @@ class Runner(object):
         script_command = '{} {} {} > "{}"'.format(executable, module, options, name)
 
         # Print out any useful information that could aid in debugging
-        debug_command = 'hostname ; pwd ; echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" ; echo "TOSROOT: $TOSROOT" ; echo "PYTHONPATH: $PYTHONPATH"'
-
+        debug_commands = [
+            'hostname',
+            'pwd',
+            'echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"',
+            'echo "TOSROOT: $TOSROOT"',
+            'echo "PYTHONPATH: $PYTHONPATH"',
+            'python --version'
+        ]
+        debug_command = " ; ".join(debug_commands)
+        
         # Need to remove empty strings as bash doesn't allow `;;`
         precommand = " ; ".join(filter(None, (self.prepare_command, debug_command, script_command)))
 
