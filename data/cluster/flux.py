@@ -1,19 +1,19 @@
-from __future__ import division
-
-import math, subprocess
+import subprocess
 
 def name():
     return __name__
 
 def url():
-    return "frontend1.apocrita.hpc.qmul.ac.uk"
+    return "flux.dcs.warwick.ac.uk"
 
 def ppn():
-    return 12
+    return 16
 
+# HT is disabled
 def theads_per_processor():
-    return 4
+    return 1
 
+# 32GB per node
 def ram_per_node():
     return 2 * 1024
 
@@ -48,13 +48,12 @@ def submitter(notify_emails=None):
     ram_per_job_mb = 1700
     jobs = int(math.floor(((ram_per_node() * ppn()) - ram_for_os_mb) / ram_per_job_mb))
 
-    cluster_command = "qsub -cwd -V -j yes -h u -S /bin/bash -pe smp {} -l h_rt=48:00:00 -l h_vmem={}M -N \"{{}}\"".format(ppn(), ram_per_job_mb)
+    # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+    cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
-    #module_commands = "module load java/oracle/1.7.0_65 ; . sci/bin/activate"
-
-    prepare_command = ""
+    prepare_command = "cd $PBS_O_WORKDIR"
 
     return Submitter(cluster_command, prepare_command, jobs)
