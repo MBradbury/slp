@@ -1,4 +1,5 @@
-import subprocess
+from __future__ import division
+import math, subprocess
 
 def name():
     return __name__
@@ -7,7 +8,7 @@ def url():
     return "flux.dcs.warwick.ac.uk"
 
 def ppn():
-    return 16
+    return 12
 
 # HT is disabled
 def theads_per_processor():
@@ -15,7 +16,7 @@ def theads_per_processor():
 
 # 32GB per node
 def ram_per_node():
-    return 2 * 1024
+    return (32 * 1024) / ppn()
 
 def builder():
     from data.run.driver.cluster_builder import Runner as Builder
@@ -34,22 +35,13 @@ def copy_back(dirname):
 def submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
 
-    # There is only 24GB available and there are 48 threads that can be used for execution.
-    # There is no way that all the TOSSIM instances will not run over the memory limit!
-    # Previous jobs have used about 16.8GB maximum with 12 jobs running on a 25x25 network, that is 1450MB per job.
-    # So lets define the number of jobs to run with respect to an amount of RAM slightly greater than
-    # that per job.
-    # Expect this to need revision if larger networks are requested.
-    #
-    # TODO: Optimise this, so less RAM is requested per job for smaller network sizes.
-    # This means that more threads can run and the smaller jobs finish even quicker!
+    ram_for_os_mb = 1 * 1024
 
-    ram_for_os_mb = 512
-    ram_per_job_mb = 1700
-    jobs = int(math.floor(((ram_per_node() * ppn()) - ram_for_os_mb) / ram_per_job_mb))
+    jobs = ppn()
+    ram_per_job_mb = int(math.floor(((ram_per_node() * ppn()) - ram_for_os_mb) / jobs))
 
     # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
-    cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
+    cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime=18:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
