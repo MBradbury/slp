@@ -54,4 +54,8 @@ implementation
 
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
+
+	components
+		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
+	App.NormalSeqNos -> NormalSeqNos;
 }

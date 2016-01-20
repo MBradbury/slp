@@ -6,8 +6,7 @@
 typedef nx_struct NormalMessage {
   nx_uint64_t sequence_number;
 
-  // The id of the node that sent this message
-  nx_am_addr_t source_id;
+  nx_am_addr_t source_id; // The id of the node that sent this message
 
   nx_uint16_t source_distance;
 

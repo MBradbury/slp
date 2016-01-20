@@ -10,8 +10,6 @@
 
 #include <assert.h>
 
-#define FAKE_SEND_DELAY_MS 20
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 
@@ -36,6 +34,8 @@ module SourceBroadcasterC
 	uses interface Receive as FakeReceive;
 
 	uses interface ObjectDetector;
+
+	uses interface SequenceNumbers as NormalSeqNos;
 }
 
 implementation
@@ -59,7 +59,6 @@ implementation
 		}
 	}
 
-	SequenceNumber normal_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
 	uint32_t extra_to_send = 0;
@@ -85,7 +84,6 @@ implementation
 	{
 		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
-		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
@@ -177,13 +175,13 @@ implementation
 
 		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
-		message.sequence_number = sequence_number_next(&normal_sequence_counter);
+		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
-			sequence_number_increment(&normal_sequence_counter);
+			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
 
 		call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
@@ -204,7 +202,7 @@ implementation
 		}
 		else
 		{
-			dbgerror("stdout", "Failed to send fake message. Retrying...\n");
+			dbgerror("slp-debug", "Failed to send fake message. Retrying...\n");
 			call BroadcastFakeTimer.startOneShot(FAKE_SEND_DELAY_MS);
 		}
 
@@ -219,13 +217,13 @@ implementation
 		}
 	}
 
-	void forward_normal(const NormalMessage* const rcvd)
+	void forward_normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -241,14 +239,14 @@ implementation
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		forward_normal(rcvd);
+		forward_normal(rcvd, source_addr);
 	}
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 		}
@@ -256,7 +254,7 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		forward_normal(rcvd);
+		forward_normal(rcvd, source_addr);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
@@ -265,7 +263,7 @@ implementation
 		case TempFakeNode: Fake_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
-	void forward_fake(const FakeMessage* const rcvd)
+	void forward_fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -282,7 +280,7 @@ implementation
 
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		forward_fake(rcvd);
+		forward_fake(rcvd, source_addr);
 	}
 
 	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
@@ -297,12 +295,12 @@ implementation
 
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		forward_fake(rcvd);
+		forward_fake(rcvd, source_addr);
 	}
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		forward_fake(rcvd);
+		forward_fake(rcvd, source_addr);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
