@@ -11,7 +11,7 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
-//define as global, as making it work for multiple sources.
+// Define as global, as making it work for multiple sources.
 uint16_t messageNo = 0;
 
 module SourceBroadcasterC
@@ -32,8 +32,6 @@ module SourceBroadcasterC
 
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
-
-	uses interface SequenceNumbers as NormalSeqNos;
 
 	uses interface Random;
 }
@@ -84,10 +82,10 @@ implementation
 		dbg("slp-debug", "S0\n");
 
 		//the node is near the left border
-		if((message->NodeID-1)%TOPOLOGY_SIZE == 0 && message->NodeID != 1)
+		if((TOS_NODE_ID-1)%TOPOLOGY_SIZE == 0 && TOS_NODE_ID != 1)
 		{
-			des1 = message->NodeID - TOPOLOGY_SIZE;
-			des2 = message->NodeID + 1;
+			des1 = TOS_NODE_ID - TOPOLOGY_SIZE;
+			des2 = TOS_NODE_ID + 1;
 
 			ran=call Random.rand16()%2;
 
@@ -95,20 +93,20 @@ implementation
 			else           des=des2;
 		}
 		// node is near the bottom
-		else if (message->NodeID > 1 && message->NodeID < TOPOLOGY_SIZE)
+		else if (TOS_NODE_ID > 1 && TOS_NODE_ID < TOPOLOGY_SIZE)
 		{
-			des = message->NodeID -1;
+			des = TOS_NODE_ID -1;
 		}
 
-		else if (message->NodeID == 1)
+		else if (TOS_NODE_ID == 1)
 		{
-			des = message->NodeID + 1;
+			des = TOS_NODE_ID + 1;
 		}
 		//normal nodes
 		else
 		{
-			des1=message->NodeID - 1;
-			des2 = message->NodeID - TOPOLOGY_SIZE;
+			des1=TOS_NODE_ID - 1;
+			des2 = TOS_NODE_ID - TOPOLOGY_SIZE;
 
 			ran=call Random.rand16()%2;
 
@@ -126,30 +124,30 @@ implementation
 	  	dbg("slp-debug", "S1\n");
 
 		//the node is near the right border but not the corner node
-		if(message->NodeID%TOPOLOGY_SIZE == 0 && message->NodeID != TOPOLOGY_SIZE)
+		if(TOS_NODE_ID%TOPOLOGY_SIZE == 0 && TOS_NODE_ID != TOPOLOGY_SIZE)
 		{
-			des1 = message->NodeID - TOPOLOGY_SIZE;
-			des2 = message->NodeID - 1;
+			des1 = TOS_NODE_ID - TOPOLOGY_SIZE;
+			des2 = TOS_NODE_ID - 1;
 
 			ran=call Random.rand16()%2;
 
 			if(ran == 0)   des=des1;
 			else           des=des2;
 		}
-		else if (message->NodeID > 1 && message->NodeID < TOPOLOGY_SIZE)
+		else if (TOS_NODE_ID > 1 && TOS_NODE_ID < TOPOLOGY_SIZE)
 		{
-			des = message->NodeID + 1;
+			des = TOS_NODE_ID + 1;
 		}
 
-		else if (message->NodeID == TOPOLOGY_SIZE)
+		else if (TOS_NODE_ID == TOPOLOGY_SIZE)
 		{
 			des=TOPOLOGY_SIZE;
 		}
 		//normal nodes
 		else
 		{
-			des1=message->NodeID + 1;
-			des2 = message->NodeID - TOPOLOGY_SIZE;
+			des1=TOS_NODE_ID + 1;
+			des2 = TOS_NODE_ID - TOPOLOGY_SIZE;
 
 			ran=call Random.rand16()%2;
 
@@ -168,10 +166,10 @@ implementation
 	  	dbg("slp-debug", "S2\n");
 
 		//the node is near the left border
-		if((message->NodeID-1)%TOPOLOGY_SIZE == 0 && message->NodeID != TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1)
+		if((TOS_NODE_ID-1)%TOPOLOGY_SIZE == 0 && TOS_NODE_ID != TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1)
 		{
-			des1 = message->NodeID + TOPOLOGY_SIZE;
-			des2 = message->NodeID + 1;
+			des1 = TOS_NODE_ID + TOPOLOGY_SIZE;
+			des2 = TOS_NODE_ID + 1;
 
 			ran=call Random.rand16()%2;
 
@@ -179,20 +177,20 @@ implementation
 			else           des=des2;
 		}
 		//top
-		else if (message->NodeID > TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1 && message->NodeID < TOPOLOGY_SIZE * TOPOLOGY_SIZE)
+		else if (TOS_NODE_ID > TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1 && TOS_NODE_ID < TOPOLOGY_SIZE * TOPOLOGY_SIZE)
 		{
-			des = message->NodeID - 1;
+			des = TOS_NODE_ID - 1;
 		}
 
-		else if (message->NodeID == TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1)
+		else if (TOS_NODE_ID == TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1)
 		{
 			des = TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1;
 		}
 		//normal nodes
 		else
 		{
-			des1=message->NodeID - 1;
-			des2 = message->NodeID + TOPOLOGY_SIZE;
+			des1=TOS_NODE_ID - 1;
+			des2 = TOS_NODE_ID + TOPOLOGY_SIZE;
 
 			ran=call Random.rand16()%2;
 
@@ -210,10 +208,10 @@ implementation
 	  	dbg("slp-debug", "S3\n");
 
 		//the node is near the right border
-		if(message->NodeID%TOPOLOGY_SIZE == 0 && message->NodeID != TOPOLOGY_SIZE*TOPOLOGY_SIZE)
+		if(TOS_NODE_ID%TOPOLOGY_SIZE == 0 && TOS_NODE_ID != TOPOLOGY_SIZE*TOPOLOGY_SIZE)
 		{
-			des1 = message->NodeID + TOPOLOGY_SIZE;
-			des2 = message->NodeID - 1;
+			des1 = TOS_NODE_ID + TOPOLOGY_SIZE;
+			des2 = TOS_NODE_ID - 1;
 
 			ran=call Random.rand16()%2;
 
@@ -221,19 +219,19 @@ implementation
 			else           des=des2;
 		}
 		//top
-		else if (message->NodeID > TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1 && message->NodeID < TOPOLOGY_SIZE * TOPOLOGY_SIZE)
+		else if (TOS_NODE_ID > TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1 && TOS_NODE_ID < TOPOLOGY_SIZE * TOPOLOGY_SIZE)
 		{
-			des = message->NodeID +1;
+			des = TOS_NODE_ID +1;
 		}
-		else if (message->NodeID == TOPOLOGY_SIZE * TOPOLOGY_SIZE)
+		else if (TOS_NODE_ID == TOPOLOGY_SIZE * TOPOLOGY_SIZE)
 		{
 			des = TOPOLOGY_SIZE * TOPOLOGY_SIZE;   
 		}
 		//normal nodes
 		else
 		{
-			des1=message->NodeID + 1;
-			des2 = message->NodeID + TOPOLOGY_SIZE;
+			des1=TOS_NODE_ID + 1;
+			des2 = TOS_NODE_ID + TOPOLOGY_SIZE;
 
 			ran=call Random.rand16()%2;
 
@@ -259,19 +257,19 @@ implementation
 
 		if (ran == 0)
 		{
-			if ((message->NodeID+1) >= TOPOLOGY_SIZE*TOPOLOGY_SIZE- TOPOLOGY_SIZE+1)
+			if ((TOS_NODE_ID+1) >= TOPOLOGY_SIZE*TOPOLOGY_SIZE- TOPOLOGY_SIZE+1)
 			{
-				des = message->NodeID + 1;
+				des = TOS_NODE_ID + 1;
 			}
 			else
-				des = message->NodeID + TOPOLOGY_SIZE;
+				des = TOS_NODE_ID + TOPOLOGY_SIZE;
 		}
-		else if ((message->NodeID+1)%TOPOLOGY_SIZE == 0)
+		else if ((TOS_NODE_ID+1)%TOPOLOGY_SIZE == 0)
 		{
-			des = message->NodeID + TOPOLOGY_SIZE;
+			des = TOS_NODE_ID + TOPOLOGY_SIZE;
 		}
 		else
-			des = message->NodeID + 1;
+			des = TOS_NODE_ID + 1;
 
 		return des;
 	}
@@ -282,26 +280,26 @@ implementation
 	{
 	  	uint16_t ran,des;
 
-		dbg("slp-debug", "y_move nid=%u ts=%u\n", message->NodeID, TOPOLOGY_SIZE);
+		dbg("slp-debug", "y_move nid=%u ts=%u\n", TOS_NODE_ID, TOPOLOGY_SIZE);
 
 		//the node has 1-1/5 change to move along the y axis.
 		ran=call Random.rand16()%5;
 
 		if (ran == 0)
 		{
-			if ((message->NodeID+1)%TOPOLOGY_SIZE == 0)
+			if ((TOS_NODE_ID+1)%TOPOLOGY_SIZE == 0)
 			{
-				des = message -> NodeID + TOPOLOGY_SIZE;
+				des = TOS_NODE_ID + TOPOLOGY_SIZE;
 			}
 			else
-				des = message->NodeID + 1;
+				des = TOS_NODE_ID + 1;
 		}
-		else if ((message->NodeID+1) >= TOPOLOGY_SIZE*TOPOLOGY_SIZE- TOPOLOGY_SIZE+1)
+		else if ((TOS_NODE_ID+1) >= TOPOLOGY_SIZE*TOPOLOGY_SIZE- TOPOLOGY_SIZE+1)
 		{
-			des = message->NodeID + 1;
+			des = TOS_NODE_ID + 1;
 		}
 		else
-			des = message->NodeID + TOPOLOGY_SIZE;
+			des = TOS_NODE_ID + TOPOLOGY_SIZE;
 
 		return des;
 	}
@@ -309,8 +307,6 @@ implementation
 	bool random_walk(NormalMessage* message)
 	{
 		uint16_t des;
-		
-		message->NodeID=TOS_NODE_ID;
 		
 		if (message->flip_coin == 0)
 		{
@@ -337,20 +333,20 @@ implementation
 			des = S3(message);
 		}
 
-		message->NodeDes=des;
+		message->target=des;
 
-		/*if (message->NodeDes == TOPOLOGY_SIZE ||
-			message->NodeDes == (TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1) ||
-			message->NodeDes == TOPOLOGY_SIZE * TOPOLOGY_SIZE)
+		/*if (message->target == TOPOLOGY_SIZE ||
+			message->target == (TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1) ||
+			message->target == TOPOLOGY_SIZE * TOPOLOGY_SIZE)
 		{
-			message->hop = 0;
+			message->walk_distance_remaining = 0;
 		}
 		else*/
 		{
-			message->hop -= 1;
+			message->walk_distance_remaining -= 1;
 		}
 
-		return send_Normal_message(message, message->NodeDes);
+		return send_Normal_message(message, message->target);
 	}
 
 	event void Boot.booted()
@@ -420,21 +416,22 @@ implementation
 		{
 			NormalMessage message;
 
-			message.NodeID = TOS_NODE_ID;
-			message.hop = RANDOM_WALK_HOPS;
-			message.hopCounter = 0;
+			message.sequence_number = messageNo;
+			message.source_id = TOS_NODE_ID;
+			message.walk_distance_remaining = RANDOM_WALK_HOPS;
+			message.source_distance = 0;
 
 			//add adaptive phantom code here.
 			//if (phantom_type == 2)
 			{
 				if (messageNo % 2 == 0)
-					message.hop = RANDOM_WALK_HOPS;
+					message.walk_distance_remaining = RANDOM_WALK_HOPS;
 				else
-					message.hop = LONG_RANDOM_WALK_HOPS;
+					message.walk_distance_remaining = LONG_RANDOM_WALK_HOPS;
 			}
 			/*else if (phantom_type == 1)
 			{
-				message->hop = RANDOM_WALK_HOPS;
+				message->walk_distance_remaining = RANDOM_WALK_HOPS;
 			}
 			else
 				printf("wrong phantom type.\n");*/
@@ -503,8 +500,6 @@ implementation
 
 		if (!busy)
 		{
-			message->NodeID = TOS_NODE_ID;
-
 			// sink position in array,starting with index 0.
 			si = SINK_NODE_ID / TOPOLOGY_SIZE;
 			if (SINK_NODE_ID % TOPOLOGY_SIZE == 0)
@@ -532,19 +527,19 @@ implementation
 			{
 				if(n_forward > 0)
 				{
-					message->NodeDes = message->NodeID + TOPOLOGY_SIZE;
+					message->target = TOS_NODE_ID + TOPOLOGY_SIZE;
 				}
 				else if(n_forward < 0)
 				{
-					message->NodeDes = message->NodeID - TOPOLOGY_SIZE;
+					message->target = TOS_NODE_ID - TOPOLOGY_SIZE;
 				}
 				else if(n_forward == 0 && n_horizon > 0)
 				{
-					message->NodeDes = message->NodeID + 1;
+					message->target = TOS_NODE_ID + 1;
 				}
 				else if (n_forward == 0 && n_horizon < 0)
 				{
-					message->NodeDes = message->NodeID - 1;
+					message->target = TOS_NODE_ID - 1;
 				}
 				else 
 				{
@@ -555,19 +550,19 @@ implementation
 			{
 				if(n_horizon > 0)
 				{
-					message->NodeDes = message->NodeID + 1;
+					message->target = TOS_NODE_ID + 1;
 				}
 				else if (n_horizon < 0)
 				{
-					message->NodeDes = message->NodeID - 1;
+					message->target = TOS_NODE_ID - 1;
 				}
 				else if (n_forward > 0 && n_horizon == 0)
 				{
-					message->NodeDes = message->NodeID + TOPOLOGY_SIZE;
+					message->target = TOS_NODE_ID + TOPOLOGY_SIZE;
 				}
 				else if (n_forward < 0 && n_horizon == 0)
 				{
-					message->NodeDes = message->NodeID - TOPOLOGY_SIZE;
+					message->target = TOS_NODE_ID - TOPOLOGY_SIZE;
 				}
 				else 
 				{
@@ -580,7 +575,7 @@ implementation
 			}   
 
 			//send message phase
-			return send_Normal_message(message, message->NodeDes);
+			return send_Normal_message(message, message->target);
 		}
 		else
 		{
@@ -593,21 +588,24 @@ implementation
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		NormalMessage rcm= *(NormalMessage*)rcvd;
-		  //int i=0;
-		  //int neighbour_nodes[4] ={rcm.NodeDes+TOPOLOGY_SIZE,rcm.NodeDes-TOPOLOGY_SIZE,rcm.NodeDes+1,rcm.NodeDes-1};
 
-		 dbg("slp-debug", "check the received message: NodeID:%d;hop=%d.\n",rcm.NodeID,rcm.hop);
+		METRIC_RCV_NORMAL(rcvd);
 
-		 if(TOS_NODE_ID != SINK_NODE_ID && rcm.hop <= 0)
-		 {
+		//int i=0;
+		//int neighbour_nodes[4] ={rcm.target+TOPOLOGY_SIZE,rcm.target-TOPOLOGY_SIZE,rcm.target+1,rcm.target-1};
 
-		   dbg("slp-debug",":(flooding_message) message received, from %d to %d.\n",rcm.NodeID,rcm.NodeDes);
+		dbg("slp-debug", "check the received message: NodeID:%d;walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
 
-		   rcm.hopCounter+=1;
+		if(TOS_NODE_ID != SINK_NODE_ID && rcm.walk_distance_remaining <= 0)
+		{
 
-		   //printf("%d ",rcm.NodeDes);
+			dbg("slp-debug",":(flooding_message) message received, from %d to %d.\n",source_addr,rcm.target);
 
-		  /*
+			rcm.source_distance+=1;
+
+			//printf("%d ",rcm.target);
+
+			/*
 			for(i=0; i<4;i++)
 				   {
 					 if(neighbour_nodes[i]>=1 && neighbour_nodes[i]<TOPOLOGY_SIZE*TOPOLOGY_SIZE)
@@ -618,37 +616,32 @@ implementation
 			//printf("%d\n", message);
 			routing(&rcm);
 		}
-		
-		else if(rcm.NodeDes == TOS_NODE_ID && TOS_NODE_ID != SINK_NODE_ID && rcm.hop != 0)
+		else if(rcm.target == TOS_NODE_ID && TOS_NODE_ID != SINK_NODE_ID && rcm.walk_distance_remaining != 0)
 		{
-			dbg("slp-debug",": (random_walk) message received, from %d, hop=%d.\n",rcm.NodeID,rcm.hop);
-			//printf("random walk phase,hop=%d\n",rcm.hop);
+			dbg("slp-debug",": (random_walk) message received, from %d, walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
+			//printf("random walk phase,walk_distance_remaining=%d\n",rcm.walk_distance_remaining);
 
-			//printf("%d ",rcm.NodeDes);
-			rcm.hopCounter+=1;
+			//printf("%d ",rcm.target);
+			rcm.source_distance+=1;
 
-			dbg("slp-debug", "rcvd rw hopCounter=%d\n",rcm.hopCounter);
+			dbg("slp-debug", "rcvd rw source_distance=%d\n",rcm.source_distance);
 
 			random_walk(&rcm);
 		}
-
-		else if (rcm.NodeDes == SINK_NODE_ID)
+		else if (rcm.target == SINK_NODE_ID)
 		{
-			//printf("%d ",rcm.NodeDes);
-			rcm.hopCounter+=1;            
+			//printf("%d ",rcm.target);
+			rcm.source_distance+=1;            
 		}
 		else 
 		{
-			dbg("slp-debug","other: NodeID:%d;NodeDes:%d,hop=%hu.\n",rcm.NodeID,rcm.NodeDes,rcm.hop);
+			dbg("slp-debug","other: NodeID:%d;target:%d,walk_distance_remaining=%hu.\n",source_addr,rcm.target,rcm.walk_distance_remaining);
 		}
 	}
 
 	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		// It is helpful to have the sink forward Normal messages onwards
-		// Otherwise there is a chance the random walk would terminate at the sink and
-		// not flood the network.
-		//process_normal(msg, rcvd, source_addr);
+		METRIC_RCV_NORMAL(rcvd);
 	}
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -666,15 +659,9 @@ implementation
 	{
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
-		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
-		{
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
-
+		/*
 			METRIC_RCV_NORMAL(rcvd);
-
-			dbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
-				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
-	}*/
+		*/
 	}
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)

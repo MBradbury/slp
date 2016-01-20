@@ -6,9 +6,6 @@ from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-# The import statement doesn't work, so we need to use __import__ instead
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
-
 from data import results
 
 from data.table import safety_period, fake_result
@@ -25,7 +22,7 @@ class CLI(CommandLineCommon.CLI):
 
     noise_models = ["meyer-heavy", "casino-lab"]
 
-    communication_models = ["no-asymmetry", "high-asymmetry", "ideal"]
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
@@ -51,13 +48,12 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNoReactiveAttacker()']
 
-    walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
-
-    landmark_nodes = ['sink_id', 'bottom_right']
+    short_walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
+    long_walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
 
     repeats = 500
 
-    parameter_names = ('walk length', 'landmark node')
+    parameter_names = ('short walk length', 'long walk length')
 
 
     def __init__(self):
@@ -71,15 +67,18 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.ifilter(
-            lambda (size, _1, _2, _3, _4, _5, _6, walk_length, _7): walk_length in self.walk_hop_lengths[size],
+            lambda (size, _1, _2, _3, _4, _5, _6, short_walk_length, long_walk_length): short_walk_length in self.short_walk_hop_lengths[size] and long_walk_length in self.long_walk_hop_lengths[size],
             itertools.product(
                 self.sizes, self.source_periods, self.configurations,
                 self.attacker_models, self.noise_models, self.communication_models, [self.distance],
-                set(itertools.chain(*self.walk_hop_lengths.values())), self.landmark_nodes)
+                set(itertools.chain(*self.short_walk_hop_lengths.values())),
+                set(itertools.chain(*self.long_walk_hop_lengths.values()))
+            )
         ))
 
         names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'random_walk_hops', 'landmark_node')
+                 'attacker_model', 'noise_model', 'communication_model', 'distance',
+                 'short_random_walk_hops', 'long_random_walk_hops')
 
         runner.run(self.executable_path, self.repeats, names, argument_product)
 
@@ -149,11 +148,6 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
 
-                g.point_size = 1.3
-                g.line_width = 4
-                g.yaxis_font = "',14'"
-                g.xaxis_font = "',12'"
-
                 if yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
@@ -164,81 +158,6 @@ class CLI(CommandLineCommon.CLI):
                     self.algorithm_module.name + '-' + name
                 ).run()
 
-    def _run_min_max_versus(self, args):
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (ms)', 'at 17.5,290'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'right top'),
-        }
-
-        custom_yaxis_range_max = {
-            'sent': 450000,
-            'captured': 20,
-            'received ratio': 100,
-            'normal latency': 300,
-        }
-
-        nokey = {'sent', 'received ratio'}
-
-        protectionless_results = results.Results(
-            protectionless.result_file_path,
-            parameters=tuple(),
-            results=graph_parameters.keys()
-        )
-
-        adaptive_results = results.Results(
-            adaptive.result_file_path,
-            parameters=('approach',),
-            results=graph_parameters.keys()
-        )
-
-        phantom_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
-            results=graph_parameters.keys()
-        )
-
-        def graph_min_max_versus(result_name):
-            name = 'min-max-{}-versus-{}'.format(result_name, adaptive.name)
-
-            g = min_max_versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=result_name, vary='walk length', yextractor=scalar_extractor)
-
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = graph_parameters[result_name][0]
-            g.key_position = graph_parameters[result_name][1]
-
-            g.nokey = result_name in nokey
-
-            g.min_label = 'Dynamic - Lowest'
-            g.max_label = 'Dynamic - Highest'
-            g.comparison_label = 'Phantom'
-            g.baseline_label = 'Protectionless - Baseline'
-            g.vary_label = ''
-
-            g.point_size = 1.3
-            g.line_width = 4
-            g.yaxis_font = "',14'"
-            g.xaxis_font = "',12'"
-
-            if result_name in custom_yaxis_range_max:
-                g.yaxis_range_max = custom_yaxis_range_max[result_name]
-
-            g.vvalue_label_converter = lambda value: "W_h = {}".format(value)
-
-            g.create(adaptive_results, phantom_results, protectionless_results)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
-            ).run()
-
-        for result_name in graph_parameters.keys():
-            graph_min_max_versus(result_name)
-
     def run(self, args):
         super(CLI, self).run(args)
 
@@ -247,6 +166,3 @@ class CLI(CommandLineCommon.CLI):
 
         if 'graph' in args:
             self._run_graph(args)
-
-        if 'min-max-versus' in args:
-            self._run_min_max_versus(args)
