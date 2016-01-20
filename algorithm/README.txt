@@ -41,12 +41,15 @@ Modification of template to have parameters determined online.
 
 ==motion_adaptive==
 Modification of adaptive to handle mobile sources.
+(Not fully implemented)
 
 ==psrc_adaptive==
 Modification of adaptive to handle changing source periods.
+(Not fully implemented)
 
 ==multi_src_adaptive==
 Modification of adaptive to handle multiple sources.
+(Not fully implemented)
 
 ==adaptive_spr==
 Modification of adaptive to use a single path route of fake sources.
@@ -54,6 +57,7 @@ Aim to reduce energy usage, by reducing competition between fake sources.
 
 ==multi_src_adaptive_spr==
 Modification of adaptive_spr to handle multiple sources.
+(Not fully implemented)
 
 ==phantom==
 Implementation of phantom flooding.
