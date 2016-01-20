@@ -60,7 +60,7 @@ implementation
 
 	command SequenceNumber SequenceNumbers.next(am_addr_t address)
 	{
-		SequenceNumber* result = find_or_add(address);
+		const SequenceNumber* result = find_or_add(address);
 		assert(result != NULL);
 
 		return sequence_number_next(result);
@@ -76,7 +76,7 @@ implementation
 
 	command bool SequenceNumbers.before(am_addr_t address, SequenceNumber other)
 	{
-		SequenceNumber* result = find_or_add(address);
+		const SequenceNumber* result = find_or_add(address);
 		assert(result != NULL);
 
 		return sequence_number_before(result, other);
