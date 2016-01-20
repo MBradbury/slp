@@ -3,6 +3,7 @@ import multiprocessing
 from simulator.Simulator import Simulator
 import simulator.Attacker as Attacker
 import simulator.Configuration as Configuration
+import simulator.SourcePeriodModel as SourcePeriodModel
 
 class ArgumentsCommon(object):
     def __init__(self, parser, has_safety_period=False):
@@ -47,15 +48,26 @@ class ArgumentsCommon(object):
         if self.args.verbose:
             result["SLP_VERBOSE_DEBUG"] = 1
 
+        # Source period could either be a float or a class derived from PeriodModel
         if hasattr(self.args, 'source_period'):
             if isinstance(self.args.source_period, float):
+                if float(self.args.source_period) <= 0:
+                    raise RuntimeError("The source_period ({}) needs to be greater than 0".format(self.args.source_period))
+
                 result["SOURCE_PERIOD_MS"] = int(self.args.source_period * 1000)
-            else:
+            elif isinstance(self.args.source_period, SourcePeriodModel.PeriodModel):
                 result.update(self.args.source_period.build_arguments())
+            else:
+                raise RuntimeError("The source_period ({}) either needs to be a float or an instance of SourcePeriodModel.PeriodModel".format(self.args.source_period))
 
         if hasattr(self.args, 'source_mobility'):
             result.update(self.args.source_mobility.build_arguments())
         else:
+            # If there are no mobility models provided, then the only source specified
+            # by the configuration can be used instead.
+            # This is mainly for legacy algorithm support, StationaryMobilityModels
+            # are a better choice for new algorithms.
+
             configuration = Configuration.create(self.args.configuration, self.args)
 
             if len(configuration.source_ids) != 1:
