@@ -45,11 +45,6 @@ implementation
 
 	NodeType type = NormalNode;
 
-	typedef enum
-	{
-		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
-	} SetType;
-
 	const char* type_to_string()
 	{
 		switch (type)
