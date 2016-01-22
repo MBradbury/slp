@@ -7,8 +7,8 @@ class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         d = OrderedDict()
         self._set_results_header(d)
-        d['walk length']        = lambda x: x.opts['random_walk_hops']
-        d['landmark node']      = lambda x: x.opts['landmark_node']
+        d['short walk length']  = lambda x: x.opts['random_walk_hops']
+        d['long walk length']   = lambda x: x.opts['long_random_walk_hops']
         
         d['sent']               = lambda x: self._format_results(x, 'Sent')
         d['received']           = lambda x: self._format_results(x, 'Received')
@@ -20,10 +20,6 @@ class Analyzer(AnalyzerCommon):
         d['time taken']         = lambda x: self._format_results(x, 'TimeTaken')
         d['normal']             = lambda x: self._format_results(x, 'NormalSent')
         d['ssd']                = lambda x: self._format_results(x, 'NormalSinkSourceHops')
-        d['paths reached end']  = lambda x: self._format_results(x, 'PathsReachedEnd')
-        d['source dropped']     = lambda x: self._format_results(x, 'SourceDropped')
-        d['path dropped']       = lambda x: self._format_results(x, 'PathDropped')
-        d['path dropped length']= lambda x: self._format_results(x, 'PathDroppedLength')
 
         d['wall time']          = lambda x: self._format_results(x, 'WallTime')
         d['event count']        = lambda x: self._format_results(x, 'EventCount')

@@ -123,8 +123,8 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
-	dbg_clear("Attacker-RCV", "%" PRIu64 ",%s,%u,%u,%d,%d\n", sim_time(), #NAME, TOS_NODE_ID, \
-		source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
+	dbg_clear("Attacker-RCV", SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
+		sim_time(), #NAME, TOS_NODE_ID, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
