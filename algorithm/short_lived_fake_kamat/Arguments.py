@@ -19,12 +19,14 @@ class Arguments(ArgumentsCommon):
             default=simulator.MobilityModel.StationaryMobilityModel())
 
         parser.add_argument("--pr-fake", type=restricted_float, required=True)
+        parser.add_argument("--fake-send-delay", type=float, default=50)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
         result.update({
-            "FAKE_PROBABILITY": str(self.args.pr_fake)
+            "FAKE_PROBABILITY": str(self.args.pr_fake),
+            "FAKE_SEND_DELAY_MS": str(self.args.fake_send_delay)
         })
 
         return result

@@ -25,14 +25,14 @@ class CLI(CommandLineCommon.CLI):
 
     noise_models = ["casino-lab", "meyer-heavy"]
 
-    communication_models = ["low-asymmetry", "no-asymmetry", "high-asymmetry", "ideal"]
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        ('SourceCorner', 'CHOOSE'),
+        #('SourceCorner', 'CHOOSE'),
         #('SinkCorner', 'CHOOSE'),
         #('FurtherSinkCorner', 'CHOOSE'),
         #('Generic1', 'CHOOSE'),
@@ -42,12 +42,19 @@ class CLI(CommandLineCommon.CLI):
         #('RingOpposite', 'CHOOSE'),
         #('RingMiddle', 'CHOOSE'),
 
+        ('Source2Corners', 'CHOOSE'),
+        ('Source4Corners', 'CHOOSE'),
+        ('Source2Edges', 'CHOOSE'),
+        ('Source4Edges', 'CHOOSE'),
+        ('Source2Corner', 'CHOOSE'),
+        ('SourceEdgeCorner', 'CHOOSE'),
+
         #('CircleEdges', 'CHOOSE'),
         #('CircleSourceCentre', 'CHOOSE'),
         #('CircleSinkCentre', 'CHOOSE'),
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker()']
+    attacker_models = ['SeqNosReactiveAttacker()']
 
     approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
 

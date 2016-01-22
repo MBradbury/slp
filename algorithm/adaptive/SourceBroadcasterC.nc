@@ -44,6 +44,8 @@ module SourceBroadcasterC
 
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
+
+	uses interface SequenceNumbers as NormalSeqNos;
 }
 
 implementation
@@ -68,7 +70,6 @@ implementation
 		}
 	}
 
-	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
@@ -276,7 +277,6 @@ implementation
 	{
 		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
-		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
@@ -384,7 +384,7 @@ implementation
 
 		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
-		message.sequence_number = sequence_number_next(&normal_sequence_counter);
+		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 		message.max_hop = first_source_distance;
@@ -395,7 +395,7 @@ implementation
 
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
-			sequence_number_increment(&normal_sequence_counter);
+			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
 
 		call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
@@ -434,11 +434,11 @@ implementation
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -468,9 +468,9 @@ implementation
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -490,11 +490,11 @@ implementation
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 

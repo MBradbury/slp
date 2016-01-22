@@ -25,14 +25,14 @@ class CLI(CommandLineCommon.CLI):
 
     noise_models = ["meyer-heavy", "casino-lab"]
 
-    communication_models = ["no-asymmetry", "high-asymmetry", "ideal"]
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        ('SourceCorner', 'CHOOSE'),
+        #('SourceCorner', 'CHOOSE'),
         #('SinkCorner', 'CHOOSE'),
         #('FurtherSinkCorner', 'CHOOSE'),
         #('Generic1', 'CHOOSE'),
@@ -42,12 +42,19 @@ class CLI(CommandLineCommon.CLI):
         #('RingOpposite', 'CHOOSE'),
         #('RingMiddle', 'CHOOSE'),
 
+        ('Source2Corners', 'CHOOSE'),
+        ('Source4Corners', 'CHOOSE'),
+        ('Source2Edges', 'CHOOSE'),
+        ('Source4Edges', 'CHOOSE'),
+        ('Source2Corner', 'CHOOSE'),
+        ('SourceEdgeCorner', 'CHOOSE'),
+
         #('CircleEdges', 'CHOOSE'),
         #('CircleSourceCentre', 'CHOOSE'),
         #('CircleSinkCentre', 'CHOOSE'),
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker()']
+    attacker_models = ['SeqNosReactiveAttacker()']
 
     approaches = ["PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"]
 
@@ -84,7 +91,7 @@ class CLI(CommandLineCommon.CLI):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs', 'attacker distance'))
+            results=('normal latency', 'ssd', 'attacker distance'))
 
         result_table = fake_result.ResultTable(adaptive_results)
 
