@@ -12,7 +12,7 @@ adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
 from data import results
 
 from data.table import safety_period, fake_result
-from data.graph import summary, heatmap, versus, min_max_versus
+from data.graph import summary, versus, min_max_versus
 from data.util import scalar_extractor
 
 from data.run.common import RunSimulationsCommon as RunSimulations
@@ -110,23 +110,11 @@ class CLI(CommandLineCommon.CLI):
             'paths reached end': 4,
         }
 
-        heatmap_results = ['sent heatmap', 'received heatmap']
-
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=tuple(graph_parameters.keys() + heatmap_results)
-        )    
-
-        for name in heatmap_results:
-            g = heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name)
-            g.palette = "defined(0 'white', 1 'black')"
-            g.create()
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                self.algorithm_module.name + '-' + name.replace(" ", "_")
-            ).run()
+            results=tuple(graph_parameters.keys())
+        )
 
         parameters = [
             ('source period', ' seconds'),
