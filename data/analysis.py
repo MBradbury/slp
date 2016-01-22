@@ -3,7 +3,7 @@ from __future__ import print_function, division
 from numpy import mean
 from numpy import var as variance
 
-import sys, ast, math, os, fnmatch, timeit, datetime, collections
+import sys, ast, math, os, fnmatch, timeit, datetime, collections, traceback
 from numbers import Number
 
 class EmptyFileError(RuntimeError):
@@ -287,19 +287,27 @@ class AnalysisResults:
     def __init__(self, analysis):
         self.average_of = {}
         self.variance_of = {}
+
+        expected_fail = ['Collisions']
         
         for heading in analysis.headings:
             try:
                 self.average_of[heading] = analysis.average_of(heading)
+            except NotImplementedError:
+                pass
             except (TypeError, RuntimeError) as ex:
-                print("Failed to average {}: {}".format(heading, ex), file=sys.stderr)
-                #print(traceback.format_exc(), file=sys.stderr)
+                if heading not in expected_fail:
+                    print("Failed to average {}: {}".format(heading, ex), file=sys.stderr)
+                    #print(traceback.format_exc(), file=sys.stderr)
             
             try:
                 self.variance_of[heading] = analysis.variance_of(heading)
+            except NotImplementedError:
+                pass
             except (TypeError, RuntimeError) as ex:
-                print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
-                #print(traceback.format_exc(), file=sys.stderr)
+                if heading not in expected_fail:
+                    print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
+                    #print(traceback.format_exc(), file=sys.stderr)
 
         self.opts = analysis.opts
         self.data = analysis.data
