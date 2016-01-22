@@ -312,6 +312,9 @@ class AnalysisResults:
         self.opts = analysis.opts
         self.data = analysis.data
 
+    def number_of_repeats(self):
+        return len(self.data)
+
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values, normalised_values=tuple()):
         self.results_directory = results_directory
@@ -320,6 +323,11 @@ class AnalyzerCommon(object):
 
     @staticmethod
     def _set_results_header(d):
+        
+        # Include the number of simulations that were analysed
+        d['repeats']            = lambda x: str(x.number_of_repeats())
+
+        # The options that all simulations must include
         d['network size']       = lambda x: x.opts['network_size']
         d['configuration']      = lambda x: x.opts['configuration']
         d['attacker model']     = lambda x: x.opts['attacker_model']
@@ -391,5 +399,6 @@ class AnalyzerCommon(object):
 
                 print("Finished analysing file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
                     num + 1, total, ((num + 1) / total) * 100.0, current_time_taken_str, estimated_remaining_str))
+                print()
 
             print('Finished writing {}'.format(summary_file))
