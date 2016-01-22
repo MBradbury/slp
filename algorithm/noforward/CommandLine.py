@@ -7,7 +7,7 @@ from algorithm.common import CommandLineCommon
 
 from data import results, latex
 from data.table import safety_period, direct_comparison, fake_result
-from data.graph import summary, heatmap, versus
+from data.graph import summary, versus
 
 from data.run.common import RunSimulationsCommon as RunSimulations
 
