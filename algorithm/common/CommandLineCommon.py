@@ -3,6 +3,7 @@ import os, sys
 
 from data import results, latex
 from data.table import fake_result
+from data.graph import heatmap
 from data.util import recreate_dirtree, touch
 
 class CLI(object):
@@ -110,6 +111,22 @@ class CLI(object):
                         print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, parameter_values)]))
                         print()
 
+    def _run_graph_heatmap(self, args):
+        heatmap_results = ('sent heatmap', 'received heatmap')
+
+        results_summary = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.parameter_names,
+            results=heatmap_results)
+
+        for name in heatmap_results:
+            heatmap.Grapher(self.algorithm_module.graphs_path, results_summary, name).create()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_"))
+            ).run()
+
+
     def run(self, args):
 
         if 'cluster' in args:
@@ -126,3 +143,6 @@ class CLI(object):
 
         if 'detect-missing' in args:
             self._run_detect_missing(args)
+
+        if 'graph-heatmap' in args:
+            self._run_graph_heatmap(args)

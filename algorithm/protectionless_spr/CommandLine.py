@@ -6,7 +6,7 @@ from algorithm.common import CommandLineCommon
 
 from data import results, latex
 from data.table import safety_period, direct_comparison
-from data.graph import summary, heatmap, versus
+from data.graph import summary, versus
 
 from data.run.common import RunSimulationsCommon as RunSimulations
 
@@ -76,30 +76,6 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_table(filename, safety_period_table)
 
-    def _run_graph(self, args):
-        heatmap_parameters = ('sent heatmap', 'received heatmap')
-
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
-            results=heatmap_parameters
-        )
-
-        for name in heatmap_parameters:
-            grapher = heatmap.Grapher(self.algorithm_module.graphs_path, protectionless_results, name)
-            grapher.create()
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name.title().replace(" ", ""))
-            ).run()
-        
-        # Don't need these as they are contained in the results file
-        #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
-        #    summary.GraphSummary(
-        #        os.path.join(self.algorithm_module.graphs_path, 'Versus/{}/Source-Period'.format(subdir)),
-        #        subdir).run()
-
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults
 
@@ -162,8 +138,8 @@ class CLI(CommandLineCommon.CLI):
         if 'table' in args:
             self._run_table(args)
 
-        if 'graph' in args:
-            self._run_graph(args)
+        #if 'graph' in args:
+        #    self._run_graph(args)
 
         if 'ccpe-comparison-table' in args:
             self._run_ccpe_comparison_table(args)

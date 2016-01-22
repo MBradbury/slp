@@ -12,7 +12,7 @@ adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
 from data import results
 
 from data.table import safety_period, fake_result, comparison
-from data.graph import summary, heatmap, versus, bar, min_max_versus
+from data.graph import summary, versus, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor
 
 from data.run.common import RunSimulationsCommon as RunSimulations
@@ -117,19 +117,10 @@ class CLI(CommandLineCommon.CLI):
             'attacker distance': ('Meters', 'left top'),
         }
 
-        heatmap_results = ['sent heatmap', 'received heatmap']
-
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=tuple(graph_parameters.keys() + heatmap_results))
-
-        for name in heatmap_results:
-            heatmap.Grapher(self.algorithm_module.graphs_path, adaptive_results, name).create()
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_"))
-            ).run()
+            results=tuple(graph_parameters.keys()))
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
             name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))

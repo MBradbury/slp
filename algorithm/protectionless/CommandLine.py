@@ -7,7 +7,8 @@ from algorithm.common import CommandLineCommon
 
 from data import results, latex
 from data.table import safety_period, direct_comparison
-from data.graph import summary, heatmap, versus
+from data.graph import summary, versus
+from data.util import scalar_extractor
 
 from data.run.common import RunSimulationsCommon as RunSimulations
 
@@ -77,38 +78,51 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
 
-        for noise_model in Simulator.available_noise_models():
+        for (noise_model, comm_model) in zip(Simulator.available_noise_models(), Simulator.available_communication_models()):
 
-            print("Writing results table for the {} noise model".format(noise_model))
+            print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
 
-            filename = '{}-{}-results'.format(self.algorithm_module.name, noise_model)
+            filename = '{}-{}-{}-results'.format(self.algorithm_module.name, noise_model, comm_model)
 
             self._create_table(filename, safety_period_table,
-                               param_filter=lambda (cm, nm, am, c): nm == noise_model)
+                               param_filter=lambda (cm, nm, am, c): nm == noise_model and cm == comm_model)
 
     def _run_graph(self, args):
-        heatmap_parameters = ('sent heatmap', 'received heatmap')
+        graph_parameters = {
+            'safety period': ('Safety Period (seconds)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            #'captured': ('Capture Ratio (%)', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
+        }
 
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.parameter_names,
-            results=heatmap_parameters
-        )
+            results=tuple(graph_parameters.keys()))
 
-        for name in heatmap_parameters:
-            grapher = heatmap.Grapher(self.algorithm_module.graphs_path, protectionless_results, name)
-            grapher.create()
+        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+            name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
+
+            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
+
+            g = versus.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis='size', yaxis=yaxis, vary='configuration',
+                yextractor=yextractor)
+
+            g.xaxis_label = 'Network Size'
+            g.yaxis_label = yaxis_label
+            g.vary_label = 'Configuration'
+            g.vary_prefix = ''
+            g.key_position = key_position
+
+            g.create(protectionless_results)
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name.title().replace(" ", ""))
+                '{}-{}'.format(self.algorithm_module.name, name)
             ).run()
-        
-        # Don't need these as they are contained in the results file
-        #for subdir in ['Collisions', 'FakeMessagesSent', 'NumPFS', 'NumTFS', 'PCCaptured', 'RcvRatio']:
-        #    summary.GraphSummary(
-        #        os.path.join(self.algorithm_module.graphs_path, 'Versus/{}/Source-Period'.format(subdir)),
-        #        subdir).run()
 
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults

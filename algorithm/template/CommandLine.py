@@ -14,7 +14,7 @@ adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
 from data import results, latex
 
 from data.table import safety_period, fake_result, direct_comparison
-from data.graph import summary, heatmap, bar
+from data.graph import summary, bar
 from data.util import useful_log10
 
 from data.run.common import RunSimulationsCommon as RunSimulations
@@ -121,16 +121,11 @@ class CLI(CommandLineCommon.CLI):
                 (val, stddev) = x
                 return val
 
-        versus_results = ['normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs']
-        heatmap_results = ['sent heatmap', 'received heatmap']
+        versus_results = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         template_results = results.Results(template.result_file_path,
             parameters=self.parameter_names,
-            results=tuple(versus_results + heatmap_results))
-
-        for name in heatmap_results:
-            heatmap.Grapher(template.graphs_path, template_results, name).create()
-            summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-' + name.replace(" ", "_")).run()
+            results=versus_results)
 
         #for yaxis in versus_results:
         #    name = '{}-v-fake-period'.format(yaxis.replace(" ", "_"))
