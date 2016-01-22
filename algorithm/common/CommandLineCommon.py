@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, sys
 
 from data import results, latex
@@ -82,6 +83,33 @@ class CLI(object):
 
         self._create_table(self.algorithm_module.name + "-time-taken", result_table)
 
+    def _run_detect_missing(self, args):
+        result = results.Results(self.algorithm_module.result_file_path,
+                                 parameters=self.parameter_names,
+                                 results=('repeats',))
+
+        for ((size, config, am, nm, cm), items1) in result.data.items():
+            for (src_period, items2) in items1.items():
+                for (params, all_results) in items2.items():
+
+                    repeats_performed = all_results[result.result_names.index('repeats')]
+
+                    repeats_missing = max(self.repeats - repeats_performed, 0)
+
+                    # Number of repeats is below the target
+                    if repeats_missing > 0:
+
+                        print("performed={} missing={} ".format(repeats_performed, repeats_missing), end="")
+
+                        parameter_values = [size, config, am, nm, cm, src_period] + list(params)
+                        parameter_names = ['network size', 'configuration',
+                                            'attacker model', 'noise model',
+                                            'communication model', 'source period'
+                                           ] + result.parameter_names
+
+                        print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, parameter_values)]))
+                        print()
+
     def run(self, args):
 
         if 'cluster' in args:
@@ -95,3 +123,6 @@ class CLI(object):
 
         if 'time-taken-table' in args:
             self._run_time_taken_table(args)
+
+        if 'detect-missing' in args:
+            self._run_detect_missing(args)
