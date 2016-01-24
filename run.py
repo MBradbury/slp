@@ -55,56 +55,45 @@ else:
     print_lock = Lock()
 
     def runner(args):
-        def runner_impl(args):
-            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            try:
-                (stdoutdata, stderrdata) = process.communicate()
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            (stdoutdata, stderrdata) = process.communicate()
 
-                # Multiple processes may be attempting to write out at the same
-                # time, so this needs to be protected with a lock.
-                #
-                # Also the streams write method needs to be called directly,
-                # as print has issues with newline printing and multithreading.
+            # Multiple processes may be attempting to write out at the same
+            # time, so this needs to be protected with a lock.
+            #
+            # Also the streams write method needs to be called directly,
+            # as print has issues with newline printing and multithreading.
+            with print_lock:
+                sys.stdout.write(stdoutdata)
+                sys.stdout.flush()
+
+                sys.stderr.write(stderrdata)
+                sys.stderr.flush()
+
+            if process.returncode != 0:
+                error_message = "Bad return code {}".format(process.returncode)
                 with print_lock:
-                    sys.stdout.write(stdoutdata)
-                    sys.stdout.flush()
+                    print(error_message, file=sys.stderr)
+                raise RuntimeError(error_message)
 
-                    sys.stderr.write(stderrdata)
-                    sys.stderr.flush()
-
-                if process.returncode != 0:
-                    error_message = "Bad return code {}".format(process.returncode)
-                    with print_lock:
-                        print(error_message, file=sys.stderr)
-                    raise RuntimeError(error_message)
-
-            except (KeyboardInterrupt, SystemExit) as ex:
-                with print_lock:
-                    print("Killing process due to {}".format(ex), file=sys.stderr)
-                process.terminate()
-                raise
-
-        max_retries = 3
-        tries = 0
-        done = False
-
-        while not done and tries < max_retries:
-            try:
-                tries += 1
-                runner_impl(args)
-                done = True
-            except Exception as ex:
-                with print_lock:
-                    print("Encountered (try {}): {}".format(tries, ex), file=sys.stderr)
-                    print(traceback.format_exc(), file=sys.stderr)
+        except (KeyboardInterrupt, SystemExit) as ex:
+            with print_lock:
+                print("Killing process due to {}".format(ex), file=sys.stderr)
+            process.kill()
+            raise
 
     subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
 
     print("Creating a process pool with {} processes.".format(a.args.thread_count), file=sys.stderr)
 
     job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
+
     try:
         result = job_pool.map_async(runner, [subprocess_args] * a.args.job_size)
+
+        # No more jobs to submit
+        job_pool.close()
 
         # Use get so any exceptions are rethrown
         result.get()
@@ -114,9 +103,12 @@ else:
 
     except (KeyboardInterrupt, SystemExit) as ex:
         print("Killing thread pool due to {}".format(ex), file=sys.stderr)
+        job_pool.terminate()
+        raise
     except Exception as ex:
         print("Encountered: {}".format(ex), file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
-    finally:
         job_pool.terminate()
+        raise
+    finally:
         job_pool.join()

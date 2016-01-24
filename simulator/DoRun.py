@@ -30,8 +30,11 @@ with Simulation(module, configuration, a.args) as sim:
 
     try:
         sim.run()
-    except RuntimeError as ex:
-        print(ex, file=sys.stderr)
+    except (KeyboardInterrupt, SystemExit, RuntimeError) as ex:
+        print("Killing run due to {}".format(ex), file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
+        sys.exit(3)
     else:
         sim.metrics.print_results()
+
+sys.exit(0)
