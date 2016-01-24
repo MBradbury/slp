@@ -17,4 +17,4 @@ cluster/
 results/*/*.csv
 results/old/*
 noise/graphs/*.pdf
-
+results/
