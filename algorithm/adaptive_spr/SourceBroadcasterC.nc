@@ -29,7 +29,7 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 	find->distance = minbot(find->distance, given->distance);
 }
 
-void distance_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	dbg_clear(name, "[%u] => addr=%u / dist=%d",
 		i, address, contents->distance);

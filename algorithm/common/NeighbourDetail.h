@@ -56,7 +56,7 @@
 		return find != NULL; \
 	} \
  \
-	void print_##TYPE_PREFIX##_neighbours(char* name, TYPE_PREFIX##_neighbours_t const* neighbours) \
+	void print_##TYPE_PREFIX##_neighbours(const char* name, TYPE_PREFIX##_neighbours_t const* neighbours) \
 	{ \
 		uint32_t i; \
 		dbg(name, "Neighbours(size=%d, values=", neighbours->size); \
