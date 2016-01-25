@@ -37,6 +37,6 @@ def submitter(notify_emails=None):
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
-    prepare_command = "cd $PBS_O_WORKDIR ; module swap oldmodules minerva-2.0 ; module load iomkl/13.1.3/ScientificPython/2.8-python-2.7.6"
+    prepare_command = "cd $PBS_O_WORKDIR ; module swap oldmodules minerva-2.0 ; module load iomkl/13.1.3/ScientificPython/2.8-python-2.7.6 ; module load java-1.7.0_45"
 
     return Submitter(cluster_command, prepare_command, ppn() * threads_per_processor())
