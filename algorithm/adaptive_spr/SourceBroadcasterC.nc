@@ -237,8 +237,6 @@ implementation
 		distance_neighbours_t local_neighbours;
 		init_distance_neighbours(&local_neighbours);
 
-		// If we don't know our sink distance then we cannot work
-		// out which neighbour is in closer or further.
 		if (first_source_distance != BOTTOM)
 		{
 			for (i = 0; i != neighbours.size; ++i)
