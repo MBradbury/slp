@@ -29,7 +29,7 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 	find->distance = minbot(find->distance, given->distance);
 }
 
-void distance_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	dbg_clear(name, "[%u] => addr=%u / dist=%d",
 		i, address, contents->distance);
@@ -256,8 +256,8 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			dbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
-				landmark_distance, neighbours.size);
+			dbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
+				neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
@@ -274,13 +274,23 @@ implementation
 			print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
-			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
+			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d)\n",
 				chosen_address, neighbour_index, rnd, local_neighbours.size,
-				neighbour->contents.distance, landmark_distance);
+				neighbour->contents.distance);
 		}
 
 		return chosen_address;
 	}
+
+	void update_source_distance(const NormalMessage* rcvd)
+	{
+		const int32_t* distance = call SourceDistances.get(rcvd->source_id);
+		if (distance == NULL || *distance > rcvd->source_distance)
+		{
+			call SourceDistances.put(rcvd->source_id, rcvd->source_distance);
+		}
+	}
+
 
 	bool busy = FALSE;
 	message_t packet;
@@ -336,7 +346,7 @@ implementation
 			dbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
-			//source_distance = 0;
+			call SourceDistances.put(TOS_NODE_ID, 0);
 
 			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 		}
@@ -349,7 +359,7 @@ implementation
 			call BroadcastNormalTimer.stop();
 
 			type = NormalNode;
-			//source_distance = BOTTOM;
+			call SourceDistances.remove(TOS_NODE_ID);
 
 			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			dbg("Node-Change-Notification", "The node has become a Normal\n");
@@ -474,6 +484,8 @@ implementation
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		//UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance); // Doesn't make sense
+
 		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
@@ -486,6 +498,8 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			update_source_distance(rcvd);
 
 			if (first_source_distance == BOTTOM)
 			{
@@ -509,6 +523,8 @@ implementation
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		//UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance); // Doesn't make sense
+
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -517,6 +533,8 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			update_source_distance(rcvd);
 
 			//sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
 
@@ -551,6 +569,8 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		//UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance); // Doesn't make sense
+
 		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
@@ -563,6 +583,8 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			update_source_distance(rcvd);
 
 			forwarding_message = *rcvd;
 			//forwarding_message.sink_source_distance = sink_source_distance;
