@@ -236,6 +236,11 @@ implementation
 		return SOURCE_PERIOD_MS / 2;
 	}
 
+	uint32_t estimated_number_of_sources(void)
+	{
+		return max(1, call SourceDistances.count());
+	}
+
 	uint32_t get_dist_to_pull_back(void)
 	{
 #if defined(PB_FIXED2_APPROACH)
@@ -281,8 +286,9 @@ implementation
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const uint32_t period = duration / msg;
+		const uint32_t est_num_sources = estimated_number_of_sources();
 
-		const uint32_t result_period = period;
+		const uint32_t result_period = period / est_num_sources;
 
 		dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
@@ -298,7 +304,9 @@ implementation
 
 		const double ratio = seq_inc / (double)counter;
 
-		const uint32_t result_period = ceil(SOURCE_PERIOD_MS * ratio);
+		const uint32_t est_num_sources = estimated_number_of_sources();
+
+		const uint32_t result_period = ceil((SOURCE_PERIOD_MS * ratio) / est_num_sources);
 
 		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
 			result_period, counter, seq_inc, ratio);
@@ -306,6 +314,10 @@ implementation
 		return result_period;
 	}
 
+	// TODO: modify this to allow the directed random walk to go closer to the source
+	// + (min_sink_source_distance / 2)
+	// Will also need to modify TailFS reverting to Normal, as it will need to be able
+	// to detect that the TFS that is closer to the source is part of the walk and a valid option
 	am_addr_t fake_walk_target(void)
 	{
 		am_addr_t chosen_address;
@@ -314,8 +326,6 @@ implementation
 		distance_neighbours_t local_neighbours;
 		init_distance_neighbours(&local_neighbours);
 
-		// If we don't know our minimum source distance then we cannot work
-		// out which neighbour is in closer or further.
 		if (min_source_distance != BOTTOM)
 		{
 			for (i = 0; i != neighbours.size; ++i)
