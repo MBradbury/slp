@@ -16,7 +16,7 @@ typedef nx_struct NormalMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
-  //nx_int16_t sink_source_distance;
+  nx_int16_t min_sink_source_distance;
 
 } NormalMessage;
 
