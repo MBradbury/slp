@@ -3,12 +3,15 @@
 from __future__ import print_function
 
 import xml.dom.minidom
-import sys, subprocess
+import os, sys, subprocess
 
-if len(sys.argv) != 2:
-    raise RuntimeError("Usage {} <username>".format(sys.argv[0]))
-
-username = sys.argv[1]
+# The caller can specify a username if they wish,
+# or we can do the sensible thing and guess they want
+# to find info out about their own jobs
+try:
+    username = sys.argv[1]
+except IndexError:
+    username = os.environ['USER']
 
 qstat_output = subprocess.check_output('qstat -x', shell=True)
 
