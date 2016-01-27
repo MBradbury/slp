@@ -45,6 +45,8 @@ def submitter(notify_emails=None):
     cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
+        print("Warning: flux does not currently have email notification setup")
+        
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
     prepare_command = "cd $PBS_O_WORKDIR"
