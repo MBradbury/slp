@@ -13,34 +13,108 @@
 
 #include <assert.h>
 
+// Notes:
+/*
+ * Important to remember that the algorithm cannot rely on the first flood to get the minimum distance,
+ * this is because nodes will now flood at exactly the same time.
+ * So we will need to maintain and update neighbours of a change in our source distances
+ */
+
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
+// Basically a flat map between node ids to distances
 typedef struct
 {
-	int16_t distance;
+	uint16_t node[SLP_MAX_NUM_SOURCES];
+	int16_t distance[SLP_MAX_NUM_SOURCES];
+	uint16_t count;
+
 } distance_container_t;
 
-void distance_update(distance_container_t* find, distance_container_t const* given)
+void distance_update(distance_container_t* __restrict find, distance_container_t const* __restrict given)
 {
-	find->distance = minbot(find->distance, given->distance);
+	uint16_t i, j;
+
+	for (i = 0; i != given->count; ++i)
+	{
+		// Attempt to update existing distances
+		for (j = 0; j != find->count; ++j)
+		{
+			if (given->node[i] == find->node[j])
+			{
+				find->distance[j] = minbot(find->distance[j], given->distance[i]);
+				break;
+			}
+		}
+
+		// Couldn't find distance, so add it
+		if (j == find->count)
+		{
+			find->distance[find->count] = given->distance[i];
+			find->count++;
+		}
+	}
 }
 
-void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_print(const char* name, size_t n, am_addr_t address, distance_container_t const* contents)
 {
-	dbg_clear(name, "[%u] => addr=%u / dist=%d",
-		i, address, contents->distance);
+	uint16_t i;
+
+	dbg_clear(name, "[%u] => addr=%u {", n, address);
+
+	for (i = 0; i != contents->count; ++i)
+	{
+		dbg_clear(name, "%u: %d", contents->node[i], contents->distance[i]);
+
+		if (i + 1 != contents->count)
+		{
+			dbg_clear(name, ", ");
+		}
+	}
+
+	dbg_clear(name, "}");
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
 #define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
 { \
-	const distance_container_t dist = { rcvd->name }; \
+	distance_container_t dist; \
+	dist.count = 1; \
+	dist.node[0] = rcvd->source_id; \
+	dist.distance[0] = rcvd->name; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_NEIGHBOURS_BEACON(rcvd, source_addr) \
+{ \
+	uint16_t i; \
+	distance_container_t dist; \
+	dist.count = rcvd->count; \
+	for (i = 0; i != rcvd->count; ++i) \
+	{ \
+		dist.node[i] = rcvd->node[i]; \
+		dist.distance[i] = rcvd->distance[i]; \
+	} \
+	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
+static int16_t min_neighbour_distance(distance_neighbour_detail_t const* neighbour)
+{
+	const distance_container_t* dist = &neighbour->contents;
+	uint16_t i;
+	int16_t result = INT16_MAX;
+
+	for (i = 0; i != dist->count; ++i)
+	{
+		result = min(result, dist->distance[i]);
+	}
+
+	return result;
 }
 
 module SourceBroadcasterC
@@ -120,6 +194,7 @@ implementation
 	bool sink_received_away_reponse = FALSE;
 
 	int16_t first_source_distance = BOTTOM;
+	int16_t min_source_distance = BOTTOM;
 
 	uint32_t extra_to_send = 0;
 
@@ -239,15 +314,15 @@ implementation
 		distance_neighbours_t local_neighbours;
 		init_distance_neighbours(&local_neighbours);
 
-		// If we don't know our sink distance then we cannot work
+		// If we don't know our minimum source distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (first_source_distance != BOTTOM)
+		if (min_source_distance != BOTTOM)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-				if (neighbour->contents.distance >= first_source_distance)
+				if (min_neighbour_distance(neighbour) >= min_source_distance)
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -288,6 +363,7 @@ implementation
 		if (distance == NULL || *distance > rcvd->source_distance)
 		{
 			call SourceDistances.put(rcvd->source_id, rcvd->source_distance);
+			min_source_distance = minbot(min_source_distance, rcvd->source_distance);
 		}
 	}
 
@@ -463,15 +539,19 @@ implementation
 	event void BeaconSenderTimer.fired()
 	{
 		BeaconMessage message;
-		unsigned int i;
+		uint16_t* iter;
+		uint16_t i;
 
 		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
-		message.source_distance_of_sender = first_source_distance;
+		// Send all known source distances in the beacon message
 
-		for (i = 0; i < sizeof(message.padding); ++i)
+		message.count = call SourceDistances.count();
+
+		for (iter = call SourceDistances.beginKeys(), i = 0; iter != call SourceDistances.endKeys(); ++iter, ++i)
 		{
-			message.padding[i] = call Random.rand16() % UINT8_MAX;
+			message.node[i] = *iter;
+			message.distance[i] = *call SourceDistances.get(*iter);
 		}
 
 		call Packet.clear(&packet);
@@ -480,11 +560,9 @@ implementation
 	}
 
 
-
-
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		//UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance); // Doesn't make sense
+		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance);
 
 		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
@@ -523,7 +601,7 @@ implementation
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		//UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance); // Doesn't make sense
+		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -569,7 +647,7 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		//UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance); // Doesn't make sense
+		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance);
 
 		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
@@ -662,8 +740,8 @@ implementation
 			{
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
-				if (neighbour == NULL || neighbour->contents.distance == BOTTOM ||
-					first_source_distance == BOTTOM || neighbour->contents.distance <= first_source_distance)
+				if (neighbour == NULL || neighbour->contents.count == 0 ||
+					min_source_distance == BOTTOM || min_neighbour_distance(neighbour) <= min_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 
@@ -809,8 +887,8 @@ implementation
 				(rcvd->message_type == TailFakeNode && type == TailFakeNode)
 			) &&
 			(
-				rcvd->sender_first_source_distance > first_source_distance ||
-				(rcvd->sender_first_source_distance == first_source_distance && rcvd->source_id > TOS_NODE_ID)
+				rcvd->sender_min_source_distance > min_source_distance ||
+				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)
 			)
 			)
 		{
@@ -831,7 +909,7 @@ implementation
 
 	void x_receieve_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance_of_sender);
+		UPDATE_NEIGHBOURS_BEACON(rcvd, source_addr);
 
 		METRIC_RCV_BEACON(rcvd);
 	}
@@ -871,7 +949,7 @@ implementation
 		message->sink_distance = sink_distance;
 		message->message_type = type;
 		message->source_id = TOS_NODE_ID;
-		message->sender_first_source_distance = first_source_distance;
+		message->sender_min_source_distance = min_source_distance;
 	}
 
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
@@ -921,6 +999,14 @@ implementation
 		default: result = "failed"; break;
 		}
 
-		METRIC_BCAST(Fake, result, (tosend != NULL) ? tosend->sequence_number : BOTTOM);
+		if (tosend != NULL)
+		{
+			METRIC_BCAST(Fake, result, tosend->sequence_number);
+		}
+		else
+		{
+			METRIC_BCAST(Fake, result, BOTTOM);
+		}
+		
 	}
 }
