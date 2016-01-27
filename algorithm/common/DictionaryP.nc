@@ -60,6 +60,32 @@ implementation
 		return TRUE;
 	}
 
+	command bool Dictionary.remove(Key key)
+	{
+		int16_t i;
+
+		for (i = 0; i != count; ++i)
+		{
+			if (memcmp(&keys[i], &key, sizeof(Key)) == 0)
+			{
+				break;
+			}
+		}
+
+		// No key in dictionary
+		if (i == count)
+		{
+			return FALSE;
+		}
+
+		memmove(&keys[i], &keys[i+1], (MAX_SIZE-i-1)*sizeof(*keys));
+		memmove(&values[i], &values[i+1], (MAX_SIZE-i-1)*sizeof(*values));
+
+		count -= 1;
+
+		return TRUE;
+	}
+
 	command Value* Dictionary.get(Key key)
 	{
 		int16_t i;
