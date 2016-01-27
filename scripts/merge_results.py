@@ -9,7 +9,7 @@ class MergeResults:
         self.results_dir = results_dir
         self.merge_dir = merge_dir
 
-    _arguments_to_ignore = {'job_size'}
+    _arguments_to_ignore = {'job_size', 'thread_count'}
 
     @staticmethod
     def _read_arguments(f):
