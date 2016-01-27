@@ -1,6 +1,6 @@
 COMPONENT = SourceBroadcasterAppC
 
-CFLAGS += -Wnonnull -Wpointer-arith -Wshadow -Wformat
+CFLAGS += -Wnonnull -Wpointer-arith -Wshadow -Wformat -Werror=sign-compare
 
 # See http://www.ti.com/lit/ds/symlink/cc2420.pdf
 # Section 28
