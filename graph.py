@@ -29,7 +29,12 @@ if 'min-source-distance-heatmap' in args:
 
 	grapher.create(configurations)
 
-	summary.GraphSummary(
+	summary_grapher = summary.GraphSummary(
 	    os.path.join("results/Configurations", "min-src-distance"),
 	    '{}-{}'.format("results/Configurations", "min-src-distance")
-	).run()
+	)
+
+	summary_grapher.width_factor = None
+	summary_grapher.height = "7cm"
+
+	summary_grapher.run()
