@@ -1,10 +1,14 @@
 #ifndef SLP_MESSAGES_BEACONMESSAGE_H
 #define SLP_MESSAGES_BEACONMESSAGE_H
 
+#include "Constants.h"
+#include "NormalMessage.h"
+
 typedef nx_struct BeaconMessage
 {
-  nx_int16_t source_distance_of_sender;
-  nx_uint8_t padding[22];
+	nx_uint16_t node[SLP_MAX_NUM_SOURCES];
+	nx_int16_t distance[SLP_MAX_NUM_SOURCES];
+	nx_uint16_t count;
 
 } BeaconMessage;
 
