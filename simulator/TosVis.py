@@ -79,6 +79,9 @@ class TosVis(Simulator):
         self._debug_analyzer = None
         self.scene = None
 
+        # Default factor to scale the node positions by
+        self._node_position_scale_factor = 6
+
     def is_run_gui(self):
         return self._run_gui
 
@@ -101,13 +104,12 @@ class TosVis(Simulator):
         dbg.register(self, 'Node-Change-Notification')
         self.add_output_processor(dbg)
 
-    @staticmethod
-    def adjust_location(loc):
-        factor = 6
+    def _adjust_location(self, loc):
+        factor = self._node_position_scale_factor
         return (loc[0] * factor, loc[1] * factor)
 
     def node_location(self, node_id):
-        return self.adjust_location(self.nodes[node_id].location)
+        return self._adjust_location(self.nodes[node_id].location)
 
     ####################
     def _animate_leds(self, time, node_id, detail):
@@ -211,7 +213,7 @@ class TosVis(Simulator):
             # draw nodes on animating canvas
             for node in self.nodes:
                 self.scene.execute(time,
-                    'node({},{},{})'.format(node.nid, *self.adjust_location(node.location)))
+                    'node({},{},{})'.format(node.nid, *self._adjust_location(node.location)))
 
     def _during_run(self, event_count):
         super(TosVis, self)._during_run(event_count)
