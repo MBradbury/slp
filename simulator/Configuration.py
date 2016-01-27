@@ -14,6 +14,12 @@ class Configuration(object):
         self.source_ids = {int(source_id) for source_id in source_ids}
         self.space_behind_sink = space_behind_sink
 
+        if self.sink_id < 0:
+            raise RuntimeError("The sink id must be positive")
+
+        if any(source_id < 0 for source_id in self.source_ids):
+            raise RuntimeError("All source ids must be positive")
+
         if self.sink_id >= len(self.topology.nodes):
             raise RuntimeError(
                 "There are not enough nodes ({}) to have a sink id of {}".format(
