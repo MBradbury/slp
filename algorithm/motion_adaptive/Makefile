@@ -2,7 +2,7 @@ COMPONENT = SourceBroadcasterAppC
 
 CFLAGS += -DPACKET_LINK=1
 
-CFLAGS += -Wnonnull -Wpointer-arith -Wshadow -Wformat
+CFLAGS += -Wnonnull -Wpointer-arith -Wshadow -Wformat -Werror=sign-compare
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
