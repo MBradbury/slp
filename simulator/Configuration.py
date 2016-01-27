@@ -172,8 +172,8 @@ class Generic1(Configuration):
 
         super(Generic1, self).__init__(
             grid,
-            source_ids={(network_size / 2) - (node_count / 3)},
-            sink_id=(network_size / 2) + (node_count / 3),
+            source_ids={(node_count / 2) - (network_size / 3)},
+            sink_id=(node_count / 2) + (network_size / 3),
             space_behind_sink=False
         )
 
@@ -242,7 +242,7 @@ class Source4Corners(Configuration):
             grid,
             source_ids={0, network_size - 1, len(grid.nodes) - network_size, len(grid.nodes) - 1},
             sink_id=(len(grid.nodes) - 1) / 2,
-            space_behind_sink=True
+            space_behind_sink=False
         )
 
 class Source2Edges(Configuration):
