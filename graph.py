@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 
-import os, sys
+import os, sys, argparse
 
 import simulator.Configuration as Configuration
 from simulator.Topology import Grid
 from data.graph import summary, configuration_heatmap
 
-args = sys.argv[1:]
+parser = argparse.ArgumentParser(description="Misc. Grapher", add_help=True)
+parser.add_argument("--min-source-distance-heatmap", action='store_true', default=False)
 
-if 'min-source-distance-heatmap' in args:
+args = parser.parse_args(sys.argv[1:])
+
+if args.min_source_distance_heatmap:
 	configuration_names = Configuration.names()
 	configurations = [Configuration.create_specific(name, 11, 4.5) for name in Configuration.names()]
 
