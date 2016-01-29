@@ -49,6 +49,26 @@ def _normalised_value_names(values):
     return result
 
 class Analyse(object):
+
+    FAST_HEADINGS_CONVERTERS = {
+        "Seed": int,
+        "Sent": int,
+        "Captured": lambda x: x == "True",
+        "Received": int,
+        "ReceiveRatio": float,
+        "TimeTaken": float,
+        "WallTime": float,
+        "EventCount": int,
+        "NormalLatency": float,
+        "NormalSinkSourceHops": float,
+        "NormalSent": int,
+        "SentHeatMap": ast.literal_eval,
+        "ReceivedHeatMap": ast.literal_eval,
+        "AttackerDistance": ast.literal_eval,
+        "AttackerMoves": ast.literal_eval,
+        #"NodeWasSource": ast.literal_eval, # Doesn't work due to inf strings
+    }
+
     def __init__(self, infile, normalised_values):
 
         self.opts = {}
@@ -59,6 +79,7 @@ class Analyse(object):
         self._unnormalised_headings_count = None
 
         with open(infile) as f:
+
             line_number = 0
 
             for line in f:
@@ -101,7 +122,6 @@ class Analyse(object):
 
                         self.data.append(values)
 
-
                     except (TypeError, RuntimeError) as e:
                         print("Unable to process line {} due to {}".format(line_number, e), file=sys.stderr)
 
@@ -130,14 +150,24 @@ class Analyse(object):
     def _better_literal_eval(self, line_number, items):
         values = []
 
+        lit = None
+
         for (heading, item) in zip(self.headings, items):
 
-            # ast.literal_eval will not parse inf correctly.
-            # passing 2e308 will return a float('inf') instead.
-            item = item.replace('inf', '2e308')
+            fast_eval = self.FAST_HEADINGS_CONVERTERS.get(heading, None)
 
             try:
-                lit = ast.literal_eval(item)
+                if fast_eval is not None:
+                    lit = fast_eval(item)
+                else:
+                    # ast.literal_eval will not parse inf correctly.
+                    # passing 2e308 will return a float('inf') instead.
+                    #
+                    # The fast_eval version will parse inf correctly, so this
+                    # hack is not needed there.
+                    item = item.replace('inf', '2e308')
+
+                    lit = ast.literal_eval(item)
             except ValueError as e:
                 print("Unable to process line {} due to {} ({}={})".format(line_number, e, heading, item), file=sys.stderr)
                 lit = None
