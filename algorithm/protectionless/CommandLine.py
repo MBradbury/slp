@@ -78,7 +78,11 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
 
-        for (noise_model, comm_model) in itertools.product(Simulator.available_noise_models(), Simulator.available_communication_models()):
+
+        prod = itertools.product(Simulator.available_noise_models(),
+                                 Simulator.available_communication_models())
+
+        for (noise_model, comm_model) in prod:
 
             print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
 
