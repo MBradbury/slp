@@ -17,24 +17,24 @@ def _normalised_value_name(value):
     elif isinstance(value, collections.Sequence) and len(value) == 2:
         return "norm({},{})".format(_normalised_value_name(value[0]), _normalised_value_name(value[1]))
     else:
-        raise RuntimeError("Unknown type or length for value {}".format(value))
+        raise RuntimeError("Unknown type or length for value '{}' of type {}".format(value, type(value)))
+
+def _dfs_names(value):
+    result = []
+
+    if isinstance(value, str):
+        #result.append(value)
+        pass
+    elif isinstance(value, collections.Sequence) and len(value) == 2:
+        result.extend(_dfs_names(value[0]))
+        result.extend(_dfs_names(value[1]))
+        result.append(_normalised_value_name(value))
+    else:
+        raise RuntimeError("Unknown type or length for value '{}' of type {}".format(value, type(value)))
+
+    return result
 
 def _normalised_value_names(values):
-    def _dfs_names(value):
-        result = []
-
-        if isinstance(value, str):
-            #result.append(value)
-            pass
-        elif isinstance(value, collections.Sequence) and len(value) == 2:
-            result.extend(_dfs_names(value[0]))
-            result.extend(_dfs_names(value[1]))
-            result.append(_normalised_value_name(value))
-        else:
-            raise RuntimeError("Unknown type or length for value {}".format(value))
-
-        return result
-
     all_results = []
 
     for value in values:
@@ -78,8 +78,7 @@ class Analyse(object):
 
         self._unnormalised_headings_count = None
 
-        with open(infile) as f:
-
+        with open(infile, 'r') as f:
             line_number = 0
 
             for line in f:
@@ -89,7 +88,7 @@ class Analyse(object):
                 # We need to remove the new line at the end of the line
                 line = line.strip()
 
-                if '=' in line and len(self.headings) == 0:
+                if len(self.headings) == 0 and '=' in line:
                     # We are reading the options so record them
                     opt = line.split('=')
 
@@ -186,7 +185,7 @@ class Analyse(object):
                 len(values), len(self.headings), line_number))
 
         network_size = int(self.opts['network_size'])
-        number_nodes = network_size * network_size
+        number_nodes = network_size * network_size # TODO: fix this hack to work for non-grid networks
 
         for (heading, value) in zip(self.headings, values):
             if isinstance(value, dict) and heading in {'SentHeatMap', 'ReceivedHeatMap'}:
