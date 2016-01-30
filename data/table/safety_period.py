@@ -44,7 +44,7 @@ class TableGenerator:
 
             (communication_model, noise_model, attacker_model, config) = product_three_key
 
-            print('\\begin{table}', file=stream)
+            print('\\begin{table}[H]', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
             print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model}}'.format(
                 config, attacker_model, noise_model, communication_model), file=stream)
