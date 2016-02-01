@@ -21,6 +21,14 @@ class CLI(object):
         return [arg[len(name):] for arg in args if arg.startswith(name)]
 
     @staticmethod
+    def _get_arg_for(args, name):
+        results = CLI._get_args_for(args, name)
+        if len(results) == 1:
+            return results[0]
+        else:
+            raise RuntimeError("Only one value is expected for {}".format(name))
+
+    @staticmethod
     def _create_table(name, result_table, param_filter=lambda x: True):
         filename = name + ".tex"
 
@@ -38,9 +46,8 @@ class CLI(object):
         from data.run.driver import local as LocalDriver
         driver = LocalDriver.Runner()
 
-        thread_count = self._get_args_for(args, 'thread_count')
-        if len(thread_count) == 1:
-            driver.job_thread_count = int(thread_count[0])
+        thread_count = self._get_arg_for(args, 'thread_count')
+        driver.job_thread_count = int(thread_count)
 
         self._execute_runner(driver, self.algorithm_module.results_path, skip_completed_simulations=True)
 
