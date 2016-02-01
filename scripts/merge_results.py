@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, sys, fnmatch
+import os, fnmatch
 
 class MergeResults:
     def __init__(self, results_dir, merge_dir):
@@ -89,10 +89,7 @@ class MergeResults:
         os.rename(merge_path, result_path)
 
 
-def main():
-    results_dir = sys.argv[1]
-    to_merge_with_dir = sys.argv[2]
-
+def main(results_dir, to_merge_with_dir):
     merge = MergeResults(results_dir, to_merge_with_dir)
 
     for result_file in os.listdir(results_dir):
@@ -105,4 +102,12 @@ def main():
             print("")
 
 if __name__ == '__main__':
-    main()
+    import sys, argparse
+
+    parser = argparse.ArgumentParser(description="Result Merger", add_help=True)
+    parser.add_argument("--result-dir", type=str, required=True, help="The location of the main results files. The merged results will be stored here.")
+    parser.add_argument("--merge-dir", type=str, required=True, help="The location of the results to merge.")
+
+    args = parser.parse_args(sys.argv[1:])
+
+    main(args.result_dir, args.merge_dir)
