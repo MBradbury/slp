@@ -810,7 +810,14 @@ implementation
 		default: result = "failed"; break;
 		}
 
-		METRIC_BCAST(Fake, result, (tosend != NULL) ? tosend->sequence_number : BOTTOM);
+		if (tosend != NULL)
+		{
+			METRIC_BCAST(Fake, result, tosend->sequence_number);
+		}
+		else
+		{
+			METRIC_BCAST(Fake, result, BOTTOM);
+		}
 
 		if (pfs_can_become_normal())
 		{
