@@ -26,6 +26,11 @@ def copy_to():
     subprocess.check_call("rsync -avz -e ssh cluster {0}@{1}:~/slp-algorithms-tinyos".format(
         username, url()), shell=True)
 
+def copy_safety_periods():
+    username = raw_input("Enter your {} username: ".format(name().title()))
+    subprocess.check_call("rsync -avz --rsync-path=\"mkdir -p ~/slp-algorithms-tinyos/results/protectionless && rsync\" -e ssh results/protectionless/protectionless-results.csv {0}@{1}:~/slp-algorithms-tinyos/results/protectionless/protectionless-results.csv".format(
+        username, url()), shell=True)
+
 def copy_back(dirname):
     username = raw_input("Enter your {} username: ".format(name().title()))
     subprocess.check_call("rsync -avz -e ssh {0}@{1}:~/slp-algorithms-tinyos/cluster/{2}/*.txt results/{2}".format(

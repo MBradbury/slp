@@ -65,6 +65,9 @@ class CLI(object):
         if 'copy' in args:
             cluster.copy_to()
 
+        if 'copy-safety' in args:
+            cluster.copy_safety_periods()
+
         if 'submit' in args:
             emails_to_notify = self._get_args_for(args, 'notify')
 
