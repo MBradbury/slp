@@ -21,7 +21,7 @@ class MergeResults:
                 opt = line.split('=')
 
                 if opt[0] not in MergeResults._arguments_to_ignore:
-                    arguments[opt[0]] = opt[1]
+                    arguments[opt[0]] = '='.join(opt[1:])
 
             elif line.startswith('#'):
                 break
