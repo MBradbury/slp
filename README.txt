@@ -3,12 +3,12 @@
 
 Anonymously:
 
-hg clone https://MBradbury@bitbucket.org/MBradbury/slp-algorithm-tinyos
+hg clone https://MBradbury@bitbucket.org/MBradbury/slp-algorithms-tinyos
 
 With a username:
 
-hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithm-tinyos
-hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithm-tinyos
+hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos
+hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos
 
 2. Clone the tinyos fork 
 
@@ -28,6 +28,6 @@ source ~/tinyos.env
 
 4. Compile parts of the simulation
 
-cd slp-algorithm-tinyos/tinyos/support/sdk/java/net/tinyos/sim
+cd slp-algorithms-tinyos/tinyos/support/sdk/java/net/tinyos/sim
 javac LinkLayerModel.java
 
