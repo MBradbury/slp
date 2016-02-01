@@ -3,6 +3,9 @@ import os, subprocess
 def name():
     return __name__
 
+def type():
+    return "pbs"
+
 def url():
     return "minerva.csc.warwick.ac.uk"
 

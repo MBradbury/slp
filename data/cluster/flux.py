@@ -4,6 +4,9 @@ import math, subprocess
 def name():
     return __name__
 
+def type():
+    return "pbs"
+
 def url():
     return "flux.dcs.warwick.ac.uk"
 

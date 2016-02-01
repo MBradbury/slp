@@ -3,6 +3,9 @@ from __future__ import print_function
 def name():
     return __name__
 
+def type():
+    return "dummy"
+
 def url():
     return None
 
