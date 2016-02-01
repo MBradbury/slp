@@ -18,11 +18,11 @@ implementation
 		const local_end_period_t times[] = PERIOD_TIMES_MS;
 		const uint32_t else_time = PERIOD_ELSE_TIME_MS;
 
-		const unsigned int times_length = ARRAY_LENGTH(times);
+		const size_t times_length = ARRAY_LENGTH(times);
 
 		const uint32_t current_time = call LocalTime.get();
 
-		unsigned int i;
+		size_t i;
 
 		uint32_t period = -1;
 
