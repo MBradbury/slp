@@ -5,7 +5,7 @@ from __future__ import print_function
 import xml.dom.minidom
 import os, sys, subprocess
 
-def fakeqstat(joblist):
+def fakeqstat(username, joblist):
     for job in joblist:
         job_id = job.getElementsByTagName('Job_Id')[0].childNodes[0].data
         job_name = job.getElementsByTagName('Job_Name')[0].childNodes[0].data
@@ -31,4 +31,4 @@ if __name__ == '__main__':
 
 	jobs = dom.getElementsByTagName('Job')
 
-	fakeqstat(jobs)
+	fakeqstat(username, jobs)
