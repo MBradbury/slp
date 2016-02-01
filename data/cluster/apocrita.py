@@ -5,6 +5,9 @@ import math, subprocess
 def name():
     return __name__
 
+def type():
+    return "sge"
+
 def url():
     return "frontend1.apocrita.hpc.qmul.ac.uk"
 
