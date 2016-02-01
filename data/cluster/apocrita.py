@@ -23,12 +23,12 @@ def builder():
 
 def copy_to():
     username = raw_input("Enter your {} username: ".format(name().title()))
-    subprocess.check_call("rsync -avz -e ssh cluster {0}@{1}:~/slp-algorithm-tinyos".format(
+    subprocess.check_call("rsync -avz -e ssh cluster {0}@{1}:~/slp-algorithms-tinyos".format(
         username, url()), shell=True)
 
 def copy_back(dirname):
     username = raw_input("Enter your {} username: ".format(name().title()))
-    subprocess.check_call("rsync -avz -e ssh {0}@{1}:~/slp-algorithm-tinyos/cluster/{2}/*.txt results/{2}".format(
+    subprocess.check_call("rsync -avz -e ssh {0}@{1}:~/slp-algorithms-tinyos/cluster/{2}/*.txt results/{2}".format(
         username, url(), dirname), shell=True)
 
 def submitter(notify_emails=None):
