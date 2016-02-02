@@ -30,8 +30,10 @@
 typedef struct
 {
 	uint16_t node[SLP_MAX_NUM_SOURCES];
-	int16_t distance[SLP_MAX_NUM_SOURCES];
+	int16_t src_distance[SLP_MAX_NUM_SOURCES];
 	uint16_t count;
+
+	int16_t sink_distance;
 
 } distance_container_t;
 
@@ -46,7 +48,8 @@ void distance_update(distance_container_t* __restrict find, distance_container_t
 		{
 			if (given->node[i] == find->node[j])
 			{
-				find->distance[j] = minbot(find->distance[j], given->distance[i]);
+				find->src_distance[j] = minbot(find->src_distance[j], given->src_distance[i]);
+				find->sink_distance = given->sink_distance;
 				break;
 			}
 		}
@@ -54,7 +57,7 @@ void distance_update(distance_container_t* __restrict find, distance_container_t
 		// Couldn't find distance, so add it
 		if (j == find->count)
 		{
-			find->distance[find->count] = given->distance[i];
+			find->src_distance[find->count] = given->src_distance[i];
 			find->count++;
 		}
 	}
@@ -68,7 +71,7 @@ void distance_print(const char* name, size_t n, am_addr_t address, distance_cont
 
 	for (i = 0; i != contents->count; ++i)
 	{
-		dbg_clear(name, "%u: %d", contents->node[i], contents->distance[i]);
+		dbg_clear(name, "%u: %d", contents->node[i], contents->src_distance[i]);
 
 		if (i + 1 != contents->count)
 		{
@@ -86,7 +89,8 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 	distance_container_t dist; \
 	dist.count = 1; \
 	dist.node[0] = rcvd->source_id; \
-	dist.distance[0] = rcvd->name; \
+	dist.src_distance[0] = rcvd->name; \
+	dist.sink_distance = sink_distance; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
@@ -98,12 +102,13 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 	for (i = 0; i != rcvd->count; ++i) \
 	{ \
 		dist.node[i] = rcvd->node[i]; \
-		dist.distance[i] = rcvd->distance[i]; \
+		dist.src_distance[i] = rcvd->src_distance[i]; \
 	} \
+	dist.sink_distance = rcvd->sink_distance; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
-static int16_t min_neighbour_distance(distance_neighbour_detail_t const* neighbour)
+static int16_t min_neighbour_src_distance(distance_neighbour_detail_t const* neighbour)
 {
 	const distance_container_t* dist = &neighbour->contents;
 	uint16_t i;
@@ -111,7 +116,7 @@ static int16_t min_neighbour_distance(distance_neighbour_detail_t const* neighbo
 
 	for (i = 0; i != dist->count; ++i)
 	{
-		result = min(result, dist->distance[i]);
+		result = min(result, dist->src_distance[i]);
 	}
 
 	return result;
@@ -188,13 +193,14 @@ implementation
 	uint64_t source_fake_sequence_increments;
 
 	int16_t min_sink_source_distance = BOTTOM;
-	//int16_t source_distance = BOTTOM;
+	int16_t min_source_distance = BOTTOM;
 	int16_t sink_distance = BOTTOM;
 
 	bool sink_received_away_reponse = FALSE;
 
-	int16_t first_source_distance = BOTTOM;
-	int16_t min_source_distance = BOTTOM;
+	bool first_normal_rcvd = FALSE;
+
+	bool dw_towards_source = FALSE;
 
 	uint32_t extra_to_send = 0;
 
@@ -314,57 +320,106 @@ implementation
 		return result_period;
 	}
 
-	// TODO: modify this to allow the directed random walk to go closer to the source
-	// + (min_sink_source_distance / 2)
-	// Will also need to modify TailFS reverting to Normal, as it will need to be able
-	// to detect that the TFS that is closer to the source is part of the walk and a valid option
-	am_addr_t fake_walk_target(void)
+	void find_neighbours_further_from_source(distance_neighbours_t* local_neighbours)
 	{
-		am_addr_t chosen_address;
-		uint32_t i;
-
-		distance_neighbours_t local_neighbours;
-		init_distance_neighbours(&local_neighbours);
-
+		size_t i;
 		if (min_source_distance != BOTTOM)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-				if (min_neighbour_distance(neighbour) >= min_source_distance)
+				if (min_neighbour_src_distance(neighbour) >= min_source_distance)
 				{
-					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+					insert_distance_neighbour(local_neighbours, neighbour->address, &neighbour->contents);
 				}
 			}
 		}
+	}
 
-		if (local_neighbours.size == 0)
+	int16_t find_neighbours_with_max_sink_distance(distance_neighbours_t* local_neighbours)
+	{
+		size_t i;
+		int16_t max_sink_distance = INT16_MIN;
+
+		// Choose the neighbour with the highest sink_distance
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			max_sink_distance = max(max_sink_distance, neighbour->contents.sink_distance);
+		}
+
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			if (max_sink_distance == neighbour->contents.sink_distance)
+			{
+				insert_distance_neighbour(local_neighbours, neighbour->address, &neighbour->contents);
+			}
+		}
+
+		return max_sink_distance;
+	}
+
+	typedef struct {
+		am_addr_t target;
+		bool towards_source;
+	} fake_walk_result_t;
+
+	// TODO: modify this to allow the directed random walk to go closer to the source
+	// + (min_sink_source_distance / 2)
+	// Will also need to modify TailFS reverting to Normal, as it will need to be able
+	// to detect that the TFS that is closer to the source is part of the walk and a valid option
+	fake_walk_result_t fake_walk_target(void)
+	{
+		fake_walk_result_t result = { AM_BROADCAST_ADDR, FALSE };
+		//am_addr_t chosen_address = AM_BROADCAST_ADDR;
+		//bool towards_source = FALSE;
+
+		distance_neighbours_t local_neighbours;
+		init_distance_neighbours(&local_neighbours);
+
+		find_neighbours_further_from_source(&local_neighbours);
+
+		if (local_neighbours.size == 0 && min_source_distance == BOTTOM)
 		{
 			dbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
-				neighbours.size);
-
-			chosen_address = AM_BROADCAST_ADDR;
+				neighbours.size); 
 		}
-		else
+		else if (local_neighbours.size == 0 && neighbours.size != 0)
+		{
+			// There are neighbours who exist that are closer to the source than this node.
+			// We should consider moving to one of these neighbours if we are still close to the sink.
+
+			if (sink_distance <= (min_sink_source_distance / 2))
+			{
+				find_neighbours_with_max_sink_distance(&local_neighbours);
+
+				result.towards_source = local_neighbours.size != 0;
+			}
+		}
+		
+		if (local_neighbours.size != 0)
 		{
 			// Choose a neighbour with equal probabilities.
 			const uint16_t rnd = call Random.rand16();
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			chosen_address = neighbour->address;
+			result.target = neighbour->address;
 
 #ifdef SLP_VERBOSE_DEBUG
 			print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
 			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d)\n",
-				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				result.target, neighbour_index, rnd, local_neighbours.size,
 				neighbour->contents.distance);
 		}
 
-		return chosen_address;
+		return result;
 	}
 
 	void update_source_distance(const NormalMessage* rcvd)
@@ -469,6 +524,8 @@ implementation
 
 		type = NormalNode;
 
+		dw_towards_source = FALSE;
+
 		call FakeMessageGenerator.stop();
 
 		dbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
@@ -561,7 +618,7 @@ implementation
 		for (iter = call SourceDistances.beginKeys(), i = 0; iter != call SourceDistances.endKeys(); ++iter, ++i)
 		{
 			message.node[i] = *iter;
-			message.distance[i] = *call SourceDistances.get(*iter);
+			message.src_distance[i] = *call SourceDistances.get(*iter);
 		}
 
 		call Packet.clear(&packet);
@@ -589,9 +646,9 @@ implementation
 
 			update_source_distance(rcvd);
 
-			if (first_source_distance == BOTTOM)
+			if (!first_normal_rcvd)
 			{
-				first_source_distance = rcvd->source_distance + 1;
+				first_normal_rcvd = TRUE;
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
@@ -624,9 +681,9 @@ implementation
 
 			min_sink_source_distance = minbot(min_sink_source_distance, rcvd->source_distance + 1);
 
-			if (first_source_distance == BOTTOM)
+			if (!first_normal_rcvd)
 			{
-				first_source_distance = rcvd->source_distance + 1;
+				first_normal_rcvd = TRUE;
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
@@ -749,7 +806,7 @@ implementation
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
 				if (neighbour == NULL || neighbour->contents.count == 0 ||
-					min_source_distance == BOTTOM || min_neighbour_distance(neighbour) <= min_source_distance)
+					min_source_distance == BOTTOM || min_neighbour_src_distance(neighbour) <= min_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 
@@ -793,15 +850,16 @@ implementation
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
 		{
-			am_addr_t target;
+			distance_neighbours_t local_neighbours;
 
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_CHOOSE(rcvd);
 
-			target = fake_walk_target();
+			init_distance_neighbours(&local_neighbours);
+			find_neighbours_further_from_source(&local_neighbours);
 
-			if (target == AM_BROADCAST_ADDR)
+			if (local_neighbours.size == 0)
 			{
 				become_Fake(rcvd, PermFakeNode);
 			}
@@ -895,8 +953,11 @@ implementation
 				(rcvd->message_type == TailFakeNode && type == TailFakeNode)
 			) &&
 			(
-				rcvd->sender_min_source_distance > min_source_distance ||
-				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)
+				(!dw_towards_source && (rcvd->sender_min_source_distance > min_source_distance ||
+				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)))
+				||
+				(dw_towards_source && (rcvd->sender_min_source_distance < min_source_distance ||
+				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)))
 			)
 			)
 		{
@@ -963,9 +1024,10 @@ implementation
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
 	{
 		ChooseMessage message = *original_message;
-		am_addr_t target = fake_walk_target();
+		const fake_walk_result_t result = fake_walk_target();
 
-		dbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
+		dbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u towards_source=%u.\n",
+			result.target, result.towards_source);
 
 		// When finished sending fake messages from a TFS
 
@@ -973,7 +1035,7 @@ implementation
 		message.sink_distance += 1;
 
 		extra_to_send = 1;
-		send_Choose_message(&message, target);
+		send_Choose_message(&message, result.target);
 
 		if (type == PermFakeNode)
 		{
@@ -981,6 +1043,7 @@ implementation
 		}
 		else if (type == TempFakeNode)
 		{
+			dw_towards_source = result.towards_source;
 			become_Fake(original_message, TailFakeNode);
 		}
 		else //if (type == TailFakeNode)
@@ -1015,6 +1078,5 @@ implementation
 		{
 			METRIC_BCAST(Fake, result, BOTTOM);
 		}
-		
 	}
 }

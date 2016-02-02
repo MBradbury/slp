@@ -7,8 +7,10 @@
 typedef nx_struct BeaconMessage
 {
 	nx_uint16_t node[SLP_MAX_NUM_SOURCES];
-	nx_int16_t distance[SLP_MAX_NUM_SOURCES];
+	nx_int16_t src_distance[SLP_MAX_NUM_SOURCES];
 	nx_uint16_t count;
+
+	nx_int16_t sink_distance;
 
 } BeaconMessage;
 
