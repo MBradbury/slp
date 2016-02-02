@@ -159,7 +159,7 @@ class MetricsCommon(object):
     def captured(self):
         return self.sim.any_attacker_found_source()
 
-    def attacker_distance(self):
+    def attacker_source_distance(self):
         return {
             (source_id, i): self.sim.node_distance(source_id, attacker.position)
 
@@ -168,6 +168,17 @@ class MetricsCommon(object):
 
             for source_id
             in self.source_ids
+        }
+
+    def attacker_sink_distance(self):
+        return {
+            (sink_id, i): self.sim.node_distance(sink_id, attacker.position)
+
+            for i, attacker
+            in enumerate(self.sim.attackers)
+
+            for sink_id
+            in self.sink_ids
         }
 
     def attacker_moves(self):
@@ -231,7 +242,8 @@ class MetricsCommon(object):
         d["TimeTaken"]              = lambda x: x.sim_time()
         d["WallTime"]               = lambda x: x.wall_time
         d["EventCount"]             = lambda x: x.event_count
-        d["AttackerDistance"]       = lambda x: x.attacker_distance()
+        d["AttackerDistance"]       = lambda x: x.attacker_source_distance()
+        d["AttackerSinkDistance"]   = lambda x: x.attacker_sink_distance()
         d["AttackerMoves"]          = lambda x: x.attacker_moves()
         d["AttackerStepsTowards"]   = lambda x: x.attacker_steps_towards()
         d["AttackerStepsAway"]      = lambda x: x.attacker_steps_away()
