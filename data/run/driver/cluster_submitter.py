@@ -21,6 +21,7 @@ class Runner(object):
 
         # Print out any useful information that could aid in debugging
         debug_commands = [
+            'date',
             'hostname',
             'pwd',
             'echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"',
@@ -31,7 +32,7 @@ class Runner(object):
         debug_command = " ; ".join(debug_commands)
         
         # Need to remove empty strings as bash doesn't allow `;;`
-        precommand = " ; ".join(filter(None, (self.prepare_command, debug_command, script_command)))
+        precommand = " ; ".join(filter(None, (self.prepare_command, debug_command, script_command, 'date')))
 
         command = 'echo \'{}\' | {}'.format(precommand, cluster_command)
 
