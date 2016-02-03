@@ -3,7 +3,7 @@ from __future__ import print_function
 def name():
     return __name__
 
-def type():
+def kind():
     return "dummy"
 
 def url():

@@ -3,7 +3,7 @@ import os, subprocess
 def name():
     return __name__
 
-def type():
+def kind():
     return "pbs"
     # Also MOAB
     # Also SLURM
