@@ -45,7 +45,7 @@ Metrics.Metrics.print_header()
 
 # Because of the way TOSSIM is architectured each individual simulation
 # needs to be run in a separate process.
-if a.args.mode == "GUI":
+if a.args.mode in {"GUI", "SINGLE"}:
     import simulator.DoRun
 
 else:
