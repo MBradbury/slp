@@ -1,5 +1,5 @@
 from __future__ import print_function, division
-import os, select, random, gc, importlib
+import os, select, random, importlib, threading
 
 from tinyos.tossim.TossimApp import NescApp
 
@@ -18,15 +18,16 @@ class OutputCatcher(object):
         self._write = os.fdopen(write, 'w')
         self._linefn = linefn
 
+        self._read_poller = select.poll()
+        self._read_poller.register(self._read.fileno(), select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
+
     def process(self):
         """Consumes any lines that have been caught."""
-        self_read = self._read
-        self_linefn = self._linefn
-
         while True:
-            (read, write, error) = select.select([self_read], [], [], 0)
-            if len(read) == 1:
-                self_linefn(self_read.readline())
+            result = self._read_poller.poll(0)
+
+            if len(result) == 1:
+                self._linefn(self._read.readline())
             else:
                 break
 
@@ -36,7 +37,9 @@ class OutputCatcher(object):
 
     def close(self):
         """Closes the file handles opened."""
+
         if self._read is not None:
+            self._read_poller.unregister(self._read.fileno())
             self._read.close()
 
         if self._write is not None:
@@ -160,34 +163,11 @@ class Simulator(object):
 
     def run(self):
         """Run the simulator loop."""
-
-        event_count = 0
-
-        # Lets disable the python GC, so that it will not be run
-        # in this tight loop that shouldn't allocate much memory
         try:
-            gc.disable()
-
             self._pre_run()
 
-            # Do less . access in this tight inner loop
-            local_continue_predicate = self.continue_predicate
-            local_run_next_event = self.tossim.runNextEvent
-            local_during_run = self._during_run
-
-            # This is a very tight loop, should it be implemented in C?
-            while local_continue_predicate():
-                if local_run_next_event() == 0:
-                    print("Run next event returned 0 ({})".format(event_count))
-                    break
-
-                local_during_run(event_count)
-
-                event_count += 1
-
+            event_count = self.tossim.runAllEvents(self.continue_predicate, self._during_run)
         finally:
-            gc.enable()
-
             self._post_run(event_count)
 
     @staticmethod
