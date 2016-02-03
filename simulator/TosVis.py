@@ -218,7 +218,7 @@ class TosVis(Simulator):
     def _during_run(self, event_count):
         super(TosVis, self)._during_run(event_count)
 
-        if self._run_gui and event_count % 1000 == 0 and self._node_label is not None:
+        if self._run_gui and event_count % 500 == 0 and self._node_label is not None:
             for node in self.nodes:
                 time = self.sim_time()
 
