@@ -51,7 +51,7 @@ class GraphSummary:
         self._graph_count += 1
 
         if self._graphs_on_page is not None and self._graph_count % self._graphs_on_page == 0:
-           stream.write("  \\clearpage\n")
+            stream.write("  \\clearpage\n")
 
     def create(self):
         with open(self._name + '.tex', 'w') as output_latex:
