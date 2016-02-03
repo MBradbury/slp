@@ -1,9 +1,8 @@
 from __future__ import print_function
 
-import os, itertools
+import os
 
 import data.util
-from data import latex
 from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
@@ -60,35 +59,23 @@ class Grapher(GrapherBase):
 
     def _write_points_data(self, dir_name, configuration):
 
-        sources = []
-        for src_id in configuration.source_ids:
-            (x, y) = configuration.topology.nodes[src_id]
-            sources.append((src_id, x, y))
+        def write_id_table(ids, filename):
+            id_coords = []
+            for iid in ids:
+                (x, y) = configuration.topology.nodes[iid]
+                id_coords.append((iid, x, y))
 
-        sinks = []
-        for sink_id in [configuration.sink_id]:
-            (x, y) = configuration.topology.nodes[sink_id]
-            sinks.append((src_id, x, y))
+            with open(os.path.join(dir_name, filename), 'w') as graph_dat:
+                table =  [ ]
+                table.append([ '#X', 'Y' ])
 
-        with open(os.path.join(dir_name, 'source_points.dat'), 'w') as graph_dat:
+                for (iid, x, y) in id_coords:
+                    table.append([ x, y ])
 
-            table =  [ ]
-            table.append([ '#X', 'Y' ])
+                self._pprint_table(graph_dat, table)
 
-            for (src_id, x, y) in sources:
-                table.append([ x, y ])
-
-            self._pprint_table(graph_dat, table)
-
-        with open(os.path.join(dir_name, 'sink_points.dat'), 'w') as graph_dat:
-
-            table =  [ ]
-            table.append([ '#X', 'Y' ])
-
-            for (sink_id, x, y) in sinks:
-                table.append([ x, y ])
-
-            self._pprint_table(graph_dat, table)
+        write_id_table(configuration.source_ids, 'source_points.dat')
+        write_id_table([configuration.sink_id], 'sink_points.dat')
 
     def _write_plot_graph(self, dir_name):
         with open(os.path.join(dir_name, 'graph.gp'), 'w') as graph_p:
