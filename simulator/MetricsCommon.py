@@ -81,7 +81,7 @@ class MetricsCommon(object):
             self.normal_latency[key] = time - self.normal_sent_time[key]
             self.normal_hop_count.append(hop_count)
 
-    COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')
+    #COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')
 
     def process_COLLISIONS(self, line):
         # TODO:
@@ -147,7 +147,7 @@ class MetricsCommon(object):
             return float('inf')
 
     def receive_ratio(self):
-        return float(len(self.normal_latency)) / len(self.normal_sent_time)
+        return len(self.normal_latency) / len(self.normal_sent_time)
 
     def average_sink_source_hops(self):
         # It is possible that the sink has received no Normal messages
