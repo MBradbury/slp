@@ -1,5 +1,5 @@
 from __future__ import print_function, division
-import os, select, random, importlib, threading
+import os, select, random, importlib
 
 from tinyos.tossim.TossimApp import NescApp
 
