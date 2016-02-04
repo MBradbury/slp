@@ -169,17 +169,13 @@ implementation
       				des = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? des2:des4;    
 				}
     			break;
-    		
-    		default:	;
-
-    		return des;
 		}
+
+		return des;
 	}
 
 	bool random_walk(NormalMessage* message)
 	{
-		uint16_t des;
-
 		message->target = random_des_seclect (message, message->flip_coin);
 
 		//message->target = des;
