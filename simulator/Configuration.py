@@ -149,6 +149,28 @@ class SourceCorner(Configuration):
             space_behind_sink=True
         )
 
+class Source2Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Source2Corner, self).__init__(
+            grid,
+            source_ids={0, 2},
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
+class Source3Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Source3Corner, self).__init__(
+            grid,
+            source_ids={0, 2, network_size+1},
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
 class SinkCorner(Configuration):
     def __init__(self, network_size, distance):
         grid = Grid(network_size, distance)
@@ -160,13 +182,55 @@ class SinkCorner(Configuration):
             space_behind_sink=False
         )
 
+class Sink2Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Sink2Corner, self).__init__(
+            grid,
+            source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1},
+            sink_id=len(grid.nodes) - 1,
+            space_behind_sink=False
+        )
+
+class Sink3Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Sink3Corner, self).__init__(
+            grid,
+            source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1, (len(grid.nodes) - 1)/2 + network_size},
+            sink_id=len(grid.nodes) - 1,
+            space_behind_sink=False
+        )
+
 class FurtherSinkCorner(Configuration):
     def __init__(self, network_size, distance):
         grid = Grid(network_size, distance)
 
         super(FurtherSinkCorner, self).__init__(
             grid,
-            source_ids={(network_size + 1) * 3},
+            source_ids={0},
+            sink_id=len(grid.nodes) - 1,
+            space_behind_sink=False
+        )
+class FurtherSink2Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(FurtherSink2Corner, self).__init__(
+            grid,
+            source_ids={0,2},
+            sink_id=len(grid.nodes) - 1,
+            space_behind_sink=False
+        )
+class FurtherSink3Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(FurtherSink3Corner, self).__init__(
+            grid,
+            source_ids={0, 2, network_size+1},
             sink_id=len(grid.nodes) - 1,
             space_behind_sink=False
         )
