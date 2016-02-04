@@ -163,6 +163,7 @@ class Simulator(object):
 
     def run(self):
         """Run the simulator loop."""
+        event_count = 0
         try:
             self._pre_run()
 
