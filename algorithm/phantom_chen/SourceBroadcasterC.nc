@@ -11,8 +11,10 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
-// Define as global, as making it work for multiple sources.
-uint16_t messageNo = 0;
+//define the global vaiable.
+//0 means random walk, 1 means long random walk.
+//make it work for multiple sources.
+uint16_t last_random_walk = 0;
 
 module SourceBroadcasterC
 {
@@ -33,11 +35,14 @@ module SourceBroadcasterC
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
+	uses interface SequenceNumbers as NormalSeqNos;
+
 	uses interface Random;
 }
 
 implementation 
 {
+	//uint16_t last_random_walk = 0;
 	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode
@@ -69,274 +74,121 @@ implementation
 
 	USE_MESSAGE(Normal);
 
-	//S0 is north west direction, may not used in this program.
-	uint16_t S0 (NormalMessage *message)
+  	bool left_bottom_corner(uint16_t messageID)		{return (messageID==0)?TRUE:FALSE;}
+
+  	bool right_bottom_corner(uint16_t messageID)	{return (messageID==TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+
+  	bool left_top_corner(uint16_t messageID)		{return (messageID==TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1))?TRUE:FALSE;}
+
+  	bool right_top_corner(uint16_t messageID)		{return (messageID==TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+
+
+
+ 	bool left_border(uint16_t messageID)			{return (messageID%TOPOLOGY_SIZE==0 && messageID!=0 && messageID!=TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1))?TRUE:FALSE;}
+
+  	bool right_border(uint16_t messageID)			{return ((messageID+1)%TOPOLOGY_SIZE == 0 && messageID!=TOPOLOGY_SIZE-1 && messageID!=TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+
+  	bool bottom(uint16_t messageID)					{return (messageID>0 && messageID<TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+
+  	bool top(uint16_t messageID)					{return (messageID>TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1) && messageID<TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+
+  	bool message_reach_corner(uint16_t messageID)	{return (messageID==0||messageID==TOPOLOGY_SIZE-1||messageID==TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1)||messageID==TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+
+
+	uint16_t random_des_seclect (NormalMessage *message, uint16_t choose)
 	{
-		uint16_t des1,des2,ran,des;
+		uint16_t des1,des2,des3,des4;
+		uint16_t des = 0;
+		uint16_t ran,biased_ran;
 
-		dbg("slp-debug", "S0\n");
+		des1 = TOS_NODE_ID -1;
+		des2 = TOS_NODE_ID + 1;
+		des3 = TOS_NODE_ID - TOPOLOGY_SIZE;
+		des4 = TOS_NODE_ID + TOPOLOGY_SIZE;
 
-		//the node is near the left border
-		if((TOS_NODE_ID-1)%TOPOLOGY_SIZE == 0 && TOS_NODE_ID != 1)
+		ran=call Random.rand16()%2;
+		biased_ran=call Random.rand16()%3;
+
+		switch(choose)
 		{
-			des1 = TOS_NODE_ID - TOPOLOGY_SIZE;
-			des2 = TOS_NODE_ID + 1;
+			case(0):
+    			if (left_border(TOS_NODE_ID)) 					des = des3;
+    			else if (bottom(TOS_NODE_ID)) 					des = des1;
+    			else if (left_bottom_corner(TOS_NODE_ID)) 		des = TOS_NODE_ID; //stop here.
+    			else 											des=(ran==0)?des1:des3;
+      			break;
 
-			ran=call Random.rand16()%2;
+    		case(1):
+    			if (bottom(TOS_NODE_ID)) 												des = des2;
+    			else if (right_bottom_corner(TOS_NODE_ID))								des = TOS_NODE_ID; //stop here.
+    			else if (right_border(TOS_NODE_ID)) 									des = des3;
+    			else      																des=(ran==0)?des2:des3;
+  				break;
 
-			if(ran == 0)   des=des1;
-			else           des=des2;
+  			case(2):
+    			if (left_border(TOS_NODE_ID))  					des = des4;
+    			else if(top(TOS_NODE_ID))						des = des1;				
+    			else if(left_top_corner(TOS_NODE_ID))			des = TOS_NODE_ID;
+    			else 											des=(ran==0)?des1:des4;
+    			break;
+
+    		case(3):
+    			if (right_bottom_corner(TOS_NODE_ID)||right_border(TOS_NODE_ID))  	des = des4;
+    			else if (left_top_corner(TOS_NODE_ID) || top(TOS_NODE_ID)) 			des = des2;
+    			else if (right_top_corner(TOS_NODE_ID))								des = TOS_NODE_ID; //add stop code here.
+    			else																des=(ran==0)?des2:des4;
+      			break;
+
+      		case(4):
+      			
+    			if(biased_ran == 0)
+    			//small possibility follow the y axis.
+    			{
+    				//dbg("slp-debug",": (x)y move.\n");
+      				des = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? des2:des4;
+    			}
+    			else
+    			//high possibility follow the x axis.
+    			{
+    				//dbg("slp-debug",": (x)x move.\n");
+      				des = (right_border(TOS_NODE_ID) || right_bottom_corner(TOS_NODE_ID)) ? des4:des2;
+    			}
+    			break;
+
+    		case(5):
+    			if (biased_ran == 0)
+    			//small possibility follow the x axis.
+    			{
+    				//dbg("slp-debug",": (y)x move.\n");
+    				des = (right_border(TOS_NODE_ID)||right_bottom_corner(TOS_NODE_ID)) ? des4:des2;
+    			}
+    			else
+    			//high possibility follow the y axis.
+    			{
+    				//dbg("slp-debug",": (y)y move.\n");
+      				des = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? des2:des4;    
+				}
+    			break;
+    		
+    		default:	;
+
+    		return des;
 		}
-		// node is near the bottom
-		else if (TOS_NODE_ID > 1 && TOS_NODE_ID < TOPOLOGY_SIZE)
-		{
-			des = TOS_NODE_ID -1;
-		}
-
-		else if (TOS_NODE_ID == 1)
-		{
-			des = TOS_NODE_ID + 1;
-		}
-		//normal nodes
-		else
-		{
-			des1=TOS_NODE_ID - 1;
-			des2 = TOS_NODE_ID - TOPOLOGY_SIZE;
-
-			ran=call Random.rand16()%2;
-
-			if(ran == 0)   des=des1;
-			else           des=des2;
-		}
-		return des;
-	}
-
-	//S1 is North East direction
-	uint16_t S1 (NormalMessage *message)
-	{
-	  	uint16_t des1,des2,ran,des;
-
-	  	dbg("slp-debug", "S1\n");
-
-		//the node is near the right border but not the corner node
-		if(TOS_NODE_ID%TOPOLOGY_SIZE == 0 && TOS_NODE_ID != TOPOLOGY_SIZE)
-		{
-			des1 = TOS_NODE_ID - TOPOLOGY_SIZE;
-			des2 = TOS_NODE_ID - 1;
-
-			ran=call Random.rand16()%2;
-
-			if(ran == 0)   des=des1;
-			else           des=des2;
-		}
-		else if (TOS_NODE_ID > 1 && TOS_NODE_ID < TOPOLOGY_SIZE)
-		{
-			des = TOS_NODE_ID + 1;
-		}
-
-		else if (TOS_NODE_ID == TOPOLOGY_SIZE)
-		{
-			des=TOPOLOGY_SIZE;
-		}
-		//normal nodes
-		else
-		{
-			des1=TOS_NODE_ID + 1;
-			des2 = TOS_NODE_ID - TOPOLOGY_SIZE;
-
-			ran=call Random.rand16()%2;
-
-			if(ran == 0)   des=des1;
-			else           des=des2;
-		}
-		return des;
-	}
-
-
-	// S2 is South West direction
-	uint16_t S2 (NormalMessage *message)
-	{
-	  	uint16_t des1,des2,ran,des;
-
-	  	dbg("slp-debug", "S2\n");
-
-		//the node is near the left border
-		if((TOS_NODE_ID-1)%TOPOLOGY_SIZE == 0 && TOS_NODE_ID != TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1)
-		{
-			des1 = TOS_NODE_ID + TOPOLOGY_SIZE;
-			des2 = TOS_NODE_ID + 1;
-
-			ran=call Random.rand16()%2;
-
-			if(ran == 0)   des=des1;
-			else           des=des2;
-		}
-		//top
-		else if (TOS_NODE_ID > TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1 && TOS_NODE_ID < TOPOLOGY_SIZE * TOPOLOGY_SIZE)
-		{
-			des = TOS_NODE_ID - 1;
-		}
-
-		else if (TOS_NODE_ID == TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1)
-		{
-			des = TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1;
-		}
-		//normal nodes
-		else
-		{
-			des1=TOS_NODE_ID - 1;
-			des2 = TOS_NODE_ID + TOPOLOGY_SIZE;
-
-			ran=call Random.rand16()%2;
-
-			if(ran == 0)   des=des1;
-			else           des=des2;
-		}
-		return des;
-	}
-
-	// S3 is South East direction
-	uint16_t S3 (NormalMessage *message)
-	{
-	  	uint16_t des1,des2,ran,des;
-
-	  	dbg("slp-debug", "S3\n");
-
-		//the node is near the right border
-		if(TOS_NODE_ID%TOPOLOGY_SIZE == 0 && TOS_NODE_ID != TOPOLOGY_SIZE*TOPOLOGY_SIZE)
-		{
-			des1 = TOS_NODE_ID + TOPOLOGY_SIZE;
-			des2 = TOS_NODE_ID - 1;
-
-			ran=call Random.rand16()%2;
-
-			if(ran == 0)   des=des1;
-			else           des=des2;
-		}
-		//top
-		else if (TOS_NODE_ID > TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1 && TOS_NODE_ID < TOPOLOGY_SIZE * TOPOLOGY_SIZE)
-		{
-			des = TOS_NODE_ID +1;
-		}
-		else if (TOS_NODE_ID == TOPOLOGY_SIZE * TOPOLOGY_SIZE)
-		{
-			des = TOPOLOGY_SIZE * TOPOLOGY_SIZE;   
-		}
-		//normal nodes
-		else
-		{
-			des1=TOS_NODE_ID + 1;
-			des2 = TOS_NODE_ID + TOPOLOGY_SIZE;
-
-			ran=call Random.rand16()%2;
-
-			if(ran == 0)   des=des1;
-			else           des=des2;
-		}
-
-		
-
-		return des;
-	}
-
-	// x_move is used for SourceCorner or FurtherSinkCorner topology.
-	// to make sure the phantom node is away from the sink.
-	uint16_t x_move (NormalMessage *message)
-	{
-	  	uint16_t ran,des;
-
-	  	dbg("slp-debug", "x_move\n");
-
-		//the node has 1-1/5 change to move along the x axis.
-		ran=call Random.rand16()%5;
-
-		if (ran == 0)
-		{
-			if ((TOS_NODE_ID+1) >= TOPOLOGY_SIZE*TOPOLOGY_SIZE- TOPOLOGY_SIZE+1)
-			{
-				des = TOS_NODE_ID + 1;
-			}
-			else
-				des = TOS_NODE_ID + TOPOLOGY_SIZE;
-		}
-		else if ((TOS_NODE_ID+1)%TOPOLOGY_SIZE == 0)
-		{
-			des = TOS_NODE_ID + TOPOLOGY_SIZE;
-		}
-		else
-			des = TOS_NODE_ID + 1;
-
-		return des;
-	}
-
-	//y_move is used for SourceCorner or FurtherSinkCorner topology.
-	//to make sure the phantom node is away from the sink.
-	uint16_t y_move (NormalMessage *message)
-	{
-	  	uint16_t ran,des;
-
-		dbg("slp-debug", "y_move nid=%u ts=%u\n", TOS_NODE_ID, TOPOLOGY_SIZE);
-
-		//the node has 1-1/5 change to move along the y axis.
-		ran=call Random.rand16()%5;
-
-		if (ran == 0)
-		{
-			if ((TOS_NODE_ID+1)%TOPOLOGY_SIZE == 0)
-			{
-				des = TOS_NODE_ID + TOPOLOGY_SIZE;
-			}
-			else
-				des = TOS_NODE_ID + 1;
-		}
-		else if ((TOS_NODE_ID+1) >= TOPOLOGY_SIZE*TOPOLOGY_SIZE- TOPOLOGY_SIZE+1)
-		{
-			des = TOS_NODE_ID + 1;
-		}
-		else
-			des = TOS_NODE_ID + TOPOLOGY_SIZE;
-
-		return des;
 	}
 
 	bool random_walk(NormalMessage* message)
 	{
 		uint16_t des;
-		
-		if (message->flip_coin == 0)
-		{
-			des = S0(message);
-		}
-		else if (message->flip_coin == 1)
-		{
-			des = S1(message);
-		}
-		else if (message->flip_coin == 2)
-		{
-			des = S2(message);
-		}
-		else if (message->flip_coin == 4)
-		{
-			des = x_move(message);
-		}
-		else if (message->flip_coin == 5)
-		{
-			des = y_move(message);
-		}
-		else
-		{     
-			des = S3(message);
-		}
 
-		message->target=des;
+		message->target = random_des_seclect (message, message->flip_coin);
 
-		/*if (message->target == TOPOLOGY_SIZE ||
-			message->target == (TOPOLOGY_SIZE * TOPOLOGY_SIZE -TOPOLOGY_SIZE + 1) ||
-			message->target == TOPOLOGY_SIZE * TOPOLOGY_SIZE)
+		//message->target = des;
+
+		if (message_reach_corner(message->target))
 		{
 			message->walk_distance_remaining = 0;
 		}
-		else*/
+		else
 		{
 			message->walk_distance_remaining -= 1;
 		}
@@ -407,71 +259,87 @@ implementation
 
 	void generate_message()
 	{
+		uint16_t flip_coin = call Random.rand16()%2;
 		if (!busy)
 		{
+			
 			NormalMessage message;
-
-			message.sequence_number = messageNo;
+			message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);			
 			message.source_id = TOS_NODE_ID;
-			message.walk_distance_remaining = RANDOM_WALK_HOPS;
 			message.source_distance = 0;
-
-			//add adaptive phantom code here.
-			//if (phantom_type == 2)
+			//add adaptive phantom code here. 
+			//One message has short random walk length, the next message holds the long random walk length.
+			
+			if(last_random_walk == 0)
 			{
-				if (messageNo % 2 == 0)
-					message.walk_distance_remaining = RANDOM_WALK_HOPS;
-				else
-					message.walk_distance_remaining = LONG_RANDOM_WALK_HOPS;
-			}
-			/*else if (phantom_type == 1)
-			{
-				message->walk_distance_remaining = RANDOM_WALK_HOPS;
+				message.walk_distance_remaining = LONG_RANDOM_WALK_HOPS;
+				last_random_walk = 1;
 			}
 			else
-				printf("wrong phantom type.\n");*/
-
-			//printf("%d ",message.NodeID);
-
-			// the topology are FurtherSinkCorner or SourceCorner, so the random walk is going straight to the sink.
-			// it has high change to go through sink neighbor before finishing the random walk phanse.
-			/*
-			if (SOURCE_NODE_ID_1 < TOPOLOGY_SIZE)
 			{
-			  flip_coin = 3;
-				message->flip_coin = 3;
+				message.walk_distance_remaining = RANDOM_WALK_HOPS;
+				last_random_walk = 0;
 			}
-			*/
 
-			// it makes the phantom node fa away from the sink in the SourceCorner topology.
-			// also work for FurtherSinkCorner topology.
-			//if (SOURCE_NODE_ID_1 < TOPOLOGY_SIZE)
+			//if (message.sequence_number % 2 == 0)
+			//	message.walk_distance_remaining = RANDOM_WALK_HOPS;
+			//else
+			//	message.walk_distance_remaining = LONG_RANDOM_WALK_HOPS;
+			
+
+		//SPACE_BEHIND_SINK means more space behind the sink.
+		//fit for Source Corner.  
 #ifdef SPACE_BEHIND_SINK
 			{
-				// random choose the random is whether follow the x axis or y axis.
-				uint16_t flip_coin = call Random.rand16()%2;
-				if (flip_coin == 0)
+				//if random walk length is shorter than the source sink distance, biased random walk is no need to implement.
+				//normally the short random walk is set to less than half of source sink distance.
+				if (message.walk_distance_remaining < TOPOLOGY_SIZE)
 				{
-					message.flip_coin = 4;
+					dbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
+					message.flip_coin = 3;
 				}
 				else
 				{
-					message.flip_coin = 5;
+					//randomly choose the random is whether follow the x axis or y axis.
+					message.flip_coin = (flip_coin == 0)?4:5;
+					dbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
 				}
 			}
+		//fit for the situation that the sink is located in the corner or in the border.
+		//fit for SinkCorner or FurtherSinkCorner
 #else
-			//the topology is SinkCorner,so the random walk is far away fro the sink.
-			//else
 			{
-				uint16_t flip_coin=call Random.rand16()%2;	
+				// FurtherSinkCorner codes here.
+				//ensure all source ID is les than TOPOLOGY_SIZE*2, even with 3 sources.
+				if (message.source_id < TOPOLOGY_SIZE*2)
+				{					
+					if (message.walk_distance_remaining < TOPOLOGY_SIZE)
+					{
+						dbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());	
+						message.flip_coin = 3;
+					}
+					else
+					{
+						message.flip_coin = (flip_coin == 0)?4:5;
+						dbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
+					}
+				}
 
-				if (flip_coin == 0)
-					message.flip_coin = 1;
+				//SinkCorner codes here.
+				//biased random walk is not applied here.
 				else
-					message.flip_coin = 2;
+				{
+					dbg("slp-debug","random walk hop:%d\n",message.walk_distance_remaining);
+					message.flip_coin = call Random.rand16()%4;
+				}
+				
 			}
 #endif
-			random_walk(&message);
+			if (random_walk(&message))
+			{
+				
+				call NormalSeqNos.increment(TOS_NODE_ID);
+			}
 		}
 
 		call BroadcastNormalTimer.startOneShot(get_source_period());
@@ -480,167 +348,78 @@ implementation
 
 	event void BroadcastNormalTimer.fired()
 	{
-		messageNo += 1;
+		
 		generate_message();  
 	}
 
-	bool routing(NormalMessage* message)
-	{ 
-		error_t status;
-		int n_forward,ran;
-		int n_horizon;
-		int si,sj,ni,nj;
 
-		dbg("slp-debug", "routing\n");
 
-		if (!busy)
-		{
-			// sink position in array,starting with index 0.
-			si = SINK_NODE_ID / TOPOLOGY_SIZE;
-			if (SINK_NODE_ID % TOPOLOGY_SIZE == 0)
-			{
-				si-=1;
-			}  
-			sj = SINK_NODE_ID - si * (TOPOLOGY_SIZE)-1;
-
-			// node position in array,starting with index 0.
-			ni = TOS_NODE_ID / TOPOLOGY_SIZE;
-			if (TOS_NODE_ID % TOPOLOGY_SIZE == 0)
-			{
-				ni-=1;
-			}
-			nj = TOS_NODE_ID - ni * TOPOLOGY_SIZE - 1;
-
-			n_forward = si-ni;
-			n_horizon = sj-nj;
-
-			//printf("n_forward=%d,n_horizon%d\n", n_forward,n_horizon);
-			
-			ran = call Random.rand16()%2;
-			
-			if(ran == 0)
-			{
-				if(n_forward > 0)
-				{
-					message->target = TOS_NODE_ID + TOPOLOGY_SIZE;
-				}
-				else if(n_forward < 0)
-				{
-					message->target = TOS_NODE_ID - TOPOLOGY_SIZE;
-				}
-				else if(n_forward == 0 && n_horizon > 0)
-				{
-					message->target = TOS_NODE_ID + 1;
-				}
-				else if (n_forward == 0 && n_horizon < 0)
-				{
-					message->target = TOS_NODE_ID - 1;
-				}
-				else 
-				{
-					dbg("slp-debug","ran=0,n_forward:%d, N_horizon:%d. \n",n_forward,n_horizon);
-				}
-			}
-			else if (ran == 1)
-			{
-				if(n_horizon > 0)
-				{
-					message->target = TOS_NODE_ID + 1;
-				}
-				else if (n_horizon < 0)
-				{
-					message->target = TOS_NODE_ID - 1;
-				}
-				else if (n_forward > 0 && n_horizon == 0)
-				{
-					message->target = TOS_NODE_ID + TOPOLOGY_SIZE;
-				}
-				else if (n_forward < 0 && n_horizon == 0)
-				{
-					message->target = TOS_NODE_ID - TOPOLOGY_SIZE;
-				}
-				else 
-				{
-					dbg("slp-debug","ran=1,n_forward:%d, N_horizon:%d. \n",n_forward,n_horizon);
-				}
-			}
-			else
-			{
-				dbg("slp-debug","error in random.\n");
-			}   
-
-			//send message phase
-			return send_Normal_message(message, message->target);
-		}
-		else
-		{
-			dbg("slp-debug", "%s: BroadcastNormalTimer busy, not sending Normal NormalMessage.\n", sim_time_string());
-			return FALSE;
-		}
-	}  
+	bool flooding(NormalMessage* message)
+	{
+		return send_Normal_message(message, AM_BROADCAST_ADDR);
+	}
 
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		NormalMessage rcm= *(NormalMessage*)rcvd;
 
-		METRIC_RCV_NORMAL(rcvd);
-
-		//int i=0;
-		//int neighbour_nodes[4] ={rcm.target+TOPOLOGY_SIZE,rcm.target-TOPOLOGY_SIZE,rcm.target+1,rcm.target-1};
-
-		dbg("slp-debug", "check the received message: NodeID:%d;walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
-
-		if(TOS_NODE_ID != SINK_NODE_ID && rcm.walk_distance_remaining <= 0)
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			
+			METRIC_RCV_NORMAL(rcvd);
 
-			dbg("slp-debug",":(flooding_message) message received, from %d to %d.\n",source_addr,rcm.target);
+			//dbg("slp-debug", "check the received message: NodeID:%d;walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
 
-			rcm.source_distance+=1;
+			if(rcm.walk_distance_remaining == 0 && rcm.target != SINK_NODE_ID)
+			{
 
-			//printf("%d ",rcm.target);
+				//dbg("slp-debug",":rcm.target:%d, rcm.walk_distance_remaining:%d,SINK_NODE_ID:%d.\n",rcm.target,rcm.walk_distance_remaining,SINK_NODE_ID);
 
-			/*
-			for(i=0; i<4;i++)
-				   {
-					 if(neighbour_nodes[i]>=1 && neighbour_nodes[i]<TOPOLOGY_SIZE*TOPOLOGY_SIZE)
-					 printf("%d ", neighbour_nodes[i]);
-				   }
-				   */             
-			//start routing.
-			//printf("%d\n", message);
-			routing(&rcm);
-		}
-		else if(rcm.target == TOS_NODE_ID && TOS_NODE_ID != SINK_NODE_ID && rcm.walk_distance_remaining != 0)
-		{
-			dbg("slp-debug",": (random_walk) message received, from %d, walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
-			//printf("random walk phase,walk_distance_remaining=%d\n",rcm.walk_distance_remaining);
+				rcm.source_distance+=1;
+	         
+				flooding(&rcm);
+			}
+			else if(rcm.target == TOS_NODE_ID && TOS_NODE_ID != SINK_NODE_ID && rcm.walk_distance_remaining != 0)
+			{
+				//dbg("slp-debug",": (random_walk) message received, from %d, walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
 
-			//printf("%d ",rcm.target);
-			rcm.source_distance+=1;
+				rcm.source_distance+=1;
 
-			dbg("slp-debug", "rcvd rw source_distance=%d\n",rcm.source_distance);
+				//dbg("slp-debug", "rcvd rw source_distance=%d\n",rcm.source_distance);
 
-			random_walk(&rcm);
-		}
-		else if (rcm.target == SINK_NODE_ID)
-		{
-			//printf("%d ",rcm.target);
-			rcm.source_distance+=1;            
-		}
-		else 
-		{
-			dbg("slp-debug","other: NodeID:%d;target:%d,walk_distance_remaining=%hu.\n",source_addr,rcm.target,rcm.walk_distance_remaining);
+				random_walk(&rcm);
+			}
+			else if (rcm.target == SINK_NODE_ID)
+			{
+				rcm.source_distance+=1;            
+			}
+			else 
+			{
+				//dbg("slp-debug","other: NodeID:%d;target:%d,walk_distance_remaining=%hu.\n",source_addr,rcm.target,rcm.walk_distance_remaining);
+			}
 		}
 	}
 
 	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		METRIC_RCV_NORMAL(rcvd);
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		{
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+
+			METRIC_RCV_NORMAL(rcvd);
+		}
 	}
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		{
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			
+			METRIC_RCV_NORMAL(rcvd);
+		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
