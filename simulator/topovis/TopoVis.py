@@ -265,6 +265,7 @@ class Scene:
         if self.realtime:
             def execfn():
                 self.execute(0, cmd, *args, **kwargs)
+                #heappush(self.evq, (0, cmd, args, kwargs)) # Probably fixes this, but also introduces a race condition
             Timer(delay, execfn).start()
         else:
             heappush(self.evq, (self.time+delay, cmd, args, kwargs))
