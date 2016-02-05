@@ -1,5 +1,5 @@
-from __future__ import print_function
-import os, sys, fnmatch
+from __future__ import print_function, division
+import os, sys, math, fnmatch
 from collections import OrderedDict
 
 class RunSimulationsCommon(object):
@@ -35,7 +35,7 @@ class RunSimulationsCommon(object):
 
                 opts = OrderedDict()
                 opts["--mode"] = self.driver.mode()
-                opts["--job-size"] = repeats
+                opts["--job-size"] = int(math.ceil(repeats / self.driver.job_repeats))
 
                 if self.driver.array_job_variable is not None:
                     opts["--job-id"] = self.driver.array_job_variable

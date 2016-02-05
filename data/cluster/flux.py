@@ -43,7 +43,7 @@ def copy_back(dirname):
 def submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
 
-    ram_for_os_mb = 3 * 1024
+    ram_for_os_mb = 4 * 1024
 
     jobs = ppn()
     ram_per_job_mb = int(math.floor(((ram_per_node() * ppn()) - ram_for_os_mb) / jobs))
@@ -59,20 +59,20 @@ def submitter(notify_emails=None):
 
     prepare_command = "cd $PBS_O_WORKDIR"
 
-    return Submitter(cluster_command, prepare_command, jobs)
+    return Submitter(cluster_command, prepare_command, jobs, 1)
 
 def array_submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
 
     # Hopefully enough ram for the larger jobs
     ram_per_job_mb = 2 * 1024
-
+    num_jobs = 1
     num_array_jobs = ppn()
 
     # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
     # Don't provide a queue, as the job will be routed to the correct place.
-    cluster_command = "qsub -j oe -h -t 1-{}%1 -l nodes=1:ppn=1 -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(
-        num_array_jobs, ram_per_job_mb)
+    cluster_command = "qsub -j oe -h -t 1-{}%1 -l nodes=1:ppn={} -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(
+        num_array_jobs, num_jobs, num_jobs * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
         print("Warning: flux does not currently have email notification setup")
@@ -81,4 +81,4 @@ def array_submitter(notify_emails=None):
 
     prepare_command = "cd $PBS_O_WORKDIR"
 
-    return Submitter(cluster_command, prepare_command, 1, array_job_variable="$PBS_ARRAYID")
+    return Submitter(cluster_command, prepare_command, num_jobs, job_repeats=num_array_jobs, array_job_variable="$PBS_ARRAYID")
