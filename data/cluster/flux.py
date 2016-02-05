@@ -65,7 +65,7 @@ def array_submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
 
     # Hopefully enough ram for the larger jobs
-    ram_per_job_mb = 1 * 2024
+    ram_per_job_mb = 2 * 1024
 
     num_array_jobs = ppn()
 
