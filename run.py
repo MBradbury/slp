@@ -4,6 +4,9 @@ from __future__ import print_function
 
 import sys, importlib
 
+from simulator import dependency
+dependency.check_all()
+
 module = sys.argv[1]
 
 Arguments = importlib.import_module("{}.Arguments".format(module))

@@ -78,11 +78,6 @@ class CLI(object):
         if 'submit' in args:
             emails_to_notify = self._get_args_for(args, 'notify')
 
-            # Better to fail at submit time, rather than job run time when this class
-            # has not been compiled.
-            if not os.path.exists('tinyos/support/sdk/java/net/tinyos/sim/LinkLayerModel.class'):
-                raise RuntimeError("The LinkLayerModel class does not exist, please compile it first!")
-
             if 'array' not in args:
                 submitter = cluster.submitter(emails_to_notify)
             else:
