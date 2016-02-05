@@ -39,9 +39,10 @@ def submitter(notify_emails=None):
         def _submit_job(self, command):
             print(command)
 
-    ram_per_job_mb = 1000
+    ram_per_job_mb = ram_per_node()
 
-    cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime=500:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_node())
+    cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime=500:00:00 -l mem={}mb -N \"{{}}\"".format(
+        ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
@@ -49,3 +50,24 @@ def submitter(notify_emails=None):
     prepare_command = " <prepare> "
 
     return DummySubmitter(cluster_command, prepare_command, ppn())
+
+
+def array_submitter(notify_emails=None):
+    from data.run.driver.cluster_submitter import Runner as Submitter
+
+    # Don't submit, just print the command
+    class DummySubmitter(Submitter):
+        def _submit_job(self, command):
+            print(command)
+
+    ram_per_job_mb = ram_per_node()
+
+    cluster_command = "qsub -q serial -j oe -h -t 1-{}%1 -l nodes=1:ppn=1 -l walltime=501:00:00 -l mem={}mb -N \"{{}}\"".format(
+        ppn(), ram_per_job_mb)
+
+    if notify_emails is not None and len(notify_emails) > 0:
+        cluster_command += " -m ae -M {}".format(",".join(notify_emails))
+
+    prepare_command = " <prepare> "
+
+    return DummySubmitter(cluster_command, prepare_command, 1, array_job_variable="$DUMMY_ARRAYID")

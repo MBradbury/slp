@@ -37,6 +37,9 @@ class RunSimulationsCommon(object):
                 opts["--mode"] = self.driver.mode()
                 opts["--job-size"] = repeats
 
+                if self.driver.array_job_variable is not None:
+                    opts["--job-id"] = self.driver.array_job_variable
+
                 if hasattr(self.driver, 'job_thread_count') and self.driver.job_thread_count is not None:
                     opts["--thread-count"] = self.driver.job_thread_count
 
