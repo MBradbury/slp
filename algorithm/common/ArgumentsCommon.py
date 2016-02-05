@@ -26,12 +26,16 @@ class ArgumentsCommon(object):
         parser.add_argument("--job-size", type=int, default=1)
         parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
 
+        parser.add_argument("--job-id", type=int, default=None, help="Used to pass the array id when this job has been submitted as a job array to the cluster")
+
         parser.add_argument("-v", "--verbose", action="store_true")
 
         self.parser = parser
 
         # Haven't parsed anything yet
         self.args = None
+
+        self.arguments_to_hide = {"job_id", "verbose"}
 
     def parse(self, argv):
         self.args = self.parser.parse_args(argv)

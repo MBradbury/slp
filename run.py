@@ -36,12 +36,13 @@ if a.args.mode != "CLUSTER":
     # The assumption is that any processes running are of the same topology
     Simulation.write_topology_file(configuration.topology.nodes)
 
-# Print out the argument settings
-for (k, v) in vars(a.args).items():
-    print("{}={}".format(k, v))
+if a.args.mode != "CLUSTER" or a.args.job_id == 1:
+    # Print out the argument settings
+    for (k, v) in [(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide]:
+        print("{}={}".format(k, v))
 
-# Print the header for the results
-Metrics.Metrics.print_header()
+    # Print the header for the results
+    Metrics.Metrics.print_header()
 
 # Because of the way TOSSIM is architectured each individual simulation
 # needs to be run in a separate process.
@@ -51,6 +52,7 @@ if a.args.mode in {"GUI", "SINGLE"}:
 else:
     import subprocess, multiprocessing.pool, traceback
     from threading import Lock
+    from datetime import datetime
 
     print_lock = Lock()
 
@@ -85,6 +87,11 @@ else:
 
     subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
 
+    if a.args.job_id is not None:
+        print("Starting cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+    else:
+        print("Starting cluster job at {}".format(datetime.now()), file=sys.stderr)
+
     print("Creating a process pool with {} processes.".format(a.args.thread_count), file=sys.stderr)
 
     job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
@@ -112,3 +119,8 @@ else:
         raise
     finally:
         job_pool.join()
+
+    if a.args.job_id is not None:
+        print("Finished cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+    else:
+        print("Finished cluster job at {}".format(datetime.now()), file=sys.stderr)

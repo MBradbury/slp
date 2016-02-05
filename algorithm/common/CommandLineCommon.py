@@ -83,7 +83,12 @@ class CLI(object):
             if not os.path.exists('tinyos/support/sdk/java/net/tinyos/sim/LinkLayerModel.class'):
                 raise RuntimeError("The LinkLayerModel class does not exist, please compile it first!")
 
-            self._execute_runner(cluster.submitter(emails_to_notify), cluster_directory, skip_completed_simulations=False)
+            if 'array' not in args:
+                submitter = cluster.submitter(emails_to_notify)
+            else:
+                submitter = cluster.array_submitter(emails_to_notify)
+
+            self._execute_runner(submitter, cluster_directory, skip_completed_simulations=False)
 
         if 'copy-back' in args:
             cluster.copy_back(self.algorithm_module.name)
