@@ -3,11 +3,12 @@ from __future__ import print_function
 import subprocess
 
 class Runner(object):
-    def __init__(self, cluster_command, prepare_command, job_thread_count, array_job_variable=None):
+    def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None):
         self.cluster_command = cluster_command
         self.prepare_command = prepare_command
         self.job_thread_count = job_thread_count
         self.array_job_variable = array_job_variable
+        self.job_repeats = job_repeats
 
     def add_job(self, executable, options, name):
         target_directory = name[:-len(".txt")]
