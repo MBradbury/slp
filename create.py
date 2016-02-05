@@ -9,6 +9,9 @@ from data.util import create_dirtree
 import numpy
 
 if __name__ == "__main__":
+    from simulator import dependency
+    dependency.check_all()
+
     args = []
     if len(sys.argv[1:]) == 0:
         raise RuntimeError("No arguments provided!")
