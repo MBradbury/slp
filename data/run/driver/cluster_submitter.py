@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import subprocess
+import os, subprocess
 
 class Runner(object):
     def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None):
@@ -12,6 +12,9 @@ class Runner(object):
 
     def add_job(self, executable, options, name):
         target_directory = name[:-len(".txt")]
+
+        if not os.path.exists(target_directory):
+            raise RuntimeError("The directory for this job does not exist ({})".format(target_directory))
 
         word, space, options = options.partition(" ")
 
