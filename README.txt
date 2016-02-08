@@ -67,7 +67,7 @@ One you have the necessary safety period results you can create the summary file
 
 You can then copy that summary to the desired cluster like so:
 
-./create.py protectionless cluster copy-safety <cluster>
+./create.py protectionless cluster copy-result-summary <cluster>
 
 The cluster will now have the correct safety periods present to be able to run the simulations.
 
@@ -113,15 +113,19 @@ Now submit the jobs using:
 
 ./create.py <algorithm> cluster submit <cluster>
 
-Repeat these instructions for the other desired network sizes.
-The following times are rough guides for different sized networks:
-Size 11: "8:00:00"
-Size 15: "16:00:00"
-Size 21: "30:00:00"
 Size 25: "48:00:00"
 
 To keep things simple you could just use a very large request time, but it is likely it will mean your jobs are not
 run as often as they could be.
+
+===Array Jobs===
+
+Alternatively you could use array jobs using the following command. The difference here is that rather than submitting
+one job that takes up an entire node, many smaller jobs that only require one processor are submitted instead. This
+should improve throughput of results on certain clusters. As the number of repeats performed per job will be smaller
+make sure that you divide the walltime by the number of array jobs that will be created.
+
+./create.py <algorithm> cluster submit <cluster> array
 
 ==Copy back from cluster==
 
@@ -132,3 +136,22 @@ Once all your jobs have finished you will need to copy them back from the cluste
 You can then analyse the results like so:
 
 ./create <algorithm> analyse
+
+Which will generate a result summary at "slp-algorithms-tinyos/results/<algorithm>/<algorithm>-results.csv".
+
+==Resubmitting Jobs==
+
+If for any reason you need to go back and submit more of the same jobs that you have run before there are a few tricks.
+
+When building or submitting jobs, the results summary file (in slp-algorithms-tinyos/results/<algorithm>/<algorithm>-results.csv)
+will be read so that jobs will only be executed if the results show that not enough have been executed so far.
+
+You can copy these result summaries to the cluster using:
+
+./create.py <algorithm> cluster copy-result-summary <cluster>
+
+If you want to ignore any existing results make sure to pass "no-skip-complete" when building or submitting cluster jobs.
+Doing so will run all parameter combinations as specified in the <algorithm>/CommandLine.py file.
+
+./create.py <algorithm> cluster build dummy no-skip-complete
+./create.py <algorithm> cluster submit <cluster> no-skip-complete
