@@ -50,6 +50,7 @@ def _normalised_value_names(values):
 
 class Analyse(object):
 
+    # When a converter is not present, the custom literal eval will be used
     FAST_HEADINGS_CONVERTERS = {
         "Seed": int,
         "Sent": int,
@@ -90,10 +91,10 @@ class Analyse(object):
 
                 if len(self.headings) == 0 and '=' in line:
                     # We are reading the options so record them
-                    opt = line.split('=')
+                    opt = line.split('=', 1)
 
                     # Need to handle values that have an "=" in them
-                    self.opts[opt[0]] = '='.join(opt[1:])
+                    self.opts[opt[0]] = opt[1]
 
                 elif line.startswith('#'):
                     # Read the headings
@@ -121,7 +122,7 @@ class Analyse(object):
 
                         self.data.append(values)
 
-                    except (TypeError, RuntimeError) as e:
+                    except (TypeError, RuntimeError, SyntaxError) as e:
                         print("Unable to process line {} due to {}".format(line_number, e), file=sys.stderr)
 
                 else:
@@ -162,8 +163,8 @@ class Analyse(object):
                     # ast.literal_eval will not parse inf correctly.
                     # passing 2e308 will return a float('inf') instead.
                     #
-                    # The fast_eval version will parse inf correctly, so this
-                    # hack is not needed there.
+                    # The fast_eval version will parse inf when on its own correctly,
+                    # so this hack is not needed there.
                     item = item.replace('inf', '2e308')
 
                     lit = ast.literal_eval(item)

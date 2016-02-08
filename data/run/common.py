@@ -100,9 +100,9 @@ class RunSimulationsCommon(object):
 
                     if '=' in line:
                         # We are reading the options so record them
-                        opt = line.split('=')
+                        opt = line.split('=', 1)
 
-                        fileopts[opt[0]] = '='.join(opt[1:])
+                        fileopts[opt[0]] = opt[1]
 
                     elif line.startswith('#'):
                         seen_hash = True

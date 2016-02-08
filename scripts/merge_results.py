@@ -18,10 +18,10 @@ class MergeResults:
         for line in f:
             if '=' in line:
                 # We are reading the options so record them
-                opt = line.split('=')
+                opt = line.split('=', 1)
 
                 if opt[0] not in MergeResults._arguments_to_ignore:
-                    arguments[opt[0]] = '='.join(opt[1:])
+                    arguments[opt[0]] = opt[1]
 
             elif line.startswith('#'):
                 break
