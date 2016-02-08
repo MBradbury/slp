@@ -113,6 +113,12 @@ Now submit the jobs using:
 
 ./create.py <algorithm> cluster submit <cluster>
 
+Repeat these instructions for the other desired network sizes.
+The following times are rough guides for different sized networks:
+
+Size 11: "8:00:00"
+Size 15: "16:00:00"
+Size 21: "30:00:00"
 Size 25: "48:00:00"
 
 To keep things simple you could just use a very large request time, but it is likely it will mean your jobs are not
