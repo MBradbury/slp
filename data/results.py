@@ -19,6 +19,7 @@ class Results(object):
         self.attacker_models = set()
         self.noise_models = set()
         self.communication_models = set()
+        self.distances = set()
 
         self._read_results(result_file)
 
@@ -41,14 +42,15 @@ class Results(object):
 
                     get_value = partial(_get_value_for, values=values)
 
-                    size = int(get_value('network size'))
+                    size = get_value('network size')
                     src_period = SourcePeriodModel.eval_input(get_value('source period')).simple_str()
                     config = get_value('configuration')
                     attacker_model = get_value('attacker model')
                     noise_model = get_value('noise model')
                     communication_model = get_value('communication model')
+                    distance = get_value('distance')
 
-                    table_key = (size, config, attacker_model, noise_model, communication_model)
+                    table_key = (size, config, attacker_model, noise_model, communication_model, distance)
 
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
@@ -58,6 +60,7 @@ class Results(object):
                     self.attacker_models.add(attacker_model)
                     self.noise_models.add(noise_model)
                     self.communication_models.add(communication_model)
+                    self.distances.add(distance)
 
                     self.data.setdefault(table_key, {}).setdefault(src_period, {})[params] = results
 
@@ -91,3 +94,19 @@ class Results(object):
         var = float(split[1].strip(')'))
 
         return numpy.array((mean, math.sqrt(var)))
+
+    def parameter_set(self):
+        if 'repeats' not in self.result_names:
+            raise RuntimeError("The repeats result must be present in the results ({}).".format(self.result_names))
+
+        result = {}
+        for (params, items1) in self.data.items():
+            for (period, items2) in items1.items():
+                for (key, data) in items2.items():
+                    line = list(params)
+                    line.append(period)
+                    line.extend(key)
+
+                    result[tuple(map(str, line))] = data[self.result_names.index('repeats')]
+        
+        return result     

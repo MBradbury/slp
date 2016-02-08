@@ -27,33 +27,32 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_model = "meyer-heavy"
+    noise_models = ["meyer-heavy"]
 
     sizes = [11, 15, 21, 25]
 
-    # Note that our simulation only has millisecond resolution,
+    # (JProwler) Note that our simulation only has millisecond resolution,
     # so periods that require a resolution greater than 0.001 will be
     # truncated. An important example of this is 0.0625 which will be truncated
     # to 0.062. So 0.0625 has been rounded up.
+    # (TOSSIM) This may not be the case any more, but has been left the same.
     source_periods = [1.0, 0.5, 0.25, 0.125]
     fake_periods = [0.5, 0.25, 0.125, 0.063]
 
     periods = [(src, fake) for (src, fake) in itertools.product(source_periods, fake_periods) if src / 4.0 <= fake < src]
 
     configurations = [
-        ('SourceCorner', 'CHOOSE'),
-        #('SinkCorner', 'CHOOSE'),
-        #('FurtherSinkCorner', 'CHOOSE'),
-        #('Generic1', 'CHOOSE'),
-        #('Generic2', 'CHOOSE'),
-
-        #('RingTop', 'CHOOSE'),
-        #('RingOpposite', 'CHOOSE'),
-        #('RingMiddle', 'CHOOSE'),
-
-        #('CircleEdges', 'CHOOSE'),
-        #('CircleSourceCentre', 'CHOOSE'),
-        #('CircleSinkCentre', 'CHOOSE'),
+        'SourceCorner',
+        #'SinkCorner',
+        #'FurtherSinkCorner',
+        #'Generic1',
+        #'Generic2',
+        #'RingTop',
+        #'RingOpposite',
+        #'RingMiddle',
+        #'CircleEdges',
+        #'CircleSourceCentre',
+        #'CircleSinkCentre',
     ]
 
     attacker_models = ['SeqNoReactiveAttacker()']
@@ -65,10 +64,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 500
 
-    parameter_names = ('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)')
-
-    protectionless_configurations = [name for (name, build) in configurations]
-    
+    local_parameter_names = ('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)')
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -82,27 +78,24 @@ class CLI(CommandLineCommon.CLI):
                                 safety_periods=safety_periods)
 
         argument_product = itertools.product(
-            self.sizes, self.periods, self.protectionless_configurations,
-            self.attacker_models, [self.noise_model], [self.distance],
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models,
+            [self.distance], self.periods,
             self.temp_fake_durations, self.prs_tfs, self.prs_pfs
         )
 
         argument_product = [
-            (size, src_period, config, attacker, noise, distance, fake_period, fake_dur, pr_tfs, pr_pfs)
-            for (size, (src_period, fake_period), config, attacker, noise, distance, fake_dur, pr_tfs, pr_pfs)
+            (size, config, attacker, noise, distance, src_period, fake_period, fake_dur, pr_tfs, pr_pfs)
+            for (size, config, attacker, noise, distance, (src_period, fake_period), fake_dur, pr_tfs, pr_pfs)
             in argument_product
         ]
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'distance',
-                 'fake_period', 'temp_fake_duration', 'pr_tfs', 'pr_pfs')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
 
     def _run_table(self, args):
         template_results = results.Results(template.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
         result_table = fake_result.ResultTable(template_results)
@@ -124,7 +117,7 @@ class CLI(CommandLineCommon.CLI):
         versus_results = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         template_results = results.Results(template.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=versus_results)
 
         #for yaxis in versus_results:
@@ -141,11 +134,11 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(template.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=results_to_compare)
 
         result_table = direct_comparison.ResultTable(old_results, template_results)
@@ -158,11 +151,11 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(template.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=results_to_compare)
 
         result_table = direct_comparison.ResultTable(old_results, template_results)

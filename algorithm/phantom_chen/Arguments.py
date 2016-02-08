@@ -16,14 +16,14 @@ class Arguments(ArgumentsCommon):
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
 
-        parser.add_argument("--random-walk-hops", type=int, required=True)
-        parser.add_argument("--long-random-walk-hops", type=int, required=True)
+        parser.add_argument("--short-walk-length", type=int, required=True)
+        parser.add_argument("--long-walk-length", type=int, required=True)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        result["RANDOM_WALK_HOPS"] = int(self.args.random_walk_hops)
-        result["LONG_RANDOM_WALK_HOPS"] = int(self.args.long_random_walk_hops)
+        result["RANDOM_WALK_HOPS"] = int(self.args.short_walk_length)
+        result["LONG_RANDOM_WALK_HOPS"] = int(self.args.long_walk_length)
 
         configuration = Configuration.create(self.args.configuration, self.args)
 

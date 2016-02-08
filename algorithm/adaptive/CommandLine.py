@@ -32,26 +32,26 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        #('SourceCorner', 'CHOOSE'),
-        #('SinkCorner', 'CHOOSE'),
-        #('FurtherSinkCorner', 'CHOOSE'),
-        #('Generic1', 'CHOOSE'),
-        #('Generic2', 'CHOOSE'),
+        #'SourceCorner',
+        #'SinkCorner',
+        #'FurtherSinkCorner',
+        #'Generic1',
+        #'Generic2',
 
-        #('RingTop', 'CHOOSE'),
-        #('RingOpposite', 'CHOOSE'),
-        #('RingMiddle', 'CHOOSE'),
+        #'RingTop',
+        #'RingOpposite',
+        #'RingMiddle',
 
-        ('Source2Corners', 'CHOOSE'),
-        ('Source4Corners', 'CHOOSE'),
-        ('Source2Edges', 'CHOOSE'),
-        ('Source4Edges', 'CHOOSE'),
-        ('Source2Corner', 'CHOOSE'),
-        ('SourceEdgeCorner', 'CHOOSE'),
+        'Source2Corners',
+        'Source4Corners',
+        'Source2Edges',
+        'Source4Edges',
+        'Source2Corner',
+        'SourceEdgeCorner',
 
-        #('CircleEdges', 'CHOOSE'),
-        #('CircleSourceCentre', 'CHOOSE'),
-        #('CircleSinkCentre', 'CHOOSE'),
+        #'CircleEdges',
+        #'CircleSourceCentre',
+        #'CircleSinkCentre',
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
@@ -60,9 +60,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 300
 
-    parameter_names = ('approach',)
-
-    protectionless_configurations = [name for (name, build) in configurations]
+    local_parameter_names = ('approach',)
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -77,20 +75,18 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.product(
-            self.sizes, self.source_periods, self.protectionless_configurations,
-            self.attacker_models, self.noise_models, self.communication_models, [self.distance], self.approaches
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.source_periods, self.approaches
         ))
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'approach')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
 
     def _run_table(self, args):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=('normal latency', 'ssd', 'attacker distance'))
 
         result_table = fake_result.ResultTable(adaptive_results)
@@ -112,7 +108,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -168,7 +164,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(
@@ -191,7 +187,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(
@@ -275,7 +271,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=graph_parameters.keys())
 
         template_results = results.Results(

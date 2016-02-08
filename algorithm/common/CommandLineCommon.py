@@ -8,12 +8,23 @@ from data.util import recreate_dirtree, touch
 
 class CLI(object):
 
-    parameter_names = None
+    # Parameters that all simulations must have
+    # The source period must come last
+    global_parameter_names = ['network size', 'configuration',
+                              'attacker model', 'noise model',
+                              'communication model', 'distance', 'source period']
+
+    # Parameters unique to each simulation
+    # Classes that derive from this should assign this variable
+    local_parameter_names = None
 
     def __init__(self, package):
         super(CLI, self).__init__()
 
         self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
+
+    def parameter_names(self):
+        return tuple(list(self.global_parameter_names) + list(self.local_parameter_names))
 
     @staticmethod
     def _get_args_for(args, name):
@@ -62,18 +73,20 @@ class CLI(object):
 
         cluster = cluster_manager.load(args)
 
+        skip_complete = 'no-skip-complete' not in args
+
         if 'build' in args:
             recreate_dirtree(cluster_directory)
             touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
             touch("{}/__init__.py".format(cluster_directory))
 
-            self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=False)
+            self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
 
         if 'copy' in args:
             cluster.copy_to()
 
-        if 'copy-safety' in args:
-            cluster.copy_safety_periods()
+        if 'copy-result-summary' in args:
+            cluster.copy_result_summary(self.algorithm_module.results_path, self.algorithm_module.result_file)
 
         if 'submit' in args:
             emails_to_notify = self._get_args_for(args, 'notify')
@@ -83,7 +96,7 @@ class CLI(object):
             else:
                 submitter = cluster.array_submitter(emails_to_notify)
 
-            self._execute_runner(submitter, cluster_directory, skip_completed_simulations=False)
+            self._execute_runner(submitter, cluster_directory, skip_completed_simulations=skip_complete)
 
         if 'copy-back' in args:
             cluster.copy_back(self.algorithm_module.name)
@@ -92,7 +105,7 @@ class CLI(object):
 
     def _run_time_taken_table(self, args):
         result = results.Results(self.algorithm_module.result_file_path,
-                                 parameters=self.parameter_names,
+                                 parameters=self.local_parameter_names,
                                  results=('time taken', 'wall time', 'event count'))
 
         result_table = fake_result.ResultTable(result)
@@ -100,38 +113,34 @@ class CLI(object):
         self._create_table(self.algorithm_module.name + "-time-taken", result_table)
 
     def _run_detect_missing(self, args):
+        # TODO: Extend this to also handle missing results files
+
         result = results.Results(self.algorithm_module.result_file_path,
-                                 parameters=self.parameter_names,
+                                 parameters=self.local_parameter_names,
                                  results=('repeats',))
 
-        for ((size, config, am, nm, cm), items1) in result.data.items():
-            for (src_period, items2) in items1.items():
-                for (params, all_results) in items2.items():
+        repeats = result.parameter_set()
 
-                    repeats_performed = all_results[result.result_names.index('repeats')]
+        for (parameter_values, repeats_performed) in repeats.items():
 
-                    repeats_missing = max(self.repeats - repeats_performed, 0)
+            repeats_missing = max(self.repeats - repeats_performed, 0)
 
-                    # Number of repeats is below the target
-                    if repeats_missing > 0:
+            # Number of repeats is below the target
+            if repeats_missing > 0:
 
-                        print("performed={} missing={} ".format(repeats_performed, repeats_missing), end="")
+                print("performed={} missing={} ".format(repeats_performed, repeats_missing), end="")
 
-                        parameter_values = [size, config, am, nm, cm, src_period] + list(params)
-                        parameter_names = ['network size', 'configuration',
-                                            'attacker model', 'noise model',
-                                            'communication model', 'source period'
-                                           ] + result.parameter_names
+                parameter_names = self.global_parameter_names + result.parameter_names
 
-                        print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, parameter_values)]))
-                        print()
+                print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, parameter_values)]))
+                print()
 
     def _run_graph_heatmap(self, args):
         heatmap_results = ('sent heatmap', 'received heatmap')
 
         results_summary = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=heatmap_results)
 
         for name in heatmap_results:

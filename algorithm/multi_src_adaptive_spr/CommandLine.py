@@ -53,7 +53,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 500
 
-    parameter_names = ('approach',)
+    local_parameter_names = ('approach',)
 
     protectionless_configurations = [name for (name, build) in configurations]
 
@@ -70,20 +70,18 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.product(
-            self.sizes, self.source_periods, self.protectionless_configurations,
-            self.attacker_models, self.noise_models, self.communication_models, [self.distance], self.approaches
+            self.sizes, self.protectionless_configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.source_periods, self.approaches
         ))
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'approach')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
 
     def _run_table(self, args):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=(
                 'sent', 'time taken',
                 #'normal latency', 'ssd', 'captured',
@@ -112,7 +110,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -144,7 +142,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_spr_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=results_to_compare)
 
         adaptive_results = results.Results(
@@ -197,7 +195,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_spr_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=graph_parameters.keys())
 
         adaptive_results = results.Results(

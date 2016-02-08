@@ -46,7 +46,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 300
 
-    parameter_names = ('pr_fake',)
+    local_parameter_names = ('pr fake',)
 
     protectionless_configurations = [name for (name, build) in configurations]
 
@@ -63,26 +63,24 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.product(
-            self.sizes, self.source_periods, self.protectionless_configurations,
-            self.attacker_models, self.noise_models, self.communication_models, [self.distance]
+            self.sizes, self.protectionless_configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.source_periods
         ))
 
         argument_product = [
-            (s, sp, c, am, nm, cm, d, self.pr_fake(s))
-            for (s, sp, c, am, nm, cm, d)
+            (s, c, am, nm, cm, d, sp, self.pr_fake(s))
+            for (s, c, am, nm, cm, d, sp)
             in argument_product
         ]
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'pr_fake')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
 
     def _run_table(self, args):
         selected_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs'))
 
         result_table = fake_result.ResultTable(selected_results)

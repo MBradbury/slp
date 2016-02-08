@@ -48,12 +48,11 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 300
 
-    parameter_names = ('broadcast period')
+    local_parameter_names = ('broadcast period',)
 
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
-
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
@@ -66,20 +65,18 @@ class CLI(CommandLineCommon.CLI):
         )
 
         argument_product = itertools.product(
-            self.sizes, self.periods, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models, [self.distance]
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.periods
         )
 
         argument_product = [
-            (size, src_period, config, attacker, noise, communication_model, distance, broadcast_period)
-            for (size, (src_period, broadcast_period), config, attacker, noise, communication_model, distance)
+            (size, config, attacker, noise, communication_model, distance, src_period, broadcast_period)
+            for (size, config, attacker, noise, communication_model, distance, (src_period, broadcast_period))
             in argument_product
         ]
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'broadcast_period')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
     def run(self, args):
         super(CLI, self).run(args)

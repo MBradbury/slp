@@ -90,10 +90,10 @@ class Analyse(object):
                 line = line.strip()
 
                 if len(self.headings) == 0 and '=' in line:
-                    # We are reading the options so record them
+                    # We are reading the options so record them.
+                    # Some option values will have an '=' in them so only split once.
                     opt = line.split('=', 1)
 
-                    # Need to handle values that have an "=" in them
                     self.opts[opt[0]] = opt[1]
 
                 elif line.startswith('#'):
@@ -363,6 +363,7 @@ class AnalyzerCommon(object):
         d['attacker model']     = lambda x: x.opts['attacker_model']
         d['noise model']        = lambda x: x.opts['noise_model']
         d['communication model']= lambda x: x.opts['communication_model']
+        d['distance']           = lambda x: x.opts['distance']
         d['source period']      = lambda x: x.opts['source_period']
 
     @staticmethod

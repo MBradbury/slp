@@ -54,7 +54,7 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNoReactiveAttacker()']
 
-    parameter_names = tuple()
+    local_parameter_names = tuple()
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -64,19 +64,17 @@ class CLI(CommandLineCommon.CLI):
                                 skip_completed_simulations=skip_completed_simulations)
 
         argument_product = list(itertools.product(
-            self.sizes, self.source_periods, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models, [self.distance]
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.source_periods
         ))
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
     def _run_table(self, args):
         noforward_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio'))
 
         result_table = fake_result.ResultTable(noforward_results)

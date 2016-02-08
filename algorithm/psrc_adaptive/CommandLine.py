@@ -44,7 +44,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 300
 
-    parameter_names = ('approach',)
+    local_parameter_names = ('approach',)
 
     protectionless_configurations = [name for (name, build) in configurations]
 
@@ -61,15 +61,13 @@ class CLI(CommandLineCommon.CLI):
                                 safety_periods=safety_periods)
 
         argument_product = list(itertools.product(
-            self.sizes, self.source_periods, self.protectionless_configurations,
-            self.attacker_models, [self.noise_model], [self.distance],
+            self.sizes, self.protectionless_configurations,
+            self.attacker_models, [self.noise_model],
+            [self.distance], self.source_periods,
             self.approaches
         ))
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'distance', 'approach')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
     def run(self, args):
         super(CLI, self).run(args)
