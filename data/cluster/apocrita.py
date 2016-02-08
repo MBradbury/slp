@@ -65,4 +65,4 @@ def submitter(notify_emails=None):
 
     prepare_command = ""
 
-    return Submitter(cluster_command, prepare_command, jobs)
+    return Submitter(cluster_command, prepare_command, jobs, job_repeats=1)

@@ -50,16 +50,16 @@ def submitter(notify_emails=None):
 
     # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
     # Don't provide a queue, as the job will be routed to the correct place.
-    cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
+    cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(
+        ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
         print("Warning: flux does not currently have email notification setup")
-        
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
     prepare_command = "cd $PBS_O_WORKDIR"
 
-    return Submitter(cluster_command, prepare_command, jobs, 1)
+    return Submitter(cluster_command, prepare_command, jobs, job_repeats=1)
 
 def array_submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
@@ -76,7 +76,6 @@ def array_submitter(notify_emails=None):
 
     if notify_emails is not None and len(notify_emails) > 0:
         print("Warning: flux does not currently have email notification setup")
-        
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
     prepare_command = "cd $PBS_O_WORKDIR"
