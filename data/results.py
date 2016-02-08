@@ -109,4 +109,4 @@ class Results(object):
 
                     result[tuple(map(str, line))] = data[self.result_names.index('repeats')]
         
-        return result     
+        return result

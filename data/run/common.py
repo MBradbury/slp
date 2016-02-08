@@ -1,5 +1,5 @@
 from __future__ import print_function, division
-import os, sys, math, fnmatch
+import os, sys, math
 from collections import OrderedDict
 
 from data import results
@@ -124,9 +124,9 @@ class RunSimulationsCommon(object):
             return False
 
         # Check that more than enough jobs were done
-        results = self._existing_results[key]
+        number_results = self._existing_results[key]
 
-        return results >= repeats
+        return number_results >= repeats
 
     @staticmethod
     def _sanitize_job_name(name):

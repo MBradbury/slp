@@ -39,6 +39,8 @@ class Transformer(ast.NodeTransformer):
 
 # From: https://stackoverflow.com/questions/14611352/malformed-string-valueerror-ast-literal-eval-with-string-representation-of-tup
 def restricted_eval(source, available):
+    """Similar to ast.literal_eval, but slightly more permissive. This can evaluate class constructors."""
+
     allowed = {cls.__name__ for cls in available}
     restricted_globals = {cls.__name__: cls for cls in available}
 
