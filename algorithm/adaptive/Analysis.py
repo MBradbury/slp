@@ -50,6 +50,8 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def _correct_attacker_distance(x):
+        """The format was changed to have a pair as the key,
+        this allows for multiple attackers and multiple sources."""
         if isinstance(x, dict) and 0 in x:
             return {(0, 0): x[0]}
         else:
