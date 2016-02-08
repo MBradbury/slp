@@ -53,7 +53,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 500
 
-    parameter_names = ('short walk length', 'long walk length')
+    local_parameter_names = ('short walk length', 'long walk length')
 
 
     def __init__(self):
@@ -69,24 +69,21 @@ class CLI(CommandLineCommon.CLI):
         argument_product = list(itertools.ifilter(
             lambda (size, _1, _2, _3, _4, _5, _6, short_walk_length, long_walk_length): short_walk_length in self.short_walk_hop_lengths[size] and long_walk_length in self.long_walk_hop_lengths[size],
             itertools.product(
-                self.sizes, self.source_periods, self.configurations,
-                self.attacker_models, self.noise_models, self.communication_models, [self.distance],
+                self.sizes, self.configurations,
+                self.attacker_models, self.noise_models, self.communication_models,
+                [self.distance], self.source_periods,
                 set(itertools.chain(*self.short_walk_hop_lengths.values())),
                 set(itertools.chain(*self.long_walk_hop_lengths.values()))
             )
         ))
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance',
-                 'short_random_walk_hops', 'long_random_walk_hops')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
 
     def _run_table(self, args):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end', 'source dropped'))
 
         result_table = fake_result.ResultTable(phantom_results)
@@ -113,7 +110,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=tuple(graph_parameters.keys() + heatmap_results)
         )    
 

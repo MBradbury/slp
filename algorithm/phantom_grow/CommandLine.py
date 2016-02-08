@@ -52,7 +52,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 500
 
-    parameter_names = ('walk length',)
+    local_parameter_names = ('walk length',)
 
 
     def __init__(self):
@@ -68,19 +68,17 @@ class CLI(CommandLineCommon.CLI):
         argument_product = list(itertools.ifilter(
             lambda (size, _1, _2, _3, _4, _5, _6, walk_length): walk_length in self.walk_hop_lengths[size],
             itertools.product(
-                self.sizes, self.source_periods, self.configurations,
-                self.attacker_models, self.noise_models, self.communication_models, [self.distance],
+                self.sizes, self.configurations,
+                self.attacker_models, self.noise_models, self.communication_models,
+                [self.distance], self.source_periods,
                 set(itertools.chain(*self.walk_hop_lengths.values())))
         ))
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance', 'random_walk_hops')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
     def _run_table(self, args):
         phantom_results = results.Results(self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end'))
 
         result_table = fake_result.ResultTable(phantom_results)
@@ -99,7 +97,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=tuple(graph_parameters.keys())
         )
 

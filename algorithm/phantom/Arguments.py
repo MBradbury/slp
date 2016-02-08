@@ -15,14 +15,14 @@ class Arguments(ArgumentsCommon):
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
 
-        parser.add_argument("--random-walk-hops", type=int, required=True)
+        parser.add_argument("--walk-length", type=int, required=True)
 
         parser.add_argument("--landmark-node", default="sink_id")
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        result["RANDOM_WALK_HOPS"] = int(self.args.random_walk_hops)
+        result["RANDOM_WALK_HOPS"] = int(self.args.walk_length)
 
         result["LANDMARK_NODE_ID"] = self._get_landmark_node_id()
 

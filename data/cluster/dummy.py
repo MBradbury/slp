@@ -25,7 +25,7 @@ def builder():
 def copy_to():
     raise RuntimeError("Cannot copy to the dummy cluster")
 
-def copy_safety_periods():
+def copy_result_summary():
     raise RuntimeError("Cannot copy to the dummy cluster")
 
 def copy_back(dirname):

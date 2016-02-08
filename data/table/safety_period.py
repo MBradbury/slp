@@ -11,7 +11,7 @@ from data import results
 class TableGenerator:
 
     def __init__(self, result_file):
-        self._result_names = ['time taken', 'received ratio', 'safety period', 'normal latency', 'ssd', 'captured']
+        self._result_names = ('time taken', 'received ratio', 'safety period', 'normal latency', 'ssd', 'captured')
 
         self._results = results.Results(
             result_file,
@@ -26,28 +26,28 @@ class TableGenerator:
         attacker_models = sorted(self._results.attacker_models)
         configurations = sorted(self._results.configurations, key=configuration_rank)
         sizes = sorted(self._results.sizes)
+        distances = sorted(self._results.distances)
 
-        product_all = list(itertools.product(sizes, configurations, attacker_models, noise_models, communication_models))
+        product_all = list(itertools.product(sizes, configurations, attacker_models, noise_models, communication_models, distances))
 
         product_three = list(itertools.ifilter(
-            lambda x: x in {(cm, n, a, c) for (s, c, a, n, cm) in self._results.data.keys()},
-            itertools.product(communication_models, noise_models, attacker_models, configurations)
+            lambda x: x in {(cm, n, a, c, d) for (s, c, a, n, cm, d) in self._results.data.keys()},
+            itertools.product(communication_models, noise_models, attacker_models, configurations, distances)
         ))
 
+        if not any(table_key in self._results.data for table_key in product_all):
+            raise RuntimeError("Could not find any parameter combination in the results")
+
         for product_three_key in product_three:
-
-            if not any(table_key in self._results.data for table_key in product_all):
-                continue
-
             if not param_filter(product_three_key):
                 continue
 
-            (communication_model, noise_model, attacker_model, config) = product_three_key
+            (communication_model, noise_model, attacker_model, config, distance) = product_three_key
 
             print('\\begin{table}[H]', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
-            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model}}'.format(
-                config, attacker_model, noise_model, communication_model), file=stream)
+            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model and \\textbf{{{}}} distance}}'.format(
+                config, attacker_model, noise_model, communication_model, distance), file=stream)
             print('\\centering', file=stream)
             print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
@@ -56,11 +56,12 @@ class TableGenerator:
             print('\\hline', file=stream)
             print('', file=stream)
 
-            for size in sorted(self._results.sizes):
+            for size in sizes:
 
-                data_key = (size, config, attacker_model, noise_model, communication_model)
+                data_key = (size, config, attacker_model, noise_model, communication_model, distance)
 
                 if data_key not in self._results.data:
+                    #print("Skipping {} as it could not be found in the results".format(data_key))
                     continue
 
                 for src_period in sorted(self._results.data[data_key]):
@@ -99,7 +100,7 @@ class TableGenerator:
             print('', file=stream)
 
     def safety_periods(self):
-        # (size, configuration, attacker model, noise model, communication model) -> source period -> safety period
+        # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
         result = {}
 
         for (table_key, other_items) in self._results.data.items():

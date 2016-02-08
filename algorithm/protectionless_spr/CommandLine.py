@@ -50,7 +50,7 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNoReactiveAttacker()', 'BasicReactiveAttacker()', 'IgnorePreviousLocationReactiveAttacker()']
 
-    parameter_names = tuple()
+    local_parameter_names = tuple()
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -60,14 +60,12 @@ class CLI(CommandLineCommon.CLI):
                                 skip_completed_simulations=skip_completed_simulations)
 
         argument_product = list(itertools.product(
-            self.sizes, self.source_periods, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models, [self.distance]
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance],  self.source_periods
         ))
 
-        names = ('network_size', 'source_period', 'configuration',
-                 'attacker_model', 'noise_model', 'communication_model', 'distance')
-
-        runner.run(self.executable_path, self.repeats, names, argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
@@ -87,7 +85,7 @@ class CLI(CommandLineCommon.CLI):
 
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=('time taken', 'received ratio', 'safety period')
         )
 
@@ -102,13 +100,13 @@ class CLI(CommandLineCommon.CLI):
 
         old_results = OldResults(
             'results/CCPE/protectionless-results.csv',
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=result_names
         )
 
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.parameter_names,
+            parameters=self.local_parameter_names,
             results=result_names
         )
 
