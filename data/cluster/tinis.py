@@ -43,16 +43,17 @@ def copy_back(dirname):
 def submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
 
-    ram_for_os_mb = 2 * 1024
+    ram_for_os_mb = 3 * 1024
 
     jobs = ppn()
     ram_per_job_mb = int(math.floor(((ram_per_node() * ppn()) - ram_for_os_mb) / jobs))
 
-    cluster_command = "msub -j oe -h -q cnode -l nodes=1:ppn={} -l walltime=24:00:00 -l mem={}mb -N \"{{}}\"".format(ppn(), ppn() * ram_per_job_mb)
+    cluster_command = "msub -j oe -h -q cnode -l nodes=1:ppn={} -l walltime=24:00:00 -l mem={}mb -N \"{{}}\"".format(
+        ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
     prepare_command = ""
 
-    return Submitter(cluster_command, prepare_command, ppn() * threads_per_processor())
+    return Submitter(cluster_command, prepare_command, jobs, job_repeats=1)
