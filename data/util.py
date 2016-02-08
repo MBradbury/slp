@@ -18,6 +18,7 @@ def touch(fname, times=None):
 def remove_dirtree(path):
     # From: http://trac.pythonpaste.org/pythonpaste/attachment/ticket/359/onerror.diff
     # From pathutils by Michael Foord: http://www.voidspace.org.uk/python/pathutils.html
+    # See: http://stackoverflow.com/questions/2656322/python-shutil-rmtree-fails-on-windows-with-access-is-denied
     def on_rm_tree_error(func, path, exc_info):
         """
         Error handler for ``shutil.rmtree``.
