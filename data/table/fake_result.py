@@ -110,10 +110,11 @@ class ResultTable(object):
         attacker_models = sorted(self.results.attacker_models)
         noise_models = sorted(self.results.noise_models)
         communication_models = sorted(self.results.communication_models)
+        distances = sorted(self.results.distances)
 
-        for table_key in itertools.product(sizes, configurations, attacker_models, noise_models, communication_models):
+        for table_key in itertools.product(sizes, configurations, attacker_models, noise_models, communication_models, distances):
 
-            (size, configuration, attacker_model, noise_model, communication_model) = table_key
+            (size, configuration, attacker_model, noise_model, communication_model, distance) = table_key
 
             try:
                 source_periods = sorted(set(self.results.data[table_key].keys()))
@@ -146,7 +147,7 @@ class ResultTable(object):
                 print('        \\hline', file=stream)
 
             print('    \\end{tabular}', file=stream)
-            print('\\caption{{Results for the size \\textbf{{{}}} and configuration \\textbf{{{}}} and attacker model \\textbf{{{}}} and noise model \\textbf{{{}}} and communication model \\textbf{{{}}} }} '.format(
-                size, configuration, attacker_model, noise_model, communication_model), file=stream)
+            print('\\caption{{Results for the size \\textbf{{{}}} and configuration \\textbf{{{}}} and attacker model \\textbf{{{}}} and noise model \\textbf{{{}}} and communication model \\textbf{{{}}} and distance \\textbf{{{}}} }} '.format(
+                size, configuration, attacker_model, noise_model, communication_model, distance), file=stream)
             print('\\end{table}', file=stream)
             print('', file=stream)
