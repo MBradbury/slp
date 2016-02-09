@@ -100,6 +100,12 @@ implementation
 		return NULL;
 	}
 
+	command Value* Dictionary.get_from_iter(Key* iter)
+	{
+		ptrdiff_t i = iter - call Dictionary.beginKeys();
+		return &values[i];
+	}
+
 	command Value Dictionary.get_or_default(Key key, Value default_value)
 	{
 		Value* stored_value = call Dictionary.get(key);

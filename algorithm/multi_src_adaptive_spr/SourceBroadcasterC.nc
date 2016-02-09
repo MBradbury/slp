@@ -323,6 +323,9 @@ implementation
 	void find_neighbours_further_from_source(distance_neighbours_t* local_neighbours)
 	{
 		size_t i;
+
+		init_distance_neighbours(local_neighbours);
+
 		if (min_source_distance != BOTTOM)
 		{
 			for (i = 0; i != neighbours.size; ++i)
@@ -341,6 +344,8 @@ implementation
 	{
 		size_t i;
 		int16_t max_sink_distance = INT16_MIN;
+
+		init_distance_neighbours(local_neighbours);
 
 		// Choose the neighbour with the highest sink_distance
 		for (i = 0; i != neighbours.size; ++i)
@@ -379,7 +384,6 @@ implementation
 		//bool towards_source = FALSE;
 
 		distance_neighbours_t local_neighbours;
-		init_distance_neighbours(&local_neighbours);
 
 		find_neighbours_further_from_source(&local_neighbours);
 
@@ -414,9 +418,8 @@ implementation
 			print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
-			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d)\n",
-				result.target, neighbour_index, rnd, local_neighbours.size,
-				neighbour->contents.distance);
+			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
+				result.target, neighbour_index, rnd, local_neighbours.size);
 		}
 
 		return result;
@@ -618,7 +621,7 @@ implementation
 		for (iter = call SourceDistances.beginKeys(), i = 0; iter != call SourceDistances.endKeys(); ++iter, ++i)
 		{
 			message.node[i] = *iter;
-			message.src_distance[i] = *call SourceDistances.get(*iter);
+			message.src_distance[i] = *call SourceDistances.get_from_iter(iter);
 		}
 
 		call Packet.clear(&packet);
