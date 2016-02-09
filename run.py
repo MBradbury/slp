@@ -39,7 +39,8 @@ if a.args.mode != "CLUSTER":
     # The assumption is that any processes running are of the same topology
     Simulation.write_topology_file(configuration.topology.nodes)
 
-if a.args.mode != "CLUSTER" or a.args.job_id == 1:
+# When doing cluster array jobs only print out this header information on the first job
+if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
     # Print out the argument settings
     for (k, v) in [(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide]:
         print("{}={}".format(k, v))
