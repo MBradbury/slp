@@ -48,6 +48,9 @@ if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
     # Print the header for the results
     Metrics.Metrics.print_header()
 
+    # Make sure this header has been written
+    sys.stdout.flush()
+
 # Because of the way TOSSIM is architectured each individual simulation
 # needs to be run in a separate process.
 if a.args.mode in {"GUI", "SINGLE"}:
@@ -81,11 +84,13 @@ else:
                 error_message = "Bad return code {}".format(process.returncode)
                 with print_lock:
                     print(error_message, file=sys.stderr)
+                    sys.stderr.flush()
                 raise RuntimeError(error_message)
 
         except (KeyboardInterrupt, SystemExit) as ex:
             with print_lock:
                 print("Killing process due to {}".format(ex), file=sys.stderr)
+                sys.stderr.flush()
             process.kill()
             raise
 
@@ -97,6 +102,8 @@ else:
         print("Starting cluster job at {}".format(datetime.now()), file=sys.stderr)
 
     print("Creating a process pool with {} processes.".format(a.args.thread_count), file=sys.stderr)
+
+    sys.stderr.flush()
 
     job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
 
@@ -128,3 +135,5 @@ else:
         print("Finished cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
     else:
         print("Finished cluster job at {}".format(datetime.now()), file=sys.stderr)
+
+    sys.stderr.flush()
