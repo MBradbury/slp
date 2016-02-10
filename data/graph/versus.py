@@ -6,11 +6,11 @@ import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
 
+from algorithm.common.CommandLineCommon import CLI as CommandLineCommon
+
 class Grapher(GrapherBase):
 
-    _key_names_base = ['size', 'configuration', 'attacker model',
-                       'noise model', 'communication model',
-                       'source period']
+    _key_names_base = CommandLineCommon.global_parameter_names
 
     def __init__(self, output_directory, result_name,
                  xaxis, yaxis, vary, yextractor=lambda x: x):
@@ -150,10 +150,12 @@ class Grapher(GrapherBase):
                 if self.key_height is not None:
                     graph_p.write('set key height {}\n'.format(self.key_height))
 
+            xvalues_as_ints = map(int, xvalues)
+
             # Should remain the same as we are testing with
             # a limited sized grid of nodes
-            graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues) - 1, max(xvalues) + 1))
-            graph_p.write('set xtics ({})\n'.format(",".join(map(str, xvalues))))
+            graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_ints) - 1, max(xvalues_as_ints) + 1))
+            graph_p.write('set xtics ({})\n'.format(",".join(xvalues)))
 
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
