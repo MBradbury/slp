@@ -69,12 +69,14 @@ class Grapher(GrapherBase):
 
                     key_names = self._key_names_base + actual_results.parameter_names
 
-                    values = list(data_key) + [src_period] + list(params)
+                    values = list(data_key)
+                    values.append(src_period)
+                    values.extend(params)
 
                     (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = self._remove_index(key_names, values, self.vary)
 
-                    #if self.xaxis == 'size':
+                    #if self.xaxis == 'network size':
                     #    xvalue = xvalue ** 2
 
                     key_names = tuple(key_names)
@@ -109,7 +111,7 @@ class Grapher(GrapherBase):
         makes the key colours and point type the same, irrespective of
         whether baseline is graphed or not."""
         sorted_keys = list(sorted(keys))
-        if self.baseline_label in sorted_keys:
+        if self.baseline_label in keys:
             sorted_keys.remove(self.baseline_label)
             sorted_keys.append(self.baseline_label)
         return sorted_keys
