@@ -90,6 +90,7 @@ else:
         except (KeyboardInterrupt, SystemExit) as ex:
             with print_lock:
                 print("Killing process due to {}".format(ex), file=sys.stderr)
+                sys.stdout.flush()
                 sys.stderr.flush()
             process.kill()
             raise
