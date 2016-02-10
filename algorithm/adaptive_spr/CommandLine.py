@@ -110,7 +110,7 @@ class CLI(CommandLineCommon.CLI):
             'tfs': ('Number of TFS Created', 'left top'),
             'pfs': ('Number of PFS Created', 'left top'),
             'tailfs': ('Number of TailFS Created', 'left top'),
-            'attacker distance': ('Meters', 'left top'),
+            'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
         }
 
         adaptive_results = results.Results(
@@ -170,7 +170,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'tfs': ('Number of TFS Created', 'left top'),
             'pfs': ('Number of PFS Created', 'left top'),
-            'attacker distance': ('meters', 'left top'),
+            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
             'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
@@ -193,7 +193,7 @@ class CLI(CommandLineCommon.CLI):
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
-            parameters=protectionless.CommandLine.CLI.parameter_names,
+            parameters=protectionless.CommandLine.CLI.local_parameter_names,
             results=list(set(graph_parameters.keys()) - {'tfs', 'pfs', 'fake', 'norm(fake,time taken)',
                                                          'norm(norm(fake,time taken),source rate)'})
         )
@@ -205,7 +205,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
-            parameters=adaptive.CommandLine.CLI.parameter_names,
+            parameters=adaptive.CommandLine.CLI.local_parameter_names,
             results=graph_parameters.keys())
 
         def graph_min_max_versus(result_name):
@@ -215,7 +215,7 @@ class CLI(CommandLineCommon.CLI):
 
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=result_name, vary='approach', yextractor=yextractor)
+                xaxis='network size', yaxis=result_name, vary='approach', yextractor=yextractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = graph_parameters[result_name][0]
