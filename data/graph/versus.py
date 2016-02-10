@@ -80,7 +80,9 @@ class Grapher(GrapherBase):
 
                     key_names = self._key_names_base + simulation_results.parameter_names
 
-                    values = list(data_key) + [src_period] + list(params)
+                    values = list(data_key)
+                    values.append(src_period)
+                    values.extend(params)
 
                     (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = self._remove_index(key_names, values, self.vary)
