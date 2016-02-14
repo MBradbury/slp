@@ -43,9 +43,9 @@ class CLI(CommandLineCommon.CLI):
         #'RingMiddle',
 
         'Source2Corners',
-        'Source4Corners',
+        #'Source4Corners',
         'Source2Edges',
-        'Source4Edges',
+        #'Source4Edges',
         'Source2Corner',
         'SourceEdgeCorner',
 
