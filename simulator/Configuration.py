@@ -369,12 +369,11 @@ class Source3Corner(Configuration):
             space_behind_sink=True
         )
 
-# TODO: rename Source2Corner2OppositeCorner
-class Source4Corner(Configuration):
+class Source2Corner2OppositeCorner(Configuration):
     def __init__(self, network_size, distance):
         grid = Grid(network_size, distance)
 
-        super(Source4Corner, self).__init__(
+        super(Source2Corner2OppositeCorner, self).__init__(
             grid,
             source_ids={
                 3,
