@@ -9,7 +9,7 @@ class MergeResults:
         self.results_dir = results_dir
         self.merge_dir = merge_dir
 
-    _arguments_to_ignore = {'job_size', 'thread_count', 'verbose'}
+    _arguments_to_ignore = {'job_size', 'thread_count', 'verbose', 'job_id'}
 
     @staticmethod
     def _read_arguments(f):
@@ -59,14 +59,36 @@ class MergeResults:
                     out.write(line)
 
 
+    def _check_other_path(self, other_path, result_file):
+        """Sadly the name format changed, so the results will not
+        have consistent names. This attempts to swizzle the parameters
+        to be in the right position.
+
+        This IS a horrible hack. TODO: Really the summary should be read and
+        merging should happen based on that."""
+        if not os.path.exists(other_path):
+            components = result_file.split("-")
+
+            psrc = components.pop(1)
+
+            try:
+                distance_index = components.index("4_5")
+
+                components.insert(distance_index + 1, psrc)
+
+                return os.path.join(self.merge_dir, "-".join(components))
+
+            except ValueError:
+                return other_path
+
     def merge_files(self, result_file):
         result_path = os.path.join(self.results_dir, result_file)
         other_path = os.path.join(self.merge_dir, result_file)
 
+        other_path = self._check_other_path(other_path, result_file)
+
         merge_path = os.path.join(self.results_dir, result_file + ".merge")
         backup_path = os.path.join(self.results_dir, result_file + ".backup")
-
-        print("Merging {}".format(result_file))
 
         with open(result_path, 'r') as out_file, \
              open(other_path, 'r') as in_file:
@@ -80,6 +102,7 @@ class MergeResults:
             out_file.seek(0)
             in_file.seek(0)
 
+            print("Merging '{}' with '{}'".format(result_path, other_path))
             print("Creating and writing {}".format(merge_path))
 
             with open(merge_path, 'w+') as merged_file:
@@ -88,18 +111,24 @@ class MergeResults:
         os.rename(result_path, backup_path)
         os.rename(merge_path, result_path)
 
+        os.rename(other_path, other_path + ".processed")
+
 
 def main(results_dir, to_merge_with_dir):
     merge = MergeResults(results_dir, to_merge_with_dir)
+
+    failures = []
 
     for result_file in os.listdir(results_dir):
         if fnmatch.fnmatch(result_file, '*.txt'):
             try:
                 merge.merge_files(result_file)
+                print("")
             except (RuntimeError, IOError) as ex:
-                print("Failed to merge files due to {}".format(ex))
+                failures.append("Failed to merge files due to {}".format(ex))
 
-            print("")
+    for failure in failures:
+        print(failure)
 
 if __name__ == '__main__':
     import sys, argparse
