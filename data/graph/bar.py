@@ -140,7 +140,7 @@ class DiffGrapher(Grapher):
                 for (src_period, items3) in items2.items():
                     for (params, results) in items3.items():
 
-                        key_names = tuple(['size', 'configuration', 'source period'] + self.results.comparison_results.parameter_names)
+                        key_names = tuple(['network size', 'configuration', 'source period'] + self.results.comparison_results.parameter_names)
                         key_values = tuple([size, config, src_period] + list(comp_params))
 
                         yvalues = []
