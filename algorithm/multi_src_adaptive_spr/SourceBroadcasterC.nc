@@ -528,6 +528,7 @@ implementation
 		type = NormalNode;
 
 		dw_towards_source = FALSE;
+		if (dw_towards_source) { call Leds.led0On(); } else { call Leds.led0Off(); }
 
 		call FakeMessageGenerator.stop();
 
@@ -859,7 +860,6 @@ implementation
 
 			METRIC_RCV_CHOOSE(rcvd);
 
-			init_distance_neighbours(&local_neighbours);
 			find_neighbours_further_from_source(&local_neighbours);
 
 			if (local_neighbours.size == 0)
@@ -1017,7 +1017,6 @@ implementation
 	{
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
 		message->min_sink_source_distance = min_sink_source_distance;
-		//message->source_distance = source_distance;
 		message->sink_distance = sink_distance;
 		message->message_type = type;
 		message->source_id = TOS_NODE_ID;
@@ -1047,6 +1046,8 @@ implementation
 		else if (type == TempFakeNode)
 		{
 			dw_towards_source = result.towards_source;
+			if (dw_towards_source) { call Leds.led0On(); } else { call Leds.led0Off(); }
+
 			become_Fake(original_message, TailFakeNode);
 		}
 		else //if (type == TailFakeNode)
