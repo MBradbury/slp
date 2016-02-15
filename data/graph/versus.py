@@ -13,7 +13,7 @@ class Grapher(GrapherBase):
     _key_names_base = CommandLineCommon.global_parameter_names
 
     def __init__(self, output_directory, result_name,
-                 xaxis, yaxis, vary, yextractor=lambda x: x):
+                 xaxis, yaxis, vary, yextractor=None):
 
         super(Grapher, self).__init__(output_directory)
 
@@ -43,7 +43,7 @@ class Grapher(GrapherBase):
         self.line_width = 1
         self.point_size = 1
 
-        self.yextractor = yextractor
+        self.yextractor = yextractor if yextractor is not None else lambda x: x
 
         self.error_bars = False
 
@@ -157,7 +157,7 @@ class Grapher(GrapherBase):
             # Should remain the same as we are testing with
             # a limited sized grid of nodes
             graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_ints) - 1, max(xvalues_as_ints) + 1))
-            graph_p.write('set xtics ({})\n'.format(",".join(xvalues)))
+            graph_p.write('set xtics ({})\n'.format(",".join(sorted(xvalues))))
 
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
