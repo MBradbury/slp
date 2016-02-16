@@ -6,7 +6,7 @@
 # Author: Matthew Bradbury
 from __future__ import print_function
 
-import os
+import os, re
 import subprocess
 import multiprocessing
 
@@ -25,7 +25,20 @@ class GrapherBase(object):
 
             raise RuntimeError("Could not find gnuplot binary")
 
+        def test_gnuplot_version(name):
+            result = subprocess.check_output([name, "--version"]).strip()
+
+            match = re.match("gnuplot (\d+\.?\d*) patchlevel (.*)", result)
+            
+            version = float(match.group(1))
+            patchlevel = match.group(2)
+
+            if version < 5:
+                raise RuntimeError("The gnuplot binary ({}) is too old ({})".format(name, result))
+
         gnuplot = get_gnuplot_binary_name()
+
+        test_gnuplot_version(gnuplot)
 
         walk_dir = os.path.abspath(os.path.join(self.output_directory, subdir))
 
