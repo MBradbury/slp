@@ -24,8 +24,8 @@ class Analyzer(AnalyzerCommon):
         d['ssd']                = lambda x: self._format_results(x, 'NormalSinkSourceHops')
         d['paths reached end']  = lambda x: self._format_results(x, 'PathsReachedEnd')
         d['source dropped']     = lambda x: self._format_results(x, 'SourceDropped')
-        d['path dropped']       = lambda x: self._format_results(x, 'PathDropped')
-        d['path dropped length']= lambda x: self._format_results(x, 'PathDroppedLength')
+        d['path dropped']       = lambda x: self._format_results(x, 'PathDropped', allow_missing=True)
+        d['path dropped length']= lambda x: self._format_results(x, 'PathDroppedLength', allow_missing=True)
 
         d['wall time']          = lambda x: self._format_results(x, 'WallTime')
         d['event count']        = lambda x: self._format_results(x, 'EventCount')
