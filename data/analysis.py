@@ -4,6 +4,7 @@ from numpy import mean
 from numpy import var as variance
 
 import sys, ast, math, os, fnmatch, timeit, datetime, collections, traceback
+from collections import OrderedDict
 from numbers import Number
 
 import simulator.Configuration as Configuration
@@ -151,9 +152,9 @@ class Analyse(object):
 
     def _better_literal_eval(self, line_number, items):
         
-        if len(self.headings) != len(items):
+        if self._unnormalised_headings_count != len(items):
             raise RuntimeError("The number of headings ({}) is not the same as the number of values ({}) on line {}".format(
-                len(self.headings), len(items), line_number))
+                self._unnormalised_headings_count, len(items), line_number))
 
         values = []
 
@@ -186,11 +187,6 @@ class Analyse(object):
 
     def check_consistent(self, values, line_number):
         """Perform multiple sanity checks on the data generated"""
-
-        # Check that the expected number of values are present
-        if len(values) != self._unnormalised_headings_count:
-            raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
-                len(values), len(self.headings), line_number))
 
         self._check_heatmap_consistent('SentHeatMap', values, line_number)
         self._check_heatmap_consistent('ReceivedHeatMap', values, line_number)
@@ -375,7 +371,8 @@ class AnalyzerCommon(object):
         self.normalised_values = normalised_values
 
     @staticmethod
-    def _set_results_header(d):
+    def common_results_header():
+        d = OrderedDict()
         
         # Include the number of simulations that were analysed
         d['repeats']            = lambda x: str(x.number_of_repeats())
@@ -388,6 +385,8 @@ class AnalyzerCommon(object):
         d['communication model']= lambda x: x.opts['communication_model']
         d['distance']           = lambda x: x.opts['distance']
         d['source period']      = lambda x: x.opts['source_period']
+
+        return d
 
     @staticmethod
     def _format_results(x, name, allow_missing=False, average_corrector=lambda x: x, variance_corrector=lambda x: x):

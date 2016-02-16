@@ -33,9 +33,9 @@ class CLI(object):
 
     @staticmethod
     def _get_arg_for(args, name):
-        results = CLI._get_args_for(args, name)
-        if len(results) == 1:
-            return results[0]
+        found_args = CLI._get_args_for(args, name)
+        if len(found_args) == 1:
+            return found_args[0]
         else:
             raise RuntimeError("Only one value is expected for {}".format(name))
 

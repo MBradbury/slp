@@ -1,5 +1,4 @@
 
-from simulator.Simulator import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
