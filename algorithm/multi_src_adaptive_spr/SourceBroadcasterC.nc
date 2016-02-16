@@ -294,7 +294,7 @@ implementation
 		const uint32_t period = duration / msg;
 		const uint32_t est_num_sources = estimated_number_of_sources();
 
-		const uint32_t result_period = period / est_num_sources;
+		const uint32_t result_period = (uint32_t)ceil(period / (double)est_num_sources);
 
 		dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
@@ -312,7 +312,7 @@ implementation
 
 		const uint32_t est_num_sources = estimated_number_of_sources();
 
-		const uint32_t result_period = ceil((SOURCE_PERIOD_MS * ratio) / est_num_sources);
+		const uint32_t result_period = (uint32_t)ceil((SOURCE_PERIOD_MS * ratio) / est_num_sources);
 
 		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
 			result_period, counter, seq_inc, ratio);
