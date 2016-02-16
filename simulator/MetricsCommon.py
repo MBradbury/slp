@@ -28,6 +28,12 @@ class MetricsCommon(object):
         self.became_source_times = {}
         self.became_normal_after_source_times = {}
 
+        # Normal nodes becoming the source, or source nodes becoming normal
+        self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
+
+        # BCAST / RCV / DELIVER events
+        self.register('Metric-COMMUNICATE', self.process_COMMUNICATE)
+
     def register(self, name, function):
         catcher = OutputCatcher(function)
         catcher.register(self.sim, name)
@@ -41,7 +47,7 @@ class MetricsCommon(object):
         elif comm_type == 'RCV':
             return self.process_RCV(contents)
         elif comm_type == 'DELIVER':
-            pass
+            return self.process_DELIVER(contents)
         else:
             raise RuntimeError("Unknown communication type of {}".format(comm_type))
 
@@ -81,6 +87,9 @@ class MetricsCommon(object):
             self.normal_latency[key] = time - self.normal_sent_time[key]
             self.normal_hop_count.append(hop_count)
 
+    def process_DELIVER(self, line):
+        pass
+
     #COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')
 
     def process_COLLISIONS(self, line):
@@ -94,7 +103,7 @@ class MetricsCommon(object):
         node_to = int(match.group(3))
         reason = match.group(4)"""
 
-        pass
+        raise NotImplementedError()
 
     def process_SOURCE_CHANGE(self, line):
         (state, node_id) = line.strip().split(',')
@@ -212,6 +221,11 @@ class MetricsCommon(object):
 
 
     def node_was_source(self):
+        
+        # No sources were detected, this may be because the code does not support this metric
+        if len(self.became_source_times) == 0 and len(self.became_normal_after_source_times) == 0:
+            return None
+
         result = {}
 
         for node_id in self.became_source_times.keys() + self.became_normal_after_source_times.keys():
