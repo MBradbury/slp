@@ -14,11 +14,7 @@ class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
 
-        self.register('Metric-COMMUNICATE', self.process_COMMUNICATE)
         self.register('Fake-Notification', self.process_FAKE_NOTIFICATION)
-
-        # Normal nodes becoming the source, or source nodes becoming normal
-        self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
 
         # Non-source nodes detecting the source has changed
         self.register('Metric-SOURCE_CHANGE_DETECT', self.process_SOURCE_CHANGE_DETECT)

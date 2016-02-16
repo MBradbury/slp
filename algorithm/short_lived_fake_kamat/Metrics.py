@@ -13,7 +13,6 @@ class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
 
-        self.register('Metric-COMMUNICATE', self.process_COMMUNICATE)
         self.register('Fake-Notification', self.process_FAKE_NOTIFICATION)
 
         self.tfs_created = 0
