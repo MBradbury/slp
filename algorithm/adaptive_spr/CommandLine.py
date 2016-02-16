@@ -194,8 +194,7 @@ class CLI(CommandLineCommon.CLI):
         protectionless_results = results.Results(
             protectionless.result_file_path,
             parameters=protectionless.CommandLine.CLI.local_parameter_names,
-            results=list(set(graph_parameters.keys()) - {'tfs', 'pfs', 'fake', 'norm(fake,time taken)',
-                                                         'norm(norm(fake,time taken),source rate)'})
+            results=list(set(graph_parameters.keys()) & set(protectionless.Analysis.Analyzer.results_header().keys()))
         )
 
         adaptive_spr_results = results.Results(

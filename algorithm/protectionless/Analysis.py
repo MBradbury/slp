@@ -1,6 +1,4 @@
 
-from collections import OrderedDict
-
 from data.analysis import Analyse, AnalysisResults, AnalyzerCommon
 
 from simulator import SourcePeriodModel
@@ -35,38 +33,43 @@ class AnalyseWithOutlierDetection(Analyse):
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
-        d = OrderedDict()
-        self._set_results_header(d)
+        super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
 
-        d['sent']               = lambda x: self._format_results(x, 'Sent')
-        d['received']           = lambda x: self._format_results(x, 'Received')
-        d['captured']           = lambda x: str(x.average_of['Captured'])
-        d['attacker moves']     = lambda x: self._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance', average_corrector=Analyzer._correct_attacker_distance)
-        d['received ratio']     = lambda x: self._format_results(x, 'ReceiveRatio')
-        d['normal latency']     = lambda x: self._format_results(x, 'NormalLatency')
-        d['time taken']         = lambda x: self._format_results(x, 'TimeTaken')
-        d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
-        d['normal']             = lambda x: self._format_results(x, 'NormalSent')
-        d['ssd']                = lambda x: self._format_results(x, 'NormalSinkSourceHops')
-
-        d['node was source']    = lambda x: self._format_results(x, 'NodeWasSource', allow_missing=True)
-
-        d['wall time']          = lambda x: self._format_results(x, 'WallTime', allow_missing=True)
-        d['event count']        = lambda x: self._format_results(x, 'EventCount', allow_missing=True)
-        
-        d['sent heatmap']       = lambda x: self._format_results(x, 'SentHeatMap')
-        d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
-
-        d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
-        d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
-
-        normalised = [
+    @staticmethod
+    def normalised_parameters():
+        return (
             ('Sent', 'TimeTaken'),
             ('NormalSent', 'TimeTaken'),
-        ]
+        )
 
-        super(Analyzer, self).__init__(results_directory, d, normalised)
+    @staticmethod
+    def results_header():
+        d = AnalyzerCommon.common_results_header()
+
+        d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
+        d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
+        d['captured']           = lambda x: str(x.average_of['Captured'])
+        d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
+        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance', average_corrector=Analyzer._correct_attacker_distance)
+        d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
+        d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
+        d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
+        d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
+        d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
+        d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
+
+        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
+
+        d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime', allow_missing=True)
+        d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount', allow_missing=True)
+        
+        d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
+        d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+
+        d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
+
+        return d
 
     #def analyse_path(self, path):
     #    return AnalysisResults(AnalyseWithOutlierDetection(path))
