@@ -6,6 +6,8 @@ from numpy import var as variance
 import sys, ast, math, os, fnmatch, timeit, datetime, collections, traceback
 from numbers import Number
 
+import simulator.Configuration as Configuration
+
 class EmptyFileError(RuntimeError):
     def __init__(self, filename):
         super(EmptyFileError, self).__init__("The file '{}' is empty.".format(filename))
@@ -148,6 +150,11 @@ class Analyse(object):
 
 
     def _better_literal_eval(self, line_number, items):
+        
+        if len(self.headings) != len(items):
+            raise RuntimeError("The number of headings ({}) is not the same as the number of values ({}) on line {}".format(
+                len(self.headings), len(items), line_number))
+
         values = []
 
         lit = None
@@ -185,35 +192,37 @@ class Analyse(object):
             raise RuntimeError("The number of values {} doesn't equal the number of headings {} on line {}".format(
                 len(values), len(self.headings), line_number))
 
-        network_size = int(self.opts['network_size'])
-        number_nodes = network_size * network_size # TODO: fix this hack to work for non-grid networks
-
-        for (heading, value) in zip(self.headings, values):
-            if isinstance(value, dict) and heading in {'SentHeatMap', 'ReceivedHeatMap'}:
-
-                # Check that there aren't too many nodes
-                if len(value) > number_nodes:
-                    raise RuntimeError("There are too many nodes in this map {} called {}, when there should be {} maximum.".format(len(value), heading, number_nodes))
-
-                # Check that the node ids are in the right range
-                #for k in value.keys():
-                #    if k < 0 or k >= number_nodes:
-                #        raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
+        self._check_heatmap_consistent('SentHeatMap', values, line_number)
+        self._check_heatmap_consistent('ReceivedHeatMap', values, line_number)
 
         self._check_captured_consistent(values, line_number)
 
-        # Check NormalLatency is not 0
-        latency_index = self.headings.index("NormalLatency")
-        latency = values[latency_index]
+        self._check_latency_consistent(values, line_number)
 
-        if math.isnan(latency):
-            raise RuntimeError('The NormalLatency {} is a NaN'.format(latency))
+    def _check_heatmap_consistent(self, heading, values, line_number):
+        configuration = Configuration.create_specific(
+            self.opts['configuration'], int(self.opts['network_size']), float(self.opts['distance']))
 
-        if latency <= 0:
-            raise RuntimeError("The NormalLatency {} is less than or equal to 0.".format(latency))
+        number_nodes = configuration.size()
+
+        heatmap_index = self.headings.index(heading)
+        heatmap = values[heatmap_index]
+
+        if not isinstance(heatmap, dict):
+            raise RuntimeError("Expected the heatmap {} to be a dict ({})".format(heading, repr(heatmap)))
+
+         # Check that there aren't too many nodes
+        if len(heatmap) > number_nodes:
+            raise RuntimeError("There are too many nodes in this map {} called {}, when there should be {} maximum.".format(
+                len(heatmap), heading, number_nodes))
+
+        # Check that the node ids are in the right range
+        #for k in heatmap.keys():
+        #    if k < 0 or k >= number_nodes:
+        #        raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
     
     def _check_captured_consistent(self, values, line_number):
-        # If captured is set to true, there should be an attacker at the source location
+        """If captured is set to true, there should be an attacker at the source location"""
         captured_index = self.headings.index("Captured")
         captured = values[captured_index]
 
@@ -233,10 +242,24 @@ class Analyse(object):
         )
 
         if captured != any_at_source:
-            raise RuntimeError("There is a discrepancy between captured ({}) and the attacker distances {}.".format(captured, attacker_distance))
+            raise RuntimeError("There is a discrepancy between captured ({}) and the attacker distances {}.".format(
+                captured, attacker_distance))
+
+    def _check_latency_consistent(self, values, line_number):
+        """Check NormalLatency is not 0"""
+        latency_index = self.headings.index("NormalLatency")
+        latency = values[latency_index]
+
+        if math.isnan(latency):
+            raise RuntimeError('The NormalLatency {} is a NaN'.format(latency))
+
+        if latency <= 0:
+            raise RuntimeError("The NormalLatency {} is less than or equal to 0.".format(latency))
 
 
     def detect_outlier(self, values):
+        """Raise an exception in this function if an individual result should be
+        excluded from the analysis"""
         pass
 
     @staticmethod
