@@ -88,7 +88,7 @@ class Results(object):
 
     @staticmethod
     def extract_average_and_stddev(value):
-        split = value.split('(')
+        split = value.split('(', 1)
 
         mean = float(split[0])
         var = float(split[1].strip(')'))

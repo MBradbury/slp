@@ -40,7 +40,7 @@ class MetricsCommon(object):
         self.sim.add_output_processor(catcher)
 
     def process_COMMUNICATE(self, line):
-        (comm_type, contents) = line.split(':')
+        (comm_type, contents) = line.split(':', 1)
 
         if comm_type == 'BCAST':
             return self.process_BCAST(contents)
@@ -55,7 +55,7 @@ class MetricsCommon(object):
         (kind, time, node_id, status, sequence_number) = line.split(',')
 
         if status == "success":
-            time = float(time) / self.sim.tossim.ticksPerSecond()
+            time = self.sim.ticks_to_seconds(time)
             node_id = int(node_id)
             sequence_number = int(sequence_number)
 
@@ -70,7 +70,7 @@ class MetricsCommon(object):
     def process_RCV(self, line):
         (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
 
-        time = float(time) / self.sim.tossim.ticksPerSecond()
+        time = self.sim.ticks_to_seconds(time)
         node_id = int(node_id)
         #proximate_source_id = int(proximate_source_id)
         ultimate_source_id = int(ultimate_source_id)
@@ -219,6 +219,17 @@ class MetricsCommon(object):
             in self.source_ids
         }
 
+    def attacker_min_source_distance(self):
+        return {
+            (source_id, i): attacker.min_source_distance[source_id]
+
+            for i, attacker
+            in enumerate(self.sim.attackers)
+
+            for source_id
+            in self.source_ids
+        }
+
 
     def node_was_source(self):
         
@@ -247,26 +258,27 @@ class MetricsCommon(object):
     @staticmethod
     def items():
         d = OrderedDict()
-        d["Seed"]                   = lambda x: x.seed()
-        d["Sent"]                   = lambda x: x.total_sent()
-        d["Received"]               = lambda x: x.total_received()
-        d["Collisions"]             = lambda x: None
-        d["Captured"]               = lambda x: x.captured()
-        d["ReceiveRatio"]           = lambda x: x.receive_ratio()
-        d["TimeTaken"]              = lambda x: x.sim_time()
-        d["WallTime"]               = lambda x: x.wall_time
-        d["EventCount"]             = lambda x: x.event_count
-        d["AttackerDistance"]       = lambda x: x.attacker_source_distance()
-        d["AttackerSinkDistance"]   = lambda x: x.attacker_sink_distance()
-        d["AttackerMoves"]          = lambda x: x.attacker_moves()
-        d["AttackerStepsTowards"]   = lambda x: x.attacker_steps_towards()
-        d["AttackerStepsAway"]      = lambda x: x.attacker_steps_away()
-        d["NormalLatency"]          = lambda x: x.average_normal_latency()
-        d["NormalSinkSourceHops"]   = lambda x: x.average_sink_source_hops()
-        d["NormalSent"]             = lambda x: x.number_sent("Normal")
-        d["NodeWasSource"]          = lambda x: x.node_was_source()
-        d["SentHeatMap"]            = lambda x: x.sent_heat_map()
-        d["ReceivedHeatMap"]        = lambda x: x.received_heat_map()
+        d["Seed"]                          = lambda x: x.seed()
+        d["Sent"]                          = lambda x: x.total_sent()
+        d["Received"]                      = lambda x: x.total_received()
+        d["Collisions"]                    = lambda x: None
+        d["Captured"]                      = lambda x: x.captured()
+        d["ReceiveRatio"]                  = lambda x: x.receive_ratio()
+        d["TimeTaken"]                     = lambda x: x.sim_time()
+        d["WallTime"]                      = lambda x: x.wall_time
+        d["EventCount"]                    = lambda x: x.event_count
+        d["AttackerDistance"]              = lambda x: x.attacker_source_distance()
+        d["AttackerSinkDistance"]          = lambda x: x.attacker_sink_distance()
+        d["AttackerMoves"]                 = lambda x: x.attacker_moves()
+        d["AttackerStepsTowards"]          = lambda x: x.attacker_steps_towards()
+        d["AttackerStepsAway"]             = lambda x: x.attacker_steps_away()
+        d["AttackerMinSourceDistance"]     = lambda x: x.attacker_min_source_distance()
+        d["NormalLatency"]                 = lambda x: x.average_normal_latency()
+        d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
+        d["NormalSent"]                    = lambda x: x.number_sent("Normal")
+        d["NodeWasSource"]                 = lambda x: x.node_was_source()
+        d["SentHeatMap"]                   = lambda x: x.sent_heat_map()
+        d["ReceivedHeatMap"]               = lambda x: x.received_heat_map()
 
         return d
 
