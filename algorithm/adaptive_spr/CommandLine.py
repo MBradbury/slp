@@ -229,7 +229,7 @@ class CLI(CommandLineCommon.CLI):
             #g.key_width = "+6"
 
             g.point_size = '2'
-            g.line_width = 4
+            g.line_width = 2
 
             g.min_label = 'Dynamic - Lowest'
             g.max_label = 'Dynamic - Highest'
