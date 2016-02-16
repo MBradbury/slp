@@ -22,8 +22,11 @@ class Attacker(object):
         self._has_found_source = None
         self.moves = None
 
+        # Metric initialisation from here onwards
         self.steps_towards = {}
         self.steps_away = {}
+
+        self.min_source_distance = {}
 
     def setup(self, sim, start_node_id):
         self._sim = sim
@@ -39,8 +42,13 @@ class Attacker(object):
         self._move(start_node_id)
         self.moves = 0
 
-        self.steps_towards = {source: 0 for source in self._sim.metrics.configuration.source_ids}
-        self.steps_away = {source: 0 for source in self._sim.metrics.configuration.source_ids}
+        self.steps_towards = {source: 0 for source in self._source_ids()}
+        self.steps_away = {source: 0 for source in self._source_ids()}
+
+        self.min_source_distance = {source: self._sim.node_distance(start_node_id, source) for source in self._source_ids()}
+
+    def _source_ids(self):
+        return self._sim.metrics.configuration.source_ids
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         raise NotImplementedError()
@@ -91,7 +99,7 @@ class Attacker(object):
         # Record moves towards or away from every source present
         # Do not do this for the change when the position is being set
         if self.position is not None:
-            for source in self._sim.metrics.configuration.source_ids:
+            for source in self._source_ids():
                 new_distance = self._sim.node_distance(source, node_id)
                 old_distance = self._sim.node_distance(source, self.position)
 
@@ -99,6 +107,8 @@ class Attacker(object):
                     self.steps_away[source] += 1
                 elif new_distance < old_distance:
                     self.steps_towards[source] += 1
+
+                self.min_source_distance[source] = min(self.min_source_distance[source], new_distance)
 
         if self.position is not None:
             self.moves += 1
@@ -125,7 +135,7 @@ class Attacker(object):
     def _process_line(self, line):
         (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = line.split(',')
 
-        time = float(time) / self._sim.tossim.ticksPerSecond() # Get time to be in sec
+        time = self._sim.ticks_to_seconds(time)
         node_id = int(node_id)
         prox_from_id = int(prox_from_id)
         ult_from_id = int(ult_from_id)
