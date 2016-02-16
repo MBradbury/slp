@@ -96,11 +96,16 @@ class Simulator(object):
         self.out_procs.append(op)
 
     def node_distance(self, left, right):
+        """Get the euclidean distance between two nodes specified by their ids"""
         return euclidean(self.nodes[left].location, self.nodes[right].location)
+
+    def ticks_to_seconds(self, ticks):
+        """Converts simulation time ticks into seconds"""
+        return float(ticks) / self.tossim.ticksPerSecond()
 
     def sim_time(self):
         """Returns the current simulation time in seconds"""
-        return float(self.tossim.time())/self.tossim.ticksPerSecond()
+        return self.ticks_to_seconds(self.tossim.time())
 
     def create_nodes(self, node_locations):
         """Creates nodes and initialize their boot times"""
