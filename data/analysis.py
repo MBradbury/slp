@@ -134,18 +134,32 @@ class Analyse(object):
             if line_number == 0 or len(self.data) == 0:
                 raise EmptyFileError(infile)
 
+    def _get_configuration(self):
+        return Configuration.create_specific(self.opts['configuration'],
+                                             int(self.opts['network_size']),
+                                             float(self.opts['distance']))
+
     def _get_from_opts_or_values(self, name, values):
         try:
             index = self.headings.index(_normalised_value_name(name))
 
             return values[index]
         except ValueError:
-            # Sorry for this horrible hack, but we really should
-            # have stored network size as its actual value from the start
             if name == "network_size":
-                return float(self.opts[name]) ** 2
+                configuration = self._get_configuration()
+                return configuration.size()
+
             elif name == "source_rate":
                 return 1.0 / float(self.opts["source_period"])
+
+            elif name == "source_period_per_source":
+                configuration = self._get_configuration()
+                return float(self.opts["source_period"]) / len(configuration.source_ids)
+
+            elif name == "source_rate_per_source":
+                configuration = self._get_configuration()
+                return self._get_from_opts_or_values("source_rate", values) / len(configuration.source_ids)
+
             else:
                 return float(self.opts[name])
 
@@ -196,10 +210,7 @@ class Analyse(object):
         self._check_latency_consistent(values, line_number)
 
     def _check_heatmap_consistent(self, heading, values, line_number):
-        configuration = Configuration.create_specific(
-            self.opts['configuration'], int(self.opts['network_size']), float(self.opts['distance']))
-
-        number_nodes = configuration.size()
+        number_nodes = self._get_configuration().size()
 
         heatmap_index = self.headings.index(heading)
         heatmap = values[heatmap_index]
