@@ -29,15 +29,15 @@
 // Basically a flat map between node ids to distances
 typedef struct
 {
-	uint16_t node[SLP_MAX_NUM_SOURCES];
-	int16_t src_distance[SLP_MAX_NUM_SOURCES];
+	uint16_t node[SLP_MAX_1_HOP_NEIGHBOURHOOD];
+	int16_t src_distance[SLP_MAX_1_HOP_NEIGHBOURHOOD];
 	uint16_t count;
 
 	int16_t sink_distance;
 
 } distance_container_t;
 
-void distance_update(distance_container_t* __restrict find, distance_container_t const* __restrict given)
+static void distance_update(distance_container_t* __restrict find, distance_container_t const* __restrict given)
 {
 	uint16_t i, j;
 
@@ -49,7 +49,6 @@ void distance_update(distance_container_t* __restrict find, distance_container_t
 			if (given->node[i] == find->node[j])
 			{
 				find->src_distance[j] = minbot(find->src_distance[j], given->src_distance[i]);
-				find->sink_distance = given->sink_distance;
 				break;
 			}
 		}
@@ -57,17 +56,20 @@ void distance_update(distance_container_t* __restrict find, distance_container_t
 		// Couldn't find distance, so add it
 		if (j == find->count)
 		{
+			find->node[find->count] = given->node[i];
 			find->src_distance[find->count] = given->src_distance[i];
 			find->count++;
 		}
 	}
+
+	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
 }
 
-void distance_print(const char* name, size_t n, am_addr_t address, distance_container_t const* contents)
+static void distance_print(const char* name, size_t n, am_addr_t address, distance_container_t const* contents)
 {
 	uint16_t i;
 
-	dbg_clear(name, "[%u] => addr=%u {", n, address);
+	dbg_clear(name, "[%u] => addr=%u dsrc={", n, address);
 
 	for (i = 0; i != contents->count; ++i)
 	{
@@ -79,20 +81,10 @@ void distance_print(const char* name, size_t n, am_addr_t address, distance_cont
 		}
 	}
 
-	dbg_clear(name, "}");
+	dbg_clear(name, "} dsink=%d", contents->sink_distance);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
-
-#define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
-{ \
-	distance_container_t dist; \
-	dist.count = 1; \
-	dist.node[0] = rcvd->source_id; \
-	dist.src_distance[0] = rcvd->name; \
-	dist.sink_distance = sink_distance; \
-	insert_distance_neighbour(&neighbours, source_addr, &dist); \
-}
 
 #define UPDATE_NEIGHBOURS_BEACON(rcvd, source_addr) \
 { \
@@ -104,6 +96,14 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 		dist.node[i] = rcvd->node[i]; \
 		dist.src_distance[i] = rcvd->src_distance[i]; \
 	} \
+	dist.sink_distance = rcvd->sink_distance; \
+	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_NEIGHBOURS_AWAYCHOOSE(rcvd, source_addr) \
+{ \
+	distance_container_t dist; \
+	dist.count = 0; \
 	dist.sink_distance = rcvd->sink_distance; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
@@ -157,6 +157,7 @@ module SourceBroadcasterC
 
 	uses interface SequenceNumbers as NormalSeqNos;
 
+	// The distance between this node and each source
 	uses interface Dictionary<am_addr_t, int32_t> as SourceDistances;
 }
 
@@ -182,6 +183,8 @@ implementation
 		default:					return "<unknown>";
 		}
 	}
+
+	am_addr_t sink_id = AM_BROADCAST_ADDR;
 
 	distance_neighbours_t neighbours;
 
@@ -245,6 +248,16 @@ implementation
 	uint32_t estimated_number_of_sources(void)
 	{
 		return max(1, call SourceDistances.count());
+	}
+
+	bool node_is_sink(am_addr_t address)
+	{
+		return sink_id == address;
+	}
+
+	bool node_is_source(am_addr_t address)
+	{
+		return call SourceDistances.contains_key(address);
 	}
 
 	uint32_t get_dist_to_pull_back(void)
@@ -332,6 +345,12 @@ implementation
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
+				// Skip sink or sources as we do not want them to become fake nodes
+				if (node_is_sink(neighbour->address) || node_is_source(neighbour->address))
+				{
+					continue;
+				}
+
 				if (min_neighbour_src_distance(neighbour) >= min_source_distance)
 				{
 					insert_distance_neighbour(local_neighbours, neighbour->address, &neighbour->contents);
@@ -352,12 +371,24 @@ implementation
 		{
 			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
+			// Skip sink or sources as we do not want them to become fake nodes
+			if (node_is_sink(neighbour->address) || node_is_source(neighbour->address))
+			{
+				continue;
+			}
+
 			max_sink_distance = max(max_sink_distance, neighbour->contents.sink_distance);
 		}
 
 		for (i = 0; i != neighbours.size; ++i)
 		{
 			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			// Skip sink or sources as we do not want them to become fake nodes
+			if (node_is_sink(neighbour->address) || node_is_source(neighbour->address))
+			{
+				continue;
+			}
 
 			if (max_sink_distance == neighbour->contents.sink_distance)
 			{
@@ -389,7 +420,7 @@ implementation
 
 		if (local_neighbours.size == 0 && min_source_distance == BOTTOM)
 		{
-			dbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
+			dbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
 				neighbours.size); 
 		}
 		else if (local_neighbours.size == 0 && neighbours.size != 0)
@@ -397,11 +428,17 @@ implementation
 			// There are neighbours who exist that are closer to the source than this node.
 			// We should consider moving to one of these neighbours if we are still close to the sink.
 
+			dbg("stdout", "Considering allowing fake sources to move towards the source\n");
+			dbg("stdout", "sink-distance=%d <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
+
 			if (sink_distance <= (min_sink_source_distance / 2))
 			{
-				find_neighbours_with_max_sink_distance(&local_neighbours);
+				const uint16_t max_sink_distance = find_neighbours_with_max_sink_distance(&local_neighbours);
 
 				result.towards_source = local_neighbours.size != 0;
+
+				dbg("stdout", "Found %d neighbours with max_sink_distance=%d\n", local_neighbours.size, max_sink_distance);
+				dbg("stdout", "towards-source=%d\n", result.towards_source);
 			}
 		}
 		
@@ -414,11 +451,11 @@ implementation
 
 			result.target = neighbour->address;
 
-#ifdef SLP_VERBOSE_DEBUG
+//#ifdef SLP_VERBOSE_DEBUG
 			print_distance_neighbours("stdout", &local_neighbours);
-#endif
+//#endif
 
-			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
+			dbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
 				result.target, neighbour_index, rnd, local_neighbours.size);
 		}
 
@@ -431,8 +468,16 @@ implementation
 		if (distance == NULL || *distance > rcvd->source_distance)
 		{
 			call SourceDistances.put(rcvd->source_id, rcvd->source_distance);
-			min_source_distance = minbot(min_source_distance, rcvd->source_distance);
+			min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
 		}
+	}
+
+	void update_sink_distance(const AwayChooseMessage* rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS_AWAYCHOOSE(rcvd, source_addr);
+
+		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
 	}
 
 
@@ -528,7 +573,7 @@ implementation
 		type = NormalNode;
 
 		dw_towards_source = FALSE;
-		if (dw_towards_source) { call Leds.led0On(); } else { call Leds.led0Off(); }
+		if (dw_towards_source) { call Leds.led2On(); } else { call Leds.led2Off(); }
 
 		call FakeMessageGenerator.stop();
 
@@ -612,8 +657,16 @@ implementation
 		BeaconMessage message;
 		uint16_t* iter;
 		uint16_t i;
+		bool result;
 
-		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		dbgverbose("stdout", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+
+		if (busy)
+		{
+			dbgverbose("stdout", "Device is busy rescheduling beaconing\n");
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+			return;
+		}
 
 		// Send all known source distances in the beacon message
 
@@ -625,16 +678,21 @@ implementation
 			message.src_distance[i] = *call SourceDistances.get_from_iter(iter);
 		}
 
-		call Packet.clear(&packet);
+		message.sink_distance = sink_distance;
 
-		send_Beacon_message(&message, AM_BROADCAST_ADDR);
+		//call Packet.clear(&packet);
+
+		result = send_Beacon_message(&message, AM_BROADCAST_ADDR);
+		if (!result)
+		{
+			dbgverbose("stdout", "Send failed rescheduling beaconing\n");
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+		}
 	}
 
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance);
-
 		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
@@ -654,13 +712,11 @@ implementation
 			{
 				first_normal_rcvd = TRUE;
 				call Leds.led1On();
-
-				call BeaconSenderTimer.startOneShot(beacon_send_wait());
 			}
 
 			forwarding_message = *rcvd;
-			forwarding_message.min_sink_source_distance = min_sink_source_distance;
 			forwarding_message.source_distance += 1;
+			forwarding_message.min_sink_source_distance = min_sink_source_distance;
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
@@ -670,8 +726,6 @@ implementation
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance);
-
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -690,15 +744,13 @@ implementation
 				first_normal_rcvd = TRUE;
 				call Leds.led1On();
 
-				call BeaconSenderTimer.startOneShot(beacon_send_wait());
-
 				// Having the sink forward the normal message helps set up
 				// the source distance gradients.
 				// However, we don't want to keep doing this as it benefits the attacker.
 				{
 					NormalMessage forwarding_message = *rcvd;
-					forwarding_message.min_sink_source_distance = min_sink_source_distance;
 					forwarding_message.source_distance += 1;
+					forwarding_message.min_sink_source_distance = min_sink_source_distance;
 					forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 					forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
@@ -716,8 +768,6 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance);
-
 		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
@@ -734,8 +784,8 @@ implementation
 			update_source_distance(rcvd);
 
 			forwarding_message = *rcvd;
-			forwarding_message.min_sink_source_distance = min_sink_source_distance;
 			forwarding_message.source_distance += 1;
+			forwarding_message.min_sink_source_distance = min_sink_source_distance;
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
@@ -755,6 +805,8 @@ implementation
 	void Sink_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_received_away_reponse = TRUE;
+
+		call BeaconSenderTimer.startOneShot(beacon_send_wait());
 	}
 
 	void Source_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
@@ -764,7 +816,9 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
+		update_sink_distance(rcvd, source_addr);
+
+		sink_id = rcvd->source_id;
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -774,15 +828,15 @@ implementation
 
 			METRIC_RCV_AWAY(rcvd);
 
-			min_sink_source_distance = minbot(min_sink_source_distance, rcvd->sink_distance + 1);
-
 			forwarding_message = *rcvd;
-			forwarding_message.min_sink_source_distance = min_sink_source_distance;
 			forwarding_message.sink_distance += 1;
+			forwarding_message.min_sink_source_distance = min_sink_source_distance;
 			forwarding_message.algorithm = algorithm;
 
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
+
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
 	}
 
@@ -793,7 +847,9 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
+		update_sink_distance(rcvd, source_addr);
+
+		sink_id = rcvd->source_id;
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -802,8 +858,6 @@ implementation
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_AWAY(rcvd);
-
-			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 			if (rcvd->sink_distance == 0)
 			{
@@ -821,12 +875,14 @@ implementation
 			}
 
 			forwarding_message = *rcvd;
-			forwarding_message.min_sink_source_distance = min_sink_source_distance;
 			forwarding_message.sink_distance += 1;
+			forwarding_message.min_sink_source_distance = min_sink_source_distance;
 			forwarding_message.algorithm = algorithm;
 
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
+
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
 	}
 
@@ -849,8 +905,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		update_sink_distance(rcvd, source_addr);
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
 		{
@@ -1046,7 +1101,7 @@ implementation
 		else if (type == TempFakeNode)
 		{
 			dw_towards_source = result.towards_source;
-			if (dw_towards_source) { call Leds.led0On(); } else { call Leds.led0Off(); }
+			if (dw_towards_source) { call Leds.led2On(); } else { call Leds.led2Off(); }
 
 			become_Fake(original_message, TailFakeNode);
 		}
