@@ -7,6 +7,8 @@ interface Dictionary<Key, Value>
 	command Value get_or_default(Key key, Value default_value);
 	command bool remove(Key key);
 
+	command bool contains_key(Key key);
+
 	command uint16_t count();
 
 	command Value* begin();

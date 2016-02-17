@@ -112,4 +112,9 @@ implementation
 
 		return stored_value == NULL ? default_value : *stored_value;
 	}
+
+	command bool Dictionary.contains_key(Key key)
+	{
+		return call Dictionary.get(key) != NULL;
+	}
 }
