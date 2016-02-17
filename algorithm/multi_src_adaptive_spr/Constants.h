@@ -12,7 +12,7 @@ enum Channels
 
 #define BOTTOM (-1)
 #define SLP_MAX_NUM_SINKS 1
-#define SLP_MAX_NUM_SOURCES 8
-#define SLP_MAX_1_HOP_NEIGHBOURHOOD 16
+#define SLP_MAX_NUM_SOURCES 6
+#define SLP_MAX_1_HOP_NEIGHBOURHOOD 10
 
 #endif // SLP_CONSTANTS_H
