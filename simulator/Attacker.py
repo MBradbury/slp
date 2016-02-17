@@ -271,10 +271,6 @@ def models():
     """A list of the the available attacker models."""
     return Attacker.__subclasses__()
 
-def default():
-    """Gets the the default attacker model"""
-    return SeqNoReactiveAttacker()
-
 def eval_input(source):
     result = restricted_eval(source, models())
 
