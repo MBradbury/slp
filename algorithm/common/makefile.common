@@ -1,0 +1,2 @@
+
+CFLAGS += -Wnonnull -Wpointer-arith -Wshadow -Wformat -Werror=sign-compare -Wfloat-equal
