@@ -21,6 +21,6 @@
 
 #define minbot(a, b) \
 	({ __typeof__(a) _a = (a), _b = (b); \
-	   (_a == BOTTOM || _b < _a) ? _b : _a; })
+	   (_a == BOTTOM ? _b : (_b == BOTTOM ? _a : (_b < _a ? _b : _a))); })
 
 #endif // SLP_COMMON_H
