@@ -35,7 +35,7 @@
 #define MSG_GET(TYPE, NAME, MSG) MSG_GET_NAME(TYPE, NAME)(MSG)
 
 #define SEND_MESSAGE(NAME) \
-bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
+error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) \
 { \
 	if (!busy || tosend == NULL) \
 	{ \
@@ -43,10 +43,16 @@ bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
  \
 		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
 		NAME##Message* const message = (NAME##Message*)void_message; \
+		if (sizeof(NAME##Message) > TOSH_DATA_LENGTH) \
+		{ \
+			dbgerror("stdout", "%s: Packet payload for " #NAME "Message is too large %u > %u.\n", \
+				sim_time_string(), sizeof(NAME##Message), TOSH_DATA_LENGTH); \
+			return ESIZE; \
+		} \
 		if (message == NULL) \
 		{ \
-			dbgerror("SourceBroadcasterC", "%s: Packet has no payload, or payload is too large.\n", sim_time_string()); \
-			return FALSE; \
+			dbgerror("stdout", "%s: Packet for " #NAME "Message has no payload.\n", sim_time_string()); \
+			return EINVAL; \
 		} \
  \
 		if (tosend != NULL) \
@@ -66,25 +72,27 @@ bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
 			busy = TRUE; \
  \
 			METRIC_BCAST(NAME, "success", MSG_GET(NAME, sequence_number, tosend)); \
- \
-			return TRUE; \
 		} \
 		else \
 		{ \
 			METRIC_BCAST(NAME, "failed", MSG_GET(NAME, sequence_number, tosend)); \
- \
-			return FALSE; \
 		} \
+		return status; \
 	} \
 	else \
 	{ \
-		dbgverbose("SourceBroadcasterC", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
+		dbgverbose("stdout", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
  \
 		METRIC_BCAST(NAME, "busy", MSG_GET(NAME, sequence_number, tosend)); \
  \
-		return FALSE; \
+		return EBUSY; \
 	} \
+} \
+inline bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target) \
+{ \
+	return send_##NAME##_message_ex(tosend, target) == SUCCESS; \
 }
+
 
 #define SEND_DONE(NAME, CALLBACK) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
