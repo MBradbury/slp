@@ -132,9 +132,9 @@ else:
     finally:
         job_pool.join()
 
-    if a.args.job_id is not None:
-        print("Finished cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
-    else:
-        print("Finished cluster job at {}".format(datetime.now()), file=sys.stderr)
+        if a.args.job_id is not None:
+            print("Finished cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+        else:
+            print("Finished cluster job at {}".format(datetime.now()), file=sys.stderr)
 
-    sys.stderr.flush()
+        sys.stderr.flush()
