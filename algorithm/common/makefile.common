@@ -1,2 +1,2 @@
 
-CFLAGS += -Wnonnull -Wpointer-arith -Wshadow -Wformat -Werror=sign-compare -Wfloat-equal
+CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Werror=sign-compare -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable
