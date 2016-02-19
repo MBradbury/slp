@@ -3,6 +3,12 @@
 
 #include "SequenceNumber.h"
 
+typedef enum {
+	DirectedWalkDirectionUnknown = 0,
+	DirectedWalkAwaySource = 1,
+	DirectedWalkTowardsSource = 2
+} DirectedRandomWalkDirection;
+
 typedef nx_struct AwayChooseMessage {
   nx_uint64_t sequence_number;
 
@@ -15,6 +21,8 @@ typedef nx_struct AwayChooseMessage {
   nx_uint16_t sink_distance;
 
   nx_uint16_t min_sink_source_distance;
+
+  nx_uint8_t drw_direction;
 
   nx_uint8_t algorithm;
 
