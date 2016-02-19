@@ -203,7 +203,7 @@ implementation
 
 	bool first_normal_rcvd = FALSE;
 
-	bool dw_towards_source = FALSE;
+	DirectedRandomWalkDirection drw_direction = DirectedWalkDirectionUnknown;
 
 	uint32_t extra_to_send = 0;
 
@@ -248,6 +248,16 @@ implementation
 	uint32_t estimated_number_of_sources(void)
 	{
 		return max(1, call SourceDistances.count());
+	}
+
+	bool node_within_towards_source_limit()
+	{
+		return sink_distance <= (min_sink_source_distance/2 - 1);
+	}
+
+	bool node_at_towards_source_limit()
+	{
+		return sink_distance == (min_sink_source_distance/2 - 1);
 	}
 
 	bool node_is_sink(am_addr_t address)
@@ -401,22 +411,26 @@ implementation
 
 	typedef struct {
 		am_addr_t target;
-		bool towards_source;
+		DirectedRandomWalkDirection drw_direction;
 	} fake_walk_result_t;
 
 	// TODO: modify this to allow the directed random walk to go closer to the source
 	// + (min_sink_source_distance / 2)
 	// Will also need to modify TailFS reverting to Normal, as it will need to be able
 	// to detect that the TFS that is closer to the source is part of the walk and a valid option
-	fake_walk_result_t fake_walk_target(void)
+	fake_walk_result_t fake_walk_target(DirectedRandomWalkDirection drw_direction_hint)
 	{
-		fake_walk_result_t result = { AM_BROADCAST_ADDR, FALSE };
+		fake_walk_result_t result = { AM_BROADCAST_ADDR, DirectedWalkDirectionUnknown };
 		//am_addr_t chosen_address = AM_BROADCAST_ADDR;
 		//bool towards_source = FALSE;
 
 		distance_neighbours_t local_neighbours;
+		init_distance_neighbours(&local_neighbours);
 
-		find_neighbours_further_from_source(&local_neighbours);
+		if (drw_direction_hint != DirectedWalkTowardsSource)
+		{
+			find_neighbours_further_from_source(&local_neighbours);
+		}	
 
 		if (local_neighbours.size == 0 && min_source_distance == BOTTOM)
 		{
@@ -431,15 +445,22 @@ implementation
 			dbg("stdout", "Considering allowing fake sources to move towards the source\n");
 			dbg("stdout", "sink-distance=%d <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
 
-			if (sink_distance <= (min_sink_source_distance / 2))
+			if (node_within_towards_source_limit())
 			{
 				const uint16_t max_sink_distance = find_neighbours_with_max_sink_distance(&local_neighbours);
 
-				result.towards_source = local_neighbours.size != 0;
+				if (local_neighbours.size != 0)
+				{
+					result.drw_direction = DirectedWalkTowardsSource;
+				}
 
 				dbg("stdout", "Found %d neighbours with max_sink_distance=%d\n", local_neighbours.size, max_sink_distance);
-				dbg("stdout", "towards-source=%d\n", result.towards_source);
+				dbg("stdout", "drw-direction=%d\n", result.drw_direction);
 			}
+		}
+		else
+		{
+			result.drw_direction = DirectedWalkAwaySource;
 		}
 		
 		if (local_neighbours.size != 0)
@@ -572,8 +593,8 @@ implementation
 
 		type = NormalNode;
 
-		dw_towards_source = FALSE;
-		if (dw_towards_source) { call Leds.led2On(); } else { call Leds.led2Off(); }
+		drw_direction = DirectedWalkDirectionUnknown;
+		if (drw_direction == DirectedWalkTowardsSource) { call Leds.led2On(); } else { call Leds.led2Off(); }
 
 		call FakeMessageGenerator.stop();
 
@@ -645,6 +666,7 @@ implementation
 		message.sink_distance = 0;
 		message.min_sink_source_distance = min_sink_source_distance;
 		message.algorithm = ALGORITHM;
+		message.drw_direction = DirectedWalkDirectionUnknown;
 
 		sequence_number_increment(&away_sequence_counter);
 
@@ -915,9 +937,17 @@ implementation
 
 			METRIC_RCV_CHOOSE(rcvd);
 
-			find_neighbours_further_from_source(&local_neighbours);
+			if (rcvd->drw_direction == DirectedWalkTowardsSource)
+			{
+				drw_direction = rcvd->drw_direction;
+				if (drw_direction == DirectedWalkTowardsSource) { call Leds.led2On(); } else { call Leds.led2Off(); }
+			}
+			else
+			{
+				find_neighbours_further_from_source(&local_neighbours);
+			}
 
-			if (local_neighbours.size == 0)
+			if ((drw_direction != DirectedWalkTowardsSource || node_at_towards_source_limit()) && local_neighbours.size == 0)
 			{
 				become_Fake(rcvd, PermFakeNode);
 			}
@@ -1011,10 +1041,10 @@ implementation
 				(rcvd->message_type == TailFakeNode && type == TailFakeNode)
 			) &&
 			(
-				(!dw_towards_source && (rcvd->sender_min_source_distance > min_source_distance ||
+				(drw_direction != DirectedWalkTowardsSource && (rcvd->sender_min_source_distance > min_source_distance ||
 				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)))
 				||
-				(dw_towards_source && (rcvd->sender_min_source_distance < min_source_distance ||
+				(drw_direction == DirectedWalkTowardsSource && (rcvd->sender_min_source_distance < min_source_distance ||
 				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)))
 			)
 			)
@@ -1081,7 +1111,7 @@ implementation
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
 	{
 		ChooseMessage message = *original_message;
-		const fake_walk_result_t result = fake_walk_target();
+		const fake_walk_result_t result = fake_walk_target(original_message->drw_direction);
 
 		dbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u towards_source=%u.\n",
 			result.target, result.towards_source);
@@ -1090,6 +1120,7 @@ implementation
 
 		message.min_sink_source_distance = min_sink_source_distance;
 		message.sink_distance += 1;
+		message.drw_direction = result.drw_direction;
 
 		extra_to_send = 1;
 		send_Choose_message(&message, result.target);
@@ -1100,8 +1131,8 @@ implementation
 		}
 		else if (type == TempFakeNode)
 		{
-			dw_towards_source = result.towards_source;
-			if (dw_towards_source) { call Leds.led2On(); } else { call Leds.led2Off(); }
+			drw_direction = result.drw_direction;
+			if (drw_direction == DirectedWalkTowardsSource) { call Leds.led2On(); } else { call Leds.led2Off(); }
 
 			become_Fake(original_message, TailFakeNode);
 		}
