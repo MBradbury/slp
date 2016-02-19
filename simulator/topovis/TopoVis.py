@@ -1,5 +1,6 @@
 from simulator.topovis.common import INF, DEFAULT, Color, Parameters
 from time import sleep, time as systime
+from functools import wraps
 from threading import Timer
 from heapq import heappush, heappop
 import inspect
@@ -137,32 +138,22 @@ class GenericPlotter:
         pass
 
 ###############################################
-def informPlotters(_func_):
+def informPlotters(fn):
     """
     Invoke the instance method of the same name inside each of the registered
     plotters 
     """
-    def _wrap_(self, *args, **kwargs):
-        _func_(self, *args, **kwargs)
+
+    # Wraps makes sure that the name and docstring of the wrapped function
+    # are correctly maintained. However, information on argument names will be lost.
+    @wraps(fn)
+    def wrap(self, *args, **kwargs):
+        fn(self, *args, **kwargs)
         for plotter in self.plotters:
-            plotter_func = getattr(plotter, _func_.__name__)
+            plotter_func = getattr(plotter, fn.__name__)
             plotter_func(*args, **kwargs)
 
-    # code snippet for preserving function's name, doc, and signature
-    # (from http://numericalrecipes.wordpress.com/2009/05/25/signature-preserving-function-decorators/)
-    sig = list(inspect.getargspec(_func_))
-    wrap_sig = list(inspect.getargspec(_wrap_))
-    if not sig[2] :
-        sig[2] = wrap_sig[2]
-    src =  'def %s%s :\n' %(_func_.__name__, inspect.formatargspec(*sig))
-    sig[3] = None # if not, all vars with defaults are set to default value
-    src += '    return _wrap_%s\n' % (inspect.formatargspec(*sig))
-    evaldict = {'_wrap_' : _wrap_}
-    code = compile(src, '<string>', 'single')
-    exec code in evaldict
-    ret = evaldict[_func_.__name__]
-    ret.__doc__ = _func_.__doc__
-    return ret
+    return wrap
 
 ###############################################
 class Scene:
@@ -249,7 +240,7 @@ class Scene:
         if cmd is None:
             return
         elif type(cmd) is str:
-            exec 'self.' + cmd
+            exec('self.' + cmd)
         else:
             cmd(*args, **kwargs)
 

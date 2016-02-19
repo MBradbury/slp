@@ -49,7 +49,7 @@ class Runner:
             "Metrics.py",
             "__init__.py",
             "app.xml",
-            "_TOSSIMmodule.so",
+            "_TOSSIM.so",
             "TOSSIM.py",
         ]
         for name in files_to_move:

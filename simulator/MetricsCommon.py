@@ -3,9 +3,16 @@ from __future__ import print_function, division
 from simulator.Simulator import OutputCatcher
 
 from collections import Counter, OrderedDict
-import itertools, re, sys
+import re, sys
 
-from numpy import mean
+import numpy as np
+
+try:
+    # Python 2
+    from itertools import izip_longest
+except ImportError:
+    #Python 3
+    from itertools import zip_longest as izip_longest
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration):
@@ -151,7 +158,7 @@ class MetricsCommon(object):
     def average_normal_latency(self):
         # It is possible that the sink has received no Normal messages
         if len(self.normal_latency) != 0:
-            return mean(self.normal_latency.values())
+            return np.mean(np.fromiter(iter(self.normal_latency.values()), dtype=float))
         else:
             return float('inf')
 
@@ -161,7 +168,7 @@ class MetricsCommon(object):
     def average_sink_source_hops(self):
         # It is possible that the sink has received no Normal messages
         if len(self.normal_hop_count) != 0:
-            return mean(self.normal_hop_count)
+            return np.mean(self.normal_hop_count)
         else:
             return float('inf')
 
@@ -239,13 +246,16 @@ class MetricsCommon(object):
 
         result = {}
 
-        for node_id in self.became_source_times.keys() + self.became_normal_after_source_times.keys():
+        nodes = set(self.became_source_times.keys())
+        nodes.update(self.became_normal_after_source_times.keys())
+
+        for node_id in nodes:
             started_times = self.became_source_times.get(node_id, [])
             stopped_times = self.became_normal_after_source_times.get(node_id, [])
 
             res_lst = []
 
-            for (start, stop) in itertools.izip_longest(started_times, stopped_times):
+            for (start, stop) in izip_longest(started_times, stopped_times):
                 if stop is None:
                     stop = float('inf')
 

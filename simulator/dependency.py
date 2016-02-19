@@ -2,7 +2,7 @@ import os, subprocess
 
 def check_java():
     """Checks if the java executable can be found"""
-    output = subprocess.check_output("java -version", stderr=subprocess.STDOUT, shell=True)
+    output = subprocess.check_output("java -version", stderr=subprocess.STDOUT, shell=True).decode("ascii", "ignore")
     if "java version" not in output:
         raise RuntimeError("Unable to find the java executable ({})".format(output))
 
