@@ -92,7 +92,7 @@ class TosVis(Simulator):
 
         self._run_gui = True
 
-        #self._node_label = "SourceBroadcasterC.first_source_distance"
+        self._node_label = "SourceBroadcasterC.min_source_distance"
 
         self._debug_analyzer = DebugAnalyzer()
 
@@ -222,7 +222,10 @@ class TosVis(Simulator):
             for node in self.nodes:
                 time = self.sim_time()
 
-                value = int(round(float(node.tossim_node.getVariable(self._node_label).getData())))
+                var = node.tossim_node.getVariable(self._node_label)
+                data = var.getData()
+
+                value = data
 
                 self.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 

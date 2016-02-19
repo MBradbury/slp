@@ -1,6 +1,11 @@
-from simulator.topovis.common import computeLinkEndPoints
-from Tkinter import LAST, FIRST, BOTH, NONE, Tk, Canvas, YES, NW
+
 from simulator.topovis import GenericPlotter
+from simulator.topovis.common import computeLinkEndPoints
+
+try:
+    from Tkinter import LAST, FIRST, BOTH, NONE, Tk, Canvas, YES, NW
+except:
+    from tkinter import LAST, FIRST, BOTH, NONE, Tk, Canvas, YES, NW
 
 arrowMap = {'head' : LAST, 'tail' : FIRST, 'both' : BOTH, 'none' : NONE}
 
@@ -56,8 +61,8 @@ class Plotter(GenericPlotter):
         c.coords(node_tag, x1, y1, x2, y2)
         c.coords(label_tag, node.pos)
 
-        for l in self.nodeLinks[ident]:
-            self.updateLink(*l)
+        for link in self.nodeLinks[ident]:
+            self.updateLink(*link)
 
     ###################
     def configLine(self, tagOrId, style):
