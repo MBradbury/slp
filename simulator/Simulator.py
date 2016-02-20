@@ -161,6 +161,9 @@ class Simulator(object):
 
     def _during_run(self, event_count):
         """Called after every simulation event is executed"""
+
+        # Query to see if there is any debug output we need to catch.
+        # If there is then make the relevant OutputProcessor handle it.
         while True:
             result = self._read_poller.poll(0)
 
