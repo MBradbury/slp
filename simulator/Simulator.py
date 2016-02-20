@@ -1,5 +1,5 @@
 from __future__ import print_function, division
-import os, select, random, importlib
+import os, select, random, importlib, glob
 
 from tinyos.tossim.TossimApp import NescApp
 
@@ -47,6 +47,7 @@ class OutputCatcher(object):
 
         self._read = None
         self._write = None
+        self._read_poller = None
 
 class Simulator(object):
     def __init__(self, module_name, node_locations, wireless_range, seed):
@@ -179,7 +180,6 @@ class Simulator(object):
     @staticmethod
     def available_noise_models():
         """Gets the names of the noise models available in the noise directory"""
-        import glob
         return [
             os.path.splitext(os.path.basename(noise_file))[0]
             for noise_file
@@ -189,7 +189,6 @@ class Simulator(object):
     @staticmethod
     def available_communication_models():
         """Gets the names of the communication models available in the models directory"""
-        import glob
         return [
             os.path.splitext(os.path.basename(model_file))[0]
             for model_file
