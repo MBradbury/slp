@@ -11,7 +11,7 @@
 	typedef struct \
 	{ \
 		TYPE_PREFIX##_neighbour_detail_t data[MAX_SIZE]; \
-		uint32_t size; \
+		uint16_t size; \
 	} TYPE_PREFIX##_neighbours_t; \
  \
 	void init_##TYPE_PREFIX##_neighbours(TYPE_PREFIX##_neighbours_t* neighbours) \
@@ -21,7 +21,7 @@
  \
 	TYPE_PREFIX##_neighbour_detail_t* find_##TYPE_PREFIX##_neighbour(TYPE_PREFIX##_neighbours_t* neighbours, am_addr_t address) \
 	{ \
-		uint32_t i; \
+		uint16_t i; \
 		for (i = 0; i != neighbours->size; ++i) \
 		{ \
 			if (neighbours->data[i].address == address) \
@@ -58,7 +58,7 @@
  \
 	void print_##TYPE_PREFIX##_neighbours(const char* name, TYPE_PREFIX##_neighbours_t const* neighbours) \
 	{ \
-		uint32_t i; \
+		uint16_t i; \
 		dbg(name, "Neighbours(size=%d, values=", neighbours->size); \
 		for (i = 0; i != neighbours->size; ++i) \
 		{ \
