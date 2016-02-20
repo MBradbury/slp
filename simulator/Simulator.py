@@ -18,28 +18,17 @@ class OutputCatcher(object):
         self._write = os.fdopen(write, 'w')
         self._linefn = linefn
 
-        self._read_poller = select.poll()
-        self._read_poller.register(self._read.fileno(), select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
-
-    def process(self):
-        """Consumes any lines that have been caught."""
-        while True:
-            result = self._read_poller.poll(0)
-
-            if len(result) == 1:
-                self._linefn(self._read.readline())
-            else:
-                break
-
     def register(self, sim, name):
         """Registers this class to catch the output from the simulation on the given channel."""
         sim.tossim.addChannel(name, self._write)
+
+    def process_one_line(self):
+        self._linefn(self._read.readline())
 
     def close(self):
         """Closes the file handles opened."""
 
         if self._read is not None:
-            self._read_poller.unregister(self._read.fileno())
             self._read.close()
 
         if self._write is not None:
@@ -47,7 +36,6 @@ class OutputCatcher(object):
 
         self._read = None
         self._write = None
-        self._read_poller = None
 
 class Simulator(object):
     def __init__(self, module_name, node_locations, wireless_range, seed):
@@ -60,7 +48,7 @@ class Simulator(object):
         self.tossim = tossim_module.Tossim(self.nesc_app.variables.variables())
         self.radio = self.tossim.radio()
 
-        self.out_procs = []
+        self.out_procs = {}
         self.nodes = []
 
         # Set tossim seed
@@ -82,11 +70,16 @@ class Simulator(object):
         for n in self.nodes:
             self.set_boot_time(n)
 
+        self._read_poller = select.poll()
+        
+
     def __enter__(self):
         return self
 
     def __exit__(self, tp, value, tb):
-        for op in self.out_procs:
+        del self._read_poller
+
+        for op in self.out_procs.values():
             op.close()
 
         del self.nodes
@@ -94,7 +87,11 @@ class Simulator(object):
         del self.tossim
 
     def add_output_processor(self, op):
-        self.out_procs.append(op)
+        fd = op._read.fileno()
+
+        self.out_procs[fd] = op
+
+        self._read_poller.register(fd, select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
 
     def node_distance(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
@@ -164,8 +161,14 @@ class Simulator(object):
 
     def _during_run(self, event_count):
         """Called after every simulation event is executed"""
-        for op in self.out_procs:
-            op.process()
+        while True:
+            result = self._read_poller.poll(0)
+
+            if len(result) >= 1:
+                for (fd, event) in result:
+                    self.out_procs[fd].process_one_line()
+            else:
+                break
 
     def run(self):
         """Run the simulator loop."""
