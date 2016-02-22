@@ -195,6 +195,8 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint64_t source_fake_sequence_increments;
 
+	uint64_t normal_sequence_increments = 0;
+
 	int16_t min_sink_source_distance = BOTTOM;
 	int16_t min_source_distance = BOTTOM;
 	int16_t sink_distance = BOTTOM;
@@ -245,7 +247,7 @@ implementation
 		return SOURCE_PERIOD_MS / 2;
 	}
 
-	uint32_t estimated_number_of_sources(void)
+	uint16_t estimated_number_of_sources(void)
 	{
 		return max(1, call SourceDistances.count());
 	}
@@ -286,6 +288,28 @@ implementation
 #endif
 	}
 
+	double get_nodes_Normal_receive_ratio(void)
+	{
+		uint64_t total_sent = 0;
+		SequenceNumber* iter;
+		for (iter = call NormalSeqNos.begin(); iter != call NormalSeqNos.end(); ++iter)
+		{
+			total_sent += *iter;
+		}
+
+		return normal_sequence_increments == 0 ? 1.0 : total_sent / (double)normal_sequence_increments;
+	}
+
+	double get_sources_Fake_receive_ratio(void)
+	{
+		// Need to add one here because it is possible for the values to both be 0
+		// if no fake messages have ever been received.
+		const uint32_t seq_inc = source_fake_sequence_increments + 1;
+		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
+
+		return seq_inc / (double)counter;
+	}
+
 	uint32_t get_tfs_num_msg_to_send(void)
 	{
 		const uint32_t distance = get_dist_to_pull_back();
@@ -315,32 +339,34 @@ implementation
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const uint32_t period = duration / msg;
-		const uint32_t est_num_sources = estimated_number_of_sources();
+		const uint16_t est_num_sources = estimated_number_of_sources();
+		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
-		const uint32_t result_period = (uint32_t)ceil(period / (double)est_num_sources);
+		const uint32_t result_period = (uint32_t)ceil(period / (est_num_sources * normal_rcv_ratio));
 
-		dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		dbgverbose("stdout", "get_tfs_period=%u normrcv=%f\n", result_period, normal_rcv_ratio);
 
 		return result_period;
 	}
 
 	uint32_t get_pfs_period(void)
 	{
-		// Need to add one here because it is possible for the values to both be 0
-		// if no fake messages have ever been received.
-		const uint32_t seq_inc = source_fake_sequence_increments + 1;
-		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
+		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
 
-		const double ratio = seq_inc / (double)counter;
+		const uint16_t est_num_sources = estimated_number_of_sources();
+		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
-		const uint32_t est_num_sources = estimated_number_of_sources();
+		const uint32_t result_period = (uint32_t)ceil((SOURCE_PERIOD_MS * fake_rcv_ratio_at_src) / (est_num_sources * normal_rcv_ratio));
 
-		const uint32_t result_period = (uint32_t)ceil((SOURCE_PERIOD_MS * ratio) / est_num_sources);
-
-		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
-			result_period, counter, seq_inc, ratio);
+		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f) normrcv=%f\n",
+			result_period, counter, seq_inc, fake_rcv_ratio_at_src, normal_rcv_ratio);
 
 		return result_period;
+	}
+
+	uint32_t beacon_send_wait(void)
+	{
+		return 75U + (uint32_t)(50U * random_float());
 	}
 
 	void find_neighbours_further_from_source(distance_neighbours_t* local_neighbours)
@@ -490,6 +516,9 @@ implementation
 		{
 			call SourceDistances.put(rcvd->source_id, rcvd->source_distance);
 			min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
+
+			// Our source distance has changed, so we need to inform neighbours
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
 	}
 
@@ -499,6 +528,9 @@ implementation
 
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
+
+		// Probably don't need to send a beacon here.
+		// The forwarding of the Away message should update our neighbours correctly.
 	}
 
 
@@ -574,11 +606,6 @@ implementation
 			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			dbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
-	}
-
-	uint32_t beacon_send_wait(void)
-	{
-		return 75U + (uint32_t)(50U * random_float());
 	}
 
 	USE_MESSAGE(Normal);
@@ -728,6 +755,8 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
+			++normal_sequence_increments;
+
 			update_source_distance(rcvd);
 
 			if (!first_normal_rcvd)
@@ -756,6 +785,8 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			++normal_sequence_increments;
 
 			update_source_distance(rcvd);
 
@@ -802,6 +833,8 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			++normal_sequence_increments;
 
 			update_source_distance(rcvd);
 
@@ -1044,7 +1077,7 @@ implementation
 				(drw_direction != DirectedWalkTowardsSource && (rcvd->sender_min_source_distance > min_source_distance ||
 				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)))
 				||
-				(drw_direction == DirectedWalkTowardsSource && (rcvd->sender_min_source_distance < min_source_distance ||
+				(drw_direction == DirectedWalkTowardsSource && (rcvd->sender_min_source_distance < min_source_distance || rcvd->sender_sink_distance > sink_distance ||
 				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)))
 			)
 			)
@@ -1102,7 +1135,7 @@ implementation
 	{
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
 		message->min_sink_source_distance = min_sink_source_distance;
-		message->sink_distance = sink_distance;
+		message->sender_sink_distance = sink_distance;
 		message->message_type = type;
 		message->source_id = TOS_NODE_ID;
 		message->sender_min_source_distance = min_source_distance;
@@ -1114,7 +1147,7 @@ implementation
 		const fake_walk_result_t result = fake_walk_target(original_message->drw_direction);
 
 		dbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u towards_source=%u.\n",
-			result.target, result.towards_source);
+			result.target, result.drw_direction);
 
 		// When finished sending fake messages from a TFS
 

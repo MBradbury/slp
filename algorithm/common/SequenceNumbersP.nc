@@ -89,4 +89,24 @@ implementation
 
 		sequence_number_update(result, other);
 	}
+
+	command am_addr_t* SequenceNumbers.beginKeys()
+	{
+		return sources;
+	}
+
+	command am_addr_t* SequenceNumbers.endKeys()
+	{
+		return sources + sources_count;
+	}
+
+	command SequenceNumber* SequenceNumbers.begin()
+	{
+		return sequence_numbers;
+	}
+
+	command SequenceNumber* SequenceNumbers.end()
+	{
+		return sequence_numbers + sources_count;
+	}
 }
