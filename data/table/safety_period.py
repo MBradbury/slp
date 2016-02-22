@@ -11,7 +11,8 @@ from data import results
 class TableGenerator:
 
     def __init__(self, result_file):
-        self._result_names = ('time taken', 'received ratio', 'safety period', 'normal latency', 'ssd', 'captured')
+        self._result_names = ('time taken', 'received ratio', 'safety period',
+                              'normal latency', 'ssd', 'captured')
 
         self._results = results.Results(
             result_file,
@@ -103,10 +104,11 @@ class TableGenerator:
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
         result = {}
 
+        index = self._result_names.index('safety period')
+
         for (table_key, other_items) in self._results.data.items():
             for (source_period, items) in other_items.items():
 
-                index = self._result_names.index('safety period')
                 safety_period = items[tuple()][index]
 
                 result.setdefault(table_key, {})[source_period] = safety_period
