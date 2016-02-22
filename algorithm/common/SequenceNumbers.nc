@@ -10,4 +10,10 @@ interface SequenceNumbers
 
 	command uint16_t max_size();
 	command uint16_t count();
+
+	command SequenceNumber* begin();
+	command SequenceNumber* end();
+
+	command am_addr_t* beginKeys();
+	command am_addr_t* endKeys();
 }
