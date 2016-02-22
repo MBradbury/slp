@@ -161,3 +161,12 @@ Doing so will run all parameter combinations as specified in the <algorithm>/Com
 
 ./create.py <algorithm> cluster build dummy no-skip-complete
 ./create.py <algorithm> cluster submit <cluster> no-skip-complete
+
+==Job Notification==
+
+A useful feature is the ability to be notified when a job is completed or cancelled via email.
+This can be done in two ways:
+
+1) By specifying "notify=<email address>" when submitting your jobs.
+
+2) By editing your .bashrc to contain "export SLP_NOTIFY_EMAILS=<email address>"
