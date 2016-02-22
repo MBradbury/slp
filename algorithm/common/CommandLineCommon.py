@@ -66,6 +66,19 @@ class CLI(object):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
         analyzer.run(self.algorithm_module.result_file)
 
+    def _get_emails_to_notify(self, args):
+        """Gets the emails that a cluster job should notify after finishing.
+        This can be specified by using the "notify" parameter when submitting,
+        or by setting the SLP_NOTIFY_EMAILS environment variable."""
+        
+        emails_to_notify = self._get_args_for(args, 'notify')
+
+        emails_to_notify_env = os.getenv("SLP_NOTIFY_EMAILS")
+        if emails_to_notify_env:
+            emails_to_notify.extend(emails_to_notify_env.split(","))
+
+        return emails_to_notify
+
     def _run_cluster(self, args):
         cluster_directory = os.path.join("cluster", self.algorithm_module.name)
 
@@ -89,7 +102,7 @@ class CLI(object):
             cluster.copy_result_summary(self.algorithm_module.results_path, self.algorithm_module.result_file)
 
         if 'submit' in args:
-            emails_to_notify = self._get_args_for(args, 'notify')
+            emails_to_notify = self._get_emails_to_notify(args)
 
             if 'array' not in args:
                 submitter = cluster.submitter(emails_to_notify)
