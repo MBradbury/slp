@@ -30,6 +30,7 @@ class ResultTable(object):
         try:
             return {
                 "network size": ("Network Size", "nodes"),
+                "repeats": ("Repeats", "~"),
 
                 "source period": ("$P_{src}$", "(sec)"),
                 "fake period": ("$P_{fs}$", "(sec)"),
@@ -74,7 +75,7 @@ class ResultTable(object):
     def _var_fmt(self, name, value):
         if value is None:
             return "None"
-        elif name in {"source period", "fake period", "walk length", "walk retries"}:
+        elif name in {"source period", "fake period", "walk length", "walk retries", "repeats"}:
             return "${}$".format(value)
         elif name == "duration" or name == "temp fake duration":
             return "${:.0f}$".format(value)
