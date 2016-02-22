@@ -40,6 +40,7 @@ class Analyzer(AnalyzerCommon):
         return (
             ('Sent', 'TimeTaken'),
             ('NormalSent', 'TimeTaken'),
+            ('TimeTaken', 'source_period')
         )
 
     @staticmethod
@@ -68,6 +69,7 @@ class Analyzer(AnalyzerCommon):
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
+        d['norm(time taken,source period)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(TimeTaken,source_period)')
 
         return d
 
