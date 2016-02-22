@@ -8,6 +8,7 @@ from collections import OrderedDict
 from numbers import Number
 
 import simulator.Configuration as Configuration
+import simulator.SourcePeriodModel as SourcePeriodModel
 
 class EmptyFileError(RuntimeError):
     def __init__(self, filename):
@@ -149,16 +150,18 @@ class Analyse(object):
                 configuration = self._get_configuration()
                 return configuration.size()
 
+            elif name == "num_sources":
+                configuration = self._get_configuration()
+                return len(configuration.source_ids)
+
+            elif name == "source_period":
+                # Warning: This will only work for the FixedPeriodModel
+                return float(SourcePeriodModel.eval_input(self.opts["source_period"]))
+
             elif name == "source_rate":
-                return 1.0 / float(self.opts["source_period"])
-
-            elif name == "source_period_per_source":
-                configuration = self._get_configuration()
-                return float(self.opts["source_period"]) / len(configuration.source_ids)
-
-            elif name == "source_rate_per_source":
-                configuration = self._get_configuration()
-                return self._get_from_opts_or_values("source_rate", values) / len(configuration.source_ids)
+                # Warning: This will only work for the FixedPeriodModel
+                source_period = self._get_from_opts_or_values("source_period", values)
+                return 1.0 / source_period
 
             else:
                 return float(self.opts[name])
