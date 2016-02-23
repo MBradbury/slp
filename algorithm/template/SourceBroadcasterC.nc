@@ -156,7 +156,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
@@ -166,12 +166,12 @@ implementation
 		if (TOS_NODE_ID == SOURCE_NODE_ID)
 		{
 			type = SourceNode;
-			dbg("Node-Change-Notification", "The node has become a Source\n");
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
 		}
 		else if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			dbg("Node-Change-Notification", "The node has become a Sink\n");
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -181,7 +181,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			if (type == SourceNode)
 			{
@@ -190,7 +190,7 @@ implementation
 		}
 		else
 		{
-			dbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -198,7 +198,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	USE_MESSAGE(Normal);
@@ -212,7 +212,7 @@ implementation
 
 		call FakeMessageGenerator.stop();
 
-		dbg("Fake-Notification", "The node has become a Normal\n");
+		simdbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
@@ -232,16 +232,16 @@ implementation
 		{
 			if (rndFloat <= PR_PFS)
 			{
-				dbg("Fake-Notification", "The node has become a PFS\n");
+				simdbg("Fake-Notification", "The node has become a PFS\n");
 
-				dbgverbose("Fake-Probability-Decision",
+				simdbgverbose("Fake-Probability-Decision",
  					"The node %u has become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
 
 				call FakeMessageGenerator.start(message, FAKE_PERIOD_MS);
 			}
 			else
 			{
- 				dbgverbose("Fake-Probability-Decision",
+ 				simdbgverbose("Fake-Probability-Decision",
  					"The node %u has not become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
 			}
 		}
@@ -249,16 +249,16 @@ implementation
 		{
 			if (rndFloat <= PR_TFS)
 			{
-				dbg("Fake-Notification", "The node has become a TFS\n");
+				simdbg("Fake-Notification", "The node has become a TFS\n");
 
-				dbgverbose("Fake-Probability-Decision",
+				simdbgverbose("Fake-Probability-Decision",
 					"The node %u has become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
 
 				call FakeMessageGenerator.startLimited(message, FAKE_PERIOD_MS, TEMP_FAKE_DURATION_MS);
 			}
 			else
 			{
-				dbgverbose("Fake-Probability-Decision",
+				simdbgverbose("Fake-Probability-Decision",
 					"The node %u has not become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
 			}
 		}
@@ -268,7 +268,7 @@ implementation
 	{
 		NormalMessage message;
 
-		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
@@ -630,7 +630,7 @@ implementation
 	{
 		ChooseMessage message = *original_message;
 
-		dbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
+		simdbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
 		// When finished sending fake messages from a TFS
 
@@ -648,7 +648,7 @@ implementation
 	{
 		const char* result;
 
-		dbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
+		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
 		switch (error)
 		{

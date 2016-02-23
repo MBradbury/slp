@@ -188,7 +188,7 @@ implementation
 	{
 		uint32_t distance = get_dist_to_pull_back();
 
-		dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
+		simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
 			distance, min_source_distance, sink_distance, sink_source_distance);
 
 		return distance;
@@ -203,7 +203,7 @@ implementation
 			duration -= away_delay;
 		}
 
-		dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
 		return duration;
 	}
@@ -216,7 +216,7 @@ implementation
 
 		const uint32_t result_period = period;
 
-		dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		simdbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -232,7 +232,7 @@ implementation
 
 		const uint32_t result_period = ceil(SOURCE_PERIOD_MS * x);
 
-		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
+		simdbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
 			result_period, counter, seq_inc, x);
 
 		return result_period;
@@ -264,7 +264,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
@@ -277,7 +277,7 @@ implementation
 		{
 			type = SinkNode;
 			sink_distance = 0;
-			dbg("Node-Change-Notification", "The node has become a Sink\n");
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -287,13 +287,13 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 		}
 		else
 		{
-			dbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -301,7 +301,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
@@ -309,8 +309,8 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Source\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 			min_source_distance = 0;
@@ -328,8 +328,8 @@ implementation
 			type = NormalNode;
 			min_source_distance = BOTTOM;
 
-			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Normal\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
@@ -344,7 +344,7 @@ implementation
 
 		type = NormalNode;
 
-		dbg("Fake-Notification", "The node has become a Normal\n");
+		simdbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
@@ -358,13 +358,13 @@ implementation
 
 		if (type == PermFakeNode)
 		{
-			dbg("Fake-Notification", "The node has become a PFS\n");
+			simdbg("Fake-Notification", "The node has become a PFS\n");
 
 			call FakeMessageGenerator.start(message);
 		}
 		else
 		{
-			dbg("Fake-Notification", "The node has become a TFS\n");
+			simdbg("Fake-Notification", "The node has become a TFS\n");
 
 			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
 		}
@@ -374,7 +374,7 @@ implementation
 	{
 		NormalMessage message;
 
-		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
@@ -739,7 +739,7 @@ implementation
 		}
 		else
 		{
-			dbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
+			simdbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
 			return 0;
 		}
 	}
@@ -759,7 +759,7 @@ implementation
 	{
 		ChooseMessage message = *original_message;
 
-		dbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
+		simdbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
 		// When finished sending fake messages from a TFS
 
@@ -783,7 +783,7 @@ implementation
 			sequence_number_increment(&fake_sequence_counter);
 		}
 
-		dbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
+		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
 		switch (error)
 		{

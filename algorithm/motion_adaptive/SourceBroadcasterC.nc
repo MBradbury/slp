@@ -14,7 +14,7 @@
 #include <assert.h>
 
 #define METRIC_RCV(TYPE, DISTANCE, ULTIMATE_SOURCE) \
-	dbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, ULTIMATE_SOURCE, rcvd->sequence_number, DISTANCE)
+	simdbg_clear("Metric-RCV", "%s,%" PRIu64 ",%u,%u,%u,%u,%u\n", #TYPE, sim_time(), TOS_NODE_ID, source_addr, ULTIMATE_SOURCE, rcvd->sequence_number, DISTANCE)
 
 typedef struct
 {
@@ -29,7 +29,7 @@ void dist_update(distance_container_t* find, distance_container_t const* given)
 
 void dist_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
-	dbg_clear(name, "[%u] => addr=%u / dsink=%d / dsrc=%d",
+	simdbg_clear(name, "[%u] => addr=%u / dsink=%d / dsrc=%d",
 		i, address, contents->sink_distance, contents->source_distance);
 }
 
@@ -212,7 +212,7 @@ implementation
 
 		// Don't recognise this algorithm
 		default:
-			dbgerror("stdout", "unknown algorithm %d\n", algorithm);
+			simdbgerror("stdout", "unknown algorithm %d\n", algorithm);
 			return FALSE;
 		}
 	}
@@ -305,7 +305,7 @@ implementation
 			duration -= get_away_delay();
 		}
 
-		//dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%f)\n",
+		//simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%f)\n",
 		//	duration, sink_distance_ewma);
 
 		return duration;
@@ -319,7 +319,7 @@ implementation
 
 		const uint32_t result_period = period;
 
-		//dbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		//simdbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -337,7 +337,7 @@ implementation
 
 		assert(source_period != BOTTOM);
 
-		//dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
+		//simdbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
 		//	result_period, counter, seq_inc, x);
 
 		return result_period;
@@ -377,7 +377,7 @@ implementation
 		dist_neighbours_t local_neighbours;
 		init_dist_neighbours(&local_neighbours);
 
-		dbgverbose("stdout", "MIRROR dsrc=%d diffdsrc:%d\n", source_distance_current, source_distance_diff);//, sink_source_distance_diff);
+		simdbgverbose("stdout", "MIRROR dsrc=%d diffdsrc:%d\n", source_distance_current, source_distance_diff);//, sink_source_distance_diff);
 
 		for (i = 0; i != neighbours.size; ++i)
 		{
@@ -386,7 +386,7 @@ implementation
 			const int32_t neighbour_source_distance_diff = source_distance_current - neighbour->contents.source_distance;
 			//const int32_t neighbour_sink_source_distance_diff = sink_source_distance_current - neighbour->contents.sink_source_distance;
 
-			dbgverbose("stdout", "MIRROR: neighbour %d src dist diff = %d\n", neighbour->address, neighbour_source_distance_diff);
+			simdbgverbose("stdout", "MIRROR: neighbour %d src dist diff = %d\n", neighbour->address, neighbour_source_distance_diff);
 
 			if (source_distance_current != BOTTOM)
 			{
@@ -418,7 +418,7 @@ implementation
 		}
 
 #	ifdef SLP_VERBOSE_DEBUG
-		dbgverbose("stdout", "Potential targets to move the PFS to:\n");
+		simdbgverbose("stdout", "Potential targets to move the PFS to:\n");
 		print_dist_neighbours("stdout", &local_neighbours);
 #	endif
 
@@ -491,7 +491,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		init_dist_neighbours(&neighbours);
 
@@ -507,7 +507,7 @@ implementation
 		{
 			type = SinkNode;
 			update_sink_distance(0);
-			dbg("Node-Change-Notification", "The node has become a Sink\n");
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -517,13 +517,13 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 		}
 		else
 		{
-			dbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -531,7 +531,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
@@ -539,8 +539,8 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Source\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 
@@ -556,8 +556,8 @@ implementation
 
 			type = NormalNode;
 
-			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Normal\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
@@ -579,7 +579,7 @@ implementation
 
 		call FakeMessageGenerator.stop(should_send_choose);
 
-		dbg("Fake-Notification", "The node has become a Normal\n");
+		simdbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
@@ -590,13 +590,13 @@ implementation
 
 		if (type == PermFakeNode)
 		{
-			dbg("Fake-Notification", "The node has become a PFS\n");
+			simdbg("Fake-Notification", "The node has become a PFS\n");
 
 			call FakeMessageGenerator.start(message);
 		}
 		else
 		{
-			dbg("Fake-Notification", "The node has become a TFS\n");
+			simdbg("Fake-Notification", "The node has become a TFS\n");
 
 			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
 		}
@@ -618,7 +618,7 @@ implementation
 
 		source_period = get_source_period();
 
-		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
@@ -671,7 +671,7 @@ implementation
 		// If the source has changed or this is the first time that we have received a Normal message
 		if (rcvd->source_id != source_node_id)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE_DETECT", "%" PRIu64 ",%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
+			simdbg_clear("Metric-SOURCE_CHANGE_DETECT", "%" PRIu64 ",%u,%d,%u\n", sim_time(), TOS_NODE_ID, source_node_id, rcvd->source_id);
 
 			source_node_id = rcvd->source_id;
 
@@ -720,7 +720,7 @@ implementation
 
 			handle_source_id_changed(rcvd);
 
-			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
+			simdbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
 			if (!first_source_distance_set)
 			{
@@ -815,7 +815,7 @@ implementation
 
 					if (send_Move_message(&message, next_pfs))
 					{
-						dbgverbose("stdout", "sent move message to %u\n", next_pfs);
+						simdbgverbose("stdout", "sent move message to %u\n", next_pfs);
 					}
 
 					// When we receive a fake message from this node,
@@ -1163,7 +1163,7 @@ implementation
 		}
 		else
 		{
-			dbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
+			simdbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
 			assert(type == PermFakeNode || type == TempFakeNode);
 			return 0;
 		}
@@ -1193,7 +1193,7 @@ implementation
 
 			assert(original_message_set);
 
-			dbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
+			simdbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
 			// When finished sending fake messages from a TFS
 
@@ -1222,7 +1222,7 @@ implementation
 			sequence_number_increment(&fake_sequence_counter);
 		}
 
-		dbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
+		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
 		switch (error)
 		{

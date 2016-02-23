@@ -64,7 +64,7 @@ implementation
 
 		result = mean * -log(uniform_random);
 
-		//dbg("stdout", "rnd = %f, ln(rnd) = %f, result = %f\n", uniform_random, -log(uniform_random), result);
+		//simdbg("stdout", "rnd = %f, ln(rnd) = %f, result = %f\n", uniform_random, -log(uniform_random), result);
 
 		return result;
 	}
@@ -113,7 +113,7 @@ implementation
 			average_broadcast_period += ((int32_t)broadcast_period - average_broadcast_period) / counts;
 		}
 
-		dbg("stdout", "Broadcast period = %d then %u ave = %d count = %u\n", BROADCAST_PERIOD_MS, broadcast_period, average_broadcast_period, counts);
+		simdbgverbose("stdout", "Broadcast period = %d then %u ave = %d count = %u\n", BROADCAST_PERIOD_MS, broadcast_period, average_broadcast_period, counts);
 
 		return broadcast_period;
 
@@ -126,12 +126,12 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			dbg("Node-Change-Notification", "The node has become a Sink\n");
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -141,14 +141,14 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 			call BroadcastTimer.startOneShot(get_broadcast_period());
 		}
 		else
 		{
-			dbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -156,7 +156,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
@@ -164,8 +164,8 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Source\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 
@@ -181,8 +181,8 @@ implementation
 
 			type = NormalNode;
 
-			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Normal\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
@@ -193,7 +193,7 @@ implementation
 	{
 		NormalMessage* message;
 
-		dbgverbose("SourceBroadcasterC", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
 
 		message = call MessagePool.get();
 		if (message != NULL)
@@ -204,7 +204,7 @@ implementation
 
 			if (call MessageQueue.enqueue(message) != SUCCESS)
 			{
-				dbgerror("stdout", "Failed to enqueue, should not happen!\n");
+				simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
 			}
 			else
 			{
@@ -213,7 +213,7 @@ implementation
 		}
 		else
 		{
-			dbgerror("stdout", "No pool space available for another Normal message.\n");
+			simdbgerror("stdout", "No pool space available for another Normal message.\n");
 		}
 
 		call EnqueueNormalTimer.startOneShot(get_source_period());
@@ -223,7 +223,7 @@ implementation
 	{
 		NormalMessage* message;
 
-		dbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
 
 		message = call MessageQueue.dequeue();
 
@@ -235,7 +235,7 @@ implementation
 			}
 			else
 			{
-				dbgerror("stdout", "send failed, not returning memory to pool so it will be tried again\n");
+				simdbgerror("stdout", "send failed, not returning memory to pool so it will be tried again\n");
 			}
 		}
 		else
@@ -266,12 +266,12 @@ implementation
 
 				if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
 				{
-					dbgerror("stdout", "Failed to enqueue, should not happen!\n");
+					simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
 				}
 			}
 			else
 			{
-				dbgerror("stdout", "No pool space available for another Normal message.\n");
+				simdbgerror("stdout", "No pool space available for another Normal message.\n");
 			}
 		}
 	}

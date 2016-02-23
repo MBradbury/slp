@@ -6,9 +6,9 @@
 #define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #ifdef SLP_VERBOSE_DEBUG
-#	define dbgverbose(...) dbg(__VA_ARGS__)
+#	define simdbgverbose(...) simdbg(__VA_ARGS__)
 #else
-#	define dbgverbose(...)
+#	define simdbgverbose(...)
 #endif
 
 #define max(a, b) \

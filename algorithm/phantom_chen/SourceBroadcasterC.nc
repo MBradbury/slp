@@ -144,13 +144,13 @@ implementation
     			if(biased_ran == 0)
     			//small possibility follow the y axis.
     			{
-    				//dbg("slp-debug",": (x)y move.\n");
+    				//simdbg("slp-debug",": (x)y move.\n");
       				des = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? des2:des4;
     			}
     			else
     			//high possibility follow the x axis.
     			{
-    				//dbg("slp-debug",": (x)x move.\n");
+    				//simdbg("slp-debug",": (x)x move.\n");
       				des = (right_border(TOS_NODE_ID) || right_bottom_corner(TOS_NODE_ID)) ? des4:des2;
     			}
     			break;
@@ -159,13 +159,13 @@ implementation
     			if (biased_ran == 0)
     			//small possibility follow the x axis.
     			{
-    				//dbg("slp-debug",": (y)x move.\n");
+    				//simdbg("slp-debug",": (y)x move.\n");
     				des = (right_border(TOS_NODE_ID)||right_bottom_corner(TOS_NODE_ID)) ? des4:des2;
     			}
     			else
     			//high possibility follow the y axis.
     			{
-    				//dbg("slp-debug",": (y)y move.\n");
+    				//simdbg("slp-debug",": (y)y move.\n");
       				des = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? des2:des4;    
 				}
     			break;
@@ -194,12 +194,12 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			dbg("Node-Change-Notification", "The node has become a Sink\n");
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -209,13 +209,13 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 		}
 		else
 		{
-			dbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -223,7 +223,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
@@ -231,8 +231,8 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Source\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 
@@ -248,8 +248,8 @@ implementation
 
 			type = NormalNode;
 
-			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Normal\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
@@ -291,14 +291,14 @@ implementation
 				//normally the short random walk is set to less than half of source sink distance.
 				if (message.walk_distance_remaining < TOPOLOGY_SIZE)
 				{
-					dbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
+					simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
 					message.flip_coin = 3;
 				}
 				else
 				{
 					//randomly choose the random is whether follow the x axis or y axis.
 					message.flip_coin = (flip_coin == 0)?4:5;
-					dbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
+					simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
 				}
 			}
 		//fit for the situation that the sink is located in the corner or in the border.
@@ -311,13 +311,13 @@ implementation
 				{					
 					if (message.walk_distance_remaining < TOPOLOGY_SIZE)
 					{
-						dbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());	
+						simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());	
 						message.flip_coin = 3;
 					}
 					else
 					{
 						message.flip_coin = (flip_coin == 0)?4:5;
-						dbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
+						simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
 					}
 				}
 
@@ -325,7 +325,7 @@ implementation
 				//biased random walk is not applied here.
 				else
 				{
-					dbg("slp-debug","random walk hop:%d\n",message.walk_distance_remaining);
+					simdbg("slp-debug","random walk hop:%d\n",message.walk_distance_remaining);
 					message.flip_coin = call Random.rand16()%4;
 				}
 				
@@ -366,12 +366,12 @@ implementation
 			
 			METRIC_RCV_NORMAL(rcvd);
 
-			//dbg("slp-debug", "check the received message: NodeID:%d;walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
+			//simdbg("slp-debug", "check the received message: NodeID:%d;walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
 
 			if(rcm.walk_distance_remaining == 0 && rcm.target != SINK_NODE_ID)
 			{
 
-				//dbg("slp-debug",":rcm.target:%d, rcm.walk_distance_remaining:%d,SINK_NODE_ID:%d.\n",rcm.target,rcm.walk_distance_remaining,SINK_NODE_ID);
+				//simdbg("slp-debug",":rcm.target:%d, rcm.walk_distance_remaining:%d,SINK_NODE_ID:%d.\n",rcm.target,rcm.walk_distance_remaining,SINK_NODE_ID);
 
 				rcm.source_distance+=1;
 	         
@@ -379,11 +379,11 @@ implementation
 			}
 			else if(rcm.target == TOS_NODE_ID && TOS_NODE_ID != SINK_NODE_ID && rcm.walk_distance_remaining != 0)
 			{
-				//dbg("slp-debug",": (random_walk) message received, from %d, walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
+				//simdbg("slp-debug",": (random_walk) message received, from %d, walk_distance_remaining=%d.\n",source_addr,rcm.walk_distance_remaining);
 
 				rcm.source_distance+=1;
 
-				//dbg("slp-debug", "rcvd rw source_distance=%d\n",rcm.source_distance);
+				//simdbg("slp-debug", "rcvd rw source_distance=%d\n",rcm.source_distance);
 
 				random_walk(&rcm);
 			}
@@ -393,7 +393,7 @@ implementation
 			}
 			else 
 			{
-				//dbg("slp-debug","other: NodeID:%d;target:%d,walk_distance_remaining=%hu.\n",source_addr,rcm.target,rcm.walk_distance_remaining);
+				//simdbg("slp-debug","other: NodeID:%d;target:%d,walk_distance_remaining=%hu.\n",source_addr,rcm.target,rcm.walk_distance_remaining);
 			}
 		}
 	}
@@ -436,7 +436,7 @@ implementation
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-			//dbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
+			//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 			//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
 	}
 

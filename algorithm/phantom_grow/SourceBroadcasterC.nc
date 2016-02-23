@@ -29,7 +29,7 @@ void distance_container_update(distance_container_t* find, distance_container_t 
 
 void distance_container_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
-	dbg_clear(name, "[%u] => addr=%u", i, address);
+	simdbg_clear(name, "[%u] => addr=%u", i, address);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_container_update, distance_container_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
@@ -152,7 +152,7 @@ implementation
 				}
 				if (found)
 				{
-					dbgverbose("slp-debug", "Ignoring %u as we have been asked to\n", neighbour->address);
+					simdbgverbose("slp-debug", "Ignoring %u as we have been asked to\n", neighbour->address);
 					continue;
 				}
 			}
@@ -160,7 +160,7 @@ implementation
 			// Skip neighbours that are neighbours of the previous node
 			if (bloom != NULL && bloom_filter_test(bloom, neighbour->address))
 			{
-				dbgverbose("slp-debug", "Dropping the node %u as it is in the bloom filter\n", neighbour->address);
+				simdbgverbose("slp-debug", "Dropping the node %u as it is in the bloom filter\n", neighbour->address);
 				continue;
 			}
 
@@ -169,7 +169,7 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			dbgverbose("slp-debug", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n", neighbours.size);
+			simdbgverbose("slp-debug", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n", neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
@@ -186,7 +186,7 @@ implementation
 			print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
-			dbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
+			simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
 				chosen_address, neighbour_index, rnd, local_neighbours.size);
 		}
 
@@ -204,14 +204,14 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		init_distance_neighbours(&neighbours);
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			dbg("Node-Change-Notification", "The node has become a Sink\n");
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 
 			//sink_distance = 0;
 		}
@@ -223,7 +223,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 
@@ -234,7 +234,7 @@ implementation
 		}
 		else
 		{
-			dbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -242,7 +242,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
@@ -250,8 +250,8 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Source\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 
@@ -267,8 +267,8 @@ implementation
 
 			type = NormalNode;
 
-			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Normal\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
@@ -302,7 +302,7 @@ implementation
 
 		const uint32_t source_period = get_source_period();
 
-		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
@@ -317,7 +317,7 @@ implementation
 
 		target = random_walk_target(&message, NULL, NULL, 0);
 
-		dbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
+		simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
 			sim_time_string(), target);
 
 		call Packet.clear(&packet);
@@ -334,7 +334,7 @@ implementation
 	{
 		AwayMessage message;
 
-		dbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -347,14 +347,14 @@ implementation
 			call AwaySeqNos.increment(TOS_NODE_ID);
 		}
 
-		dbgverbose("stdout", "Away sent\n");
+		simdbgverbose("stdout", "Away sent\n");
 	}
 
 	event void BeaconSenderTimer.fired()
 	{
 		BeaconMessage message;
 
-		dbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
 		call Packet.clear(&packet);
 
@@ -391,7 +391,7 @@ implementation
 					return;
 				}
 
-				dbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
@@ -402,12 +402,12 @@ implementation
 			{
 				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
 				{
-					dbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
 						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
-				dbgverbose("stdout", "%s: Broadcasting normal from %u (forced bcast = %d)\n",
+				simdbgverbose("stdout", "%s: Broadcasting normal from %u (forced bcast = %d)\n",
 					sim_time_string(), TOS_NODE_ID, rcvd->forced_broadcast);
 
 				call Packet.clear(&packet);
@@ -454,7 +454,7 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			dbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
+			simdbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
 				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
 		}*/
 	}
@@ -463,7 +463,7 @@ implementation
 	{
 		UPDATE_NEIGHBOURS(rcvd, source_addr);
 
-		//dbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
+		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
 	}
 

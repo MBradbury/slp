@@ -59,7 +59,7 @@
 	void print_##TYPE_PREFIX##_neighbours(const char* name, TYPE_PREFIX##_neighbours_t const* neighbours) \
 	{ \
 		uint16_t i; \
-		dbg(name, "Neighbours(size=%d, values=", neighbours->size); \
+		simdbg(name, "Neighbours(size=%d, values=", neighbours->size); \
 		for (i = 0; i != neighbours->size; ++i) \
 		{ \
 			TYPE_PREFIX##_neighbour_detail_t const* neighbour = &neighbours->data[i]; \
@@ -67,10 +67,10 @@
  \
 			if ((i + 1) != neighbours->size) \
 			{ \
-				dbg_clear(name, ", "); \
+				simdbg_clear(name, ", "); \
 			} \
 		} \
-		dbg_clear(name, ")\n"); \
+		simdbg_clear(name, ")\n"); \
 	} \
 
 #endif // SLP_NEIGHBOURDETAIL_H
