@@ -18,7 +18,7 @@ class ArgumentsCommon(object):
         parser.add_argument("-d", "--distance", type=float, default=4.5)
         parser.add_argument("-c", "--configuration", type=str, required=True, choices=Configuration.names())
 
-        parser.add_argument("-am", "--attacker-model", type=Attacker.eval_input)
+        parser.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
 
         if has_safety_period:
             parser.add_argument("-safety", "--safety-period", type=float, required=True)
