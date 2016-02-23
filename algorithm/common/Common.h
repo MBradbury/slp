@@ -23,4 +23,11 @@
 	({ __typeof__(a) _a = (a), _b = (b); \
 	   (_a == BOTTOM ? _b : (_b == BOTTOM ? _a : (_b < _a ? _b : _a))); })
 
+/*
+#define simdbg(...) dbg(__VA_ARGS__)
+#define simdbg_clear(...) dbg_clear(__VA_ARGS__)
+#define simdbgerror(...) dbgerror(__VA_ARGS__)
+#define simdbgerror_clear(...) dbgerror_clear(__VA_ARGS__)
+*/
+
 #endif // SLP_COMMON_H
