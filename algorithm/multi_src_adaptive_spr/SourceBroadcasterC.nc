@@ -242,7 +242,7 @@ implementation
 
 	uint32_t get_away_delay(void)
 	{
-		assert(SOURCE_PERIOD_MS != BOTTOM);
+		//assert(SOURCE_PERIOD_MS != BOTTOM);
 
 		return SOURCE_PERIOD_MS / 2;
 	}
