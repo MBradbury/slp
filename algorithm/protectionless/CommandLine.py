@@ -24,7 +24,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11, 15, 21, 25]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [1.0 * 2, 0.5 * 2, 0.25 * 2, 0.125 * 2]
 
     configurations = [
         #'SourceCorner',
@@ -41,15 +41,19 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSourceCentre',
         #'CircleSinkCentre',
 
-        #'Source2Corners',
-        #'Source4Corners',
-        #'Source2Edges',
-        #'Source4Edges',
-        #'Source2Corner',
-        #'SourceEdgeCorner',
+        # 2 sources
+        'Source2Corners',
+        'Source2Edges',
+        'Source2Corner',
+        'SourceEdgeCorner',
 
-        'Source3Corner',
-        'Source2Corner2OppositeCorner'
+        # 3 sources
+        #'Source3Corner',
+
+        # 4 sources
+        #'Source4Corners',
+        #'Source4Edges',        
+        #'Source2Corner2OppositeCorner'
 
         #'LineSinkCentre',
         #'SimpleTreeSinkEnd'
