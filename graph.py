@@ -15,8 +15,6 @@ if args.min_source_distance_heatmap:
 	configuration_names = Configuration.names()
 	configurations = [Configuration.create_specific(name, 11, 4.5) for name in Configuration.names()]
 
-	#print(configurations)
-
 	#Get rid of configurations that aren't grids
 	configurations = filter(lambda c: isinstance(c.topology, Grid), configurations)
 
@@ -28,7 +26,7 @@ if args.min_source_distance_heatmap:
 	grapher.nokey = True
 	grapher.xaxis_label = "X Coordinate"
 	grapher.yaxis_label = "Y Coordinate"
-	grapher.zaxis_label = "Minimum Source Distance (m)"
+	grapher.cb_label = "Minimum Source Distance (m)"
 
 	grapher.create(configurations)
 

@@ -15,7 +15,7 @@ class Grapher(GrapherBase):
 
         self.xaxis_label = ""
         self.yaxis_label = ""
-        self.zaxis_label = ""
+        self.cb_label = ""
 
         # Nice default of blue being cold and red being hot
         self.palette = "rgbformulae 22,13,10"
@@ -86,7 +86,7 @@ class Grapher(GrapherBase):
 
             graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
             graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
-            graph_p.write('set zlabel "{}" rotate by 90\n'.format(self.zaxis_label))
+            graph_p.write('set cblabel "{}" rotate by 90\n'.format(self.cb_label))
 
             if self.palette:
                 graph_p.write('set palette {}\n'.format(self.palette))
@@ -124,9 +124,6 @@ class Grapher(GrapherBase):
 
             graph_p.write('set size square\n')
 
-            graph_p.write('set pm3d map interpolate 4,4\n')
-            graph_p.write('set dgrid3d\n')
-
             # Craziness about to ensue!
             # (see: https://stackoverflow.com/questions/23559606/draw-a-line-over-dgrid3d-and-pm3d)
             # We cannot draw the points correctly with dgrid3d enabled
@@ -135,10 +132,13 @@ class Grapher(GrapherBase):
             # finally draw both the heatmap and points!
 
             graph_p.write('set table "map.grid"\n')
-            graph_p.write('splot "graph.dat" using 1:2:3 with pm3d\n')
+            graph_p.write('set dgrid3d\n')
+            graph_p.write('splot "graph.dat" using 1:2:3\n')
 
             graph_p.write('unset table\n')
             graph_p.write('unset dgrid3d\n')
+
+            graph_p.write('set pm3d map interpolate 4,4\n')
 
             graph_p.write('splot "map.grid" with pm3d, ' +
                           '"source_points.dat" using 1:2:(0.0) with points pointsize 2 linewidth 3 pointtype 1 linecolor rgb "black", ' +
