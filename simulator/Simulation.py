@@ -3,19 +3,20 @@ import os, timeit, struct, importlib, subprocess, sys
 
 from itertools import islice
 
-from simulator.TosVis import TosVis
+from simulator.Simulator import Simulator
 from simulator.Topology import topology_path
 
 from scipy.spatial.distance import euclidean
 
-class Simulation(TosVis):
-    def __init__(self, module_name, configuration, args):
+class Simulation(Simulator):
+    def __init__(self, module_name, configuration, args, load_nesc_variables=False):
 
         super(Simulation, self).__init__(
             module_name=module_name,
             node_locations=configuration.topology.nodes,
             wireless_range=args.distance,
-            seed=args.seed if args.seed is not None else self._secure_random()
+            seed=args.seed if args.seed is not None else self._secure_random(),
+            load_nesc_variables=load_nesc_variables
             )
 
         if hasattr(args, "safety_period"):
@@ -28,6 +29,7 @@ class Simulation(TosVis):
 
         if args.mode == "GUI" or args.verbose:
             self.tossim.addChannel("stdout", sys.stdout)
+            self.tossim.addChannel("stderr", sys.stderr)
             self.tossim.addChannel("slp-debug", sys.stdout)
 
         self.communication_model = args.communication_model

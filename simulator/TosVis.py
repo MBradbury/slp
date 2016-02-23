@@ -1,6 +1,7 @@
 import re
 
-from simulator.Simulator import Simulator, OutputCatcher
+from simulator.Simulator import OutputCatcher
+from simulator.Simulation import Simulation
 
 ###############################################
 class DebugAnalyzer:
@@ -63,34 +64,20 @@ class DebugAnalyzer:
         return None
 
 ###############################################
-class TosVis(Simulator):
+class GuiSimulation(Simulation):
     ####################
-    def __init__(self, module_name, node_locations, wireless_range, seed=None):
+    def __init__(self, module_name, configuration, args):
 
-        super(TosVis, self).__init__(
+        super(GuiSimulation, self).__init__(
             module_name=module_name,
-            node_locations=node_locations,
-            wireless_range=wireless_range,
-            seed=seed)
+            configuration=configuration,
+            args=args,
+            load_nesc_variables=True)
 
-        self._run_gui = False
-        self._node_label = None
-
-        self._debug_analyzer = None
         self.scene = None
 
         # Default factor to scale the node positions by
         self._node_position_scale_factor = 6
-
-    def is_run_gui(self):
-        return self._run_gui
-
-    def setup_gui(self):
-
-        if self._run_gui:
-            return
-
-        self._run_gui = True
 
         self._node_label = "SourceBroadcasterC.min_source_distance"
 
@@ -103,7 +90,7 @@ class TosVis(Simulator):
         dbg.register(self, 'Fake-Notification')
         dbg.register(self, 'Node-Change-Notification')
         self.add_output_processor(dbg)
-
+        
     def _adjust_location(self, loc):
         factor = self._node_position_scale_factor
         return (loc[0] * factor, loc[1] * factor)
@@ -115,7 +102,7 @@ class TosVis(Simulator):
     def _animate_leds(self, time, node_id, detail):
         (ledno, state) = detail
         (x, y) = self.node_location(node_id)
-        shape_id = '{}:{}'.format(node_id, ledno)
+        shape_id = 'leds:{}:{}'.format(node_id, ledno)
 
         if state == 0:
             self.scene.execute(time, 'delshape("%s")' % shape_id)
@@ -127,9 +114,12 @@ class TosVis(Simulator):
         elif ledno == 1:
             x, y = x, y+5
             color = '0,.8,0'
-        else:
+        elif ledno == 2:
             x, y = x-5, y+5
             color = '0,0,1'
+        else:
+            raise RuntimeError("Unknown led number {}".format(ledno))
+
         options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
         self.scene.execute(time, 'circle({},{},2,ident="{}",{})'.format(x, y, shape_id, options))
 
@@ -195,30 +185,29 @@ class TosVis(Simulator):
 
     ####################
     def _pre_run(self):
-        super(TosVis, self)._pre_run()
+        super(GuiSimulation, self)._pre_run()
 
-        if self._run_gui:
-            from simulator.topovis.TopoVis import Scene
-            from simulator.topovis.TkPlotter import Plotter
+        from simulator.topovis.TopoVis import Scene
+        from simulator.topovis.TkPlotter import Plotter
 
-            time = self.sim_time()
+        time = self.sim_time()
 
-            # Setup an animating canvas
-            self.scene = Scene(timescale=1)
-            self.scene.addPlotter(Plotter())
+        # Setup an animating canvas
+        self.scene = Scene(timescale=1)
+        self.scene.addPlotter(Plotter())
 
-            # set line style used for neighbour relationship
-            self.scene.execute(time, 'linestyle(1,color=(.7,.7,.7))')
+        # set line style used for neighbour relationship
+        self.scene.execute(time, 'linestyle(1,color=(.7,.7,.7))')
 
-            # draw nodes on animating canvas
-            for node in self.nodes:
-                self.scene.execute(time,
-                    'node({},{},{})'.format(node.nid, *self._adjust_location(node.location)))
+        # draw nodes on animating canvas
+        for node in self.nodes:
+            self.scene.execute(time,
+                'node({},{},{})'.format(node.nid, *self._adjust_location(node.location)))
 
     def _during_run(self, event_count):
-        super(TosVis, self)._during_run(event_count)
+        super(GuiSimulation, self)._during_run(event_count)
 
-        if self._run_gui and event_count % 500 == 0 and self._node_label is not None:
+        if event_count % 250 == 0 and self._node_label is not None:
             for node in self.nodes:
                 time = self.sim_time()
 

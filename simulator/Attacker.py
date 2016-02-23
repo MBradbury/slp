@@ -118,7 +118,7 @@ class Attacker(object):
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
-        if not self._sim.is_run_gui():
+        if not hasattr(self._sim, "scene"):
             return
 
         (x, y) = self._sim.node_location(node_id)

@@ -4,7 +4,6 @@ from __future__ import print_function
 import sys, importlib, traceback, copy
 
 import simulator.Configuration as Configuration
-from simulator.Simulation import Simulation
 
 module = sys.argv[1]
 
@@ -15,6 +14,11 @@ a.parse(sys.argv[2:])
 
 configuration = Configuration.create(a.args.configuration, a.args)
 
+if a.args.mode == "GUI":
+    from simulator.TosVis import GuiSimulation as Simulation
+else:
+    from simulator.Simulation import Simulation
+
 with Simulation(module, configuration, a.args) as sim:
 
     # Create a copy of the provided attacker model
@@ -24,9 +28,6 @@ with Simulation(module, configuration, a.args) as sim:
     attacker.setup(sim, configuration.sink_id)
 
     sim.add_attacker(attacker)
-
-    if a.args.mode == "GUI":
-        sim.setup_gui()
 
     try:
         sim.run()
