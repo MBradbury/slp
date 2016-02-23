@@ -62,7 +62,7 @@ implementation
 
 		if (get_periods_active(TOS_NODE_ID, &period, &length) && current_index < length)
 		{
-			dbgverbose("stdout", "Starting a detection timer for %u.\n", period[current_index].from);
+			simdbgverbose("stdout", "Starting a detection timer for %u.\n", period[current_index].from);
 
 			call DetectionTimer.startOneShotAt(period[current_index].from, 0);
 		}
@@ -96,7 +96,7 @@ implementation
 		const slp_period_t* period;
 		uint32_t length;
 
-		dbgverbose("stdout", "Detected an object.\n");
+		simdbgverbose("stdout", "Detected an object.\n");
 
 		if (get_periods_active(TOS_NODE_ID, &period, &length) && current_index < length)
 		{
@@ -106,7 +106,7 @@ implementation
 			{
 				const uint32_t expire_at = period[current_index].to - period[current_index].from;
 
-				dbgverbose("stdout", "Starting an expiration timer in %ums.\n", expire_at);
+				simdbgverbose("stdout", "Starting an expiration timer in %ums.\n", expire_at);
 
 				call ExpireTimer.startOneShot(expire_at);
 			}
@@ -117,7 +117,7 @@ implementation
 
 	event void ExpireTimer.fired()
 	{
-		dbgverbose("stdout", "Stopped detecting an object.\n");
+		simdbgverbose("stdout", "Stopped detecting an object.\n");
 
 		call ObjectDetector.stop();
 

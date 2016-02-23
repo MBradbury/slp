@@ -68,12 +68,12 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			dbg("Node-Change-Notification", "The node has become a Sink\n");
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -83,13 +83,13 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 		}
 		else
 		{
-			dbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -97,7 +97,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
@@ -105,8 +105,8 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Source\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 
@@ -122,8 +122,8 @@ implementation
 
 			type = NormalNode;
 
-			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Normal\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
@@ -133,7 +133,7 @@ implementation
 	{
 		NormalMessage message;
 
-		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
@@ -157,7 +157,7 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			dbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
+			simdbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;

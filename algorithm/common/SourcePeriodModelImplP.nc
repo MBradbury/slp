@@ -26,12 +26,12 @@ implementation
 
 		uint32_t period = -1;
 
-		dbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
+		simdbgverbose("stdout", "Called get_source_period current_time=%u #times=%u\n",
 			current_time, times_length);
 
 		for (i = 0; i != times_length; ++i)
 		{
-			//dbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
+			//simdbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
 			//	i, current_time, times[i].end, times[i].period);
 
 			if (current_time < times[i].end)
@@ -46,7 +46,7 @@ implementation
 			period = else_time;
 		}
 
-		dbgverbose("stdout", "Providing source period %u at time=%u\n",
+		simdbgverbose("stdout", "Providing source period %u at time=%u\n",
 			period, current_time);
 		return period;
 	}

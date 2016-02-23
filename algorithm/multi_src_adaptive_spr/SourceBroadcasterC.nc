@@ -69,19 +69,19 @@ static void distance_print(const char* name, size_t n, am_addr_t address, distan
 {
 	uint16_t i;
 
-	dbg_clear(name, "[%u] => addr=%u dsrc={", n, address);
+	simdbg_clear(name, "[%u] => addr=%u dsrc={", n, address);
 
 	for (i = 0; i != contents->count; ++i)
 	{
-		dbg_clear(name, "%u: %d", contents->node[i], contents->src_distance[i]);
+		simdbg_clear(name, "%u: %d", contents->node[i], contents->src_distance[i]);
 
 		if (i + 1 != contents->count)
 		{
-			dbg_clear(name, ", ");
+			simdbg_clear(name, ", ");
 		}
 	}
 
-	dbg_clear(name, "} dsink=%d", contents->sink_distance);
+	simdbg_clear(name, "} dsink=%d", contents->sink_distance);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
@@ -314,7 +314,7 @@ implementation
 	{
 		const uint32_t distance = get_dist_to_pull_back();
 
-		//dbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
+		//simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
 		//	distance, source_distance, sink_distance, min_sink_source_distance);
 
 		return distance;
@@ -329,7 +329,7 @@ implementation
 			duration -= get_away_delay();
 		}
 
-		dbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
 		return duration;
 	}
@@ -344,7 +344,7 @@ implementation
 
 		const uint32_t result_period = (uint32_t)ceil(period / (est_num_sources * normal_rcv_ratio));
 
-		dbgverbose("stdout", "get_tfs_period=%u normrcv=%f\n", result_period, normal_rcv_ratio);
+		simdbgverbose("stdout", "get_tfs_period=%u normrcv=%f\n", result_period, normal_rcv_ratio);
 
 		return result_period;
 	}
@@ -358,7 +358,7 @@ implementation
 
 		const uint32_t result_period = (uint32_t)ceil((SOURCE_PERIOD_MS * fake_rcv_ratio_at_src) / (est_num_sources * normal_rcv_ratio));
 
-		dbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f) normrcv=%f\n",
+		simdbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f) normrcv=%f\n",
 			result_period, counter, seq_inc, fake_rcv_ratio_at_src, normal_rcv_ratio);
 
 		return result_period;
@@ -460,7 +460,7 @@ implementation
 
 		if (local_neighbours.size == 0 && min_source_distance == BOTTOM)
 		{
-			dbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
+			simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
 				neighbours.size); 
 		}
 		else if (local_neighbours.size == 0 && neighbours.size != 0)
@@ -468,8 +468,8 @@ implementation
 			// There are neighbours who exist that are closer to the source than this node.
 			// We should consider moving to one of these neighbours if we are still close to the sink.
 
-			dbg("stdout", "Considering allowing fake sources to move towards the source\n");
-			dbg("stdout", "sink-distance=%d <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
+			simdbg("stdout", "Considering allowing fake sources to move towards the source\n");
+			simdbg("stdout", "sink-distance=%d <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
 
 			if (node_within_towards_source_limit())
 			{
@@ -480,8 +480,8 @@ implementation
 					result.drw_direction = DirectedWalkTowardsSource;
 				}
 
-				dbg("stdout", "Found %d neighbours with max_sink_distance=%d\n", local_neighbours.size, max_sink_distance);
-				dbg("stdout", "drw-direction=%d\n", result.drw_direction);
+				simdbg("stdout", "Found %d neighbours with max_sink_distance=%d\n", local_neighbours.size, max_sink_distance);
+				simdbg("stdout", "drw-direction=%d\n", result.drw_direction);
 			}
 		}
 		else
@@ -502,7 +502,7 @@ implementation
 			print_distance_neighbours("stdout", &local_neighbours);
 //#endif
 
-			dbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
+			simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
 				result.target, neighbour_index, rnd, local_neighbours.size);
 		}
 
@@ -539,7 +539,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		dbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
@@ -552,7 +552,7 @@ implementation
 		{
 			type = SinkNode;
 			sink_distance = 0;
-			dbg("Node-Change-Notification", "The node has become a Sink\n");
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -562,13 +562,13 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			dbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 		}
 		else
 		{
-			dbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -576,7 +576,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		dbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
@@ -584,8 +584,8 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			dbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Source\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 			call SourceDistances.put(TOS_NODE_ID, 0);
@@ -603,8 +603,8 @@ implementation
 			type = NormalNode;
 			call SourceDistances.remove(TOS_NODE_ID);
 
-			dbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			dbg("Node-Change-Notification", "The node has become a Normal\n");
+			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
@@ -625,7 +625,7 @@ implementation
 
 		call FakeMessageGenerator.stop();
 
-		dbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
+		simdbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType fake_type)
@@ -643,7 +643,7 @@ implementation
 
 		type = fake_type;
 
-		dbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
+		simdbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
 
 		if (type == PermFakeNode)
 		{
@@ -667,7 +667,7 @@ implementation
 	{
 		NormalMessage message;
 
-		dbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -708,11 +708,11 @@ implementation
 		uint16_t i;
 		bool result;
 
-		dbgverbose("stdout", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("stdout", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
 		if (busy)
 		{
-			dbgverbose("stdout", "Device is busy rescheduling beaconing\n");
+			simdbgverbose("stdout", "Device is busy rescheduling beaconing\n");
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 			return;
 		}
@@ -734,7 +734,7 @@ implementation
 		result = send_Beacon_message(&message, AM_BROADCAST_ADDR);
 		if (!result)
 		{
-			dbgverbose("stdout", "Send failed rescheduling beaconing\n");
+			simdbgverbose("stdout", "Send failed rescheduling beaconing\n");
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
 	}
@@ -1126,7 +1126,7 @@ implementation
 		}
 		else
 		{
-			dbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
+			simdbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
 			return 0;
 		}
 	}
@@ -1146,7 +1146,7 @@ implementation
 		ChooseMessage message = *original_message;
 		const fake_walk_result_t result = fake_walk_target(original_message->drw_direction);
 
-		dbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u towards_source=%u.\n",
+		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u towards_source=%u.\n",
 			result.target, result.drw_direction);
 
 		// When finished sending fake messages from a TFS
@@ -1184,7 +1184,7 @@ implementation
 			sequence_number_increment(&fake_sequence_counter);
 		}
 
-		dbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
+		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
 		switch (error)
 		{

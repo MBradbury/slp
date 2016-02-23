@@ -1,11 +1,5 @@
 #include "FakeMessage.h"
 
-#define DEBUG_PREFIX "%s: "
-#define DEBUG_ARGS sim_time_string()
-
-#define mydbg(type, message, ...) dbg(type, DEBUG_PREFIX message, DEBUG_ARGS, ##__VA_ARGS__)
-#define myerr(type, message, ...) dbgerror(type, DEBUG_PREFIX message, DEBUG_ARGS, ##__VA_ARGS__)
-
 module FakeMessageGeneratorImplP
 {
 	provides
@@ -49,7 +43,7 @@ implementation
 
 		call DurationTimer.startOneShot(duration_ms);
 
-		mydbg("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %u ms.\n", duration_ms);
+		simdbgverbose("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %u ms.\n", duration_ms);
 	}
 
 	command void FakeMessageGenerator.stop()
@@ -80,7 +74,7 @@ implementation
 			FakeMessage* const tosend = (FakeMessage*)void_tosend;
 			if (tosend == NULL)
 			{
-				myerr("FakeMessageGeneratorImplP", "Packet has no payload, or payload is too large.\n");
+				simdbgerror("FakeMessageGeneratorImplP", "Packet has no payload, or payload is too large.\n");
 				return FALSE;
 			}
 
@@ -100,7 +94,7 @@ implementation
 		{
 			signal FakeMessageGenerator.sent(EBUSY, &message);
 
-			myerr("SourceBroadcasterC", "BroadcastAway busy, not forwarding Away message.\n");
+			simdbgerror("SourceBroadcasterC", "BroadcastAway busy, not forwarding Away message.\n");
 			return FALSE;
 		}
 	}
@@ -109,7 +103,7 @@ implementation
 	{
 		uint32_t period;
 
-		mydbg("FakeMessageGeneratorImplP", "SendFakeTimer fired.\n");
+		simdbgverbose("FakeMessageGeneratorImplP", "SendFakeTimer fired.\n");
 
 		send_fake_message();
 
@@ -123,7 +117,7 @@ implementation
 
 	event void FakeSend.sendDone(message_t* msg, error_t error)
 	{
-		mydbg("FakeMessageGeneratorImplP", "FakeSend sendDone with status %i.\n", error);
+		simdbgverbose("FakeMessageGeneratorImplP", "FakeSend sendDone with status %i.\n", error);
 
 		if (&packet == msg)
 		{
@@ -133,7 +127,7 @@ implementation
 
 	event void DurationTimer.fired()
 	{
-		mydbg("FakeMessageGeneratorImplP", "DurationTimer fired.\n");
+		simdbgverbose("FakeMessageGeneratorImplP", "DurationTimer fired.\n");
 
 		call FakeMessageGenerator.expireDuration();
 	}
