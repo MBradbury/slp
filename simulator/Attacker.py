@@ -138,7 +138,7 @@ class Attacker(object):
     def _process_line(self, line):
         (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = line.split(',')
 
-        time = self._sim.ticks_to_seconds(time)
+        time = self._sim.ticks_to_seconds(float(time))
         node_id = int(node_id)
         prox_from_id = int(prox_from_id)
         ult_from_id = int(ult_from_id)

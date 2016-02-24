@@ -1,8 +1,6 @@
 
 import re
 
-from collections import Counter
-
 from simulator.Simulator import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
@@ -24,25 +22,6 @@ class Metrics(MetricsCommon):
         self.fake_to_normal = 0
 
         self.source_change_detected = {}
-
-    def process_RCV(self, line):
-        (kind, time, node_id, neighbour_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
-
-        time = float(time) / self.sim.tossim.ticksPerSecond()
-        node_id = int(node_id)
-        neighbour_source_id = int(neighbour_source_id)
-        ultimate_source_id = int(ultimate_source_id)
-        sequence_number = int(sequence_number)
-        hop_count = int(hop_count)
-
-        if kind not in self.received:
-            self.received[kind] = Counter()
-
-        self.received[kind][node_id] += 1
-
-        if node_id in self.sink_ids and kind == "Normal":
-            self.normal_latency[sequence_number] = time - self.normal_sent_time[sequence_number]
-            self.normal_hop_count.append(hop_count)
 
     def process_FAKE_NOTIFICATION(self, line):
         match = self.WHOLE_RE.match(line)
@@ -68,7 +47,7 @@ class Metrics(MetricsCommon):
     def process_SOURCE_CHANGE_DETECT(self, line):
         (time, node_id, previous_source_id, current_source_id) = line.split(',')
 
-        time = float(time) / self.sim.tossim.ticksPerSecond()
+        time = self.sim.ticks_to_seconds(time)
         node_id = int(node_id)
         previous_source_id = int(previous_source_id)
         current_source_id = int(current_source_id)
