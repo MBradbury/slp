@@ -16,7 +16,6 @@ _messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose'}
 
 class Attacker(object):
     def __init__(self):
-        super(Attacker, self).__init__()
         self._sim = None
         self.position = None
         self._has_found_source = None
@@ -58,10 +57,22 @@ class Attacker(object):
 
     def process(self, line):
         # Don't want to move if the source has been found
-        if self.found_source():
+        if self._has_found_source:
             return
 
-        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._process_line(line)
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = line.split(',')
+
+        node_id = int(node_id)
+
+        # Doesn't want to process this message if we are not on the correct node,
+        # or if this is a message the attacker knows to ignore
+        if self.position != node_id or msg_type in _messages_to_ignore:
+            return
+
+        time = self._sim.ticks_to_seconds(float(time))
+        prox_from_id = int(prox_from_id)
+        ult_from_id = int(ult_from_id)
+        sequence_number = int(sequence_number)
 
         # We get called any time a message is received anywhere,
         # so first of all filter out messages being received by any node
@@ -71,9 +82,7 @@ class Attacker(object):
         # to identify as protocol support messages. The attacker does not move
         # in response to these messages.
 
-        if self.position == node_id and \
-           msg_type not in _messages_to_ignore and \
-           self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        if self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
             self._move(prox_from_id)
 
@@ -134,17 +143,6 @@ class Attacker(object):
 
         self._sim.scene.execute(time, 'delshape("{}")'.format(shape_id))
         self._sim.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
-
-    def _process_line(self, line):
-        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = line.split(',')
-
-        time = self._sim.ticks_to_seconds(float(time))
-        node_id = int(node_id)
-        prox_from_id = int(prox_from_id)
-        ult_from_id = int(ult_from_id)
-        sequence_number = int(sequence_number)
-
-        return (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
     def __str__(self):
         return type(self).__name__ + "()"
