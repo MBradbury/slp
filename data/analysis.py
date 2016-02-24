@@ -156,12 +156,22 @@ class Analyse(object):
 
             elif name == "source_period":
                 # Warning: This will only work for the FixedPeriodModel
+                # All other models have variable source periods, so we cannot calculate this
                 return float(SourcePeriodModel.eval_input(self.opts["source_period"]))
 
             elif name == "source_rate":
-                # Warning: This will only work for the FixedPeriodModel
                 source_period = self._get_from_opts_or_values("source_period", values)
                 return 1.0 / source_period
+
+            elif name == "source_period_per_num_sources":
+                source_period = self._get_from_opts_or_values("source_period", values)
+                num_sources = self._get_from_opts_or_values("num_sources", values)
+                return source_period / num_sources
+
+            elif name == "source_rate_per_num_sources":
+                source_rate = self._get_from_opts_or_values("source_rate", values)
+                num_sources = self._get_from_opts_or_values("num_sources", values)
+                return source_rate / num_sources
 
             else:
                 return float(self.opts[name])
