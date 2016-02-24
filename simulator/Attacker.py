@@ -116,6 +116,9 @@ class Attacker(object):
         self.position = node_id
         self._has_found_source = self.found_source_slow()
 
+        # Update the simulator, informing them that an attacker has found the source
+        self._sim.attacker_found_source |= self._has_found_source
+
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
         if not hasattr(self._sim, "scene"):

@@ -46,6 +46,8 @@ class Simulation(Simulator):
 
         self.start_time = None
 
+        self.attacker_found_source = False
+
     def communications_model_path(self):
         """The path to the communications model, specified in the algorithm arguments."""
         return os.path.join('models', 'communication', self.communication_model + '.txt')
@@ -153,10 +155,10 @@ class Simulation(Simulator):
         self.attackers.append(attacker)
 
     def continue_predicate(self):
-        return not self.any_attacker_found_source() and (self.safety_period is None or self.sim_time() < self.safety_period)
+        return not self.attacker_found_source and (self.safety_period is None or self.sim_time() < self.safety_period)
 
     def any_attacker_found_source(self):
-        return any(attacker.found_source() for attacker in self.attackers)
+        return self.attacker_found_source
 
     @staticmethod
     def _secure_random():
