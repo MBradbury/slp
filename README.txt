@@ -33,6 +33,24 @@ source ~/tinyos.env
 cd slp-algorithms-tinyos/tinyos/support/sdk/java/net/tinyos/sim
 javac LinkLayerModel.java
 
+==Updating from upstream==
+
+Ideally you will have forked the slp-algorithms-tinyos repository.
+You will want to pull updates from it by doing the following:
+
+Modify your slp-algorithms-tinyos/.hg/hgrc to contain the following line under default:
+"upstream = ssh://hg@bitbucket.org/MBradbury/sllp-algorithms-tinyos"
+
+If you are not using SSH keys, then you should use the following:
+"upstream = https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos"
+
+You can then update from the upstream fork by doing the following:
+hg pull -u upstream
+
+You can update the tinyos repository by doing the following:
+git pull https://github.com/MBradbury/tinyos-main bradbury_2_1_2
+
+
 =Getting results repositories=
 
 Every algorithm should have an individual repository to store its results in.
