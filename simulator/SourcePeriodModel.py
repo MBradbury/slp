@@ -11,6 +11,7 @@ class PeriodModel(object):
         self._validate_times()
 
     def _validate_times(self):
+        # TODO: Check that the times do not overlap
         pass
 
     def fastest(self):
@@ -47,6 +48,7 @@ class PeriodModel(object):
         return build_arguments
 
     def simple_str(self):
+        """Return the simplest representation of this model."""
         return repr(self)
 
 class FixedPeriodModel(PeriodModel):
@@ -66,6 +68,7 @@ class FixedPeriodModel(PeriodModel):
         return self.period
 
     def simple_str(self):
+        """Overloaded this method as a number also represents a fixed source period model."""
         return str(self.period)
 
     def __repr__(self):
