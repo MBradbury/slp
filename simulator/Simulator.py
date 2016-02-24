@@ -36,7 +36,7 @@ class OutputCatcher(object):
         self._write = None
 
 class Simulator(object):
-    def __init__(self, module_name, node_locations, wireless_range, seed, load_nesc_variables=False):
+    def __init__(self, module_name, node_locations, wireless_range, latest_node_start_time, seed, load_nesc_variables=False):
         super(Simulator, self).__init__()
 
         tossim_module = importlib.import_module('{}.TOSSIM'.format(module_name))
@@ -74,6 +74,7 @@ class Simulator(object):
         self.create_nodes(node_locations)
 
         # Randomly set the boot times for all nodes
+        self.latest_node_start_time = latest_node_start_time
         for n in self.nodes:
             self.set_boot_time(n)
 
@@ -140,9 +141,10 @@ class Simulator(object):
     def set_boot_time(self, node):
         """
         Sets the boot time of the given node to be at a
-        random time between 0 and 1 seconds.
+        random time between 0 and self.latest_node_start_time seconds.
         """
-        node.tossim_node.bootAtTime(int(random.random() * self.tossim.ticksPerSecond()))
+        start_time = int(random.uniform(0, self.latest_node_start_time) * self.tossim.ticksPerSecond())
+        node.tossim_node.bootAtTime(start_time)
 
     def move_node(self, node, location, time=None):
         '''

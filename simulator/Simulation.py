@@ -15,6 +15,7 @@ class Simulation(Simulator):
             module_name=module_name,
             node_locations=configuration.topology.nodes,
             wireless_range=args.distance,
+            latest_node_start_time=args.latest_node_start_time,
             seed=args.seed if args.seed is not None else self._secure_random(),
             load_nesc_variables=load_nesc_variables
             )
