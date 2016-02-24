@@ -79,6 +79,10 @@ class Simulator(object):
             self.set_boot_time(n)
 
         self._read_poller = select.poll()
+
+        # Cache the number of ticks per second.
+        # This value should not change throughout the simulation's execution
+        self._ticks_per_second = self.tossim.ticksPerSecond()
         
 
     def __enter__(self):
@@ -107,11 +111,11 @@ class Simulator(object):
 
     def ticks_to_seconds(self, ticks):
         """Converts simulation time ticks into seconds"""
-        return float(ticks) / self.tossim.ticksPerSecond()
+        return ticks / self._ticks_per_second
 
     def sim_time(self):
         """Returns the current simulation time in seconds"""
-        return float(self.tossim.time()) / self.tossim.ticksPerSecond()
+        return self.tossim.time() / self._ticks_per_second
 
     def create_nodes(self, node_locations):
         """Creates nodes and initialize their boot times"""

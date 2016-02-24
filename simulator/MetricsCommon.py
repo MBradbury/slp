@@ -2,7 +2,7 @@ from __future__ import print_function, division
 
 from simulator.Simulator import OutputCatcher
 
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 import re, sys
 
 import numpy as np
@@ -22,8 +22,8 @@ class MetricsCommon(object):
         self.source_ids = set(configuration.source_ids)
         self.sink_ids = {configuration.sink_id}
 
-        self.sent = {}
-        self.received = {}
+        self.sent = defaultdict(Counter)
+        self.received = defaultdict(Counter)
 
         self.normal_sent_time = {}
         self.normal_latency = {}
@@ -32,8 +32,8 @@ class MetricsCommon(object):
         self.wall_time = 0
         self.event_count = 0
 
-        self.became_source_times = {}
-        self.became_normal_after_source_times = {}
+        self.became_source_times = defaultdict(list)
+        self.became_normal_after_source_times = defaultdict(list)
 
         # Normal nodes becoming the source, or source nodes becoming normal
         self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
@@ -62,12 +62,9 @@ class MetricsCommon(object):
         (kind, time, node_id, status, sequence_number) = line.split(',')
 
         if status == "success":
-            time = self.sim.ticks_to_seconds(time)
+            time = self.sim.ticks_to_seconds(float(time))
             node_id = int(node_id)
             sequence_number = int(sequence_number)
-
-            if kind not in self.sent:
-                self.sent[kind] = Counter()
 
             self.sent[kind][node_id] += 1
 
@@ -77,15 +74,12 @@ class MetricsCommon(object):
     def process_RCV(self, line):
         (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
 
-        time = self.sim.ticks_to_seconds(time)
+        time = self.sim.ticks_to_seconds(float(time))
         node_id = int(node_id)
         #proximate_source_id = int(proximate_source_id)
         ultimate_source_id = int(ultimate_source_id)
         sequence_number = int(sequence_number)
         hop_count = int(hop_count)
-
-        if kind not in self.received:
-            self.received[kind] = Counter()
 
         self.received[kind][node_id] += 1
 
@@ -121,12 +115,12 @@ class MetricsCommon(object):
         if state == "set":
             self.source_ids.add(node_id)
 
-            self.became_source_times.setdefault(node_id, []).append(time)
+            self.became_source_times[node_id].append(time)
 
         elif state == "unset":
             self.source_ids.remove(node_id)
 
-            self.became_normal_after_source_times.setdefault(node_id, []).append(time)
+            self.became_normal_after_source_times[node_id].append(time)
 
         else:
             raise RuntimeError("Unknown state {}".format(state))
