@@ -187,4 +187,4 @@ This can be done in two ways:
 
 1) By specifying "notify=<email address>" when submitting your jobs.
 
-2) By editing your .bashrc to contain "export SLP_NOTIFY_EMAILS=<email address>"
+2) By editing your ~/.bashrc to contain "export SLP_NOTIFY_EMAILS=<email address>"

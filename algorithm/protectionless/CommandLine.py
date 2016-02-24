@@ -24,7 +24,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11, 15, 21, 25]
 
-    source_periods = [1.0 * 2, 0.5 * 2, 0.25 * 2, 0.125 * 2]
+    source_periods = [1.0 * 3, 0.5 * 3, 0.25 * 3, 0.125 * 3]
 
     configurations = [
         #'SourceCorner',
@@ -42,13 +42,13 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSinkCentre',
 
         # 2 sources
-        'Source2Corners',
-        'Source2Edges',
-        'Source2Corner',
-        'SourceEdgeCorner',
+        #'Source2Corners',
+        #'Source2Edges',
+        #'Source2Corner',
+        #'SourceEdgeCorner',
 
         # 3 sources
-        #'Source3Corner',
+        'Source3Corner',
 
         # 4 sources
         #'Source4Corners',
@@ -108,10 +108,11 @@ class CLI(CommandLineCommon.CLI):
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation="NumSources")
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-            name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
+            name = '{}-v-configuration'.format(yaxis.replace(" ", "_"))
 
             yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
 

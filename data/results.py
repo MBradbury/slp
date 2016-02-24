@@ -5,10 +5,10 @@ import csv, math, ast
 from functools import partial
 import numpy
 
-from simulator import SourcePeriodModel
+from simulator import Configuration, SourcePeriodModel
 
 class Results(object):
-    def __init__(self, result_file, parameters, results):
+    def __init__(self, result_file, parameters, results, source_period_normalisation=None):
         self.parameter_names = list(parameters)
         self.result_names = list(results)
 
@@ -21,9 +21,9 @@ class Results(object):
         self.communication_models = set()
         self.distances = set()
 
-        self._read_results(result_file)
+        self._read_results(result_file, source_period_normalisation)
 
-    def _read_results(self, result_file):
+    def _read_results(self, result_file, source_period_normalisation):
         with open(result_file, 'r') as f:
 
             seen_first = False
@@ -50,6 +50,15 @@ class Results(object):
                     communication_model = get_value('communication model')
                     distance = get_value('distance')
 
+                    if source_period_normalisation is None:
+                        source_period = src_period
+                    elif source_period_normalisation == "NumSources":
+                        # Get the source period normalised wrt the number of sources
+                        configuration = Configuration.create_specific(config, int(size), float(distance))
+                        source_period = str(float(src_period) / len(configuration.source_ids))
+                    else:
+                        raise RuntimeError("Unknown source period normalisation strategy '{}'".format(source_period_normalisation))
+
                     table_key = (size, config, attacker_model, noise_model, communication_model, distance)
 
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
@@ -62,7 +71,7 @@ class Results(object):
                     self.communication_models.add(communication_model)
                     self.distances.add(distance)
 
-                    self.data.setdefault(table_key, {}).setdefault(src_period, {})[params] = results
+                    self.data.setdefault(table_key, {}).setdefault(source_period, {})[params] = results
 
                 else:
                     seen_first = True
