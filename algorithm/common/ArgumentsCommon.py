@@ -20,7 +20,7 @@ class ArgumentsCommon(object):
 
         parser.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
 
-        parser.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0)
+        parser.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0, help="Used to specify the latest possible start time. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
 
         if has_safety_period:
             parser.add_argument("-safety", "--safety-period", type=float, required=True)
@@ -28,7 +28,7 @@ class ArgumentsCommon(object):
         parser.add_argument("--job-size", type=int, default=1)
         parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
 
-        parser.add_argument("--job-id", type=int, default=None, help="Used to pass the array id when this job has been submitted as a job array to the cluster")
+        parser.add_argument("--job-id", type=int, default=None, help="Used to pass the array id when this job has been submitted as a job array to the cluster.")
 
         parser.add_argument("-v", "--verbose", action="store_true")
 
