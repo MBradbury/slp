@@ -34,11 +34,8 @@ class Attacker(object):
         out.register(self._sim, 'Attacker-RCV')
         self._sim.add_output_processor(out)
 
-        self.position = None
-
-        self._has_found_source = False
-
-        self._move(start_node_id)
+        self.position = start_node_id
+        self._has_found_source = self.found_source_slow()
         self.moves = 0
 
         self.steps_towards = {source: 0 for source in self._source_ids()}
@@ -47,7 +44,7 @@ class Attacker(object):
         self.min_source_distance = {source: self._sim.node_distance(start_node_id, source) for source in self._source_ids()}
 
     def _source_ids(self):
-        return self._sim.metrics.configuration.source_ids
+        return self._sim.metrics.source_ids
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         raise NotImplementedError()
@@ -96,7 +93,7 @@ class Attacker(object):
         # We cannot attach ourselves to the same output catcher more than
         # once, so we have to rely on metrics grabbing and updating
         # the information about which nodes are sources.
-        return self.position in self._sim.metrics.source_ids
+        return self.position in self._source_ids()
 
     def found_source(self):
         """Checks if the source has been found, using a cached variable."""
@@ -105,22 +102,18 @@ class Attacker(object):
     def _move(self, node_id):
         """Moved the source to a new location."""
 
-        # Record moves towards or away from every source present
-        # Do not do this for the change when the position is being set
-        if self.position is not None:
-            for source in self._source_ids():
-                new_distance = self._sim.node_distance(source, node_id)
-                old_distance = self._sim.node_distance(source, self.position)
+        self.moves += 1
 
-                if new_distance > old_distance:
-                    self.steps_away[source] += 1
-                elif new_distance < old_distance:
-                    self.steps_towards[source] += 1
+        for source in self._source_ids():
+            new_distance = self._sim.node_distance(source, node_id)
+            old_distance = self._sim.node_distance(source, self.position)
 
-                self.min_source_distance[source] = min(self.min_source_distance[source], new_distance)
+            if new_distance > old_distance:
+                self.steps_away[source] += 1
+            elif new_distance < old_distance:
+                self.steps_towards[source] += 1
 
-        if self.position is not None:
-            self.moves += 1
+            self.min_source_distance[source] = min(self.min_source_distance[source], new_distance)
 
         self.position = node_id
         self._has_found_source = self.found_source_slow()
