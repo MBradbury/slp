@@ -89,6 +89,7 @@ class CLI(object):
         skip_complete = 'no-skip-complete' not in args
 
         if 'build' in args:
+            print("Removing existing cluster directory and creating a new one")
             recreate_dirtree(cluster_directory)
             touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
             touch("{}/__init__.py".format(cluster_directory))
