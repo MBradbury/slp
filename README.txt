@@ -39,13 +39,19 @@ Ideally you will have forked the slp-algorithms-tinyos repository.
 You will want to pull updates from it by doing the following:
 
 Modify your slp-algorithms-tinyos/.hg/hgrc to contain the following line under default:
-"upstream = ssh://hg@bitbucket.org/MBradbury/sllp-algorithms-tinyos"
+"upstream = ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos"
 
 If you are not using SSH keys, then you should use the following:
 "upstream = https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos"
 
 You can then update from the upstream fork by doing the following:
 hg pull -u upstream
+
+You may need to perform a merge:
+hg commit -m "Merge"
+
+You will need to push what you have pulled to your fork:
+hg push
 
 You can update the tinyos repository by doing the following:
 git pull https://github.com/MBradbury/tinyos-main bradbury_2_1_2
