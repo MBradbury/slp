@@ -6,6 +6,14 @@ from data.table import fake_result
 from data.graph import heatmap
 from data.util import recreate_dirtree, touch
 
+class NoArgumentsFound(RuntimeError):
+    def __init__(self, name):
+        super(NoArgumentsFound, self).__init__("No arguments were found for {}".format(name))
+
+class TooManyArgumentsFound(RuntimeError):
+    def __init__(self, name):
+        super(TooManyArgumentsFound, self).__init__("Only one value is expected for {}".format(name))
+
 class CLI(object):
 
     # Parameters that all simulations must have
@@ -36,8 +44,10 @@ class CLI(object):
         found_args = CLI._get_args_for(args, name)
         if len(found_args) == 1:
             return found_args[0]
+        if len(found_args) == 0:
+            raise NoArgumentsFound(name)
         else:
-            raise RuntimeError("Only one value is expected for {}".format(name))
+            raise TooManyArgumentsFound(name)
 
     @staticmethod
     def _create_table(name, result_table, param_filter=lambda x: True):
@@ -57,10 +67,16 @@ class CLI(object):
         from data.run.driver import local as LocalDriver
         driver = LocalDriver.Runner()
 
-        thread_count = self._get_arg_for(args, 'thread_count')
-        driver.job_thread_count = int(thread_count)
+        try:
+            thread_count = self._get_arg_for(args, 'thread_count')
+            driver.job_thread_count = int(thread_count)
+        except NoArgumentsFound:
+            # Use default
+            driver.job_thread_count = None
 
-        self._execute_runner(driver, self.algorithm_module.results_path, skip_completed_simulations=True)
+        skip_complete = 'no-skip-complete' not in args
+
+        self._execute_runner(driver, self.algorithm_module.results_path, skip_completed_simulations=skip_complete)
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
