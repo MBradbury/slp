@@ -25,7 +25,7 @@ class CLI(CommandLineCommon.CLI):
 
     noise_models = ["casino-lab", "meyer-heavy"]
 
-    communication_models = ["low-asymmetry", "no-asymmetry", "high-asymmetry", "ideal"]
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
