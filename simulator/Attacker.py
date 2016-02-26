@@ -211,13 +211,12 @@ class SeqNoReactiveAttacker(Attacker):
         self._sequence_numbers = {}
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
-        seqno_key = (msg_type,)
+        seqno_key = msg_type
         return msg_type in _messages_without_sequence_numbers or \
-               seqno_key not in self._sequence_numbers or \
-               self._sequence_numbers[seqno_key] < sequence_number
+               self._sequence_numbers.get(seqno_key, -1) < sequence_number
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
-        seqno_key = (msg_type,)
+        seqno_key = msg_type
         self._sequence_numbers[seqno_key] = sequence_number
 
 class SeqNosReactiveAttacker(Attacker):
@@ -232,8 +231,7 @@ class SeqNosReactiveAttacker(Attacker):
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
         return msg_type in _messages_without_sequence_numbers or \
-               seqno_key not in self._sequence_numbers or \
-               self._sequence_numbers[seqno_key] < sequence_number
+               self._sequence_numbers.get(seqno_key, -1) < sequence_number
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
