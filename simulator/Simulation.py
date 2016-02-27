@@ -154,8 +154,10 @@ class Simulation(Simulator):
     def add_attacker(self, attacker):
         self.attackers.append(attacker)
 
-    def continue_predicate(self):
-        return not self.attacker_found_source and (self.safety_period is None or self.sim_time() < self.safety_period)
+    def continue_predicate(self, time):
+        # For performance reasons do not do anything expensive in this function,
+        # that includes simple things such as iterating or calling functions.
+        return not self.attacker_found_source and (self.safety_period is None or time < self.safety_period)
 
     def any_attacker_found_source(self):
         return self.attacker_found_source
