@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os, timeit, struct, importlib, subprocess, sys
+import os, timeit, struct, importlib, sys
 
 from itertools import islice
 
@@ -82,12 +82,23 @@ class Simulation(Simulator):
                 print("{}\t{}\t{}".format(nid, loc[0], loc[1]), file=of)
 
     def _setup_radio_link_layer_model(self):
+        use_java = True
+        if use_java:
+            self._setup_radio_link_layer_model_java()
+        else:
+            self._setup_radio_link_layer_model_python()
+
+    def _setup_radio_link_layer_model_java(self):
+        import subprocess
         output = subprocess.check_output(
             "java -Xms256m -Xmx512m -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel {} {} {}".format(
                 self.communications_model_path(), self.topology_path, self.seed),
             shell=True)
 
+        #f = open("java.out", "w")
+
         for line in output.splitlines():
+            #print(line.strip(), file=f)
             parts = line.strip().split("\t")
 
             if parts[0] == "gain":
@@ -99,6 +110,38 @@ class Simulation(Simulator):
                 (n, node_id, noise_floor, awgn) = parts
 
                 self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
+
+        #f.close()
+    
+    def _setup_radio_link_layer_model_python(self):
+        """The python port of the java LinkLayerModel"""
+        import CommunicationModel
+        import numpy as np
+
+        model = CommunicationModel.eval_input(self.communication_model)
+
+        #f = open("python.out", "w")
+
+        cm = model()
+        cm.setup(self.metrics.configuration.topology, self.seed)
+
+        # The results here need to be rounded to 2 d.p. to make sure
+        # that the results of the simulation match the java results.
+
+        for ((i, j), gain) in np.ndenumerate(cm.link_gain):
+            if i == j:
+                continue
+            gain = round(gain, 2)
+            #print("gain\t{}\t{}\t{:.2f}".format(i, j, gain), file=f)
+            self.radio.add(i, j, gain)
+
+        for (i, noise_floor) in enumerate(cm.noise_floor):
+            noise_floor = round(noise_floor, 2)
+            awgn = round(cm.white_gausian_noise, 2)
+            #print("noise\t{}\t{:.2f}\t{:.2f}".format(i, noise_floor, awgn), file=f)
+            self.radio.setNoise(i, noise_floor, awgn)
+
+        #f.close()
 
     def _setup_radio_ideal(self):
         '''Creates radio links for node pairs that are in range'''
