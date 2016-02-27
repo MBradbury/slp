@@ -78,7 +78,7 @@ class CLI(CommandLineCommon.CLI):
             [self.distance], self.source_periods
         ))
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
