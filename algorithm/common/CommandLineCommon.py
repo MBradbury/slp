@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os, sys
+import os, sys, datetime
 
 from data import results, latex
 from data.table import fake_result
@@ -62,6 +62,23 @@ class CLI(object):
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations):
         raise NotImplementedError()
+
+    def _time_estimater(self, *args):
+        """Estimates how long simulations are run for. Override this in algorithm
+        specific CommandLine if these values are too small or too big. In general
+        these have been good amounts of time to run simulations for. You might want
+        to adjust the number of repeats to get the simulation time in this range."""
+        s = args[0]
+        if s == 11:
+            return datetime.timedelta(hours=10)
+        elif s == 15:
+            return datetime.timedelta(hours=18)
+        elif s == 21:
+            return datetime.timedelta(hours=36)
+        elif s == 25:
+            return datetime.timedelta(hours=72)
+        else:
+            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver

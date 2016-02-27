@@ -48,7 +48,7 @@ def submitter(notify_emails=None):
     jobs = ppn()
     ram_per_job_mb = int(math.floor(((ram_per_node() * ppn()) - ram_for_os_mb) / jobs))
 
-    cluster_command = "msub -j oe -h -q cnode -l nodes=1:ppn={} -l walltime=24:00:00 -l mem={}mb -N \"{{}}\"".format(
+    cluster_command = "msub -j oe -h -q cnode -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
         ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
