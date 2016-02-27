@@ -10,7 +10,7 @@ class Runner(object):
         self.array_job_variable = array_job_variable
         self.job_repeats = job_repeats
 
-    def add_job(self, executable, options, name):
+    def add_job(self, executable, options, name, estimated_time):
         target_directory = name[:-len(".txt")]
 
         if not os.path.exists(target_directory):
@@ -20,7 +20,18 @@ class Runner(object):
 
         module = target_directory.replace("/", ".")
 
-        cluster_command = self.cluster_command.format(module)
+
+        if estimated_time is None:
+            estimated_time_str = "100:00:00"
+        else:
+
+            total_seconds = int(estimated_time.total_seconds())
+            hours, remainder = divmod(total_seconds, 60*60)
+            minutes, seconds = divmod(remainder, 60)
+
+            estimated_time_str = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
+
+        cluster_command = self.cluster_command.format(estimated_time_str, module)
 
         script_command = '{} {} {} >> "{}"'.format(executable, module, options, name)
 
@@ -32,7 +43,8 @@ class Runner(object):
             'echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"',
             'echo "TOSROOT: $TOSROOT"',
             'echo "PYTHONPATH: $PYTHONPATH"',
-            'python --version'
+            'python --version',
+            'python -c \'import scipy, numpy; print("scipy Version: {}".format(scipy.__version__)); print("numpy Version: {}".format(numpy.__version__))\''
         ]
         debug_command = " ; ".join(debug_commands)
         

@@ -30,7 +30,7 @@ class RunSimulationsCommon(object):
     def _argument_name_to_stored(cls, argument_name):
         return cls._argument_name_to_parameter(argument_name)[2:].replace("-", " ")
 
-    def run(self, exe_path, repeats, argument_names, argument_product):
+    def run(self, exe_path, repeats, argument_names, argument_product, time_estimater=None):
         if self._skip_completed_simulations:
             self._load_existing_results(argument_names)
         
@@ -79,7 +79,11 @@ class RunSimulationsCommon(object):
                 '-'.join(map(self._sanitize_job_name, arguments)) + ".txt"
             )
 
-            self.driver.add_job(executable, options, filename)
+            estimated_time = None
+            if time_estimater is not None:
+                estimated_time = time_estimater(*arguments)
+
+            self.driver.add_job(executable, options, filename, estimated_time)
 
 
     def _get_safety_period(self, argument_names, arguments):

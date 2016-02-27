@@ -77,7 +77,11 @@ class Results(object):
                     seen_first = True
                     headers = values
 
-    def _process(self, name, headers, values):           
+    def _process(self, name, headers, values):
+
+        #if name.startswith("norm"):
+        #    left, right = name[5:-1].split(",", 1)
+        #    return self._process(left, headers, values) / self._process(right, headers, values)
 
         index = headers.index(name)
         value = values[index]

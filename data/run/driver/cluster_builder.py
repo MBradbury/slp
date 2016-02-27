@@ -12,7 +12,7 @@ class Runner:
         self.total_job_size = None
         self._jobs_executed = 0
 
-    def add_job(self, executable, options, name):
+    def add_job(self, executable, options, name, estimated_time):
         print(name)
 
         # Create the target directory

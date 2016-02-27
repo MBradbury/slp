@@ -75,7 +75,7 @@ class CLI(CommandLineCommon.CLI):
             [self.distance], self.source_periods, self.approaches
         ))
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
 
     def _run_table(self, args):

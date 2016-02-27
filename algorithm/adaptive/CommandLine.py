@@ -65,7 +65,6 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
@@ -80,7 +79,8 @@ class CLI(CommandLineCommon.CLI):
             [self.distance], self.source_periods, self.approaches
         ))
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
 
     def _run_table(self, args):

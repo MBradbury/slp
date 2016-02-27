@@ -50,7 +50,7 @@ def submitter(notify_emails=None):
 
     # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
     # Don't provide a queue, as the job will be routed to the correct place.
-    cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(
+    cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
         ppn(), ppn() * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
@@ -71,7 +71,7 @@ def array_submitter(notify_emails=None):
 
     # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
     # Don't provide a queue, as the job will be routed to the correct place.
-    cluster_command = "qsub -j oe -h -t 1-{}%1 -l nodes=1:ppn={} -l walltime=100:00:00 -l mem={}mb -N \"{{}}\"".format(
+    cluster_command = "qsub -j oe -h -t 1-{}%1 -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
         num_array_jobs, num_jobs, num_jobs * ram_per_job_mb)
 
     if notify_emails is not None and len(notify_emails) > 0:
