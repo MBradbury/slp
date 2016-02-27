@@ -173,7 +173,7 @@ class Simulator(object):
         pass
 
     def _during_run(self, event_count):
-        """Called after every simulation event is executed"""
+        """Called after every simulation event is executed, if some log output has been written."""
 
         # Query to see if there is any debug output we need to catch.
         # If there is then make the relevant OutputProcessor handle it.
