@@ -20,7 +20,7 @@ class CommunicationModel(object):
         self.pl_d0 = pl_d0
         self.noise_floor_pn = noise_floor
         self.s = s
-        self.white_gausian_noise = white_gausian_noise
+        self.white_gausian_noise = round(white_gausian_noise, 2)
 
         self.noise_floor = None
         self.output_power_var = None
@@ -76,7 +76,10 @@ class CommunicationModel(object):
             rnd1 = rnd.nextGaussian()
             rnd2 = rnd.nextGaussian()
 
-            self.noise_floor[i] = self.noise_floor_pn + t[0,0] * rnd1
+            # The results here need to be rounded to 2 d.p. to make sure
+            # that the results of the simulation match the java results.
+
+            self.noise_floor[i] = round(self.noise_floor_pn + t[0,0] * rnd1, 2)
             self.output_power_var[i] = t[0,1] * rnd1 + t[1,1] * rnd2
 
     def _obtain_link_gain(self, rnd, topology):
@@ -88,8 +91,11 @@ class CommunicationModel(object):
 
                 pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
 
-                self.link_gain[i,j] = self.output_power_var[i] + pathloss
-                self.link_gain[j,i] = self.output_power_var[j] + pathloss
+                # The results here need to be rounded to 2 d.p. to make sure
+                # that the results of the simulation match the java results.
+
+                self.link_gain[i,j] = round(self.output_power_var[i] + pathloss, 2)
+                self.link_gain[j,i] = round(self.output_power_var[j] + pathloss, 2)
 
 
 

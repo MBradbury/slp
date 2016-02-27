@@ -125,21 +125,15 @@ class Simulation(Simulator):
         cm = model()
         cm.setup(self.metrics.configuration.topology, self.seed)
 
-        # The results here need to be rounded to 2 d.p. to make sure
-        # that the results of the simulation match the java results.
-
         for ((i, j), gain) in np.ndenumerate(cm.link_gain):
             if i == j:
                 continue
-            gain = round(gain, 2)
             #print("gain\t{}\t{}\t{:.2f}".format(i, j, gain), file=f)
             self.radio.add(i, j, gain)
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
-            noise_floor = round(noise_floor, 2)
-            awgn = round(cm.white_gausian_noise, 2)
             #print("noise\t{}\t{:.2f}\t{:.2f}".format(i, noise_floor, awgn), file=f)
-            self.radio.setNoise(i, noise_floor, awgn)
+            self.radio.setNoise(i, noise_floor, cm.white_gausian_noise)
 
         #f.close()
 
