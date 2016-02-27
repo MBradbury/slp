@@ -1,7 +1,7 @@
 from __future__ import division
 
 import random
-from math import log10
+from math import log10, sqrt
 from itertools import islice
 
 import numpy as np
@@ -64,10 +64,12 @@ class CommunicationModel(object):
             if abs(self.s[0,1]) > pow(self.s[0,0] * self.s[1,1], 0.5):
                 raise RuntimeError("S12 (and S21) must be less than sqrt(S11xS22).")
 
-            t[0,0] = pow(self.s[0,0], 0.5)
-            t[0,1] = self.s[0,1] / pow(self.s[0,0], 0.5)
+            t00 = sqrt(self.s[0,0])
+
+            t[0,0] = t00
+            t[0,1] = self.s[0,1] / t00
             t[1,0] = 0.0
-            t[1,1] = pow((self.s[0,0] * self.s[1,1] - pow(self.s[0,1], 2)) / self.s[0,0], 0.5)
+            t[1,1] = sqrt((self.s[0,0] * self.s[1,1] - self.s[0,1] * self.s[0,1]) / self.s[0,0])
 
         
         for (i, ni) in enumerate(topology.nodes):
