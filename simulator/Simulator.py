@@ -115,7 +115,7 @@ class Simulator(object):
 
     def sim_time(self):
         """Returns the current simulation time in seconds"""
-        return self.tossim.time() / self._ticks_per_second
+        return self.tossim.timeInSeconds()
 
     def create_nodes(self, node_locations):
         """Creates nodes and initialize their boot times"""
