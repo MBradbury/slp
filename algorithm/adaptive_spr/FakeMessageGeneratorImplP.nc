@@ -104,7 +104,7 @@ implementation
 		{
 			signal FakeMessageGenerator.sent(EBUSY, &message);
 
-			myerr("FakeMessageGeneratorImplP", "BroadcastAway busy, not forwarding Away message.\n");
+			simdbgerror("FakeMessageGeneratorImplP", "BroadcastAway busy, not forwarding Away message.\n");
 			return FALSE;
 		}
 	}
