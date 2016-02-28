@@ -1,6 +1,8 @@
 from __future__ import print_function
 import os, sys, datetime
 
+import simulator.Configuration as Configuration
+
 from data import results, latex
 from data.table import fake_result
 from data.graph import heatmap
@@ -44,7 +46,7 @@ class CLI(object):
         found_args = CLI._get_args_for(args, name)
         if len(found_args) == 1:
             return found_args[0]
-        if len(found_args) == 0:
+        elif len(found_args) == 0:
             raise NoArgumentsFound(name)
         else:
             raise TooManyArgumentsFound(name)
@@ -63,19 +65,38 @@ class CLI(object):
     def _execute_runner(self, driver, result_path, skip_completed_simulations):
         raise NotImplementedError()
 
+    def adjust_source_period_for_multi_source(self, argument_product):
+        """For configurations with multiple sources, so that the network has the
+        overall same message generation rate, the source period needs to be adjusted
+        relative to the number of sources."""
+        names = self.parameter_names()
+        configuration_index = names.index('configuration')
+        size_index = names.index('network size')
+        distance_index = names.index('distance')
+        source_period_index = names.index('source period')
+
+        def process(*args):
+            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index])
+            num_sources = len(configuration.source_ids)
+            source_period = args[source_period_index] * num_sources
+            return args[:source_period_index] + (source_period,) + args[source_period_index+1:]
+
+        return [process(*args) for args in argument_product]
+
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
-        s = args[0]
-        if s == 11:
+        names = self.parameter_names()
+        size = args[names.index('network size')]
+        if size == 11:
             return datetime.timedelta(hours=10)
-        elif s == 15:
+        elif size == 15:
             return datetime.timedelta(hours=18)
-        elif s == 21:
+        elif size == 21:
             return datetime.timedelta(hours=36)
-        elif s == 25:
+        elif size == 25:
             return datetime.timedelta(hours=72)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")

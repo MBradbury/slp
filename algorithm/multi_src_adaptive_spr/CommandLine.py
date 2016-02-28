@@ -75,6 +75,8 @@ class CLI(CommandLineCommon.CLI):
             [self.distance], self.source_periods, self.approaches
         ))
 
+        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
 

@@ -24,7 +24,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11, 15, 21, 25]
 
-    source_periods = [1.0 * 3, 0.5 * 3, 0.25 * 3, 0.125 * 3]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
         #'SourceCorner',
@@ -42,18 +42,18 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSinkCentre',
 
         # 2 sources
-        #'Source2Corners',
-        #'Source2Edges',
-        #'Source2Corner',
-        #'SourceEdgeCorner',
+        'Source2Corners',
+        'Source2Edges',
+        'Source2Corner',
+        'SourceEdgeCorner',
 
         # 3 sources
         'Source3Corner',
 
         # 4 sources
-        #'Source4Corners',
-        #'Source4Edges',        
-        #'Source2Corner2OppositeCorner'
+        'Source4Corners',
+        'Source4Edges',        
+        'Source2Corner2OppositeCorner'
 
         #'LineSinkCentre',
         #'SimpleTreeSinkEnd'
@@ -72,17 +72,21 @@ class CLI(CommandLineCommon.CLI):
         runner = RunSimulations(driver, self.algorithm_module, result_path,
                                 skip_completed_simulations=skip_completed_simulations)
 
-        argument_product = list(itertools.product(
+        argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
             [self.distance], self.source_periods
-        ))
+        )
+
+        # Factor in the number of sources when selecting the source period.
+        # This is done so that regardless of the number of sources the overall
+        # network's normal message generation rate is the same.
+        argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
-
 
         prod = itertools.product(Simulator.available_noise_models(),
                                  Simulator.available_communication_models())
