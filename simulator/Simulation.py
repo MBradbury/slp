@@ -145,10 +145,10 @@ class Simulation(Simulator):
             Returns signal reception gain between src and dst using a simple
             range-threshold model.
             '''
-            if src != dst and euclidean(src.location, dst.location) <= self.range:
-                return (True, -55)
+            if euclidean(src.location, dst.location) <= self.range:
+                return -55
             else:
-                return (False, None)
+                return None
 
         noise_floor = -105.0
         white_gaussian_noise = 4.0
@@ -157,8 +157,8 @@ class Simulation(Simulator):
         for (i, ni) in enumerate(self.nodes):
             for (j, nj) in enumerate(self.nodes):
                 if i != j:
-                    (is_linked, gain) = compute_rf_gain(ni, nj)
-                    if is_linked:
+                    gain = compute_rf_gain(ni, nj)
+                    if gain is not None:
                         self.radio.add(i, j, gain)
 
                         #print("Added link: {} <-> {} ({})".format(i, j, gain))
