@@ -44,7 +44,7 @@ class Runner(object):
             'echo "TOSROOT: $TOSROOT"',
             'echo "PYTHONPATH: $PYTHONPATH"',
             'python --version',
-            'python -c \'import scipy, numpy; print("scipy Version: {}".format(scipy.__version__)); print("numpy Version: {}".format(numpy.__version__))\''
+            'python -c "import scipy, numpy; print(scipy.__version__); print(numpy.__version__)"'
         ]
         debug_command = " ; ".join(debug_commands)
         
