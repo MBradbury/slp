@@ -22,9 +22,9 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15, 21]
+    sizes = [11, 15, 21, 25]
 
-    source_periods = [1.0*2, 0.5*2, 0.25*2, 0.125*2]
+    source_periods = [1.0*3, 0.5*3, 0.25*3, 0.125*3]
 
     configurations = [
         #'SourceCorner',
@@ -41,14 +41,14 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSourceCentre',
         #'CircleSinkCentre',
 
-        'Source2CornerTop',
-        #'Source3CornerTop',
+        #'Source2CornerTop',
+        'Source3CornerTop',
 
-        'SinkCorner2Source',
-        #'SinkCorner3Source',
+        #'SinkCorner2Source',
+        'SinkCorner3Source',
         
-        'FurtherSinkCorner2Source',
-        #'FurtherSinkCorner3Source'
+        #'FurtherSinkCorner2Source',
+        'FurtherSinkCorner3Source'
 
 
         #'Source2Corners',
