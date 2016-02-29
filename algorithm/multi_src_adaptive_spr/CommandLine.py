@@ -49,7 +49,7 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNoReactiveAttacker()']
 
-    approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
+    approaches = ["NUM_SOURCES_APPROACH"]
 
     repeats = 500
 
