@@ -252,6 +252,15 @@ implementation
 		return max(1, call SourceDistances.count());
 	}
 
+	double num_sources_respond_to(void)
+	{
+#if defined(NUM_SOURCES_APPROACH)
+		return 1.0 * estimated_number_of_sources();
+#else
+#	error "Technique not specified"
+#endif
+	}
+
 	bool node_within_towards_source_limit()
 	{
 		return sink_distance <= (min_sink_source_distance/2 - 1);
@@ -274,30 +283,19 @@ implementation
 
 	uint32_t get_dist_to_pull_back(void)
 	{
-#if defined(PB_FIXED2_APPROACH)
-		return 2;
-
-#elif defined(PB_FIXED1_APPROACH)
 		return 1;
-
-#elif defined(PB_RND_APPROACH)
-		return 1 + (call Random.rand16() % 2);
-
-#else
-#	error "Technique not specified"
-#endif
 	}
 
 	double get_nodes_Normal_receive_ratio(void)
 	{
-		uint64_t total_sent = 0;
+		uint64_t total_sent = 1;
 		SequenceNumber* iter;
 		for (iter = call NormalSeqNos.begin(); iter != call NormalSeqNos.end(); ++iter)
 		{
 			total_sent += *iter;
 		}
 
-		return normal_sequence_increments == 0 ? 1.0 : total_sent / (double)normal_sequence_increments;
+		return (normal_sequence_increments + 1) / (double)total_sent;
 	}
 
 	double get_sources_Fake_receive_ratio(void)
@@ -339,7 +337,7 @@ implementation
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const uint32_t period = duration / msg;
-		const uint16_t est_num_sources = estimated_number_of_sources();
+		const double est_num_sources = num_sources_respond_to();
 		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
 		const uint32_t result_period = (uint32_t)ceil(period / (est_num_sources * normal_rcv_ratio));
@@ -353,13 +351,13 @@ implementation
 	{
 		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
 
-		const uint16_t est_num_sources = estimated_number_of_sources();
+		const double est_num_sources = num_sources_respond_to();
 		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
 		const uint32_t result_period = (uint32_t)ceil((SOURCE_PERIOD_MS * fake_rcv_ratio_at_src) / (est_num_sources * normal_rcv_ratio));
 
-		simdbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f) normrcv=%f\n",
-			result_period, counter, seq_inc, fake_rcv_ratio_at_src, normal_rcv_ratio);
+		simdbgverbose("stdout", "get_pfs_period=%u fakercv=%f normrcv=%f\n",
+			result_period, fake_rcv_ratio_at_src, normal_rcv_ratio);
 
 		return result_period;
 	}
@@ -460,7 +458,7 @@ implementation
 
 		if (local_neighbours.size == 0 && min_source_distance == BOTTOM)
 		{
-			simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
+			simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
 				neighbours.size); 
 		}
 		else if (local_neighbours.size == 0 && neighbours.size != 0)
@@ -468,8 +466,8 @@ implementation
 			// There are neighbours who exist that are closer to the source than this node.
 			// We should consider moving to one of these neighbours if we are still close to the sink.
 
-			simdbg("stdout", "Considering allowing fake sources to move towards the source\n");
-			simdbg("stdout", "sink-distance=%d <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
+			simdbgverbose("stdout", "Considering allowing fake sources to move towards the source\n");
+			simdbgverbose("stdout", "sink-distance=%d <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
 
 			if (node_within_towards_source_limit())
 			{
@@ -480,8 +478,8 @@ implementation
 					result.drw_direction = DirectedWalkTowardsSource;
 				}
 
-				simdbg("stdout", "Found %d neighbours with max_sink_distance=%d\n", local_neighbours.size, max_sink_distance);
-				simdbg("stdout", "drw-direction=%d\n", result.drw_direction);
+				simdbgverbose("stdout", "Found %d neighbours with max_sink_distance=%d\n", local_neighbours.size, max_sink_distance);
+				simdbgverbose("stdout", "drw-direction=%d\n", result.drw_direction);
 			}
 		}
 		else
@@ -498,11 +496,11 @@ implementation
 
 			result.target = neighbour->address;
 
-//#ifdef SLP_VERBOSE_DEBUG
+#ifdef SLP_VERBOSE_DEBUG
 			print_distance_neighbours("stdout", &local_neighbours);
-//#endif
+#endif
 
-			simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
+			simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
 				result.target, neighbour_index, rnd, local_neighbours.size);
 		}
 
