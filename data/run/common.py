@@ -103,10 +103,12 @@ class RunSimulationsCommon(object):
         source_period = key[-1]
         key = tuple(key[:-1])
 
+        #print(self._safety_periods)
+
         try:
             return self._safety_periods[key][source_period]
         except KeyError as ex:
-            raise KeyError("Failed to find the safety period key {} and source period {}".format(key, source_period), ex)
+            raise KeyError("Failed to find the safety period key {} and source period {}".format(key, repr(source_period)), ex)
 
     def _load_existing_results(self, argument_names):
         results_summary = results.Results(
