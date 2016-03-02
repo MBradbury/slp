@@ -29,17 +29,17 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        #'SourceCorner',
+        'SourceCorner',
         'Source2CornerTop',
         'Source3CornerTop',
 
-        #'SinkCorner',
+        'SinkCorner',
         'SinkCorner2Source',
         'SinkCorner3Source',
 
         #'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        'FurtherSinkCorner3Source'
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
 
         #'FurtherSinkCorner',
         #'Generic1',
@@ -85,17 +85,21 @@ class CLI(CommandLineCommon.CLI):
             for (s, c, am, nm, cm, d, sp) in argument_product
 
             for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp)
-        ]
+        ]        
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
-        walk_short = list(range(2, int(math.floor(s/2)) + 1))
-        walk_long = list(range(s+2, int(math.floor(s + s/2)) + 1))
+        half_ssd = int(math.floor(s/2)) + 1
 
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(s+2, half_ssd+s))
+        #walk_short = list(range(2, int(math.floor(s/2)) + 1))
+        #walk_long = list(range(s+2, int(math.floor(s + s/2)) + 1))
         return list(zip(walk_short, walk_long))
+        
 
     def _run_table(self, args):
         phantom_results = results.Results(
