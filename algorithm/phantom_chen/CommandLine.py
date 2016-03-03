@@ -8,6 +8,8 @@ from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
+from simulator import Configuration
+
 from data import results
 
 from data.table import safety_period, fake_result
