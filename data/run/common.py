@@ -93,9 +93,7 @@ class RunSimulationsCommon(object):
         key = []
 
         for name in CommandLineCommon.global_parameter_names:
-            local_key = self._argument_name_to_stored(name)
-
-            value = str(arguments[argument_names.index(local_key)])
+            value = str(arguments[argument_names.index(name)])
 
             key.append(value)
 

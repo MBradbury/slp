@@ -100,17 +100,26 @@ class TableGenerator:
             print('\\end{table}', file=stream)
             print('', file=stream)
 
-    def safety_periods(self):
-        # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
+
+    def _get_result_mapping(self, result_name):
+        # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> individual result
         result = {}
 
-        index = self._result_names.index('safety period')
+        index = self._result_names.index(result_name)
 
         for (table_key, other_items) in self._results.data.items():
             for (source_period, items) in other_items.items():
 
-                safety_period = items[tuple()][index]
+                individual_result = items[tuple()][index]
 
-                result.setdefault(table_key, {})[source_period] = safety_period
+                result.setdefault(table_key, {})[source_period] = individual_result
 
         return result
+
+    def safety_periods(self):
+        # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
+        return self._get_result_mapping('safety period')
+
+    def time_taken(self):
+        # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> time taken
+        return self._get_result_mapping('time taken')
