@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os, itertools
+import os, itertools, math
 
 from algorithm.common import CommandLineCommon
 
@@ -20,17 +20,27 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["meyer-heavy", "casino-lab"]
+    noise_models = ["meyer-heavy"]
 
-    communication_models = ["low-asymmetry"]
+    communication_models = ["ideal"]
 
     sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        'SourceCorner',
+        #'SourceCorner',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
+
         #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
+
+        'FurtherSinkCorner',
+        'FurtherSinkCorner2Source',
+        'FurtherSinkCorner3Source'
+
         #'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
@@ -46,10 +56,7 @@ class CLI(CommandLineCommon.CLI):
         #'Source2Corners',
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker()']
-
-    short_walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
-    long_walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
+    attacker_models = ['SeqNosReactiveAttacker()']
 
     repeats = 500
 
@@ -66,21 +73,40 @@ class CLI(CommandLineCommon.CLI):
         runner = RunSimulations(driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
-        argument_product = list(itertools.ifilter(
-            lambda (size, _1, _2, _3, _4, _5, _6, short_walk_length, long_walk_length): short_walk_length in self.short_walk_hop_lengths[size] and long_walk_length in self.long_walk_hop_lengths[size],
-            itertools.product(
-                self.sizes, self.configurations,
-                self.attacker_models, self.noise_models, self.communication_models,
-                [self.distance], self.source_periods,
-                set(itertools.chain(*self.short_walk_hop_lengths.values())),
-                set(itertools.chain(*self.long_walk_hop_lengths.values()))
-            )
-        ))
+        argument_product = itertools.product(
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.source_periods
+        )
+
+        argument_product = [
+            (s, c, am, nm, cm, d, sp, swl, lwl)
+
+            for (s, c, am, nm, cm, d, sp) in argument_product
+
+            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp)
+        ]        
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
+    def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
+        half_ssd = int(math.floor(s/2)) + 1
+
+        half_ssd_further = s
+
+        ssd_further = 2*s
+
+        #walk_short = list(range(2, half_ssd))
+        #walk_long = list(range(s+2, half_ssd+s))
+        
+        #for the Further* topology.
+        walk_short = list(range(2, half_ssd_further))
+        walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
+
+        return list(zip(walk_short, walk_long))
+        
 
     def _run_table(self, args):
         phantom_results = results.Results(
