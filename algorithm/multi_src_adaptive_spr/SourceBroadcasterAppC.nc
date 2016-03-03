@@ -87,8 +87,8 @@ implementation
 	App.NormalSeqNos -> NormalSeqNos;
 
 	components
-		new DictionaryP(am_addr_t, int16_t, SLP_MAX_NUM_SOURCES) as SourceDistances,
-		new DictionaryP(am_addr_t, int16_t, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
+		new DictionaryP(am_addr_t, float, SLP_MAX_NUM_SOURCES) as SourceDistances,
+		new DictionaryP(am_addr_t, float, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
 	App.SourceDistances -> SourceDistances;
 	App.SinkSourceDistances -> SinkSourceDistances;
 }
