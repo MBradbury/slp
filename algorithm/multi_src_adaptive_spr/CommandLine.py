@@ -32,30 +32,45 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        ('SourceCorner', 'CHOOSE'),
-        #('SinkCorner', 'CHOOSE'),
-        #('FurtherSinkCorner', 'CHOOSE'),
-        #('Generic1', 'CHOOSE'),
-        #('Generic2', 'CHOOSE'),
+        'SourceCorner',
+        #'SinkCorner',
+        #'FurtherSinkCorner',
+        #'Generic1',
+        #'Generic2',
 
-        #('RingTop', 'CHOOSE'),
-        #('RingOpposite', 'CHOOSE'),
-        #('RingMiddle', 'CHOOSE'),
+        #'RingTop',
+        #'RingOpposite',
+        #'RingMiddle',
 
-        #('CircleEdges', 'CHOOSE'),
-        #('CircleSourceCentre', 'CHOOSE'),
-        #('CircleSinkCentre', 'CHOOSE'),
+        #'CircleEdges',
+        #'CircleSourceCentre',
+        #'CircleSinkCentre',
+
+        # 2 sources
+        'Source2Corners',
+        'Source2Edges',
+        'Source2Corner',
+        'SourceEdgeCorner',
+
+        # 3 sources
+        'Source3Corner',
+
+        # 4 sources
+        'Source4Corners',
+        'Source4Edges',        
+        'Source2Corner2OppositeCorner'
+
+        #'LineSinkCentre',
+        #'SimpleTreeSinkEnd'
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker()']
+    attacker_models = ['SeqNosReactiveAttacker()']
 
-    approaches = ["NUM_SOURCES_APPROACH"]
+    approaches = ["NO_INTERFERENCE_APPROACH", "ALWAYS_FURTHER_APPORACH", "ARBITRARY_SINK_APPROACH"]
 
     repeats = 500
 
     local_parameter_names = ('approach',)
-
-    protectionless_configurations = [name for (name, build) in configurations]
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -70,7 +85,7 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
         argument_product = list(itertools.product(
-            self.sizes, self.protectionless_configurations,
+            self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
             [self.distance], self.source_periods, self.approaches
         ))
