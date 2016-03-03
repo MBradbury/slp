@@ -1281,7 +1281,7 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 	RECEIVE_MESSAGE_END(Fake)
 
 
-	void x_receieve_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS_BEACON(rcvd, source_addr);
 
@@ -1296,7 +1296,7 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 		case NormalNode:
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: x_receieve_Beacon(rcvd, source_addr); break;
+		case PermFakeNode: x_receive_Beacon(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 
