@@ -411,6 +411,10 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 		return 0;
 #elif defined(ALWAYS_FURTHER_APPORACH)
 		return angle_when_node_further_than_sink(source1, source2);
+#elif defined(ALWAYS_CLOSER_APPORACH)
+		return angle_when_node_closer_than_sink(source1, source2);
+#elif defined(ALWAYS_SIDE_APPORACH)
+		return angle_when_node_side_of_sink(source1, source2);
 #elif defined(ARBITRARY_SINK_APPROACH)
 
 		const double ssd1 = call SinkSourceDistances.get_or_default(source1, BOTTOM);
@@ -466,7 +470,7 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 			simdbg("stdout", "angle between %u and %u is %f\n", source_id, *iter, rad2deg(intermediate_angle));
 
 			// Skip messed up results, lets just assume the worst in these cases
-			if (isinf(intermediate_angle) || isnan(intermediate_angle))
+			if (invalid_double(intermediate_angle))
 				continue;
 
 			// When cooperating this will be 1, when completely interfering this will be 0
@@ -744,7 +748,7 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 
 			call SourceDistances.put(rcvd->source_id, ewma(EWMA_FACTOR, *distance, rcvd->source_distance + 1));
 
-			if (fabs(*distance - existing_distance) > 0.45f)
+			if (fabs(*distance - existing_distance) > 0.95f)
 			{
 				// Our source distance has changed, so we want to inform neighbours
 				// However, we should only do this if a big change has occurred!
