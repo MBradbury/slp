@@ -257,6 +257,29 @@ class SingleTypeReactiveAttacker(Attacker):
         seqno_key = (ult_from_id, msg_type)
         self._sequence_numbers[seqno_key] = sequence_number
 
+class CollaborativeSeqNosReactiveAttacker(Attacker):
+    def __init__(self):
+        super(CollaborativeSeqNosReactiveAttacker, self).__init__()
+        self._sequence_numbers = {}
+
+    def _other_attackers_responded(self, seqno_key, sequence_number):
+        others = [attacker for attacker in self._sim.attackers if attacker is not self]
+
+        for attacker in others:
+            if attacker._sequence_numbers.get(seqno_key, -1) >= sequence_number:
+                return True
+
+        return False
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type)
+        return msg_type in _messages_without_sequence_numbers or \
+               (not self._other_attackers_responded(seqno_key, sequence_number) and
+                self._sequence_numbers.get(seqno_key, -1) < sequence_number)
+
+    def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type)
+        self._sequence_numbers[seqno_key] = sequence_number
 
 
 def models():

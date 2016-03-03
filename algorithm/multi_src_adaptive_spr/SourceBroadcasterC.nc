@@ -158,7 +158,10 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
 	// The distance between this node and each source
-	uses interface Dictionary<am_addr_t, int32_t> as SourceDistances;
+	uses interface Dictionary<am_addr_t, int16_t> as SourceDistances;
+
+	// The distance between the recorded source and the sink
+	uses interface Dictionary<am_addr_t, int16_t> as SinkSourceDistances;
 }
 
 implementation
@@ -230,6 +233,28 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+	// Exponentially weighted moving average
+	// a higher factor discounts older information faster
+	double ewma(double factor, double history, double current)
+	{
+		if (history < 0 && current < 0)
+		{
+			return BOTTOM;
+		}
+		else if (history < 0 && current >= 0)
+		{
+			return current;
+		}
+		else if (history >= 0 && current < 0)
+		{
+			return history;
+		}
+		else
+		{
+			return factor * current + (1.0 - factor) * history;
+		}	
+	}
+
 	bool pfs_can_become_normal(void)
 	{
 		switch (algorithm)
@@ -252,21 +277,12 @@ implementation
 		return max(1, call SourceDistances.count());
 	}
 
-	double num_sources_respond_to(void)
-	{
-#if defined(NUM_SOURCES_APPROACH)
-		return 1.0 * estimated_number_of_sources();
-#else
-#	error "Technique not specified"
-#endif
-	}
-
-	bool node_within_towards_source_limit()
+	bool node_within_towards_source_limit(void)
 	{
 		return sink_distance <= (min_sink_source_distance/2 - 1);
 	}
 
-	bool node_at_towards_source_limit()
+	bool node_at_towards_source_limit(void)
 	{
 		return sink_distance == (min_sink_source_distance/2 - 1);
 	}
@@ -283,8 +299,170 @@ implementation
 
 	uint32_t get_dist_to_pull_back(void)
 	{
+		// PB_FIXED1_APPROACH worked quite well, so lets stick to it
 		return 1;
 	}
+
+	double inclination_angle_rad(am_addr_t source_id)
+	{
+		const int16_t ssd = call SinkSourceDistances.get_or_default(source_id, BOTTOM);
+		const int16_t dsrc = call SourceDistances.get_or_default(source_id, BOTTOM);
+		const int16_t dsink = sink_distance;
+		double temp, angle;
+
+		if (ssd == BOTTOM || dsrc == BOTTOM || dsink == BOTTOM || ssd == 0 || dsink == 0)
+		{
+			simdbg("stdout", "source_id=%u ssd=%d dsrc=%d dsink=%d\n", source_id, ssd, dsrc, dsink);
+			return INFINITY;
+		}
+
+		temp = ((dsrc * (double)dsrc) + (dsink * (double)dsink) - (ssd * (double)ssd)) / (2.0 * dsrc * dsink);
+		angle = acos(temp);
+
+		simdbg("stdout", "source_id=%u ssd=%d dsrc=%d dsink=%d inter=%f angle=%f\n", source_id, ssd, dsrc, dsink, temp, rad2deg(angle));
+
+		return angle;
+	}
+
+	bool invalid_double(double x)
+	{
+		return isinf(x) || isnan(x) || x < 0.0 || x > M_PI;
+	}
+
+	double angle_when_node_further_than_sink(am_addr_t source1, am_addr_t source2)
+	{
+		const double source1_angle = inclination_angle_rad(source1);
+		const double source2_angle = inclination_angle_rad(source2);
+
+		if (invalid_double(source1_angle) || invalid_double(source2_angle))
+		{
+			return INFINITY;
+		}
+
+		return source1_angle + source2_angle;
+	}
+
+	double angle_when_node_closer_than_sink(am_addr_t source1, am_addr_t source2)
+	{
+		const double source1_angle = inclination_angle_rad(source1);
+		const double source2_angle = inclination_angle_rad(source2);
+
+		if (invalid_double(source1_angle) || invalid_double(source2_angle))
+		{
+			return INFINITY;
+		}
+
+		return 2.0 * M_PI - source1_angle - source2_angle;
+	}
+
+	double angle_when_node_side_of_sink(am_addr_t source1, am_addr_t source2)
+	{
+		const double source1_angle = inclination_angle_rad(source1);
+		const double source2_angle = inclination_angle_rad(source2);
+
+		if (invalid_double(source1_angle) || invalid_double(source2_angle))
+		{
+			return INFINITY;
+		}
+
+		// Covers both a1 - a2 and a2 - a1 depending on which angle is the largest.
+		return abs(source1_angle - source2_angle);
+	}
+
+#define RETURN_NON_INVALID(a, b, c) \
+if (invalid_double(a)) \
+{ \
+	if (invalid_double(b) && !invalid_double(c)) \
+		return c; \
+ \
+	if (!invalid_double(b) && invalid_double(c)) \
+		return b; \
+ \
+	if (!invalid_double(b) && !invalid_double(c)) \
+		return min(b, c); \
+}
+
+#define RETURN_MIN_NON_INVALID2(a, b, c) \
+if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b, c)
+
+	double interference_strategy(am_addr_t source1, am_addr_t source2)
+	{
+#if defined(NO_INTERFERENCE_APPROACH)
+		return 0;
+#elif defined(ALWAYS_FURTHER_APPORACH)
+		return angle_when_node_further_than_sink(source1, source2);
+#elif defined(ARBITRARY_SINK_APPROACH)
+
+		const double further = angle_when_node_further_than_sink(source1, source2);
+		const double closer = angle_when_node_closer_than_sink(source1, source2);
+		const double side = angle_when_node_side_of_sink(source1, source2);
+
+		RETURN_NON_INVALID(further, closer, side)
+		RETURN_NON_INVALID(closer, further, side)
+		RETURN_NON_INVALID(side, closer, further)
+
+		return min3(further, closer, side);
+
+#else
+#	error "No apporach specified"
+#endif
+	}
+
+	double angle_factor(am_addr_t source_id)
+	{
+		const am_addr_t* iter;
+		double factor = 1.0;
+		double intermediate_angle;
+		double non_interference;
+
+		for (iter = call SourceDistances.beginKeys(); iter != call SourceDistances.endKeys(); ++iter)
+		{
+			if (*iter == source_id)
+				continue;
+
+			intermediate_angle = interference_strategy(source_id, *iter);
+
+			simdbg("stdout", "angle between %u and %u is %f\n", source_id, *iter, rad2deg(intermediate_angle));
+
+			// Skip messed up results, lets just assume the worst in these cases
+			if (isinf(intermediate_angle) || isnan(intermediate_angle))
+				continue;
+
+			// When cooperating this will be 1, when completely interfering this will be 0
+			non_interference = 1.0 - (intermediate_angle / M_PI);
+
+			factor *= non_interference;
+		}
+
+		return factor;
+	}
+
+	double all_source_factor(void)
+	{
+		double factor = 0.0;
+
+		const am_addr_t* iter;
+		for (iter = call SourceDistances.beginKeys(); iter != call SourceDistances.endKeys(); ++iter)
+		{
+			factor += angle_factor(*iter);
+		}
+
+		simdbg("stdout", "all_source_factor=%f\n", factor);
+
+		return factor;
+	}
+
+	/*void print_inclination_angles(void)
+	{
+		const am_addr_t* iter;
+		for (iter = call SourceDistances.beginKeys(); iter != call SourceDistances.endKeys(); ++iter)
+		{
+			const double angle = inclination_angle_rad(*iter);
+			const double angle_deg = (angle < 0) ? -1000 : angle * (180.0 / M_PI);
+
+			simdbg("stdout", "Inclination angle between %u and %u is %f\n", TOS_NODE_ID, *iter, angle_deg);
+		}
+	}*/
 
 	double get_nodes_Normal_receive_ratio(void)
 	{
@@ -337,12 +515,12 @@ implementation
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const uint32_t period = duration / msg;
-		const double est_num_sources = num_sources_respond_to();
+		const double est_num_sources = all_source_factor();
 		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
 		const uint32_t result_period = (uint32_t)ceil(period / (est_num_sources * normal_rcv_ratio));
 
-		simdbgverbose("stdout", "get_tfs_period=%u normrcv=%f\n", result_period, normal_rcv_ratio);
+		simdbg("stdout", "get_tfs_period=%u normrcv=%f\n", result_period, normal_rcv_ratio);
 
 		return result_period;
 	}
@@ -351,12 +529,12 @@ implementation
 	{
 		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
 
-		const double est_num_sources = num_sources_respond_to();
+		const double est_num_sources = all_source_factor();
 		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
 		const uint32_t result_period = (uint32_t)ceil((SOURCE_PERIOD_MS * fake_rcv_ratio_at_src) / (est_num_sources * normal_rcv_ratio));
 
-		simdbgverbose("stdout", "get_pfs_period=%u fakercv=%f normrcv=%f\n",
+		simdbg("stdout", "get_pfs_period=%u fakercv=%f normrcv=%f\n",
 			result_period, fake_rcv_ratio_at_src, normal_rcv_ratio);
 
 		return result_period;
@@ -509,14 +687,21 @@ implementation
 
 	void update_source_distance(const NormalMessage* rcvd)
 	{
-		const int32_t* distance = call SourceDistances.get(rcvd->source_id);
-		if (distance == NULL || *distance > rcvd->source_distance)
+		const int16_t* distance = call SourceDistances.get(rcvd->source_id);
+		const int16_t* sink_source_distance = call SinkSourceDistances.get(rcvd->source_id);
+		if (distance == NULL || *distance > rcvd->source_distance + 1)
 		{
-			call SourceDistances.put(rcvd->source_id, rcvd->source_distance);
+			call SourceDistances.put(rcvd->source_id, rcvd->source_distance + 1);
 			min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
 
 			// Our source distance has changed, so we need to inform neighbours
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+		}
+
+		if ((sink_source_distance == NULL || *sink_source_distance > rcvd->sink_distance) && rcvd->sink_distance != BOTTOM)
+		{
+			//simdbg("stdout", "Updating sink distance of %u to %d\n", rcvd->source_id, rcvd->sink_distance);
+			call SinkSourceDistances.put(rcvd->source_id, rcvd->sink_distance);
 		}
 	}
 
@@ -671,6 +856,7 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 		message.min_sink_source_distance = min_sink_source_distance;
+		message.sink_distance = sink_distance;
 
 		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
 		message.fake_sequence_increments = source_fake_sequence_increments;
@@ -1095,11 +1281,13 @@ implementation
 	RECEIVE_MESSAGE_END(Fake)
 
 
-	void x_receieve_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS_BEACON(rcvd, source_addr);
 
 		METRIC_RCV_BEACON(rcvd);
+
+		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance));
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
@@ -1108,7 +1296,7 @@ implementation
 		case NormalNode:
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: x_receieve_Beacon(rcvd, source_addr); break;
+		case PermFakeNode: x_receive_Beacon(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 
