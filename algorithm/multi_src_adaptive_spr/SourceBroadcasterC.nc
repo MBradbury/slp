@@ -26,6 +26,8 @@
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
+#define EWMA_FACTOR (0.5f)
+
 // Basically a flat map between node ids to distances
 typedef struct
 {
@@ -158,10 +160,10 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
 	// The distance between this node and each source
-	uses interface Dictionary<am_addr_t, int16_t> as SourceDistances;
+	uses interface Dictionary<am_addr_t, float> as SourceDistances;
 
 	// The distance between the recorded source and the sink
-	uses interface Dictionary<am_addr_t, int16_t> as SinkSourceDistances;
+	uses interface Dictionary<am_addr_t, float> as SinkSourceDistances;
 }
 
 implementation
@@ -202,7 +204,7 @@ implementation
 
 	int16_t min_sink_source_distance = BOTTOM;
 	int16_t min_source_distance = BOTTOM;
-	int16_t sink_distance = BOTTOM;
+	float sink_distance = BOTTOM;
 
 	bool sink_received_away_reponse = FALSE;
 
@@ -235,7 +237,7 @@ implementation
 
 	// Exponentially weighted moving average
 	// a higher factor discounts older information faster
-	double ewma(double factor, double history, double current)
+	float ewma(float factor, float history, float current)
 	{
 		if (history < 0 && current < 0)
 		{
@@ -279,12 +281,12 @@ implementation
 
 	bool node_within_towards_source_limit(void)
 	{
-		return sink_distance <= (min_sink_source_distance/2 - 1);
+		return sink_distance <= (min_sink_source_distance/2.0 - 1);
 	}
 
 	bool node_at_towards_source_limit(void)
 	{
-		return sink_distance == (min_sink_source_distance/2 - 1);
+		return fabs(sink_distance - (min_sink_source_distance/2.0 - 1)) <= 1e-6;
 	}
 
 	bool node_is_sink(am_addr_t address)
@@ -305,21 +307,21 @@ implementation
 
 	double inclination_angle_rad(am_addr_t source_id)
 	{
-		const int16_t ssd = call SinkSourceDistances.get_or_default(source_id, BOTTOM);
-		const int16_t dsrc = call SourceDistances.get_or_default(source_id, BOTTOM);
-		const int16_t dsink = sink_distance;
+		const double ssd = call SinkSourceDistances.get_or_default(source_id, BOTTOM);
+		const double dsrc = call SourceDistances.get_or_default(source_id, BOTTOM);
+		const double dsink = sink_distance;
 		double temp, angle;
 
-		if (ssd == BOTTOM || dsrc == BOTTOM || dsink == BOTTOM || ssd == 0 || dsink == 0)
+		if (ssd < 0 || dsrc <= 0 || dsink <= 0)
 		{
-			simdbg("stdout", "source_id=%u ssd=%d dsrc=%d dsink=%d\n", source_id, ssd, dsrc, dsink);
+			simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f\n", source_id, ssd, dsrc, dsink);
 			return INFINITY;
 		}
 
-		temp = ((dsrc * (double)dsrc) + (dsink * (double)dsink) - (ssd * (double)ssd)) / (2.0 * dsrc * dsink);
+		temp = ((dsrc * dsrc) + (dsink * dsink) - (ssd * ssd)) / (2.0 * dsrc * dsink);
 		angle = acos(temp);
 
-		simdbg("stdout", "source_id=%u ssd=%d dsrc=%d dsink=%d inter=%f angle=%f\n", source_id, ssd, dsrc, dsink, temp, rad2deg(angle));
+		simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f inter=%f angle=%f\n", source_id, ssd, dsrc, dsink, temp, rad2deg(angle));
 
 		return angle;
 	}
@@ -333,40 +335,58 @@ implementation
 	{
 		const double source1_angle = inclination_angle_rad(source1);
 		const double source2_angle = inclination_angle_rad(source2);
+		double result;
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
+			simdbg("stdout", "further result invalid\n");
 			return INFINITY;
 		}
 
-		return source1_angle + source2_angle;
+		result = source1_angle + source2_angle;
+
+		simdbg("stdout", "further result %f\n", result);
+
+		return result;
 	}
 
 	double angle_when_node_closer_than_sink(am_addr_t source1, am_addr_t source2)
 	{
 		const double source1_angle = inclination_angle_rad(source1);
 		const double source2_angle = inclination_angle_rad(source2);
+		double result;
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
+			simdbg("stdout", "closer result invalid\n");
 			return INFINITY;
 		}
 
-		return 2.0 * M_PI - source1_angle - source2_angle;
+		result = 2.0 * M_PI - source1_angle - source2_angle;
+
+		simdbg("stdout", "closer result %f\n", result);
+
+		return result;
 	}
 
 	double angle_when_node_side_of_sink(am_addr_t source1, am_addr_t source2)
 	{
 		const double source1_angle = inclination_angle_rad(source1);
 		const double source2_angle = inclination_angle_rad(source2);
+		double result;
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
+			simdbg("stdout", "side result invalid\n");
 			return INFINITY;
 		}
 
 		// Covers both a1 - a2 and a2 - a1 depending on which angle is the largest.
-		return abs(source1_angle - source2_angle);
+		result = fabs(source1_angle - source2_angle);
+
+		simdbg("stdout", "side result %f\n", result);
+
+		return result;
 	}
 
 #define RETURN_NON_INVALID(a, b, c) \
@@ -393,9 +413,30 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 		return angle_when_node_further_than_sink(source1, source2);
 #elif defined(ARBITRARY_SINK_APPROACH)
 
+		const double ssd1 = call SinkSourceDistances.get_or_default(source1, BOTTOM);
+		const double dsrc1 = call SourceDistances.get_or_default(source1, BOTTOM);
+		const double ssd2 = call SinkSourceDistances.get_or_default(source2, BOTTOM);
+		const double dsrc2 = call SourceDistances.get_or_default(source2, BOTTOM);
+		const double dsink = sink_distance;
+
 		const double further = angle_when_node_further_than_sink(source1, source2);
 		const double closer = angle_when_node_closer_than_sink(source1, source2);
 		const double side = angle_when_node_side_of_sink(source1, source2);
+
+		if (dsrc1 >= ssd1 && dsrc2 >= ssd2 && !invalid_double(further))
+		{
+			return further;
+		}
+
+		else if (dsrc1 <= ssd1 && dsrc2 <= ssd2 && !invalid_double(closer))
+		{
+			return closer;
+		}
+
+		else if (!invalid_double(side))
+		{
+			return side;
+		}
 
 		RETURN_NON_INVALID(further, closer, side)
 		RETURN_NON_INVALID(closer, further, side)
@@ -490,7 +531,7 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 	{
 		const uint32_t distance = get_dist_to_pull_back();
 
-		//simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
+		//simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%f, Dss=%d)\n",
 		//	distance, source_distance, sink_distance, min_sink_source_distance);
 
 		return distance;
@@ -500,12 +541,12 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 	{
 		uint32_t duration = SOURCE_PERIOD_MS;
 
-		if (sink_distance == BOTTOM || sink_distance <= 1)
+		if (sink_distance <= 1)
 		{
 			duration -= get_away_delay();
 		}
 
-		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%f)\n", duration, sink_distance);
 
 		return duration;
 	}
@@ -645,7 +686,7 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 			// We should consider moving to one of these neighbours if we are still close to the sink.
 
 			simdbgverbose("stdout", "Considering allowing fake sources to move towards the source\n");
-			simdbgverbose("stdout", "sink-distance=%d <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
+			simdbgverbose("stdout", "sink-distance=%f <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
 
 			if (node_within_towards_source_limit())
 			{
@@ -687,21 +728,41 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 
 	void update_source_distance(const NormalMessage* rcvd)
 	{
-		const int16_t* distance = call SourceDistances.get(rcvd->source_id);
-		const int16_t* sink_source_distance = call SinkSourceDistances.get(rcvd->source_id);
-		if (distance == NULL || *distance > rcvd->source_distance + 1)
+		const float* distance = call SourceDistances.get(rcvd->source_id);
+		const float* sink_source_distance = call SinkSourceDistances.get(rcvd->source_id);
+
+		if (distance == NULL)
 		{
 			call SourceDistances.put(rcvd->source_id, rcvd->source_distance + 1);
-			min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
-
-			// Our source distance has changed, so we need to inform neighbours
+			
+			// Our source distance has been set for the first time, so we need to inform neighbours
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
+		else
+		{
+			const float existing_distance = *distance;
 
-		if ((sink_source_distance == NULL || *sink_source_distance > rcvd->sink_distance) && rcvd->sink_distance != BOTTOM)
+			call SourceDistances.put(rcvd->source_id, ewma(EWMA_FACTOR, *distance, rcvd->source_distance + 1));
+
+			if (fabs(*distance - existing_distance) > 0.45f)
+			{
+				// Our source distance has changed, so we want to inform neighbours
+				// However, we should only do this if a big change has occurred!
+				// TODO: only do this some times
+				call BeaconSenderTimer.startOneShot(beacon_send_wait());
+			}
+		}
+
+		min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
+
+		if (sink_source_distance == NULL)
 		{
 			//simdbg("stdout", "Updating sink distance of %u to %d\n", rcvd->source_id, rcvd->sink_distance);
 			call SinkSourceDistances.put(rcvd->source_id, rcvd->sink_distance);
+		}
+		else
+		{
+			call SinkSourceDistances.put(rcvd->source_id, ewma(EWMA_FACTOR, *sink_source_distance, rcvd->sink_distance));
 		}
 	}
 
@@ -709,7 +770,8 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 	{
 		UPDATE_NEIGHBOURS_AWAYCHOOSE(rcvd, source_addr);
 
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		sink_distance = ewma(EWMA_FACTOR, sink_distance, rcvd->sink_distance + 1);
+
 		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
 
 		// Probably don't need to send a beacon here.
@@ -908,10 +970,10 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 		for (iter = call SourceDistances.beginKeys(), i = 0; iter != call SourceDistances.endKeys(); ++iter, ++i)
 		{
 			message.node[i] = *iter;
-			message.src_distance[i] = *call SourceDistances.get_from_iter(iter);
+			message.src_distance[i] = (int16_t)round(*call SourceDistances.get_from_iter(iter));
 		}
 
-		message.sink_distance = sink_distance;
+		message.sink_distance = (int16_t)round(sink_distance);
 
 		//call Packet.clear(&packet);
 
@@ -1055,8 +1117,6 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		update_sink_distance(rcvd, source_addr);
-
 		sink_id = rcvd->source_id;
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
@@ -1066,6 +1126,8 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_AWAY(rcvd);
+
+			update_sink_distance(rcvd, source_addr);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
@@ -1086,8 +1148,6 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		update_sink_distance(rcvd, source_addr);
-
 		sink_id = rcvd->source_id;
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
@@ -1097,6 +1157,8 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_AWAY(rcvd);
+
+			update_sink_distance(rcvd, source_addr);
 
 			if (rcvd->sink_distance == 0)
 			{
@@ -1144,8 +1206,6 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		update_sink_distance(rcvd, source_addr);
-
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
 		{
 			distance_neighbours_t local_neighbours;
@@ -1153,6 +1213,8 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_CHOOSE(rcvd);
+
+			update_sink_distance(rcvd, source_addr);
 
 			if (rcvd->drw_direction == DirectedWalkTowardsSource)
 			{
@@ -1287,7 +1349,7 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 
 		METRIC_RCV_BEACON(rcvd);
 
-		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance));
+		sink_distance = ewma(EWMA_FACTOR, sink_distance, botinc(rcvd->sink_distance));
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
