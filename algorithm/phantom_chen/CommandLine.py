@@ -29,17 +29,17 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'SourceCorner',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
-        #'FurtherSinkCorner',
-        #'FurtherSinkCorner2Source',
-        #'FurtherSinkCorner3Source'
+        'FurtherSinkCorner',
+        'FurtherSinkCorner2Source',
+        'FurtherSinkCorner3Source'
 
         #'FurtherSinkCorner',
         #'Generic1',
@@ -94,10 +94,17 @@ class CLI(CommandLineCommon.CLI):
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
         half_ssd = int(math.floor(s/2)) + 1
 
-        walk_short = list(range(2, half_ssd))
-        walk_long = list(range(s+2, half_ssd+s))
-        #walk_short = list(range(2, int(math.floor(s/2)) + 1))
-        #walk_long = list(range(s+2, int(math.floor(s + s/2)) + 1))
+        half_ssd_further = s
+
+        ssd_further = 2*s
+
+        #walk_short = list(range(2, half_ssd))
+        #walk_long = list(range(s+2, half_ssd+s))
+        
+        #for the Further* topology.
+        walk_short = list(range(2, half_ssd_further))
+        walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
+
         return list(zip(walk_short, walk_long))
         
 
