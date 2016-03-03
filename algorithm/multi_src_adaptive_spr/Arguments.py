@@ -2,7 +2,7 @@ import argparse
 from algorithm.common.ArgumentsCommon import ArgumentsCommon
 import simulator.MobilityModel
 
-approaches = ["NUM_SOURCES_APPROACH"]
+approaches = ["NO_INTERFERENCE_APPROACH", "ALWAYS_FURTHER_APPORACH", "ARBITRARY_SINK_APPROACH"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):

@@ -2,6 +2,8 @@ from __future__ import print_function
 
 import os, itertools, math
 
+import numpy as np
+
 from algorithm.common import CommandLineCommon
 
 import algorithm.protectionless as protectionless
@@ -12,7 +14,26 @@ from data.table import safety_period, fake_result
 from data.graph import summary, heatmap, versus, min_max_versus
 from data.util import scalar_extractor
 
-from data.run.common import RunSimulationsCommon as RunSimulations
+from data.run.common import RunSimulationsCommon
+
+class RunSimulations(RunSimulationsCommon):
+    def _get_safety_period(self, argument_names, arguments):
+        time_taken = super(RunSimulations, self)._get_safety_period(argument_names, arguments)
+
+        if time_taken is None:
+            return None
+
+        configuration_name = arguments[argument_names.index('configuration')]
+        network_size = int(arguments[argument_names.index('network size')])
+        distance = float(arguments[argument_names.index('distance')])
+
+        configuration = Configuration.create_specific(configuration_name, network_size, distance)
+        ssd = np.mean(configuration.ssd(source) for source in configuration.source_ids)
+
+        short_walk_length = float(arguments[argument_names.index('short walk length')])
+        long_walk_length = float(arguments[argument_names.index('long walk length')])
+
+        return (1.0 + (long_walk_length / ssd)) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -68,10 +89,10 @@ class CLI(CommandLineCommon.CLI):
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
+        time_taken = safety_period_table_generator.time_taken()
 
         runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
+            skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
 
         argument_product = itertools.product(
             self.sizes, self.configurations,
