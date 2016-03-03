@@ -35,7 +35,9 @@ class RunSimulations(RunSimulationsCommon):
         short_walk_length = float(arguments[argument_names.index('short walk length')])
         long_walk_length = float(arguments[argument_names.index('long walk length')])
 
-        return (1.0 + (long_walk_length / ssd)) * time_taken
+        random_walk_length = 0.5*(short_walk_length + long_walk_length)
+
+        return (1.0 + (random_walk_length / ssd)) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
