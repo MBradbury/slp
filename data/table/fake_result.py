@@ -37,6 +37,8 @@ class ResultTable(object):
                 "temp fake duration": ("Dur", "(sec)"),
                 "pr(tfs)": ("P[TFS]", "(\\%)"),
                 "pr(pfs)": ("P[PFS]", "(\\%)"),
+                "short walk length": ("Short Walk Length", "(hops)"),
+                "long walk length": ("Long Walk Length", "(hops)"),
                 "captured": ("Cap", "(\\%)"),
                 "fake": ("Fake", "Messages"),
                 "received ratio": ("Received", "(\\%)"),
@@ -75,7 +77,8 @@ class ResultTable(object):
     def _var_fmt(self, name, value):
         if value is None:
             return "None"
-        elif name in {"source period", "fake period", "walk length", "walk retries", "repeats"}:
+        elif name in {"source period", "fake period", "walk length", "walk retries",
+                      "repeats", "short walk length", "long walk length"}:
             return "${}$".format(value)
         elif name == "duration" or name == "temp fake duration":
             return "${:.0f}$".format(value)
