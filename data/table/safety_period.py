@@ -101,7 +101,7 @@ class TableGenerator:
             print('', file=stream)
 
 
-    def _get_result_mapping(self, result_name):
+    def _get_result_mapping(self, result_name, accessor=lambda x: x):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> individual result
         result = {}
 
@@ -112,7 +112,7 @@ class TableGenerator:
 
                 individual_result = items[tuple()][index]
 
-                result.setdefault(table_key, {})[source_period] = individual_result
+                result.setdefault(table_key, {})[source_period] = accessor(individual_result)
 
         return result
 
@@ -122,4 +122,4 @@ class TableGenerator:
 
     def time_taken(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> time taken
-        return self._get_result_mapping('time taken')
+        return self._get_result_mapping('time taken', lambda x: x[0])
