@@ -32,7 +32,8 @@ implementation
         new TimerMilliC() as BeaconTimer,
         new TimerMilliC() as WaveTimer,
         new TimerMilliC() as PreSlotTimer,
-        new TimerMilliC() as SlotTimer;
+        new TimerMilliC() as SlotTimer,
+        new TimerMilliC() as PostSlotTimer;
 
     /*App.BroadcastTimer -> BroadcastTimer;*/
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
@@ -40,6 +41,7 @@ implementation
     App.WaveTimer -> WaveTimer;
     App.PreSlotTimer -> PreSlotTimer;
     App.SlotTimer -> SlotTimer;
+    App.PostSlotTimer -> PostSlotTimer;
 
     // Networking
     components
