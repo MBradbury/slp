@@ -107,6 +107,7 @@ implementation
 		des4 = TOS_NODE_ID + TOPOLOGY_SIZE;
 
 		ran=call Random.rand16()%2;
+		
 		biased_ran=call Random.rand16()%3;
 
 		switch(choose)
