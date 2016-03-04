@@ -30,7 +30,7 @@ class RunSimulations(RunSimulationsCommon):
         distance = float(arguments[argument_names.index('distance')])
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
-        ssd = np.mean(configuration.ssd(source) for source in configuration.source_ids)
+        ssd = max(configuration.ssd(source) for source in configuration.source_ids)
 
         short_walk_length = float(arguments[argument_names.index('short walk length')])
         long_walk_length = float(arguments[argument_names.index('long walk length')])
