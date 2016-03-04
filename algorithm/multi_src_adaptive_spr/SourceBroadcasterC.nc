@@ -389,22 +389,6 @@ implementation
 		return result;
 	}
 
-#define RETURN_NON_INVALID(a, b, c) \
-if (invalid_double(a)) \
-{ \
-	if (invalid_double(b) && !invalid_double(c)) \
-		return c; \
- \
-	if (!invalid_double(b) && invalid_double(c)) \
-		return b; \
- \
-	if (!invalid_double(b) && !invalid_double(c)) \
-		return min(b, c); \
-}
-
-#define RETURN_MIN_NON_INVALID2(a, b, c) \
-if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b, c)
-
 	double interference_strategy(am_addr_t source1, am_addr_t source2)
 	{
 #if defined(NO_INTERFERENCE_APPROACH)
@@ -431,22 +415,30 @@ if (invalid_double(a) && !invalid_double(b) && !invalid_double(c)) return min(b,
 		{
 			return further;
 		}
-
 		else if (dsrc1 <= ssd1 && dsrc2 <= ssd2 && !invalid_double(closer))
 		{
 			return closer;
 		}
-
 		else if (!invalid_double(side))
 		{
 			return side;
 		}
-
-		RETURN_NON_INVALID(further, closer, side)
-		RETURN_NON_INVALID(closer, further, side)
-		RETURN_NON_INVALID(side, closer, further)
-
-		return min3(further, closer, side);
+		else if (!invalid_double(further) && !invalid_double(closer))
+		{
+			return min(further, closer);
+		}
+		else if (!invalid_double(further))
+		{
+			return further;
+		}
+		else if (!invalid_double(closer))
+		{
+			return closer;
+		}
+		else
+		{
+			return INFINITY;
+		}
 
 #else
 #	error "No apporach specified"
