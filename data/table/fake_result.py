@@ -100,7 +100,10 @@ class ResultTable(object):
         elif name == "paths reached end":
             return "${:.1f} \\pm {:.1f}$".format(value[0], value[1])
         else:
-            return "${:.3f} \\pm {:.3f}$".format(value[0], value[1])
+            try:
+                return "${:.3f} \\pm {:.3f}$".format(value[0], value[1])
+            except TypeError as e:
+                raise RuntimeError("Unable to format values for {} with values {} under the default setting".format(name, value), e)
 
 
     def write_tables(self, stream, param_filter=lambda x: True):
