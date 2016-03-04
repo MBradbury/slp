@@ -107,8 +107,8 @@ implementation
 		des4 = TOS_NODE_ID + TOPOLOGY_SIZE;
 
 		ran=call Random.rand16()%2;
-		
-		biased_ran=call Random.rand16()%3;
+
+		biased_ran=call Random.rand16()%10;
 
 		switch(choose)
 		{
@@ -121,7 +121,7 @@ implementation
 
     		case(1):
     			if (bottom(TOS_NODE_ID)) 												des = des2;
-    			else if (right_bottom_corner(TOS_NODE_ID))								des = TOS_NODE_ID; //stop here.
+    			else if (right_bottom_corner(TOS_NODE_ID))								des = des4;
     			else if (right_border(TOS_NODE_ID)) 									des = des3;
     			else      																des=(ran==0)?des2:des3;
   				break;
@@ -129,7 +129,7 @@ implementation
   			case(2):
     			if (left_border(TOS_NODE_ID))  					des = des4;
     			else if(top(TOS_NODE_ID))						des = des1;				
-    			else if(left_top_corner(TOS_NODE_ID))			des = TOS_NODE_ID;
+    			else if(left_top_corner(TOS_NODE_ID))			des = des2;
     			else 											des=(ran==0)?des1:des4;
     			break;
 
@@ -327,7 +327,8 @@ implementation
 				else
 				{
 					simdbg("slp-debug","random walk hop:%d\n",message.walk_distance_remaining);
-					message.flip_coin = call Random.rand16()%4;
+					//message.flip_coin = call Random.rand16()%4;
+					message.flip_coin = (flip_coin == 0)?1:2;
 				}
 				
 			}
