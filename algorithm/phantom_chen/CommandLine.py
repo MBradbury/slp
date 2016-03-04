@@ -36,6 +36,7 @@ class RunSimulations(RunSimulationsCommon):
         long_walk_length = float(arguments[argument_names.index('long walk length')])
 
         random_walk_length = 0.5*(short_walk_length + long_walk_length)
+        print configuration_name
 
         return (1.0 + (random_walk_length / ssd)) * time_taken
 
