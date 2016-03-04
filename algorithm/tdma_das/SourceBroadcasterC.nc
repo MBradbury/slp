@@ -24,7 +24,7 @@
 
 #define BEACON_PERIOD_MS 2000
 #define WAVE_PERIOD_MS 20000
-#define SLOT_PERIOD_MS 1000
+#define SLOT_PERIOD_MS 500
 
 #define TDMA_NUM_SLOTS 50
 
@@ -39,6 +39,7 @@ module SourceBroadcasterC
     uses interface Timer<TMilli> as WaveTimer;
     uses interface Timer<TMilli> as PreSlotTimer;
     uses interface Timer<TMilli> as SlotTimer;
+    uses interface Timer<TMilli> as PostSlotTimer;
 
 	uses interface Pool<NormalMessage> as MessagePool;
 	uses interface Queue<NormalMessage*> as MessageQueue;
@@ -82,6 +83,7 @@ implementation
     uint16_t slot = BOTTOM;
     uint16_t hop = BOTTOM;
     uint16_t parent = BOTTOM;
+    bool slot_active = FALSE;
 
     typedef enum
 	{
@@ -164,7 +166,6 @@ implementation
 			//call BroadcastTimer.startOneShot(get_broadcast_period());
             send_beacon();
             dissem();
-            /*call BeaconTimer.startOneShot(get_beacon_period());*/
             call WaveTimer.startOneShot(get_wave_period());
             call BeaconTimer.startOneShot(get_beacon_period());
 		}
@@ -293,7 +294,7 @@ implementation
         /*call ObjectDetector.start();*/
         /*call BroadcastTimer.startOneShot(get_broadcast_period());*/
         send_beacon();
-        call BeaconTimer.startOneShot(get_beacon_period());
+        call PreSlotTimer.startOneShot(get_beacon_period());
     }
 
     event void WaveTimer.fired()
@@ -308,51 +309,9 @@ implementation
         call SlotTimer.startOneShot(slot*get_slot_period());
     }
 
-    /*void send_message_source();*/
-    void send_message_normal();
-
-    event void SlotTimer.fired()
-    {
-        /*if(type == SourceNode)*/
-        /*{*/
-            /*send_message_source();*/
-        /*}*/
-        send_message_normal();
-        call BeaconTimer.startOneShot((get_tdma_num_slots()-slot)*get_slot_period());
-    }
-
-
-	event void EnqueueNormalTimer.fired()
-	{
-		NormalMessage* message;
-
-		simdbgverbose("SourceBroadcasterC", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
-
-		message = call MessagePool.get();
-		if (message != NULL)
-		{
-			message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
-			message->source_distance = 0;
-			message->source_id = TOS_NODE_ID;
-
-			if (call MessageQueue.enqueue(message) != SUCCESS)
-			{
-				simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
-			}
-			else
-			{
-				call NormalSeqNos.increment(TOS_NODE_ID);
-			}
-		}
-		else
-		{
-			simdbgerror("stdout", "No pool space available for another Normal message.\n");
-		}
-
-		call EnqueueNormalTimer.startOneShot(get_source_period());
-	}
-
-	void send_message_normal()
+    void send_message_source();
+    /*void send_message_normal();*/
+	task void send_message_normal()
 	{
 		NormalMessage* message;
 
@@ -378,8 +337,96 @@ implementation
 			send_DummyNormal_message(&dummy_message, AM_BROADCAST_ADDR);
 		}
 
-		//call BroadcastTimer.startOneShot(get_broadcast_period());
+        if(slot_active && !(call MessageQueue.empty()))
+        {
+            post send_message_normal();
+        }
 	}
+
+    event void SlotTimer.fired()
+    {
+        if(type == SourceNode)
+        {
+            send_message_source();
+        }
+        slot_active = TRUE;
+        /*send_message_normal();*/
+        post send_message_normal();
+        call PostSlotTimer.startOneShot(get_slot_period());
+    }
+
+    event void PostSlotTimer.fired()
+    {
+        slot_active = FALSE;
+        call BeaconTimer.startOneShot((get_tdma_num_slots()-(slot-1))*get_slot_period());
+    }
+
+    event void EnqueueNormalTimer.fired()
+    {
+    }
+
+
+    void send_message_source()
+    {
+        NormalMessage* message;
+
+        simdbgverbose("SourceBroadcasterC", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
+
+        message = call MessagePool.get();
+        if (message != NULL)
+        {
+            message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+            message->source_distance = 0;
+            message->source_id = TOS_NODE_ID;
+
+            if (call MessageQueue.enqueue(message) != SUCCESS)
+            {
+                simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+            }
+            else
+            {
+                call NormalSeqNos.increment(TOS_NODE_ID);
+            }
+        }
+        else
+        {
+            simdbgerror("stdout", "No pool space available for another Normal message.\n");
+        }
+
+        call EnqueueNormalTimer.startOneShot(get_source_period());
+    }
+
+/*
+ *    void send_message_normal()
+ *    {
+ *        NormalMessage* message;
+ *
+ *        simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
+ *
+ *        message = call MessageQueue.dequeue();
+ *
+ *        if (message != NULL)
+ *        {
+ *            if (send_Normal_message(message, AM_BROADCAST_ADDR))
+ *            {
+ *                call MessagePool.put(message);
+ *            }
+ *            else
+ *            {
+ *                simdbgerror("stdout", "send failed, not returning memory to pool so it will be tried again\n");
+ *            }
+ *        }
+ *        else
+ *        {
+ *            DummyNormalMessage dummy_message;
+ *
+ *            send_DummyNormal_message(&dummy_message, AM_BROADCAST_ADDR);
+ *        }
+ *
+ *        //call BroadcastTimer.startOneShot(get_broadcast_period());
+ *    }
+ */
+
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
