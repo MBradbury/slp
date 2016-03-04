@@ -135,7 +135,7 @@ class CLI(CommandLineCommon.CLI):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end', 'source dropped'))
+            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
         result_table = fake_result.ResultTable(phantom_results)
 
