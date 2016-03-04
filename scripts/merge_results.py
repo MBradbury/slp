@@ -46,16 +46,26 @@ class MergeResults:
 
     @staticmethod
     def _write_merged_results(in1, in2, out):
+
+        hash_line1 = None
+
         for line in in1:
+            if line.startswith('#'):
+                hash_line1 = line
+
             out.write(line)
 
-        seen_hash = False
+        hash_line2 = None
 
         for line in in2:
             if line.startswith('#'):
-                seen_hash = True
+                hash_line2 = line
+
+                if hash_line2 != hash_line1:
+                    raise RuntimeError("The result names do not match {} / {}".format(hash_line1, hash_line2))
+
             else:
-                if seen_hash:
+                if hash_line2 is not None:
                     out.write(line)
 
 
@@ -67,7 +77,7 @@ class MergeResults:
         This IS a horrible hack. TODO: Really the summary should be read and
         merging should happen based on that."""
         if not os.path.exists(other_path):
-            components = result_file.split("-")
+            components = result_file[:-4].split("-")
 
             psrc = components.pop(1)
 
@@ -76,7 +86,7 @@ class MergeResults:
 
                 components.insert(distance_index + 1, psrc)
 
-                return os.path.join(self.merge_dir, "-".join(components))
+                return os.path.join(self.merge_dir, "-".join(components)) + ".txt"
 
             except ValueError:
                 return other_path
