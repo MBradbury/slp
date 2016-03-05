@@ -44,12 +44,6 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
  \
 		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
 		NAME##Message* const message = (NAME##Message*)void_message; \
-		if (sizeof(NAME##Message) > TOSH_DATA_LENGTH) \
-		{ \
-			simdbgerror("stdout", "%s: Packet payload for " #NAME "Message is too large %u > %u.\n", \
-				sim_time_string(), sizeof(NAME##Message), TOSH_DATA_LENGTH); \
-			return ESIZE; \
-		} \
 		if (message == NULL) \
 		{ \
 			simdbgerror("stdout", "%s: Packet for " #NAME "Message has no payload.\n", sim_time_string()); \
@@ -160,15 +154,15 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	return msg; \
 }
 
-#define USE_MESSAGE(NAME) \
-	SEND_MESSAGE(NAME); \
-	inline void send_##NAME##_done(message_t* msg, error_t error); \
-	SEND_DONE(NAME, send_##NAME##_done); \
-	inline void send_##NAME##_done(message_t* msg, error_t error) {}
-
 #define USE_MESSAGE_WITH_CALLBACK(NAME) \
+	STATIC_ASSERT_MSG(sizeof(NAME##Message) < TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
 	SEND_MESSAGE(NAME); \
 	void send_##NAME##_done(message_t* msg, error_t error); \
 	SEND_DONE(NAME, send_##NAME##_done)
+
+#define USE_MESSAGE(NAME) \
+	USE_MESSAGE_WITH_CALLBACK(NAME); \
+	inline void send_##NAME##_done(message_t* msg, error_t error) {}
+
 
 #endif // SLP_SEQUENCENUMBER_H
