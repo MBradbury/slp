@@ -30,14 +30,18 @@ class RunSimulations(RunSimulationsCommon):
         distance = float(arguments[argument_names.index('distance')])
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
-        ssd = max(configuration.ssd(source) for source in configuration.source_ids)
+        ssd = min(configuration.ssd(source) for source in configuration.source_ids)
 
         short_walk_length = float(arguments[argument_names.index('short walk length')])
         long_walk_length = float(arguments[argument_names.index('long walk length')])
 
         random_walk_length = 0.5*(short_walk_length + long_walk_length)
 
-        return (1.0 + (random_walk_length / ssd)) * time_taken
+        if ssd > network_size * 1.5:
+            return  time_taken
+	else:
+	   return ((1.2 * ssd + 0.5 * short_walk_length) / ssd) * time_taken
+        #return (1.0 + (random_walk_length / ssd)) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -51,18 +55,18 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11, 15, 21, 25]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [1.0]
 
     configurations = [
         'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
-        #'FurtherSinkCorner',
+        'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
         #'FurtherSinkCorner3Source'
 
