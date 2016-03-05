@@ -155,7 +155,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 }
 
 #define USE_MESSAGE_WITH_CALLBACK(NAME) \
-	STATIC_ASSERT_MSG(sizeof(NAME##Message) < TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
+	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
 	SEND_MESSAGE(NAME); \
 	void send_##NAME##_done(message_t* msg, error_t error); \
 	SEND_DONE(NAME, send_##NAME##_done)
