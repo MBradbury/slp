@@ -1,2 +1,9 @@
 
 CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Werror=sign-compare -Werror=pointer-sign -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable
+
+
+ifdef USE_SERIAL_PRINTF
+
+CFLAGS += -I$(TOSDIR)/lib/printf
+
+endif

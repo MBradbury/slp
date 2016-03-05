@@ -5,12 +5,6 @@
 
 #define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
 
-#ifdef SLP_VERBOSE_DEBUG
-#	define simdbgverbose(...) simdbg(__VA_ARGS__)
-#else
-#	define simdbgverbose(...)
-#endif
-
 #define max(a, b) \
 	({ __typeof__(a) _a = (a), _b = (b); \
 	   _a > _b ? _a : _b; })
@@ -38,11 +32,28 @@ inline double rad2deg(double r)
 	return r * (180.0 / M_PI);
 }
 
-/*
-#define simdbg(...) dbg(__VA_ARGS__)
-#define simdbg_clear(...) dbg_clear(__VA_ARGS__)
-#define simdbgerror(...) dbgerror(__VA_ARGS__)
-#define simdbgerror_clear(...) dbgerror_clear(__VA_ARGS__)
-*/
+// Compiling for testbeds, so need to route the simdbg to the printf library
+#ifdef USE_SERIAL_PRINTF
+
+#define NEW_PRINTF_SEMANTICS
+#include "printf.h"
+
+#define simdbg(name, ...) printf(__VA_ARGS__); printfflush()
+#define simdbg_clear(name, ...) printf(__VA_ARGS__); printfflush()
+#define simdbgerror(name, ...) printf(__VA_ARGS__); printfflush()
+#define simdbgerror_clear(name, ...) printf(__VA_ARGS__); printfflush()
+
+// See generic_printf.h for supported format specifiers
+// TODO: fix this so that 64 bit is properly implemented
+#define PRIu64 "lu"
+#define PRIi64 "l"
+
+#endif
+
+#ifdef SLP_VERBOSE_DEBUG
+#	define simdbgverbose(...) simdbg(__VA_ARGS__)
+#else
+#	define simdbgverbose(...)
+#endif
 
 #endif // SLP_COMMON_H

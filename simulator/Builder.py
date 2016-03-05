@@ -21,7 +21,7 @@ def build_actual(directory, **kwargs):
 
     flags = " ".join("-D{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
 
-    command = 'make micaz SLP_PARAMETER_CFLAGS="{}"'.format(flags)
+    command = 'make micaz SLP_PARAMETER_CFLAGS="{}" USE_SERIAL_PRINTF=1'.format(flags)
 
     result = subprocess.check_call(
         command,
