@@ -37,7 +37,7 @@ class RunSimulations(RunSimulationsCommon):
 
         random_walk_length = 0.5*(short_walk_length + long_walk_length)
 
-        if ssd > network_size * 1.5:
+        if ssd > network_size * 1.2:
             return  time_taken
 	else:
 	   return ((1.2 * ssd + 0.5 * short_walk_length) / ssd) * time_taken
@@ -55,18 +55,18 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11, 15, 21, 25]
 
-    source_periods = [1.0]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
         'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
-        'FurtherSinkCorner',
+        #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
         #'FurtherSinkCorner3Source'
 
