@@ -45,10 +45,16 @@ class Runner:
         print("Copying files to {}...".format(target_directory))
 
         files_to_move = [
-            # TODO: work out what files to move
+            "app.c",
+            "ident_flags.txt",
+            "main.exe",
+            "main.ihex",
+            "main.srec",
+            "tos_image.xml",
+            "wiring-check.xml",
         ]
         for name in files_to_move:
-            shutil.copy(os.path.join(module_path, name), target_directory)
+            shutil.copy(os.path.join(module_path, "build", "micaz", name), target_directory)
 
         print("All Done!")
 
