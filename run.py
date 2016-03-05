@@ -30,7 +30,7 @@ if a.args.mode != "CLUSTER":
     build_arguments.update(configuration.build_arguments())
 
     # Now build the simulation with the specified arguments
-    Builder.build(module.replace(".", "/"), **build_arguments)
+    Builder.build_sim(module.replace(".", "/"), **build_arguments)
 
     # Need to build the topology.txt file once.
     # Do it now as if done later it will be created

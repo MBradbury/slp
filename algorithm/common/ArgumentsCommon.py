@@ -7,7 +7,7 @@ import simulator.SourcePeriodModel as SourcePeriodModel
 
 class ArgumentsCommon(object):
     def __init__(self, parser, has_safety_period=False):
-        parser.add_argument("--mode", type=str, choices=["GUI", "SINGLE", "PARALLEL", "CLUSTER"], required=True)
+        parser.add_argument("--mode", type=str, choices=["GUI", "SINGLE", "PARALLEL", "CLUSTER", "TESTBED"], required=True)
 
         parser.add_argument("--seed", type=int)
 
