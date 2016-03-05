@@ -30,7 +30,7 @@ class Runner:
         # Build the binary
         build_args = self.build_arguments(a)
 
-        build_args["TESTBED"] = 1
+        build_args["USE_SERIAL_PRINTF"] = 1
 
         print("Building for {}".format(build_args))
 
