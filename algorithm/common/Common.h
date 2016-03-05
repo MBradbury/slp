@@ -43,10 +43,13 @@ inline double rad2deg(double r)
 #define simdbgerror(name, ...) printf(__VA_ARGS__); printfflush()
 #define simdbgerror_clear(name, ...) printf(__VA_ARGS__); printfflush()
 
-// See generic_printf.h for supported format specifiers
-// TODO: fix this so that 64 bit is properly implemented
-#define PRIu64 "lu"
-#define PRIi64 "l"
+#define PRIu8 "u"
+#define PRIu64 "llu"
+#define PRIi64 "lld"
+
+// TODO: Implement these time strings
+#define sim_time_string() "<TODO implement sim_time_string>"
+#define sim_time() 0ULL
 
 #endif
 
