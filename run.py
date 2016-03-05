@@ -4,13 +4,9 @@ from __future__ import print_function
 
 import sys, importlib
 
-from simulator import dependency
-dependency.check_all()
-
 module = sys.argv[1]
 
 Arguments = importlib.import_module("{}.Arguments".format(module))
-Metrics = importlib.import_module("{}.Metrics".format(module))
 
 a = Arguments.Arguments()
 a.parse(sys.argv[2:])
@@ -21,6 +17,11 @@ if a.args.mode != "CLUSTER":
     import simulator.Builder as Builder
     from simulator.Simulation import Simulation
     import simulator.Configuration as Configuration
+
+    # Only check dependencies on non-cluster runs
+    # Cluster runs will have the dependencies checked in create.py
+    from simulator import dependency
+    dependency.check_all()
 
     configuration = Configuration.create(a.args.configuration, a.args)
 
@@ -41,6 +42,9 @@ if a.args.mode != "CLUSTER":
 
 # When doing cluster array jobs only print out this header information on the first job
 if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
+
+    Metrics = importlib.import_module("{}.Metrics".format(module))
+
     # Print out the argument settings
     for (k, v) in [(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide]:
         print("{}={}".format(k, v))
