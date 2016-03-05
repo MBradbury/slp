@@ -4,7 +4,7 @@ import os, importlib, shlex, shutil, time, timeit, datetime
 import data.util
 
 from simulator import Builder
-from simulator import Configuration, Simulation
+from simulator import Configuration
 
 class Runner:
     def __init__(self):
@@ -28,11 +28,13 @@ class Runner:
         a = self.parse_arguments(module, argv)
 
         # Build the binary
-        build_args = self.build_arguments(a)        
+        build_args = self.build_arguments(a)
+
+        build_args["TESTBED"] = 1
 
         print("Building for {}".format(build_args))
 
-        build_result = Builder.build_sim(module_path, **build_args)
+        build_result = Builder.build_actual(module_path, **build_args)
 
         print("Build finished with result {}, waiting for a bit...".format(build_result))
 
@@ -43,22 +45,10 @@ class Runner:
         print("Copying files to {}...".format(target_directory))
 
         files_to_move = [
-            "Analysis.py",
-            "Arguments.py",
-            "CommandLine.py",
-            "Metrics.py",
-            "__init__.py",
-            "app.xml",
-            "_TOSSIM.so",
-            "TOSSIM.py",
+            # TODO: work out what files to move
         ]
         for name in files_to_move:
             shutil.copy(os.path.join(module_path, name), target_directory)
-
-        # Create the topology of this configuration
-        print("Creating topology file...")
-        configuration = Configuration.create(a.args.configuration, a.args)
-        Simulation.Simulation.write_topology_file(configuration.topology.nodes, target_directory)
 
         print("All Done!")
 
@@ -80,7 +70,7 @@ class Runner:
         self._jobs_executed += 1
 
     def mode(self):
-        return "CLUSTER"
+        return "TESTBED"
 
     @staticmethod
     def parse_arguments(module, argv):
