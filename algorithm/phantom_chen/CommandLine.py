@@ -30,18 +30,18 @@ class RunSimulations(RunSimulationsCommon):
         distance = float(arguments[argument_names.index('distance')])
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
-        ssd = min(configuration.ssd(source) for source in configuration.source_ids)
+        ssd = max(configuration.ssd(source) for source in configuration.source_ids)
 
         short_walk_length = float(arguments[argument_names.index('short walk length')])
-        long_walk_length = float(arguments[argument_names.index('long walk length')])
+        #long_walk_length = float(arguments[argument_names.index('long walk length')])
 
-        random_walk_length = 0.5*(short_walk_length + long_walk_length)
+        #random_walk_length = 0.5*(short_walk_length + long_walk_length)
 
-        if ssd > network_size * 1.2:
+        if ssd > (network_size-1) * 1.5:
             return  time_taken
         else:
+            #long_walk_lenth = ssd + short_walk_length
             return ((1.2 * ssd + 0.5 * short_walk_length) / ssd) * time_taken
-        #return (1.0 + (random_walk_length / ssd)) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -53,7 +53,7 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15, 21, 25]
+    sizes = [11, 15]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
     #source_periods = [ 1.0 ]
