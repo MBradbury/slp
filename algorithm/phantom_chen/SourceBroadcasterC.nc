@@ -330,7 +330,7 @@ implementation
 				{
 					simdbg("slp-debug","random walk hop:%d\n",message.walk_distance_remaining);
 					//message.flip_coin = call Random.rand16()%4;
-					message.flip_coin = (flip_coin == 0)?4:5;
+					message.flip_coin = (flip_coin == 0)?1:2;
 				}
 				
 			}
