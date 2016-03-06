@@ -53,7 +53,7 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15]
+    sizes = [11]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
     #source_periods = [ 1.0 ]
