@@ -199,7 +199,7 @@ class SinkCorner3Source(Configuration):
 
         super(SinkCorner3Source, self).__init__(
             grid,
-            source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1, (len(grid.nodes) - 1)/2 + network_size},
+            source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1, (len(grid.nodes) - 1) / 2},
             sink_id=len(grid.nodes) - 1,
             space_behind_sink=False
         )
