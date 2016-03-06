@@ -30,7 +30,7 @@ class RunSimulations(RunSimulationsCommon):
         distance = float(arguments[argument_names.index('distance')])
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
-        ssd = max(configuration.ssd(source) for source in configuration.source_ids)
+        ssd = min(configuration.ssd(source) for source in configuration.source_ids)
 
         short_walk_length = float(arguments[argument_names.index('short walk length')])
         #long_walk_length = float(arguments[argument_names.index('long walk length')])
@@ -41,8 +41,8 @@ class RunSimulations(RunSimulationsCommon):
             return  time_taken
         else:
             #long_walk_lenth = ssd + short_walk_length
-            #return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
-            return ((1.0 * ssd +short_walk_length) / network_size) * time_taken
+            return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
+            #return ((1.0 * ssd +short_walk_length) / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -64,8 +64,8 @@ class CLI(CommandLineCommon.CLI):
         #'Source2CornerTop',
         #'Source3CornerTop',
 
-        #'SinkCorner',
-        'SinkCorner2Source',
+        'SinkCorner',
+        #'SinkCorner2Source',
         #'SinkCorner3Source'
 
         #'FurtherSinkCorner',
