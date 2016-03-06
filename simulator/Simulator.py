@@ -69,7 +69,7 @@ class Simulator(object):
         # will differ when the seeds are the same.
         random.seed(self.seed)
 
-        self.range = wireless_range
+        self.wireless_range = wireless_range
 
         self.create_nodes(node_locations)
 
