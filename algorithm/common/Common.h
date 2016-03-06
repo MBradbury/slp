@@ -38,10 +38,10 @@ inline double rad2deg(double r)
 #define NEW_PRINTF_SEMANTICS
 #include "printf.h"
 
-#define simdbg(name, ...) printf(__VA_ARGS__); printfflush()
-#define simdbg_clear(name, ...) printf(__VA_ARGS__); printfflush()
-#define simdbgerror(name, ...) printf(__VA_ARGS__); printfflush()
-#define simdbgerror_clear(name, ...) printf(__VA_ARGS__); printfflush()
+#define simdbg(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+#define simdbg_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+#define simdbgerror(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+#define simdbgerror_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
 
 #define PRIu8 "u"
 #define PRIu64 "llu"
