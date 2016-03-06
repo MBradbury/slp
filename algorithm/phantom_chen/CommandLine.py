@@ -65,8 +65,8 @@ class CLI(CommandLineCommon.CLI):
         #'Source3CornerTop',
 
         'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source'
+        'SinkCorner2Source',
+        'SinkCorner3Source'
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
