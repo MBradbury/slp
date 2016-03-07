@@ -23,7 +23,7 @@
 #define BOT UINT16_MAX
 
 #define BEACON_PERIOD_MS 500
-#define WAVE_PERIOD_MS 4000
+#define WAVE_PERIOD_MS 1000
 #define SLOT_PERIOD_MS 100
 #define INIT_PERIOD_MS 2000
 
@@ -116,7 +116,7 @@ implementation
 	message_t packet; //Used in the macros
     //Initialisation variables}}}
 
-    //Get Functions{{{
+    //Getter Functions{{{
 	// This function is to be used by the source node to get the
 	// period it should use at the current time.
 	// DO NOT use this for nodes other than the source!
@@ -235,51 +235,30 @@ implementation
 	USE_MESSAGE(Normal);
 	USE_MESSAGE(DummyNormal);
     USE_MESSAGE(Beacon);
-    USE_MESSAGE_WITH_CALLBACK(Wave);
+    USE_MESSAGE(Wave);
     USE_MESSAGE(Collision);
-
-    void send_Wave_done(message_t* msg, error_t error)
-    {
-        if(error == SUCCESS) simdbg("stdout", "Wave sent.\n");
-        else if (error == FAIL) simdbg("stdout", "Wave failed.\n");
-        else if (error == ECANCEL) simdbg("stdout", "Wave cancelled.\n");
-        else simdbg("stdout", "Wave <unknown>.\n");
-    }
 
     void send_beacon()
     {
         BeaconMessage msg;
         msg.source_id = TOS_NODE_ID;
         send_Beacon_message(&msg, AM_BROADCAST_ADDR);
-        PRINTF0("Beacon sent.\n");
+        /*PRINTF0("Beacon sent.\n");*/
     }
 
     void dissem()
     {
-        PRINTF0("Dissem started...\n");
+        /*PRINTF0("Dissem started...\n");*/
         SlotList_clear(&slots);
 
         if(type == SinkNode && start)
         {
-            error_t err;
             WaveMessage msg;
             msg.source_id = TOS_NODE_ID;
             msg.neighbours = neighbours;
             msg.slot = get_tdma_num_slots();
             msg.hop = hop;
-            err = send_Wave_message(&msg, AM_BROADCAST_ADDR);
-            if(err == SUCCESS)
-            {
-                simdbg("stdout", "%s: Sent wave from sink.\n", sim_time_string());
-            }
-            else if(err == FAIL)
-            {
-                simdbg("stdout", "Wave failed to send from sink.\n");
-            }
-            else if(err == EBUSY)
-            {
-                simdbg("stdout", "Wave got EBUSY.\n");
-            }
+            send_Wave_message(&msg, AM_BROADCAST_ADDR);
 
             start = FALSE;
         }
@@ -291,9 +270,8 @@ implementation
             msg.slot = slot;
             msg.hop = hop;
             send_Wave_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent wave from normal.\n");
+            /*simdbg("stdout", "Sent wave from normal.\n");*/
         }
-        PRINTF0("Dissem ended.\n");
     }
 
 
@@ -314,14 +292,14 @@ implementation
         {
             if(slot != BOT)
             {
-                simdbg("stdout", "Adding self to slot list.\n");
+                /*simdbg("stdout", "Adding self to slot list.\n");*/
                 SlotList_add(&slots, TOS_NODE_ID, slot, hop, neighbours);
             }
 
             if(SlotList_collision(&slots))
             {
                 uint16_t i,j;
-                simdbg("stdout", "Processed collision.\n");
+                /*simdbg("stdout", "Processed collision.\n");*/
                 for (i = 0; i < slots.count; i++) {
                     for (j = i + 1; j < slots.count; j++) {
                         if (slots.slots[i].slot == slots.slots[j].slot) {
@@ -357,8 +335,8 @@ implementation
                         int r = rand();
                         int i = r % possible_parents.count;
                         /*simdbg("stdout", "Selecting parent 2...\n");*/
-                        simdbg("stdout", "%u possible parents, selected %i\n", possible_parents.count, i);
-                        parent = possible_parents.slots[i].id; //TODO: Fix random numbers (count is ridiculous value)
+                        /*simdbg("stdout", "%u possible parents, selected %i\n", possible_parents.count, i);*/
+                        parent = possible_parents.slots[i].id;
                     }
                     simdbg("stdout", "Chosen slot %u.\n", slot);
                 }
@@ -410,7 +388,6 @@ implementation
         dissem();
         call WaveTimer.startOneShot(get_wave_period());
         call BeaconTimer.startOneShot(get_beacon_period());
-        PRINTF0("%s: InitTimer finished.\n", sim_time_string());
     }
 
     event void BeaconTimer.fired()
@@ -422,18 +399,16 @@ implementation
             /*dissem();*/
             initialise = FALSE;
         }
-        dissem();
+        /*dissem();*/
         call PreSlotTimer.startOneShot(get_beacon_period());
-        PRINTF0("%s: BeaconTimer finished.\n", sim_time_string());
     }
 
     event void WaveTimer.fired()
     {
         PRINTF0("%s: WaveTimer fired.\n", sim_time_string());
-        /*dissem();*/
+        dissem();
         process_waves();
         call WaveTimer.startOneShot(get_wave_period());
-        PRINTF0("%s: WaveTimer finished.\n", sim_time_string());
     }
 
     event void PreSlotTimer.fired()
@@ -441,22 +416,22 @@ implementation
         uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
         PRINTF0("%s: PreSlotTimer fired.\n", sim_time_string());
         call SlotTimer.startOneShot(s*get_slot_period());
-        PRINTF0("%s: PreSlotTimer finished.\n", sim_time_string());
     }
 
 
     event void SlotTimer.fired()
     {
         PRINTF0("%s: SlotTimer fired.\n", sim_time_string());
-        if(type == SourceNode)
-        {
-            send_message_source();
-        }
         slot_active = TRUE;
-        /*send_message_normal();*/
-        post send_message_normal();
+        if(slot != BOT)
+        {
+            if(type == SourceNode)
+            {
+                send_message_source();
+            }
+            post send_message_normal();
+        }
         call PostSlotTimer.startOneShot(get_slot_period());
-        PRINTF0("%s: SlotTimer finished.\n", sim_time_string());
     }
 
     event void PostSlotTimer.fired()
@@ -465,7 +440,6 @@ implementation
         PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());
         slot_active = FALSE;
         call BeaconTimer.startOneShot((get_tdma_num_slots()-(s-1))*get_slot_period());
-        PRINTF0("%s: PostSlotTimer finished.\n\n", sim_time_string());
     }
 
     event void EnqueueNormalTimer.fired()
@@ -477,8 +451,6 @@ implementation
     void send_message_source()
     {
         NormalMessage* message;
-
-        simdbgverbose("SourceBroadcasterC", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
 
         message = call MessagePool.get();
         if (message != NULL)
@@ -617,12 +589,10 @@ implementation
 
     void x_receive_Wave(const WaveMessage* const rcvd, am_addr_t source_addr)
     {
-        simdbg("stdout", "Received wave from %u.\n", source_addr);
+        /*simdbg("stdout", "Received wave from %u.\n", source_addr);*/
         c = TRUE;
         IDList_add(&live, source_addr);
         SlotList_add(&slots, source_addr, rcvd->slot, rcvd->hop, rcvd->neighbours);
-        simdbg("stdout", "End receive.\n");
-        return;
     }
 
     RECEIVE_MESSAGE_BEGIN(Wave, Receive)
