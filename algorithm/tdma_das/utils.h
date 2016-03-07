@@ -8,8 +8,47 @@ typedef nx_struct IDList {
     nx_uint16_t ids[MAX_NEIGHBOURS];
 } IDList;
 
+typedef nx_struct SlotDetails {
+    nx_am_addr_t id;
+    nx_uint16_t slot;
+    nx_uint16_t hop;
+    IDList neighbours;
+} SlotDetails;
+
+typedef nx_struct SlotList {
+    nx_uint16_t count;
+    SlotDetails slots[MAX_NEIGHBOURS];
+} SlotList;
+
+IDList IDList_new();
 void IDList_add(IDList* list, uint16_t id);
+void IDList_sort(IDList* list);
 uint16_t IDList_indexOf(IDList* list, uint16_t el);
+IDList IDList_minus_parent(IDList* list, uint16_t parent);
+void IDList_clear(IDList* list);
+
+uint16_t rank(IDList* list, uint16_t id);
+
+SlotDetails SlotDetails_new(uint16_t id, uint16_t slot, uint16_t hop, IDList neighbours);
+SlotList SlotList_new();
+void SlotList_add(SlotList* list, uint16_t id, uint16_t slot, uint16_t hop, IDList neighbours);
+void SlotList_add_details(SlotList* list, SlotDetails details);
+uint16_t SlotList_indexOf(const SlotList* list, uint16_t id);
+bool SlotList_contains_id(const SlotList* list, uint16_t id);
+bool SlotList_collision(const SlotList* list);
+SlotList SlotList_n_from_s(SlotList* list, uint16_t slot);
+SlotList SlotList_n_from_sh(SlotList* list, uint16_t slot, uint16_t hop);
+SlotDetails SlotList_min_h(SlotList* list);
+void SlotList_clear(SlotList* list);
+SlotList SlotList_minus_parent(SlotList* list, uint16_t parent);
+IDList SlotList_to_ids(const SlotList* list);
+
+IDList IDList_new()
+{
+    IDList list;
+    list.count = 0;
+    return list;
+}
 
 void IDList_add(IDList* list, uint16_t id)
 {
@@ -65,7 +104,8 @@ void IDList_clear(IDList* list)
     list->count = 0;
 }
 
-uint16_t rank(IDList* list, uint16_t id) {
+uint16_t rank(IDList* list, uint16_t id)
+{
     uint16_t i;
     IDList_sort(list);
     i = IDList_indexOf(list, id);
@@ -73,17 +113,6 @@ uint16_t rank(IDList* list, uint16_t id) {
     else return i+1;
 }
 
-typedef nx_struct SlotDetails {
-    nx_am_addr_t id;
-    nx_uint16_t slot;
-    nx_uint16_t hop;
-    IDList neighbours;
-} SlotDetails;
-
-typedef nx_struct SlotList {
-    nx_uint16_t count;
-    SlotDetails slots[MAX_NEIGHBOURS];
-} SlotList;
 
 SlotDetails SlotDetails_new(uint16_t id, uint16_t slot, uint16_t hop, IDList neighbours)
 {
@@ -95,19 +124,11 @@ SlotDetails SlotDetails_new(uint16_t id, uint16_t slot, uint16_t hop, IDList nei
     return s;
 }
 
-uint16_t SlotList_indexOf(SlotList* list, uint16_t id)
+SlotList SlotList_new()
 {
-    uint16_t i;
-    for(i = 0; i < list->count; i++)
-    {
-        if(list->slots[i].id == id) return i;
-    }
-    return UINT16_MAX;
-}
-
-bool SlotList_contains_id(SlotList* list, uint16_t id)
-{
-    return SlotList_indexOf(list, id) != UINT16_MAX;
+    SlotList list;
+    list.count = 0;
+    return list;
 }
 
 void SlotList_add(SlotList* list, uint16_t id, uint16_t slot, uint16_t hop, IDList neighbours)
@@ -135,9 +156,26 @@ void SlotList_add_details(SlotList* list, SlotDetails details)
     list->slots[i] = details;
 }
 
-bool SlotList_collision(SlotList* list)
+uint16_t SlotList_indexOf(const SlotList* list, uint16_t id)
+{
+    uint16_t i;
+    for(i = 0; i < list->count; i++)
+    {
+        if(list->slots[i].id == id) return i;
+    }
+    return UINT16_MAX;
+}
+
+bool SlotList_contains_id(const SlotList* list, uint16_t id)
+{
+    return SlotList_indexOf(list, id) != UINT16_MAX;
+}
+
+
+bool SlotList_collision(const SlotList* list)
 {
     uint16_t i,j;
+    if(list->count == 0) return FALSE; //Should return false anyway
     for (i = 0; i < list->count; i++) {
         for (j = i + 1; j < list->count; j++) {
             if (list->slots[i].slot == list->slots[j].slot) {
@@ -192,7 +230,7 @@ SlotDetails SlotList_min_h(SlotList* list)
             mini = i;
         }
     }
-    return list->slots[i];
+    return list->slots[mini];
 }
 
 void SlotList_clear(SlotList* list)
@@ -214,7 +252,7 @@ SlotList SlotList_minus_parent(SlotList* list, uint16_t parent)
     return newList;
 }
 
-IDList SlotList_to_ids(SlotList* list)
+IDList SlotList_to_ids(const SlotList* list)
 {
     IDList newList;
     uint16_t i;
