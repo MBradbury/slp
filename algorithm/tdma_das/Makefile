@@ -7,8 +7,8 @@ COMPONENT = SourceBroadcasterAppC
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
-# Need to increase data to accomodate WaveMessage
-CFLAGS += -DTOSH_DATA_LENGTH=48
+# Need to increase data to accomodate WaveMessage 48
+CFLAGS += -DTOSH_DATA_LENGTH=964
 
 CFLAGS += -I"../common"
 

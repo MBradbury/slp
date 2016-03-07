@@ -10,5 +10,6 @@ class Metrics(MetricsCommon):
     def items():
         d = MetricsCommon.items()
         d["DummyNormalSent"]               = lambda x: x.number_sent("DummyNormal")
+        d["BeaconSent"]                    = lambda x: x.number_sent("Beacon")
 
         return d

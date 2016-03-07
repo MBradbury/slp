@@ -24,10 +24,10 @@ implementation
 
     App.RadioControl -> ActiveMessageC;
 
-
     // Timers
     components
         /*new TimerMilliC() as BroadcastTimer,*/
+        new TimerMilliC() as InitTimer,
         new TimerMilliC() as EnqueueNormalTimer,
         new TimerMilliC() as BeaconTimer,
         new TimerMilliC() as WaveTimer,
@@ -36,6 +36,7 @@ implementation
         new TimerMilliC() as PostSlotTimer;
 
     /*App.BroadcastTimer -> BroadcastTimer;*/
+    App.InitTimer -> InitTimer;
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
     App.BeaconTimer -> BeaconTimer;
     App.WaveTimer -> WaveTimer;

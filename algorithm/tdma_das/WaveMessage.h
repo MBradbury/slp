@@ -10,7 +10,7 @@ typedef nx_struct WaveMessage {
     IDList neighbours;
 } WaveMessage;
 
-inline int64_t Wave_get_sequence_number(const WaveMessage* msg) { return 0; }
+inline int64_t Wave_get_sequence_number(const WaveMessage* msg) { return BOTTOM; }
 inline int32_t Wave_get_source_id(const WaveMessage* msg) { return msg->source_id; }
 
 #endif /* SLP_MESSAGES_WAVEMESSAGE_H */
