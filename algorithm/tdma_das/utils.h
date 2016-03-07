@@ -87,7 +87,7 @@ uint16_t IDList_indexOf(IDList* list, uint16_t el)
 
 IDList IDList_minus_parent(IDList* list, uint16_t parent)
 {
-    IDList newList;
+    IDList newList = IDList_new();
     uint16_t i;
     for(i=0; i< list->count; i++)
     {
@@ -189,7 +189,7 @@ bool SlotList_collision(const SlotList* list)
 SlotList SlotList_n_from_s(SlotList* list, uint16_t slot)
 {
     uint16_t i;
-    SlotList slots;
+    SlotList slots = SlotList_new();
 
     for(i=0; i<list->count; i++)
     {
@@ -204,7 +204,7 @@ SlotList SlotList_n_from_s(SlotList* list, uint16_t slot)
 SlotList SlotList_n_from_sh(SlotList* list, uint16_t slot, uint16_t hop)
 {
     uint16_t i;
-    SlotList slots;
+    SlotList slots = SlotList_new();
 
     for(i=0; i<list->count; i++)
     {
@@ -240,7 +240,7 @@ void SlotList_clear(SlotList* list)
 
 SlotList SlotList_minus_parent(SlotList* list, uint16_t parent)
 {
-    SlotList newList;
+    SlotList newList = SlotList_new();
     uint16_t i;
     for(i=0; i< list->count; i++)
     {
@@ -254,7 +254,7 @@ SlotList SlotList_minus_parent(SlotList* list, uint16_t parent)
 
 IDList SlotList_to_ids(const SlotList* list)
 {
-    IDList newList;
+    IDList newList = IDList_new();
     uint16_t i;
     for(i=0; i<list->count; i++)
     {

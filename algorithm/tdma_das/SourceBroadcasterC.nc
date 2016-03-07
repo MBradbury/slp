@@ -84,7 +84,7 @@ implementation
     bool initialise = TRUE;
 
     bool start = TRUE;
-    bool c = TRUE;
+    bool c = FALSE;
     IDList neighbours;
     IDList live;
     SlotList slots;
@@ -357,8 +357,8 @@ implementation
                         int r = rand();
                         int i = r % possible_parents.count;
                         /*simdbg("stdout", "Selecting parent 2...\n");*/
-                        /*simdbg("stdout", "%u possible parents, selected %i\n", possible_parents.count, i);*/
-                        parent = possible_parents.slots[0].id; //TODO: Fix random numbers (count is ridiculous value)
+                        simdbg("stdout", "%u possible parents, selected %i\n", possible_parents.count, i);
+                        parent = possible_parents.slots[i].id; //TODO: Fix random numbers (count is ridiculous value)
                     }
                     simdbg("stdout", "Chosen slot %u.\n", slot);
                 }
