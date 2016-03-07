@@ -84,22 +84,45 @@ class Configuration(object):
                 yield i
 
     def ssd(self, source_id):
-        """The number of hops between the sink and the source nodes"""
+        """The number of hops between the sink and the specified source node"""
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source")
 
         return self.node_sink_distance(source_id)
 
     def node_sink_distance(self, node):
+        """The number of hops between the sink and the specified node"""
         self.build_connectivity_matrix()
         return self._dist_matrix[node, self.sink_id]
 
     def node_source_distance(self, node, source_id):
+        """The number of hops between the specified source and the specified node"""
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source")
 
         self.build_connectivity_matrix()
         return self._dist_matrix[node, source_id]
+
+
+    def ssd_meters(self, source_id):
+        """The number of meters between the sink and the specified source node"""
+        if source_id not in self.source_ids:
+            raise RuntimeError("Invalid source")
+
+        return self.node_sink_distance_meters(source_id)
+
+    def node_sink_distance_meters(self, node):
+        """The number of meters between the sink and the specified node"""
+        return euclidean(self.topology.nodes[self.sink_id], self.topology.nodes[node])
+
+    def node_source_distance_meters(self, node, source_id):
+        """The number of meters between the specified source and the specified node"""
+        if source_id not in self.source_ids:
+            raise RuntimeError("Invalid source")
+
+        return euclidean(self.topology.nodes[source_id], self.topology.nodes[node])
+
+
 
     def shortest_path(self, node_from, node_to):
         self.build_connectivity_matrix(return_predecessors=True)
