@@ -40,9 +40,7 @@ class RunSimulations(RunSimulationsCommon):
         if ssd > (network_size-1) * 1.5:
             return  time_taken
         else:
-            #long_walk_lenth = ssd + short_walk_length
             return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
-            #return ((1.0 * ssd +short_walk_length) / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -54,19 +52,19 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11]
+    sizes = [11, 15, 21, 25]
 
-    #source_periods = [1.0, 0.5, 0.25, 0.125]
-    source_periods = [ 1.0 ]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
+    #source_periods = [ 1.0 ]
 
     configurations = [
-        #'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'SourceCorner',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
         'SinkCorner',
         'SinkCorner2Source',
-        'SinkCorner3Source'
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
