@@ -39,9 +39,12 @@ class RunSimulations(RunSimulationsCommon):
         if ssd > (network_size-1) * 1.5:
             return  time_taken
         else:
+            #for only short random walk.
+            return time_taken
+
             #for only long random walk. The ssd is between s and 2s+0.5s. 
             #So set the safety period as double the time_taken
-            return 2.0 * time_taken
+            #return 2.0 * time_taken
 
             #for short_walk and long_walk
             #return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
@@ -70,9 +73,9 @@ class CLI(CommandLineCommon.CLI):
         'SinkCorner2Source',
         'SinkCorner3Source',
 
-        'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        'FurtherSinkCorner3Source'
+        #'FurtherSinkCorner',
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
 
     ]
 
@@ -120,8 +123,8 @@ class CLI(CommandLineCommon.CLI):
         ssd_further = 2*s
 
         # walk_short is equal to walk_long
-        walk_short = list(range(s+2, s+half_ssd))
-        walk_long = list(range(s+2, s+half_ssd))
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(2, half_ssd))
 
         #walk_short = list(range(2, half_ssd))
         #walk_long = list(range(s+2, half_ssd+s))
