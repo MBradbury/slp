@@ -32,6 +32,12 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
+/* TODO:
+ * Remove unneccessary code
+ * Re-implement SourcePeriodModel and EnqueueNormalTimer
+ */
+
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -318,24 +324,18 @@ implementation
                 {
                     SlotList possible_parents;
                     SlotDetails details = SlotList_min_h(&slots);
-                    /*simdbg("stdout", "Selecting slot...\n");*/
                     hop = details.hop + 1;
-                    /*simdbg("stdout", "Choosing slot...\n");*/
                     slot = details.slot - rank(&(details.neighbours), TOS_NODE_ID);
-                    /*simdbg("stdout", "Selecting possible parents...\n");*/
+                    if(slot > get_tdma_num_slots()) slot = get_tdma_num_slots();
                     possible_parents = SlotList_n_from_sh(&slots, details.slot, details.hop);
-                    /*simdbg("stdout", "Selecting parent...\n");*/
                     if(possible_parents.count == 0)
                     {
-                        /*simdbg("stdout", "No parents to choose from.\n");*/
                         parent = BOT;
                     }
                     else
                     {
                         int r = rand();
                         int i = r % possible_parents.count;
-                        /*simdbg("stdout", "Selecting parent 2...\n");*/
-                        /*simdbg("stdout", "%u possible parents, selected %i\n", possible_parents.count, i);*/
                         parent = possible_parents.slots[i].id;
                     }
                     simdbg("stdout", "Chosen slot %u.\n", slot);
@@ -547,7 +547,7 @@ implementation
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-        simdbg("stdout", "Received normal.\n");
+        simdbg("stdout", "SINK RECEIVED NORMAL.\n");
 		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
