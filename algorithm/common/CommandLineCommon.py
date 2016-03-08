@@ -5,7 +5,7 @@ import simulator.Configuration as Configuration
 
 from data import results, latex
 from data.table import fake_result
-from data.graph import heatmap
+from data.graph import heatmap, summary
 from data.util import recreate_dirtree, touch
 
 class NoArgumentsFound(RuntimeError):
