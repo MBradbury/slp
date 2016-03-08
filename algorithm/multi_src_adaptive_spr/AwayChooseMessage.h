@@ -10,7 +10,7 @@ typedef enum {
 } DirectedRandomWalkDirection;
 
 typedef nx_struct AwayChooseMessage {
-  nx_uint64_t sequence_number;
+  nx_uint32_t sequence_number;
 
   nx_am_addr_t source_id;
 
@@ -31,7 +31,7 @@ typedef nx_struct AwayChooseMessage {
 typedef AwayChooseMessage AwayMessage;
 typedef AwayChooseMessage ChooseMessage;
 
-inline int64_t AwayChoose_get_sequence_number(const AwayChooseMessage* msg) { return msg->sequence_number; }
+inline int32_t AwayChoose_get_sequence_number(const AwayChooseMessage* msg) { return msg->sequence_number; }
 inline int32_t AwayChoose_get_source_id(const AwayChooseMessage* msg) { return msg->source_id; }
 
 #define Away_get_sequence_number AwayChoose_get_sequence_number

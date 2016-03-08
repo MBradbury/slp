@@ -4,9 +4,9 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct NormalMessage {
-  nx_uint64_t sequence_number;
+  nx_uint32_t sequence_number;
 
-  nx_uint64_t fake_sequence_number;
+  nx_uint32_t fake_sequence_number;
   nx_uint32_t fake_sequence_increments;
 
   // The number of hops that this message
