@@ -198,9 +198,9 @@ implementation
 	SequenceNumber fake_sequence_counter;
 
 	SequenceNumber source_fake_sequence_counter;
-	uint64_t source_fake_sequence_increments;
+	uint32_t source_fake_sequence_increments;
 
-	uint64_t normal_sequence_increments = 0;
+	uint32_t normal_sequence_increments = 0;
 
 	int16_t min_sink_source_distance = BOTTOM;
 	int16_t min_source_distance = BOTTOM;

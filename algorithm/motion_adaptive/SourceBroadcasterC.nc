@@ -101,7 +101,7 @@ implementation
 	SequenceNumber fake_sequence_counter;
 
 	SequenceNumber source_fake_sequence_counter;
-	uint64_t source_fake_sequence_increments;
+	uint32_t source_fake_sequence_increments;
 
 	double sink_source_distance_ewma;
 	double source_distance_ewma;

@@ -79,6 +79,9 @@ def angle_heapmaps(description, zextractor):
 
 	summary_grapher.run()
 
+def is_valid_angle(angle):
+	return 0 <= angle <= math.pi
+
 if args.source_angle_estimate_heatmap:
 	def angle_to(conf, n, i):
 		ssd = conf.ssd(i)
@@ -142,12 +145,23 @@ if args.source_angle_meters_heatmap:
 		angle_i = angle_to_meters(conf, n, i)
 		angle_j = angle_to_meters(conf, n, j)
 
-		if (dsrc_i >= dsink and dsrc_j >= dsink) or (dsrc_i <= ssd_i and dsrc_j <= ssd_j and dsink >= ssd_i and dsink >= ssd_j):
-			return angle_i + angle_j
-		elif dsrc_i <= ssd_i and dsrc_j <= ssd_j and dsink < ssd_i and dsink < ssd_j:
-			return 2.0 * math.pi - angle_i - angle_j
+		circle_angle = 2.0 * math.pi - angle_i - angle_j
+		add_angle = angle_i + angle_j
+		subtract_angle = abs(angle_i - angle_j)
+
+		#return min([angle for angle in [circle_angle, add_angle, subtract_angle] if is_valid_angle(angle)])
+
+		if is_valid_angle(circle_angle):# and (dsrc_i <= ssd_i and dsrc_j <= ssd_j and dsink <= ssd_i and dsink <= ssd_j):
+			#return -1
+			return circle_angle
+		elif is_valid_angle(add_angle):#and (dsrc_i >= dsink and dsrc_j >= dsink and dsrc_i >= ssd_i and dsrc_j >= ssd_j):
+			#return 1
+			return add_angle
+		elif is_valid_angle(subtract_angle):
+			#return 0
+			return subtract_angle
 		else:
-			return abs(angle_i - angle_j)
+			return -1
 
 	def zextractor(configuration, nid):
 		if nid in configuration.source_ids or nid == configuration.sink_id:
