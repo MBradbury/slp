@@ -34,7 +34,6 @@
 
 /* TODO:
  * Remove unneccessary code
- * Re-implement SourcePeriodModel and EnqueueNormalTimer
  */
 
 
@@ -223,6 +222,7 @@ implementation
 
 			type = SourceNode;
 
+            call EnqueueNormalTimer.startOneShot(get_source_period());
 		}
 	}
 
@@ -230,6 +230,7 @@ implementation
 	{
 		if (type == SourceNode)
 		{
+            call EnqueueNormalTimer.stop();
 
 			type = NormalNode;
 
@@ -254,7 +255,6 @@ implementation
 
     void dissem()
     {
-        /*PRINTF0("Dissem started...\n");*/
         SlotList_clear(&slots);
 
         if(type == SinkNode && start)
@@ -276,7 +276,6 @@ implementation
             msg.slot = slot;
             msg.hop = hop;
             send_Wave_message(&msg, AM_BROADCAST_ADDR);
-            /*simdbg("stdout", "Sent wave from normal.\n");*/
         }
     }
 
@@ -385,7 +384,7 @@ implementation
     {
         PRINTF0("%s: InitTimer fired.\n", sim_time_string());
         call ObjectDetector.start();
-        dissem();
+        /*dissem();*/
         call WaveTimer.startOneShot(get_wave_period());
         call BeaconTimer.startOneShot(get_beacon_period());
     }
@@ -425,10 +424,6 @@ implementation
         slot_active = TRUE;
         if(slot != BOT)
         {
-            if(type == SourceNode)
-            {
-                send_message_source();
-            }
             post send_message_normal();
         }
         call PostSlotTimer.startOneShot(get_slot_period());
@@ -444,14 +439,9 @@ implementation
 
     event void EnqueueNormalTimer.fired()
     {
-    }
-    //}}} Timers.fired()
-
-
-    void send_message_source()
-    {
         NormalMessage* message;
 
+        simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
         message = call MessagePool.get();
         if (message != NULL)
         {
@@ -472,8 +462,38 @@ implementation
         {
             simdbgerror("stdout", "No pool space available for another Normal message.\n");
         }
-
     }
+    //}}} Timers.fired()
+
+
+/*
+ *    void send_message_source()
+ *    {
+ *        NormalMessage* message;
+ *
+ *        message = call MessagePool.get();
+ *        if (message != NULL)
+ *        {
+ *            message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+ *            message->source_distance = 0;
+ *            message->source_id = TOS_NODE_ID;
+ *
+ *            if (call MessageQueue.enqueue(message) != SUCCESS)
+ *            {
+ *                simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+ *            }
+ *            else
+ *            {
+ *                call NormalSeqNos.increment(TOS_NODE_ID);
+ *            }
+ *        }
+ *        else
+ *        {
+ *            simdbgerror("stdout", "No pool space available for another Normal message.\n");
+ *        }
+ *
+ *    }
+ */
 
     void normal_message_hack()
     {
