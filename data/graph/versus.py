@@ -1,6 +1,6 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
-import os, itertools
+import os, itertools, math
 
 import data.util
 from data import latex
@@ -198,7 +198,12 @@ class Grapher(GrapherBase):
 
             graph_p.write('#!/usr/bin/gnuplot\n')
 
-            graph_p.write('set terminal pdf enhanced font ",14" size 9.8,0.6\n')
+            column_count = len(vvalues)
+
+            legend_width = 9.8
+            legend_height = 0.3 * math.ceil(column_count / 3)
+
+            graph_p.write('set terminal pdf enhanced font ",14" size {},{}\n'.format(legend_width, legend_height))
 
             graph_p.write('set key horizontal\n')
 
@@ -211,8 +216,6 @@ class Grapher(GrapherBase):
             graph_p.write('set output "legend.pdf"\n')
 
             plots = []
-
-            column_count = len(vvalues)
 
             if self.error_bars:
                 for x in range(1, column_count + 1):

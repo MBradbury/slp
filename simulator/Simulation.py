@@ -123,54 +123,25 @@ class Simulation(Simulator):
         #f = open("python.out", "w")
 
         cm = model()
-        cm.setup(self.metrics.configuration.topology, self.seed)
+        cm.setup(self)
 
         for ((i, j), gain) in np.ndenumerate(cm.link_gain):
             if i == j:
+                continue
+            if np.isnan(gain):
                 continue
             #print("gain\t{}\t{}\t{:.2f}".format(i, j, gain), file=f)
             self.radio.add(i, j, gain)
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
-            #print("noise\t{}\t{:.2f}\t{:.2f}".format(i, noise_floor, awgn), file=f)
+            #print("noise\t{}\t{:.2f}\t{:.2f}".format(i, noise_floor, cm.white_gausian_noise), file=f)
             self.radio.setNoise(i, noise_floor, cm.white_gausian_noise)
 
         #f.close()
 
-    def _setup_radio_ideal(self):
-        '''Creates radio links for node pairs that are in range'''
-
-        def compute_rf_gain(src, dst):
-            '''
-            Returns signal reception gain between src and dst using a simple
-            range-threshold model.
-            '''
-            if euclidean(src.location, dst.location) <= self.range:
-                return -55
-            else:
-                return None
-
-        noise_floor = -105.0
-        white_gaussian_noise = 4.0
-
-        num_nodes = len(self.nodes)
-        for (i, ni) in enumerate(self.nodes):
-            for (j, nj) in enumerate(self.nodes):
-                if i != j:
-                    gain = compute_rf_gain(ni, nj)
-                    if gain is not None:
-                        self.radio.add(i, j, gain)
-
-                        #print("Added link: {} <-> {} ({})".format(i, j, gain))
-
-            self.radio.setNoise(i, noise_floor, white_gaussian_noise)
-
-            #print("Set Noise: {} = {} / {}".format(i, noise_floor, white_gaussian_noise))
-
-
     def setup_radio(self):
         if self.communication_model == "ideal":
-            self._setup_radio_ideal()
+            self._setup_radio_link_layer_model_python()
         else:
             self._setup_radio_link_layer_model()
 

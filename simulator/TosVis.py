@@ -130,7 +130,7 @@ class GuiSimulation(Simulation):
         self.scene.execute(time)
         #self.scene.execute(time,
         #           'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.3)'
-        #       % (x,y,self.range))
+        #       % (x,y,self.wireless_range))
 
     ####################
     def _animate_am_receive(self, time, receiver, detail):

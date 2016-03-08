@@ -4,13 +4,9 @@ from __future__ import print_function
 
 import sys, importlib
 
-from simulator import dependency
-dependency.check_all()
-
 module = sys.argv[1]
 
 Arguments = importlib.import_module("{}.Arguments".format(module))
-Metrics = importlib.import_module("{}.Metrics".format(module))
 
 a = Arguments.Arguments()
 a.parse(sys.argv[2:])
@@ -22,6 +18,11 @@ if a.args.mode != "CLUSTER":
     from simulator.Simulation import Simulation
     import simulator.Configuration as Configuration
 
+    # Only check dependencies on non-cluster runs
+    # Cluster runs will have the dependencies checked in create.py
+    from simulator import dependency
+    dependency.check_all()
+
     configuration = Configuration.create(a.args.configuration, a.args)
 
     build_arguments = a.build_arguments()
@@ -29,7 +30,7 @@ if a.args.mode != "CLUSTER":
     build_arguments.update(configuration.build_arguments())
 
     # Now build the simulation with the specified arguments
-    Builder.build(module.replace(".", "/"), **build_arguments)
+    Builder.build_sim(module.replace(".", "/"), **build_arguments)
 
     # Need to build the topology.txt file once.
     # Do it now as if done later it will be created
@@ -41,6 +42,9 @@ if a.args.mode != "CLUSTER":
 
 # When doing cluster array jobs only print out this header information on the first job
 if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
+
+    Metrics = importlib.import_module("{}.Metrics".format(module))
+
     # Print out the argument settings
     for (k, v) in [(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide]:
         print("{}={}".format(k, v))

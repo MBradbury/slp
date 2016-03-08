@@ -198,9 +198,9 @@ implementation
 	SequenceNumber fake_sequence_counter;
 
 	SequenceNumber source_fake_sequence_counter;
-	uint64_t source_fake_sequence_increments;
+	uint32_t source_fake_sequence_increments;
 
-	uint64_t normal_sequence_increments = 0;
+	uint32_t normal_sequence_increments = 0;
 
 	int16_t min_sink_source_distance = BOTTOM;
 	int16_t min_source_distance = BOTTOM;
@@ -489,18 +489,6 @@ implementation
 		return factor;
 	}
 
-	/*void print_inclination_angles(void)
-	{
-		const am_addr_t* iter;
-		for (iter = call SourceDistances.beginKeys(); iter != call SourceDistances.endKeys(); ++iter)
-		{
-			const double angle = inclination_angle_rad(*iter);
-			const double angle_deg = (angle < 0) ? -1000 : angle * (180.0 / M_PI);
-
-			simdbg("stdout", "Inclination angle between %u and %u is %f\n", TOS_NODE_ID, *iter, angle_deg);
-		}
-	}*/
-
 	double get_nodes_Normal_receive_ratio(void)
 	{
 		uint64_t total_sent = 1;
@@ -740,25 +728,28 @@ implementation
 
 			call SourceDistances.put(rcvd->source_id, ewma(EWMA_FACTOR, *distance, rcvd->source_distance + 1));
 
-			if (fabs(*distance - existing_distance) > 0.95f)
+			/*if (fabs(*distance - existing_distance) > 0.95f)
 			{
 				// Our source distance has changed, so we want to inform neighbours
 				// However, we should only do this if a big change has occurred!
 				// TODO: only do this some times
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
-			}
+			}*/
 		}
 
 		min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
 
-		if (sink_source_distance == NULL)
+		if (rcvd->sink_distance != BOTTOM)
 		{
-			//simdbg("stdout", "Updating sink distance of %u to %d\n", rcvd->source_id, rcvd->sink_distance);
-			call SinkSourceDistances.put(rcvd->source_id, rcvd->sink_distance);
-		}
-		else
-		{
-			call SinkSourceDistances.put(rcvd->source_id, ewma(EWMA_FACTOR, *sink_source_distance, rcvd->sink_distance));
+			if (sink_source_distance == NULL)
+			{
+				//simdbg("stdout", "Updating sink distance of %u to %d\n", rcvd->source_id, rcvd->sink_distance);
+				call SinkSourceDistances.put(rcvd->source_id, rcvd->sink_distance);
+			}
+			else
+			{
+				call SinkSourceDistances.put(rcvd->source_id, ewma(EWMA_FACTOR, *sink_source_distance, rcvd->sink_distance));
+			}
 		}
 	}
 

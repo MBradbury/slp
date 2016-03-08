@@ -5,7 +5,7 @@
 
 typedef nx_struct AwayMessage
 {
-  nx_uint64_t sequence_number;
+  nx_uint32_t sequence_number;
 
   nx_am_addr_t source_id;
 
@@ -15,7 +15,7 @@ typedef nx_struct AwayMessage
 
 } AwayMessage;
 
-inline int64_t Away_get_sequence_number(const AwayMessage* msg) { return msg->sequence_number; }
+inline int32_t Away_get_sequence_number(const AwayMessage* msg) { return msg->sequence_number; }
 inline int32_t Away_get_source_id(const AwayMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_AWAYMESSAGE_H
