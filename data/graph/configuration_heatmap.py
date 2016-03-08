@@ -79,7 +79,10 @@ class Grapher(GrapherBase):
         write_id_table(configuration.source_ids, 'source_points.dat')
         write_id_table([configuration.sink_id], 'sink_points.dat')
 
-    def _write_plot_graph(self, dir_name):
+    def _write_plot_graph(self, dir_name, configuration):
+        (minx, miny) = configuration.minxy_coordinates()
+        (maxx, maxy) = configuration.maxxy_coordinates()
+
         with open(os.path.join(dir_name, 'graph.gp'), 'w') as graph_p:
 
             graph_p.write('#!/usr/bin/gnuplot\n')
@@ -110,18 +113,21 @@ class Grapher(GrapherBase):
                 if self.key_height is not None:
                     graph_p.write('set key height {}\n'.format(self.key_height))
 
-            #graph_p.write('set xrange [0:{}]\n'.format(self.xaxis_range_max))
-            graph_p.write('set xtics auto\n')
 
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
 
-            graph_p.write('set yrange [:] reverse\n')
-            graph_p.write('set ytics auto\n')
-
             if self.yaxis_font is not None:
                 graph_p.write('set ytics font {}\n'.format(self.yaxis_font))
 
+
+            graph_p.write('set xrange [{}:{}]\n'.format(minx, maxx))
+            graph_p.write('set xtics auto\n')
+
+            graph_p.write('set yrange [{}:{}] reverse\n'.format(miny, maxy))
+            graph_p.write('set ytics auto\n')
+
+            
             graph_p.write('set output "graph.pdf"\n')
 
             graph_p.write('set size square\n')
@@ -172,4 +178,4 @@ class Grapher(GrapherBase):
 
         self._write_points_data(dir_name, configuration)
 
-        self._write_plot_graph(dir_name)
+        self._write_plot_graph(dir_name, configuration)
