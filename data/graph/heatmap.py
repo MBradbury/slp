@@ -2,6 +2,8 @@ from __future__ import print_function
 
 import os.path
 
+from simulator import Configuration
+
 import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
@@ -50,16 +52,15 @@ class Grapher(GrapherBase):
 
         print(dir_name)
 
-        # Ensure that the dir we want to put the files in
-        # actually exists
+        # Ensure that the dir we want to put the files in actually exists
         data.util.create_dirtree(dir_name)
 
-        # Convert to the array
-        array = [0] * (size * size)
-        for (k, v) in dat.items():
-            array[k] = v
+        configuration = Configuration.create_specific(config, size, float(distance))
 
-        array = list(chunks(array, size))
+        (minx, miny) = configuration.minxy_coordinates()
+        (maxx, maxy) = configuration.maxxy_coordinates()
+
+        self._write_plot_data(dir_name, configuration, dat)
 
         with open(os.path.join(dir_name, 'graph.gp'), 'w') as graph_p:
         
@@ -77,19 +78,23 @@ class Grapher(GrapherBase):
             graph_p.write('set xlabel "X Coordinate"\n')
             graph_p.write('set ylabel "Y Coordinate"\n')
             
+            graph_p.write('set size square\n')
             
             # To top left to be (0, 0)
-            graph_p.write('set yrange [0:{0}] reverse\n'.format(size - 1))
-            graph_p.write('set xrange [0:{0}]\n'.format(size - 1))
+            graph_p.write('set xrange [{}:{}]\n'.format(minx, maxx))
+            graph_p.write('set xtics auto\n')
+
+            graph_p.write('set yrange [{}:{}] reverse\n'.format(miny, maxy))
+            graph_p.write('set ytics auto\n')
+
             
             graph_p.write('set cbrange []\n')
-            graph_p.write('set cblabel "{}"\n'.format(self.result_name))
-            #graph_p.write('unset cbtics\n')
+            graph_p.write('set cblabel "{}"\n'.format(self.result_name.title()))
 
-            graph_p.write('set view map\n')
-            graph_p.write('splot \'-\' matrix with image\n')
-            
-            self._pprint_table(graph_p, array)
+            graph_p.write('set dgrid3d {0},{0}\n'.format(size))
+            graph_p.write('set pm3d map interpolate 3,3\n')
+
+            graph_p.write('splot "graph.dat" using 1:2:3 with pm3d\n')
         
         with open(os.path.join(dir_name, 'graph.caption'), 'w') as graph_caption:
             graph_caption.write('Parameters:\\newline\n')
@@ -98,5 +103,23 @@ class Grapher(GrapherBase):
             graph_caption.write('Configuration: {0}\\newline\n'.format(config))
             graph_caption.write('Attacker Model: {0}\\newline\n'.format(attacker))
             graph_caption.write('Noise Model: {0}\\newline\n'.format(noise_model))
+            graph_caption.write('Distance: {0}\\newline\n'.format(distance))
             for (name, value) in zip(self.results.parameter_names, params):
                 graph_caption.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
+
+    def _write_plot_data(self, dir_name, configuration, dat):
+        with open(os.path.join(dir_name, 'graph.dat'), 'w') as graph_dat:
+
+            table =  [ ]
+
+            table.append([ '#X', 'Y', 'Z' ])
+
+            for (nid, z) in dat.items():
+
+                (x, y) = configuration.topology.nodes[nid]
+
+                row = [ x, y, z ]
+
+                table.append(row)
+
+            self._pprint_table(graph_dat, table)

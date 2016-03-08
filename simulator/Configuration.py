@@ -125,6 +125,7 @@ class Configuration(object):
 
 
     def shortest_path(self, node_from, node_to):
+        """Returns a list of nodes that will take you from node_from to node_to along the shortest path."""
         self.build_connectivity_matrix(return_predecessors=True)
 
         path = []
@@ -137,6 +138,25 @@ class Configuration(object):
         path.append(node)
 
         return path[::-1]
+
+
+    def minxy_coordinates(self):
+        """Finds the minimum x and y coordinates. A node may not be present at these coordinates."""
+        nodes = self.topology.nodes
+
+        minx = min(x for (x, y) in nodes)
+        miny = min(y for (x, y) in nodes)
+
+        return (minx, miny)
+
+    def maxxy_coordinates(self):
+        """Finds the maximum x and y coordinates. A node may not be present at these coordinates."""
+        nodes = self.topology.nodes
+
+        maxx = max(x for (x, y) in nodes)
+        maxy = max(y for (x, y) in nodes)
+
+        return (maxx, maxy)
 
 
 class LineSinkCentre(Configuration):
