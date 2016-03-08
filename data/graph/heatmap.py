@@ -23,18 +23,20 @@ class Grapher(GrapherBase):
 
         print('Creating {} graph files'.format(self.result_name))
 
-        for ((size, config, attacker, noise_model, communication_model), items1) in self.results.data.items():
+        for ((size, config, attacker, noise_model, communication_model, distance), items1) in self.results.data.items():
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
-                    self._create_plot(size, config, attacker, noise_model, communication_model, src_period, params, results)
+                    self._create_plot(size, config, attacker, noise_model, communication_model, distance, src_period, params, results)
 
         self._create_graphs(self.result_name)
 
-    def _create_plot(self, size, config, attacker, noise_model, communication_model, src_period, params, results):
+    def _create_plot(self, size, config, attacker, noise_model, communication_model, distance, src_period, params, results):
         def chunks(l, n):
             """ Yield successive n-sized chunks from l."""
             for i in xrange(0, len(l), n):
                 yield l[i:i+n]
+
+        size = int(size)
 
         dat = results[self.result_index]
 
@@ -43,7 +45,7 @@ class Grapher(GrapherBase):
 
         dir_name = os.path.join(
             self.output_directory,
-            self.result_name, config, attacker, noise_model, communication_model,
+            self.result_name, config, attacker, noise_model, communication_model, distance,
             str(size), str(src_period), *map(str, params))
 
         print(dir_name)
