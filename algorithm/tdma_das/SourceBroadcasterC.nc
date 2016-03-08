@@ -255,7 +255,7 @@ implementation
 
     void dissem()
     {
-        SlotList_clear(&slots);
+        /*SlotList_clear(&slots);*/
 
         if(type == SinkNode && start)
         {
@@ -301,6 +301,7 @@ implementation
                 SlotList_add(&slots, TOS_NODE_ID, slot, hop, neighbours);
             }
 
+            //TODO: Never called
             if(SlotList_collision(&slots))
             {
                 uint16_t i,j;
@@ -312,20 +313,30 @@ implementation
                             msg.source_id = TOS_NODE_ID;
                             msg.slots = SlotList_n_from_s(&slots, slots.slots[i].slot);
                             send_Collision_message(&msg, AM_BROADCAST_ADDR);
-                            simdbg("stdout", "Sending collision message...\n");
+                            /*simdbg("stdout", "Sending collision message...\n");*/
                         }
                     }
                 }
+                SlotList_clear(&slots);
             }
             else
             {
+                //TODO: Never assigned permanent slots
                 if(type != SinkNode && (slot == BOT || parent == BOT || hop == BOT))
                 {
                     SlotList possible_parents;
                     SlotDetails details = SlotList_min_h(&slots);
+                    uint16_t r = rank(&(details.neighbours), TOS_NODE_ID);
                     hop = details.hop + 1;
-                    slot = details.slot - rank(&(details.neighbours), TOS_NODE_ID);
-                    if(slot > get_tdma_num_slots()) slot = get_tdma_num_slots();
+                    if(r == BOT)
+                    {
+                        slot = BOT;
+                    }
+                    else
+                    {
+                        slot = details.slot - r;
+                    }
+                    /*if(slot > get_tdma_num_slots()) slot = get_tdma_num_slots();*/
                     possible_parents = SlotList_n_from_sh(&slots, details.slot, details.hop);
                     if(possible_parents.count == 0)
                     {
@@ -337,13 +348,16 @@ implementation
                         int i = r % possible_parents.count;
                         parent = possible_parents.slots[i].id;
                     }
-                    simdbg("stdout", "Chosen slot %u.\n", slot);
+
+                    if(slot != BOT && parent != BOT && hop != BOT)
+                    {
+                        simdbg("stdout", "Chosen slot %u.\n", slot);
+                    }
                 }
             }
             c = FALSE;
         }
         IDList_clear(&live);
-        /*simdbg("stdout", "Waves processed.\n");*/
     }
 
     void send_message_source();
