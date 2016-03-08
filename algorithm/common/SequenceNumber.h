@@ -1,19 +1,19 @@
 #ifndef SLP_SEQUENCENUMBER_H
 #define SLP_SEQUENCENUMBER_H
 
-typedef uint64_t SequenceNumber;
+typedef uint32_t SequenceNumber;
 
 inline void sequence_number_init(SequenceNumber* seqno) __attribute__((nonnull(1)))
 {
 	*seqno = 0;
 }
 
-inline uint32_t sequence_number_get(const SequenceNumber* seqno) __attribute__((nonnull(1)))
+inline SequenceNumber sequence_number_get(const SequenceNumber* seqno) __attribute__((nonnull(1)))
 {
 	return *seqno;
 }
 
-inline uint32_t sequence_number_next(const SequenceNumber* seqno) __attribute__((nonnull(1)))
+inline SequenceNumber sequence_number_next(const SequenceNumber* seqno) __attribute__((nonnull(1)))
 {
 	return *seqno + 1;
 }

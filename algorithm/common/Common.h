@@ -5,12 +5,6 @@
 
 #define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
 
-#ifdef SLP_VERBOSE_DEBUG
-#	define simdbgverbose(...) simdbg(__VA_ARGS__)
-#else
-#	define simdbgverbose(...)
-#endif
-
 #define max(a, b) \
 	({ __typeof__(a) _a = (a), _b = (b); \
 	   _a > _b ? _a : _b; })
@@ -38,11 +32,31 @@ inline double rad2deg(double r)
 	return r * (180.0 / M_PI);
 }
 
-/*
-#define simdbg(...) dbg(__VA_ARGS__)
-#define simdbg_clear(...) dbg_clear(__VA_ARGS__)
-#define simdbgerror(...) dbgerror(__VA_ARGS__)
-#define simdbgerror_clear(...) dbgerror_clear(__VA_ARGS__)
-*/
+// Compiling for testbeds, so need to route the simdbg to the printf library
+#ifdef USE_SERIAL_PRINTF
+
+#define NEW_PRINTF_SEMANTICS
+#include "printf.h"
+
+#define simdbg(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+#define simdbg_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+#define simdbgerror(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+#define simdbgerror_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+
+#define PRIu8 "u"
+#define PRIu64 "llu"
+#define PRIi64 "lld"
+
+// TODO: Implement these time strings
+#define sim_time_string() "<TODO implement sim_time_string>"
+#define sim_time() 0ULL
+
+#endif
+
+#ifdef SLP_VERBOSE_DEBUG
+#	define simdbgverbose(...) simdbg(__VA_ARGS__)
+#else
+#	define simdbgverbose(...)
+#endif
 
 #endif // SLP_COMMON_H

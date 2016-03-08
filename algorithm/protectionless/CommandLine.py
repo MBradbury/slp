@@ -105,6 +105,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_graph(self, args):
         graph_parameters = {
             'safety period': ('Safety Period (seconds)', 'left top'),
+            'time taken': ('Time Taken (seconds)', 'left top'),
             #'ssd': ('Sink-Source Distance (hops)', 'left top'),
             #'captured': ('Capture Ratio (%)', 'left top'),
             #'sent': ('Total Messages Sent', 'left top'),
@@ -127,10 +128,14 @@ class CLI(CommandLineCommon.CLI):
                 xaxis='network size', yaxis=yaxis, vary='configuration',
                 yextractor=yextractor)
 
+            g.generate_legend_graph = True
+
             g.xaxis_label = 'Network Size'
             g.yaxis_label = yaxis_label
-            g.vary_label = 'Configuration'
+            g.vary_label = ''
             g.vary_prefix = ''
+
+            g.nokey = True
             g.key_position = key_position
 
             g.create(protectionless_results)

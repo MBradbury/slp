@@ -18,6 +18,9 @@ implementation
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 
+#ifdef USE_SERIAL_PRINTF
+	components SerialPrintfC;
+#endif
 
 	// Radio Control
 	components ActiveMessageC;

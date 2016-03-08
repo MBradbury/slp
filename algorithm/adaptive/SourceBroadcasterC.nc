@@ -75,7 +75,7 @@ implementation
 	SequenceNumber fake_sequence_counter;
 
 	SequenceNumber source_fake_sequence_counter;
-	uint64_t source_fake_sequence_increments;
+	uint32_t source_fake_sequence_increments;
 
 
 	const uint32_t away_delay = SOURCE_PERIOD_MS / 2;

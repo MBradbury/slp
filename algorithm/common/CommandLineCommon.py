@@ -5,7 +5,7 @@ import simulator.Configuration as Configuration
 
 from data import results, latex
 from data.table import fake_result
-from data.graph import heatmap
+from data.graph import heatmap, summary
 from data.util import recreate_dirtree, touch
 
 class NoArgumentsFound(RuntimeError):
@@ -171,6 +171,20 @@ class CLI(object):
 
         sys.exit(0)
 
+    def _run_testbed(self, args):
+
+        from data.run.driver.testbed_builder import Runner as Builder
+
+        testbed_directory = os.path.join("testbed", self.algorithm_module.name)
+
+        if 'build' in args:
+            print("Removing existing testbed directory and creating a new one")
+            recreate_dirtree(testbed_directory)
+
+            self._execute_runner(Builder(), testbed_directory, skip_completed_simulations=False)
+
+        sys.exit(0)
+
     def _run_time_taken_table(self, args):
         result = results.Results(self.algorithm_module.result_file_path,
                                  parameters=self.local_parameter_names,
@@ -223,6 +237,9 @@ class CLI(object):
 
         if 'cluster' in args:
             self._run_cluster(args)
+
+        if 'testbed' in args:
+            self._run_testbed(args)
 
         if 'run' in args:
             self._run_run(args)

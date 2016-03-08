@@ -20,6 +20,8 @@ class Grapher(GrapherBase):
         # Nice default of blue being cold and red being hot
         self.palette = "rgbformulae 22,13,10"
 
+        self.dgrid3d_dimensions = ""
+
         self.yaxis_font = None
         self.xaxis_font = None
 
@@ -132,7 +134,7 @@ class Grapher(GrapherBase):
             # finally draw both the heatmap and points!
 
             graph_p.write('set table "map.grid"\n')
-            graph_p.write('set dgrid3d\n')
+            graph_p.write('set dgrid3d {}\n'.format(self.dgrid3d_dimensions))
             graph_p.write('splot "graph.dat" using 1:2:3\n')
 
             graph_p.write('unset table\n')
