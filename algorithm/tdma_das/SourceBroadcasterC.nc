@@ -19,6 +19,8 @@
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_DUMMYNORMAL(msg) METRIC_RCV(DummyNormal, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, msg->source_id, BOTTOM, 1)
+#define METRIC_RCV_WAVE(msg) METRIC_RCV(Wave, source_addr, msg->source_id, BOTTOM, 1)
+#define METRIC_RCV_COLLISION(msg) METRIC_RCV(Collision, source_addr, msg->source_id, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -627,6 +629,7 @@ implementation
         c = TRUE;
         IDList_add(&live, source_addr);
         SlotList_add(&slots, source_addr, rcvd->slot, rcvd->hop, rcvd->neighbours);
+        METRIC_RCV_WAVE(rcvd);
     }
 
     RECEIVE_MESSAGE_BEGIN(Wave, Receive)
@@ -642,6 +645,7 @@ implementation
             IDList ids = SlotList_to_ids(&(rcvd->slots));
             slot = slot - rank(&ids, TOS_NODE_ID) + 1;
         }
+        METRIC_RCV_COLLISION(rcvd);
     }
 
     RECEIVE_MESSAGE_BEGIN(Collision, Receive)

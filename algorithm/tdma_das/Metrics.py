@@ -11,5 +11,7 @@ class Metrics(MetricsCommon):
         d = MetricsCommon.items()
         d["DummyNormalSent"]               = lambda x: x.number_sent("DummyNormal")
         d["BeaconSent"]                    = lambda x: x.number_sent("Beacon")
+        d["WaveSent"]                      = lambda x: x.number_sent("Wave")
+        d["CollisionSent"]                 = lambda x: x.number_sent("Collision")
 
         return d
