@@ -40,14 +40,14 @@ class RunSimulations(RunSimulationsCommon):
             return  time_taken
         else:
             #for only short random walk.
-            return time_taken
+            #return time_taken
 
             #for only long random walk. The ssd is between s and 2s+0.5s. 
             #So set the safety period as double the time_taken
-            #return 2.0 * time_taken
+            #return (1.5 + short_walk_length / network_size) * time_taken 
 
             #for short_walk and long_walk
-            #return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
+            return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
