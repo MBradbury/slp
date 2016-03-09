@@ -30,12 +30,24 @@ class RunSimulations(RunSimulationsCommon):
         distance = float(arguments[argument_names.index('distance')])
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
-        ssd = max(configuration.ssd(source) for source in configuration.source_ids)
+        ssd = min(configuration.ssd(source) for source in configuration.source_ids)
 
         short_walk_length = float(arguments[argument_names.index('short walk length')])
-        long_walk_length = float(arguments[argument_names.index('long walk length')])
+        #long_walk_length = float(arguments[argument_names.index('long walk length')])
+        #random_walk_length = 0.5*(short_walk_length + long_walk_length)
 
-        return (1.0 + (long_walk_length / ssd)) * time_taken
+        if ssd > (network_size-1) * 1.5:
+            return  time_taken
+        else:
+            #for only short random walk.
+            #return time_taken
+
+            #for only long random walk. The ssd is between s and 2s+0.5s. 
+            #So set the safety period as double the time_taken
+            #return (1.5 + short_walk_length / network_size) * time_taken 
+
+            #for short_walk and long_walk
+            return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -50,33 +62,21 @@ class CLI(CommandLineCommon.CLI):
     sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
+    #source_periods = [ 1.0 ]
 
     configurations = [
-        #'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'SourceCorner',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
-
-        'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        'FurtherSinkCorner3Source'
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
-        #'Generic1',
-        #'Generic2',
-        
-        #'RingTop',
-        #'RingOpposite',
-        #'RingMiddle',
-        
-        #'CircleEdges',
-        #'CircleSourceCentre',
-        #'CircleSinkCentre',
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
 
-        #'Source2Corners',
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
@@ -132,6 +132,7 @@ class CLI(CommandLineCommon.CLI):
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
+
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
         half_ssd = int(math.floor(s/2)) + 1
 
@@ -139,12 +140,16 @@ class CLI(CommandLineCommon.CLI):
 
         ssd_further = 2*s
 
+        # walk_short is equal to walk_long
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(2, half_ssd))
+
         #walk_short = list(range(2, half_ssd))
         #walk_long = list(range(s+2, half_ssd+s))
         
-        #for the Further* topology.
-        walk_short = list(range(2, half_ssd_further))
-        walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
+        #for the Further* topology.        
+        #walk_short = list(range(2, half_ssd_further))
+        #walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
 
         return list(zip(walk_short, walk_long))
         
