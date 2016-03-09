@@ -25,7 +25,7 @@
 #define BOT UINT16_MAX
 
 #define BEACON_PERIOD_MS 500
-#define WAVE_PERIOD_MS 1000
+#define WAVE_PERIOD_MS 2000
 #define SLOT_PERIOD_MS 100
 #define INIT_PERIOD_MS 2000
 
@@ -36,6 +36,8 @@
 
 /* TODO:
  * Remove unneccessary code
+ * Reduce size of CollisionMessage
+ * Nobody is receiving CollisionMessages
  */
 
 
@@ -182,22 +184,13 @@ implementation
 		call RadioControl.start();
 	}
 
-    void normal_message_hack();
-    void wave_message_hack();
-
 	event void RadioControl.startDone(error_t err)
 	{
 		if (err == SUCCESS)
 		{
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-            /*normal_message_hack();*/
-            /*wave_message_hack();*/
             send_beacon(); //Need this before dissem() or segmentation fault
-            /*dissem(); //Need this here or floating point exception*/
-            /*call ObjectDetector.start();*/
-            /*call WaveTimer.startOneShot(get_wave_period());*/
-            /*call BeaconTimer.startOneShot(get_init_period());*/
             call InitTimer.startOneShot(get_init_period());
 		}
 		else
@@ -252,7 +245,6 @@ implementation
         BeaconMessage msg;
         msg.source_id = TOS_NODE_ID;
         send_Beacon_message(&msg, AM_BROADCAST_ADDR);
-        /*PRINTF0("Beacon sent.\n");*/
     }
 
     void dissem()
@@ -281,17 +273,6 @@ implementation
         }
     }
 
-
-    void wave_message_hack()
-    {
-        WaveMessage msg;
-        msg.source_id = TOS_NODE_ID;
-        //msg.neighbours = IDList_minus_parent(&neighbours, parent);
-        msg.slot = 0;
-        msg.hop = 0;
-        send_Wave_message(&msg, AM_BROADCAST_ADDR);
-    }
-
     void process_waves()
     {
         /*simdbg("stdout", "%s: Processing waves...\n", sim_time_string());*/
@@ -303,7 +284,6 @@ implementation
                 SlotList_add(&slots, TOS_NODE_ID, slot, hop, neighbours);
             }
 
-            //TODO: Never called
             if(SlotList_collision(&slots))
             {
                 uint16_t i,j;
@@ -323,20 +303,19 @@ implementation
             }
             else
             {
-                //TODO: Never assigned permanent slots
                 if(type != SinkNode && (slot == BOT || parent == BOT || hop == BOT))
                 {
                     SlotList possible_parents;
                     SlotDetails details = SlotList_min_h(&slots);
-                    uint16_t r = rank(&(details.neighbours), TOS_NODE_ID);
+                    uint16_t rk = rank(&(details.neighbours), TOS_NODE_ID);
                     hop = details.hop + 1;
-                    if(r == BOT)
+                    if(rk == BOT)
                     {
                         slot = BOT;
                     }
                     else
                     {
-                        slot = details.slot - r;
+                        slot = details.slot - rk;
                     }
                     /*if(slot > get_tdma_num_slots()) slot = get_tdma_num_slots();*/
                     possible_parents = SlotList_n_from_sh(&slots, details.slot, details.hop);
@@ -362,7 +341,6 @@ implementation
         IDList_clear(&live);
     }
 
-    void send_message_source();
 	task void send_message_normal()
 	{
 		NormalMessage* message;
@@ -480,76 +458,6 @@ implementation
         }
     }
     //}}} Timers.fired()
-
-
-/*
- *    void send_message_source()
- *    {
- *        NormalMessage* message;
- *
- *        message = call MessagePool.get();
- *        if (message != NULL)
- *        {
- *            message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
- *            message->source_distance = 0;
- *            message->source_id = TOS_NODE_ID;
- *
- *            if (call MessageQueue.enqueue(message) != SUCCESS)
- *            {
- *                simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
- *            }
- *            else
- *            {
- *                call NormalSeqNos.increment(TOS_NODE_ID);
- *            }
- *        }
- *        else
- *        {
- *            simdbgerror("stdout", "No pool space available for another Normal message.\n");
- *        }
- *
- *    }
- */
-
-    void normal_message_hack()
-    {
-        NormalMessage msg;
-        msg.sequence_number = 0;
-        msg.source_distance = 0;
-        msg.source_id = TOS_NODE_ID;
-        send_Normal_message(&msg, AM_BROADCAST_ADDR);
-    }
-
-/*
- *    void send_message_normal()
- *    {
- *        NormalMessage* message;
- *
- *        simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
- *
- *        message = call MessageQueue.dequeue();
- *
- *        if (message != NULL)
- *        {
- *            if (send_Normal_message(message, AM_BROADCAST_ADDR))
- *            {
- *                call MessagePool.put(message);
- *            }
- *            else
- *            {
- *                simdbgerror("stdout", "send failed, not returning memory to pool so it will be tried again\n");
- *            }
- *        }
- *        else
- *        {
- *            DummyNormalMessage dummy_message;
- *
- *            send_DummyNormal_message(&dummy_message, AM_BROADCAST_ADDR);
- *        }
- *
- *        //call BroadcastTimer.startOneShot(get_broadcast_period());
- *    }
- */
 
     //Receivers{{{
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
