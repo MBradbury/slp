@@ -33,21 +33,21 @@ class RunSimulations(RunSimulationsCommon):
         ssd = min(configuration.ssd(source) for source in configuration.source_ids)
 
         short_walk_length = float(arguments[argument_names.index('short walk length')])
-        #long_walk_length = float(arguments[argument_names.index('long walk length')])
+        long_walk_length = float(arguments[argument_names.index('long walk length')])
         #random_walk_length = 0.5*(short_walk_length + long_walk_length)
 
         if ssd > (network_size-1) * 1.5:
             return  time_taken
         else:
             #for only short random walk.
-            #return time_taken
+            return time_taken
 
             #for only long random walk. The ssd is between s and 2s+0.5s. 
             #So set the safety period as double the time_taken
             #return (1.5 + short_walk_length / network_size) * time_taken 
 
             #for short_walk and long_walk
-            return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
+            #return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -144,6 +144,7 @@ class CLI(CommandLineCommon.CLI):
         walk_short = list(range(2, half_ssd))
         walk_long = list(range(2, half_ssd))
 
+        #adaptive here
         #walk_short = list(range(2, half_ssd))
         #walk_long = list(range(s+2, half_ssd+s))
         
