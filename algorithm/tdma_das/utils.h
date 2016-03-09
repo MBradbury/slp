@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#define MAX_NEIGHBOURS 20
+#define MAX_NEIGHBOURS 16
 
 typedef nx_struct IDList {
     nx_uint16_t count;
