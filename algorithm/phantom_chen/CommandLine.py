@@ -89,6 +89,24 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
+    def _time_estimater(self, *args):
+        """Estimates how long simulations are run for. Override this in algorithm
+        specific CommandLine if these values are too small or too big. In general
+        these have been good amounts of time to run simulations for. You might want
+        to adjust the number of repeats to get the simulation time in this range."""
+        names = self.parameter_names()
+        size = args[names.index('network size')]
+        if size == 11:
+            return datetime.timedelta(hours=10)
+        elif size == 15:
+            return datetime.timedelta(hours=18)
+        elif size == 21:
+            return datetime.timedelta(hours=36)
+        elif size == 25:
+            return datetime.timedelta(hours=72)
+        else:
+            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
         time_taken = safety_period_table_generator.time_taken()
