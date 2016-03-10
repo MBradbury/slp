@@ -42,12 +42,15 @@ class RunSimulations(RunSimulationsCommon):
             #for only short random walk.
             return time_taken
 
-            #for only long random walk. The ssd is between s and 2s+0.5s. 
-            #So set the safety period as double the time_taken
-            #return (1.5 + short_walk_length / network_size) * time_taken 
+            #for only long random walk. The ssd is between long_walk_length and s+long_walk_length. 
+            #So set the safety period as average.
+            #return (0.5 + long_walk_length / network_size) * time_taken
 
-            #for short_walk and long_walk
-            #return ((1.2 * ssd + 0.5 * short_walk_length) / network_size) * time_taken
+            #for one short_walk and one long_walk combination.
+            #return ((1.2  + 0.5 * short_walk_length) / network_size) * time_taken
+
+            #for one short_walk and two long_walk combination.
+            #return ((1.3 + 0.6 * short_walk_length) / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -65,17 +68,17 @@ class CLI(CommandLineCommon.CLI):
     #source_periods = [ 1.0 ]
 
     configurations = [
-        #'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'SourceCorner',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
-        'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        'FurtherSinkCorner3Source'
+        #'FurtherSinkCorner',
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
 
     ]
 
@@ -141,8 +144,8 @@ class CLI(CommandLineCommon.CLI):
         ssd_further = 2*s
 
         # walk_short is equal to walk_long
-        walk_short = list(range(2, half_ssd_further))
-        walk_long = list(range(2, half_ssd_further))
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(2, half_ssd))
 
         #adaptive here
         #walk_short = list(range(2, half_ssd))
