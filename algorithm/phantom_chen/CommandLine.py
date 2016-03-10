@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os, itertools, math
+import os, itertools, math, datetime
 
 import numpy as np
 
@@ -65,17 +65,17 @@ class CLI(CommandLineCommon.CLI):
     #source_periods = [ 1.0 ]
 
     configurations = [
-        'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'SourceCorner',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
-        #'FurtherSinkCorner',
-        #'FurtherSinkCorner2Source',
-        #'FurtherSinkCorner3Source'
+        'FurtherSinkCorner',
+        'FurtherSinkCorner2Source',
+        'FurtherSinkCorner3Source'
 
     ]
 
@@ -130,7 +130,7 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
 
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
@@ -141,8 +141,8 @@ class CLI(CommandLineCommon.CLI):
         ssd_further = 2*s
 
         # walk_short is equal to walk_long
-        walk_short = list(range(2, half_ssd))
-        walk_long = list(range(2, half_ssd))
+        walk_short = list(range(2, half_ssd_further))
+        walk_long = list(range(2, half_ssd_further))
 
         #adaptive here
         #walk_short = list(range(2, half_ssd))
