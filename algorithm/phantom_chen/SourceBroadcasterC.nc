@@ -256,6 +256,28 @@ implementation
 		}
 	}
 
+	//One message has short random walk length, the next TWO messages holds the long random walk length.
+	uint16_t message_1short_2long()
+	{
+		uint16_t random_walk_remaining;
+
+		random_walk_remaining = (last_random_walk % 3 == 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
+		last_random_walk += 1;
+
+		return random_walk_remaining;
+	}
+
+	//One message has short random walk length, the next message holds the long random walk length.
+	uint16_t message_1short_1long()
+	{
+		uint16_t random_walk_remaining;
+
+		random_walk_remaining = (last_random_walk == 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
+		last_random_walk = (last_random_walk == 0)? 1 : 0;
+
+		return random_walk_remaining;
+	}
+
 	void generate_message()
 	{
 		uint16_t flip_coin = call Random.rand16()%2;
@@ -266,29 +288,15 @@ implementation
 			message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);			
 			message.source_id = TOS_NODE_ID;
 			message.source_distance = 0;
-			//add adaptive phantom code here. 
-			//One message has short random walk length, the next message holds the long random walk length.
-			
-			if(last_random_walk == 0)
-			{
-				message.walk_distance_remaining = LONG_RANDOM_WALK_HOPS;
-				last_random_walk = 1;
-			}
-			else
-			{
-				message.walk_distance_remaining = RANDOM_WALK_HOPS;
-				last_random_walk = 0;
-			}
 
-			//if (message.sequence_number % 2 == 0)
-			//	message.walk_distance_remaining = RANDOM_WALK_HOPS;
-			//else
-			//	message.walk_distance_remaining = LONG_RANDOM_WALK_HOPS;
-			
+			//add adaptive phantom code here.
+			 			
+			//message.walk_distance_remaining = message_1short_1long();
+			message.walk_distance_remaining = message_1short_2long();
 
 		//SPACE_BEHIND_SINK means more space behind the sink.
 		//fit for Source Corner.  
-#ifdef SPACE_BEHIND_SINK
+		#ifdef SPACE_BEHIND_SINK
 			{
 				//if random walk length is shorter than the source sink distance, biased random walk is no need to implement.
 				//normally the short random walk is set to less than half of source sink distance.
@@ -306,7 +314,7 @@ implementation
 			}
 		//fit for the situation that the sink is located in the corner or in the border.
 		//fit for SinkCorner or FurtherSinkCorner
-#else
+		#else
 			{
 				// FurtherSinkCorner codes here.
 				//ensure all source ID is les than TOPOLOGY_SIZE*2, even with 3 sources.
@@ -328,7 +336,10 @@ implementation
 				//biased random walk is not applied here.
 				else
 				{
-					simdbg("slp-debug","random walk hop:%d\n",message.walk_distance_remaining);
+					if(message.walk_distance_remaining < TOPOLOGY_SIZE)
+						simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
+					else
+						simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());	
 					//message.flip_coin = call Random.rand16()%4;
 					message.flip_coin = (flip_coin == 0)?1:2;
 				}
