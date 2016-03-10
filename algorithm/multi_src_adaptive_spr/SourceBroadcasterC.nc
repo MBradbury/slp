@@ -254,7 +254,8 @@ implementation
 		else
 		{
 			return factor * current + (1.0 - factor) * history;
-		}	
+			//return (current < history) ? current : history;
+		}
 	}
 
 	bool pfs_can_become_normal(void)
@@ -301,7 +302,7 @@ implementation
 
 	uint32_t get_dist_to_pull_back(void)
 	{
-		// PB_FIXED1_APPROACH worked quite well, so lets stick to it
+		// PB_FIXED2_APPROACH worked quite well, so lets stick to it
 		return 1;
 	}
 
@@ -399,47 +400,26 @@ implementation
 		return angle_when_node_closer_than_sink(source1, source2);
 #elif defined(ALWAYS_SIDE_APPORACH)
 		return angle_when_node_side_of_sink(source1, source2);
-#elif defined(ARBITRARY_SINK_APPROACH)
-
-		const double ssd1 = call SinkSourceDistances.get_or_default(source1, BOTTOM);
-		const double dsrc1 = call SourceDistances.get_or_default(source1, BOTTOM);
-		const double ssd2 = call SinkSourceDistances.get_or_default(source2, BOTTOM);
-		const double dsrc2 = call SourceDistances.get_or_default(source2, BOTTOM);
-		const double dsink = sink_distance;
-
+#elif defined(MIN_VALID_APPROACH)
 		const double further = angle_when_node_further_than_sink(source1, source2);
 		const double closer = angle_when_node_closer_than_sink(source1, source2);
 		const double side = angle_when_node_side_of_sink(source1, source2);
 
-		if (dsrc1 >= ssd1 && dsrc2 >= ssd2 && !invalid_double(further))
+		const double angles[] = { further, closer, side };
+		double min_angle = 1 * M_PI;
+		bool found_min = FALSE;
+		unsigned int i;
+
+		for (i = 0; i != ARRAY_SIZE(angles); ++i)
 		{
-			return further;
-		}
-		else if (dsrc1 <= ssd1 && dsrc2 <= ssd2 && !invalid_double(closer))
-		{
-			return closer;
-		}
-		else if (!invalid_double(side))
-		{
-			return side;
-		}
-		else if (!invalid_double(further) && !invalid_double(closer))
-		{
-			return min(further, closer);
-		}
-		else if (!invalid_double(further))
-		{
-			return further;
-		}
-		else if (!invalid_double(closer))
-		{
-			return closer;
-		}
-		else
-		{
-			return INFINITY;
+			if (!invalid_double(angles[i]) && angles[i] < min_angle)
+			{
+				min_angle = angles[i];
+				found_min = TRUE;
+			}
 		}
 
+		return found_min ? min_angle : 0.0;
 #else
 #	error "No apporach specified"
 #endif
@@ -466,7 +446,7 @@ implementation
 				continue;
 
 			// When cooperating this will be 1, when completely interfering this will be 0
-			non_interference = 1.0 - (intermediate_angle / M_PI);
+			non_interference = max(0.5, 1.0 - (intermediate_angle / M_PI));
 
 			factor *= non_interference;
 		}
@@ -514,11 +494,12 @@ implementation
 	uint32_t get_tfs_num_msg_to_send(void)
 	{
 		const uint32_t distance = get_dist_to_pull_back();
+		const uint16_t est_num_sources = estimated_number_of_sources();
 
 		//simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%f, Dss=%d)\n",
 		//	distance, source_distance, sink_distance, min_sink_source_distance);
 
-		return distance;
+		return distance * est_num_sources;
 	}
 
 	uint32_t get_tfs_duration(void)
@@ -539,11 +520,12 @@ implementation
 	{
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
-		const uint32_t period = duration / msg;
-		const double est_num_sources = all_source_factor();
+		const double period = duration / (double)msg;
+		const double est_num_sources = estimated_number_of_sources();
+		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
 		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
-		const uint32_t result_period = (uint32_t)ceil(period / (est_num_sources * normal_rcv_ratio));
+		const uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src);
 
 		simdbg("stdout", "get_tfs_period=%u normrcv=%f\n", result_period, normal_rcv_ratio);
 
@@ -557,7 +539,9 @@ implementation
 		const double est_num_sources = all_source_factor();
 		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
-		const uint32_t result_period = (uint32_t)ceil((SOURCE_PERIOD_MS * fake_rcv_ratio_at_src) / (est_num_sources * normal_rcv_ratio));
+		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
+
+		const uint32_t result_period = (uint32_t)ceil(period_per_source * fake_rcv_ratio_at_src);
 
 		simdbg("stdout", "get_pfs_period=%u fakercv=%f normrcv=%f\n",
 			result_period, fake_rcv_ratio_at_src, normal_rcv_ratio);
