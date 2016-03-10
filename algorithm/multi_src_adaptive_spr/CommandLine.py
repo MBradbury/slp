@@ -66,7 +66,8 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    approaches = ["NO_INTERFERENCE_APPROACH", "ALWAYS_FURTHER_APPORACH", "ALWAYS_CLOSER_APPORACH", "ALWAYS_SIDE_APPORACH", "ARBITRARY_SINK_APPROACH"]
+    approaches = ["NO_INTERFERENCE_APPROACH", "ALWAYS_FURTHER_APPORACH", "ALWAYS_CLOSER_APPORACH",
+                  "ALWAYS_SIDE_APPORACH", "MIN_VALID_APPROACH"]
 
     repeats = 500
 
