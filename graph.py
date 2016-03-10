@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
+from __future__ import print_function, division
+
 import os, sys, argparse, math
+
+from cmath import sqrt
 
 import numpy as np
 
@@ -13,6 +17,7 @@ parser.add_argument("--min-source-distance-heatmap", action='store_true', defaul
 parser.add_argument("--source-angle-estimate-heatmap", action='store_true', default=False)
 parser.add_argument("--source-angle-meters-heatmap", action='store_true', default=False)
 parser.add_argument("--source-angle-actual-heatmap", action='store_true', default=False)
+parser.add_argument("--source-angle-det-heatmap", action='store_true', default=False)
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -67,6 +72,8 @@ def angle_heapmaps(description, zextractor):
 
 	grapher.dgrid3d_dimensions = "11,11"
 
+	grapher.cbrange = (0, 180)
+
 	grapher.create(configurations)
 
 	summary_grapher = summary.GraphSummary(
@@ -80,17 +87,26 @@ def angle_heapmaps(description, zextractor):
 	summary_grapher.run()
 
 def is_valid_angle(angle):
-	return 0 <= angle <= math.pi
+	return not np.isinf(angle) and 0 <= angle <= math.pi 
+
+def cosine_rule(opp, adj, hyp):
+
+	#print("opp={} adj={} hyp={}".format(opp, adj, hyp))
+
+	try:
+		temp = round(((adj * adj) + (hyp * hyp) - (opp * opp)) / (2.0 * adj * hyp), 7)
+
+		return math.acos(temp)
+	except ZeroDivisionError:
+		return float('inf')
 
 if args.source_angle_estimate_heatmap:
 	def angle_to(conf, n, i):
-		ssd = conf.ssd(i)
-		dsink = conf.node_sink_distance(n)
-		dsrc = conf.node_source_distance(n, i)
+		ssd = float(conf.ssd(i))
+		dsink = float(conf.node_sink_distance(n))
+		dsrc = float(conf.node_source_distance(n, i))
 
-		temp = ((dsrc * dsrc) + (dsink * dsink) - (ssd * ssd)) / (2.0 * dsrc * dsink)
-
-		return math.acos(temp)
+		return cosine_rule(ssd, dsrc, dsink)
 
 	def angle_between(conf, n, i, j):
 		ssd_i = conf.ssd(i)
@@ -104,14 +120,14 @@ if args.source_angle_estimate_heatmap:
 		angle_i = angle_to(conf, n, i)
 		angle_j = angle_to(conf, n, j)
 
-		return abs(angle_i - angle_j)
+		circle_angle = 2.0 * math.pi - angle_i - angle_j
+		add_angle = angle_i + angle_j
+		subtract_angle = abs(angle_i - angle_j)
 
-#		if (dsrc_i >= dsink and dsrc_j >= dsink) or (dsink >= ssd_i and dsink >= ssd_j):
-#			return angle_i + angle_j
-#		elif dsrc_i <= ssd_i and dsrc_j <= ssd_j:
-#			return 2.0 * math.pi - angle_i - angle_j
-#		else:
-#			return abs(angle_i - angle_j)
+		try:
+			return min([angle for angle in [circle_angle, add_angle, subtract_angle] if is_valid_angle(angle)])
+		except ValueError:
+			return 0
 
 	def zextractor(configuration, nid):
 		(a, b) = tuple(configuration.source_ids)
@@ -129,9 +145,7 @@ if args.source_angle_meters_heatmap:
 		dsink = conf.node_sink_distance_meters(n)
 		dsrc = conf.node_source_distance_meters(n, i)
 
-		temp = round(((dsrc * dsrc) + (dsink * dsink) - (ssd * ssd)) / (2.0 * dsrc * dsink), 7)
-
-		return math.acos(temp)
+		return cosine_rule(ssd, dsrc, dsink)
 
 	def angle_between_meters(conf, n, i, j):
 		ssd_i = conf.ssd_meters(i)
@@ -149,19 +163,7 @@ if args.source_angle_meters_heatmap:
 		add_angle = angle_i + angle_j
 		subtract_angle = abs(angle_i - angle_j)
 
-		#return min([angle for angle in [circle_angle, add_angle, subtract_angle] if is_valid_angle(angle)])
-
-		if is_valid_angle(circle_angle):# and (dsrc_i <= ssd_i and dsrc_j <= ssd_j and dsink <= ssd_i and dsink <= ssd_j):
-			#return -1
-			return circle_angle
-		elif is_valid_angle(add_angle):#and (dsrc_i >= dsink and dsrc_j >= dsink and dsrc_i >= ssd_i and dsrc_j >= ssd_j):
-			#return 1
-			return add_angle
-		elif is_valid_angle(subtract_angle):
-			#return 0
-			return subtract_angle
-		else:
-			return -1
+		return min([angle for angle in [circle_angle, add_angle, subtract_angle] if is_valid_angle(angle)])
 
 	def zextractor(configuration, nid):
 		if nid in configuration.source_ids or nid == configuration.sink_id:
@@ -174,6 +176,65 @@ if args.source_angle_meters_heatmap:
 	angle_heapmaps("source_angle_meters", zextractor)
 
 
+if args.source_angle_det_heatmap:
+	def angle_between_det(conf, n, i, j):
+
+		dsrc_i = conf.node_source_distance_meters(n, i)
+		dsrc_j = conf.node_source_distance_meters(n, j)
+
+		a = conf.ssd_meters(i)
+		b = conf.ssd_meters(j)
+
+		c = conf.node_sink_distance_meters(n)
+
+		e = dsrc_i
+		f = dsrc_j
+
+		part1 = - a**2 * b**2 + a**2 * c**2 + a**2 * f**2
+		rsqrt1 = sqrt(a**4 - (2 * a**2 * c**2) - (2 * a**2 * e**2) + c**4 - (2 * c**2 * e**2) + e**4)
+		rsqrt2 = sqrt(b**4 - (2 * b**2 * c**2) - (2 * b**2 * f**2) + c**4 - (2 * c**2 * f**2) + f**4)
+		part2 = b**2 * c**2 + b**2 * e**2 - c**4 + c**2 * e**2 + c**2 * f**2 - e**2 * f**2
+
+		d1 = None if c == 0 else sqrt((part1 - (rsqrt1 * rsqrt2).real + part2) / c**2) / sqrt(2)
+		d2 = None if c == 0 else sqrt((part1 + (rsqrt1 * rsqrt2).real + part2) / c**2) / sqrt(2)
+
+		d3 = None if c == 0 or (a**2 - e**2) * (b**2 - f**2) == 0 else sqrt(a**4 * (- f**2) + a**2 * b**2 * e**2 + a**2 * b**2 * f**2 + a**2 * e**2 * f**2 - a**2 * f**4 - b**4 * e**2 - b**2 * e**4 + b**2 * e**2 * f**2) / sqrt((a**2 - e**2) * (b**2 - f**2))
+
+
+		print(n, i, j, conf.node_source_distance_meters(j, i), d1, d2, d3)
+
+		distances = [d1, d2, d3]
+		angles = []
+
+		for distance in distances:
+			if distance is None:
+				continue
+
+			if distance.imag != 0:
+				continue
+
+			try:
+				angle = cosine_rule(distance.real, dsrc_i, dsrc_j)
+				angles.append(angle)
+			except ValueError:
+				pass
+
+		print(angles)
+		print()
+
+		return 0 if len(angles) == 0 else min(angles)
+
+	def zextractor(configuration, nid):
+		if nid in configuration.source_ids or nid == configuration.sink_id:
+			return '?'
+
+		(a, b) = tuple(configuration.source_ids)
+		angle = angle_between_det(configuration, nid, a, b) * (180.0 / math.pi)
+		return '?' if np.isnan(angle) else angle
+
+	angle_heapmaps("source_angle_det", zextractor)
+
+
 
 
 if args.source_angle_actual_heatmap:
@@ -183,9 +244,7 @@ if args.source_angle_actual_heatmap:
 
 		dist_i_j = conf.node_source_distance_meters(i, j)
 
-		temp = round(((dsrc_i * dsrc_i) + (dsrc_j * dsrc_j) - (dist_i_j * dist_i_j)) / (2.0 * dsrc_i * dsrc_j), 7)
-
-		return math.acos(temp)
+		return cosine_rule(dist_i_j, dsrc_i, dsrc_j)
 
 	def zextractor(configuration, nid):
 		if nid in configuration.source_ids or nid == configuration.sink_id:
