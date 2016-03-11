@@ -42,7 +42,6 @@ module SourceBroadcasterC
 
 implementation 
 {
-	//uint16_t last_random_walk = 0;
 	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode
@@ -256,24 +255,13 @@ implementation
 		}
 	}
 
-	//One message has short random walk length, the next TWO messages holds the long random walk length.
-	uint16_t message_1short_2long()
+	//m short random walk and n long random walk messages combination.
+	uint16_t message_mshort_nlong(uint16_t m, uint16_t n)
 	{
 		uint16_t random_walk_remaining;
 
-		random_walk_remaining = (last_random_walk % 3 == 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
+		random_walk_remaining = (last_random_walk % (m+n) == 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
 		last_random_walk += 1;
-
-		return random_walk_remaining;
-	}
-
-	//One message has short random walk length, the next message holds the long random walk length.
-	uint16_t message_1short_1long()
-	{
-		uint16_t random_walk_remaining;
-
-		random_walk_remaining = (last_random_walk == 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
-		last_random_walk = (last_random_walk == 0)? 1 : 0;
 
 		return random_walk_remaining;
 	}
@@ -290,9 +278,7 @@ implementation
 			message.source_distance = 0;
 
 			//add adaptive phantom code here.
-			 			
-			//message.walk_distance_remaining = message_1short_1long();
-			message.walk_distance_remaining = message_1short_2long();
+			message.walk_distance_remaining = message_mshort_nlong(1,2);
 
 		//SPACE_BEHIND_SINK means more space behind the sink.
 		//fit for Source Corner.  
