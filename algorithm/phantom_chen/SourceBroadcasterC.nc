@@ -14,7 +14,7 @@
 //define the global vaiable.
 //0 means random walk, 1 means long random walk.
 //make it work for multiple sources.
-uint16_t last_random_walk = 0;
+uint16_t last_random_walk = 1;
 
 module SourceBroadcasterC
 {
@@ -260,7 +260,7 @@ implementation
 	{
 		uint16_t random_walk_remaining;
 
-		random_walk_remaining = (last_random_walk % (m+n) == 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
+		random_walk_remaining = (last_random_walk % (m+n) <= m && last_random_walk % (m+n) != 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
 		last_random_walk += 1;
 
 		return random_walk_remaining;
@@ -278,7 +278,7 @@ implementation
 			message.source_distance = 0;
 
 			//add adaptive phantom code here.
-			message.walk_distance_remaining = message_mshort_nlong(1,2);
+			message.walk_distance_remaining = message_mshort_nlong(2,3);
 
 		//SPACE_BEHIND_SINK means more space behind the sink.
 		//fit for Source Corner.  
