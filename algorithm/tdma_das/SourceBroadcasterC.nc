@@ -25,7 +25,7 @@
 #define BOT UINT16_MAX
 
 #define BEACON_PERIOD_MS 500
-#define WAVE_PERIOD_MS 2000
+#define WAVE_PERIOD_MS 4000
 #define SLOT_PERIOD_MS 100
 #define INIT_PERIOD_MS 2000
 
@@ -261,6 +261,7 @@ implementation
             send_Wave_message(&msg, AM_BROADCAST_ADDR);
 
             start = FALSE;
+            slot = 0; //Just so the display doesn't show UINT16_MAX
         }
         else if((type != SinkNode) && (slot != BOT))
         {
@@ -287,18 +288,25 @@ implementation
             if(SlotList_collision(&slots))
             {
                 uint16_t i,j;
+                IDList collision_slots = IDList_new();
                 /*simdbg("stdout", "Processed collision.\n");*/
                 for (i = 0; i < slots.count; i++) {
                     for (j = i + 1; j < slots.count; j++) {
                         if (slots.slots[i].slot == slots.slots[j].slot) {
-                            CollisionMessage msg;
-                            msg.source_id = TOS_NODE_ID;
-                            msg.slots = SlotList_n_from_s(&slots, slots.slots[i].slot);
-                            send_Collision_message(&msg, AM_BROADCAST_ADDR);
-                            /*simdbg("stdout", "Sending collision message...\n");*/
+                            IDList_add(&collision_slots, slots.slots[i].slot);
                         }
                     }
                 }
+
+                for(i = 0; i < collision_slots.count; i++)
+                {
+                    CollisionMessage msg;
+                    msg.source_id = TOS_NODE_ID;
+                    /*msg.slots = SlotList_n_from_s(&slots, collision_slots.ids[i]);*/
+                    send_Collision_message(&msg, AM_BROADCAST_ADDR);
+                    simdbg("stdout", "Sending collision message...\n");
+                }
+
                 SlotList_clear(&slots);
             }
             else
@@ -548,11 +556,13 @@ implementation
     void x_receive_Collision(const CollisionMessage* const rcvd, am_addr_t source_addr)
     {
         simdbg("stdout", "Received collision.\n");
-        if(SlotList_contains_id(&(rcvd->slots), TOS_NODE_ID) && slot != BOT)
-        {
-            IDList ids = SlotList_to_ids(&(rcvd->slots));
-            slot = slot - rank(&ids, TOS_NODE_ID) + 1;
-        }
+        /*
+         *if(SlotList_contains_id(&(rcvd->slots), TOS_NODE_ID) && slot != BOT)
+         *{
+         *    IDList ids = SlotList_to_ids(&(rcvd->slots));
+         *    slot = slot - rank(&ids, TOS_NODE_ID) + 1;
+         *}
+         */
         METRIC_RCV_COLLISION(rcvd);
     }
 
