@@ -278,7 +278,7 @@ implementation
 			message.source_distance = 0;
 
 			//add adaptive phantom code here.
-			message.walk_distance_remaining = message_mshort_nlong(1,2);
+			message.walk_distance_remaining = message_mshort_nlong(1,1);
 
 		//SPACE_BEHIND_SINK means more space behind the sink.
 		//fit for Source Corner.  
