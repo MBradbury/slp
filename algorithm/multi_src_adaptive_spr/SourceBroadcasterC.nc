@@ -446,7 +446,7 @@ implementation
 				continue;
 
 			// When cooperating this will be 1, when completely interfering this will be 0
-			non_interference = max(0.5, 1.0 - (intermediate_angle / M_PI));
+			non_interference = max(0.75, 1.0 - (intermediate_angle / M_PI));
 
 			factor *= non_interference;
 		}
@@ -521,13 +521,13 @@ implementation
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const double period = duration / (double)msg;
-		const double est_num_sources = estimated_number_of_sources();
+		//const double est_num_sources = estimated_number_of_sources();
 		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
-		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
+		//const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
 		const uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src);
 
-		simdbg("stdout", "get_tfs_period=%u normrcv=%f\n", result_period, normal_rcv_ratio);
+		simdbg("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
