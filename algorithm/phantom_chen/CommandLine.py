@@ -37,7 +37,7 @@ class RunSimulations(RunSimulationsCommon):
         
         #ONLY for m_short random walk with n_long_random_walk combination.
         m = 1
-        n =2
+        n = 2
 
         long_length = 1.5*ssd + short_walk_length;
         short_length = ssd
@@ -72,17 +72,17 @@ class CLI(CommandLineCommon.CLI):
     #source_periods = [ 1.0 ]
 
     configurations = [
-        'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'SourceCorner',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
-        #'FurtherSinkCorner',
-        #'FurtherSinkCorner2Source',
-        #'FurtherSinkCorner3Source'
+        'FurtherSinkCorner',
+        'FurtherSinkCorner2Source',
+        'FurtherSinkCorner3Source'
 
     ]
 
@@ -152,12 +152,12 @@ class CLI(CommandLineCommon.CLI):
         #walk_long = list(range(2, half_ssd))
 
         #adaptive here
-        walk_short = list(range(2, half_ssd))
-        walk_long = list(range(s+2, half_ssd+s))
+        #walk_short = list(range(2, half_ssd))
+        #walk_long = list(range(s+2, half_ssd+s))
         
         #for the Further* topology.        
-        #walk_short = list(range(2, half_ssd_further))
-        #walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
+        walk_short = list(range(2, half_ssd_further))
+        walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
 
         return list(zip(walk_short, walk_long))
         
