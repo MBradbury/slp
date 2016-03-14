@@ -34,7 +34,14 @@ class RunSimulations(RunSimulationsCommon):
 
         short_walk_length = float(arguments[argument_names.index('short walk length')])
         long_walk_length = float(arguments[argument_names.index('long walk length')])
-        #random_walk_length = 0.5*(short_walk_length + long_walk_length)
+        
+        #ONLY for m_short random walk with n_long_random_walk combination.
+        m = 1
+        n =2
+
+        long_length = 1.5*ssd + short_walk_length;
+        short_length = ssd
+        combination_length = (m * short_length + n * long_length) / (m+n)
 
         if ssd > (network_size-1) * 1.5:
             return  time_taken
@@ -46,11 +53,8 @@ class RunSimulations(RunSimulationsCommon):
             #So set the safety period as average.
             #return (0.5 + long_walk_length / network_size) * time_taken
 
-            #for one short_walk and one long_walk combination.
-            #return ((1.2  + 0.5 * short_walk_length) / network_size) * time_taken
-
-            #for one short_walk and two long_walk combination.
-            return ((1.3 + 0.6 * short_walk_length) / network_size) * time_taken
+            #for combinations.
+            return (combination_length / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
