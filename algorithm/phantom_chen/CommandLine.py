@@ -40,7 +40,7 @@ class RunSimulations(RunSimulationsCommon):
             return  time_taken
         else:
             #for only short random walk.
-            return time_taken
+            #return time_taken
 
             #for only long random walk. The ssd is between long_walk_length and s+long_walk_length. 
             #So set the safety period as average.
@@ -50,7 +50,7 @@ class RunSimulations(RunSimulationsCommon):
             #return ((1.2  + 0.5 * short_walk_length) / network_size) * time_taken
 
             #for one short_walk and two long_walk combination.
-            #return ((1.3 + 0.6 * short_walk_length) / network_size) * time_taken
+            return ((1.3 + 0.6 * short_walk_length) / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -62,7 +62,7 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11]
+    sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
     #source_periods = [ 1.0 ]
@@ -144,14 +144,12 @@ class CLI(CommandLineCommon.CLI):
         ssd_further = 2*s
 
         # walk_short is equal to walk_long
-        walk_short = list(range(7,8))
-        walk_long = list(range(7,8))
         #walk_short = list(range(2, half_ssd))
         #walk_long = list(range(2, half_ssd))
 
         #adaptive here
-        #walk_short = list(range(2, half_ssd))
-        #walk_long = list(range(s+2, half_ssd+s))
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(s+2, half_ssd+s))
         
         #for the Further* topology.        
         #walk_short = list(range(2, half_ssd_further))
