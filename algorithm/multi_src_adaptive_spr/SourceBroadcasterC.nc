@@ -303,7 +303,7 @@ implementation
 	uint32_t get_dist_to_pull_back(void)
 	{
 		// PB_FIXED2_APPROACH worked quite well, so lets stick to it
-		return 1;
+		return 2;
 	}
 
 	double inclination_angle_rad(am_addr_t source_id)
@@ -315,14 +315,14 @@ implementation
 
 		if (ssd < 0 || dsrc <= 0 || dsink <= 0)
 		{
-			simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f\n", source_id, ssd, dsrc, dsink);
+			//simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f\n", source_id, ssd, dsrc, dsink);
 			return INFINITY;
 		}
 
 		temp = ((dsrc * dsrc) + (dsink * dsink) - (ssd * ssd)) / (2.0 * dsrc * dsink);
 		angle = acos(temp);
 
-		simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f inter=%f angle=%f\n", source_id, ssd, dsrc, dsink, temp, rad2deg(angle));
+		//simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f inter=%f angle=%f\n", source_id, ssd, dsrc, dsink, temp, rad2deg(angle));
 
 		return angle;
 	}
@@ -340,13 +340,13 @@ implementation
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
-			simdbg("stdout", "further result invalid\n");
+			//simdbg("stdout", "further result invalid\n");
 			return INFINITY;
 		}
 
 		result = source1_angle + source2_angle;
 
-		simdbg("stdout", "further result %f\n", result);
+		//simdbg("stdout", "further result %f\n", result);
 
 		return result;
 	}
@@ -359,13 +359,13 @@ implementation
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
-			simdbg("stdout", "closer result invalid\n");
+			//simdbg("stdout", "closer result invalid\n");
 			return INFINITY;
 		}
 
 		result = 2.0 * M_PI - source1_angle - source2_angle;
 
-		simdbg("stdout", "closer result %f\n", result);
+		//simdbg("stdout", "closer result %f\n", result);
 
 		return result;
 	}
@@ -378,14 +378,14 @@ implementation
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
-			simdbg("stdout", "side result invalid\n");
+			//simdbg("stdout", "side result invalid\n");
 			return INFINITY;
 		}
 
 		// Covers both a1 - a2 and a2 - a1 depending on which angle is the largest.
 		result = fabs(source1_angle - source2_angle);
 
-		simdbg("stdout", "side result %f\n", result);
+		//simdbg("stdout", "side result %f\n", result);
 
 		return result;
 	}
@@ -439,14 +439,14 @@ implementation
 
 			intermediate_angle = interference_strategy(source_id, *iter);
 
-			simdbg("stdout", "angle between %u and %u is %f\n", source_id, *iter, rad2deg(intermediate_angle));
+			//simdbg("stdout", "angle between %u and %u is %f\n", source_id, *iter, rad2deg(intermediate_angle));
 
 			// Skip messed up results, lets just assume the worst in these cases
 			if (invalid_double(intermediate_angle))
 				continue;
 
 			// When cooperating this will be 1, when completely interfering this will be 0
-			non_interference = max(0.75, 1.0 - (intermediate_angle / M_PI));
+			non_interference = 1.0 - (intermediate_angle / M_PI);
 
 			factor *= non_interference;
 		}
@@ -464,7 +464,7 @@ implementation
 			factor += angle_factor(*iter);
 		}
 
-		simdbg("stdout", "all_source_factor=%f\n", factor);
+		//simdbg("stdout", "all_source_factor=%f\n", factor);
 
 		return factor;
 	}
@@ -527,7 +527,7 @@ implementation
 
 		const uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src);
 
-		simdbg("stdout", "get_tfs_period=%u\n", result_period);
+		//simdbg("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -537,14 +537,14 @@ implementation
 		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
 
 		const double est_num_sources = all_source_factor();
-		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
+		//const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
 		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
 
 		const uint32_t result_period = (uint32_t)ceil(period_per_source * fake_rcv_ratio_at_src);
 
-		simdbg("stdout", "get_pfs_period=%u fakercv=%f normrcv=%f\n",
-			result_period, fake_rcv_ratio_at_src, normal_rcv_ratio);
+		//simdbg("stdout", "get_pfs_period=%u fakercv=%f normrcv=%f\n",
+		//	result_period, fake_rcv_ratio_at_src, normal_rcv_ratio);
 
 		return result_period;
 	}
