@@ -574,9 +574,21 @@ implementation
         }
     }
 
+    void Sink_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
+    {
+        int i;
+        NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
+        for(i = 0; i<rcvd->N.count; i++)
+        {
+            NeighbourList_add_info(&n_info, rcvd->N.info[i]);
+        }
+    }
+
+
     RECEIVE_MESSAGE_BEGIN(Dissem, Receive)
         case SourceNode:
         case NormalNode: x_receive_Dissem(rcvd, source_addr); break;
+        case SinkNode  : Sink_receive_Dissem(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Dissem)
     //}}}Receivers
 }
