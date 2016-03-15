@@ -8,6 +8,34 @@ typedef nx_struct IDList {
     nx_uint16_t ids[MAX_NEIGHBOURS];
 } IDList;
 
+typedef nx_struct NeighbourInfo {
+    nx_am_addr_t id;
+    nx_uint16_t hop;
+    nx_uint16_t slot;
+} NeighbourInfo;
+
+typedef nx_struct NeighbourList {
+    nx_uint16_t count;
+    NeighbourInfo info[MAX_NEIGHBOURS];
+} NeighbourList;
+
+typedef nx_struct OtherInfo {
+    nx_am_addr_t id;
+    IDList N;
+} OtherInfo;
+
+typedef nx_struct OtherList {
+    nx_uint16_t count;
+    OtherInfo info[MAX_NEIGHBOURS];
+} OtherList;
+
+OtherInfo OtherInfo_new(uint16_t id);
+OtherList OtherList_new();
+void OtherList_add(OtherList* list, OtherInfo info);
+uint16_t OtherList_indexOf(const OtherList* list, uint16_t id);
+OtherInfo* OtherList_get(OtherList* list, uint16_t id);
+
+
 typedef nx_struct SlotDetails {
     nx_am_addr_t id;
     nx_uint16_t slot;
@@ -42,6 +70,14 @@ SlotDetails SlotList_min_h(SlotList* list);
 void SlotList_clear(SlotList* list);
 SlotList SlotList_minus_parent(SlotList* list, uint16_t parent);
 IDList SlotList_to_ids(const SlotList* list);
+
+NeighbourInfo NeighbourInfo_new(uint16_t id, int hop, int slot);
+NeighbourList NeighbourList_new();
+void NeighbourList_add(NeighbourList* list, uint16_t id, int hop, int slot);
+void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info);
+uint16_t NeighbourList_indexOf(const NeighbourList* list, uint16_t id);
+NeighbourInfo* NeighbourList_get(NeighbourList* list, uint16_t id);
+NeighbourInfo* NeighbourList_min_h(NeighbourList* list, IDList* parents);
 
 IDList IDList_new()
 {
@@ -263,4 +299,144 @@ IDList SlotList_to_ids(const SlotList* list)
     return newList;
 }
 
+
+NeighbourInfo NeighbourInfo_new(uint16_t id, int hop, int slot)
+{
+    NeighbourInfo info;
+    info.id = id;
+    info.hop  = hop;
+    info.slot = slot;
+    return info;
+}
+
+NeighbourList NeighbourList_new()
+{
+    NeighbourList list;
+    list.count = 0;
+    return list;
+}
+
+void NeighbourList_add(NeighbourList* list, uint16_t id, int hop, int slot)
+{
+    uint16_t i;
+    i = NeighbourList_indexOf(list, id);
+    if(i == UINT16_MAX){
+        if(list->count >= MAX_NEIGHBOURS) return;
+        i = list->count;
+        list->count = list->count + 1;
+    }
+    list->info[i] = NeighbourInfo_new(id, hop, slot);
+}
+
+void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info)
+{
+    uint16_t i;
+    i = NeighbourList_indexOf(list, info.id);
+    if(i == UINT16_MAX){
+        if(list->count >= MAX_NEIGHBOURS) return;
+        i = list->count;
+        list->count = list->count + 1;
+    }
+    list->info[i] = info;
+}
+
+uint16_t NeighbourList_indexOf(const NeighbourList* list, uint16_t id)
+{
+    uint16_t i;
+    for(i = 0; i < list->count; i++)
+    {
+        if(list->info[i].id == id) return i;
+    }
+    return UINT16_MAX;
+}
+
+NeighbourInfo* NeighbourList_get(NeighbourList* list, uint16_t id)
+{
+    int i;
+    for(i=0; i<list->count; i++)
+    {
+        if(list->info[i].id == id)
+        {
+            return &(list->info[i]);
+        }
+    }
+    return NULL;
+}
+
+NeighbourInfo* NeighbourList_min_h(NeighbourList* list, IDList* parents)
+{
+    uint16_t i;
+    int mini = -1;
+    uint16_t minhop = UINT16_MAX;
+    for(i = 0; i<parents->count; i++)
+    {
+        NeighbourInfo* info = NeighbourList_get(list, parents->ids[i]);
+        //simdbg("stdout", "Checking pparent %u.\n", parents->ids[i]);
+        if(info == NULL) continue;
+        //simdbg("stdout", "Retrieved id %u.\n", info->id);
+        if(info->hop < minhop)
+        {
+            minhop = info->hop;
+            mini = i;
+        }
+    }
+    if(mini == -1)
+    {
+        return NULL;
+    }
+    else
+    {
+        return NeighbourList_get(list, parents->ids[mini]);
+    }
+}
+
+OtherInfo OtherInfo_new(uint16_t id)
+{
+    OtherInfo info;
+    info.id = id;
+    info.N = IDList_new();
+    return info;
+}
+
+OtherList OtherList_new()
+{
+    OtherList list;
+    list.count = 0;
+    return list;
+}
+
+void OtherList_add(OtherList* list, OtherInfo info)
+{
+    uint16_t i;
+    if(list->count >= MAX_NEIGHBOURS) return;
+    i = OtherList_indexOf(list, info.id);
+    if(i == UINT16_MAX){
+        i = list->count;
+        list->count = list->count + 1;
+    }
+    list->info[i] = info;
+}
+
+uint16_t OtherList_indexOf(const OtherList* list, uint16_t id)
+{
+    uint16_t i;
+    for(i = 0; i < list->count; i++)
+    {
+        if(list->info[i].id == id) return i;
+    }
+    return UINT16_MAX;
+}
+
+OtherInfo* OtherList_get(OtherList* list, uint16_t id)
+{
+    int i;
+    for(i=0; i<list->count; i++)
+    {
+        if(list->info[i].id == id)
+        {
+            return &(list->info[i]);
+        }
+    }
+    return NULL;
+}
 #endif /* UTILS_H */
