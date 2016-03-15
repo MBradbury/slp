@@ -181,7 +181,7 @@ implementation
     }
     //###################}}}
 
-
+    //Startup Events{{{
 	event void Boot.booted()
 	{
         /*
@@ -258,6 +258,10 @@ implementation
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
+
+    //Startup Events}}}
+
+    //Main Logic{{{
 
 	USE_MESSAGE(Normal);
 	USE_MESSAGE(DummyNormal);
@@ -379,6 +383,8 @@ implementation
             post send_message_normal();
         }
 	}
+
+    //Main Logic}}}
 
     //Timers.fired(){{{
     event void InitTimer.fired()
