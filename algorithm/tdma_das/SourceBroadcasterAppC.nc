@@ -57,13 +57,6 @@ implementation
     App.NormalSend -> NormalSender;
     App.NormalReceive -> NormalReceiver;
 
-    components
-        new AMSenderC(DUMMY_NORMAL_CHANNEL) as DummyNormalSender,
-        new AMReceiverC(DUMMY_NORMAL_CHANNEL) as DummyNormalReceiver;
-
-    App.DummyNormalSend -> DummyNormalSender;
-    App.DummyNormalReceive -> DummyNormalReceiver;
-
     /*components*/
         /*new AMSenderC(BEACON_CHANNEL) as BeaconSender,*/
         /*new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;*/
