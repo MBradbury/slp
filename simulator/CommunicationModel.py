@@ -133,6 +133,7 @@ class IdealCommunicationModel(CommunicationModel):
                     self.link_gain[i,j] = self.connection_strength
                     self.link_gain[j,i] = self.connection_strength
                 else:
+                    # Use NaNs to signal that there is no link between these two nodes
                     self.link_gain[i,j] = float('NaN')
                     self.link_gain[j,i] = float('NaN')
 
@@ -179,6 +180,7 @@ class NoAsymmetry(LinkLayerCommunicationModel):
         )
 
 class Ideal(IdealCommunicationModel):
+    """Perfect receive signal strength for all nodes within range."""
     def __init__(self):
         super(Ideal, self).__init__(
             connection_strength=-55,
@@ -186,6 +188,8 @@ class Ideal(IdealCommunicationModel):
             white_gausian_noise=4.0
         )
 
+# Backwards compatibility:
+# These are the mappings of the old names used to refer to the models
 MODEL_NAME_MAPPING = {
     "low-asymmetry": LowAsymmetry,
     "high-asymmetry": HighAsymmetry,
