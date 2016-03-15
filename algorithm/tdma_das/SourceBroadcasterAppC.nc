@@ -27,6 +27,7 @@ implementation
     // Timers
     components
         /*new TimerMilliC() as BroadcastTimer,*/
+        new TimerMilliC() as DissemTimer,
         new TimerMilliC() as InitTimer,
         new TimerMilliC() as EnqueueNormalTimer,
         new TimerMilliC() as BeaconTimer,
@@ -36,6 +37,7 @@ implementation
         new TimerMilliC() as PostSlotTimer;
 
     /*App.BroadcastTimer -> BroadcastTimer;*/
+    App.DissemTimer -> DissemTimer;
     App.InitTimer -> InitTimer;
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
     App.BeaconTimer -> BeaconTimer;
@@ -62,26 +64,33 @@ implementation
     App.DummyNormalSend -> DummyNormalSender;
     App.DummyNormalReceive -> DummyNormalReceiver;
 
+    /*components*/
+        /*new AMSenderC(BEACON_CHANNEL) as BeaconSender,*/
+        /*new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;*/
+
+    /*App.BeaconSend -> BeaconSender;*/
+    /*App.BeaconReceive -> BeaconReceiver;*/
+
+    /*components*/
+        /*new AMSenderC(WAVE_CHANNEL) as WaveSender,*/
+        /*new AMReceiverC(WAVE_CHANNEL) as WaveReceiver;*/
+
+    /*App.WaveSend -> WaveSender;*/
+    /*App.WaveReceive -> WaveReceiver;*/
+
+    /*components*/
+        /*new AMSenderC(COLLISION_CHANNEL) as CollisionSender,*/
+        /*new AMReceiverC(COLLISION_CHANNEL) as CollisionReceiver;*/
+
+    /*App.CollisionSend -> CollisionSender;*/
+    /*App.CollisionReceive -> CollisionReceiver;*/
+
     components
-        new AMSenderC(BEACON_CHANNEL) as BeaconSender,
-        new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;
+        new AMSenderC(DISSEM_CHANNEL) as DissemSender,
+        new AMReceiverC(DISSEM_CHANNEL) as DissemReceiver;
 
-    App.BeaconSend -> BeaconSender;
-    App.BeaconReceive -> BeaconReceiver;
-
-    components
-        new AMSenderC(WAVE_CHANNEL) as WaveSender,
-        new AMReceiverC(WAVE_CHANNEL) as WaveReceiver;
-
-    App.WaveSend -> WaveSender;
-    App.WaveReceive -> WaveReceiver;
-
-    components
-        new AMSenderC(COLLISION_CHANNEL) as CollisionSender,
-        new AMReceiverC(COLLISION_CHANNEL) as CollisionReceiver;
-
-    App.CollisionSend -> CollisionSender;
-    App.CollisionReceive -> CollisionReceiver;
+    App.DissemSend -> DissemSender;
+    App.DissemReceive ->DissemReceiver;
 
     // Message Queue
     components
