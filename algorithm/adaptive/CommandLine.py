@@ -111,52 +111,30 @@ class CLI(CommandLineCommon.CLI):
             parameters=self.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
-        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-            name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
+        for (vary, vary_prefix) in [("source period", " seconds"), ("communication model", "~")]:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
+                yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
 
-            g = versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yaxis, vary='source period',
-                yextractor=yextractor)
+                g = versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis='network size', yaxis=yaxis, vary=vary,
+                    yextractor=yextractor)
 
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = yaxis_label
-            g.vary_label = 'Source Period'
-            g.vary_prefix = ' seconds'
-            g.key_position = key_position
+                g.xaxis_label = 'Network Size'
+                g.yaxis_label = yaxis_label
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_prefix
+                g.key_position = key_position
 
-            g.create(adaptive_results)
+                g.create(adaptive_results)
 
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name)
-            ).run()
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    '{}-{}'.format(self.algorithm_module.name, name)
+                ).run()
 
-
-        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-            name = '{}-v-communication-model'.format(yaxis.replace(" ", "_"))
-
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
-
-            g = versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yaxis, vary='communication model',
-                yextractor=yextractor)
-
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = yaxis_label
-            g.vary_label = 'Communication Model'
-            g.vary_prefix = ''
-            g.key_position = key_position
-
-            g.create(adaptive_results)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name)
-            ).run()
 
     def _run_comparison_table(self, args):
         results_to_compare = ('normal latency', 'ssd', 'captured',
