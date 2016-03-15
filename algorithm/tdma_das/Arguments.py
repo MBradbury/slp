@@ -6,7 +6,7 @@ import simulator.MobilityModel
 class Arguments(ArgumentsCommon):
     def __init__(self):
         parser = argparse.ArgumentParser(description="SLP TDMA DAS", add_help=True)
-        super(Arguments, self).__init__(parser, has_safety_period=True)
+        super(Arguments, self).__init__(parser, has_safety_period=False)
 
         parser.add_argument("--source-period",
             type=simulator.SourcePeriodModel.eval_input, required=True)

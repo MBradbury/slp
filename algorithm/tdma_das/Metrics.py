@@ -9,6 +9,6 @@ class Metrics(MetricsCommon):
     @staticmethod
     def items():
         d = MetricsCommon.items()
-        d["DummyNormalSent"]               = lambda x: x.number_sent("DummyNormal")
+        d["DissemSent"]               = lambda x: x.number_sent("Dissem")
 
         return d

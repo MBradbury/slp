@@ -8,7 +8,7 @@ typedef nx_struct CollisionMessage {
     //SlotList slots;
 } CollisionMessage;
 
-inline int64_t Collision_get_sequence_number(const CollisionMessage* msg) { return BOTTOM; }
+inline int32_t Collision_get_sequence_number(const CollisionMessage* msg) { return BOTTOM; }
 inline int32_t Collision_get_source_id(const CollisionMessage* msg) { return msg->source_id; }
 
 

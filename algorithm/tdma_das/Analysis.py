@@ -23,7 +23,7 @@ class Analyzer(AnalyzerCommon):
         d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
         d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
-        d['dummy normal']       = lambda x: AnalyzerCommon._format_results(x, 'DummyNormalSent')
+        d['dissem']             = lambda x: AnalyzerCommon._format_results(x, 'DissemSent')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
 
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
