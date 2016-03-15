@@ -31,7 +31,6 @@ implementation
         new TimerMilliC() as InitTimer,
         new TimerMilliC() as EnqueueNormalTimer,
         new TimerMilliC() as BeaconTimer,
-        new TimerMilliC() as WaveTimer,
         new TimerMilliC() as PreSlotTimer,
         new TimerMilliC() as SlotTimer,
         new TimerMilliC() as PostSlotTimer;
@@ -41,7 +40,6 @@ implementation
     App.InitTimer -> InitTimer;
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
     App.BeaconTimer -> BeaconTimer;
-    App.WaveTimer -> WaveTimer;
     App.PreSlotTimer -> PreSlotTimer;
     App.SlotTimer -> SlotTimer;
     App.PostSlotTimer -> PostSlotTimer;
@@ -70,20 +68,6 @@ implementation
 
     /*App.BeaconSend -> BeaconSender;*/
     /*App.BeaconReceive -> BeaconReceiver;*/
-
-    /*components*/
-        /*new AMSenderC(WAVE_CHANNEL) as WaveSender,*/
-        /*new AMReceiverC(WAVE_CHANNEL) as WaveReceiver;*/
-
-    /*App.WaveSend -> WaveSender;*/
-    /*App.WaveReceive -> WaveReceiver;*/
-
-    /*components*/
-        /*new AMSenderC(COLLISION_CHANNEL) as CollisionSender,*/
-        /*new AMReceiverC(COLLISION_CHANNEL) as CollisionReceiver;*/
-
-    /*App.CollisionSend -> CollisionSender;*/
-    /*App.CollisionReceive -> CollisionReceiver;*/
 
     components
         new AMSenderC(DISSEM_CHANNEL) as DissemSender,
