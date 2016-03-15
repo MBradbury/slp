@@ -5,8 +5,6 @@
 #include "NormalMessage.h"
 #include "DummyNormalMessage.h"
 #include "BeaconMessage.h"
-#include "WaveMessage.h"
-#include "CollisionMessage.h"
 #include "DissemMessage.h"
 
 #include "utils.h"
@@ -19,7 +17,6 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_DUMMYNORMAL(msg) METRIC_RCV(DummyNormal, source_addr, source_addr, BOTTOM, 1)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, msg->source_id, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
