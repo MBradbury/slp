@@ -118,7 +118,7 @@ class CLI(CommandLineCommon.CLI):
 
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=yaxis, vary='source period',
+                xaxis='network size', yaxis=yaxis, vary='source period',
                 yextractor=yextractor)
 
             g.xaxis_label = 'Network Size'
@@ -142,7 +142,7 @@ class CLI(CommandLineCommon.CLI):
 
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=yaxis, vary='communication model',
+                xaxis='network size', yaxis=yaxis, vary='communication model',
                 yextractor=yextractor)
 
             g.xaxis_label = 'Network Size'
@@ -284,7 +284,7 @@ class CLI(CommandLineCommon.CLI):
 
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=result_name, vary='approach', yextractor=scalar_extractor)
+                xaxis='network size', yaxis=result_name, vary='approach', yextractor=scalar_extractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = graph_parameters[result_name][0]

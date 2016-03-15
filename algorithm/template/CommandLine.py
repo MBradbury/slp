@@ -124,7 +124,7 @@ class CLI(CommandLineCommon.CLI):
         #    name = '{}-v-fake-period'.format(yaxis.replace(" ", "_"))
         #
         #    versus.Grapher(template.graphs_path, name,
-        #        xaxis='size', yaxis=yaxis, vary='fake period', yextractor=extract).create(template_results)
+        #        xaxis='network size', yaxis=yaxis, vary='fake period', yextractor=extract).create(template_results)
         #
         #    summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-' + name).run()
 

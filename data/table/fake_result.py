@@ -44,6 +44,7 @@ class ResultTable(object):
                 "received ratio": ("Received", "(\\%)"),
                 "tfs": ("TFS", "~"),
                 "pfs": ("PFS", "~"),
+                "tailfs": ("TailFS", "~"),
                 "pull back hops": ("Pull Back", "Messages"),
                 "ssd": ("$\\Delta_{ss}$", "(hops)"),
                 "normal latency": ("Laten", "(msec)"),
@@ -84,7 +85,7 @@ class ResultTable(object):
             return "${:.0f}$".format(value)
         elif name == "pr(tfs)" or name == "pr(pfs)":
             return "${:.0f}$".format(value * 100.0)
-        elif name == "tfs" or name == "pfs":
+        elif name in {"tfs", "pfs", "tailfs"}:
             return "${:.1f}$".format(value[0])
         elif name == "approach":
             return latex.escape(value.replace("_APPROACH", ""))
