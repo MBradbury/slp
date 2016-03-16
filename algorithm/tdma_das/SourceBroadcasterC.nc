@@ -413,20 +413,6 @@ implementation
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
-    /*void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)*/
-    /*{*/
-        /*[>simdbg("stdout", "Received beacon.\n");<]*/
-        /*METRIC_RCV_BEACON(rcvd);*/
-        /*IDList_add(&neighbours, source_addr);*/
-        /*[>IDList_add(&live, source_addr);<]*/
-    /*}*/
-
-    /*RECEIVE_MESSAGE_BEGIN(Beacon, Receive)*/
-        /*case SourceNode:*/
-        /*case SinkNode:*/
-        /*case NormalNode: x_receive_Beacon(rcvd, source_addr); break;*/
-    /*RECEIVE_MESSAGE_END(Beacon)*/
-
     void x_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
