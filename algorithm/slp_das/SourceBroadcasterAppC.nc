@@ -76,6 +76,13 @@ implementation
     App.DissemSend -> DissemSender;
     App.DissemReceive ->DissemReceiver;
 
+    components
+        new AMSenderC(SEARCH_CHANNEL) as SearchSender,
+        new AMReceiverC(SEARCH_CHANNEL) as SearchReceiver;
+
+    App.SearchSend -> SearchSender;
+    App.SearchReceive ->SearchReceiver;
+
     // Message Queue
     components
         new PoolC(NormalMessage, MESSAGE_QUEUE_SIZE) as MessagePool,
