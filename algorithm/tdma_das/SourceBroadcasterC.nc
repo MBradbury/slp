@@ -3,7 +3,6 @@
 #include "SendReceiveFunctions.h"
 
 #include "NormalMessage.h"
-#include "DummyNormalMessage.h"
 #include "BeaconMessage.h"
 #include "DissemMessage.h"
 
