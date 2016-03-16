@@ -66,7 +66,7 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    approaches = ["NO_INTERFERENCE_APPROACH", "ALWAYS_FURTHER_APPORACH", "ALWAYS_CLOSER_APPORACH", "ALWAYS_SIDE_APPORACH", "ARBITRARY_SINK_APPROACH"]
+    approaches = ["NO_INTERFERENCE_APPROACH", "MIN_VALID_APPROACH"] #"ALWAYS_FURTHER_APPORACH", "ALWAYS_CLOSER_APPORACH", "ALWAYS_SIDE_APPORACH",
 
     repeats = 500
 
@@ -100,11 +100,11 @@ class CLI(CommandLineCommon.CLI):
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
             results=(
-                'sent', 'time taken',
-                #'normal latency', 'ssd', 'captured',
-                #'fake', 'received ratio', 'tfs', 'pfs',
-                'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
-                'norm(norm(norm(sent,time taken),network size),source rate)'
+                #'sent', 'time taken',
+                'normal latency', 'ssd', 'captured',
+                'fake', 'received ratio', 'tfs', 'pfs', 'tailfs'
+                #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
+                #'norm(norm(norm(sent,time taken),network size),source rate)'
             ))
 
         result_table = fake_result.ResultTable(adaptive_results)
@@ -137,7 +137,7 @@ class CLI(CommandLineCommon.CLI):
 
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=yaxis, vary='source period',
+                xaxis='network size', yaxis=yaxis, vary='source period',
                 yextractor=yextractor)
 
             g.xaxis_label = 'Network Size'
@@ -227,7 +227,7 @@ class CLI(CommandLineCommon.CLI):
 
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=result_name, vary='approach', yextractor=yextractor)
+                xaxis='network size', yaxis=result_name, vary='approach', yextractor=yextractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = graph_parameters[result_name][0]

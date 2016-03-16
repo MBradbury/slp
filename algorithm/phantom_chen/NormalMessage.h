@@ -6,7 +6,7 @@
 
 typedef nx_struct NormalMessage
 {
-	nx_uint32_t sequence_number;
+	NXSequenceNumber sequence_number;
 	nx_uint16_t source_id;
 	nx_uint16_t target;
 	nx_uint16_t walk_distance_remaining;

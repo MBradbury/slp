@@ -1,6 +1,6 @@
 import multiprocessing
 
-from simulator.Simulator import Simulator
+from simulator.Simulation import Simulation
 import simulator.Attacker as Attacker
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
@@ -11,8 +11,8 @@ class ArgumentsCommon(object):
 
         parser.add_argument("--seed", type=int)
 
-        parser.add_argument("-cm", "--communication-model", type=str, choices=Simulator.available_communication_models(), required=True)
-        parser.add_argument("-nm", "--noise-model", type=str, choices=Simulator.available_noise_models(), required=True)
+        parser.add_argument("-cm", "--communication-model", type=str, choices=Simulation.available_communication_models(), required=True)
+        parser.add_argument("-nm", "--noise-model", type=str, choices=Simulation.available_noise_models(), required=True)
 
         parser.add_argument("-ns", "--network-size", type=int, required=True)
         parser.add_argument("-d", "--distance", type=float, default=4.5)

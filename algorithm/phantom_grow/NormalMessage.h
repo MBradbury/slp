@@ -6,7 +6,7 @@
 
 typedef nx_struct NormalMessage
 {
-  nx_uint32_t sequence_number;
+  NXSequenceNumber sequence_number;
 
   // The id of the node that sent this message
   nx_uint16_t source_id;

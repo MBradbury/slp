@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import os, itertools
 
-from simulator.Simulator import Simulator
+from simulator.Simulation import Simulation
 from algorithm.common import CommandLineCommon
 
 from data import results, latex
@@ -18,7 +18,7 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["meyer-heavy"]
+    noise_models = ["meyer-heavy", "casino-lab"]
 
     communication_models = ["low-asymmetry"]
 
@@ -27,7 +27,7 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
-        #'SourceCorner',
+        'SourceCorner',
         #'SinkCorner',
         #'FurtherSinkCorner',
         #'Generic1',
@@ -54,11 +54,6 @@ class CLI(CommandLineCommon.CLI):
         #'Source4Corners',
         #'Source4Edges',        
         #'Source2Corner2OppositeCorner'
-
-        'Source3CornerTop',
-        'SinkCorner3Source'
-
-
     ]
 
     repeats = 750
@@ -90,8 +85,8 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
 
-        prod = itertools.product(Simulator.available_noise_models(),
-                                 Simulator.available_communication_models())
+        prod = itertools.product(Simulation.available_noise_models(),
+                                 Simulation.available_communication_models())
 
         for (noise_model, comm_model) in prod:
 
@@ -188,7 +183,7 @@ class CLI(CommandLineCommon.CLI):
 
             versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=yxaxis, vary='source period',
+                xaxis='network size', yaxis=yxaxis, vary='source period',
                 yextractor=lambda (diff, pcdiff): pcdiff if pc else diff
             ).create(result_table)
 

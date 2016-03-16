@@ -4,7 +4,7 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct AwayMessage {
-  nx_uint32_t sequence_number;
+  NXSequenceNumber sequence_number;
 
   // The number of hops that this message
   // has travelled from the source. 

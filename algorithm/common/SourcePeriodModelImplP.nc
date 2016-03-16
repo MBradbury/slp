@@ -8,18 +8,18 @@ module SourcePeriodModelImplP
 }
 implementation
 {
+	typedef struct {
+		uint32_t end;
+		uint32_t period;
+	} local_end_period_t;
+
+	const local_end_period_t times[] = PERIOD_TIMES_MS;
+	const uint32_t else_time = PERIOD_ELSE_TIME_MS;
+
+	const size_t times_length = ARRAY_LENGTH(times);
+
 	command uint32_t SourcePeriodModel.get()
 	{
-		typedef struct {
-			uint32_t end;
-			uint32_t period;
-		} local_end_period_t;
-
-		const local_end_period_t times[] = PERIOD_TIMES_MS;
-		const uint32_t else_time = PERIOD_ELSE_TIME_MS;
-
-		const size_t times_length = ARRAY_LENGTH(times);
-
 		const uint32_t current_time = call LocalTime.get();
 
 		size_t i;

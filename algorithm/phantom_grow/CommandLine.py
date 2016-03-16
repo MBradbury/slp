@@ -111,7 +111,7 @@ class CLI(CommandLineCommon.CLI):
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
 
                 g = versus.Grapher(self.algorithm_module.graphs_path, name,
-                    xaxis='size', yaxis=yaxis, vary=parameter_name, yextractor=scalar_extractor)
+                    xaxis='network size', yaxis=yaxis, vary=parameter_name, yextractor=scalar_extractor)
 
                 g.xaxis_label = 'Network Size'
                 g.yaxis_label = yaxis_label

@@ -5,7 +5,7 @@
 
 typedef nx_struct AwayMessage
 {
-  nx_uint32_t sequence_number;
+  NXSequenceNumber sequence_number;
 
   nx_am_addr_t source_id;
 
