@@ -28,7 +28,6 @@ implementation
     components
         /*new TimerMilliC() as BroadcastTimer,*/
         new TimerMilliC() as DissemTimer,
-        new TimerMilliC() as InitTimer,
         new TimerMilliC() as EnqueueNormalTimer,
         new TimerMilliC() as BeaconTimer,
         new TimerMilliC() as PreSlotTimer,
@@ -37,7 +36,6 @@ implementation
 
     /*App.BroadcastTimer -> BroadcastTimer;*/
     App.DissemTimer -> DissemTimer;
-    App.InitTimer -> InitTimer;
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
     App.BeaconTimer -> BeaconTimer;
     App.PreSlotTimer -> PreSlotTimer;

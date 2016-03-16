@@ -21,7 +21,6 @@
 
 #define BEACON_PERIOD_MS 500
 #define SLOT_PERIOD_MS 100
-#define INIT_PERIOD_MS 2000
 /*#define DISSEM_PERIOD_MS 5000*/
 
 #define TDMA_NUM_SLOTS 50
@@ -37,7 +36,6 @@ module SourceBroadcasterC
 	uses interface Leds;
 
     uses interface Timer<TMilli> as DissemTimer;
-    uses interface Timer<TMilli> as InitTimer;
 	uses interface Timer<TMilli> as EnqueueNormalTimer;
     uses interface Timer<TMilli> as BeaconTimer;
     uses interface Timer<TMilli> as PreSlotTimer;
@@ -181,7 +179,8 @@ implementation
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
             init();
-            call InitTimer.startOneShot(get_init_period());
+            call ObjectDetector.start();
+            call BeaconTimer.startOneShot(get_beacon_period());
 		}
 		else
 		{
@@ -343,14 +342,6 @@ implementation
     //Main Logic}}}
 
     //Timers.fired(){{{
-    event void InitTimer.fired()
-    {
-        /*PRINTF0("%s: InitTimer fired.\n", sim_time_string());*/
-        call ObjectDetector.start();
-        /*call DissemTimer.startOneShot(get_dissem_period());*/
-        call BeaconTimer.startOneShot(get_beacon_period());
-    }
-
     event void BeaconTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
