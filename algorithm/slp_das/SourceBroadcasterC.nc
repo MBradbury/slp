@@ -6,6 +6,7 @@
 #include "DummyNormalMessage.h"
 #include "BeaconMessage.h"
 #include "DissemMessage.h"
+#include "SearchMessage.h"
 
 #include "utils.h"
 
@@ -40,9 +41,7 @@ module SourceBroadcasterC
     uses interface Timer<TMilli> as DissemTimer;
     uses interface Timer<TMilli> as InitTimer;
 	uses interface Timer<TMilli> as EnqueueNormalTimer;
-	//uses interface Timer<TMilli> as BroadcastTimer;
     uses interface Timer<TMilli> as BeaconTimer;
-    uses interface Timer<TMilli> as WaveTimer;
     uses interface Timer<TMilli> as PreSlotTimer;
     uses interface Timer<TMilli> as SlotTimer;
     uses interface Timer<TMilli> as PostSlotTimer;
@@ -64,14 +63,11 @@ module SourceBroadcasterC
     /*uses interface AMSend as BeaconSend;*/
     /*uses interface Receive as BeaconReceive;*/
 
-    /*uses interface AMSend as WaveSend;*/
-    /*uses interface Receive as WaveReceive;*/
-
-    /*uses interface AMSend as CollisionSend;*/
-    /*uses interface Receive as CollisionReceive;*/
-
     uses interface AMSend as DissemSend;
     uses interface Receive as DissemReceive;
+
+    uses interface AMSend as SearchSend;
+    uses interface Receive as SearchReceive;
 
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
@@ -82,23 +78,6 @@ module SourceBroadcasterC
 implementation
 {
     //Initialisation variables{{{
-/*
- *    void send_beacon();
- *    void dissem();
- *
- *    bool initialise = TRUE;
- *
- *    bool start = TRUE;
- *    bool c = FALSE;
- *    IDList neighbours;
- *    IDList live;
- *    SlotList slots;
- *    uint16_t slot = BOT;
- *    uint16_t hop = BOT;
- *    uint16_t parent = BOT;
- *    bool slot_active = FALSE;
- */
-
     IDList neighbours;
     IDList potential_parents;
     OtherList others;
@@ -111,6 +90,7 @@ implementation
 
     bool start = TRUE;
     bool slot_active = FALSE;
+    bool start_loop = FALSE;
 
     typedef enum
 	{
@@ -181,14 +161,9 @@ implementation
     }
     //###################}}}
 
-
+    //Startup Events{{{
 	event void Boot.booted()
 	{
-        /*
-         *live = IDList_new();
-         *neighbours = IDList_new();
-         *slots = SlotList_new();
-         */
         neighbours = IDList_new();
         potential_parents = IDList_new();
         others = OtherList_new();
@@ -214,7 +189,6 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-            /*send_beacon(); //Need this before dissem() or segmentation fault*/
             init();
             call InitTimer.startOneShot(get_init_period());
 		}
@@ -259,16 +233,22 @@ implementation
 		}
 	}
 
+    //Startup Events}}}
+
+    //Main Logic{{{
+
 	USE_MESSAGE(Normal);
 	USE_MESSAGE(DummyNormal);
     /*USE_MESSAGE(Beacon);*/
     USE_MESSAGE(Dissem);
+    USE_MESSAGE(Search);
 
     void init()
     {
         if(type == SinkNode)
         {
             int i;
+            SearchMessage msg;
             for(i=0; i<neighbours.count; i++)
             {
                 NeighbourList_add(&n_info, neighbours.ids[i], BOT, BOT);
@@ -279,6 +259,11 @@ implementation
             slot = get_tdma_num_slots(); //Delta
             NeighbourList_add(&n_info, TOS_NODE_ID, 0, get_tdma_num_slots()); //Delta
             NeighbourList_add(&onehop, TOS_NODE_ID, 0, get_tdma_num_slots());
+
+            //Broadcast SearchMessage
+            msg.source_id = TOS_NODE_ID;
+            msg.dist = get_loop_length(); //TODO: Find out what dist actually means
+            send_Search_message(&msg, AM_BROADCAST_ADDR);
         }
         else
         {
@@ -369,9 +354,9 @@ implementation
 		}
 		else
 		{
-			DummyNormalMessage dummy_message;
+			/*DummyNormalMessage dummy_message;*/
 
-			send_DummyNormal_message(&dummy_message, AM_BROADCAST_ADDR);
+			/*send_DummyNormal_message(&dummy_message, AM_BROADCAST_ADDR);*/
 		}
 
         if(slot_active && !(call MessageQueue.empty()))
@@ -380,21 +365,19 @@ implementation
         }
 	}
 
+    //Main Logic}}}
+
     //Timers.fired(){{{
     event void InitTimer.fired()
     {
-        PRINTF0("%s: InitTimer fired.\n", sim_time_string());
+        /*PRINTF0("%s: InitTimer fired.\n", sim_time_string());*/
         call ObjectDetector.start();
-        /*dissem();*/
-        /*call WaveTimer.startOneShot(get_wave_period());*/
         /*call DissemTimer.startOneShot(get_dissem_period());*/
         call BeaconTimer.startOneShot(get_beacon_period());
     }
 
     event void BeaconTimer.fired()
     {
-        PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());
-        /*send_beacon();*/
         if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
         process_dissem();
         call PreSlotTimer.startOneShot(get_beacon_period());
@@ -402,30 +385,25 @@ implementation
 
     event void DissemTimer.fired()
     {
-        PRINTF0("%s: DissemTimer fired.\n", sim_time_string());
-        if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
-        process_dissem();
-        /*call DissemTimer.startOneShot(get_dissem_period());*/
-    }
-
-    event void WaveTimer.fired()
-    {
-        PRINTF0("%s: WaveTimer fired.\n", sim_time_string());
-        /*dissem();*/
-        /*process_waves();*/
+        /*
+         *PRINTF0("%s: DissemTimer fired.\n", sim_time_string());
+         *if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
+         *process_dissem();
+         *call DissemTimer.startOneShot(get_dissem_period());
+         */
     }
 
     event void PreSlotTimer.fired()
     {
         uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
-        PRINTF0("%s: PreSlotTimer fired.\n", sim_time_string());
+        /*PRINTF0("%s: PreSlotTimer fired.\n", sim_time_string());*/
         call SlotTimer.startOneShot(s*get_slot_period());
     }
 
 
     event void SlotTimer.fired()
     {
-        PRINTF0("%s: SlotTimer fired.\n", sim_time_string());
+        /*PRINTF0("%s: SlotTimer fired.\n", sim_time_string());*/
         slot_active = TRUE;
         if(slot != BOT)
         {
@@ -437,36 +415,40 @@ implementation
     event void PostSlotTimer.fired()
     {
         uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
-        PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());
+        /*PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());*/
         slot_active = FALSE;
         call BeaconTimer.startOneShot((get_tdma_num_slots()-(s-1))*get_slot_period());
     }
 
     event void EnqueueNormalTimer.fired()
     {
-        NormalMessage* message;
-
-        simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
-        message = call MessagePool.get();
-        if (message != NULL)
+        if(slot != BOT)
         {
-            message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
-            message->source_distance = 0;
-            message->source_id = TOS_NODE_ID;
+            NormalMessage* message;
 
-            if (call MessageQueue.enqueue(message) != SUCCESS)
+            /*simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());*/
+            message = call MessagePool.get();
+            if (message != NULL)
             {
-                simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+                message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+                message->source_distance = 0;
+                message->source_id = TOS_NODE_ID;
+
+                if (call MessageQueue.enqueue(message) != SUCCESS)
+                {
+                    simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+                }
+                else
+                {
+                    call NormalSeqNos.increment(TOS_NODE_ID);
+                }
             }
             else
             {
-                call NormalSeqNos.increment(TOS_NODE_ID);
+                simdbgerror("stdout", "No pool space available for another Normal message.\n");
             }
         }
-        else
-        {
-            simdbgerror("stdout", "No pool space available for another Normal message.\n");
-        }
+        call EnqueueNormalTimer.startOneShot(get_source_period());
     }
     //}}} Timers.fired()
 
@@ -545,13 +527,12 @@ implementation
     void x_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
+        IDList_add(&neighbours, source_addr);
         NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
         if(slot == BOT && NeighbourList_get(&(rcvd->N), source_addr)->slot != BOT)
         {
             OtherInfo* info = OtherList_get(&others, source_addr);
-            /*simdbg("stdout", "Source ID %u\n", source_addr);*/
             IDList_add(&potential_parents, source_addr);
-            /*simdbg("stdout", "Added %u as potential parent.\n", source_addr);*/
             if(info == NULL)
             {
                 OtherList_add(&others, OtherInfo_new(source_addr));
@@ -569,14 +550,13 @@ implementation
         for(i = 0; i<rcvd->N.count; i++)
         {
             NeighbourList_add_info(&n_info, rcvd->N.info[i]);
-            /*simdbg("stdout", "Added ID=%u, hop=%u, slot=%u.\n", rcvd->N.info[i].id, rcvd->N.info[i].hop, rcvd->N.info[i].slot);*/
-            /*simdbg("stdout", "n_info count %u\n", n_info.count);*/
         }
     }
 
     void Sink_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
+        IDList_add(&neighbours, source_addr);
         NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
         for(i = 0; i<rcvd->N.count; i++)
         {
@@ -590,5 +570,25 @@ implementation
         case NormalNode: x_receive_Dissem(rcvd, source_addr); break;
         case SinkNode  : Sink_receive_Dissem(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Dissem)
+
+    void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)
+    {
+        OtherInfo* info = OtherList_get(&others, parent);
+        if(rcvd->dist == 0) {
+            start_loop = TRUE;
+        }
+        else if((rcvd->dist > 0) && (parent == source_addr) && (rank(&(info->N), TOS_NODE_ID) == 1))
+        {
+            //Broadcast search
+            SearchMessage msg;
+            msg.source_id = TOS_NODE_ID;
+            msg.dist = rcvd->dist - hop;
+            send_Search_message(&msg, AM_BROADCAST_ADDR);
+        }
+    }
+
+    RECEIVE_MESSAGE_BEGIN(Search, Receive)
+        case NormalNode: Normal_receive_Search(rcvd, source_addr); break;
+    RECEIVE_MESSAGE_END(Search)
     //}}}Receivers
 }
