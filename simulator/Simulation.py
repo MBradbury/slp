@@ -1,24 +1,89 @@
-from __future__ import print_function
-import os, timeit, struct, importlib, sys
+from __future__ import print_function, division
+import os, timeit, struct, importlib, sys, glob, select, random
 
 from itertools import islice
 
-from simulator.Simulator import Simulator
 from simulator.Topology import topology_path
 
 from scipy.spatial.distance import euclidean
 
-class Simulation(Simulator):
+class Node(object):
+    def __init__(self, node_id, location, tossim_node):
+        self.nid = node_id
+        self.location = location
+        self.tossim_node = tossim_node
+
+class OutputCatcher(object):
+    def __init__(self, linefn):
+        (read, write) = os.pipe()
+        self._read = os.fdopen(read, 'r')
+        self._write = os.fdopen(write, 'w')
+        self._linefn = linefn
+
+    def register(self, sim, name):
+        """Registers this class to catch the output from the simulation on the given channel."""
+        sim.tossim.addChannel(name, self._write)
+
+    def process_one_line(self):
+        self._linefn(self._read.readline())
+
+    def close(self):
+        """Closes the file handles opened."""
+
+        if self._read is not None:
+            self._read.close()
+
+        if self._write is not None:
+            self._write.close()
+
+        self._read = None
+        self._write = None
+
+class Simulation(object):
     def __init__(self, module_name, configuration, args, load_nesc_variables=False):
 
-        super(Simulation, self).__init__(
-            module_name=module_name,
-            node_locations=configuration.topology.nodes,
-            wireless_range=args.distance,
-            latest_node_start_time=args.latest_node_start_time,
-            seed=args.seed if args.seed is not None else self._secure_random(),
-            load_nesc_variables=load_nesc_variables
-            )
+        tossim_module = importlib.import_module('{}.TOSSIM'.format(module_name))
+
+        if load_nesc_variables:
+            from tinyos.tossim.TossimApp import NescApp
+
+            app_path = os.path.join('.', module_name.replace('.', os.sep), 'app.xml')
+
+            self.nesc_app = NescApp(xmlFile=app_path)
+            self.tossim = tossim_module.Tossim(self.nesc_app.variables.variables())
+
+        else:
+            self.nesc_app = None
+            self.tossim = tossim_module.Tossim([])
+
+        self.radio = self.tossim.radio()
+
+        self._out_procs = {}
+        self._read_poller = select.poll()
+
+        # Record the seed we are using
+        self.seed = args.seed if args.seed is not None else self._secure_random()
+
+        # Set tossim seed
+        self.tossim.randomSeed(self.seed)
+
+        # It is important to seed python's random number generator
+        # as well as TOSSIM's. If this is not done then the simulations
+        # will differ when the seeds are the same.
+        random.seed(self.seed)
+
+        self.communication_model = args.communication_model
+        self.noise_model = args.noise_model
+        self.wireless_range = args.distance
+        self.latest_node_start_time = args.latest_node_start_time
+
+        self._create_nodes(configuration.topology.nodes)
+
+
+        # Cache the number of ticks per second.
+        # This value should not change throughout the simulation's execution
+        self._ticks_per_second = self.tossim.ticksPerSecond()
+
 
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
@@ -33,8 +98,6 @@ class Simulation(Simulator):
             self.tossim.addChannel("stderr", sys.stderr)
             self.tossim.addChannel("slp-debug", sys.stdout)
 
-        self.communication_model = args.communication_model
-        self.noise_model = args.noise_model
 
         self.attackers = []
 
@@ -48,20 +111,72 @@ class Simulation(Simulator):
 
         self.attacker_found_source = False
 
-    def communications_model_path(self):
-        """The path to the communications model, specified in the algorithm arguments."""
-        return os.path.join('models', 'communication', self.communication_model + '.txt')
+    def __enter__(self):
+        return self
 
-    def noise_model_path(self):
-        """The path to the noise model, specified in the algorithm arguments."""
-        return os.path.join('models', 'noise', self.noise_model + '.txt')
+    def __exit__(self, tp, value, tb):
+        del self._read_poller
+
+        for op in self._out_procs.values():
+            op.close()
+
+        del self.nodes
+        del self.radio
+        del self.tossim
+
+    def add_output_processor(self, op):
+        fd = op._read.fileno()
+
+        self._out_procs[fd] = op
+
+        self._read_poller.register(fd, select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
+
+    def node_distance(self, left, right):
+        """Get the euclidean distance between two nodes specified by their ids"""
+        return euclidean(self.nodes[left].location, self.nodes[right].location)
+
+    def ticks_to_seconds(self, ticks):
+        """Converts simulation time ticks into seconds"""
+        return ticks / self._ticks_per_second
+
+    def sim_time(self):
+        """Returns the current simulation time in seconds"""
+        return self.tossim.timeInSeconds()
+
+    def _create_nodes(self, node_locations):
+        """Creates nodes and initialize their boot times"""
+
+        self.nodes = []
+        for (i, loc) in enumerate(node_locations):
+            tossim_node = self.tossim.getNode(i)
+            new_node = Node(i, loc, tossim_node)
+            self.nodes.append(new_node)
+
+            self.set_boot_time(new_node)
 
     def _pre_run(self):
-        super(Simulation, self)._pre_run()
+        """Called before the simulator run loop starts"""
+        self.setup_radio()
+        self.setup_noise_models()
 
         self.start_time = timeit.default_timer()
 
+    def _during_run(self, event_count):
+        """Called after every simulation event is executed, if some log output has been written."""
+
+        # Query to see if there is any debug output we need to catch.
+        # If there is then make the relevant OutputProcessor handle it.
+        while True:
+            result = self._read_poller.poll(0)
+
+            if len(result) >= 1:
+                for (fd, event) in result:
+                    self._out_procs[fd].process_one_line()
+            else:
+                break
+
     def _post_run(self, event_count):
+        """Called after the simulator run loop finishes"""
 
         # Set the number of seconds this simulation run took.
         # It is possible that we will reach here without setting
@@ -73,7 +188,29 @@ class Simulation(Simulator):
 
         self.metrics.event_count = event_count
 
-        super(Simulation, self)._post_run(event_count)
+    def continue_predicate(self, time):
+        """Specifies if the simulator run loop should continue executing."""
+        # For performance reasons do not do anything expensive in this function,
+        # that includes simple things such as iterating or calling functions.
+        return not self.attacker_found_source and (self.safety_period is None or time < self.safety_period)
+
+    def run(self):
+        """Run the simulator loop."""
+        event_count = 0
+        try:
+            self._pre_run()
+
+            event_count = self.tossim.runAllEvents(self.continue_predicate, self._during_run)
+        finally:
+            self._post_run(event_count)
+
+    def set_boot_time(self, node):
+        """
+        Sets the boot time of the given node to be at a
+        random time between 0 and self.latest_node_start_time seconds.
+        """
+        start_time = int(random.uniform(0, self.latest_node_start_time) * self.tossim.ticksPerSecond())
+        node.tossim_node.bootAtTime(start_time)
 
     @staticmethod
     def write_topology_file(node_locations, location="."):
@@ -140,35 +277,66 @@ class Simulation(Simulator):
         #f.close()
 
     def setup_radio(self):
+        """Creates radio links for node pairs that are in range."""
         if self.communication_model == "ideal":
             self._setup_radio_link_layer_model_python()
         else:
             self._setup_radio_link_layer_model()
 
     def setup_noise_models(self):
+        """Create the noise model for each of the nodes in the network."""
         path = self.noise_model_path()
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.
         count = 1000
 
-        noises = list(islice(self.read_noise_from_file(path), count))
+        noises = list(islice(self._read_noise_from_file(path), count))
 
         for node in self.nodes:
             for noise in noises:
                 node.tossim_node.addNoiseTraceReading(noise)
             node.tossim_node.createNoiseModel()
 
+    @staticmethod
+    def _read_noise_from_file(path):
+        with open(path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if len(line) != 0:
+                    yield int(line)
+
     def add_attacker(self, attacker):
         self.attackers.append(attacker)
 
-    def continue_predicate(self, time):
-        # For performance reasons do not do anything expensive in this function,
-        # that includes simple things such as iterating or calling functions.
-        return not self.attacker_found_source and (self.safety_period is None or time < self.safety_period)
-
     def any_attacker_found_source(self):
         return self.attacker_found_source
+
+    def communications_model_path(self):
+        """The path to the communications model, specified in the algorithm arguments."""
+        return os.path.join('models', 'communication', self.communication_model + '.txt')
+
+    def noise_model_path(self):
+        """The path to the noise model, specified in the algorithm arguments."""
+        return os.path.join('models', 'noise', self.noise_model + '.txt')
+
+    @staticmethod
+    def available_noise_models():
+        """Gets the names of the noise models available in the noise directory"""
+        return [
+            os.path.splitext(os.path.basename(noise_file))[0]
+            for noise_file
+            in glob.glob('models/noise/*.txt')
+        ]
+
+    @staticmethod
+    def available_communication_models():
+        """Gets the names of the communication models available in the models directory"""
+        return [
+            os.path.splitext(os.path.basename(model_file))[0]
+            for model_file
+            in glob.glob('models/communication/*.txt')
+        ] + ["ideal"]
 
     @staticmethod
     def _secure_random():
