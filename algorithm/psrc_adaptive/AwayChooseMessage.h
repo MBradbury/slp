@@ -4,7 +4,7 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct AwayChooseMessage {
-  nx_uint32_t sequence_number;
+  NXSequenceNumber sequence_number;
 
   // The sink and sink-source distances must be known
   // by the time an away or choose message is sent.

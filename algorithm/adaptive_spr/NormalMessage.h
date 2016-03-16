@@ -4,7 +4,7 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct NormalMessage {
-  nx_uint32_t sequence_number;
+  NXSequenceNumber sequence_number;
 
   nx_uint32_t fake_sequence_number;
   nx_uint32_t fake_sequence_increments;
