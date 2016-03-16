@@ -26,7 +26,7 @@ class TableGenerator:
         noise_models = sorted(self._results.noise_models)
         attacker_models = sorted(self._results.attacker_models)
         configurations = sorted(self._results.configurations, key=configuration_rank)
-        sizes = sorted(self._results.sizes)
+        sizes = sorted(self._results.network_sizes)
         distances = sorted(self._results.distances)
 
         product_all = list(itertools.product(sizes, configurations, attacker_models, noise_models, communication_models, distances))
