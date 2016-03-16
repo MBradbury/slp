@@ -18,12 +18,6 @@
 
 #define BOT UINT16_MAX
 
-#define DISSEM_PERIOD_MS 500
-#define SLOT_PERIOD_MS 100
-
-#define TDMA_NUM_SLOTS 50
-#define LOOP_LENGTH 4
-
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
@@ -35,7 +29,6 @@ module SourceBroadcasterC
 
     uses interface Timer<TMilli> as DissemTimer;
 	uses interface Timer<TMilli> as EnqueueNormalTimer;
-    uses interface Timer<TMilli> as BeaconTimer;
     uses interface Timer<TMilli> as PreSlotTimer;
     uses interface Timer<TMilli> as SlotTimer;
     uses interface Timer<TMilli> as PostSlotTimer;
@@ -126,7 +119,7 @@ implementation
 
     uint32_t get_loop_length()
     {
-        return LOOP_LENGTH;
+        return SLOT_LOOP_LENGTH;
     }
     //###################}}}
 
@@ -159,7 +152,7 @@ implementation
 
             init();
             call ObjectDetector.start();
-            call BeaconTimer.startOneShot(get_dissem_period());
+            call DissemTimer.startOneShot(get_dissem_period());
 		}
 		else
 		{
@@ -249,7 +242,7 @@ implementation
                 return;
             }
             hop = info->hop + 1;
-            parent = info->id;
+            parent = info->id; //info->slot is equivalent to parent slot
             simdbg("stdout", "Chosen parent %u.\n", parent);
             slot = info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_loop_length() - 1;
             simdbg("stdout", "Chosen slot %u.\n", slot);

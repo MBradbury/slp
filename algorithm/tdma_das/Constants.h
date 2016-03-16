@@ -6,8 +6,7 @@
 enum Channels
 {
 	NORMAL_CHANNEL = 1,
-    BEACON_CHANNEL = 2,
-    DISSEM_CHANNEL = 3,
+    DISSEM_CHANNEL = 2
 };
 
 #define SLP_MAX_NUM_SOURCES 1
