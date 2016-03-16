@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import itertools
 
-from simulator.Simulator import Simulator
+from simulator.Simulation import Simulation
 from algorithm.common import CommandLineCommon
 
 from data import results, latex

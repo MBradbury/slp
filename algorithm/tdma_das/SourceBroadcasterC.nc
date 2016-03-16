@@ -195,6 +195,10 @@ implementation
 		}
 	}
 
+    //Startup Events}}}
+
+    //Main Logic{{{
+
 	USE_MESSAGE(Normal);
     USE_MESSAGE(Dissem);
 
@@ -298,6 +302,8 @@ implementation
             post send_message_normal();
         }
 	}
+
+    //Main Logic}}}
 
     //Timers.fired(){{{
     event void DissemTimer.fired()

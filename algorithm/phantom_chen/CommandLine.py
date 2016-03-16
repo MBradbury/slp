@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os, itertools, math
+import os, itertools, math, datetime
 
 import numpy as np
 
@@ -30,12 +30,31 @@ class RunSimulations(RunSimulationsCommon):
         distance = float(arguments[argument_names.index('distance')])
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
-        ssd = max(configuration.ssd(source) for source in configuration.source_ids)
+        ssd = min(configuration.ssd(source) for source in configuration.source_ids)
 
         short_walk_length = float(arguments[argument_names.index('short walk length')])
         long_walk_length = float(arguments[argument_names.index('long walk length')])
+        
+        #ONLY for m_short random walk with n_long_random_walk combination.
+        m = 1
+        n = 2
 
-        return (1.0 + (long_walk_length / ssd)) * time_taken
+        long_length = 1.5*ssd + short_walk_length;
+        short_length = ssd
+        combination_length = (m * short_length + n * long_length) / (m+n)
+
+        if ssd > (network_size-1) * 1.5:
+            return  time_taken
+        else:
+            #for only short random walk.
+            #return time_taken
+
+            #for only long random walk. The ssd is between long_walk_length and s+long_walk_length. 
+            #So set the safety period as average.
+            #return (0.5 + long_walk_length / network_size) * time_taken
+
+            #for combinations.
+            return (combination_length / network_size) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -50,6 +69,7 @@ class CLI(CommandLineCommon.CLI):
     sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
+    #source_periods = [ 1.0 ]
 
     configurations = [
         #'SourceCorner',
@@ -64,19 +84,6 @@ class CLI(CommandLineCommon.CLI):
         'FurtherSinkCorner2Source',
         'FurtherSinkCorner3Source'
 
-        #'FurtherSinkCorner',
-        #'Generic1',
-        #'Generic2',
-        
-        #'RingTop',
-        #'RingOpposite',
-        #'RingMiddle',
-        
-        #'CircleEdges',
-        #'CircleSourceCentre',
-        #'CircleSinkCentre',
-
-        #'Source2Corners',
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
@@ -97,13 +104,13 @@ class CLI(CommandLineCommon.CLI):
         names = self.parameter_names()
         size = args[names.index('network size')]
         if size == 11:
-            return datetime.timedelta(hours=10)
+            return datetime.timedelta(hours=1)
         elif size == 15:
-            return datetime.timedelta(hours=18)
+            return datetime.timedelta(hours=2)
         elif size == 21:
-            return datetime.timedelta(hours=36)
+            return datetime.timedelta(hours=3)
         elif size == 25:
-            return datetime.timedelta(hours=72)
+            return datetime.timedelta(hours=4)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
@@ -130,7 +137,8 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
+
 
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
         half_ssd = int(math.floor(s/2)) + 1
@@ -139,10 +147,15 @@ class CLI(CommandLineCommon.CLI):
 
         ssd_further = 2*s
 
+        # walk_short is equal to walk_long
+        #walk_short = list(range(2, half_ssd))
+        #walk_long = list(range(2, half_ssd))
+
+        #adaptive here
         #walk_short = list(range(2, half_ssd))
         #walk_long = list(range(s+2, half_ssd+s))
         
-        #for the Further* topology.
+        #for the Further* topology.        
         walk_short = list(range(2, half_ssd_further))
         walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
 

@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from simulator.Simulator import OutputCatcher
+from simulator.Simulation import OutputCatcher
 
 from collections import Counter, OrderedDict, defaultdict
 import re, sys
