@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import os, itertools
 
-from simulator.Simulator import Simulator
+from simulator.Simulation import Simulation
 from algorithm.common import CommandLineCommon
 
 from data import results, latex
@@ -88,8 +88,8 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
 
-        prod = itertools.product(Simulator.available_noise_models(),
-                                 Simulator.available_communication_models())
+        prod = itertools.product(Simulation.available_noise_models(),
+                                 Simulation.available_communication_models())
 
         for (noise_model, comm_model) in prod:
 

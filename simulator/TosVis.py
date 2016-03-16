@@ -1,7 +1,6 @@
 import re
 
-from simulator.Simulator import OutputCatcher
-from simulator.Simulation import Simulation
+from simulator.Simulation import OutputCatcher, Simulation
 
 ###############################################
 class DebugAnalyzer:

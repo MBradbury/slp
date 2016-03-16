@@ -2,7 +2,7 @@ from __future__ import division
 
 import collections
 
-from simulator.Simulator import OutputCatcher
+from simulator.Simulation import OutputCatcher
 
 from data.restricted_eval import restricted_eval
 
