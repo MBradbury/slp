@@ -10,7 +10,7 @@ class Arguments(ArgumentsCommon):
 
         parser.add_argument("--source-period",
             type=simulator.SourcePeriodModel.eval_input, required=True)
-        parser.add_argument("--broadcast-period", type=float, required=True)
+        parser.add_argument("-bp", "--broadcast-period", type=float, required=True)
         parser.add_argument("--source-mobility",
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
@@ -18,6 +18,6 @@ class Arguments(ArgumentsCommon):
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        result["BROADCAST_PERIOD_MS"] = self.args.broadcast_period * 1000
+        result["BROADCAST_PERIOD_MS"] = int(self.args.broadcast_period * 1000)
 
         return result
