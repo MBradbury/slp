@@ -25,8 +25,8 @@ implementation
 
 	bool get_index_from_address(am_addr_t id, uint32_t* idx)
 	{
-		unsigned int i = 0;
-		for (i = 0; i != ARRAY_LENGTH(indexes); ++i)
+		unsigned int i, end;
+		for (i = 0, end = ARRAY_LENGTH(indexes); i != end; ++i)
 		{
 			if (indexes[i] == id)
 			{

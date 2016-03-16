@@ -125,7 +125,7 @@ class CLI(CommandLineCommon.CLI):
 
                 g = versus.Grapher(
                     self.algorithm_module.graphs_path, name,
-                    xaxis='size', yaxis=yaxis, vary=parameter_name,
+                    xaxis='network size', yaxis=yaxis, vary=parameter_name,
                     yextractor=scalar_extractor
                 )
 
@@ -191,7 +191,7 @@ class CLI(CommandLineCommon.CLI):
 
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=result_name, vary='walk length', yextractor=scalar_extractor)
+                xaxis='network size', yaxis=result_name, vary='walk length', yextractor=scalar_extractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = graph_parameters[result_name][0]

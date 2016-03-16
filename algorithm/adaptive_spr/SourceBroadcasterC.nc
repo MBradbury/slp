@@ -803,7 +803,7 @@ implementation
 	RECEIVE_MESSAGE_END(Fake)
 
 
-	void x_receieve_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance_of_sender);
 
@@ -816,7 +816,7 @@ implementation
 		case NormalNode:
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: x_receieve_Beacon(rcvd, source_addr); break;
+		case PermFakeNode: x_receive_Beacon(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 

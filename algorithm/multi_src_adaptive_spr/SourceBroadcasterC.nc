@@ -26,8 +26,6 @@
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
-#define EWMA_FACTOR (0.5f)
-
 // Basically a flat map between node ids to distances
 typedef struct
 {
@@ -41,12 +39,12 @@ typedef struct
 
 static void distance_update(distance_container_t* __restrict find, distance_container_t const* __restrict given)
 {
-	uint16_t i, j;
+	uint16_t i, iend, j, jend;
 
-	for (i = 0; i != given->count; ++i)
+	for (i = 0, iend = given->count; i != iend; ++i)
 	{
 		// Attempt to update existing distances
-		for (j = 0; j != find->count; ++j)
+		for (j = 0, jend = find->count; j != jend; ++j)
 		{
 			if (given->node[i] == find->node[j])
 			{
@@ -88,35 +86,13 @@ static void distance_print(const char* name, size_t n, am_addr_t address, distan
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
-#define UPDATE_NEIGHBOURS_BEACON(rcvd, source_addr) \
-{ \
-	uint16_t i; \
-	distance_container_t dist; \
-	dist.count = rcvd->count; \
-	for (i = 0; i != rcvd->count; ++i) \
-	{ \
-		dist.node[i] = rcvd->node[i]; \
-		dist.src_distance[i] = rcvd->src_distance[i]; \
-	} \
-	dist.sink_distance = rcvd->sink_distance; \
-	insert_distance_neighbour(&neighbours, source_addr, &dist); \
-}
-
-#define UPDATE_NEIGHBOURS_AWAYCHOOSE(rcvd, source_addr) \
-{ \
-	distance_container_t dist; \
-	dist.count = 0; \
-	dist.sink_distance = rcvd->sink_distance; \
-	insert_distance_neighbour(&neighbours, source_addr, &dist); \
-}
-
 static int16_t min_neighbour_src_distance(distance_neighbour_detail_t const* neighbour)
 {
 	const distance_container_t* dist = &neighbour->contents;
-	uint16_t i;
+	uint16_t i, end;
 	int16_t result = INT16_MAX;
 
-	for (i = 0; i != dist->count; ++i)
+	for (i = 0, end = dist->count; i != end; ++i)
 	{
 		result = min(result, dist->src_distance[i]);
 	}
@@ -200,8 +176,6 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
 
-	uint32_t normal_sequence_increments = 0;
-
 	int16_t min_sink_source_distance = BOTTOM;
 	int16_t min_source_distance = BOTTOM;
 	float sink_distance = BOTTOM;
@@ -209,8 +183,6 @@ implementation
 	bool sink_received_away_reponse = FALSE;
 
 	bool first_normal_rcvd = FALSE;
-
-	DirectedRandomWalkDirection drw_direction = DirectedWalkDirectionUnknown;
 
 	uint32_t extra_to_send = 0;
 
@@ -235,10 +207,17 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	// Exponentially weighted moving average
-	// a higher factor discounts older information faster
-	float ewma(float factor, float history, float current)
+	// Combines the current result with the history we have for the result
+	float combine(float history, float current)
 	{
+		// Negative values are invalid
+		return history < 0 ? current : (current < 0 ? history : min(history, current));
+
+#if 0
+		// Exponentially weighted moving average
+		// a higher factor discounts older information faster
+		const float factor = 0.5;
+
 		if (history < 0 && current < 0)
 		{
 			return BOTTOM;
@@ -254,7 +233,9 @@ implementation
 		else
 		{
 			return factor * current + (1.0 - factor) * history;
-		}	
+			//return (current < history) ? current : history;
+		}
+#endif
 	}
 
 	bool pfs_can_become_normal(void)
@@ -279,16 +260,6 @@ implementation
 		return max(1, call SourceDistances.count());
 	}
 
-	bool node_within_towards_source_limit(void)
-	{
-		return sink_distance <= (min_sink_source_distance/2.0 - 1);
-	}
-
-	bool node_at_towards_source_limit(void)
-	{
-		return fabs(sink_distance - (min_sink_source_distance/2.0 - 1)) <= 1e-6;
-	}
-
 	bool node_is_sink(am_addr_t address)
 	{
 		return sink_id == address;
@@ -301,8 +272,8 @@ implementation
 
 	uint32_t get_dist_to_pull_back(void)
 	{
-		// PB_FIXED1_APPROACH worked quite well, so lets stick to it
-		return 1;
+		// PB_RND_APPROACH worked quite well, so lets stick to it
+		return 1 + (call Random.rand16() % 2);
 	}
 
 	double inclination_angle_rad(am_addr_t source_id)
@@ -314,7 +285,7 @@ implementation
 
 		if (ssd < 0 || dsrc <= 0 || dsink <= 0)
 		{
-			simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f\n", source_id, ssd, dsrc, dsink);
+			//simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f\n", source_id, ssd, dsrc, dsink);
 			return INFINITY;
 		}
 
@@ -331,15 +302,13 @@ implementation
 		return isinf(x) || isnan(x) || x < 0.0 || x > M_PI;
 	}
 
-	double angle_when_node_further_than_sink(am_addr_t source1, am_addr_t source2)
+	double angle_when_node_further_than_sink(double source1_angle, double source2_angle)
 	{
-		const double source1_angle = inclination_angle_rad(source1);
-		const double source2_angle = inclination_angle_rad(source2);
 		double result;
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
-			simdbg("stdout", "further result invalid\n");
+			//simdbg("stdout", "further result invalid\n");
 			return INFINITY;
 		}
 
@@ -350,15 +319,13 @@ implementation
 		return result;
 	}
 
-	double angle_when_node_closer_than_sink(am_addr_t source1, am_addr_t source2)
+	double angle_when_node_closer_than_sink(double source1_angle, double source2_angle)
 	{
-		const double source1_angle = inclination_angle_rad(source1);
-		const double source2_angle = inclination_angle_rad(source2);
 		double result;
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
-			simdbg("stdout", "closer result invalid\n");
+			//simdbg("stdout", "closer result invalid\n");
 			return INFINITY;
 		}
 
@@ -369,15 +336,13 @@ implementation
 		return result;
 	}
 
-	double angle_when_node_side_of_sink(am_addr_t source1, am_addr_t source2)
+	double angle_when_node_side_of_sink(double source1_angle, double source2_angle)
 	{
-		const double source1_angle = inclination_angle_rad(source1);
-		const double source2_angle = inclination_angle_rad(source2);
 		double result;
 
 		if (invalid_double(source1_angle) || invalid_double(source2_angle))
 		{
-			simdbg("stdout", "side result invalid\n");
+			//simdbg("stdout", "side result invalid\n");
 			return INFINITY;
 		}
 
@@ -393,66 +358,50 @@ implementation
 	{
 #if defined(NO_INTERFERENCE_APPROACH)
 		return 0;
-#elif defined(ALWAYS_FURTHER_APPORACH)
-		return angle_when_node_further_than_sink(source1, source2);
+#else
+		const double source1_angle = inclination_angle_rad(source1);
+		const double source2_angle = inclination_angle_rad(source2);
+#if defined(ALWAYS_FURTHER_APPORACH)
+		return angle_when_node_further_than_sink(source1_angle, source2_angle);
 #elif defined(ALWAYS_CLOSER_APPORACH)
-		return angle_when_node_closer_than_sink(source1, source2);
+		return angle_when_node_closer_than_sink(source1_angle, source2_angle);
 #elif defined(ALWAYS_SIDE_APPORACH)
-		return angle_when_node_side_of_sink(source1, source2);
-#elif defined(ARBITRARY_SINK_APPROACH)
+		return angle_when_node_side_of_sink(source1_angle, source2_angle);
+#elif defined(MIN_VALID_APPROACH)
+		const double further = angle_when_node_further_than_sink(source1_angle, source2_angle);
+		const double closer = angle_when_node_closer_than_sink(source1_angle, source2_angle);
+		const double side = angle_when_node_side_of_sink(source1_angle, source2_angle);
 
-		const double ssd1 = call SinkSourceDistances.get_or_default(source1, BOTTOM);
-		const double dsrc1 = call SourceDistances.get_or_default(source1, BOTTOM);
-		const double ssd2 = call SinkSourceDistances.get_or_default(source2, BOTTOM);
-		const double dsrc2 = call SourceDistances.get_or_default(source2, BOTTOM);
-		const double dsink = sink_distance;
+		const double angles[] = { further, closer, side };
+		double min_angle = 1 * M_PI;
+		bool found_min = FALSE;
+		unsigned int i, end;
 
-		const double further = angle_when_node_further_than_sink(source1, source2);
-		const double closer = angle_when_node_closer_than_sink(source1, source2);
-		const double side = angle_when_node_side_of_sink(source1, source2);
-
-		if (dsrc1 >= ssd1 && dsrc2 >= ssd2 && !invalid_double(further))
+		for (i = 0, end = ARRAY_SIZE(angles); i != end; ++i)
 		{
-			return further;
-		}
-		else if (dsrc1 <= ssd1 && dsrc2 <= ssd2 && !invalid_double(closer))
-		{
-			return closer;
-		}
-		else if (!invalid_double(side))
-		{
-			return side;
-		}
-		else if (!invalid_double(further) && !invalid_double(closer))
-		{
-			return min(further, closer);
-		}
-		else if (!invalid_double(further))
-		{
-			return further;
-		}
-		else if (!invalid_double(closer))
-		{
-			return closer;
-		}
-		else
-		{
-			return INFINITY;
+			if (!invalid_double(angles[i]) && angles[i] < min_angle)
+			{
+				min_angle = angles[i];
+				found_min = TRUE;
+			}
 		}
 
+		return found_min ? min_angle : INFINITY;
 #else
 #	error "No apporach specified"
+#endif
 #endif
 	}
 
 	double angle_factor(am_addr_t source_id)
 	{
 		const am_addr_t* iter;
+		const am_addr_t* end;
 		double factor = 1.0;
 		double intermediate_angle;
 		double non_interference;
 
-		for (iter = call SourceDistances.beginKeys(); iter != call SourceDistances.endKeys(); ++iter)
+		for (iter = call SourceDistances.beginKeys(), end = call SourceDistances.endKeys(); iter != end; ++iter)
 		{
 			if (*iter == source_id)
 				continue;
@@ -464,6 +413,8 @@ implementation
 			// Skip messed up results, lets just assume the worst in these cases
 			if (invalid_double(intermediate_angle))
 				continue;
+
+			simdbg_clear("Metric-Angle", "%u,%u,%u,%f\n", TOS_NODE_ID, source_id, *iter, intermediate_angle);
 
 			// When cooperating this will be 1, when completely interfering this will be 0
 			non_interference = 1.0 - (intermediate_angle / M_PI);
@@ -479,7 +430,8 @@ implementation
 		double factor = 0.0;
 
 		const am_addr_t* iter;
-		for (iter = call SourceDistances.beginKeys(); iter != call SourceDistances.endKeys(); ++iter)
+		const am_addr_t* end;
+		for (iter = call SourceDistances.beginKeys(), end = call SourceDistances.endKeys(); iter != end; ++iter)
 		{
 			factor += angle_factor(*iter);
 		}
@@ -487,18 +439,6 @@ implementation
 		simdbg("stdout", "all_source_factor=%f\n", factor);
 
 		return factor;
-	}
-
-	double get_nodes_Normal_receive_ratio(void)
-	{
-		uint64_t total_sent = 1;
-		SequenceNumber* iter;
-		for (iter = call NormalSeqNos.begin(); iter != call NormalSeqNos.end(); ++iter)
-		{
-			total_sent += *iter;
-		}
-
-		return (normal_sequence_increments + 1) / (double)total_sent;
 	}
 
 	double get_sources_Fake_receive_ratio(void)
@@ -514,11 +454,12 @@ implementation
 	uint32_t get_tfs_num_msg_to_send(void)
 	{
 		const uint32_t distance = get_dist_to_pull_back();
+		const uint16_t est_num_sources = estimated_number_of_sources();
 
 		//simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%f, Dss=%d)\n",
 		//	distance, source_distance, sink_distance, min_sink_source_distance);
 
-		return distance;
+		return distance * est_num_sources;
 	}
 
 	uint32_t get_tfs_duration(void)
@@ -539,13 +480,16 @@ implementation
 	{
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
-		const uint32_t period = duration / msg;
-		const double est_num_sources = all_source_factor();
-		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
+		const double period = duration / (double)msg;
 
-		const uint32_t result_period = (uint32_t)ceil(period / (est_num_sources * normal_rcv_ratio));
+		uint32_t result_period = (uint32_t)ceil(period);
 
-		simdbg("stdout", "get_tfs_period=%u normrcv=%f\n", result_period, normal_rcv_ratio);
+		if (sink_distance <= 2)
+		{
+			result_period /= 2;
+		}
+
+		simdbg("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -555,12 +499,13 @@ implementation
 		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
 
 		const double est_num_sources = all_source_factor();
-		const double normal_rcv_ratio = get_nodes_Normal_receive_ratio();
 
-		const uint32_t result_period = (uint32_t)ceil((SOURCE_PERIOD_MS * fake_rcv_ratio_at_src) / (est_num_sources * normal_rcv_ratio));
+		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
 
-		simdbg("stdout", "get_pfs_period=%u fakercv=%f normrcv=%f\n",
-			result_period, fake_rcv_ratio_at_src, normal_rcv_ratio);
+		const uint32_t result_period = (uint32_t)ceil(period_per_source * fake_rcv_ratio_at_src);
+
+		simdbg("stdout", "get_pfs_period=%u fakercv=%f\n",
+			result_period, fake_rcv_ratio_at_src);
 
 		return result_period;
 	}
@@ -596,98 +541,19 @@ implementation
 		}
 	}
 
-	int16_t find_neighbours_with_max_sink_distance(distance_neighbours_t* local_neighbours)
+	am_addr_t fake_walk_target(void)
 	{
-		size_t i;
-		int16_t max_sink_distance = INT16_MIN;
-
-		init_distance_neighbours(local_neighbours);
-
-		// Choose the neighbour with the highest sink_distance
-		for (i = 0; i != neighbours.size; ++i)
-		{
-			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
-
-			// Skip sink or sources as we do not want them to become fake nodes
-			if (node_is_sink(neighbour->address) || node_is_source(neighbour->address))
-			{
-				continue;
-			}
-
-			max_sink_distance = max(max_sink_distance, neighbour->contents.sink_distance);
-		}
-
-		for (i = 0; i != neighbours.size; ++i)
-		{
-			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
-
-			// Skip sink or sources as we do not want them to become fake nodes
-			if (node_is_sink(neighbour->address) || node_is_source(neighbour->address))
-			{
-				continue;
-			}
-
-			if (max_sink_distance == neighbour->contents.sink_distance)
-			{
-				insert_distance_neighbour(local_neighbours, neighbour->address, &neighbour->contents);
-			}
-		}
-
-		return max_sink_distance;
-	}
-
-	typedef struct {
-		am_addr_t target;
-		DirectedRandomWalkDirection drw_direction;
-	} fake_walk_result_t;
-
-	// TODO: modify this to allow the directed random walk to go closer to the source
-	// + (min_sink_source_distance / 2)
-	// Will also need to modify TailFS reverting to Normal, as it will need to be able
-	// to detect that the TFS that is closer to the source is part of the walk and a valid option
-	fake_walk_result_t fake_walk_target(DirectedRandomWalkDirection drw_direction_hint)
-	{
-		fake_walk_result_t result = { AM_BROADCAST_ADDR, DirectedWalkDirectionUnknown };
-		//am_addr_t chosen_address = AM_BROADCAST_ADDR;
-		//bool towards_source = FALSE;
+		am_addr_t result = AM_BROADCAST_ADDR;
 
 		distance_neighbours_t local_neighbours;
 		init_distance_neighbours(&local_neighbours);
 
-		if (drw_direction_hint != DirectedWalkTowardsSource)
-		{
-			find_neighbours_further_from_source(&local_neighbours);
-		}	
+		find_neighbours_further_from_source(&local_neighbours);	
 
 		if (local_neighbours.size == 0 && min_source_distance == BOTTOM)
 		{
 			simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
 				neighbours.size); 
-		}
-		else if (local_neighbours.size == 0 && neighbours.size != 0)
-		{
-			// There are neighbours who exist that are closer to the source than this node.
-			// We should consider moving to one of these neighbours if we are still close to the sink.
-
-			simdbgverbose("stdout", "Considering allowing fake sources to move towards the source\n");
-			simdbgverbose("stdout", "sink-distance=%f <= min-sink-distance/2=%d\n", sink_distance, (min_sink_source_distance / 2));
-
-			if (node_within_towards_source_limit())
-			{
-				const uint16_t max_sink_distance = find_neighbours_with_max_sink_distance(&local_neighbours);
-
-				if (local_neighbours.size != 0)
-				{
-					result.drw_direction = DirectedWalkTowardsSource;
-				}
-
-				simdbgverbose("stdout", "Found %d neighbours with max_sink_distance=%d\n", local_neighbours.size, max_sink_distance);
-				simdbgverbose("stdout", "drw-direction=%d\n", result.drw_direction);
-			}
-		}
-		else
-		{
-			result.drw_direction = DirectedWalkAwaySource;
 		}
 		
 		if (local_neighbours.size != 0)
@@ -697,17 +563,39 @@ implementation
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			result.target = neighbour->address;
+			result = neighbour->address;
 
 #ifdef SLP_VERBOSE_DEBUG
 			print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
 			simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
-				result.target, neighbour_index, rnd, local_neighbours.size);
+				result, neighbour_index, rnd, local_neighbours.size);
 		}
 
 		return result;
+	}
+
+	void update_neighbours_beacon(const BeaconMessage* rcvd, am_addr_t source_addr)
+	{
+		uint16_t i;
+		distance_container_t dist;
+		dist.count = rcvd->count;
+		for (i = 0; i != rcvd->count; ++i)
+		{
+			dist.node[i] = rcvd->node[i];
+			dist.src_distance[i] = rcvd->src_distance[i];
+		}
+		dist.sink_distance = rcvd->sink_distance;
+		insert_distance_neighbour(&neighbours, source_addr, &dist);
+	}
+
+	void update_neighbours_awaychoose(const AwayChooseMessage* rcvd, am_addr_t source_addr) 
+	{
+		distance_container_t dist;
+		dist.count = 0;
+		dist.sink_distance = rcvd->sink_distance;
+		insert_distance_neighbour(&neighbours, source_addr, &dist);
 	}
 
 	void update_source_distance(const NormalMessage* rcvd)
@@ -726,7 +614,7 @@ implementation
 		{
 			const float existing_distance = *distance;
 
-			call SourceDistances.put(rcvd->source_id, ewma(EWMA_FACTOR, *distance, rcvd->source_distance + 1));
+			call SourceDistances.put(rcvd->source_id, combine(*distance, rcvd->source_distance + 1));
 
 			/*if (fabs(*distance - existing_distance) > 0.95f)
 			{
@@ -748,16 +636,16 @@ implementation
 			}
 			else
 			{
-				call SinkSourceDistances.put(rcvd->source_id, ewma(EWMA_FACTOR, *sink_source_distance, rcvd->sink_distance));
+				call SinkSourceDistances.put(rcvd->source_id, combine(*sink_source_distance, rcvd->sink_distance));
 			}
 		}
 	}
 
 	void update_sink_distance(const AwayChooseMessage* rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS_AWAYCHOOSE(rcvd, source_addr);
+		update_neighbours_awaychoose(rcvd, source_addr);
 
-		sink_distance = ewma(EWMA_FACTOR, sink_distance, rcvd->sink_distance + 1);
+		sink_distance = combine(sink_distance, rcvd->sink_distance + 1);
 
 		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
 
@@ -852,9 +740,6 @@ implementation
 
 		type = NormalNode;
 
-		drw_direction = DirectedWalkDirectionUnknown;
-		if (drw_direction == DirectedWalkTowardsSource) { call Leds.led2On(); } else { call Leds.led2Off(); }
-
 		call FakeMessageGenerator.stop();
 
 		simdbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
@@ -926,7 +811,6 @@ implementation
 		message.sink_distance = 0;
 		message.min_sink_source_distance = min_sink_source_distance;
 		message.algorithm = ALGORITHM;
-		message.drw_direction = DirectedWalkDirectionUnknown;
 
 		sequence_number_increment(&away_sequence_counter);
 
@@ -937,7 +821,8 @@ implementation
 	event void BeaconSenderTimer.fired()
 	{
 		BeaconMessage message;
-		uint16_t* iter;
+		const uint16_t* iter;
+		const uint16_t* end;
 		uint16_t i;
 		bool result;
 
@@ -954,7 +839,7 @@ implementation
 
 		message.count = call SourceDistances.count();
 
-		for (iter = call SourceDistances.beginKeys(), i = 0; iter != call SourceDistances.endKeys(); ++iter, ++i)
+		for (iter = call SourceDistances.beginKeys(), end = call SourceDistances.endKeys(), i = 0; iter != end; ++iter, ++i)
 		{
 			message.node[i] = *iter;
 			message.src_distance[i] = (int16_t)round(*call SourceDistances.get_from_iter(iter));
@@ -988,8 +873,6 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			++normal_sequence_increments;
-
 			update_source_distance(rcvd);
 
 			if (!first_normal_rcvd)
@@ -1018,8 +901,6 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
-
-			++normal_sequence_increments;
 
 			update_source_distance(rcvd);
 
@@ -1066,8 +947,6 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
-
-			++normal_sequence_increments;
 
 			update_source_distance(rcvd);
 
@@ -1203,17 +1082,9 @@ implementation
 
 			update_sink_distance(rcvd, source_addr);
 
-			if (rcvd->drw_direction == DirectedWalkTowardsSource)
-			{
-				drw_direction = rcvd->drw_direction;
-				if (drw_direction == DirectedWalkTowardsSource) { call Leds.led2On(); } else { call Leds.led2Off(); }
-			}
-			else
-			{
-				find_neighbours_further_from_source(&local_neighbours);
-			}
+			find_neighbours_further_from_source(&local_neighbours);
 
-			if ((drw_direction != DirectedWalkTowardsSource || node_at_towards_source_limit()) && local_neighbours.size == 0)
+			if (local_neighbours.size == 0)
 			{
 				become_Fake(rcvd, PermFakeNode);
 			}
@@ -1307,11 +1178,8 @@ implementation
 				(rcvd->message_type == TailFakeNode && type == TailFakeNode)
 			) &&
 			(
-				(drw_direction != DirectedWalkTowardsSource && (rcvd->sender_min_source_distance > min_source_distance ||
-				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)))
-				||
-				(drw_direction == DirectedWalkTowardsSource && (rcvd->sender_min_source_distance < min_source_distance || rcvd->sender_sink_distance > sink_distance ||
-				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)))
+				rcvd->sender_min_source_distance > min_source_distance ||
+				(rcvd->sender_min_source_distance == min_source_distance && rcvd->source_id > TOS_NODE_ID)
 			)
 			)
 		{
@@ -1332,11 +1200,11 @@ implementation
 
 	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS_BEACON(rcvd, source_addr);
+		update_neighbours_beacon(rcvd, source_addr);
 
 		METRIC_RCV_BEACON(rcvd);
 
-		sink_distance = ewma(EWMA_FACTOR, sink_distance, botinc(rcvd->sink_distance));
+		sink_distance = combine(sink_distance, botinc(rcvd->sink_distance));
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
@@ -1379,19 +1247,17 @@ implementation
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
 	{
 		ChooseMessage message = *original_message;
-		const fake_walk_result_t result = fake_walk_target(original_message->drw_direction);
+		const am_addr_t target = fake_walk_target();
 
-		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u towards_source=%u.\n",
-			result.target, result.drw_direction);
+		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
 
 		// When finished sending fake messages from a TFS
 
 		message.min_sink_source_distance = min_sink_source_distance;
 		message.sink_distance += 1;
-		message.drw_direction = result.drw_direction;
 
 		extra_to_send = 1;
-		send_Choose_message(&message, result.target);
+		send_Choose_message(&message, target);
 
 		if (type == PermFakeNode)
 		{
@@ -1399,9 +1265,6 @@ implementation
 		}
 		else if (type == TempFakeNode)
 		{
-			drw_direction = result.drw_direction;
-			if (drw_direction == DirectedWalkTowardsSource) { call Leds.led2On(); } else { call Leds.led2Off(); }
-
 			become_Fake(original_message, TailFakeNode);
 		}
 		else //if (type == TailFakeNode)

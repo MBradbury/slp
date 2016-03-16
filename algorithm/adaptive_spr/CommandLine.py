@@ -125,7 +125,7 @@ class CLI(CommandLineCommon.CLI):
 
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='size', yaxis=yaxis, vary='source period',
+                xaxis='network size', yaxis=yaxis, vary='source period',
                 yextractor=yextractor)
 
             g.xaxis_label = 'Network Size'

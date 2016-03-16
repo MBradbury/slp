@@ -2,7 +2,7 @@ from __future__ import division
 
 import collections
 
-from simulator.Simulator import OutputCatcher
+from simulator.Simulation import OutputCatcher
 
 from data.restricted_eval import restricted_eval
 
@@ -12,7 +12,7 @@ _messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
 
 # An attacker can detect these are not messages to follow,
 # so the attacker will ignore these messages.
-_messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose'}
+_messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem'}
 
 class Attacker(object):
     def __init__(self):

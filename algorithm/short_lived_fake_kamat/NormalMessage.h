@@ -4,7 +4,7 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct NormalMessage {
-  nx_uint32_t sequence_number;
+  NXSequenceNumber sequence_number;
 
   nx_am_addr_t source_id; // The id of the node that sent this message
 
