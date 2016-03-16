@@ -3,7 +3,6 @@
 #include "SendReceiveFunctions.h"
 
 #include "NormalMessage.h"
-#include "BeaconMessage.h"
 #include "DissemMessage.h"
 
 #include "utils.h"
@@ -19,9 +18,8 @@
 
 #define BOT UINT16_MAX
 
-#define BEACON_PERIOD_MS 500
+#define DISSEM_PERIOD_MS 500
 #define SLOT_PERIOD_MS 100
-/*#define DISSEM_PERIOD_MS 5000*/
 
 #define TDMA_NUM_SLOTS 50
 #define LOOP_LENGTH 4
@@ -52,9 +50,6 @@ module SourceBroadcasterC
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
-
-    /*uses interface AMSend as BeaconSend;*/
-    /*uses interface Receive as BeaconReceive;*/
 
     uses interface AMSend as DissemSend;
     uses interface Receive as DissemReceive;
@@ -114,30 +109,15 @@ implementation
 		return call SourcePeriodModel.get();
 	}
 
-	uint32_t get_broadcast_period()
-	{
-		return BROADCAST_PERIOD_MS;
-	}
-
-    uint32_t get_beacon_period()
+    uint32_t get_dissem_period()
     {
-        return BEACON_PERIOD_MS;
+        return DISSEM_PERIOD_MS;
     }
 
     uint32_t get_slot_period()
     {
         return SLOT_PERIOD_MS;
     }
-
-    uint32_t get_init_period()
-    {
-        return INIT_PERIOD_MS;
-    }
-
-    /*uint32_t get_dissem_period()*/
-    /*{*/
-        /*return DISSEM_PERIOD_MS;*/
-    /*}*/
 
     uint32_t get_tdma_num_slots()
     {
@@ -171,7 +151,6 @@ implementation
 	}
 
     void init();
-    void send_beacon();
 	event void RadioControl.startDone(error_t err)
 	{
 		if (err == SUCCESS)
@@ -180,7 +159,7 @@ implementation
 
             init();
             call ObjectDetector.start();
-            call BeaconTimer.startOneShot(get_beacon_period());
+            call BeaconTimer.startOneShot(get_dissem_period());
 		}
 		else
 		{
@@ -224,7 +203,6 @@ implementation
 	}
 
 	USE_MESSAGE(Normal);
-    /*USE_MESSAGE(Beacon);*/
     USE_MESSAGE(Dissem);
 
     void init()
@@ -294,13 +272,6 @@ implementation
         }
     }
 
-    /*void send_beacon()*/
-    /*{*/
-        /*BeaconMessage msg;*/
-        /*msg.source_id = TOS_NODE_ID;*/
-        /*send_Beacon_message(&msg, AM_BROADCAST_ADDR);*/
-    /*}*/
-
     void send_dissem()
     {
         DissemMessage msg;
@@ -336,22 +307,12 @@ implementation
 	}
 
     //Timers.fired(){{{
-    event void BeaconTimer.fired()
+    event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
         process_dissem();
-        call PreSlotTimer.startOneShot(get_beacon_period());
-    }
-
-    event void DissemTimer.fired()
-    {
-        /*
-         *PRINTF0("%s: DissemTimer fired.\n", sim_time_string());
-         *if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
-         *process_dissem();
-         *call DissemTimer.startOneShot(get_dissem_period());
-         */
+        call PreSlotTimer.startOneShot(get_dissem_period());
     }
 
     event void PreSlotTimer.fired()
@@ -378,7 +339,7 @@ implementation
         uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
         /*PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());*/
         slot_active = FALSE;
-        call BeaconTimer.startOneShot((get_tdma_num_slots()-(s-1))*get_slot_period());
+        call DissemTimer.startOneShot((get_tdma_num_slots()-(s-1))*get_slot_period());
     }
 
     event void EnqueueNormalTimer.fired()
