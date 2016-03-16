@@ -100,7 +100,7 @@ implementation
 		return NULL;
 	}
 
-	command Value* Dictionary.get_from_iter(Key* iter)
+	command Value* Dictionary.get_from_iter(const Key* iter)
 	{
 		ptrdiff_t i = iter - call Dictionary.beginKeys();
 		return &values[i];

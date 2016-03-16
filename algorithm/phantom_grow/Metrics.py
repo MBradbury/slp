@@ -1,6 +1,6 @@
 from __future__ import division
 
-from simulator.Simulator import OutputCatcher
+from simulator.Simulation import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):

@@ -14,7 +14,7 @@
 //define the global vaiable.
 //0 means random walk, 1 means long random walk.
 //make it work for multiple sources.
-uint16_t last_random_walk = 0;
+uint16_t last_random_walk = 1;
 
 module SourceBroadcasterC
 {
@@ -42,7 +42,6 @@ module SourceBroadcasterC
 
 implementation 
 {
-	//uint16_t last_random_walk = 0;
 	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode
@@ -107,7 +106,8 @@ implementation
 		des4 = TOS_NODE_ID + TOPOLOGY_SIZE;
 
 		ran=call Random.rand16()%2;
-		biased_ran=call Random.rand16()%3;
+
+		biased_ran=call Random.rand16()%10;
 
 		switch(choose)
 		{
@@ -120,15 +120,17 @@ implementation
 
     		case(1):
     			if (bottom(TOS_NODE_ID)) 												des = des2;
-    			else if (right_bottom_corner(TOS_NODE_ID))								des = TOS_NODE_ID; //stop here.
-    			else if (right_border(TOS_NODE_ID)) 									des = des3;
+    			else if (right_bottom_corner(TOS_NODE_ID))								des = des4;
+    			// for SinkCorner
+    			else if (right_border(TOS_NODE_ID)) 									des = des4;
     			else      																des=(ran==0)?des2:des3;
   				break;
 
   			case(2):
     			if (left_border(TOS_NODE_ID))  					des = des4;
-    			else if(top(TOS_NODE_ID))						des = des1;				
-    			else if(left_top_corner(TOS_NODE_ID))			des = TOS_NODE_ID;
+    			// for SinkCorner
+    			else if(top(TOS_NODE_ID))						des = des2;				
+    			else if(left_top_corner(TOS_NODE_ID))			des = des2;
     			else 											des=(ran==0)?des1:des4;
     			break;
 
@@ -253,6 +255,17 @@ implementation
 		}
 	}
 
+	//m short random walk and n long random walk messages combination.
+	uint16_t message_mshort_nlong(uint16_t m, uint16_t n)
+	{
+		uint16_t random_walk_remaining;
+
+		random_walk_remaining = (last_random_walk % (m+n) <= m && last_random_walk % (m+n) != 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
+		last_random_walk += 1;
+
+		return random_walk_remaining;
+	}
+
 	void generate_message()
 	{
 		uint16_t flip_coin = call Random.rand16()%2;
@@ -263,29 +276,13 @@ implementation
 			message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);			
 			message.source_id = TOS_NODE_ID;
 			message.source_distance = 0;
-			//add adaptive phantom code here. 
-			//One message has short random walk length, the next message holds the long random walk length.
-			
-			if(last_random_walk == 0)
-			{
-				message.walk_distance_remaining = LONG_RANDOM_WALK_HOPS;
-				last_random_walk = 1;
-			}
-			else
-			{
-				message.walk_distance_remaining = RANDOM_WALK_HOPS;
-				last_random_walk = 0;
-			}
 
-			//if (message.sequence_number % 2 == 0)
-			//	message.walk_distance_remaining = RANDOM_WALK_HOPS;
-			//else
-			//	message.walk_distance_remaining = LONG_RANDOM_WALK_HOPS;
-			
+			//add adaptive phantom code here.
+			message.walk_distance_remaining = message_mshort_nlong(1,2);
 
 		//SPACE_BEHIND_SINK means more space behind the sink.
 		//fit for Source Corner.  
-#ifdef SPACE_BEHIND_SINK
+		#ifdef SPACE_BEHIND_SINK
 			{
 				//if random walk length is shorter than the source sink distance, biased random walk is no need to implement.
 				//normally the short random walk is set to less than half of source sink distance.
@@ -303,7 +300,7 @@ implementation
 			}
 		//fit for the situation that the sink is located in the corner or in the border.
 		//fit for SinkCorner or FurtherSinkCorner
-#else
+		#else
 			{
 				// FurtherSinkCorner codes here.
 				//ensure all source ID is les than TOPOLOGY_SIZE*2, even with 3 sources.
@@ -325,8 +322,12 @@ implementation
 				//biased random walk is not applied here.
 				else
 				{
-					simdbg("slp-debug","random walk hop:%d\n",message.walk_distance_remaining);
-					message.flip_coin = call Random.rand16()%4;
+					if(message.walk_distance_remaining < TOPOLOGY_SIZE)
+						simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
+					else
+						simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());	
+					//message.flip_coin = call Random.rand16()%4;
+					message.flip_coin = (flip_coin == 0)?1:2;
 				}
 				
 			}
