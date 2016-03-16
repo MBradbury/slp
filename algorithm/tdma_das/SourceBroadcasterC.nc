@@ -3,6 +3,7 @@
 #include "SendReceiveFunctions.h"
 
 #include "NormalMessage.h"
+#include "DummyNormalMessage.h"
 #include "BeaconMessage.h"
 #include "DissemMessage.h"
 
@@ -173,7 +174,7 @@ implementation
 	}
 
     void init();
-    //void send_beacon();
+    void send_beacon();
 	event void RadioControl.startDone(error_t err)
 	{
 		if (err == SUCCESS)
@@ -334,7 +335,7 @@ implementation
 			}
 		}
 
-        if (slot_active && !(call MessageQueue.empty()))
+        if(slot_active && !(call MessageQueue.empty()))
         {
             post send_message_normal();
         }
@@ -353,6 +354,7 @@ implementation
 
     event void BeaconTimer.fired()
     {
+        /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
         process_dissem();
         call PreSlotTimer.startOneShot(get_beacon_period());
@@ -490,9 +492,7 @@ implementation
     void x_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
-
         METRIC_RCV_DISSEM(rcvd);
-
         IDList_add(&neighbours, source_addr);
         NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
         if(slot == BOT && NeighbourList_get(&(rcvd->N), source_addr)->slot != BOT)
@@ -522,9 +522,7 @@ implementation
     void Sink_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
-
         METRIC_RCV_DISSEM(rcvd);
-
         IDList_add(&neighbours, source_addr);
         NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
         for(i = 0; i<rcvd->N.count; i++)
