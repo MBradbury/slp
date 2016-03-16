@@ -14,12 +14,11 @@ class Results(object):
 
         self.data = {}
 
-        self.sizes = set()
-        self.configurations = set()
-        self.attacker_models = set()
-        self.noise_models = set()
-        self.communication_models = set()
-        self.distances = set()
+        from algorithm.common.CommandLineCommon import CLI
+        self.global_parameter_names = CLI.global_parameter_names[:-1]
+
+        for param in self.global_parameter_names:
+            setattr(self, param.replace(" ", "_") + "s", set())
 
         self._read_results(result_file, source_period_normalisation)
 
@@ -33,7 +32,10 @@ class Results(object):
             headers = []
 
             def _get_value_for(name, values):
-                return values[headers.index(name)]
+                if name == 'source period':
+                    return SourcePeriodModel.eval_input(values[headers.index(name)]).simple_str()
+                else:
+                    return values[headers.index(name)]
             
             for values in reader:
                 # Check if we have seen the first line
@@ -42,34 +44,30 @@ class Results(object):
 
                     get_value = partial(_get_value_for, values=values)
 
-                    size = get_value('network size')
-                    src_period = SourcePeriodModel.eval_input(get_value('source period')).simple_str()
-                    config = get_value('configuration')
-                    attacker_model = get_value('attacker model')
-                    noise_model = get_value('noise model')
-                    communication_model = get_value('communication model')
-                    distance = get_value('distance')
+                    table_key = tuple(get_value(name) for name in self.global_parameter_names)
+
+                    src_period = get_value('source period')
 
                     if source_period_normalisation is None:
                         source_period = src_period
                     elif source_period_normalisation == "NumSources":
+
+                        config = get_value('configuration')
+                        size = int(get_value('network size'))
+                        distance = int(get_value('distance'))
+
                         # Get the source period normalised wrt the number of sources
-                        configuration = Configuration.create_specific(config, int(size), float(distance))
+                        configuration = Configuration.create_specific(config, size, distance)
                         source_period = str(float(src_period) / len(configuration.source_ids))
                     else:
                         raise RuntimeError("Unknown source period normalisation strategy '{}'".format(source_period_normalisation))
 
-                    table_key = (size, config, attacker_model, noise_model, communication_model, distance)
 
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
 
-                    self.sizes.add(size)
-                    self.configurations.add(config)
-                    self.attacker_models.add(attacker_model)
-                    self.noise_models.add(noise_model)
-                    self.communication_models.add(communication_model)
-                    self.distances.add(distance)
+                    for param in self.global_parameter_names:
+                        getattr(self, param.replace(" ", "_") + "s").add(get_value(param))
 
                     self.data.setdefault(table_key, {}).setdefault(source_period, {})[params] = results
 
