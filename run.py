@@ -46,8 +46,9 @@ if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
     Metrics = importlib.import_module("{}.Metrics".format(module))
 
     # Print out the argument settings
-    for (k, v) in [(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide]:
-        print("{}={}".format(k, v))
+    for (k, v) in vars(a.args).items():
+        if k not in a.arguments_to_hide:
+            print("{}={}".format(k, v))
 
     # Print the header for the results
     Metrics.Metrics.print_header()
