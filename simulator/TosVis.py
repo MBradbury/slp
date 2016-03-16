@@ -76,9 +76,10 @@ class GuiSimulation(Simulation):
         self.scene = None
 
         # Default factor to scale the node positions by
-        self._node_position_scale_factor = 6
+        self._node_position_scale_factor = args.gui_scale
 
-        self._node_label = None # "SourceBroadcasterC.min_source_distance"
+        # e.g. "SourceBroadcasterC.min_source_distance"
+        self._node_label = args.gui_node_label 
 
         self._debug_analyzer = DebugAnalyzer()
 
@@ -206,14 +207,12 @@ class GuiSimulation(Simulation):
     def _during_run(self, event_count):
         super(GuiSimulation, self)._during_run(event_count)
 
-        if (event_count == 1 or event_count % 250 == 0) and self._node_label is not None and self.nesc_app is not None:
+        if event_count % 10 == 0 and self._node_label is not None and self.nesc_app is not None:
+            time = self.sim_time()
+
             for node in self.nodes:
-                time = self.sim_time()
-
                 var = node.tossim_node.getVariable(self._node_label)
-                data = var.getData()
-
-                value = data
+                value = var.getData()
 
                 if value == "<no such variable>":
                     raise RuntimeError("No variable called '{}' exists.".format(self._node_label))

@@ -32,12 +32,15 @@ class ArgumentsCommon(object):
 
         parser.add_argument("-v", "--verbose", action="store_true")
 
+        parser.add_argument("--gui-node-label", type=str, required=False, default=None)
+        parser.add_argument("--gui-scale", type=int, required=False, default=6)
+
         self.parser = parser
 
         # Haven't parsed anything yet
         self.args = None
 
-        self.arguments_to_hide = {"job_id", "verbose"}
+        self.arguments_to_hide = {"job_id", "verbose", "gui_node_label", "gui_scale"}
 
     def parse(self, argv):
         self.args = self.parser.parse_args(argv)
