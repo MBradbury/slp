@@ -367,6 +367,7 @@ implementation
             else
             {
                 simdbgerror("stdout", "No pool space available for another Normal message.\n");
+                simdbg_clear("Metric-Pool-Full", "%u\n", TOS_NODE_ID);
             }
         }
         call EnqueueNormalTimer.startOneShot(get_source_period());
