@@ -39,9 +39,7 @@ module SourceBroadcasterC
     uses interface Timer<TMilli> as DissemTimer;
     uses interface Timer<TMilli> as InitTimer;
 	uses interface Timer<TMilli> as EnqueueNormalTimer;
-	//uses interface Timer<TMilli> as BroadcastTimer;
     uses interface Timer<TMilli> as BeaconTimer;
-    uses interface Timer<TMilli> as WaveTimer;
     uses interface Timer<TMilli> as PreSlotTimer;
     uses interface Timer<TMilli> as SlotTimer;
     uses interface Timer<TMilli> as PostSlotTimer;
@@ -60,12 +58,6 @@ module SourceBroadcasterC
     /*uses interface AMSend as BeaconSend;*/
     /*uses interface Receive as BeaconReceive;*/
 
-    /*uses interface AMSend as WaveSend;*/
-    /*uses interface Receive as WaveReceive;*/
-
-    /*uses interface AMSend as CollisionSend;*/
-    /*uses interface Receive as CollisionReceive;*/
-
     uses interface AMSend as DissemSend;
     uses interface Receive as DissemReceive;
 
@@ -78,23 +70,6 @@ module SourceBroadcasterC
 implementation
 {
     //Initialisation variables{{{
-/*
- *    void send_beacon();
- *    void dissem();
- *
- *    bool initialise = TRUE;
- *
- *    bool start = TRUE;
- *    bool c = FALSE;
- *    IDList neighbours;
- *    IDList live;
- *    SlotList slots;
- *    uint16_t slot = BOT;
- *    am_addr_t hop = BOT;
- *    uint16_t parent = BOT;
- *    bool slot_active = FALSE;
- */
-
     IDList neighbours;
     IDList potential_parents;
     OtherList others;
@@ -177,14 +152,9 @@ implementation
     }
     //###################}}}
 
-
+    //Startup Events{{{
 	event void Boot.booted()
 	{
-        /*
-         *live = IDList_new();
-         *neighbours = IDList_new();
-         *slots = SlotList_new();
-         */
         neighbours = IDList_new();
         potential_parents = IDList_new();
         others = OtherList_new();
@@ -210,7 +180,6 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-            /*send_beacon(); //Need this before dissem() or segmentation fault*/
             init();
             call InitTimer.startOneShot(get_init_period());
 		}
@@ -254,6 +223,10 @@ implementation
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
+
+    //Startup Events}}}
+
+    //Main Logic{{{
 
 	USE_MESSAGE(Normal);
     /*USE_MESSAGE(Beacon);*/
@@ -367,52 +340,45 @@ implementation
         }
 	}
 
+    //Main Logic}}}
+
     //Timers.fired(){{{
     event void InitTimer.fired()
     {
-        PRINTF0("%s: InitTimer fired.\n", sim_time_string());
+        /*PRINTF0("%s: InitTimer fired.\n", sim_time_string());*/
         call ObjectDetector.start();
-        /*dissem();*/
-        /*call WaveTimer.startOneShot(get_wave_period());*/
         /*call DissemTimer.startOneShot(get_dissem_period());*/
         call BeaconTimer.startOneShot(get_beacon_period());
     }
 
     event void BeaconTimer.fired()
     {
-        PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());
-        /*send_beacon();*/
-        if (slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
+        if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
         process_dissem();
         call PreSlotTimer.startOneShot(get_beacon_period());
     }
 
     event void DissemTimer.fired()
     {
-        PRINTF0("%s: DissemTimer fired.\n", sim_time_string());
-        if (slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
-        process_dissem();
-        /*call DissemTimer.startOneShot(get_dissem_period());*/
-    }
-
-    event void WaveTimer.fired()
-    {
-        PRINTF0("%s: WaveTimer fired.\n", sim_time_string());
-        /*dissem();*/
-        /*process_waves();*/
+        /*
+         *PRINTF0("%s: DissemTimer fired.\n", sim_time_string());
+         *if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
+         *process_dissem();
+         *call DissemTimer.startOneShot(get_dissem_period());
+         */
     }
 
     event void PreSlotTimer.fired()
     {
         uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
-        PRINTF0("%s: PreSlotTimer fired.\n", sim_time_string());
+        /*PRINTF0("%s: PreSlotTimer fired.\n", sim_time_string());*/
         call SlotTimer.startOneShot(s*get_slot_period());
     }
 
 
     event void SlotTimer.fired()
     {
-        PRINTF0("%s: SlotTimer fired.\n", sim_time_string());
+        /*PRINTF0("%s: SlotTimer fired.\n", sim_time_string());*/
         slot_active = TRUE;
         if(slot != BOT)
         {
@@ -424,36 +390,40 @@ implementation
     event void PostSlotTimer.fired()
     {
         uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
-        PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());
+        /*PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());*/
         slot_active = FALSE;
         call BeaconTimer.startOneShot((get_tdma_num_slots()-(s-1))*get_slot_period());
     }
 
     event void EnqueueNormalTimer.fired()
     {
-        NormalMessage* message;
-
-        simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
-        message = call MessagePool.get();
-        if (message != NULL)
+        if(slot != BOT)
         {
-            message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
-            message->source_distance = 0;
-            message->source_id = TOS_NODE_ID;
+            NormalMessage* message;
 
-            if (call MessageQueue.enqueue(message) != SUCCESS)
+            /*simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());*/
+            message = call MessagePool.get();
+            if (message != NULL)
             {
-                simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+                message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+                message->source_distance = 0;
+                message->source_id = TOS_NODE_ID;
+
+                if (call MessageQueue.enqueue(message) != SUCCESS)
+                {
+                    simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+                }
+                else
+                {
+                    call NormalSeqNos.increment(TOS_NODE_ID);
+                }
             }
             else
             {
-                call NormalSeqNos.increment(TOS_NODE_ID);
+                simdbgerror("stdout", "No pool space available for another Normal message.\n");
             }
         }
-        else
-        {
-            simdbgerror("stdout", "No pool space available for another Normal message.\n");
-        }
+        call EnqueueNormalTimer.startOneShot(get_source_period());
     }
     //}}} Timers.fired()
 
@@ -523,13 +493,12 @@ implementation
 
         METRIC_RCV_DISSEM(rcvd);
 
+        IDList_add(&neighbours, source_addr);
         NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
         if(slot == BOT && NeighbourList_get(&(rcvd->N), source_addr)->slot != BOT)
         {
             OtherInfo* info = OtherList_get(&others, source_addr);
-            /*simdbg("stdout", "Source ID %u\n", source_addr);*/
             IDList_add(&potential_parents, source_addr);
-            /*simdbg("stdout", "Added %u as potential parent.\n", source_addr);*/
             if(info == NULL)
             {
                 OtherList_add(&others, OtherInfo_new(source_addr));
@@ -547,8 +516,6 @@ implementation
         for(i = 0; i<rcvd->N.count; i++)
         {
             NeighbourList_add_info(&n_info, rcvd->N.info[i]);
-            /*simdbg("stdout", "Added ID=%u, hop=%u, slot=%u.\n", rcvd->N.info[i].id, rcvd->N.info[i].hop, rcvd->N.info[i].slot);*/
-            /*simdbg("stdout", "n_info count %u\n", n_info.count);*/
         }
     }
 
@@ -558,6 +525,7 @@ implementation
 
         METRIC_RCV_DISSEM(rcvd);
 
+        IDList_add(&neighbours, source_addr);
         NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
         for(i = 0; i<rcvd->N.count; i++)
         {
