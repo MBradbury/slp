@@ -122,8 +122,6 @@ class ResultTable(object):
 
         for table_key in itertools.product(*storted_parameters):
 
-            print(table_key)
-
             try:
                 source_periods = sorted(set(self.results.data[table_key].keys()))
             except KeyError as ex:
