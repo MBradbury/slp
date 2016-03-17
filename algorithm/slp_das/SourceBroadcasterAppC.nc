@@ -51,19 +51,19 @@ implementation
     App.NormalSend -> NormalSender;
     App.NormalReceive -> NormalReceiver;
 
-    /*components*/
-        /*new AMSenderC(BEACON_CHANNEL) as BeaconSender,*/
-        /*new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;*/
-
-    /*App.BeaconSend -> BeaconSender;*/
-    /*App.BeaconReceive -> BeaconReceiver;*/
-
     components
         new AMSenderC(DISSEM_CHANNEL) as DissemSender,
         new AMReceiverC(DISSEM_CHANNEL) as DissemReceiver;
 
     App.DissemSend -> DissemSender;
     App.DissemReceive ->DissemReceiver;
+
+    components
+        new AMSenderC(SEARCH_CHANNEL) as SearchSender,
+        new AMReceiverC(SEARCH_CHANNEL) as SearchReceiver;
+
+    App.SearchSend -> SearchSender;
+    App.SearchReceive ->SearchReceiver;
 
     // Message Queue
     components

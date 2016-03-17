@@ -4,6 +4,7 @@
 
 #include "NormalMessage.h"
 #include "DissemMessage.h"
+#include "SearchMessage.h"
 
 #include "utils.h"
 
@@ -46,6 +47,9 @@ module SourceBroadcasterC
 
     uses interface AMSend as DissemSend;
     uses interface Receive as DissemReceive;
+
+    uses interface AMSend as SearchSend;
+    uses interface Receive as SearchReceive;
 
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
@@ -201,6 +205,7 @@ implementation
 
 	USE_MESSAGE(Normal);
     USE_MESSAGE(Dissem);
+    USE_MESSAGE(Search);
 
     void init()
     {
