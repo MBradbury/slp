@@ -22,6 +22,7 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
+#define SLOT_LOOP_DIST 4
 
 module SourceBroadcasterC
 {
@@ -126,6 +127,11 @@ implementation
     {
         return SLOT_LOOP_LENGTH;
     }
+
+    uint32_t get_loop_dist()
+    {
+        return SLOT_LOOP_DIST;
+    }
     //###################}}}
 
     //Startup Events{{{
@@ -226,7 +232,7 @@ implementation
             NeighbourList_add(&onehop, TOS_NODE_ID, 0, get_tdma_num_slots());
 
             msg.source_id = TOS_NODE_ID;
-            msg.dist = 0; //TODO: Find out what dist is
+            msg.dist = get_loop_dist();
             send_Search_message(&msg, AM_BROADCAST_ADDR);
         }
         else
