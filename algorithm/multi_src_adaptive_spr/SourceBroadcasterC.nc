@@ -136,10 +136,10 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
 	// The distance between this node and each source
-	uses interface Dictionary<am_addr_t, float> as SourceDistances;
+	uses interface Dictionary<am_addr_t, uint16_t> as SourceDistances;
 
 	// The distance between the recorded source and the sink
-	uses interface Dictionary<am_addr_t, float> as SinkSourceDistances;
+	uses interface Dictionary<am_addr_t, uint16_t> as SinkSourceDistances;
 }
 
 implementation
@@ -178,7 +178,7 @@ implementation
 
 	int16_t min_sink_source_distance = BOTTOM;
 	int16_t min_source_distance = BOTTOM;
-	float sink_distance = BOTTOM;
+	int16_t sink_distance = BOTTOM;
 
 	bool sink_received_away_reponse = FALSE;
 
@@ -205,37 +205,6 @@ implementation
 		const uint16_t rnd = call Random.rand16();
 
 		return ((float)rnd) / UINT16_MAX;
-	}
-
-	// Combines the current result with the history we have for the result
-	float combine(float history, float current)
-	{
-		// Negative values are invalid
-		return history < 0 ? current : (current < 0 ? history : min(history, current));
-
-#if 0
-		// Exponentially weighted moving average
-		// a higher factor discounts older information faster
-		const float factor = 0.5;
-
-		if (history < 0 && current < 0)
-		{
-			return BOTTOM;
-		}
-		else if (history < 0 && current >= 0)
-		{
-			return current;
-		}
-		else if (history >= 0 && current < 0)
-		{
-			return history;
-		}
-		else
-		{
-			return factor * current + (1.0 - factor) * history;
-			//return (current < history) ? current : history;
-		}
-#endif
 	}
 
 	bool pfs_can_become_normal(void)
@@ -425,7 +394,7 @@ implementation
 		return factor;
 	}
 
-	double all_source_factor(void)
+	double sources_considering_angles(void)
 	{
 		double factor = 0.0;
 
@@ -498,7 +467,7 @@ implementation
 	{
 		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
 
-		const double est_num_sources = all_source_factor();
+		const double est_num_sources = sources_considering_angles();
 
 		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
 
@@ -600,8 +569,8 @@ implementation
 
 	void update_source_distance(const NormalMessage* rcvd)
 	{
-		const float* distance = call SourceDistances.get(rcvd->source_id);
-		const float* sink_source_distance = call SinkSourceDistances.get(rcvd->source_id);
+		const uint16_t* distance = call SourceDistances.get(rcvd->source_id);
+		const uint16_t* sink_source_distance = call SinkSourceDistances.get(rcvd->source_id);
 
 		if (distance == NULL)
 		{
@@ -612,17 +581,12 @@ implementation
 		}
 		else
 		{
-			const float existing_distance = *distance;
-
-			call SourceDistances.put(rcvd->source_id, combine(*distance, rcvd->source_distance + 1));
-
-			/*if (fabs(*distance - existing_distance) > 0.95f)
+			if ((rcvd->source_distance + 1) < *distance)
 			{
-				// Our source distance has changed, so we want to inform neighbours
-				// However, we should only do this if a big change has occurred!
-				// TODO: only do this some times
+				call SourceDistances.put(rcvd->source_id, rcvd->source_distance + 1);
+
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
-			}*/
+			}
 		}
 
 		min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
@@ -636,7 +600,7 @@ implementation
 			}
 			else
 			{
-				call SinkSourceDistances.put(rcvd->source_id, combine(*sink_source_distance, rcvd->sink_distance));
+				call SinkSourceDistances.put(rcvd->source_id, min(*sink_source_distance, rcvd->sink_distance));
 			}
 		}
 	}
@@ -645,7 +609,7 @@ implementation
 	{
 		update_neighbours_awaychoose(rcvd, source_addr);
 
-		sink_distance = combine(sink_distance, rcvd->sink_distance + 1);
+		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
 
@@ -1204,7 +1168,7 @@ implementation
 
 		METRIC_RCV_BEACON(rcvd);
 
-		sink_distance = combine(sink_distance, botinc(rcvd->sink_distance));
+		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance));
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
