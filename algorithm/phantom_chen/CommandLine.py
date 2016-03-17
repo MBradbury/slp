@@ -179,13 +179,6 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'paths reached end': ('Paths Reached End (%)', 'right top'),
-            'source dropped': ('Source Dropped Messages (%)', 'right top'),
-        }
-
-        custom_yaxis_range_max = {
-            'source dropped': 100,
-            'paths reached end': 4,
         }
 
         heatmap_results = ['sent heatmap', 'received heatmap']
@@ -193,7 +186,8 @@ class CLI(CommandLineCommon.CLI):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys() + heatmap_results)
+            results=tuple(graph_parameters.keys() + heatmap_results),
+            source_period_normalisation="NumSources"
         )    
 
         for name in heatmap_results:
@@ -208,7 +202,8 @@ class CLI(CommandLineCommon.CLI):
 
         parameters = [
             ('source period', ' seconds'),
-            ('walk length', ' hops')
+            ('long walk length', ' hops'),
+            ('short walk length', ' hops')
         ]
 
         for (parameter_name, parameter_unit) in parameters:
@@ -226,9 +221,6 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
-
-                if yaxis in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
                 g.create(phantom_results)
 
