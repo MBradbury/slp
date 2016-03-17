@@ -72,6 +72,7 @@ implementation
 
     bool start = TRUE;
     bool slot_active = FALSE;
+    bool start_loop = FALSE;
 
     typedef enum
 	{
@@ -212,6 +213,7 @@ implementation
         if(type == SinkNode)
         {
             int i;
+            SearchMessage msg;
             for(i=0; i<neighbours.count; i++)
             {
                 NeighbourList_add(&n_info, neighbours.ids[i], BOT, BOT);
@@ -222,6 +224,10 @@ implementation
             slot = get_tdma_num_slots(); //Delta
             NeighbourList_add(&n_info, TOS_NODE_ID, 0, get_tdma_num_slots()); //Delta
             NeighbourList_add(&onehop, TOS_NODE_ID, 0, get_tdma_num_slots());
+
+            msg.source_id = TOS_NODE_ID;
+            msg.dist = 0; //TODO: Find out what dist is
+            send_Search_message(&msg, AM_BROADCAST_ADDR);
         }
         else
         {
@@ -473,5 +479,30 @@ implementation
         case NormalNode: x_receive_Dissem(rcvd, source_addr); break;
         case SinkNode  : Sink_receive_Dissem(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Dissem)
+
+    void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)
+    {
+        OtherInfo* other_info = OtherList_get(&others, parent);
+        if(rcvd->dist == 0)
+        {
+            start_loop = TRUE;
+        }
+        else if(other_info == NULL)
+        {
+            simdbg("stdout", "Received search message but other_info was NULL.\n");
+            return;
+        }
+        else if((rcvd->dist>0) && (parent == source_addr) && (rank(&(other_info->N), parent) == 1))
+        {
+            SearchMessage msg;
+            msg.source_id = TOS_NODE_ID;
+            msg.dist = rcvd->dist - hop;
+            send_Search_message(&msg, AM_BROADCAST_ADDR);
+        }
+    }
+
+    RECEIVE_MESSAGE_BEGIN(Search, Receive)
+        case NormalNode: Normal_receive_Search(rcvd, source_addr); break;
+    RECEIVE_MESSAGE_END(Search)
     //}}}Receivers
 }
