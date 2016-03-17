@@ -851,7 +851,7 @@ implementation
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
 	{
 		ChooseMessage message = *original_message;
-		am_addr_t target = fake_walk_target();
+		const am_addr_t target = fake_walk_target();
 
 		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
 
