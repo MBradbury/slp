@@ -109,24 +109,25 @@ class ResultTable(object):
             except TypeError as e:
                 raise RuntimeError("Unable to format values for {} with values {} under the default setting".format(name, value), e)
 
-
     def write_tables(self, stream, param_filter=lambda x: True):
         print('\\vspace{-0.3cm}', file=stream)
 
-        sizes = sorted(self.results.sizes)
-        configurations = sorted(self.results.configurations, key=configuration_rank)
-        attacker_models = sorted(self.results.attacker_models)
-        noise_models = sorted(self.results.noise_models)
-        communication_models = sorted(self.results.communication_models)
-        distances = sorted(self.results.distances)
+        def _custom_sort(name, values):
+            if name == "configuration":
+                return sorted(values, key=configuration_rank)
+            else:
+                return sorted(values)
 
-        for table_key in itertools.product(sizes, configurations, attacker_models, noise_models, communication_models, distances):
+        storted_parameters = [_custom_sort(name, values) for (name, values) in self.results.parameters()]
 
-            (size, configuration, attacker_model, noise_model, communication_model, distance) = table_key
+        for table_key in itertools.product(*storted_parameters):
+
+            print(table_key)
 
             try:
                 source_periods = sorted(set(self.results.data[table_key].keys()))
-            except KeyError:
+            except KeyError as ex:
+                print("Unable to find source period for  {}".format(ex))
                 continue
 
             print('\\begin{table}[H]', file=stream)
@@ -154,8 +155,13 @@ class ResultTable(object):
                     print(" & ".join(to_print) + "\\\\", file=stream)
                 print('        \\hline', file=stream)
 
+            caption = " and ".join([
+                "{} \\textbf{{{}}}".format(name, value)
+                for (name, value)
+                in zip(self.results.global_parameter_names, table_key)
+            ])
+
             print('    \\end{tabular}', file=stream)
-            print('\\caption{{Results for the size \\textbf{{{}}} and configuration \\textbf{{{}}} and attacker model \\textbf{{{}}} and noise model \\textbf{{{}}} and communication model \\textbf{{{}}} and distance \\textbf{{{}}} }} '.format(
-                size, configuration, attacker_model, noise_model, communication_model, distance), file=stream)
+            print('\\caption{{Results for the {} }} '.format(caption), file=stream)
             print('\\end{table}', file=stream)
             print('', file=stream)
