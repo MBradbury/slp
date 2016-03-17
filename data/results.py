@@ -18,9 +18,19 @@ class Results(object):
         self.global_parameter_names = CLI.global_parameter_names[:-1]
 
         for param in self.global_parameter_names:
-            setattr(self, param.replace(" ", "_") + "s", set())
+            setattr(self, self.name_to_attr(param), set())
 
         self._read_results(result_file, source_period_normalisation)
+
+    def parameters(self):
+        return [
+            (param, getattr(self, self.name_to_attr(param)))
+            for param in self.global_parameter_names
+        ]
+
+    @staticmethod
+    def name_to_attr(name):
+        return name.replace(" ", "_") + "s"
 
     def _read_results(self, result_file, source_period_normalisation):
         with open(result_file, 'r') as f:
@@ -67,7 +77,7 @@ class Results(object):
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
 
                     for param in self.global_parameter_names:
-                        getattr(self, param.replace(" ", "_") + "s").add(get_value(param))
+                        getattr(self, self.name_to_attr(param)).add(get_value(param))
 
                     self.data.setdefault(table_key, {}).setdefault(source_period, {})[params] = results
 
