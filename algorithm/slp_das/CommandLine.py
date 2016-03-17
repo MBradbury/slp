@@ -24,8 +24,6 @@ class CLI(CommandLineCommon.CLI):
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
-    periods = [ (src_period, src_period) for src_period in source_periods ]
-
     configurations = [
         'SourceCorner',
         #'SinkCorner',
@@ -46,9 +44,14 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNoReactiveAttacker()']
 
+    slot_period = []
+    dissem_period = []
+    tdma_num_slots = []
+    slot_loop_length = []
+
     repeats = 300
 
-    local_parameter_names = ('broadcast period',)
+    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot loop length')
 
 
     def __init__(self):
@@ -67,14 +70,9 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.periods
+            [self.distance], self.source_periods, self.slot_period, self.dissem_period,
+            self.tdms_num_slots, self.slot_loop_length
         )
-
-        argument_product = [
-            (size, config, attacker, noise, communication_model, distance, src_period, broadcast_period)
-            for (size, config, attacker, noise, communication_model, distance, (src_period, broadcast_period))
-            in argument_product
-        ]
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
