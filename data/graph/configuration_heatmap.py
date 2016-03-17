@@ -88,6 +88,7 @@ class Grapher(GrapherBase):
             graph_p.write('#!/usr/bin/gnuplot\n')
 
             graph_p.write('set terminal pdf enhanced\n')
+            graph_p.write('set output "graph.pdf"\n')
 
             graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
             graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
@@ -130,8 +131,6 @@ class Grapher(GrapherBase):
             graph_p.write('set yrange [:] reverse\n'.format(maxy, miny))
             graph_p.write('set ytics auto\n')
 
-            
-            graph_p.write('set output "graph.pdf"\n')
 
             graph_p.write('set size square\n')
 
