@@ -64,7 +64,7 @@ class Results(object):
 
                         config = get_value('configuration')
                         size = int(get_value('network size'))
-                        distance = int(get_value('distance'))
+                        distance = float(get_value('distance'))
 
                         # Get the source period normalised wrt the number of sources
                         configuration = Configuration.create_specific(config, size, distance)
