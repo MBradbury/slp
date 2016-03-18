@@ -302,6 +302,9 @@ class TimedBacktrackingAttacker(Attacker):
         if self._last_move_time is not None and self._previous_location is not None and np.isclose(time, self._last_move_time + self._wait_time_secs):
             self._move(time, self._previous_location)
 
+            self._last_move_time = time
+            self._previous_location = None
+
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
         return msg_type in _messages_without_sequence_numbers or \
