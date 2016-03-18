@@ -188,11 +188,11 @@ class Simulation(object):
 
         self.metrics.event_count = event_count
 
-    def continue_predicate(self, time):
+    def continue_predicate(self):
         """Specifies if the simulator run loop should continue executing."""
         # For performance reasons do not do anything expensive in this function,
         # that includes simple things such as iterating or calling functions.
-        return not self.attacker_found_source and time < self.safety_period_value
+        return not self.attacker_found_source
 
     def run(self):
         """Run the simulator loop."""
@@ -200,7 +200,8 @@ class Simulation(object):
         try:
             self._pre_run()
 
-            event_count = self.tossim.runAllEvents(self.continue_predicate, self._during_run)
+            event_count = self.tossim.runAllEventsWithMaxTime(
+                self.safety_period_value, self.continue_predicate, self._during_run)
         finally:
             self._post_run(event_count)
 
