@@ -2,6 +2,8 @@ from __future__ import division
 
 import collections
 
+import numpy as np
+
 from simulator.Simulation import OutputCatcher
 
 from data.restricted_eval import restricted_eval
@@ -43,8 +45,13 @@ class Attacker(object):
 
         self.min_source_distance = {source: self._sim.node_distance(start_node_id, source) for source in self._source_ids()}
 
+        self.setup_event_callbacks()
+
     def _source_ids(self):
         return self._sim.metrics.source_ids
+
+    def setup_event_callbacks(self):
+        pass
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         raise NotImplementedError()
@@ -81,11 +88,9 @@ class Attacker(object):
 
         if self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
-            self._move(prox_from_id)
+            self._move(time, prox_from_id)
 
             self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
-            
-            self._draw(time, self.position)
 
     def found_source_slow(self):
         """Checks if the source has been found using the attacker's position."""
@@ -99,7 +104,7 @@ class Attacker(object):
         """Checks if the source has been found, using a cached variable."""
         return self._has_found_source
 
-    def _move(self, node_id):
+    def _move(self, time, node_id):
         """Moved the source to a new location."""
 
         self.moves += 1
@@ -120,6 +125,8 @@ class Attacker(object):
 
         # Update the simulator, informing them that an attacker has found the source
         self._sim.attacker_found_source |= self._has_found_source
+
+        self._draw(time, self.position)
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
@@ -280,6 +287,37 @@ class CollaborativeSeqNosReactiveAttacker(Attacker):
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
         self._sequence_numbers[seqno_key] = sequence_number
+
+class TimedBacktrackingAttacker(Attacker):
+    """An attacker that backtracks to the previous node after a certain amount of time where no messages are received."""
+    def __init__(self, wait_time_secs):
+        super(TimedBacktrackingAttacker, self).__init__()
+        self._wait_time_secs = wait_time_secs
+
+        self._sequence_numbers = {}
+        self._last_move_time = None
+        self._previous_location = None
+
+    def _move_to_previous_location_on_timeout(self, time):
+        if self._last_move_time is not None and self._previous_location is not None and np.isclose(time, self._last_move_time + self._wait_time_secs):
+            self._move(time, self._previous_location)
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type)
+        return msg_type in _messages_without_sequence_numbers or \
+               self._sequence_numbers.get(seqno_key, -1) < sequence_number
+
+    def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type)
+        self._sequence_numbers[seqno_key] = sequence_number
+
+        self._last_move_time = time
+        self._previous_location = node_id
+
+        self._sim.tossim.register_event_callback(self._move_to_previous_location_on_timeout, time + self._wait_time_secs)
+
+    def __str__(self):
+        return type(self).__name__ + "(wait_time_secs={})".format(self._wait_time_secs)
 
 
 def models():
