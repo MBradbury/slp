@@ -8,6 +8,8 @@ typedef nx_struct DummyNormalMessage {
 
   nx_int16_t sender_min_source_distance;
 
+  nx_int16_t flood_limit;
+
 } DummyNormalMessage;
 
 inline int32_t DummyNormal_get_sequence_number(const DummyNormalMessage* msg) { return BOTTOM; }

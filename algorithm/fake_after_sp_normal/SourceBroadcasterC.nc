@@ -110,8 +110,6 @@ implementation
 
 	uint32_t extra_to_send = 0;
 
-	uint32_t dummy_normal_send_count = 0;
-
 	// Produces a random float between 0 and 1
 	float random_float(void)
 	{
@@ -140,7 +138,14 @@ implementation
 
 	uint32_t dummy_normal_send_wait(void)
 	{
-		return 50U + (uint32_t)(50U * random_float());
+		if (sink_distance != BOTTOM)
+		{
+			return 25U + sink_distance * 3;
+		}
+		else
+		{
+			return 25U + (uint32_t)(50U * random_float());
+		}
 	}
 
 	void find_neighbours_further_or_same_from_source(distance_neighbours_t* local_neighbours)
@@ -360,19 +365,14 @@ implementation
 
 		message.sender_sink_distance = sink_distance;
 
+		message.flood_limit = 2;
+
 		result = send_DummyNormal_message(&message, AM_BROADCAST_ADDR);
 		if (!result)
 		{
 			simdbgverbose("stdout", "Send failed rescheduling DummyNormal\n");
 			call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			return;
-		}
-
-		--dummy_normal_send_count;
-
-		if (dummy_normal_send_count > 0)
-		{
-			//call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 		}
 	}
 
@@ -402,7 +402,6 @@ implementation
 
 			if (!is_neighbour_further_or_same_from_source(source_addr))
 			{
-				dummy_normal_send_count = 2;
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}
 		}
@@ -513,6 +512,14 @@ implementation
 		METRIC_RCV_DUMMYNORMAL(rcvd);
 
 		sink_distance = minbot(sink_distance, botinc(rcvd->sender_sink_distance));
+
+		if (rcvd->flood_limit > 1)
+		{
+			DummyNormalMessage forwarding_message = *rcvd;
+			forwarding_message.flood_limit -= 1;
+
+			send_DummyNormal_message(&forwarding_message, AM_BROADCAST_ADDR);
+		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(DummyNormal, Receive)
