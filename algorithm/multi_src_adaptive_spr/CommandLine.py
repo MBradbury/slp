@@ -27,7 +27,7 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["low-asymmetry"]
 
-    sizes = [11, 15, 21, 25]
+    sizes = [11, 15]#, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
