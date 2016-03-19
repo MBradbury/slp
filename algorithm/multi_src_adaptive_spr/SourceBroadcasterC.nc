@@ -411,6 +411,8 @@ implementation
 
 		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
 
+		// Reducing by the fake receive ratio means more messages are sent when
+		// the ratio is lower. This helps compensate for collisions and lost fake messages.
 		const uint32_t result_period = (uint32_t)ceil(period_per_source * fake_rcv_ratio_at_src);
 
 		simdbg("stdout", "get_pfs_period=%u fakercv=%f\n",
@@ -1058,7 +1060,7 @@ implementation
 		case TempFakeNode:
 		case TailFakeNode:
 		case PermFakeNode: x_receive_Beacon(rcvd, source_addr); break;
-	RECEIVE_MESSAGE_END(Fake)
+	RECEIVE_MESSAGE_END(Beacon)
 
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
