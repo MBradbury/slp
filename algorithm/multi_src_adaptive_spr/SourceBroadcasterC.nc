@@ -29,72 +29,21 @@
 // Basically a flat map between node ids to distances
 typedef struct
 {
-	uint16_t count;
-	uint16_t node[SLP_MAX_1_HOP_NEIGHBOURHOOD];
-	int16_t src_distance[SLP_MAX_1_HOP_NEIGHBOURHOOD];
+	int16_t min_source_distance;
 
 } distance_container_t;
 
 static void distance_update(distance_container_t* __restrict find, distance_container_t const* __restrict given)
 {
-	uint16_t i, iend, j, jend;
-
-	for (i = 0, iend = given->count; i != iend; ++i)
-	{
-		// Attempt to update existing distances
-		for (j = 0, jend = find->count; j != jend; ++j)
-		{
-			if (given->node[i] == find->node[j])
-			{
-				find->src_distance[j] = minbot(find->src_distance[j], given->src_distance[i]);
-				break;
-			}
-		}
-
-		// Couldn't find distance, so add it
-		if (j == find->count)
-		{
-			find->node[find->count] = given->node[i];
-			find->src_distance[find->count] = given->src_distance[i];
-			find->count++;
-		}
-	}
+	find->min_source_distance = given->min_source_distance;
 }
 
 static void distance_print(const char* name, size_t n, am_addr_t address, distance_container_t const* contents)
 {
-	uint16_t i;
-
-	simdbg_clear(name, "[%u] => addr=%u dsrc={", n, address);
-
-	for (i = 0; i != contents->count; ++i)
-	{
-		simdbg_clear(name, "%u: %d", contents->node[i], contents->src_distance[i]);
-
-		if (i + 1 != contents->count)
-		{
-			simdbg_clear(name, ", ");
-		}
-	}
-
-	simdbg_clear(name, "}");
+	simdbg_clear(name, "[%u] => addr=%u min_source_distance=%d", n, address, contents->min_source_distance);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
-
-static int16_t min_neighbour_src_distance(distance_neighbour_detail_t const* neighbour)
-{
-	const distance_container_t* dist = &neighbour->contents;
-	uint16_t i, end;
-	int16_t result = INT16_MAX;
-
-	for (i = 0, end = dist->count; i != end; ++i)
-	{
-		result = min(result, dist->src_distance[i]);
-	}
-
-	return result;
-}
 
 module SourceBroadcasterC
 {
@@ -217,7 +166,7 @@ implementation
 	{
 		//assert(SOURCE_PERIOD_MS != BOTTOM);
 
-		return SOURCE_PERIOD_MS / 2;
+		return 75;
 	}
 
 	uint16_t estimated_number_of_sources(void)
@@ -462,10 +411,7 @@ implementation
 
 		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
 
-		// Do not consider the fake receive ratio when optimising for multiple sources
-		const double fake_rcv_factor = estimated_number_of_sources() == 1 ? fake_rcv_ratio_at_src : 1;
-
-		const uint32_t result_period = (uint32_t)ceil(period_per_source * fake_rcv_factor);
+		const uint32_t result_period = (uint32_t)ceil(period_per_source * fake_rcv_ratio_at_src);
 
 		simdbg("stdout", "get_pfs_period=%u fakercv=%f\n",
 			result_period, fake_rcv_ratio_at_src);
@@ -499,7 +445,7 @@ implementation
 
 				// If this neighbours closest source is further than our closest source,
 				// then we want to consider them for the next fake source.
-				if (min_neighbour_src_distance(neighbour) >= min_source_distance)
+				if (neighbour->contents.min_source_distance >= min_source_distance)
 				{
 					insert_distance_neighbour(local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -542,14 +488,8 @@ implementation
 
 	void update_neighbours_beacon(const BeaconMessage* rcvd, am_addr_t source_addr)
 	{
-		uint16_t i, end;
 		distance_container_t dist;
-		dist.count = rcvd->count;
-		for (i = 0, end = rcvd->count; i != end; ++i)
-		{
-			dist.node[i] = rcvd->node[i];
-			dist.src_distance[i] = rcvd->src_distance[i];
-		}
+		dist.min_source_distance = rcvd->neighbour_min_source_distance;
 		insert_distance_neighbour(&neighbours, source_addr, &dist);
 	}
 
@@ -561,22 +501,19 @@ implementation
 		if (distance == NULL)
 		{
 			call SourceDistances.put(rcvd->source_id, rcvd->source_distance + 1);
-			
-			// Our source distance has been set for the first time, so we need to inform neighbours
-			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
 		else
 		{
-			if ((rcvd->source_distance + 1) < *distance)
-			{
-				call SourceDistances.put(rcvd->source_id, rcvd->source_distance + 1);
-
-				call BeaconSenderTimer.startOneShot(beacon_send_wait());
-			}
+			call SourceDistances.put(rcvd->source_id, min(*distance, rcvd->source_distance + 1));
 		}
 
-		min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
+		if (min_source_distance == BOTTOM || min_source_distance > rcvd->source_distance + 1)
+		{
+			min_source_distance = rcvd->source_distance + 1;
 
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+		}
+		
 		if (rcvd->sink_distance != BOTTOM)
 		{
 			if (sink_source_distance == NULL)
@@ -596,9 +533,6 @@ implementation
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 		//min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
-
-		// Probably don't need to send a beacon here.
-		// The forwarding of the Away message should update our neighbours correctly.
 	}
 
 
@@ -716,7 +650,7 @@ implementation
 		}
 		else if (type == TailFakeNode)
 		{
-			call FakeMessageGenerator.startRepeated(message, get_tfs_duration());
+			call FakeMessageGenerator.startRepeated(message, get_tfs_duration() / estimated_number_of_sources());
 		}
 		else if (type == TempFakeNode)
 		{
@@ -769,9 +703,6 @@ implementation
 	event void BeaconSenderTimer.fired()
 	{
 		BeaconMessage message;
-		const uint16_t* iter;
-		const uint16_t* end;
-		uint16_t i;
 		bool result;
 
 		simdbgverbose("stdout", "%s: BeaconSenderTimer fired.\n", sim_time_string());
@@ -783,19 +714,9 @@ implementation
 			return;
 		}
 
-		// Send all known source distances in the beacon message
-
-		message.count = call SourceDistances.count();
-
-		for (iter = call SourceDistances.beginKeys(), end = call SourceDistances.endKeys(), i = 0; iter != end; ++iter, ++i)
-		{
-			message.node[i] = *iter;
-			message.src_distance[i] = *call SourceDistances.get_from_iter(iter);
-		}
+		message.neighbour_min_source_distance = min_source_distance;
 
 		message.sink_distance = sink_distance;
-
-		//call Packet.clear(&packet);
 
 		result = send_Beacon_message(&message, AM_BROADCAST_ADDR);
 		if (!result)
@@ -947,12 +868,14 @@ implementation
 
 			update_sink_distance(rcvd, source_addr);
 
-			if (rcvd->sink_distance == 0)
+			if (rcvd->sink_distance == 0) // Received from sink
 			{
-				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
+				const distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
+				const int16_t neighbour_min_source_distance = neighbour == NULL ? BOTTOM : neighbour->contents.min_source_distance;
 
-				if (neighbour == NULL || neighbour->contents.count == 0 ||
-					min_source_distance == BOTTOM || min_neighbour_src_distance(neighbour) <= min_source_distance)
+				if (min_source_distance == BOTTOM ||
+					neighbour_min_source_distance == BOTTOM ||
+					neighbour_min_source_distance <= min_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 
