@@ -88,11 +88,11 @@ class CLI(CommandLineCommon.CLI):
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
             results=(
-                'sent', 'time taken',
-                #'normal latency', 'ssd', 'captured',
-                #'fake', 'received ratio', 'tfs', 'pfs',
-                'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
-                'norm(norm(norm(sent,time taken),network size),source rate)'
+                #'sent', 'time taken',
+                'normal latency', 'ssd', 'captured',
+                'fake', 'received ratio', 'tfs', 'pfs',
+                #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
+                #'norm(norm(norm(sent,time taken),network size),source rate)'
             ))
 
         result_table = fake_result.ResultTable(adaptive_results)
