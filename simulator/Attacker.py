@@ -322,6 +322,36 @@ class TimedBacktrackingAttacker(Attacker):
     def __str__(self):
         return type(self).__name__ + "(wait_time_secs={})".format(self._wait_time_secs)
 
+class ABDAttacker(Attacker):
+    def __init__(self, period, messages_per_period, history_window):
+        super(ABDAttacker, self).__init__()
+
+        self._period = period
+        self._messages_per_period = messages_per_period
+        self._history_window = history_window
+
+        self._previous_location = None
+        self._messages = []
+
+    def setup_event_callbacks(self):
+        self._sim.tossim.register_event_callback(self._clear_messages, self._period)
+
+    def _clear_messages(self, current_time):
+        self._messages = []
+
+        print("Cleared messages at {}".format(current_time))
+
+        self._sim.tossim.register_event_callback(self._clear_messages, current_time + self._period)
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        return True
+
+    def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        pass
+
+    def __str__(self):
+        return type(self).__name__ + "(period={},messages_per_period={},history_window={})".format(
+            self._period, self._messages_per_period, self._history_window)
 
 def models():
     """A list of the the available attacker models."""
