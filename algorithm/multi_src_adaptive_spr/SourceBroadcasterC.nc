@@ -503,6 +503,26 @@ implementation
 		return FALSE;
 	}
 
+	bool not_within_any_sink_source_distance(void)
+	{
+		const am_addr_t* iter;
+		const am_addr_t* const start = call SourceDistances.beginKeys();
+		const am_addr_t* const end = call SourceDistances.endKeys();
+
+		for (iter = start; iter != end; ++iter)
+		{
+			const uint16_t source_distance = *call SourceDistances.get_from_iter(iter);
+			const uint16_t* sink_source_distance = call SinkSourceDistances.get(*iter);
+
+			if (sink_source_distance != NULL && source_distance <= *sink_source_distance)
+			{
+				return FALSE;
+			}
+		}
+
+		return TRUE;
+	}
+
 	am_addr_t fake_walk_target(void)
 	{
 		am_addr_t result = AM_BROADCAST_ADDR;
@@ -843,7 +863,7 @@ implementation
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (is_neighbour_closer_to_source(source_addr))
+			if (is_neighbour_closer_to_source(source_addr) && !not_within_any_sink_source_distance())
 			{
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}
@@ -890,7 +910,7 @@ implementation
 				call AwaySenderTimer.startOneShot(get_away_delay());
 			}
 
-			if (is_neighbour_closer_to_source(source_addr))
+			if (is_neighbour_closer_to_source(source_addr) && !not_within_any_sink_source_distance())
 			{
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}	
@@ -1091,7 +1111,7 @@ implementation
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (is_neighbour_closer_to_source(source_addr))
+			if (is_neighbour_closer_to_source(source_addr) && !not_within_any_sink_source_distance())
 			{
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}
@@ -1114,7 +1134,7 @@ implementation
 
 			//send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (is_neighbour_closer_to_source(source_addr))
+			if (is_neighbour_closer_to_source(source_addr) && !not_within_any_sink_source_distance())
 			{
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}
