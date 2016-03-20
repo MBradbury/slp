@@ -102,7 +102,7 @@ class CLI(CommandLineCommon.CLI):
             results=(
                 #'sent', 'time taken',
                 'normal latency', 'ssd', 'captured',
-                'fake', 'received ratio', 'tfs', 'pfs', 'tailfs'
+                'fake', 'dummy normal', 'received ratio', 'tfs', 'pfs', 'tailfs'
                 #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
                 #'norm(norm(norm(sent,time taken),network size),source rate)'
             ))
