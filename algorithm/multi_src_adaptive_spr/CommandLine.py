@@ -2,12 +2,12 @@ from __future__ import print_function
 
 import os.path, itertools
 
-from algorithm.common import CommandLineCommon
+from simulator import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
 # The import statement doesn't work, so we need to use __import__ instead
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
+adaptive_spr = __import__("algorithm.adaptive_spr", globals(), locals(), ['object'], -1)
 
 from data import results
 
@@ -27,7 +27,7 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["low-asymmetry"]
 
-    sizes = [11, 15]#, 21, 25]
+    sizes = [11, 15, 21]#, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
@@ -89,6 +89,8 @@ class CLI(CommandLineCommon.CLI):
             self.attacker_models, self.noise_models, self.communication_models,
             [self.distance], self.source_periods, self.approaches
         ))
+
+        print(dir(self))
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
@@ -157,19 +159,19 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('normal latency', 'ssd', 'captured',
                               'fake', 'received ratio', 'tfs', 'pfs')
 
-        adaptive_spr_results = results.Results(
+        our_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
             results=results_to_compare)
 
-        adaptive_results = results.Results(
-            adaptive.result_file_path,
+        adaptive_spr_results = results.Results(
+            adaptive_spr.result_file_path,
             parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
             results=results_to_compare)
 
-        result_table = comparison.ResultTable(adaptive_results, adaptive_spr_results)
+        result_table = comparison.ResultTable(adaptive_spr_results, our_results)
 
-        self._create_table("{}-{}-comparison".format(self.algorithm_module.name, adaptive.name), result_table)
+        self._create_table("{}-{}-comparison".format(self.algorithm_module.name, adaptive_spr.name), result_table)
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
@@ -210,12 +212,12 @@ class CLI(CommandLineCommon.CLI):
                                                          'norm(norm(fake,time taken),source rate)'})
         )
 
-        adaptive_spr_results = results.Results(
+        our_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
             results=graph_parameters.keys())
 
-        adaptive_results = results.Results(
+        adaptive_spr_results = results.Results(
             adaptive.result_file_path,
             parameters=adaptive.CommandLine.CLI.parameter_names,
             results=graph_parameters.keys())
@@ -262,9 +264,9 @@ class CLI(CommandLineCommon.CLI):
             g.generate_legend_graph = True
 
             if result_name in protectionless_results.result_names:
-                g.create(adaptive_results, adaptive_spr_results, baseline_results=protectionless_results)
+                g.create(adaptive_spr_results, our_results, baseline_results=protectionless_results)
             else:
-                g.create(adaptive_results, adaptive_spr_results)
+                g.create(adaptive_spr_results, our_results)
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),

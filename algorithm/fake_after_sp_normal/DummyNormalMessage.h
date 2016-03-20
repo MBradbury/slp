@@ -12,7 +12,7 @@ typedef nx_struct DummyNormalMessage {
 
 } DummyNormalMessage;
 
-inline int64_t DummyNormal_get_sequence_number(const DummyNormalMessage* msg) { return BOTTOM; }
+inline SequenceNumberWithBottom DummyNormal_get_sequence_number(const DummyNormalMessage* msg) { return BOTTOM; }
 inline int32_t DummyNormal_get_source_id(const DummyNormalMessage* msg) { return BOTTOM; }
 
 #endif // SLP_MESSAGES_DUMMYNORMALMESSAGE_H
