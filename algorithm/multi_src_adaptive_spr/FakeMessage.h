@@ -11,7 +11,7 @@ typedef nx_struct FakeMessage {
 
   //nx_uint16_t source_distance;
   nx_uint16_t sender_sink_distance;
-  nx_uint16_t min_sink_source_distance;
+  //nx_uint16_t min_sink_source_distance;
 
   nx_int16_t sender_min_source_distance;
 

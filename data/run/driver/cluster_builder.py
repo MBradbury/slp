@@ -1,5 +1,5 @@
 from __future__ import print_function, division
-import os, importlib, shlex, shutil, time, timeit, datetime
+import os, importlib, shlex, shutil, timeit, datetime
 
 import data.util
 
@@ -34,31 +34,37 @@ class Runner:
 
         build_result = Builder.build_sim(module_path, **build_args)
 
-        print("Build finished with result {}, waiting for a bit...".format(build_result))
+        print("Build finished with result {}...".format(build_result))
 
-        # For some reason, we seemed to be copying files before
-        # they had finished being written. So wait a  bit here.
-        time.sleep(1)
-
-        print("Copying files to {}...".format(target_directory))
-
-        files_to_move = [
-            "Analysis.py",
-            "Arguments.py",
-            "CommandLine.py",
-            "Metrics.py",
-            "__init__.py",
-            "app.xml",
-            "_TOSSIM.so",
-            "TOSSIM.py",
-        ]
-        for name in files_to_move:
-            shutil.copy(os.path.join(module_path, name), target_directory)
+        # Previously there have been problems with the built files not
+        # properly having been flushed to the disk before attempting to move them.
+        # Write the topology here to give the files some time to flush to disk.
 
         # Create the topology of this configuration
         print("Creating topology file...")
         configuration = Configuration.create(a.args.configuration, a.args)
         Simulation.Simulation.write_topology_file(configuration.topology.nodes, target_directory)
+
+
+        print("Copying files from {} to {}...".format(module_path, target_directory))
+
+        files_to_copy = [
+            "Analysis.py",
+            "Arguments.py",
+            "CommandLine.py",
+            "Metrics.py",
+            "__init__.py",
+        ]
+        files_to_move = [
+            "app.xml",
+            "_TOSSIM.so",
+            "TOSSIM.py",
+        ]
+        for name in files_to_copy:
+            shutil.copy(os.path.join(module_path, name), target_directory)
+        for name in files_to_move:
+            shutil.move(os.path.join(module_path, name), target_directory)
+
 
         print("All Done!")
 
