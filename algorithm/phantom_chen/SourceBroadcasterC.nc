@@ -313,7 +313,8 @@ implementation
 					}
 					else
 					{
-						message.flip_coin = (flip_coin == 0)?4:5;
+						message.flip_coin = 3;
+						//message.flip_coin = (flip_coin == 0)?4:5;
 						simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
 					}
 				}

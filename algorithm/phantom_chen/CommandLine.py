@@ -30,31 +30,36 @@ class RunSimulations(RunSimulationsCommon):
         distance = float(arguments[argument_names.index('distance')])
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
-        ssd = min(configuration.ssd(source) for source in configuration.source_ids)
 
-        short_walk_length = float(arguments[argument_names.index('short walk length')])
-        long_walk_length = float(arguments[argument_names.index('long walk length')])
+        ssd_avg = min(configuration.ssd(source) for source in configuration.source_ids) + 1
+        ssd_max = max(configuration.ssd(source) for source in configuration.source_ids)
+
+        #short_random_walk_length
+        s = float(arguments[argument_names.index('short walk length')])
+        #long_random_walk_length
+        l = float(arguments[argument_names.index('long walk length')])
         
-        #ONLY for m_short random walk with n_long_random_walk combination.
+        #################################################################
+        #ONLY for m short random walk with n long_random_walk combination.
         m = 1
         n = 2
 
-        long_length = 1.5*ssd + short_walk_length;
-        short_length = ssd
-        combination_length = (m * short_length + n * long_length) / (m+n)
+        long_length = 1.5*ssd_max + s;
+        short_length = ssd_avg
+        combination_length = (m * ssd_avg + n * long_length) / (m+n)
+        ##################################################################
 
-        if ssd > (network_size-1) * 1.5:
+        if ssd_max > (network_size-1) * 1.5:
             return  time_taken
         else:
             #for only short random walk.
             #return time_taken
 
-            #for only long random walk. The ssd is between long_walk_length and s+long_walk_length. 
-            #So set the safety period as average.
-            #return (0.5 + long_walk_length / network_size) * time_taken
+            #for only long random walk.
+            #return (0.5 + l / ssd_max) * time_taken
 
             #for combinations.
-            return (combination_length / network_size) * time_taken
+            return (combination_length / ssd_avg) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -67,22 +72,23 @@ class CLI(CommandLineCommon.CLI):
     communication_models = ["ideal"]
 
     sizes = [11, 15, 21, 25]
+    #sizes = [11]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
     #source_periods = [ 1.0 ]
 
     configurations = [
-        #'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'SourceCorner',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
-        'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        'FurtherSinkCorner3Source'
+        #'FurtherSinkCorner',
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
 
     ]
 
@@ -147,17 +153,17 @@ class CLI(CommandLineCommon.CLI):
 
         ssd_further = 2*s
 
-        # walk_short is equal to walk_long
+        # if walk_short = walk_long
         #walk_short = list(range(2, half_ssd))
         #walk_long = list(range(2, half_ssd))
 
-        #adaptive here
-        #walk_short = list(range(2, half_ssd))
-        #walk_long = list(range(s+2, half_ssd+s))
+        #adaptive here.
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(s+2, half_ssd+s))
         
         #for the Further* topology.        
-        walk_short = list(range(2, half_ssd_further))
-        walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
+        #walk_short = list(range(2, half_ssd_further))
+        #walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
 
         return list(zip(walk_short, walk_long))
         
