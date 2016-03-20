@@ -31,10 +31,12 @@ implementation
 	components new TimerMilliC() as BroadcastNormalTimer;
 	components new TimerMilliC() as AwaySenderTimer;
 	components new TimerMilliC() as BeaconSenderTimer;
+	components new TimerMilliC() as DummyNormalSenderTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
 	App.BeaconSenderTimer -> BeaconSenderTimer;
+	App.DummyNormalSenderTimer -> DummyNormalSenderTimer;
 
 
 	// Networking
@@ -56,18 +58,11 @@ implementation
 	App.AwayReceive -> AwayReceiver;
 
 	components
-		new AMSenderC(CHOOSE_CHANNEL) as ChooseSender,
-		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver;
+		new AMSenderC(DUMMYNORMAL_CHANNEL) as DummyNormalSender,
+		new AMReceiverC(DUMMYNORMAL_CHANNEL) as DummyNormalReceiver;
 
-	App.ChooseSend -> ChooseSender;
-	App.ChooseReceive -> ChooseReceiver;
-
-	components
-		new AMSenderC(FAKE_CHANNEL) as FakeSender,
-		new AMReceiverC(FAKE_CHANNEL) as FakeReceiver;
-
-	App.FakeSend -> FakeSender;
-	App.FakeReceive -> FakeReceiver;
+	App.DummyNormalSend -> DummyNormalSender;
+	App.DummyNormalReceive -> DummyNormalReceiver;
 
 	components
 		new AMSenderC(BEACON_CHANNEL) as BeaconSender,
@@ -76,19 +71,10 @@ implementation
 	App.BeaconSend -> BeaconSender;
 	App.BeaconReceive -> BeaconReceiver;
 
-	components FakeMessageGeneratorP;
-	App.FakeMessageGenerator -> FakeMessageGeneratorP;
-
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
 
 	components
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
-
-	components
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances,
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
-	App.SourceDistances -> SourceDistances;
-	App.SinkSourceDistances -> SinkSourceDistances;
 }

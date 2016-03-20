@@ -77,13 +77,11 @@ class Simulation(object):
         self.wireless_range = args.distance
         self.latest_node_start_time = args.latest_node_start_time
 
-        self._create_nodes(configuration.topology.nodes)
-
-
         # Cache the number of ticks per second.
         # This value should not change throughout the simulation's execution
         self._ticks_per_second = self.tossim.ticksPerSecond()
 
+        self._create_nodes(configuration.topology.nodes)
 
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
@@ -92,6 +90,8 @@ class Simulation(object):
             # is used when no safety period makes sense. This upper bound is the
             # time it would have otherwise taken the attacker to scan the whole network.
             self.safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+
+        self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
 
         if args.mode == "GUI" or args.verbose:
             self.tossim.addChannel("stdout", sys.stdout)
@@ -188,11 +188,11 @@ class Simulation(object):
 
         self.metrics.event_count = event_count
 
-    def continue_predicate(self, time):
+    def continue_predicate(self):
         """Specifies if the simulator run loop should continue executing."""
         # For performance reasons do not do anything expensive in this function,
         # that includes simple things such as iterating or calling functions.
-        return not self.attacker_found_source and (self.safety_period is None or time < self.safety_period)
+        return not self.attacker_found_source
 
     def run(self):
         """Run the simulator loop."""
@@ -200,7 +200,8 @@ class Simulation(object):
         try:
             self._pre_run()
 
-            event_count = self.tossim.runAllEvents(self.continue_predicate, self._during_run)
+            event_count = self.tossim.runAllEventsWithMaxTime(
+                self.safety_period_value, self.continue_predicate, self._during_run)
         finally:
             self._post_run(event_count)
 
@@ -209,7 +210,7 @@ class Simulation(object):
         Sets the boot time of the given node to be at a
         random time between 0 and self.latest_node_start_time seconds.
         """
-        start_time = int(random.uniform(0, self.latest_node_start_time) * self.tossim.ticksPerSecond())
+        start_time = int(random.uniform(0, self.latest_node_start_time) * self._ticks_per_second)
         node.tossim_node.bootAtTime(start_time)
 
     @staticmethod

@@ -817,7 +817,7 @@ implementation
 		case TempFakeNode:
 		case TailFakeNode:
 		case PermFakeNode: x_receive_Beacon(rcvd, source_addr); break;
-	RECEIVE_MESSAGE_END(Fake)
+	RECEIVE_MESSAGE_END(Beacon)
 
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
@@ -851,7 +851,7 @@ implementation
 	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
 	{
 		ChooseMessage message = *original_message;
-		am_addr_t target = fake_walk_target();
+		const am_addr_t target = fake_walk_target();
 
 		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
 

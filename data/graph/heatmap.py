@@ -63,7 +63,8 @@ class Grapher(GrapherBase):
         self._write_plot_data(dir_name, configuration, dat)
 
         with open(os.path.join(dir_name, 'graph.gp'), 'w') as graph_p:
-        
+            graph_p.write('#!/usr/bin/gnuplot\n')
+
             graph_p.write('set terminal pdf enhanced\n')
             graph_p.write('set output "graph.pdf" \n')
                
@@ -73,7 +74,7 @@ class Grapher(GrapherBase):
             #graph_p.write('set title "Heat Map of Messages Sent"\n')
             graph_p.write('unset key\n')
             #graph_p.write('set size ratio 0.5\n')
-            graph_p.write('set tic scale 0\n')
+            #graph_p.write('set tic scale 0\n')
             
             graph_p.write('set xlabel "X Coordinate"\n')
             graph_p.write('set ylabel "Y Coordinate"\n')
@@ -84,11 +85,10 @@ class Grapher(GrapherBase):
             graph_p.write('set xrange [{}:{}]\n'.format(minx, maxx))
             graph_p.write('set xtics auto\n')
 
-            graph_p.write('set yrange [{}:{}] reverse\n'.format(miny, maxy))
+            graph_p.write('set yrange [:] reverse\n'.format(miny, maxy))
             graph_p.write('set ytics auto\n')
 
-            
-            graph_p.write('set cbrange []\n')
+            graph_p.write('set cbrange [:]\n')
             graph_p.write('set cblabel "{}"\n'.format(self.result_name.title()))
 
             graph_p.write('set dgrid3d {0},{0}\n'.format(size))
