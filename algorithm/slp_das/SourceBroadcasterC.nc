@@ -23,6 +23,7 @@
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
 #define SLOT_LOOP_DIST 4
+#define SEARCH_PERIOD 20
 
 module SourceBroadcasterC
 {
@@ -74,6 +75,8 @@ implementation
     bool start = TRUE;
     bool slot_active = FALSE;
     bool start_loop = FALSE;
+
+    uint32_t period_count = 0;
 
     typedef enum
 	{
@@ -219,7 +222,6 @@ implementation
         if(type == SinkNode)
         {
             int i;
-            SearchMessage msg;
             for(i=0; i<neighbours.count; i++)
             {
                 NeighbourList_add(&n_info, neighbours.ids[i], BOT, BOT);
@@ -230,10 +232,6 @@ implementation
             slot = get_tdma_num_slots(); //Delta
             NeighbourList_add(&n_info, TOS_NODE_ID, 0, get_tdma_num_slots()); //Delta
             NeighbourList_add(&onehop, TOS_NODE_ID, 0, get_tdma_num_slots());
-
-            msg.source_id = TOS_NODE_ID;
-            msg.dist = get_loop_dist();
-            send_Search_message(&msg, AM_BROADCAST_ADDR);
         }
         else
         {
@@ -294,6 +292,16 @@ implementation
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
     }
 
+    void init_search()
+    {
+        SearchMessage msg;
+        assert(type == SinkNode);
+        msg.source_id = TOS_NODE_ID;
+        msg.dist = get_loop_dist();
+        send_Search_message(&msg, AM_BROADCAST_ADDR);
+        simdbg("stdout", "Sent search.\n");
+    }
+
 	task void send_message_normal()
 	{
 		NormalMessage* message;
@@ -326,7 +334,14 @@ implementation
     event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
-        if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
+        period_count++;
+        if(period_count == SEARCH_PERIOD)
+        {
+            if(type == SinkNode) init_search();
+            call DissemTimer.startOneShot(get_dissem_period());
+            return;
+        }
+        if(slot != BOT) send_dissem();
         process_dissem();
         call PreSlotTimer.startOneShot(get_dissem_period());
     }
@@ -440,6 +455,7 @@ implementation
     void x_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
+        OtherInfo* other_info;
         METRIC_RCV_DISSEM(rcvd);
         IDList_add(&neighbours, source_addr);
         NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
@@ -460,10 +476,19 @@ implementation
                 }
             }
         }
-
+        //TODO: Cheap hack to ensure parent's neighbourhood is stored for SearchMessages
+        other_info = OtherList_get(&others, source_addr);
+        if(other_info != NULL)
+        {
+            for(i = 0; i<rcvd->N.count; i++)
+            {
+                IDList_add(&(other_info->N), rcvd->N.info[i].id);
+            }
+        }
         for(i = 0; i<rcvd->N.count; i++)
         {
             NeighbourList_add_info(&n_info, rcvd->N.info[i]);
+
         }
     }
 
@@ -489,21 +514,30 @@ implementation
     void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)
     {
         OtherInfo* other_info = OtherList_get(&others, parent);
+        simdbg("stdout", "Received search.\n");
         if(rcvd->dist == 0)
         {
             start_loop = TRUE;
+            simdbg("stdout", "Started loop.\n");
         }
         else if(other_info == NULL)
         {
             simdbg("stdout", "Received search message but other_info was NULL.\n");
             return;
         }
-        else if((rcvd->dist>0) && (parent == source_addr) && (rank(&(other_info->N), parent) == 1))
+        else if((rcvd->dist>0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == 1)) //TODO: i instead of j
         {
             SearchMessage msg;
+            int new_dist = rcvd->dist - hop;
             msg.source_id = TOS_NODE_ID;
-            msg.dist = rcvd->dist - hop;
+            msg.dist = (new_dist<0) ? 0 : new_dist;
             send_Search_message(&msg, AM_BROADCAST_ADDR);
+            simdbg("stdout", "Sent search message again.\n");
+        }
+        else
+        {
+            simdbg("stdout", "Search message none were true.\n");
+            simdbg("stdout", "rcvd->dist=%u, (parent==source_addr)=%d, rank=%u\n", rcvd->dist, (parent==source_addr), rank(&(other_info->N), TOS_NODE_ID));
         }
     }
 
