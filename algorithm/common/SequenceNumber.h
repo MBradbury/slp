@@ -3,6 +3,7 @@
 
 typedef uint32_t SequenceNumber;
 typedef nx_uint32_t NXSequenceNumber;
+typedef int64_t SequenceNumberWithBottom;
 
 inline void sequence_number_init(SequenceNumber* seqno) __attribute__((nonnull(1)))
 {
