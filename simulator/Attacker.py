@@ -22,6 +22,7 @@ class Attacker(object):
         self.position = None
         self._has_found_source = None
         self.moves = None
+        self.ident = None
 
         # Metric initialisation from here onwards
         self.steps_towards = {}
@@ -29,8 +30,9 @@ class Attacker(object):
 
         self.min_source_distance = {}
 
-    def setup(self, sim, start_node_id):
+    def setup(self, sim, start_node_id, ident):
         self._sim = sim
+        self.ident = ident
 
         out = OutputCatcher(self.process)
         out.register(self._sim, 'Attacker-RCV')
@@ -135,7 +137,7 @@ class Attacker(object):
 
         (x, y) = self._sim.node_location(node_id)
 
-        shape_id = "attacker"
+        shape_id = "attacker{}".format(self.ident)
 
         color = '1,0,0'
 
@@ -364,6 +366,6 @@ def eval_input(source):
         raise RuntimeError("The source ({}) is not valid. (Did you forget the brackets after the name?)".format(source))
 
     if not isinstance(result, Attacker):
-        raise RuntimeError("The source ({}) is not valid.".format(source))
+        raise RuntimeError("The source ({}) is not a valid instance of an Attacker.".format(source))
 
     return result
