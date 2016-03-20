@@ -35,6 +35,7 @@ class Analyzer(AnalyzerCommon):
         d['choose']             = lambda x: AnalyzerCommon._format_results(x, 'ChooseSent')
         d['fake']               = lambda x: AnalyzerCommon._format_results(x, 'FakeSent')
         d['beacon']             = lambda x: AnalyzerCommon._format_results(x, 'BeaconSent')
+        d['dummy normal']       = lambda x: AnalyzerCommon._format_results(x, 'DummyNormalSent')
         d['tfs']                = lambda x: AnalyzerCommon._format_results(x, 'TFS')
         d['pfs']                = lambda x: AnalyzerCommon._format_results(x, 'PFS')
         d['tailfs']             = lambda x: AnalyzerCommon._format_results(x, 'TailFS')

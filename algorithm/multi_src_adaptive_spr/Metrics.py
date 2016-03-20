@@ -79,6 +79,7 @@ class Metrics(MetricsCommon):
         d["ChooseSent"]             = lambda x: x.number_sent("Choose")
         d["AwaySent"]               = lambda x: x.number_sent("Away")
         d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
+        d["DummyNormalSent"]        = lambda x: x.number_sent("DummyNormal")
         d["TFS"]                    = lambda x: x.tfs_created
         d["PFS"]                    = lambda x: x.pfs_created
         d["TailFS"]                 = lambda x: x.tailfs_created
