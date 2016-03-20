@@ -1,5 +1,5 @@
 import argparse
-from algorithm.common.ArgumentsCommon import ArgumentsCommon
+from simulator.ArgumentsCommon import ArgumentsCommon
 
 def restricted_float(x):
     x = float(x)

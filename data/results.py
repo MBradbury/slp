@@ -5,6 +5,7 @@ import csv, math, ast
 from functools import partial
 import numpy
 
+import simulator.common
 from simulator import Configuration, SourcePeriodModel
 
 class Results(object):
@@ -14,8 +15,7 @@ class Results(object):
 
         self.data = {}
 
-        from algorithm.common.CommandLineCommon import CLI
-        self.global_parameter_names = CLI.global_parameter_names[:-1]
+        self.global_parameter_names = simulator.common.global_parameter_names[:-1]
 
         for param in self.global_parameter_names:
             setattr(self, self.name_to_attr(param), set())

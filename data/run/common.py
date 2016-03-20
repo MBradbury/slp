@@ -3,7 +3,7 @@ import os, sys, math
 from collections import OrderedDict
 
 from data import results
-from algorithm.common.CommandLineCommon import CLI as CommandLineCommon
+import simulator.common
 
 class RunSimulationsCommon(object):
     optimisations = '-OO'
@@ -92,7 +92,7 @@ class RunSimulationsCommon(object):
 
         key = []
 
-        for name in CommandLineCommon.global_parameter_names:
+        for name in simulator.common.global_parameter_names:
             value = str(arguments[argument_names.index(name)])
 
             key.append(value)
@@ -109,7 +109,7 @@ class RunSimulationsCommon(object):
     def _load_existing_results(self, argument_names):
         results_summary = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=argument_names[len(CommandLineCommon.global_parameter_names):],
+            parameters=argument_names[len(simulator.common.global_parameter_names):],
             results=('repeats',))
 
         # (size, config, attacker_model, noise_model, communication_model, distance, period) -> repeats

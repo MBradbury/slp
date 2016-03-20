@@ -6,11 +6,11 @@ import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
 
-from algorithm.common.CommandLineCommon import CLI as CommandLineCommon
+import simulator.common
 
 class Grapher(GrapherBase):
 
-    _key_names_base = CommandLineCommon.global_parameter_names
+    _key_names_base = simulator.common.global_parameter_names
 
     def __init__(self, output_directory, result_name,
                  xaxis, yaxis, vary, yextractor=None):
