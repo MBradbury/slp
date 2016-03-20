@@ -17,7 +17,7 @@ typedef nx_struct NormalMessage {
 
   nx_int16_t sink_source_distance;
 
-  nx_uint32_t fake_sequence_number;
+  NXSequenceNumber fake_sequence_number;
   nx_uint32_t fake_sequence_increments;
 
 } NormalMessage;
