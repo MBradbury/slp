@@ -41,6 +41,7 @@ class ResultTable(object):
                 "long walk length": ("Long Walk Length", "(hops)"),
                 "captured": ("Cap", "(\\%)"),
                 "fake": ("Fake", "Messages"),
+                "dummy normal": ("Dummy Normal", "Messages"),
                 "received ratio": ("Received", "(\\%)"),
                 "tfs": ("TFS", "~"),
                 "pfs": ("PFS", "~"),
@@ -97,7 +98,7 @@ class ResultTable(object):
             return "${:.2f}$".format(value)
         elif name in {"received ratio", "ssd"}:
             return "${:.1f} \\pm {:.1f}$".format(value[0], value[1])
-        elif name == "fake":
+        elif name in {"sent", "fake", "dummy normal"}:
             return "${:.0f} \\pm {:.0f}$".format(value[0], value[1])
         elif name == "normal latency":
             return "${:.0f} \\pm {:.0f}$".format(value[0], value[1])
