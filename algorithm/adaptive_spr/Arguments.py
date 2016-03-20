@@ -1,5 +1,5 @@
 import argparse
-from algorithm.common.ArgumentsCommon import ArgumentsCommon
+from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.MobilityModel
 
 approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]

@@ -1,6 +1,8 @@
 from __future__ import print_function
 import os, sys, datetime
 
+import simulator.common
+
 import simulator.Configuration as Configuration
 
 from data import results, latex
@@ -18,11 +20,7 @@ class TooManyArgumentsFound(RuntimeError):
 
 class CLI(object):
 
-    # Parameters that all simulations must have
-    # The source period must come last
-    global_parameter_names = ['network size', 'configuration',
-                              'attacker model', 'noise model',
-                              'communication model', 'distance', 'source period']
+    global_parameter_names = simulator.common.global_parameter_names
 
     # Parameters unique to each simulation
     # Classes that derive from this should assign this variable
