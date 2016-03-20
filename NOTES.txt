@@ -1,0 +1,11 @@
+This file contains some important notes that it is useful to be aware of.
+
+
+
+=Message Size=
+
+The default maximum message size is fixed as a compile-time macro.
+
+TOSSIM will calculate something based on the length of a message, irrespective of
+the compile-time maximum size. So if a message size changes size, do not expect
+a simulation seed to produce the same results.
