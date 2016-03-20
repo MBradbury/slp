@@ -193,7 +193,7 @@ implementation
 	uint32_t get_dist_to_pull_back(void)
 	{
 		// PB_FIXED2_APPROACH worked quite well, so lets stick to it
-		return 2;
+		return 1;
 	}
 
 	double inclination_angle_rad(am_addr_t source_id)
@@ -398,7 +398,11 @@ implementation
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const double period = duration / (double)msg;
 
-		uint32_t result_period = (uint32_t)ceil(period);
+		// Could be too early for the TFS to get this info.
+		// If it doesn't know it, lets assume something pessimistic.
+		const double fake_rcv_ratio_at_src = sink_distance <= 3 ? get_sources_Fake_receive_ratio() : 0.5;
+
+		uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src);
 
 		simdbg("stdout", "get_tfs_period=%u\n", result_period);
 
@@ -490,35 +494,6 @@ implementation
 		}
 
 		return FALSE;
-	}
-
-	int within_any_sink_source_distance(void)
-	{
-		const am_addr_t* iter;
-		const am_addr_t* const start = call SourceDistances.beginKeys();
-		const am_addr_t* const end = call SourceDistances.endKeys();
-
-		int result = -1;
-
-		for (iter = start; iter != end; ++iter)
-		{
-			const uint16_t source_distance = *call SourceDistances.get_from_iter(iter);
-			const uint16_t* sink_source_distance = call SinkSourceDistances.get(*iter);
-
-			if (sink_source_distance != NULL)
-			{
-				if (source_distance <= *sink_source_distance)
-				{
-					return 1;
-				}
-			}
-			else
-			{
-				result = 0; // Unknown
-			}
-		}
-
-		return result;
 	}
 
 	am_addr_t fake_walk_target(void)
@@ -861,7 +836,7 @@ implementation
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (is_neighbour_closer_to_source(source_addr) && within_any_sink_source_distance() != -1)
+			if (is_neighbour_closer_to_source(source_addr))
 			{
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}
@@ -908,7 +883,7 @@ implementation
 				call AwaySenderTimer.startOneShot(get_away_delay());
 			}
 
-			if (is_neighbour_closer_to_source(source_addr) && within_any_sink_source_distance() != -1)
+			if (is_neighbour_closer_to_source(source_addr))
 			{
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}	
@@ -1110,9 +1085,13 @@ implementation
 
 			//forwarding_message.min_sink_source_distance = min_sink_source_distance;
 
-			if (!is_neighbour_closer_to_source(source_addr) || within_any_sink_source_distance() == -1)
+			if (!is_neighbour_closer_to_source(source_addr))
 			{
 				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}
+			else
+			{
+				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}
 		}
 	}
@@ -1131,9 +1110,13 @@ implementation
 
 			//forwarding_message.min_sink_source_distance = min_sink_source_distance;
 
-			if (!is_neighbour_closer_to_source(source_addr) || within_any_sink_source_distance() == -1)
+			if (!is_neighbour_closer_to_source(source_addr))
 			{
 				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}
+			else
+			{
+				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}
 		}
 
