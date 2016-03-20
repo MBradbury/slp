@@ -317,9 +317,8 @@ implementation
 	{
 		const am_addr_t* iter;
 		const am_addr_t* end;
-		double factor = 1.0;
+		double factor = 0;
 		double intermediate_angle;
-		double non_interference;
 
 		for (iter = call SourceDistances.beginKeys(), end = call SourceDistances.endKeys(); iter != end; ++iter)
 		{
@@ -336,13 +335,10 @@ implementation
 
 			simdbg_clear("Metric-Angle", "%u,%u,%u,%f\n", TOS_NODE_ID, source_id, *iter, intermediate_angle);
 
-			// When cooperating this will be 1, when completely interfering this will be 0
-			non_interference = 1.0 - (intermediate_angle / M_PI);
-
-			factor *= non_interference;
+			factor = max(factor, intermediate_angle);
 		}
 
-		return factor;
+		return 1.0 - (factor / M_PI);
 	}
 
 	double sources_considering_angles(void)
@@ -489,38 +485,40 @@ implementation
 
 				// If this neighbours closest source is further than our closest source,
 				// then we want to consider them for the next fake source.
-				if (neighbour->contents.min_source_distance < min_source_distance)
-				{
-					return TRUE;
-				}
-				else
-				{
-					return FALSE;
-				}
+				return neighbour->contents.min_source_distance < min_source_distance;
 			}
 		}
 
 		return FALSE;
 	}
 
-	bool not_within_any_sink_source_distance(void)
+	int within_any_sink_source_distance(void)
 	{
 		const am_addr_t* iter;
 		const am_addr_t* const start = call SourceDistances.beginKeys();
 		const am_addr_t* const end = call SourceDistances.endKeys();
+
+		int result = -1;
 
 		for (iter = start; iter != end; ++iter)
 		{
 			const uint16_t source_distance = *call SourceDistances.get_from_iter(iter);
 			const uint16_t* sink_source_distance = call SinkSourceDistances.get(*iter);
 
-			if (sink_source_distance != NULL && source_distance <= *sink_source_distance)
+			if (sink_source_distance != NULL)
 			{
-				return FALSE;
+				if (source_distance <= *sink_source_distance)
+				{
+					return 1;
+				}
+			}
+			else
+			{
+				result = 0; // Unknown
 			}
 		}
 
-		return TRUE;
+		return result;
 	}
 
 	am_addr_t fake_walk_target(void)
@@ -863,7 +861,7 @@ implementation
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (is_neighbour_closer_to_source(source_addr) && !not_within_any_sink_source_distance())
+			if (is_neighbour_closer_to_source(source_addr) && within_any_sink_source_distance() != -1)
 			{
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}
@@ -910,7 +908,7 @@ implementation
 				call AwaySenderTimer.startOneShot(get_away_delay());
 			}
 
-			if (is_neighbour_closer_to_source(source_addr) && !not_within_any_sink_source_distance())
+			if (is_neighbour_closer_to_source(source_addr) && within_any_sink_source_distance() != -1)
 			{
 				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
 			}	
@@ -1092,6 +1090,9 @@ implementation
 			source_fake_sequence_increments += 1;
 
 			METRIC_RCV_FAKE(rcvd);
+
+			// Do not want source nodes to forward fake messages, as that would lead
+			// attackers to be drawn towards them!
 		}
 	}
 
@@ -1109,11 +1110,9 @@ implementation
 
 			//forwarding_message.min_sink_source_distance = min_sink_source_distance;
 
-			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
-
-			if (is_neighbour_closer_to_source(source_addr) && !not_within_any_sink_source_distance())
+			if (!is_neighbour_closer_to_source(source_addr) || within_any_sink_source_distance() == -1)
 			{
-				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
+				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
 		}
 	}
@@ -1132,13 +1131,7 @@ implementation
 
 			//forwarding_message.min_sink_source_distance = min_sink_source_distance;
 
-			//send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
-
-			if (is_neighbour_closer_to_source(source_addr) && !not_within_any_sink_source_distance())
-			{
-				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
-			}
-			else
+			if (!is_neighbour_closer_to_source(source_addr) || within_any_sink_source_distance() == -1)
 			{
 				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
