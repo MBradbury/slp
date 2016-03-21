@@ -7,7 +7,8 @@ enum Channels
 {
 	NORMAL_CHANNEL = 1,
     DISSEM_CHANNEL = 2,
-    SEARCH_CHANNEL = 3
+    SEARCH_CHANNEL = 3,
+    LOOP_CHANNEL = 4
 };
 
 #define SLP_MAX_NUM_SOURCES 1

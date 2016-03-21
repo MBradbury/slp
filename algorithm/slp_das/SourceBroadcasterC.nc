@@ -5,6 +5,7 @@
 #include "NormalMessage.h"
 #include "DissemMessage.h"
 #include "SearchMessage.h"
+#include "LoopMessage.h"
 
 #include "utils.h"
 
@@ -52,6 +53,9 @@ module SourceBroadcasterC
 
     uses interface AMSend as SearchSend;
     uses interface Receive as SearchReceive;
+
+    uses interface AMSend as LoopSend;
+    uses interface Receive as LoopReceive;
 
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
@@ -216,6 +220,7 @@ implementation
 	USE_MESSAGE(Normal);
     USE_MESSAGE(Dissem);
     USE_MESSAGE(Search);
+    USE_MESSAGE(Loop);
 
     void init()
     {
@@ -476,7 +481,7 @@ implementation
                 }
             }
         }
-        //TODO: Cheap hack to ensure parent's neighbourhood is stored for SearchMessages
+        //XXX: Cheap hack to ensure parent's neighbourhood is stored for SearchMessages
         other_info = OtherList_get(&others, source_addr);
         if(other_info != NULL)
         {
