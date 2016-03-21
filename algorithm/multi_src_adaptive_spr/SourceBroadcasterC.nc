@@ -398,7 +398,7 @@ implementation
 
 		// Could be too early for the TFS to get this info.
 		// If it doesn't know it, lets assume something pessimistic.
-		const double fake_rcv_ratio_at_src = sink_distance <= 3 ? get_sources_Fake_receive_ratio() : 0.5;
+		const double fake_rcv_ratio_at_src = sink_distance <= 3 ? get_sources_Fake_receive_ratio() : 0.60;
 
 		uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src);
 
@@ -409,9 +409,9 @@ implementation
 
 	uint32_t get_pfs_period(void)
 	{
-		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
-
 		const double est_num_sources = sources_considering_angles();
+
+		const double fake_rcv_ratio_at_src = est_num_sources < estimated_number_of_sources() ? 1.0 : get_sources_Fake_receive_ratio();
 
 		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
 
@@ -432,7 +432,14 @@ implementation
 
 	uint32_t dummy_normal_send_wait(void)
 	{
-		return 25U + (uint32_t)(50U * random_float());
+		if (sink_distance == BOTTOM)
+		{
+			return 25U + (uint32_t)(50U * random_float());
+		}
+		else
+		{
+			return 25U + (3 * 6 * sink_distance);
+		}
 	}
 
 	void find_neighbours_further_from_source(distance_neighbours_t* local_neighbours)
