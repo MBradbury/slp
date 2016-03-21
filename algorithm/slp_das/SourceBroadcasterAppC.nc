@@ -26,14 +26,12 @@ implementation
 
     // Timers
     components
-        /*new TimerMilliC() as BroadcastTimer,*/
         new TimerMilliC() as DissemTimer,
         new TimerMilliC() as EnqueueNormalTimer,
         new TimerMilliC() as PreSlotTimer,
         new TimerMilliC() as SlotTimer,
         new TimerMilliC() as PostSlotTimer;
 
-    /*App.BroadcastTimer -> BroadcastTimer;*/
     App.DissemTimer -> DissemTimer;
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
     App.PreSlotTimer -> PreSlotTimer;
@@ -64,6 +62,13 @@ implementation
 
     App.SearchSend -> SearchSender;
     App.SearchReceive ->SearchReceiver;
+
+    components
+        new AMSenderC(LOOP_CHANNEL) as LoopSender,
+        new AMReceiverC(LOOP_CHANNEL) as LoopReceiver;
+
+    App.LoopSend -> LoopSender;
+    App.LoopReceive -> LoopReceiver;
 
     // Message Queue
     components
