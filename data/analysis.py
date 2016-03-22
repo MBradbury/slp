@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
-from numpy import mean
+import numpy
+from numpy import mean, median
 from numpy import var as variance
 
 import sys, ast, math, os, fnmatch, timeit, datetime, collections, traceback
@@ -80,6 +81,7 @@ class Analyse(object):
 
         self.headings = []
         self.data = []
+        self.columns = {}
 
         self._unnormalised_headings_count = None
 
@@ -108,6 +110,8 @@ class Analyse(object):
 
                     self.headings.extend(_normalised_value_names(normalised_values))
 
+                    self.columns = {heading: list() for heading in self.headings}
+
                 elif '|' in line:
                     try:
                         # Read the actual data
@@ -124,7 +128,10 @@ class Analyse(object):
 
                             values.append(num_value / den_value)
 
-                        self.data.append(values)
+                        #self.data.append(values)
+
+                        for (name, value) in zip(self.headings, values):
+                            self.columns[name].append(value)
 
                     except (TypeError, RuntimeError, SyntaxError) as e:
                         print("Unable to process line {} due to {}".format(line_number, e), file=sys.stderr)
@@ -249,16 +256,13 @@ class Analyse(object):
         attacker_distance_index = self.headings.index("AttackerDistance")
         attacker_distance = values[attacker_distance_index]
 
-        def is_close(x, y, rtol=1.e-5, atol=1.e-8):
-            return abs(x-y) <= atol + rtol * abs(y)
-
         # Handle two sorts of attacker distance dicts
         # 1. {attacker_id: distance}
         # 2. {(source_id, attacker_id): distance}}
         any_at_source = any(
-            is_close(dist, 0.0) if isinstance(dist, Number) else any(is_close(v, 0.0) for (k, v) in dist.items())
-            for (attacker, dist)
-            in attacker_distance.items()
+            numpy.isclose(dist, 0.0) if isinstance(dist, Number) else any(numpy.isclose(v, 0.0) for (k, v) in dist.items())
+            for dist
+            in attacker_distance.values()
         )
 
         if captured != any_at_source:
@@ -294,42 +298,50 @@ class Analyse(object):
             return float(value)
 
     def average_of(self, header):
-        # Find the index that header refers to
-        index = self.headings.index(header)
+        values = self.columns[header]
 
-        if isinstance(self.data[0][index], dict):
-            return self.dict_mean(index)
+        if isinstance(values[0], dict):
+            return self.dict_mean(values)
         else:
-            # Some values may be inf, if they are lets ignore
-            # the values that were inf.
-            values = [self._to_float(values[index]) for values in self.data]
-            filtered = [x for x in values if not math.isinf(x)]
+            # Some values may be inf, if they are lets ignore the values that were inf.
+            filtered = [x for x in (self._to_float(value) for value in values) if not math.isinf(x)]
 
-            # Unless all the values are inf, when we should probably pass this
-            # fact onwards.
+            # Unless all the values are inf, when we should probably pass this fact onwards.
             if len(filtered) != 0:
                 return mean(filtered)
             else:
                 return float('inf')
 
     def variance_of(self, header):
-        # Find the index that header refers to
-        index = self.headings.index(header)
+        values = self.columns[header]
 
-        if isinstance(self.data[0][index], dict):
+        if isinstance(values[0], dict):
             raise NotImplementedError()
         else:
-            # Some values may be inf, if they are lets ignore
-            # the values that were inf.
-            values = [self._to_float(values[index]) for values in self.data]
-            filtered = [x for x in values if not math.isinf(x)]
+            # Some values may be inf, if they are lets ignore the values that were inf.
+            filtered = [x for x in (self._to_float(value) for value in values) if not math.isinf(x)]
 
-            # Unless all the values are inf, when we should probably pass this
-            # fact onwards.
+            # Unless all the values are inf, when we should probably pass this fact onwards.
             if len(filtered) != 0:
                 return variance(filtered)
             else:
                 return float('nan')
+
+    def median_of(self, header):
+        values = self.columns[header]
+
+        if isinstance(values[0], dict):
+            raise NotImplementedError()
+        else:
+            # Some values may be inf, if they are lets ignore the values that were inf.
+            filtered = [x for x in (self._to_float(value) for value in values) if not math.isinf(x)]
+
+            # Unless all the values are inf, when we should probably pass this fact onwards.
+            if len(filtered) != 0:
+                return median(values)
+            else:
+                return float('nan')
+
 
     @staticmethod
     def dict_sum(dics):
@@ -343,9 +355,7 @@ class Analyse(object):
         return result
 
 
-    def dict_mean(self, index):
-
-        dict_list = (values[index] for values in self.data)
+    def dict_mean(self, dict_list):
 
         result = {
             k: float(v) / len(self.data)
@@ -360,6 +370,7 @@ class AnalysisResults:
     def __init__(self, analysis):
         self.average_of = {}
         self.variance_of = {}
+        self.median_of = {}
 
         expected_fail = ['Collisions']
         
@@ -381,6 +392,8 @@ class AnalysisResults:
                 if heading not in expected_fail:
                     print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
                     #print(traceback.format_exc(), file=sys.stderr)
+
+        self.median_of['TimeTaken'] = analysis.average_of('TimeTaken')
 
         self.opts = analysis.opts
         self.data = analysis.data
@@ -429,7 +442,10 @@ class AnalyzerCommon(object):
                     return "None"
 
     def analyse_path(self, path):
-        return AnalysisResults(Analyse(path, self.normalised_values))
+        return Analyse(path, self.normalised_values)
+
+    def analyse_and_summarise_path(self, path):
+        return AnalysisResults(self.analyse_path)
 
     def run(self, summary_file):
         summary_file_path = os.path.join(self.results_directory, summary_file)
@@ -452,7 +468,7 @@ class AnalyzerCommon(object):
                 print('Analysing {0}'.format(path))
             
                 try:
-                    result = self.analyse_path(path)
+                    result = self.analyse_and_summarise_path(path)
                     
                     # Skip 0 length results
                     if len(result.data) == 0:

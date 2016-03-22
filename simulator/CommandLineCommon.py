@@ -192,6 +192,20 @@ class CLI(object):
 
         self._create_table(self.algorithm_module.name + "-time-taken", result_table)
 
+    def _run_time_taken_boxplot(self, args):
+        from data.graph import boxplot
+
+        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
+
+        grapher = boxplot.Grapher(os.path.join(self.algorithm_module.graphs_path, "boxplot"), "TimeTaken", self.parameter_names())
+        grapher.create(analyzer)
+
+        summary.GraphSummary(
+            os.path.join(self.algorithm_module.graphs_path, "boxplot"),
+            '{}-{}'.format(self.algorithm_module.name, "boxplot")
+        ).run()
+
+
     def _run_detect_missing(self, args):
         # TODO: Extend this to also handle missing results files
 
@@ -247,6 +261,9 @@ class CLI(object):
 
         if 'time-taken-table' in args:
             self._run_time_taken_table(args)
+
+        if 'time-taken-boxplot' in args:
+            self._run_time_taken_boxplot(args)
 
         if 'detect-missing' in args:
             self._run_detect_missing(args)
