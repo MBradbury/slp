@@ -80,7 +80,7 @@ class Analyse(object):
         self.opts = {}
 
         self.headings = []
-        self.data = []
+        #self.data = []
         self.columns = {}
 
         self._unnormalised_headings_count = None
@@ -139,7 +139,7 @@ class Analyse(object):
                 else:
                     print("Unable to parse line {} : '{}'".format(line_number, line))
 
-            if line_number == 0 or len(self.data) == 0:
+            if line_number == 0 or len(next(iter(self.columns))) == 0:
                 raise EmptyFileError(infile)
 
     def _get_configuration(self):
@@ -358,7 +358,7 @@ class Analyse(object):
     def dict_mean(self, dict_list):
 
         result = {
-            k: float(v) / len(self.data)
+            k: float(v) / len(dict_list)
             for (k, v)
             in self.dict_sum(dict_list).items()
         }
@@ -373,7 +373,7 @@ class AnalysisResults:
         self.median_of = {}
 
         expected_fail = ['Collisions']
-        
+
         for heading in analysis.headings:
             try:
                 self.average_of[heading] = analysis.average_of(heading)
@@ -396,10 +396,11 @@ class AnalysisResults:
         self.median_of['TimeTaken'] = analysis.average_of('TimeTaken')
 
         self.opts = analysis.opts
-        self.data = analysis.data
+        #self.data = analysis.data
+        self.columns = analysis.columns
 
     def number_of_repeats(self):
-        return len(self.data)
+        return len(next(iter(self.columns)))
 
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values, normalised_values=tuple()):
@@ -445,7 +446,7 @@ class AnalyzerCommon(object):
         return Analyse(path, self.normalised_values)
 
     def analyse_and_summarise_path(self, path):
-        return AnalysisResults(self.analyse_path)
+        return AnalysisResults(self.analyse_path(path))
 
     def run(self, summary_file):
         summary_file_path = os.path.join(self.results_directory, summary_file)
@@ -471,7 +472,7 @@ class AnalyzerCommon(object):
                     result = self.analyse_and_summarise_path(path)
                     
                     # Skip 0 length results
-                    if len(result.data) == 0:
+                    if result.number_of_repeats() == 0:
                         print("Skipping as there is no data.")
                         continue
 
