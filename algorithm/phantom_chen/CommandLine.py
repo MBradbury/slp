@@ -13,7 +13,7 @@ from simulator import Configuration
 from data import results
 
 from data.table import safety_period, fake_result
-from data.graph import summary, heatmap, versus, min_max_versus
+from data.graph import summary, versus
 from data.util import scalar_extractor
 
 from data.run.common import RunSimulationsCommon
@@ -187,24 +187,12 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
         }
 
-        heatmap_results = ['sent heatmap', 'received heatmap']
-
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys() + heatmap_results),
+            results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
-        )    
-
-        for name in heatmap_results:
-            g = heatmap.Grapher(self.algorithm_module.graphs_path, phantom_results, name)
-            g.palette = "defined(0 'white', 1 'black')"
-            g.create()
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                self.algorithm_module.name + '-' + name.replace(" ", "_")
-            ).run()
+        )
 
         parameters = [
             ('source period', ' seconds'),
@@ -235,6 +223,47 @@ class CLI(CommandLineCommon.CLI):
                     self.algorithm_module.name + '-' + name
                 ).run()
 
+    def _run_scatter_graph(self, args):
+        from data.graph import scatter
+
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+        }
+
+        phantom_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.local_parameter_names,
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation="NumSources"
+        )
+
+        combine = ["short walk length", "long walk length"]
+
+        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+
+            name = '{}-comb-{}'.format(yaxis.replace(" ", "_"), "=".join(combine).replace(" ", "-"))
+
+            g = scatter.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis='network size', yaxis=yaxis, combine=combine,
+                yextractor=scalar_extractor
+            )
+
+            g.xaxis_label = 'Network Size'
+            g.yaxis_label = yaxis_label
+            g.key_position = key_position
+
+            g.create(phantom_results)
+
+            summary.GraphSummary(
+                self.algorithm_module.graphs_path,
+                self.algorithm_module.name + '-' + name
+            ).run()
+
     def run(self, args):
         super(CLI, self).run(args)
 
@@ -243,3 +272,6 @@ class CLI(CommandLineCommon.CLI):
 
         if 'graph' in args:
             self._run_graph(args)
+
+        if 'scatter-graph' in args:
+            self._run_scatter_graph(args)
