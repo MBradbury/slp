@@ -67,4 +67,4 @@ class Analyzer(AnalyzerCommon):
         return d
 
     #def analyse_path(self, path):
-    #    return AnalysisResults(AnalyseWithOutlierDetection(path))
+    #    return AnalyseWithOutlierDetection(path)

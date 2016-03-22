@@ -55,6 +55,7 @@ class Analyzer(AnalyzerCommon):
         d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
         d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
+        d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
         d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
@@ -74,7 +75,7 @@ class Analyzer(AnalyzerCommon):
         return d
 
     #def analyse_path(self, path):
-    #    return AnalysisResults(AnalyseWithOutlierDetection(path))
+    #    return AnalyseWithOutlierDetection(path)
 
     @staticmethod
     def _correct_attacker_distance(x):
