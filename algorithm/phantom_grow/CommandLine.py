@@ -2,7 +2,7 @@ from __future__ import print_function, division
 
 import os.path, itertools
 
-from algorithm.common import CommandLineCommon
+from simulator import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 

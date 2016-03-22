@@ -171,10 +171,10 @@ class MetricsCommon(object):
 
     def attacker_source_distance(self):
         return {
-            (source_id, i): self.sim.node_distance(source_id, attacker.position)
+            (source_id, attacker.ident): self.sim.node_distance(source_id, attacker.position)
 
-            for i, attacker
-            in enumerate(self.sim.attackers)
+            for attacker
+            in self.sim.attackers
 
             for source_id
             in self.source_ids
@@ -182,10 +182,10 @@ class MetricsCommon(object):
 
     def attacker_sink_distance(self):
         return {
-            (sink_id, i): self.sim.node_distance(sink_id, attacker.position)
+            (sink_id, attacker.ident): self.sim.node_distance(sink_id, attacker.position)
 
-            for i, attacker
-            in enumerate(self.sim.attackers)
+            for attacker
+            in self.sim.attackers
 
             for sink_id
             in self.sink_ids
@@ -193,17 +193,17 @@ class MetricsCommon(object):
 
     def attacker_moves(self):
         return {
-            i: attacker.moves
-            for i, attacker
-            in enumerate(self.sim.attackers)
+            attacker.ident: attacker.moves
+            for attacker
+            in self.sim.attackers
         }
 
     def attacker_steps_towards(self):
         return {
-            (source_id, i): attacker.steps_towards[source_id]
+            (source_id, attacker.ident): attacker.steps_towards[source_id]
 
-            for i, attacker
-            in enumerate(self.sim.attackers)
+            for attacker
+            in self.sim.attackers
 
             for source_id
             in self.source_ids
@@ -211,10 +211,10 @@ class MetricsCommon(object):
 
     def attacker_steps_away(self):
         return {
-            (source_id, i): attacker.steps_away[source_id]
+            (source_id, attacker.ident): attacker.steps_away[source_id]
 
-            for i, attacker
-            in enumerate(self.sim.attackers)
+            for attacker
+            in self.sim.attackers
 
             for source_id
             in self.source_ids
@@ -222,10 +222,10 @@ class MetricsCommon(object):
 
     def attacker_min_source_distance(self):
         return {
-            (source_id, i): attacker.min_source_distance[source_id]
+            (source_id, attacker.ident): attacker.min_source_distance[source_id]
 
-            for i, attacker
-            in enumerate(self.sim.attackers)
+            for attacker
+            in self.sim.attackers
 
             for source_id
             in self.source_ids

@@ -14,8 +14,6 @@ typedef nx_struct AwayChooseMessage {
   // as the known distance may be higher.
   nx_uint16_t sink_distance;
 
-  //nx_uint16_t min_sink_source_distance;
-
   nx_uint8_t algorithm;
 
 } AwayChooseMessage;
@@ -23,7 +21,7 @@ typedef nx_struct AwayChooseMessage {
 typedef AwayChooseMessage AwayMessage;
 typedef AwayChooseMessage ChooseMessage;
 
-inline int32_t AwayChoose_get_sequence_number(const AwayChooseMessage* msg) { return msg->sequence_number; }
+inline SequenceNumberWithBottom AwayChoose_get_sequence_number(const AwayChooseMessage* msg) { return msg->sequence_number; }
 inline int32_t AwayChoose_get_source_id(const AwayChooseMessage* msg) { return msg->source_id; }
 
 #define Away_get_sequence_number AwayChoose_get_sequence_number

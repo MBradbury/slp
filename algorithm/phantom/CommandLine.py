@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import os, itertools
 
-from algorithm.common import CommandLineCommon
+from simulator import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 

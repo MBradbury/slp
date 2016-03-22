@@ -31,10 +31,12 @@ implementation
 	components new TimerMilliC() as BroadcastNormalTimer;
 	components new TimerMilliC() as AwaySenderTimer;
 	components new TimerMilliC() as BeaconSenderTimer;
+	components new TimerMilliC() as DummyNormalSenderTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
 	App.BeaconSenderTimer -> BeaconSenderTimer;
+	App.DummyNormalSenderTimer -> DummyNormalSenderTimer;
 
 
 	// Networking
@@ -68,6 +70,13 @@ implementation
 
 	App.FakeSend -> FakeSender;
 	App.FakeReceive -> FakeReceiver;
+
+	components
+		new AMSenderC(DUMMYNORMAL_CHANNEL) as DummyNormalSender,
+		new AMReceiverC(DUMMYNORMAL_CHANNEL) as DummyNormalReceiver;
+
+	App.DummyNormalSend -> DummyNormalSender;
+	App.DummyNormalReceive -> DummyNormalReceiver;
 
 	components
 		new AMSenderC(BEACON_CHANNEL) as BeaconSender,

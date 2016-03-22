@@ -22,7 +22,7 @@ typedef nx_struct NormalMessage
 
 } NormalMessage;
 
-inline int32_t Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
+inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
 inline int32_t Normal_get_source_id(const NormalMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_NORMALMESSAGE_H

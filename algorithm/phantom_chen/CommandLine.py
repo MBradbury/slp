@@ -4,7 +4,7 @@ import os, itertools, math, datetime
 
 import numpy as np
 
-from algorithm.common import CommandLineCommon
+from simulator import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
