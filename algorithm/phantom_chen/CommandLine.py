@@ -94,7 +94,7 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    repeats = 500
+    repeats = 1000
 
     local_parameter_names = ('short walk length', 'long walk length')
 
