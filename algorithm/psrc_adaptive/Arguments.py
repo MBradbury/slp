@@ -1,5 +1,5 @@
 import argparse
-from algorithm.common.ArgumentsCommon import ArgumentsCommon
+from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 
 approaches = ["PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"]

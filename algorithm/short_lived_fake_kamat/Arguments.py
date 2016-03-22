@@ -1,5 +1,5 @@
 import argparse
-from algorithm.common.ArgumentsCommon import ArgumentsCommon
+from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.MobilityModel
 
 def restricted_float(x):

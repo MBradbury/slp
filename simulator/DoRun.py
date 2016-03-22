@@ -25,7 +25,7 @@ with Simulation(module, configuration, a.args) as sim:
     attacker = copy.deepcopy(a.args.attacker_model)
 
     # Setup each attacker model
-    attacker.setup(sim, configuration.sink_id)
+    attacker.setup(sim, configuration.sink_id, 0)
 
     sim.add_attacker(attacker)
 

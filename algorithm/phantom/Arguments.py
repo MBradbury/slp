@@ -1,5 +1,5 @@
 import argparse
-from algorithm.common.ArgumentsCommon import ArgumentsCommon
+from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 import simulator.Configuration as Configuration
