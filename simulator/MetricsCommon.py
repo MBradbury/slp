@@ -260,6 +260,10 @@ class MetricsCommon(object):
         return result
 
     @staticmethod
+    def smaller_dict_str(d):
+        return str(d).replace(": ", ":").replace(", ", ",")
+
+    @staticmethod
     def items():
         d = OrderedDict()
         d["Seed"]                          = lambda x: x.seed()
@@ -281,8 +285,8 @@ class MetricsCommon(object):
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["NodeWasSource"]                 = lambda x: x.node_was_source()
-        d["SentHeatMap"]                   = lambda x: x.sent_heat_map()
-        d["ReceivedHeatMap"]               = lambda x: x.received_heat_map()
+        d["SentHeatMap"]                   = lambda x: MetricsCommon.smaller_dict_str(x.sent_heat_map())
+        d["ReceivedHeatMap"]               = lambda x: MetricsCommon.smaller_dict_str(x.received_heat_map())
 
         return d
 
