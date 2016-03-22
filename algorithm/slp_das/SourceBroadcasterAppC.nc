@@ -26,20 +26,14 @@ implementation
 
     // Timers
     components
-        /*new TimerMilliC() as BroadcastTimer,*/
         new TimerMilliC() as DissemTimer,
-        new TimerMilliC() as InitTimer,
         new TimerMilliC() as EnqueueNormalTimer,
-        new TimerMilliC() as BeaconTimer,
         new TimerMilliC() as PreSlotTimer,
         new TimerMilliC() as SlotTimer,
         new TimerMilliC() as PostSlotTimer;
 
-    /*App.BroadcastTimer -> BroadcastTimer;*/
     App.DissemTimer -> DissemTimer;
-    App.InitTimer -> InitTimer;
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
-    App.BeaconTimer -> BeaconTimer;
     App.PreSlotTimer -> PreSlotTimer;
     App.SlotTimer -> SlotTimer;
     App.PostSlotTimer -> PostSlotTimer;
@@ -56,20 +50,6 @@ implementation
     App.NormalReceive -> NormalReceiver;
 
     components
-        new AMSenderC(DUMMY_NORMAL_CHANNEL) as DummyNormalSender,
-        new AMReceiverC(DUMMY_NORMAL_CHANNEL) as DummyNormalReceiver;
-
-    App.DummyNormalSend -> DummyNormalSender;
-    App.DummyNormalReceive -> DummyNormalReceiver;
-
-    /*components*/
-        /*new AMSenderC(BEACON_CHANNEL) as BeaconSender,*/
-        /*new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;*/
-
-    /*App.BeaconSend -> BeaconSender;*/
-    /*App.BeaconReceive -> BeaconReceiver;*/
-
-    components
         new AMSenderC(DISSEM_CHANNEL) as DissemSender,
         new AMReceiverC(DISSEM_CHANNEL) as DissemReceiver;
 
@@ -82,6 +62,13 @@ implementation
 
     App.SearchSend -> SearchSender;
     App.SearchReceive ->SearchReceiver;
+
+    components
+        new AMSenderC(LOOP_CHANNEL) as LoopSender,
+        new AMReceiverC(LOOP_CHANNEL) as LoopReceiver;
+
+    App.LoopSend -> LoopSender;
+    App.LoopReceive -> LoopReceiver;
 
     // Message Queue
     components

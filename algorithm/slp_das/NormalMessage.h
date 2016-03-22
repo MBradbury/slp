@@ -4,7 +4,7 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct NormalMessage {
-  nx_uint64_t sequence_number;
+  NXSequenceNumber sequence_number;
 
   // The number of hops that this message
   // has travelled from the source. 
