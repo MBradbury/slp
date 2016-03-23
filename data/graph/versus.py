@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-import os, itertools, math
+import os, itertools, math, collections
 
 import data.util
 from data import latex
@@ -25,7 +25,7 @@ class Grapher(GrapherBase):
 
         self.xaxis_label = xaxis
         self.yaxis_label = yaxis
-        self.vary_label =  vary
+        self.vary_label =  vary if not isinstance(vary, collections.Sequence) else "/".join(vary)
         self.vary_prefix = ''
 
         self.yaxis_range_max = '*'
