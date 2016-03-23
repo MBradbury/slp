@@ -513,6 +513,8 @@ implementation
 
 		sink_distance = minbot(sink_distance, botinc(rcvd->sender_sink_distance));
 
+		// NOTE: This is broken as nodes that originally sent this message
+		// will send it for a second time when they receive it again
 		if (rcvd->flood_limit > 1)
 		{
 			DummyNormalMessage forwarding_message = *rcvd;
