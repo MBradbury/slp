@@ -6,9 +6,6 @@ from simulator import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-# The import statement doesn't work, so we need to use __import__ instead
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
-
 from data import results
 
 from data.table import safety_period, fake_result, comparison
@@ -66,11 +63,9 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    approaches = ["NO_INTERFERENCE_APPROACH", "MIN_VALID_APPROACH"] #"ALWAYS_FURTHER_APPORACH", "ALWAYS_CLOSER_APPORACH", "ALWAYS_SIDE_APPORACH",
-
     repeats = 500
 
-    local_parameter_names = ('approach',)
+    local_parameter_names = tuple()
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -87,7 +82,7 @@ class CLI(CommandLineCommon.CLI):
         argument_product = list(itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.approaches
+            [self.distance], self.source_periods
         ))
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
@@ -102,7 +97,7 @@ class CLI(CommandLineCommon.CLI):
             results=(
                 #'sent', 'time taken',
                 'normal latency', 'ssd', 'captured',
-                'fake', 'received ratio', 'tfs', 'pfs', 'tailfs'
+                'fake', 'received ratio',
                 #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
                 #'norm(norm(norm(sent,time taken),network size),source rate)'
             ))
@@ -119,9 +114,6 @@ class CLI(CommandLineCommon.CLI):
             'fake': ('Fake Messages Sent', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'tfs': ('Number of TFS Created', 'left top'),
-            'pfs': ('Number of PFS Created', 'left top'),
-            'tailfs': ('Number of TailFS Created', 'left top'),
             'attacker distance': ('Meters', 'left top'),
         }
 
@@ -153,127 +145,6 @@ class CLI(CommandLineCommon.CLI):
                 '{}-{}'.format(self.algorithm_module.name, name)
             ).run()
 
-    def _run_comparison_table(self, args):
-        results_to_compare = ('normal latency', 'ssd', 'captured',
-                              'fake', 'received ratio', 'tfs', 'pfs')
-
-        adaptive_spr_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
-            results=results_to_compare)
-
-        adaptive_results = results.Results(
-            adaptive.result_file_path,
-            parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
-            results=results_to_compare)
-
-        result_table = comparison.ResultTable(adaptive_results, adaptive_spr_results)
-
-        self._create_table("{}-{}-comparison".format(self.algorithm_module.name, adaptive.name), result_table)
-
-    def _run_min_max_versus(self, args):
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'normal': ('Normal Messages Sent', 'left top'),
-            'fake': ('Fake Messages Sent', 'left top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'tfs': ('Number of TFS Created', 'left top'),
-            'pfs': ('Number of PFS Created', 'left top'),
-            'attacker distance': ('meters', 'left top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
-        }
-
-        custom_yaxis_range_max = {
-            'fake': 400000,
-            'captured': 10,
-            'received ratio': 100,
-            'attacker distance': 120,
-            'normal latency': 200,
-            'pfs': 30,
-            'tfs': 500,
-            'norm(sent,time taken)': 12000,
-            'norm(fake,time taken)': 12000,
-            'norm(normal,time taken)': 3500,
-            'ssd': 30,
-        }
-
-        protectionless_results = results.Results(
-            protectionless.result_file_path,
-            parameters=protectionless.CommandLine.CLI.parameter_names,
-            results=list(set(graph_parameters.keys()) - {'tfs', 'pfs', 'fake', 'norm(fake,time taken)',
-                                                         'norm(norm(fake,time taken),source rate)'})
-        )
-
-        adaptive_spr_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
-            results=graph_parameters.keys())
-
-        adaptive_results = results.Results(
-            adaptive.result_file_path,
-            parameters=adaptive.CommandLine.CLI.parameter_names,
-            results=graph_parameters.keys())
-
-        def graph_min_max_versus(result_name):
-            name = 'min-max-{}-versus-{}'.format(adaptive.name, result_name)
-
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if result_name == 'attacker distance' else scalar_extractor(x)
-
-            g = min_max_versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=result_name, vary='approach', yextractor=yextractor)
-
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = graph_parameters[result_name][0]
-            g.key_position = graph_parameters[result_name][1]
-
-            g.yaxis_font = g.xaxis_font = "',15'"
-
-            g.nokey = True
-            #g.key_font = "',20'"
-            #g.key_spacing = "2"
-            #g.key_width = "+6"
-
-            g.point_size = '2'
-            g.line_width = 4
-
-            g.min_label = 'Dynamic - Lowest'
-            g.max_label = 'Dynamic - Highest'
-            g.comparison_label = 'DynamicSpr'
-            g.vary_label = ''
-
-            if result_name in custom_yaxis_range_max:
-                g.yaxis_range_max = custom_yaxis_range_max[result_name]
-
-            def vvalue_converter(name):
-                return {
-                    "PB_FIXED1_APPROACH": "Fixed1",
-                    "PB_FIXED2_APPROACH": "Fixed2",
-                    "PB_RND_APPROACH": "Rnd",
-                }[name]
-            g.vvalue_label_converter = vvalue_converter
-
-            g.generate_legend_graph = True
-
-            if result_name in protectionless_results.result_names:
-                g.create(adaptive_results, adaptive_spr_results, baseline_results=protectionless_results)
-            else:
-                g.create(adaptive_results, adaptive_spr_results)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
-            ).run()
-
-        for result_name in graph_parameters.keys():
-            graph_min_max_versus(result_name)
-
     def run(self, args):
         super(CLI, self).run(args)
 
@@ -282,9 +153,3 @@ class CLI(CommandLineCommon.CLI):
 
         if 'graph' in args:
             self._run_graph(args)
-
-        if 'comparison-table' in args:
-            self._run_comparison_table(args)
-
-        if 'min-max-versus' in args:
-            self._run_min_max_versus(args)
