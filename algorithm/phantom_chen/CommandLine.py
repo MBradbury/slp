@@ -78,12 +78,12 @@ class CLI(CommandLineCommon.CLI):
     #source_periods = [ 1.0 ]
 
     configurations = [
-        #'SourceCorner',
-        #'Source2CornerTop',
+        'SourceCorner',
+        'Source2CornerTop',
         'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
+        'SinkCorner',
+        'SinkCorner2Source',
         'SinkCorner3Source',
 
         #'FurtherSinkCorner',
@@ -101,6 +101,25 @@ class CLI(CommandLineCommon.CLI):
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
+
+    def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
+        half_ssd = int(math.floor(s/2)) + 1
+        half_ssd_further = s
+        ssd_further = 2*s
+
+        # if walk_short = walk_long 
+        #walk_short = list(range(2, half_ssd))
+        #walk_long = list(range(2, half_ssd))
+
+        #adaptive here.
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(s+2, half_ssd+s))
+        
+        #for the Further* topology.        
+        #walk_short = list(range(2, half_ssd_further))
+        #walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
+
+        return list(zip(walk_short, walk_long))
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -144,28 +163,6 @@ class CLI(CommandLineCommon.CLI):
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
-
-
-    def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
-        half_ssd = int(math.floor(s/2)) + 1
-
-        half_ssd_further = s
-
-        ssd_further = 2*s
-
-        # if walk_short = walk_long
-        #walk_short = list(range(2, half_ssd))
-        #walk_long = list(range(2, half_ssd))
-
-        #adaptive here.
-        walk_short = list(range(2, half_ssd))
-        walk_long = list(range(s+2, half_ssd+s))
-        
-        #for the Further* topology.        
-        #walk_short = list(range(2, half_ssd_further))
-        #walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
-
-        return list(zip(walk_short, walk_long))
         
 
     def _run_table(self, args):
