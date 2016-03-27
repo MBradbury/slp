@@ -31,7 +31,7 @@ class RunSimulations(RunSimulationsCommon):
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
 
-        ssd_avg = min(configuration.ssd(source) for source in configuration.source_ids) + 1
+        ssd_avg = np.mean(list(configuration.ssd(source) for source in configuration.source_ids))
         ssd_max = max(configuration.ssd(source) for source in configuration.source_ids)
 
         #short_random_walk_length
@@ -42,7 +42,7 @@ class RunSimulations(RunSimulationsCommon):
         #################################################################
         #ONLY for m short random walk with n long_random_walk combination.
         m = 1
-        n = 1
+        n = 2
 
         long_length = 1.5*ssd_max + s;
         short_length = ssd_avg
@@ -80,15 +80,15 @@ class CLI(CommandLineCommon.CLI):
     configurations = [
         #'SourceCorner',
         #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner3Source',
 
-        'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        'FurtherSinkCorner3Source'
+        #'FurtherSinkCorner',
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
 
     ]
 
@@ -158,12 +158,12 @@ class CLI(CommandLineCommon.CLI):
         #walk_long = list(range(2, half_ssd))
 
         #adaptive here.
-        #walk_short = list(range(2, half_ssd))
-        #walk_long = list(range(s+2, half_ssd+s))
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(s+2, half_ssd+s))
         
         #for the Further* topology.        
-        walk_short = list(range(2, half_ssd_further))
-        walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
+        #walk_short = list(range(2, half_ssd_further))
+        #walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
 
         return list(zip(walk_short, walk_long))
         
