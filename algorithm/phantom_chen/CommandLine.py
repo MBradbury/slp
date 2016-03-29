@@ -31,7 +31,7 @@ class RunSimulations(RunSimulationsCommon):
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
 
-        ssd_avg = min(configuration.ssd(source) for source in configuration.source_ids) + 1
+        ssd_avg = np.mean(list(configuration.ssd(source) for source in configuration.source_ids))
         ssd_max = max(configuration.ssd(source) for source in configuration.source_ids)
 
         #short_random_walk_length
@@ -53,13 +53,13 @@ class RunSimulations(RunSimulationsCommon):
             return  time_taken
         else:
             #for only short random walk.
-            return time_taken
+            #return time_taken
 
             #for only long random walk.
             #return (0.5 + l / ssd_max) * time_taken
 
             #for combinations.
-            #return (combination_length / ssd_avg) * time_taken
+            return (combination_length / ssd_avg) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -80,15 +80,15 @@ class CLI(CommandLineCommon.CLI):
     configurations = [
         #'SourceCorner',
         #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner3Source',
 
-        'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        'FurtherSinkCorner3Source'
+        #'FurtherSinkCorner',
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
 
     ]
 
@@ -154,12 +154,12 @@ class CLI(CommandLineCommon.CLI):
         ssd_further = 2*s
 
         # if walk_short = walk_long
-        walk_short = list(range(2, half_ssd))
-        walk_long = list(range(2, half_ssd))
+        #walk_short = list(range(2, half_ssd))
+        #walk_long = list(range(2, half_ssd))
 
         #adaptive here.
-        #walk_short = list(range(2, half_ssd))
-        #walk_long = list(range(s+2, half_ssd+s))
+        walk_short = list(range(2, half_ssd))
+        walk_long = list(range(s+2, half_ssd+s))
         
         #for the Further* topology.        
         #walk_short = list(range(2, half_ssd_further))
