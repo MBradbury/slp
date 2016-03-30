@@ -88,10 +88,6 @@ class CLI(CommandLineCommon.CLI):
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
         #'FurtherSinkCorner3Source'
-        'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        #'FurtherSinkCorner3Source'
-
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
