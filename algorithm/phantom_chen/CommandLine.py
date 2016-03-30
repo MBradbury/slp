@@ -85,15 +85,12 @@ class CLI(CommandLineCommon.CLI):
         #'SinkCorner2Source',
         #'SinkCorner3Source',
 
-<<<<<<< local
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
         #'FurtherSinkCorner3Source'
-=======
         'FurtherSinkCorner',
         'FurtherSinkCorner2Source',
         #'FurtherSinkCorner3Source'
->>>>>>> other
 
     ]
 
