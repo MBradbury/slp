@@ -43,7 +43,7 @@ class RunSimulations(RunSimulationsCommon):
         #ONLY for m short random walk with n long_random_walk combination.
         #change here.
         m = 1
-        n = 1
+        n = 2
         ##################################################################
         ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)        
 
