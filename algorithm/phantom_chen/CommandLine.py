@@ -44,20 +44,34 @@ class RunSimulations(RunSimulationsCommon):
         #change here.
         m = 1
         n = 2
+        #choose random walk type
+        random_walk_types = [
+        #'only_short_random_walk',
+        #'only_long_random_walk',
+        'phantom_walkabouts'
+        ]
         ##################################################################
-        ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)        
+        if len(random_walk_types) ==1:
+            pass
+        else:
+            raise RuntimeError("only support ONE random_walk_type!")
+
+        ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)
+        safety_period = {'only_short_random_walk': time_taken, 'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
+                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken}       
 
         if ssd_max > (network_size-1) * 1.5:
             return  time_taken
         else:
-            #for only short random walk.
-            #return time_taken
+            if 'only_short_random_walk' in random_walk_types:
+                return safety_period['only_short_random_walk']
+            elif 'only_long_random_walk' in random_walk_types:
+                return safety_period['only_long_random_walk']
+            elif 'phantom_walkabouts' in random_walk_types:
+                return safety_period['phantom_walkabouts']
+            else:
+                raise RuntimeError("unknown safety_period!")
 
-            #for only long random walk.
-            #return (l+0.5*ssd_max)/ssd_avg *time_taken
-
-            #for combinations.
-            return ssd_ls / ssd_avg *time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -76,7 +90,7 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [ 1.0 ]
 
     configurations = [
-        #'SourceCorner',
+        'SourceCorner',
         #'Source2CornerTop',
         #'Source3CornerTop',
 
@@ -84,7 +98,7 @@ class CLI(CommandLineCommon.CLI):
         #'SinkCorner2Source',
         #'SinkCorner3Source',
 
-        'FurtherSinkCorner',
+        #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
         #'FurtherSinkCorner3Source'
     ]
