@@ -57,7 +57,6 @@ class RunSimulations(RunSimulationsCommon):
             #return (l+0.5*ssd_max)/ssd_avg *time_taken
 
             #for combinations.
-            #return (combination_length / ssd_avg) * time_taken
             return ssd_ls / ssd_avg *time_taken
 
 class CLI(CommandLineCommon.CLI):
@@ -70,24 +69,30 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15, 21, 25]
-    #sizes = [11]
+    #sizes = [11, 15, 21, 25]
+    sizes = [11]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-    #source_periods = [ 1.0 ]
+    #source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [ 1.0 ]
 
     configurations = [
-        'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'SourceCorner',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
         #'SinkCorner3Source',
 
-        #'FurtherSinkCorner',
+        'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
         #'FurtherSinkCorner3Source'
+    ]
+
+    random_walk_types = [
+        #'only_short_random_walk',
+        #'only_long_random_walk',
+        'phantom_walkabouts'
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
@@ -105,21 +110,59 @@ class CLI(CommandLineCommon.CLI):
         half_ssd_further = s
         ssd_further = 2*s
 
-        # only short random walk. 
-        #walk_short = list(range(2, half_ssd))
-        #walk_long = list(range(2, half_ssd))
+        random_walk_short = list(range(2, half_ssd))
+        random_walk_long = list(range(s+2, s+half_ssd))
+        random_walk_short_for_further = list(range(2, half_ssd_further))
+        random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
 
-        #only long random walk.
-        #walk_short = list(range(s+2, s+half_ssd))
-        #walk_long = list(range(s+2, s+half_ssd))
+        non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
 
-        #adaptive here.
-        walk_short = list(range(2, half_ssd))
-        walk_long = list(range(s+2, half_ssd+s))
+        further = any(topo for topo in ['FurtherSinkCorner','FurtherSinkCorner2Source','FurtherSinkCorner3Source'] if topo in self.configurations)
+
+        #check the random-walk_tye.
+        if len(self.random_walk_types) == 1:
+            pass
+        else:
+            raise RuntimeError("only support ONE random_walk_type!")
+
+        #set up the walk_short and walk_long
+        if non_further and further:
+            raise RuntimeError("Build other configurations with Further* configurations!")
+
+        if non_further:
+            if 'only_short_random_walk' in self.random_walk_types:
+                walk_short = random_walk_short
+                walk_long = random_walk_short
+
+            elif 'only_long_random_walk' in self.random_walk_types:
+                walk_short = random_walk_long
+                walk_long = random_walk_long
         
-        #for the Further* topology.        
-        #walk_short = list(range(2, half_ssd_further))
-        #walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
+            elif 'phantom_walkabouts' in self.random_walk_types:
+                walk_short = random_walk_short
+                walk_long = random_walk_long
+
+            else:
+                raise RuntimeError("error in the function: _short_long_walk_lengths")
+
+        elif further:
+            if 'only_short_random_walk' in self.random_walk_types:
+                walk_short = random_walk_short_for_further
+                walk_long = random_walk_short_for_further
+
+            elif 'only_long_random_walk' in self.random_walk_types:
+                walk_short = random_walk_long_for_further
+                walk_long = random_walk_long_for_further
+        
+            elif 'phantom_walkabouts' in self.random_walk_types:
+                walk_short = random_walk_short_for_further
+                walk_long = random_walk_long_for_further
+
+            else:
+                raise RuntimeError("error in the function: _short_long_walk_lengths")
+        
+        else:
+            raise RuntimeError("error in the function: _short_long_walk_lengths")
 
         return list(zip(walk_short, walk_long))
 
