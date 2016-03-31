@@ -40,11 +40,6 @@ class RunSimulations(RunSimulationsCommon):
         l = float(arguments[argument_names.index('long walk length')])
         
         #################################################################
-        #ONLY for m short random walk with n long_random_walk combination.
-        #change here.
-        #m = 1
-        #n = 2
-        #choose random walk type
         random_walk_types = {
         #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
@@ -60,7 +55,8 @@ class RunSimulations(RunSimulationsCommon):
         n = random_walk_types['phantom_walkabouts'][1]
 
         ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)
-        safety_period = {'only_short_random_walk': time_taken, 'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
+        safety_period = {'only_short_random_walk': time_taken, \
+                         'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
                          'phantom_walkabouts': ssd_ls / ssd_avg *time_taken}       
 
         if ssd_max > (network_size-1) * 1.5:
