@@ -51,16 +51,21 @@ class RunSimulations(RunSimulationsCommon):
         else:
             raise RuntimeError("only support ONE random_walk_type!")
 
-        m = random_walk_types['phantom_walkabouts'][0]
-        n = random_walk_types['phantom_walkabouts'][1]
+        if 'phantom_walkabouts' not in random_walk_types:
+            ssd_ls = 0;
+        else:
+            m = random_walk_types['phantom_walkabouts'][0]
+            n = random_walk_types['phantom_walkabouts'][1]
+            ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)
 
-        ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)
         safety_period = {'only_short_random_walk': time_taken, \
                          'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
                          'phantom_walkabouts': ssd_ls / ssd_avg *time_taken}       
 
+        #Further* configurations in all random_walk types
         if ssd_max > (network_size-1) * 1.5:
             return  time_taken
+        #random_walk_types except Further* configuration
         else:
             if 'only_short_random_walk' in random_walk_types:
                 return safety_period['only_short_random_walk']
@@ -82,16 +87,16 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    #sizes = [11, 15, 21, 25]
-    sizes = [11]
+    sizes = [11, 15, 21, 25]
+    #sizes = [11]
 
-    #source_periods = [1.0, 0.5, 0.25, 0.125]
-    source_periods = [ 1.0 ]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
+    #source_periods = [ 1.0 ]
 
     configurations = [
         'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
