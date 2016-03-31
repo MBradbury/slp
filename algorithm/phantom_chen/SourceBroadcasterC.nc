@@ -12,7 +12,6 @@
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
 //define the global vaiable.
-//0 means random walk, 1 means long random walk.
 //make it work for multiple sources.
 uint16_t last_random_walk = 1;
 
@@ -278,7 +277,7 @@ implementation
 			message.source_distance = 0;
 
 			//add adaptive phantom code here.
-			message.walk_distance_remaining = message_mshort_nlong(1,1);
+			message.walk_distance_remaining = message_mshort_nlong(1,2);
 
 		//SPACE_BEHIND_SINK means more space behind the sink.
 		//fit for Source Corner.  
