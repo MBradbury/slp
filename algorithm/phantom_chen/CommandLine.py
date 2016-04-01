@@ -95,8 +95,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
