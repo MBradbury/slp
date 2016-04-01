@@ -43,7 +43,7 @@ class RunSimulations(RunSimulationsCommon):
         random_walk_types = {
         #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
-        'phantom_walkabouts':[1,2]
+        'phantom_walkabouts':[1,1]
         }
         ##################################################################
         if len(random_walk_types) ==1:
@@ -95,8 +95,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
