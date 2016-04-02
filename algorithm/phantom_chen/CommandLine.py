@@ -63,7 +63,7 @@ class RunSimulations(RunSimulationsCommon):
                          'phantom_walkabouts': ssd_ls / ssd_avg *time_taken,\
                           'fixed_safety_period': 1.3*time_taken}       
         
-        return fixed_safety_period
+        return safety_period['fixed_safety_period']
         '''
         #Further* configurations in all random_walk types
         
