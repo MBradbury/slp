@@ -60,9 +60,13 @@ class RunSimulations(RunSimulationsCommon):
 
         safety_period = {'only_short_random_walk': time_taken, \
                          'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
-                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken}       
-
+                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken,\
+                          'fixed_safety_period': 1.3*time_taken}       
+        
+        return fixed_safety_period
+        '''
         #Further* configurations in all random_walk types
+        
         if ssd_max > (network_size-1) * 1.5:
             return  time_taken
         #random_walk_types except Further* configuration
@@ -75,6 +79,7 @@ class RunSimulations(RunSimulationsCommon):
                 return safety_period['phantom_walkabouts']
             else:
                 raise RuntimeError("unknown safety_period!")
+        '''
 
 
 class CLI(CommandLineCommon.CLI):
@@ -95,8 +100,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
