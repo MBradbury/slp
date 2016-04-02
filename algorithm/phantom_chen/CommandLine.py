@@ -41,8 +41,8 @@ class RunSimulations(RunSimulationsCommon):
         
         #################################################################
         random_walk_types = {
-        'only_short_random_walk':[1,1],
-        #'only_long_random_walk':[1,1],
+        #'only_short_random_walk':[1,1],
+        'only_long_random_walk':[1,1],
         #'phantom_walkabouts':[1,2]
         }
         ##################################################################
@@ -95,8 +95,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
@@ -108,8 +108,8 @@ class CLI(CommandLineCommon.CLI):
     ]
 
     random_walk_types = [
-        'only_short_random_walk',
-        #'only_long_random_walk',
+        #'only_short_random_walk',
+        'only_long_random_walk',
         #'phantom_walkabouts'
     ]
 
