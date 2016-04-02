@@ -42,8 +42,8 @@ class RunSimulations(RunSimulationsCommon):
         #################################################################
         random_walk_types = {
         #'only_short_random_walk':[1,1],
-        'only_long_random_walk':[1,1],
-        #'phantom_walkabouts':[1,2]
+        #'only_long_random_walk':[1,1],
+        'phantom_walkabouts':[1,1]
         }
         ##################################################################
         if len(random_walk_types) ==1:
@@ -109,8 +109,8 @@ class CLI(CommandLineCommon.CLI):
 
     random_walk_types = [
         #'only_short_random_walk',
-        'only_long_random_walk',
-        #'phantom_walkabouts'
+        #'only_long_random_walk',
+        'phantom_walkabouts'
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
