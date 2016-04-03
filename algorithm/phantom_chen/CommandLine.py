@@ -92,11 +92,11 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15, 21, 25]
-    #sizes = [11]
+    #sizes = [11, 15, 21, 25]
+    sizes = [21]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-    #source_periods = [ 1.0 ]
+    #source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [ 0.125 ]
 
     configurations = [
         #'SourceCorner',
@@ -120,7 +120,7 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    repeats = 500
+    repeats = 1000
 
     local_parameter_names = ('short walk length', 'long walk length')
 
