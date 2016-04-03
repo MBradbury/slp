@@ -14,7 +14,7 @@
 //define the global vaiable.
 //make it work for multiple sources.
 uint16_t last_random_walk = 1;
-uint16_t short_long[] = {1,2};
+uint16_t short_long[] = {1,1};
 
 module SourceBroadcasterC
 {
