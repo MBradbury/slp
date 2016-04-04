@@ -31,7 +31,7 @@ class RunSimulations(RunSimulationsCommon):
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
 
-        ssd_avg = min(configuration.ssd(source) for source in configuration.source_ids) + 1
+        ssd_avg = np.mean(list(configuration.ssd(source) for source in configuration.source_ids))
         ssd_max = max(configuration.ssd(source) for source in configuration.source_ids)
 
         #short_random_walk_length
@@ -40,26 +40,47 @@ class RunSimulations(RunSimulationsCommon):
         l = float(arguments[argument_names.index('long walk length')])
         
         #################################################################
-        #ONLY for m short random walk with n long_random_walk combination.
-        m = 1
-        n = 2
-
-        long_length = 1.5*ssd_max + s;
-        short_length = ssd_avg
-        combination_length = (m * ssd_avg + n * long_length) / (m+n)
+        random_walk_types = {
+        'only_short_random_walk':[1,1],
+        #'only_long_random_walk':[1,1],
+        #'phantom_walkabouts':[1,2]
+        }
         ##################################################################
+        if len(random_walk_types) ==1:
+            pass
+        else:
+            raise RuntimeError("only support ONE random_walk_type!")
 
+        if 'phantom_walkabouts' not in random_walk_types:
+            ssd_ls = 0;
+        else:
+            m = random_walk_types['phantom_walkabouts'][0]
+            n = random_walk_types['phantom_walkabouts'][1]
+            ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)
+
+        safety_period = {'only_short_random_walk': time_taken, \
+                         'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
+                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken,\
+                          'fixed_safety_period': 1.3*time_taken}       
+        
+        return safety_period['fixed_safety_period']
+        '''
+        #Further* configurations in all random_walk types
+        
         if ssd_max > (network_size-1) * 1.5:
             return  time_taken
+        #random_walk_types except Further* configuration
         else:
-            #for only short random walk.
-            #return time_taken
+            if 'only_short_random_walk' in random_walk_types:
+                return safety_period['only_short_random_walk']
+            elif 'only_long_random_walk' in random_walk_types:
+                return safety_period['only_long_random_walk']
+            elif 'phantom_walkabouts' in random_walk_types:
+                return safety_period['phantom_walkabouts']
+            else:
+                raise RuntimeError("unknown safety_period!")
+        '''
 
-            #for only long random walk.
-            #return (0.5 + l / ssd_max) * time_taken
-
-            #for combinations.
-            return (combination_length / ssd_avg) * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -71,11 +92,11 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15, 21, 25]
-    #sizes = [11]
+    #sizes = [11, 15, 21, 25]
+    sizes = [21]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-    #source_periods = [ 1.0 ]
+    #source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [ 0.125 ]
 
     configurations = [
         #'SourceCorner',
@@ -89,18 +110,84 @@ class CLI(CommandLineCommon.CLI):
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
         #'FurtherSinkCorner3Source'
+    ]
 
+    random_walk_types = [
+        'only_short_random_walk',
+        #'only_long_random_walk',
+        #'phantom_walkabouts'
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    repeats = 1000
+    repeats = 500
 
     local_parameter_names = ('short walk length', 'long walk length')
 
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
+
+    def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
+        half_ssd = int(math.floor(s/2)) + 1
+        half_ssd_further = s
+        ssd_further = 2*s
+
+        random_walk_short = list(range(2, half_ssd))
+        random_walk_long = list(range(s+2, s+half_ssd))
+        random_walk_short_for_further = list(range(2, half_ssd_further))
+        random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
+
+        non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
+
+        further = any(topo for topo in ['FurtherSinkCorner','FurtherSinkCorner2Source','FurtherSinkCorner3Source'] if topo in self.configurations)
+
+        #check the random-walk_tye.
+        if len(self.random_walk_types) == 1:
+            pass
+        else:
+            raise RuntimeError("only support ONE random_walk_type!")
+
+        #set up the walk_short and walk_long
+        if non_further and further:
+            raise RuntimeError("Build other configurations with Further* configurations!")
+
+        if non_further:
+            if 'only_short_random_walk' in self.random_walk_types:
+                walk_short = random_walk_short
+                walk_long = random_walk_short
+
+            elif 'only_long_random_walk' in self.random_walk_types:
+                walk_short = random_walk_long
+                walk_long = random_walk_long
+        
+            elif 'phantom_walkabouts' in self.random_walk_types:
+                walk_short = random_walk_short
+                walk_long = random_walk_long
+
+            else:
+                raise RuntimeError("error in the function: _short_long_walk_lengths")
+
+        elif further:
+            if 'only_short_random_walk' in self.random_walk_types:
+                walk_short = random_walk_short_for_further
+                walk_long = random_walk_short_for_further
+
+            elif 'only_long_random_walk' in self.random_walk_types:
+                walk_short = random_walk_long_for_further
+                walk_long = random_walk_long_for_further
+        
+            elif 'phantom_walkabouts' in self.random_walk_types:
+                walk_short = random_walk_short_for_further
+                walk_long = random_walk_long_for_further
+
+            else:
+                raise RuntimeError("error in the function: _short_long_walk_lengths")
+        
+        else:
+            raise RuntimeError("error in the function: _short_long_walk_lengths")
+
+        return list(zip(walk_short, walk_long))
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -144,28 +231,6 @@ class CLI(CommandLineCommon.CLI):
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
-
-
-    def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
-        half_ssd = int(math.floor(s/2)) + 1
-
-        half_ssd_further = s
-
-        ssd_further = 2*s
-
-        # if walk_short = walk_long
-        #walk_short = list(range(2, half_ssd))
-        #walk_long = list(range(2, half_ssd))
-
-        #adaptive here.
-        walk_short = list(range(2, half_ssd))
-        walk_long = list(range(s+2, half_ssd+s))
-        
-        #for the Further* topology.        
-        #walk_short = list(range(2, half_ssd_further))
-        #walk_long = list(range(ssd_further+2, ssd_further+half_ssd_further))
-
-        return list(zip(walk_short, walk_long))
         
 
     def _run_table(self, args):
