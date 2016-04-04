@@ -9,9 +9,9 @@ typedef nx_struct NormalMessage
 	NXSequenceNumber sequence_number;
 	nx_uint16_t source_id;
 	nx_uint16_t target;
-	nx_uint16_t walk_distance_remaining;
+	nx_uint16_t random_walk_hop_remaining;
 	nx_uint16_t source_distance;
-	nx_uint16_t flip_coin;
+	nx_uint16_t random_walk_direction;
 
 } NormalMessage;
 
