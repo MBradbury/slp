@@ -400,7 +400,11 @@ class AnalysisResults:
         self.columns = analysis.columns
 
     def number_of_repeats(self):
-        return len(next(iter(self.columns)))
+        # Get a name of any of the columns
+        aname = next(iter(self.columns))
+
+        # Find the length of that list
+        return len(self.columns[aname])
 
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values, normalised_values=tuple()):
