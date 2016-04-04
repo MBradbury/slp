@@ -354,13 +354,13 @@ class Analyse(object):
                     result[key] += value
         return result
 
-
-    def dict_mean(self, dict_list):
+    @classmethod
+    def dict_mean(cls, dict_list):
 
         result = {
             k: float(v) / len(dict_list)
             for (k, v)
-            in self.dict_sum(dict_list).items()
+            in cls.dict_sum(dict_list).items()
         }
 
         return result

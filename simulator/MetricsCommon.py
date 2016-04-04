@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import simulator.Attacker
 from simulator.Simulation import OutputCatcher
 
 from collections import Counter, OrderedDict, defaultdict
@@ -24,6 +25,11 @@ class MetricsCommon(object):
 
         self.sent = defaultdict(Counter)
         self.received = defaultdict(Counter)
+
+        self.received_from_closer_or_same_hops = Counter()
+        self.received_from_further_hops = Counter()
+        self.received_from_closer_or_same_meters = Counter()
+        self.received_from_further_meters = Counter()
 
         self.normal_sent_time = {}
         self.normal_latency = {}
@@ -76,7 +82,7 @@ class MetricsCommon(object):
 
         time = self.sim.ticks_to_seconds(float(time))
         node_id = int(node_id)
-        #proximate_source_id = int(proximate_source_id)
+        proximate_source_id = int(proximate_source_id)
         ultimate_source_id = int(ultimate_source_id)
         sequence_number = int(sequence_number)
         hop_count = int(hop_count)
@@ -87,6 +93,27 @@ class MetricsCommon(object):
             key = (ultimate_source_id, sequence_number)
             self.normal_latency[key] = time - self.normal_sent_time[key]
             self.normal_hop_count.append(hop_count)
+
+
+        # For messages the attacker responds to,
+        # record whether this message was received from a node closer or further from each source
+        if kind not in simulator.Attacker._messages_to_ignore:
+            for source_id in self.source_ids:
+                prox_distance = self.configuration.node_source_distance(proximate_source_id, source_id)
+                node_distance = self.configuration.node_source_distance(node_id, source_id)
+                
+                if node_distance < prox_distance:
+                    self.received_from_further_hops[source_id] += 1
+                else:
+                    self.received_from_closer_or_same_hops[source_id] += 1
+                
+                prox_distance_m = self.configuration.node_source_distance_meters(proximate_source_id, source_id)
+                node_distance_m = self.configuration.node_source_distance_meters(node_id, source_id)
+                
+                if node_distance_m < prox_distance_m:
+                    self.received_from_further_meters[source_id] += 1
+                else:
+                    self.received_from_closer_or_same_meters[source_id] += 1
 
     def process_DELIVER(self, line):
         pass
@@ -287,6 +314,11 @@ class MetricsCommon(object):
         d["NodeWasSource"]                 = lambda x: x.node_was_source()
         d["SentHeatMap"]                   = lambda x: MetricsCommon.smaller_dict_str(x.sent_heat_map())
         d["ReceivedHeatMap"]               = lambda x: MetricsCommon.smaller_dict_str(x.received_heat_map())
+
+        d["ReceivedFromCloserOrSameHops"]  = lambda x: dict(x.received_from_closer_or_same_hops)
+        d["ReceivedFromFurtherHops"]       = lambda x: dict(x.received_from_further_hops)
+        d["ReceivedFromCloserOrSameMeters"]= lambda x: dict(x.received_from_closer_or_same_meters)
+        d["ReceivedFromFurtherMeters"]     = lambda x: dict(x.received_from_further_meters)
 
         return d
 
