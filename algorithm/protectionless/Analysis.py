@@ -1,3 +1,4 @@
+from __future__ import division
 
 from data.analysis import Analyse, AnalysisResults, AnalyzerCommon
 
@@ -67,6 +68,17 @@ class Analyzer(AnalyzerCommon):
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+
+        def dp(d1, d2):
+            result = {}
+
+            for (key, value) in d1.items():
+                result[key] = value / (d1[key] + d2[key])
+
+            return result
+
+        d['rcvd further hops']     = lambda x: dp(x.average_of['ReceivedFromFurtherHops'], x.average_of['ReceivedFromCloserOrSameHops'])
+        d['rcvd further meters']   = lambda x: dp(x.average_of['ReceivedFromFurtherMeters'], x.average_of['ReceivedFromCloserOrSameMeters'])
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
