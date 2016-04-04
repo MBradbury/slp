@@ -89,7 +89,7 @@ class CLI(object):
         names = self.parameter_names()
         size = args[names.index('network size')]
         if size == 11:
-            return datetime.timedelta(hours=10)
+            return datetime.timedelta(hours=9)
         elif size == 15:
             return datetime.timedelta(hours=18)
         elif size == 21:
