@@ -83,10 +83,14 @@ class Configuration(object):
             if i != node and self.is_connected(node, i):
                 yield i
 
+    def node_distance(self, node1, node2):
+        self.build_connectivity_matrix()
+        return self._dist_matrix[node1, node2]
+
     def ssd(self, source_id):
         """The number of hops between the sink and the specified source node"""
         if source_id not in self.source_ids:
-            raise RuntimeError("Invalid source")
+            raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
         return self.node_sink_distance(source_id)
 
@@ -98,16 +102,18 @@ class Configuration(object):
     def node_source_distance(self, node, source_id):
         """The number of hops between the specified source and the specified node"""
         if source_id not in self.source_ids:
-            raise RuntimeError("Invalid source")
+            raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
         self.build_connectivity_matrix()
         return self._dist_matrix[node, source_id]
 
+    def node_distance_meters(self, node1, node2):
+        return euclidean(self.topology.nodes[node1], self.topology.nodes[node2])
 
     def ssd_meters(self, source_id):
         """The number of meters between the sink and the specified source node"""
         if source_id not in self.source_ids:
-            raise RuntimeError("Invalid source")
+            raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
         return self.node_sink_distance_meters(source_id)
 
@@ -118,7 +124,7 @@ class Configuration(object):
     def node_source_distance_meters(self, node, source_id):
         """The number of meters between the specified source and the specified node"""
         if source_id not in self.source_ids:
-            raise RuntimeError("Invalid source")
+            raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
         return euclidean(self.topology.nodes[source_id], self.topology.nodes[node])
 
