@@ -28,8 +28,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        #'SinkCorner',
-        #'FurtherSinkCorner',
+        'SinkCorner',
+        'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
 
@@ -42,21 +42,21 @@ class CLI(CommandLineCommon.CLI):
         #'CircleSinkCentre',
 
         # 2 sources
-        #'Source2Corners',
-        #'Source2Edges',
-        #'Source2Corner',
-        #'SourceEdgeCorner',
+        'Source2Corners',
+        'Source2Edges',
+        'Source2Corner',
+        'SourceEdgeCorner',
 
         # 3 sources
-        #'Source3Corner',
+        'Source3Corner',
 
         # 4 sources
-        #'Source4Corners',
-        #'Source4Edges',        
-        #'Source2Corner2OppositeCorner'
+        'Source4Corners',
+        'Source4Edges',        
+        'Source2Corner2OppositeCorner'
     ]
 
-    repeats = 750
+    repeats = 2000
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
