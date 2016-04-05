@@ -4,6 +4,7 @@
 
 #include "NormalMessage.h"
 
+#include <Ctp.h>
 #include <Timer.h>
 #include <TinyError.h>
 
@@ -161,18 +162,18 @@ implementation
 		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
-	
+
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		simdbg("stdout", "%s: Sink Received unseen Normal seqno=%u from %u.\n",
-			sim_time_string(), rcvd->sequence_number, source_addr);
-
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			simdbgverbose("stdout", "%s: Sink Received unseen Normal seqno=%u srcid=%u from %u.\n",
+				sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
 		}
 	}
 
@@ -186,14 +187,14 @@ implementation
 
 	void Normal_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		simdbg("stdout", "%s: Normal Snooped unseen Normal seqno=%u from %u.\n",
-			sim_time_string(), rcvd->sequence_number, source_addr);
-
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			simdbgverbose("stdout", "%s: Normal Snooped unseen Normal data=%u seqno=%u srcid=%u from %u.\n",
+				sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
 		}
 	}
 
@@ -207,14 +208,14 @@ implementation
 
 	bool Normal_intercept_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		simdbg("stdout", "%s: Normal Intercepted unseen Normal seqno=%u from %u.\n",
-			sim_time_string(), rcvd->sequence_number, source_addr);
-
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			simdbgverbose("stdout", "%s: Normal Intercepted unseen Normal seqno=%u srcid=%u from %u.\n",
+				sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
 		}
 
 		return TRUE;
