@@ -41,9 +41,9 @@ class RunSimulations(RunSimulationsCommon):
         
         #################################################################
         random_walk_types = {
-        'only_short_random_walk':[1,1],
+        #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
-        #'phantom_walkabouts':[1,2]
+        'phantom_walkabouts':[1,1]
         }
         ##################################################################
         if len(random_walk_types) ==1:
@@ -92,20 +92,20 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    #sizes = [11, 15, 21, 25]
-    sizes = [21]
+    sizes = [11, 15, 21, 25]
+    #sizes = [21]
 
-    #source_periods = [1.0, 0.5, 0.25, 0.125]
-    source_periods = [ 0.125 ]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
+    #source_periods = [ 0.125 ]
 
     configurations = [
         #'SourceCorner',
         #'Source2CornerTop',
-        'Source3CornerTop',
+        #'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -113,9 +113,9 @@ class CLI(CommandLineCommon.CLI):
     ]
 
     random_walk_types = [
-        'only_short_random_walk',
+        #'only_short_random_walk',
         #'only_long_random_walk',
-        #'phantom_walkabouts'
+        'phantom_walkabouts'
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
