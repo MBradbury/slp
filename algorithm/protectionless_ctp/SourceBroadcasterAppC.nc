@@ -28,9 +28,7 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
-	App.Packet -> ActiveMessageC;
 	App.AMPacket -> ActiveMessageC;
-
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
@@ -67,4 +65,6 @@ implementation
 	App.CollectionPacket -> CollectionC;
 	App.CtpInfo -> CollectionC;
 	App.CtpCongestion -> CollectionC;
+
+	App.Packet -> CollectionC;
 }
