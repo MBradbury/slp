@@ -48,10 +48,7 @@ implementation
 	App.NormalSeqNos -> NormalSeqNos;
 
 	components CollectionC;
-	components DisseminationC;
-
 	App.RoutingControl -> CollectionC;
-	App.DisseminationControl -> DisseminationC;
 
 	components new CollectionSenderC(NORMAL_CHANNEL);
 
@@ -61,10 +58,9 @@ implementation
 	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
 	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
 
-	App.RootControl -> CollectionC;
-	App.CollectionPacket -> CollectionC;
-	App.CtpInfo -> CollectionC;
-	App.CtpCongestion -> CollectionC;
-
 	App.Packet -> CollectionC;
+	App.RootControl -> CollectionC;
+	//App.CollectionPacket -> CollectionC;
+	//App.CtpInfo -> CollectionC;
+	//App.CtpCongestion -> CollectionC;
 }
