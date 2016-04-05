@@ -3,7 +3,13 @@
 
 enum Channels
 {
-	NORMAL_CHANNEL = 1
+	NORMAL_CHANNEL = 1,
+};
+
+enum {
+	SAMPLE_RATE_KEY = 1,
+	CL_TEST = 0xee,
+	POOL_SIZE = 12,
 };
 
 #define SLP_MAX_NUM_SOURCES 20

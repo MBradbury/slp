@@ -4,8 +4,7 @@
 #include "SequenceNumber.h"
 
 typedef nx_struct NormalMessage {
-  NXSequenceNumber sequence_number_start; // Should be the 
-  NXSequenceNumber sequence_number_end;
+  NXSequenceNumber sequence_number;
 
   // The number of hops that this message
   // has travelled from the source. 
@@ -16,7 +15,7 @@ typedef nx_struct NormalMessage {
 
 } NormalMessage;
 
-inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number_start; }
+inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
 inline int32_t Normal_get_source_id(const NormalMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_NORMALMESSAGE_H

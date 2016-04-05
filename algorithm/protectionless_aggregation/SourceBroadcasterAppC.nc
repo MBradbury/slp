@@ -2,6 +2,8 @@
 
 #include <Timer.h>
 
+#include <Ctp.h>
+
 configuration SourceBroadcasterAppC
 {
 }
@@ -26,26 +28,26 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.Packet -> ActiveMessageC;
+	App.AMPacket -> ActiveMessageC;
 
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
-	components new TimerMilliC() as AggregationTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
-	App.AggregationTimer -> AggregationTimer;
 
 
 	// Networking
-	components
+	/*components
 		new AMSenderC(NORMAL_CHANNEL) as NormalSender,
 		new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver;
 	
-	App.Packet -> NormalSender; // TODO: is this right?
-	App.AMPacket -> NormalSender; // TODO: is this right?
+	//App.Packet -> NormalSender; // TODO: is this right?
+	//App.AMPacket -> NormalSender; // TODO: is this right?
 	
 	App.NormalSend -> NormalSender;
-	App.NormalReceive -> NormalReceiver;
+	App.NormalReceive -> NormalReceiver;*/
 
 
 	// Object Detector - For Source movement
@@ -58,4 +60,23 @@ implementation
 	components
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
+
+	components CollectionC;
+	components DisseminationC;
+
+	components new CollectionSenderC(NORMAL_CHANNEL);
+
+	App.RoutingControl -> CollectionC;
+
+	App.NormalSend -> CollectionSenderC;
+	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
+	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
+	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
+
+	App.RootControl -> CollectionC;
+	App.CollectionPacket -> CollectionC;
+	App.CtpInfo -> CollectionC;
+	App.CtpCongestion -> CollectionC;
+
+	App.DisseminationControl -> DisseminationC;
 }
