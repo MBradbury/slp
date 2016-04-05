@@ -4,10 +4,11 @@ protectionless
 
 protectionless_spr
 
-template	->	adaptive	-> adaptive_spr			-> multi_src_adaptive_spr
+protectionless_ctp
+
+template	->	adaptive	-> adaptive_spr			-> src_angle_adaptive_spr
 							-> motion_adaptive
 							-> psrc_adaptive
-							-> multi_src_adaptive
 
 noforward
 
@@ -18,6 +19,10 @@ phantom_chen
 periodic	-> probrate
 
 short_lived_fake_kamat
+
+protectionless_tdma_das		-> tdma_das
+
+
 
 =Algorithm Summaries=
 
