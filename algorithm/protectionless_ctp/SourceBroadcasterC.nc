@@ -9,7 +9,7 @@
 
 #include <assert.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 
 module SourceBroadcasterC
 {
@@ -22,6 +22,9 @@ module SourceBroadcasterC
 	uses interface AMPacket;
 
 	uses interface SplitControl as RadioControl;
+	uses interface RootControl;
+	uses interface StdControl as RoutingControl;
+	uses interface StdControl as DisseminationControl;
 
 	uses interface Send as NormalSend;
 	uses interface Receive as NormalReceive;
@@ -33,9 +36,6 @@ module SourceBroadcasterC
 
 	uses interface SequenceNumbers as NormalSeqNos;
 
-	uses interface StdControl as RoutingControl;
-	uses interface StdControl as DisseminationControl;
-	uses interface RootControl;
 	uses interface CollectionPacket;
 	uses interface CtpInfo;
 	uses interface CtpCongestion;
@@ -81,6 +81,7 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
+			call RootControl.setRoot();
 			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
@@ -97,11 +98,6 @@ implementation
 
 			call DisseminationControl.start();
 			call RoutingControl.start();
-
-			if (TOS_NODE_ID == SINK_NODE_ID)
-			{
-				call RootControl.setRoot();
-			}
 		}
 		else
 		{
@@ -152,7 +148,6 @@ implementation
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
-		message.source_distance = 0;
 		message.source_id = TOS_NODE_ID;
 
 		if (send_Normal_message(&message))
@@ -166,29 +161,11 @@ implementation
 		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
-	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
-	{
-		simdbg("stdout", "%s: Received unseen Normal seqno=%u from %u.\n",
-			sim_time_string(), rcvd->sequence_number, source_addr);
-
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
-		{
-			NormalMessage forwarding_message;
-
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-
-			METRIC_RCV_NORMAL(rcvd);
-
-			forwarding_message = *rcvd;
-			forwarding_message.source_distance += 1;
-
-			send_Normal_message(&forwarding_message);
-		}
-	}
+	
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		simdbg("stdout", "%s: Received unseen Normal seqno=%u from %u.\n",
+		simdbg("stdout", "%s: Sink Received unseen Normal seqno=%u from %u.\n",
 			sim_time_string(), rcvd->sequence_number, source_addr);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
@@ -202,14 +179,14 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
 		case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
-		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
+		case NormalNode: break;
 	RECEIVE_MESSAGE_END(Normal)
 
 
 
 	void Normal_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		simdbg("stdout", "%s: Snooped unseen Normal seqno=%u from %u.\n",
+		simdbg("stdout", "%s: Normal Snooped unseen Normal seqno=%u from %u.\n",
 			sim_time_string(), rcvd->sequence_number, source_addr);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
@@ -230,7 +207,7 @@ implementation
 
 	bool Normal_intercept_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		simdbg("stdout", "%s: Intercepted unseen Normal seqno=%u from %u.\n",
+		simdbg("stdout", "%s: Normal Intercepted unseen Normal seqno=%u from %u.\n",
 			sim_time_string(), rcvd->sequence_number, source_addr);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))

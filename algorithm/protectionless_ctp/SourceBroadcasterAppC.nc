@@ -38,18 +38,6 @@ implementation
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 
 
-	// Networking
-	/*components
-		new AMSenderC(NORMAL_CHANNEL) as NormalSender,
-		new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver;
-	
-	//App.Packet -> NormalSender; // TODO: is this right?
-	//App.AMPacket -> NormalSender; // TODO: is this right?
-	
-	App.NormalSend -> NormalSender;
-	App.NormalReceive -> NormalReceiver;*/
-
-
 	// Object Detector - For Source movement
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
@@ -64,10 +52,12 @@ implementation
 	components CollectionC;
 	components DisseminationC;
 
+	App.RoutingControl -> CollectionC;
+	App.DisseminationControl -> DisseminationC;
+
 	components new CollectionSenderC(NORMAL_CHANNEL);
 
-	App.RoutingControl -> CollectionC;
-
+	// Networking
 	App.NormalSend -> CollectionSenderC;
 	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
 	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
@@ -77,6 +67,4 @@ implementation
 	App.CollectionPacket -> CollectionC;
 	App.CtpInfo -> CollectionC;
 	App.CtpCongestion -> CollectionC;
-
-	App.DisseminationControl -> DisseminationC;
 }
