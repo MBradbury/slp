@@ -7,7 +7,7 @@ approaches = ["NO_INTERFERENCE_APPROACH", "ALWAYS_FURTHER_APPORACH", "ALWAYS_CLO
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Multiple Source Adaptive SPR", add_help=True)
+        parser = argparse.ArgumentParser(description="SLP Source Angle Adaptive SPR", add_help=True)
         super(Arguments, self).__init__(parser, has_safety_period=True)
 
         parser.add_argument("--source-period", type=float, required=True)
