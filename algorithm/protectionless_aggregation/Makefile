@@ -7,7 +7,7 @@ COMPONENT = SourceBroadcasterAppC
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
-CFLAGS += -I"../common"
+CFLAGS += -I"../common" -I$(TOSDIR)/lib/net -I$(TOSDIR)/lib/net/ctp -I$(TOSDIR)/lib/net/drip -I$(TOSDIR)/lib/net/4bitle
 
 include ../common/makefile.common
 
