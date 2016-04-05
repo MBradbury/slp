@@ -25,7 +25,6 @@ module SourceBroadcasterC
 	uses interface SplitControl as RadioControl;
 	uses interface RootControl;
 	uses interface StdControl as RoutingControl;
-	uses interface StdControl as DisseminationControl;
 
 	uses interface Send as NormalSend;
 	uses interface Receive as NormalReceive;
@@ -37,9 +36,9 @@ module SourceBroadcasterC
 
 	uses interface SequenceNumbers as NormalSeqNos;
 
-	uses interface CollectionPacket;
-	uses interface CtpInfo;
-	uses interface CtpCongestion;
+	//uses interface CollectionPacket;
+	//uses interface CtpInfo;
+	//uses interface CtpCongestion;
 }
 
 implementation
@@ -97,7 +96,6 @@ implementation
 
 			call ObjectDetector.start();
 
-			call DisseminationControl.start();
 			call RoutingControl.start();
 		}
 		else
