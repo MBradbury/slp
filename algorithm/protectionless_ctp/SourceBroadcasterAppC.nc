@@ -2,7 +2,7 @@
 
 #include <Timer.h>
 
-#include <Ctp.h>
+#include <CtpDebugMsg.h>
 
 configuration SourceBroadcasterAppC
 {
@@ -49,6 +49,8 @@ implementation
 
 	components CollectionC;
 	App.RoutingControl -> CollectionC;
+
+	CollectionC.CollectionDebug -> App;
 
 	components new CollectionSenderC(NORMAL_CHANNEL);
 
