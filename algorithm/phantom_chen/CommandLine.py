@@ -355,7 +355,7 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'captured': 50,
-            'sent': 18000
+            'sent': 20000
         }
 
         combine = ["short walk length", "long walk length"]
@@ -374,8 +374,8 @@ class CLI(CommandLineCommon.CLI):
             g.yaxis_label = yaxis_label
             g.key_position = key_position
 
-            if result_name in custom_yaxis_range_max:
-                g.yaxis_range_max = custom_yaxis_range_max[result_name]
+            if yaxis in custom_yaxis_range_max:
+                g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
             g.create(phantom_results)
 
@@ -404,8 +404,8 @@ class CLI(CommandLineCommon.CLI):
         )
 
         custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 18000
+            'captured': 25,
+            'sent': 20000
         }
 
         combine = ["short walk length", "long walk length"]
@@ -435,8 +435,8 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
 
-                if result_name in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[result_name]
+                if yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
                 g.create(phantom_results)
 
