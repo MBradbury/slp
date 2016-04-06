@@ -134,7 +134,7 @@ class CLI(CommandLineCommon.CLI):
         ssd_further = 2*s
 
         random_walk_short = half_ssd
-        random_walk_long = half_ssd
+        random_walk_long = s + half_ssd
         random_walk_short_for_further = half_ssd_further
         random_walk_long_for_further = ssd_further+half_ssd_further
 
