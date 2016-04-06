@@ -52,7 +52,7 @@ implementation
 
 	NodeType type = NormalNode;
 
-	const char* type_to_string()
+	const char* type_to_string(void)
 	{
 		switch (type)
 		{
@@ -66,11 +66,12 @@ implementation
 	// This function is to be used by the source node to get the
 	// period it should use at the current time.
 	// DO NOT use this for nodes other than the source!
-	uint32_t get_source_period()
+	uint32_t get_source_period(void)
 	{
 		assert(type == SourceNode);
 		return call SourcePeriodModel.get();
 	}
+
 	uint32_t extra_to_send = 0;
 
 	bool busy = FALSE;
@@ -156,7 +157,7 @@ implementation
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
 
-		simdbg("stdout", "%s: Generated Normal seqno=%u at %u.\n",
+		simdbgverbose("stdout", "%s: Generated Normal seqno=%u at %u.\n",
 			sim_time_string(), message.sequence_number, message.source_id);
 
 		call BroadcastNormalTimer.startOneShot(get_source_period());
@@ -248,6 +249,8 @@ implementation
 
 		if (event_type == NET_C_FE_SENDDONE_WAITACK || event_type == NET_C_FE_SENT_MSG || event_type == NET_C_FE_FWD_MSG)
 		{
+			// TODO: FIXME
+			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
 			METRIC_BCAST(NormalMessage, "success", BOTTOM);
 		}
 
