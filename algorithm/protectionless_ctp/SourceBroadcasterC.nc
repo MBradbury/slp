@@ -10,7 +10,7 @@
 
 #include <assert.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance)
 
 module SourceBroadcasterC
 {
@@ -151,6 +151,7 @@ implementation
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
+		message.source_distance = 0;
 
 		if (send_Normal_message(&message))
 		{
@@ -207,7 +208,7 @@ implementation
 
 
 
-	bool Normal_intercept_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	bool Normal_intercept_Normal(NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -217,6 +218,8 @@ implementation
 
 			simdbgverbose("stdout", "%s: Normal Intercepted unseen Normal seqno=%u srcid=%u from %u.\n",
 				sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
+
+			rcvd->source_distance += 1;
 		}
 
 		return TRUE;
@@ -251,13 +254,24 @@ implementation
 		{
 			// TODO: FIXME
 			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
-			METRIC_BCAST(NormalMessage, "success", BOTTOM);
+			METRIC_BCAST(Normal, "success", UNKNOWN_SEQNO);
 		}
 
 		return SUCCESS;
 	}
 	command error_t CollectionDebug.logEventRoute(uint8_t event_type, am_addr_t parent, uint8_t hopcount, uint16_t metric) {
 		//simdbg("stdout", "logEventRoute %u %u %u %u\n", event_type, parent, hopcount, metric);
+
+		if (event_type == NET_C_TREE_SENT_BEACON)
+		{
+			METRIC_BCAST(CTPBeacon, "success", UNKNOWN_SEQNO);
+		}
+
+		else if (event_type == NET_C_TREE_RCV_BEACON)
+		{
+			METRIC_RCV(CTPBeacon, parent, BOTTOM, UNKNOWN_SEQNO, BOTTOM);
+		}
+
 		return SUCCESS;
 	}
 }

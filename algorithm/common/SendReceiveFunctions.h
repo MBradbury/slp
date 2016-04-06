@@ -240,7 +240,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 #define INTERCEPT_MESSAGE_BEGIN(NAME, KIND) \
 event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 { \
-	const NAME##Message* const rcvd = (const NAME##Message*)payload; \
+	NAME##Message* const rcvd = (NAME##Message*)payload; \
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
