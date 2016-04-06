@@ -42,7 +42,7 @@ class CLI(CommandLineCommon.CLI):
         'FurtherSinkCorner3Source'
     ]
 
-    repeats = 2000
+    repeats = 1000
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
