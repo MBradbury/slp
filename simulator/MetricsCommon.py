@@ -68,28 +68,34 @@ class MetricsCommon(object):
         (kind, time, node_id, status, sequence_number) = line.split(',')
 
         if status == "success":
-            time = self.sim.ticks_to_seconds(float(time))
             node_id = int(node_id)
-            sequence_number = int(sequence_number)
 
             self.sent[kind][node_id] += 1
 
             if node_id in self.source_ids and kind == "Normal":
-                self.normal_sent_time[(node_id, sequence_number)] = time
+                time = self.sim.ticks_to_seconds(float(time))
+                sequence_number = int(sequence_number)
+
+                # There are some times when we do not know the sequence number of the normal message
+                # (See protectionless_ctp). As a -1 means a previous message is being rebroadcasted,
+                # we can simply ignore adding this message
+                if sequence_number != -1:
+                    self.normal_sent_time[(node_id, sequence_number)] = time
 
     def process_RCV(self, line):
         (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
-
-        time = self.sim.ticks_to_seconds(float(time))
+        
         node_id = int(node_id)
         proximate_source_id = int(proximate_source_id)
-        ultimate_source_id = int(ultimate_source_id)
-        sequence_number = int(sequence_number)
-        hop_count = int(hop_count)
 
         self.received[kind][node_id] += 1
 
         if node_id in self.sink_ids and kind == "Normal":
+            time = self.sim.ticks_to_seconds(float(time))
+            ultimate_source_id = int(ultimate_source_id)
+            sequence_number = int(sequence_number)
+            hop_count = int(hop_count)
+
             key = (ultimate_source_id, sequence_number)
             self.normal_latency[key] = time - self.normal_sent_time[key]
             self.normal_hop_count.append(hop_count)
@@ -184,7 +190,29 @@ class MetricsCommon(object):
             return float('inf')
 
     def receive_ratio(self):
-        return len(self.normal_latency) / len(self.normal_sent_time)
+        # The receive ratio may be end up being lower than it actually is
+        # if a simple division is performed below.
+        #
+        # It may be the case that an attacker captures the source
+        # before a message has a chance to reach the sink.
+        # For example, if an attacker is directly next to the source,
+        # the next message will be considered lost.
+        # 
+        # By checking if the simulation finish time is almost equal to
+        # the last message send time, we can find out if there is a
+        # message that never had a chance to be received and thus discount it.
+        #
+        # The simulation will not usually finish at exactly the same time that
+        # the last message was sent (because it takes time to receive a message),
+        # so a small tolerance value is used.
+
+        end_time = self.sim_time()
+        send_modifier = 0
+
+        if np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
+            send_modifier = 1
+
+        return len(self.normal_latency) / (len(self.normal_sent_time) - send_modifier)
 
     def average_sink_source_hops(self):
         # It is possible that the sink has received no Normal messages
