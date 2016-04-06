@@ -265,6 +265,9 @@ class CLI(CommandLineCommon.CLI):
             ('short walk length', ' hops')
         ]
 
+        custom_yaxis_range_max = {
+        }
+
         for (parameter_name, parameter_unit) in parameters:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
@@ -280,6 +283,9 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
+
+                if result_name in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
                 g.create(phantom_results)
 
@@ -347,6 +353,11 @@ class CLI(CommandLineCommon.CLI):
             source_period_normalisation="NumSources"
         )
 
+        custom_yaxis_range_max = {
+            'captured': 50,
+            'sent': 18000
+        }
+
         combine = ["short walk length", "long walk length"]
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -362,6 +373,9 @@ class CLI(CommandLineCommon.CLI):
             g.xaxis_label = 'Network Size'
             g.yaxis_label = yaxis_label
             g.key_position = key_position
+
+            if result_name in custom_yaxis_range_max:
+                g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
             g.create(phantom_results)
 
@@ -389,6 +403,11 @@ class CLI(CommandLineCommon.CLI):
             source_period_normalisation="NumSources"
         )
 
+        custom_yaxis_range_max = {
+            'captured': 50,
+            'sent': 18000
+        }
+
         combine = ["short walk length", "long walk length"]
 
         parameters = [
@@ -415,6 +434,9 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
+
+                if result_name in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
                 g.create(phantom_results)
 
