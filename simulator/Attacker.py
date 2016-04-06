@@ -154,6 +154,25 @@ class DeafAttacker(Attacker):
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         return False
 
+class DeafAttackerWithEvent(Attacker):
+    """An attacker that does nothing when it receives a message.
+    This attacker also inserts a callback every period seconds."""
+    def __init__(self, period):
+        super(DeafAttackerWithEvent, self).__init__()
+        self._period = period
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        return False
+
+    def setup_event_callbacks(self):
+        self._sim.tossim.register_event_callback(self._callback, self._period)
+
+    def _callback(self, current_time):
+        self._sim.tossim.register_event_callback(self._callback, current_time + self._period)
+
+    def __str__(self):
+        return type(self).__name__ + "(period={})".format(self._period)
+
 class BasicReactiveAttacker(Attacker):
     """An attacker that reacts to every message that it should react to."""
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
