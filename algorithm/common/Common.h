@@ -3,6 +3,8 @@
 
 #define BOTTOM (-1)
 
+#define UNKNOWN_SEQNO (-1LL)
+
 #define ARRAY_LENGTH(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define max(a, b) \
