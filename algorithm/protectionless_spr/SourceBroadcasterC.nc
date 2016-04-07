@@ -26,7 +26,7 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 	find->distance = minbot(find->distance, given->distance);
 }
 
-void distance_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
 		i, address, contents->distance);
@@ -140,6 +140,7 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
+			sink_distance = 0;
 			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
@@ -282,8 +283,6 @@ implementation
 	event void AwaySenderTimer.fired()
 	{
 		AwayMessage message;
-
-		sink_distance = 0;
 
 		simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
 

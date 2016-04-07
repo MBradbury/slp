@@ -3,12 +3,10 @@
 
 enum Channels
 {
-	NORMAL_CHANNEL = 1,
-	AWAY_CHANNEL = 2,
-	CHOOSE_CHANNEL = 3,
-	FAKE_CHANNEL = 4
+	NORMAL_CHANNEL = 0xee,
 };
 
 #define SLP_MAX_NUM_SOURCES 20
+#define SLP_MAX_NUM_SINKS 1
 
 #endif // SLP_CONSTANTS_H

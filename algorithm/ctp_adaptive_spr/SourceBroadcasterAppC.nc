@@ -25,6 +25,7 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.AMPacket -> ActiveMessageC;
 
 
 	// Timers
@@ -37,16 +38,6 @@ implementation
 	App.BeaconSenderTimer -> BeaconSenderTimer;
 
 	// Networking
-	components
-		new AMSenderC(NORMAL_CHANNEL) as NormalSender,
-		new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver;
-	
-	App.Packet -> NormalSender; // TODO: is this right?
-	App.AMPacket -> NormalSender; // TODO: is this right?
-	
-	App.NormalSend -> NormalSender;
-	App.NormalReceive -> NormalReceiver;
-
 	components
 		new AMSenderC(AWAY_CHANNEL) as AwaySender,
 		new AMReceiverC(AWAY_CHANNEL) as AwayReceiver;
@@ -90,4 +81,24 @@ implementation
 		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
 	App.SourceDistances -> SourceDistances;
 	App.SinkSourceDistances -> SinkSourceDistances;
+
+
+	components CollectionC;
+	App.RoutingControl -> CollectionC;
+
+	CollectionC.CollectionDebug -> App;
+
+	components new CollectionSenderC(NORMAL_CHANNEL);
+
+	// Networking
+	App.NormalSend -> CollectionSenderC;
+	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
+	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
+	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
+
+	App.Packet -> CollectionC;
+	App.RootControl -> CollectionC;
+	//App.CollectionPacket -> CollectionC;
+	//App.CtpInfo -> CollectionC;
+	//App.CtpCongestion -> CollectionC;
 }

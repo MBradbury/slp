@@ -8,6 +8,7 @@
 #include "NormalMessage.h"
 #include "BeaconMessage.h"
 
+#include <CtpDebugMsg.h>
 #include <Timer.h>
 #include <TinyError.h>
 
@@ -47,6 +48,8 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 
 module SourceBroadcasterC
 {
+	provides interface CollectionDebug;
+
 	uses interface Boot;
 	uses interface Leds;
 	uses interface Random;
@@ -59,9 +62,13 @@ module SourceBroadcasterC
 	uses interface AMPacket;
 
 	uses interface SplitControl as RadioControl;
+	uses interface RootControl;
+	uses interface StdControl as RoutingControl;
 
-	uses interface AMSend as NormalSend;
+	uses interface Send as NormalSend;
 	uses interface Receive as NormalReceive;
+	uses interface Receive as NormalSnoop;
+	uses interface Intercept as NormalIntercept;
 
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
@@ -85,6 +92,10 @@ module SourceBroadcasterC
 
 	// The distance between the recorded source and the sink
 	uses interface Dictionary<am_addr_t, uint16_t> as SinkSourceDistances;
+
+	//uses interface CollectionPacket;
+	//uses interface CtpInfo;
+	//uses interface CtpCongestion;
 }
 
 implementation
@@ -410,6 +421,7 @@ implementation
 		{
 			type = SinkNode;
 			sink_distance = 0;
+			call RootControl.setRoot();
 			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
@@ -423,6 +435,8 @@ implementation
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
+
+			call RoutingControl.start();
 		}
 		else
 		{
@@ -466,7 +480,7 @@ implementation
 		}
 	}
 
-	USE_MESSAGE(Normal);
+	USE_MESSAGE_NO_TARGET(Normal);
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Choose);
 	USE_MESSAGE(Fake);
@@ -532,7 +546,7 @@ implementation
 		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
 		message.fake_sequence_increments = source_fake_sequence_increments;
 
-		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
+		if (send_Normal_message(&message))
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
@@ -581,7 +595,61 @@ implementation
 	}
 
 
-	void x_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		update_fake_seq_incs(rcvd);
+
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		{
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+
+			METRIC_RCV_NORMAL(rcvd);
+
+			update_source_distance(rcvd);
+
+			if (!first_normal_rcvd)
+			{
+				first_normal_rcvd = TRUE;
+				call Leds.led1On();
+			}
+
+			// Keep sending away messages until we get a valid response
+			if (!sink_received_away_reponse)
+			{
+				call AwaySenderTimer.startOneShot(get_away_delay());
+			}
+		}
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Normal)
+
+
+	void x_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		/*if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		{
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+
+			METRIC_RCV_NORMAL(rcvd);
+
+			//simdbgverbose("stdout", "%s: Normal Snooped unseen Normal data=%u seqno=%u srcid=%u from %u.\n",
+			//	sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
+		}*/
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
+		case SourceNode: break;
+		case SinkNode: break;
+		case TempFakeNode:
+		case TailFakeNode:
+		case PermFakeNode:
+		case NormalNode: x_snoop_Normal(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Normal)
+
+
+	bool x_intercept_Normal(NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		update_fake_seq_incs(rcvd);
 
@@ -601,61 +669,26 @@ implementation
 				call Leds.led1On();
 			}
 
-			forwarding_message = *rcvd;
-			forwarding_message.source_distance += 1;
-			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
-
-			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+			rcvd->source_distance += 1;
+			rcvd->fake_sequence_number = source_fake_sequence_counter;
+			rcvd->fake_sequence_increments = source_fake_sequence_increments;
 		}
+
+		return TRUE;
 	}
 
-	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
-	{
-		update_fake_seq_incs(rcvd);
-
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
-		{
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-
-			METRIC_RCV_NORMAL(rcvd);
-
-			update_source_distance(rcvd);
-
-			if (!first_normal_rcvd)
-			{
-				first_normal_rcvd = TRUE;
-				call Leds.led1On();
-
-				// Having the sink forward the normal message helps set up
-				// the source distance gradients.
-				// However, we don't want to keep doing this as it benefits the attacker.
-				{
-					NormalMessage forwarding_message = *rcvd;
-					forwarding_message.source_distance += 1;
-					forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-					forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
-
-					send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
-				}
-			}
-
-			// Keep sending away messages until we get a valid response
-			if (!sink_received_away_reponse)
-			{
-				call AwaySenderTimer.startOneShot(get_away_delay());
-			}
-		}
-	}
-
-	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+	INTERCEPT_MESSAGE_BEGIN(Normal, Intercept)
 		case SourceNode: break;
-		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
-		case NormalNode:
+		case SinkNode: break;
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: x_receive_Normal(rcvd, source_addr); break;
-	RECEIVE_MESSAGE_END(Normal)
+		case PermFakeNode:
+		case NormalNode: return x_intercept_Normal(rcvd, source_addr);
+	INTERCEPT_MESSAGE_END(Normal)
+
+
+
+
 
 
 	void Sink_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
@@ -977,7 +1010,51 @@ implementation
 		}
 		else
 		{
-			METRIC_BCAST(Fake, result, BOTTOM);
+			METRIC_BCAST(Fake, result, UNKNOWN_SEQNO);
 		}
+	}
+
+
+	// The following is simply for metric gathering.
+	// The CTP debug events are hooked into so we have correctly record when a message has been sent.
+
+	command error_t CollectionDebug.logEvent(uint8_t event_type) {
+		//simdbg("stdout", "logEvent %u\n", event_type);
+		return SUCCESS;
+	}
+	command error_t CollectionDebug.logEventSimple(uint8_t event_type, uint16_t arg) {
+		//simdbg("stdout", "logEventSimple %u %u\n", event_type, arg);
+		return SUCCESS;
+	}
+	command error_t CollectionDebug.logEventDbg(uint8_t event_type, uint16_t arg1, uint16_t arg2, uint16_t arg3) {
+		//simdbg("stdout", "logEventDbg %u %u %u %u\n", event_type, arg1, arg2, arg3);
+		return SUCCESS;
+	}
+	command error_t CollectionDebug.logEventMsg(uint8_t event_type, uint16_t msg, am_addr_t origin, am_addr_t node) {
+		//simdbg("stdout", "logEventMessage %u %u %u %u\n", event_type, msg, origin, node);
+
+		if (event_type == NET_C_FE_SENDDONE_WAITACK || event_type == NET_C_FE_SENT_MSG || event_type == NET_C_FE_FWD_MSG)
+		{
+			// TODO: FIXME
+			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
+			METRIC_BCAST(Normal, "success", UNKNOWN_SEQNO);
+		}
+
+		return SUCCESS;
+	}
+	command error_t CollectionDebug.logEventRoute(uint8_t event_type, am_addr_t parent, uint8_t hopcount, uint16_t metric) {
+		//simdbg("stdout", "logEventRoute %u %u %u %u\n", event_type, parent, hopcount, metric);
+
+		if (event_type == NET_C_TREE_SENT_BEACON)
+		{
+			METRIC_BCAST(CTPBeacon, "success", UNKNOWN_SEQNO);
+		}
+
+		else if (event_type == NET_C_TREE_RCV_BEACON)
+		{
+			METRIC_RCV(CTPBeacon, parent, BOTTOM, UNKNOWN_SEQNO, BOTTOM);
+		}
+
+		return SUCCESS;
 	}
 }
