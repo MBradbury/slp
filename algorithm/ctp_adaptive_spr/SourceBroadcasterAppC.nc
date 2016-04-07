@@ -85,6 +85,10 @@ implementation
 
 	components CollectionC;
 	App.RoutingControl -> CollectionC;
+	App.RootControl -> CollectionC;
+	//App.CollectionPacket -> CollectionC;
+	//App.CtpInfo -> CollectionC;
+	//App.CtpCongestion -> CollectionC;
 
 	CollectionC.CollectionDebug -> App;
 
@@ -95,10 +99,4 @@ implementation
 	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
 	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
 	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
-
-	App.Packet -> CollectionC;
-	App.RootControl -> CollectionC;
-	//App.CollectionPacket -> CollectionC;
-	//App.CtpInfo -> CollectionC;
-	//App.CtpCongestion -> CollectionC;
 }
