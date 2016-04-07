@@ -209,7 +209,7 @@ class MetricsCommon(object):
         end_time = self.sim_time()
         send_modifier = 0
 
-        if np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
+        if len(self.normal_sent_time) > 0 and np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
             send_modifier = 1
 
         return len(self.normal_latency) / (len(self.normal_sent_time) - send_modifier)
