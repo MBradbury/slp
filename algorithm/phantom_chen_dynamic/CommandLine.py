@@ -43,7 +43,7 @@ class RunSimulations(RunSimulationsCommon):
         random_walk_types = {
         #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
-        'phantom_walkabouts':[1,1]
+        'phantom_walkabouts':[1,2]
         }
         ##################################################################
         if len(random_walk_types) ==1:
@@ -92,20 +92,20 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15, 21, 25]
-    #sizes = [21]
+    #sizes = [11, 15, 21, 25]
+    sizes = [21]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-    #source_periods = [ 0.125 ]
+    #source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [ 0.125 ]
 
     configurations = [
-        #'SourceCorner',
+        'SourceCorner',
         #'Source2CornerTop',
         #'Source3CornerTop',
 
         'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -120,25 +120,28 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    wait_before_short = [100, 150, 200]
+    repeats = 500
 
-    repeats = 1000
-
-    local_parameter_names = ('short walk length', 'long walk length', 'wait before short')
+    local_parameter_names = ('short walk length', 'long walk length')
 
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
+    def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
         half_ssd = int(math.floor(s/2)) + 1
         half_ssd_further = s
         ssd_further = 2*s
 
-        random_walk_short = list(range(2, half_ssd))
-        random_walk_long = list(range(s+2, s+half_ssd))
-        random_walk_short_for_further = list(range(2, half_ssd_further))
-        random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
+        random_walk_short = half_ssd
+        random_walk_long = s + half_ssd
+        random_walk_short_for_further = half_ssd_further
+        random_walk_long_for_further = ssd_further+half_ssd_further
+
+        #random_walk_short = list(range(2, half_ssd))
+        #random_walk_long = list(range(s+2, s+half_ssd))
+        #random_walk_short_for_further = list(range(2, half_ssd_further))
+        #random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
 
         non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
 
@@ -189,7 +192,10 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
-        return list(zip(walk_short, walk_long))
+        dynamic_list = [walk_short, walk_long]
+
+        #return list(walk_short, walk_long)
+        return dynamic_list
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -219,20 +225,21 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.wait_before_short
+            [self.distance], self.source_periods
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, swl, lwl, wbs)
+            (s, c, am, nm, cm, d, sp, swl, lwl)
 
-            for (s, c, am, nm, cm, d, sp, wbs) in argument_product
+            for (s, c, am, nm, cm, d, sp) in argument_product
 
-            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
+            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp)
         ]        
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
+        
 
     def _run_table(self, args):
         phantom_results = results.Results(
@@ -266,9 +273,6 @@ class CLI(CommandLineCommon.CLI):
             ('short walk length', ' hops')
         ]
 
-        custom_yaxis_range_max = {
-        }
-
         for (parameter_name, parameter_unit) in parameters:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
@@ -284,9 +288,6 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
-
-                if result_name in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
                 g.create(phantom_results)
 
@@ -354,11 +355,6 @@ class CLI(CommandLineCommon.CLI):
             source_period_normalisation="NumSources"
         )
 
-        custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 20000
-        }
-
         combine = ["short walk length", "long walk length"]
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -374,9 +370,6 @@ class CLI(CommandLineCommon.CLI):
             g.xaxis_label = 'Network Size'
             g.yaxis_label = yaxis_label
             g.key_position = key_position
-
-            if yaxis in custom_yaxis_range_max:
-                g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
             g.create(phantom_results)
 
@@ -404,11 +397,6 @@ class CLI(CommandLineCommon.CLI):
             source_period_normalisation="NumSources"
         )
 
-        custom_yaxis_range_max = {
-            'captured': 25,
-            'sent': 20000
-        }
-
         combine = ["short walk length", "long walk length"]
 
         parameters = [
@@ -435,9 +423,6 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
-
-                if yaxis in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
                 g.create(phantom_results)
 

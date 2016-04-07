@@ -129,14 +129,12 @@ implementation
     		case(NORTH_EAST_DIRECTION):
     			if (bottom(TOS_NODE_ID)) 												neighbour_node_chosen = neighbour_east_node;
     			else if (right_bottom_corner(TOS_NODE_ID))								neighbour_node_chosen = neighbour_south_node;
-    			// for SinkCorner
-    			else if (right_border(TOS_NODE_ID))              									neighbour_node_chosen = neighbour_south_node;
-    			else      																neighbour_node_chosen=(random_number==0)?neighbour_east_node:neighbour_north_node;
+    			else if (right_border(TOS_NODE_ID)) 									neighbour_node_chosen = neighbour_south_node;
+    			else																	neighbour_node_chosen=(random_number==0)?neighbour_east_node:neighbour_north_node;
   				break;
 
   			case(SOUTH_WEST_DIRECTION):
     			if (left_border(TOS_NODE_ID))  					neighbour_node_chosen = neighbour_south_node;
-    			// for SinkCorner
     			else if(top(TOS_NODE_ID))						neighbour_node_chosen = neighbour_east_node;				
     			else if(left_top_corner(TOS_NODE_ID))			neighbour_node_chosen = neighbour_east_node;
     			else 											neighbour_node_chosen=(random_number==0)?neighbour_west_node:neighbour_south_node;
@@ -266,16 +264,35 @@ implementation
 	//m short random walk and n long random walk messages combination.
 	uint16_t message_mshort_nlong(uint16_t m, uint16_t n)
 	{
-		uint16_t random_walk_remaining;
+		uint16_t random_walk_remaining, ran;
+		uint16_t i;
 
-		random_walk_remaining = (last_random_walk % (m+n) <= m && last_random_walk % (m+n) != 0)? RANDOM_WALK_HOPS : LONG_RANDOM_WALK_HOPS;
+		uint16_t random_walk_range = RANDOM_WALK_HOPS-1;
+		uint16_t short_random_walk[random_walk_range];
+		uint16_t long_random_walk[random_walk_range];
+
+
+		for(i = 0; i < random_walk_range;i++)
+		{
+			short_random_walk[random_walk_range-i-1] = RANDOM_WALK_HOPS-i;
+			long_random_walk[random_walk_range-i-1] = LONG_RANDOM_WALK_HOPS - i;
+		}
+
+		ran=call Random.rand16()%(random_walk_range);
+
+		simdbg("slp-debug","random No: %d, short_random_walk[%d]:%d, long_random_walk[%d]:%d ", ran, ran,short_random_walk[ran], ran, long_random_walk[ran]);
+
+
+		random_walk_remaining = (last_random_walk % (m+n) <= m && last_random_walk % (m+n) != 0)?  short_random_walk[ran]: long_random_walk[ran];
 		last_random_walk += 1;
 
 		return random_walk_remaining;
 	}
 
+
 	void generate_message()
 	{
+		//NormalMessage message;
 		typedef enum random_walk_possible_directions
 		{
 
@@ -295,6 +312,8 @@ implementation
 			message.source_id = TOS_NODE_ID;
 			message.source_distance = 0;
 
+			//sink_source_distance_calculation();
+
 			//add adaptive phantom code here.
 			message.random_walk_hop_remaining = message_mshort_nlong(short_long[0],short_long[1]);
 
@@ -302,11 +321,13 @@ implementation
 		//fit for Source Corner.  
 		#ifdef SPACE_BEHIND_SINK
 			{
+				message.source_sink_distance = TOPOLOGY_SIZE;
 				//if random walk length is shorter than the source sink distance, biased random walk is no need to implement.
 				//normally the short random walk is set to less than half of source sink distance.
 				if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
 				{
-					simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
+					simdbg("slp-debug","short random walk length: %d\n", message.random_walk_hop_remaining);
+					//simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk, sim_time_string());
 					//random_walk_direction_chosen = S_se;
 					message.random_walk_direction = random_walk_direction_chosen = S_se;
 				}
@@ -315,7 +336,8 @@ implementation
 					//randomly choose the random is whether follow the x axis or y axis.
 					random_walk_direction_chosen = (flip_coin == 0)? Biased_x_axis : Biased_y_axis;
 					message.random_walk_direction = random_walk_direction_chosen;
-					simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
+					simdbg("slp-debug","long random walk length: %d\n", message.random_walk_hop_remaining);
+					//simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
 				}
 			}
 		//fit for the situation that the sink is located in the corner or in the border, NO_SPACE_BEHIND_SINK.
@@ -325,17 +347,21 @@ implementation
 				// fit for FurtherSinkCorner.
 				//ensure all source ID is les than TOPOLOGY_SIZE*3, even with 3 sources.
 				if (message.source_id < TOPOLOGY_SIZE*3)
-				{					
+				{
+					message.source_sink_distance = 2*TOPOLOGY_SIZE;
+
 					if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
 					{
-						simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());	
+						simdbg("slp-debug","short random walk length: %d\n", message.random_walk_hop_remaining);
+						//simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());	
 						message.random_walk_direction = random_walk_direction_chosen = S_se;
 					}
 					else
 					{
 						message.random_walk_direction = random_walk_direction_chosen = S_se;
 						//message.random_walk_direction = (flip_coin == 0)?4:5;
-						simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
+						simdbg("slp-debug","long random walk length: %d\n", message.random_walk_hop_remaining);
+						//simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
 					}
 				}
 
@@ -343,13 +369,21 @@ implementation
 				//biased random walk is not applied here.
 				else
 				{
+					message.source_sink_distance = TOPOLOGY_SIZE;
+
 					if(message.random_walk_hop_remaining < TOPOLOGY_SIZE)
-						simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
+					{
+						simdbg("slp-debug","short random walk length: %d\n", message.random_walk_hop_remaining);
+						//simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
+					}
 					else
-						simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());	
-					//message.random_walk_direction = call Random.rand16()%4;
-					random_walk_direction_chosen = (flip_coin == 0)? S_ne: S_ws;
-					message.random_walk_direction = random_walk_direction_chosen;
+					{
+						simdbg("slp-debug","short random walk length: %d\n", message.random_walk_hop_remaining);
+						//simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());	
+						//message.random_walk_direction = call Random.rand16()%4;
+						random_walk_direction_chosen = (flip_coin == 0)? S_ne: S_ws;
+						message.random_walk_direction = random_walk_direction_chosen;
+					}
 				}
 				
 			}
@@ -361,13 +395,13 @@ implementation
 			}
 		}
 
-		// TODO: add WAIT_BEFORE_SHORT_MS here when next message is a short
 		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
 
 	event void BroadcastNormalTimer.fired()
-	{	
+	{
+		
 		generate_message();  
 	}
 
