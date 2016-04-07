@@ -18,9 +18,9 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["meyer-heavy"]
+    noise_models = ["meyer-heavy", "casino-lab"]
 
-    communication_models = ["ideal"]
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
@@ -28,9 +28,8 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-<<<<<<< local
-        #'SinkCorner',
-        #'FurtherSinkCorner',
+        'SinkCorner',
+        'FurtherSinkCorner',
         #'Generic1',
         #'Generic2',
 
@@ -41,43 +40,23 @@ class CLI(CommandLineCommon.CLI):
         #'CircleEdges',
         #'CircleSourceCentre',
         #'CircleSinkCentre',
-=======
-        'SinkCorner',
-        'FurtherSinkCorner',
->>>>>>> other
 
         # 2 sources
-<<<<<<< local
-        #'Source2Corners',
-        #'Source2Edges',
-        #'Source2Corner',
-        #'SourceEdgeCorner',
-=======
-        'Source2CornerTop',
-        'SinkCorner2Source'
-        'FurtherSinkCorner2Source'
->>>>>>> other
+        'Source2Corners',
+        'Source2Edges',
+        'Source2Corner',
+        'SourceEdgeCorner',
 
         # 3 sources
-<<<<<<< local
-        #'Source3Corner',
+        'Source3Corner',
 
         # 4 sources
-        #'Source4Corners',
-        #'Source4Edges',        
-        #'Source2Corner2OppositeCorner'
-=======
-        'Source3CornerTop',
-        'SinkCorner3Source',
-        'FurtherSinkCorner3Source'
->>>>>>> other
+        'Source4Corners',
+        'Source4Edges',        
+        'Source2Corner2OppositeCorner'
     ]
 
-<<<<<<< local
-    repeats = 750
-=======
-    repeats = 1000
->>>>>>> other
+    repeats = 2000
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
