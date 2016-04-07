@@ -21,7 +21,6 @@ module SourceBroadcasterC
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 
-	uses interface Packet;
 	uses interface AMPacket;
 
 	uses interface SplitControl as RadioControl;

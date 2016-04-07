@@ -55,7 +55,7 @@ implementation
 		}
 	}
 
-	void start_next_timer()
+	void start_next_timer(uint32_t delay)
 	{
 		const slp_period_t* period;
 		uint32_t length;
@@ -64,13 +64,18 @@ implementation
 		{
 			simdbgverbose("stdout", "Starting a detection timer for %u.\n", period[current_index].from);
 
-			call DetectionTimer.startOneShotAt(period[current_index].from, 0);
+			call DetectionTimer.startOneShotAt(delay + period[current_index].from, 0);
 		}
 	}
 
 	command void ObjectDetector.start()
 	{
-		start_next_timer();
+		start_next_timer(0);
+	}
+
+	command void ObjectDetector.start_later(uint32_t delay)
+	{
+		start_next_timer(delay);
 	}
 
 	command void ObjectDetector.stop()
@@ -98,6 +103,8 @@ implementation
 
 		simdbgverbose("stdout", "Detected an object.\n");
 
+		detected = TRUE;
+
 		if (get_periods_active(TOS_NODE_ID, &period, &length) && current_index < length)
 		{
 			// Don't start the expiry timer if this detection
@@ -123,6 +130,6 @@ implementation
 
 		++current_index;
 
-		start_next_timer();
+		start_next_timer(0);
 	}
 }
