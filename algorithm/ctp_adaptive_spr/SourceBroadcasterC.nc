@@ -25,7 +25,7 @@
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
 
 // Basically a flat map between node ids to distances
 typedef struct
@@ -88,9 +88,6 @@ module SourceBroadcasterC
 
 	// The distance between this node and each source
 	uses interface Dictionary<am_addr_t, uint16_t> as SourceDistances;
-
-	// The distance between the recorded source and the sink
-	uses interface Dictionary<am_addr_t, uint16_t> as SinkSourceDistances;
 
 	//uses interface CollectionPacket;
 	//uses interface CtpInfo;
@@ -249,8 +246,7 @@ implementation
 
 		const uint32_t result_period = (uint32_t)ceil(period_per_source);
 
-		simdbg("stdout", "get_pfs_period=%u fakercv=%f\n",
-			result_period, fake_rcv_ratio_at_src);
+		simdbg("stdout", "get_pfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -332,7 +328,6 @@ implementation
 	void update_source_distance(const NormalMessage* rcvd)
 	{
 		const uint16_t* distance = call SourceDistances.get(rcvd->source_id);
-		const uint16_t* sink_source_distance = call SinkSourceDistances.get(rcvd->source_id);
 
 		if (distance == NULL)
 		{
@@ -348,19 +343,6 @@ implementation
 			min_source_distance = rcvd->source_distance + 1;
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
-		}
-		
-		if (rcvd->sink_distance != BOTTOM)
-		{
-			if (sink_source_distance == NULL)
-			{
-				//simdbg("stdout", "Updating sink distance of %u to %d\n", rcvd->source_id, rcvd->sink_distance);
-				call SinkSourceDistances.put(rcvd->source_id, rcvd->sink_distance);
-			}
-			else
-			{
-				call SinkSourceDistances.put(rcvd->source_id, min(*sink_source_distance, rcvd->sink_distance));
-			}
 		}
 	}
 
@@ -398,7 +380,8 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			call ObjectDetector.start();
+			// Wait for 2 seconds before detecting source to allow the CTP to set up
+			call ObjectDetector.start_later(3 * 1000);
 
 			call RoutingControl.start();
 		}
@@ -505,7 +488,6 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
-		message.sink_distance = sink_distance;
 
 		if (send_Normal_message(&message))
 		{
@@ -587,6 +569,8 @@ implementation
 
 	void x_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		update_source_distance(rcvd);
+
 		/*if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
