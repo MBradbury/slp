@@ -77,10 +77,8 @@ implementation
 	App.NormalSeqNos -> NormalSeqNos;
 
 	components
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances,
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
+		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
 	App.SourceDistances -> SourceDistances;
-	App.SinkSourceDistances -> SinkSourceDistances;
 
 
 	components CollectionC;
