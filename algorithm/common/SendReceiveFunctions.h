@@ -42,7 +42,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 	{ \
 		error_t status; \
  \
-		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
+		void* const void_message = call NAME##Send.getPayload(&packet, sizeof(NAME##Message)); \
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
@@ -95,7 +95,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 	{ \
 		error_t status; \
  \
-		void* const void_message = call Packet.getPayload(&packet, sizeof(NAME##Message)); \
+		void* const void_message = call NAME##Send.getPayload(&packet, sizeof(NAME##Message)); \
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
