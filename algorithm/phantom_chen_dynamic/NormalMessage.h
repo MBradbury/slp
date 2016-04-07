@@ -12,6 +12,7 @@ typedef nx_struct NormalMessage
 	nx_uint16_t random_walk_hop_remaining;
 	nx_uint16_t source_distance;
 	nx_uint16_t random_walk_direction;
+	nx_uint16_t source_sink_distance;
 
 } NormalMessage;
 
