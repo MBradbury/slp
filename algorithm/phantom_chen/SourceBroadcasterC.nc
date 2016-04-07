@@ -3,6 +3,7 @@
 #include "SendReceiveFunctions.h"
 
 #include "NormalMessage.h"
+#include "Parameters.h"
 
 #include <Timer.h>
 #include <TinyError.h>
@@ -10,27 +11,27 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
-#define NORTH_WEST_DIRECTION 0
-#define NORTH_EAST_DIRECTION 1
-#define SOUTH_WEST_DIRECTION 2
-#define SOUTH_EAST_DIRECTION 3
-#define BIASED_X_AXIS        4
-#define BIASED_Y_AXIS        5
+//#define NORTH_WEST_DIRECTION 0
+//#define NORTH_EAST_DIRECTION 1
+//#define SOUTH_WEST_DIRECTION 2
+//#define SOUTH_EAST_DIRECTION 3
+//#define BIASED_X_AXIS        4
+//#define BIASED_Y_AXIS        5
 
-#define SHORT_RANDOM_MESSAGE 0
-#define LONG_RANDOM_MESSAGE  1
-#define TRUE 1
-#define FALSE 0
+//#define SHORT_RANDOM_MESSAGE 0
+//#define LONG_RANDOM_MESSAGE  1
+//#define TRUE 1
+//#define FALSE 0
 
 //define the global vaiable.
 //make it work for multiple sources.
 uint16_t random_walk_message_no = 1;
-//uint16_t message_current_type = LONG_RANDOM;
+uint16_t message_current_type = LONG_RANDOM_MESSAGE;
 uint16_t message_previous_type = LONG_RANDOM_MESSAGE;
 
 /////////////////////////////
-#define WAIT_BEFORE_SHORT true
-uint16_t short_long[] = {1,1};
+//#define WAIT_BEFORE_SHORT TRUE
+//uint16_t short_long[] = {1,1};
 /////////////////////////////
 
 module SourceBroadcasterC
@@ -125,7 +126,7 @@ implementation
 
 		random_number=call Random.rand16()%2;
 
-		biased_random_number=call Random.rand16()%10;
+		biased_random_number=call Random.rand16()%BIASED_RANDOM_WALK_FACTOR;
 
 		switch(choose)
 		{
@@ -282,10 +283,12 @@ implementation
 		if( seq_reminder% (m+n) <= m && seq_reminder % (m+n) != 0)
 		{
 			random_walk_remaining = RANDOM_WALK_HOPS;
+			message_current_type = SHORT_RANDOM_MESSAGE;
 		}
 		else
 		{
 			random_walk_remaining = LONG_RANDOM_WALK_HOPS;
+			message_current_type = LONG_RANDOM_MESSAGE;
 		}
 
 		if((seq_reminder-1)% (m+n) <= m && (seq_reminder-1) % (m+n) != 0)
@@ -390,7 +393,8 @@ implementation
 		}
 
 		// if next message is short random walk, wait for the WAIT_BEFORE_SHORT_MS time.
-		if(WAIT_BEFORE_SHORT == TRUE && message_previous_type ==SHORT_RANDOM_MESSAGE && RANDOM_WALK_HOPS < LONG_RANDOM_WALK_HOPS)
+		if(WAIT_BEFORE_SHORT == TRUE && RANDOM_WALK_HOPS < LONG_RANDOM_WALK_HOPS && \
+			message_previous_type ==LONG_RANDOM_MESSAGE && message_current_type == SHORT_RANDOM_MESSAGE)
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + get_source_period());
 		else
 			call BroadcastNormalTimer.startOneShot(get_source_period());
