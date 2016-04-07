@@ -1,0 +1,13 @@
+COMPONENT = SourceBroadcasterAppC
+
+CFLAGS += $(SLP_PARAMETER_CFLAGS)
+
+CFLAGS += -I"../common" -I$(TOSDIR)/lib/net -I$(TOSDIR)/lib/net/ctp -I$(TOSDIR)/lib/net/drip -I$(TOSDIR)/lib/net/4bitle
+
+# Need to increase the size of the data to accommodate the beacon message
+#CFLAGS += -DTOSH_DATA_LENGTH=44
+
+include ../common/makefile.common
+
+#include $(TINYOS_ROOT_DIR)/Makefile.include
+include $(MAKERULES)
