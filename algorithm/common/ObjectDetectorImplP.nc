@@ -103,6 +103,8 @@ implementation
 
 		simdbgverbose("stdout", "Detected an object.\n");
 
+		detected = TRUE;
+
 		if (get_periods_active(TOS_NODE_ID, &period, &length) && current_index < length)
 		{
 			// Don't start the expiry timer if this detection
