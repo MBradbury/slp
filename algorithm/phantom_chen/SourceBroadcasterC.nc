@@ -340,13 +340,13 @@ implementation
 			}
 		}
 
+		// TODO: add WAIT_BEFORE_SHORT_MS here when next message is a short
 		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
 
 	event void BroadcastNormalTimer.fired()
-	{
-		
+	{	
 		generate_message();  
 	}
 
