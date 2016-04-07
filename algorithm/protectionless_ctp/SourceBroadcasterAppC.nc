@@ -2,8 +2,6 @@
 
 #include <Timer.h>
 
-#include <CtpDebugMsg.h>
-
 configuration SourceBroadcasterAppC
 {
 }
