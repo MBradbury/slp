@@ -253,6 +253,13 @@ class MetricsCommon(object):
             in self.sim.attackers
         }
 
+    def attacker_moves_in_response_to(self):
+        return {
+            attacker.ident: dict(attacker.moves_in_response_to)
+            for attacker
+            in self.sim.attackers
+        }
+
     def attacker_steps_towards(self):
         return {
             (source_id, attacker.ident): attacker.steps_towards[source_id]
@@ -333,6 +340,7 @@ class MetricsCommon(object):
         d["AttackerDistance"]              = lambda x: x.attacker_source_distance()
         d["AttackerSinkDistance"]          = lambda x: x.attacker_sink_distance()
         d["AttackerMoves"]                 = lambda x: x.attacker_moves()
+        d["AttackerMovesInResponseTo"]     = lambda x: x.attacker_moves_in_response_to()
         d["AttackerStepsTowards"]          = lambda x: x.attacker_steps_towards()
         d["AttackerStepsAway"]             = lambda x: x.attacker_steps_away()
         d["AttackerMinSourceDistance"]     = lambda x: x.attacker_min_source_distance()
