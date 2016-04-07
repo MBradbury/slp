@@ -66,6 +66,14 @@ implementation
 	App.BeaconSend -> BeaconSender;
 	App.BeaconReceive -> BeaconReceiver;
 
+	components
+		new AMSenderC(INFORM_CHANNEL) as InformSender,
+		new AMReceiverC(INFORM_CHANNEL) as InformReceiver;
+
+	App.InformSend -> InformSender;
+	App.InformReceive -> InformReceiver;
+
+
 	components FakeMessageGeneratorP;
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
 
