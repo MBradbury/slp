@@ -30,9 +30,13 @@ implementation
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
 	components new TimerMilliC() as AwaySenderTimer;
+	components new TimerMilliC() as BeaconSenderTimer;
+	components new TimerMilliC() as DummyNormalSenderTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
+	App.BeaconSenderTimer -> BeaconSenderTimer;
+	App.DummyNormalSenderTimer -> DummyNormalSenderTimer;
 
 
 	// Networking
@@ -67,6 +71,20 @@ implementation
 	App.FakeSend -> FakeSender;
 	App.FakeReceive -> FakeReceiver;
 
+	components
+		new AMSenderC(DUMMYNORMAL_CHANNEL) as DummyNormalSender,
+		new AMReceiverC(DUMMYNORMAL_CHANNEL) as DummyNormalReceiver;
+
+	App.DummyNormalSend -> DummyNormalSender;
+	App.DummyNormalReceive -> DummyNormalReceiver;
+
+	components
+		new AMSenderC(BEACON_CHANNEL) as BeaconSender,
+		new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;
+
+	App.BeaconSend -> BeaconSender;
+	App.BeaconReceive -> BeaconReceiver;
+
 	components FakeMessageGeneratorP;
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
 
@@ -77,7 +95,9 @@ implementation
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 
-	//components
-	//	new DictionaryP(am_addr_t, int32_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
-	//App.SourceDistances -> SourceDistances;
+	components
+		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances,
+		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
+	App.SourceDistances -> SourceDistances;
+	App.SinkSourceDistances -> SinkSourceDistances;
 }

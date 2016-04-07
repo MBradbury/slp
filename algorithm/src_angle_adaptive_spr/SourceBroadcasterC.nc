@@ -6,6 +6,7 @@
 #include "AwayChooseMessage.h"
 #include "FakeMessage.h"
 #include "NormalMessage.h"
+#include "DummyNormalMessage.h"
 #include "BeaconMessage.h"
 
 #include <Timer.h>
@@ -24,6 +25,7 @@
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
+#define METRIC_RCV_DUMMYNORMAL(msg) METRIC_RCV(DummyNormal, source_addr, BOTTOM, BOTTOM, BOTTOM)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 // Basically a flat map between node ids to distances
@@ -54,6 +56,7 @@ module SourceBroadcasterC
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
+	uses interface Timer<TMilli> as DummyNormalSenderTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -71,6 +74,9 @@ module SourceBroadcasterC
 
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
+
+	uses interface AMSend as DummyNormalSend;
+	uses interface Receive as DummyNormalReceive;
 
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
@@ -165,7 +171,7 @@ implementation
 	{
 		//assert(SOURCE_PERIOD_MS != BOTTOM);
 
-		return SOURCE_PERIOD_MS / 2;
+		return 75;
 	}
 
 	uint16_t estimated_number_of_sources(void)
@@ -183,20 +189,170 @@ implementation
 		return call SourceDistances.contains_key(address);
 	}
 
-	uint16_t get_dist_to_pull_back(void)
+	uint32_t get_dist_to_pull_back(void)
 	{
-#if defined(PB_FIXED2_APPROACH)
-		return 2;
-
-#elif defined(PB_FIXED1_APPROACH)
 		return 1;
+	}
 
-#elif defined(PB_RND_APPROACH)
-		return 1 + (call Random.rand16() % 2);
+	double inclination_angle_rad(am_addr_t source_id)
+	{
+		const double ssd = call SinkSourceDistances.get_or_default(source_id, BOTTOM);
+		const double dsrc = call SourceDistances.get_or_default(source_id, BOTTOM);
+		const double dsink = sink_distance;
+		double temp, angle;
 
+		if (ssd < 0 || dsrc <= 0 || dsink <= 0)
+		{
+			//simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f\n", source_id, ssd, dsrc, dsink);
+			return INFINITY;
+		}
+
+		temp = ((dsrc * dsrc) + (dsink * dsink) - (ssd * ssd)) / (2.0 * dsrc * dsink);
+		angle = acos(temp);
+
+		simdbg("stdout", "source_id=%u ssd=%f dsrc=%f dsink=%f inter=%f angle=%f\n", source_id, ssd, dsrc, dsink, temp, rad2deg(angle));
+
+		return angle;
+	}
+
+	bool invalid_double(double x)
+	{
+		return isinf(x) || isnan(x) || x < 0.0 || x > M_PI;
+	}
+
+	double angle_when_node_further_than_sink(double source1_angle, double source2_angle)
+	{
+		double result;
+
+		if (invalid_double(source1_angle) || invalid_double(source2_angle))
+		{
+			//simdbg("stdout", "further result invalid\n");
+			return INFINITY;
+		}
+
+		result = source1_angle + source2_angle;
+
+		simdbg("stdout", "further result %f\n", result);
+
+		return result;
+	}
+
+	double angle_when_node_closer_than_sink(double source1_angle, double source2_angle)
+	{
+		double result;
+
+		if (invalid_double(source1_angle) || invalid_double(source2_angle))
+		{
+			//simdbg("stdout", "closer result invalid\n");
+			return INFINITY;
+		}
+
+		result = 2.0 * M_PI - source1_angle - source2_angle;
+
+		simdbg("stdout", "closer result %f\n", result);
+
+		return result;
+	}
+
+	double angle_when_node_side_of_sink(double source1_angle, double source2_angle)
+	{
+		double result;
+
+		if (invalid_double(source1_angle) || invalid_double(source2_angle))
+		{
+			//simdbg("stdout", "side result invalid\n");
+			return INFINITY;
+		}
+
+		// Covers both a1 - a2 and a2 - a1 depending on which angle is the largest.
+		result = fabs(source1_angle - source2_angle);
+
+		simdbg("stdout", "side result %f\n", result);
+
+		return result;
+	}
+
+	double interference_strategy(am_addr_t source1, am_addr_t source2)
+	{
+#if defined(NO_INTERFERENCE_APPROACH)
+		return 0;
 #else
-#	error "Technique not specified"
+		const double source1_angle = inclination_angle_rad(source1);
+		const double source2_angle = inclination_angle_rad(source2);
+#if defined(ALWAYS_FURTHER_APPORACH)
+		return angle_when_node_further_than_sink(source1_angle, source2_angle);
+#elif defined(ALWAYS_CLOSER_APPORACH)
+		return angle_when_node_closer_than_sink(source1_angle, source2_angle);
+#elif defined(ALWAYS_SIDE_APPORACH)
+		return angle_when_node_side_of_sink(source1_angle, source2_angle);
+#elif defined(MIN_VALID_APPROACH)
+		const double further = angle_when_node_further_than_sink(source1_angle, source2_angle);
+		const double closer = angle_when_node_closer_than_sink(source1_angle, source2_angle);
+		const double side = angle_when_node_side_of_sink(source1_angle, source2_angle);
+
+		const double angles[] = { further, closer, side };
+		double min_angle = 1 * M_PI;
+		bool found_min = FALSE;
+		unsigned int i, end;
+
+		for (i = 0, end = ARRAY_SIZE(angles); i != end; ++i)
+		{
+			if (!invalid_double(angles[i]) && angles[i] < min_angle)
+			{
+				min_angle = angles[i];
+				found_min = TRUE;
+			}
+		}
+
+		return found_min ? min_angle : INFINITY;
+#else
+#	error "No apporach specified"
 #endif
+#endif
+	}
+
+	double angle_factor(am_addr_t source_id)
+	{
+		const am_addr_t* iter;
+		const am_addr_t* end;
+		double factor = 0;
+		double intermediate_angle;
+
+		for (iter = call SourceDistances.beginKeys(), end = call SourceDistances.endKeys(); iter != end; ++iter)
+		{
+			if (*iter == source_id)
+				continue;
+
+			intermediate_angle = interference_strategy(source_id, *iter);
+
+			simdbg("stdout", "angle between %u and %u is %f\n", source_id, *iter, rad2deg(intermediate_angle));
+
+			// Skip messed up results, lets just assume the worst in these cases
+			if (invalid_double(intermediate_angle))
+				continue;
+
+			simdbg_clear("Metric-Angle", "%u,%u,%u,%f\n", TOS_NODE_ID, source_id, *iter, intermediate_angle);
+
+			factor = max(factor, intermediate_angle);
+		}
+
+		return 1.0 - (factor / M_PI);
+	}
+
+	double sources_considering_angles(void)
+	{
+		double factor = 0.0;
+
+		const am_addr_t* iter;
+		const am_addr_t* end;
+		for (iter = call SourceDistances.beginKeys(), end = call SourceDistances.endKeys(); iter != end; ++iter)
+		{
+			factor += angle_factor(*iter);
+		}
+
+		simdbg("stdout", "all_source_factor=%f\n", factor);
+
+		return factor;
 	}
 
 	double get_sources_Fake_receive_ratio(void)
@@ -211,8 +367,11 @@ implementation
 
 	uint32_t get_tfs_num_msg_to_send(void)
 	{
-		const uint16_t distance = get_dist_to_pull_back();
+		const uint32_t distance = get_dist_to_pull_back();
 		const uint16_t est_num_sources = estimated_number_of_sources();
+
+		//simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%f)\n",
+		//	distance, source_distance, sink_distance);
 
 		return distance * est_num_sources;
 	}
@@ -239,9 +398,7 @@ implementation
 
 		// Could be too early for the TFS to get this info.
 		// If it doesn't know it, lets assume something pessimistic.
-		const double fake_rcv_ratio_at_src = sink_distance <= 3
-			? get_sources_Fake_receive_ratio()
-			: 0.60;
+		const double fake_rcv_ratio_at_src = sink_distance <= 3 ? get_sources_Fake_receive_ratio() : 0.60;
 
 		uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src);
 
@@ -252,9 +409,9 @@ implementation
 
 	uint32_t get_pfs_period(void)
 	{
-		const double est_num_sources = estimated_number_of_sources();
+		const double est_num_sources = sources_considering_angles();
 
-		const double fake_rcv_ratio_at_src = get_sources_Fake_receive_ratio();
+		const double fake_rcv_ratio_at_src = est_num_sources < estimated_number_of_sources() ? 1.0 : get_sources_Fake_receive_ratio();
 
 		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
 
@@ -271,6 +428,18 @@ implementation
 	uint32_t beacon_send_wait(void)
 	{
 		return 75U + (uint32_t)(50U * random_float());
+	}
+
+	uint32_t dummy_normal_send_wait(void)
+	{
+		if (sink_distance == BOTTOM)
+		{
+			return 25U + (uint32_t)(50U * random_float());
+		}
+		else
+		{
+			return 25U + (3 * 6 * sink_distance);
+		}
 	}
 
 	void find_neighbours_further_from_source(distance_neighbours_t* local_neighbours)
@@ -300,6 +469,36 @@ implementation
 				}
 			}
 		}
+	}
+
+	bool is_neighbour_closer_to_source(am_addr_t address)
+	{
+		size_t i;
+
+		// Can't find node further from the source if we do not know our source distance
+		if (min_source_distance != BOTTOM)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				if (neighbour->address != address)
+				{
+					continue;
+				}
+
+				if (neighbour->contents.min_source_distance == BOTTOM)
+				{
+					continue;
+				}
+
+				// If this neighbours closest source is further than our closest source,
+				// then we want to consider them for the next fake source.
+				return neighbour->contents.min_source_distance < min_source_distance;
+			}
+		}
+
+		return FALSE;
 	}
 
 	am_addr_t fake_walk_target(void)
@@ -339,6 +538,13 @@ implementation
 	{
 		distance_container_t dist;
 		dist.min_source_distance = rcvd->neighbour_min_source_distance;
+		insert_distance_neighbour(&neighbours, source_addr, &dist);
+	}
+
+	void update_neighbours_dummy_normal(const DummyNormalMessage* rcvd, am_addr_t source_addr)
+	{
+		distance_container_t dist;
+		dist.min_source_distance = rcvd->sender_min_source_distance;
 		insert_distance_neighbour(&neighbours, source_addr, &dist);
 	}
 
@@ -470,6 +676,7 @@ implementation
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Choose);
 	USE_MESSAGE(Fake);
+	USE_MESSAGE(DummyNormal);
 	USE_MESSAGE(Beacon);
 
 	void become_Normal(void)
@@ -580,6 +787,33 @@ implementation
 		}
 	}
 
+	event void DummyNormalSenderTimer.fired()
+	{
+		DummyNormalMessage message;
+		bool result;
+
+		simdbgverbose("stdout", "%s: DummyNormalSenderTimer fired.\n", sim_time_string());
+
+		if (busy)
+		{
+			simdbgverbose("stdout", "Device is busy rescheduling DummyNormal\n");
+			call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
+			return;
+		}
+
+		message.sender_min_source_distance = min_source_distance;
+
+		message.sender_sink_distance = sink_distance;
+
+		result = send_DummyNormal_message(&message, AM_BROADCAST_ADDR);
+		if (!result)
+		{
+			simdbgverbose("stdout", "Send failed rescheduling DummyNormal\n");
+			call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
+			return;
+		}
+	}
+
 
 	void x_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -607,6 +841,11 @@ implementation
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+
+			if (is_neighbour_closer_to_source(source_addr))
+			{
+				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
+			}
 		}
 	}
 
@@ -645,11 +884,15 @@ implementation
 			{
 				call AwaySenderTimer.startOneShot(get_away_delay());
 			}
+
+			if (is_neighbour_closer_to_source(source_addr))
+			{
+				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
+			}	
 		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
-		case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
 		case NormalNode:
 		case TempFakeNode:
@@ -746,9 +989,6 @@ implementation
 		case SinkNode: Sink_receive_Away(rcvd, source_addr); break;
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
-		case TempFakeNode:
-		case TailFakeNode:
-		case PermFakeNode: break;
 	RECEIVE_MESSAGE_END(Away)
 
 
@@ -835,7 +1075,14 @@ implementation
 
 			METRIC_RCV_FAKE(rcvd);
 
-			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
+			if (!is_neighbour_closer_to_source(source_addr))
+			{
+				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}
+			else
+			{
+				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
+			}
 		}
 	}
 
@@ -849,7 +1096,14 @@ implementation
 
 			METRIC_RCV_FAKE(rcvd);
 
-			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
+			if (!is_neighbour_closer_to_source(source_addr))
+			{
+				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}
+			else
+			{
+				call DummyNormalSenderTimer.startOneShot(dummy_normal_send_wait());
+			}
 		}
 
 		if ((
@@ -877,6 +1131,26 @@ implementation
 		case TailFakeNode:
 		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
+
+
+
+	void x_receive_DummyNormal(const DummyNormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		update_neighbours_dummy_normal(rcvd, source_addr);
+
+		METRIC_RCV_DUMMYNORMAL(rcvd);
+
+		sink_distance = minbot(sink_distance, botinc(rcvd->sender_sink_distance));
+	}
+
+	RECEIVE_MESSAGE_BEGIN(DummyNormal, Receive)
+		case SinkNode:
+		case SourceNode:
+		case NormalNode:
+		case TempFakeNode:
+		case TailFakeNode:
+		case PermFakeNode: x_receive_DummyNormal(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(DummyNormal)
 
 
 

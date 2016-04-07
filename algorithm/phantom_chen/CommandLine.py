@@ -120,15 +120,17 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    repeats = 500
+    wait_before_short = [100, 150, 200]
 
-    local_parameter_names = ('short walk length', 'long walk length')
+    repeats = 1000
+
+    local_parameter_names = ('short walk length', 'long walk length', 'wait before short')
 
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
+    def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
         half_ssd = int(math.floor(s/2)) + 1
         half_ssd_further = s
         ssd_further = 2*s
@@ -217,21 +219,20 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods
+            [self.distance], self.source_periods, self.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, swl, lwl)
+            (s, c, am, nm, cm, d, sp, swl, lwl, wbs)
 
-            for (s, c, am, nm, cm, d, sp) in argument_product
+            for (s, c, am, nm, cm, d, sp, wbs) in argument_product
 
-            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp)
+            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
         ]        
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
-        
 
     def _run_table(self, args):
         phantom_results = results.Results(

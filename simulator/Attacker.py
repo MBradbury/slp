@@ -10,11 +10,11 @@ from data.restricted_eval import restricted_eval
 
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
-_messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon'}
+_messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon'}
 
 # An attacker can detect these are not messages to follow,
 # so the attacker will ignore these messages.
-_messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem'}
+_messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon'}
 
 class Attacker(object):
     def __init__(self):
@@ -27,6 +27,8 @@ class Attacker(object):
         # Metric initialisation from here onwards
         self.steps_towards = {}
         self.steps_away = {}
+
+        self.moves_in_response_to = {}
 
         self.min_source_distance = {}
 
@@ -44,6 +46,8 @@ class Attacker(object):
 
         self.steps_towards = {source: 0 for source in self._source_ids()}
         self.steps_away = {source: 0 for source in self._source_ids()}
+
+        self.moves_in_response_to = collections.Counter()
 
         self.min_source_distance = {source: self._sim.node_distance(start_node_id, source) for source in self._source_ids()}
 
@@ -91,6 +95,8 @@ class Attacker(object):
         if self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
             self._move(time, prox_from_id)
+
+            self.moves_in_response_to[msg_type] += 1
 
             self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
@@ -153,6 +159,25 @@ class DeafAttacker(Attacker):
     """An attacker that does nothing when it receives a message"""
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         return False
+
+class DeafAttackerWithEvent(Attacker):
+    """An attacker that does nothing when it receives a message.
+    This attacker also inserts a callback every period seconds."""
+    def __init__(self, period):
+        super(DeafAttackerWithEvent, self).__init__()
+        self._period = period
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        return False
+
+    def setup_event_callbacks(self):
+        self._sim.tossim.register_event_callback(self._callback, self._period)
+
+    def _callback(self, current_time):
+        self._sim.tossim.register_event_callback(self._callback, current_time + self._period)
+
+    def __str__(self):
+        return type(self).__name__ + "(period={})".format(self._period)
 
 class BasicReactiveAttacker(Attacker):
     """An attacker that reacts to every message that it should react to."""

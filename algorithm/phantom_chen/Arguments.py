@@ -19,6 +19,8 @@ class Arguments(ArgumentsCommon):
         parser.add_argument("--short-walk-length", type=int, required=True)
         parser.add_argument("--long-walk-length", type=int, required=True)
 
+        parser.add_argument("--wait-before-short", type=int, required=True, description="In milliseconds")
+
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
@@ -31,5 +33,7 @@ class Arguments(ArgumentsCommon):
             raise RuntimeError("Topology must be a grid")
 
         result["TOPOLOGY_SIZE"] = int(math.sqrt(len(configuration.topology.nodes)))
+
+        result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
 
         return result

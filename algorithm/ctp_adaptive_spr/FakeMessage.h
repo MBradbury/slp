@@ -9,13 +9,12 @@ typedef nx_struct FakeMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
-  nx_uint16_t source_distance;
-  nx_uint16_t sink_distance;
-  nx_uint16_t sink_source_distance;
+  //nx_uint16_t source_distance;
+  nx_uint16_t sender_sink_distance;
 
-  nx_uint16_t sender_min_source_distance;
-  
-  nx_uint8_t from_pfs;
+  nx_int16_t sender_min_source_distance;
+
+  nx_uint8_t message_type;
 
 } FakeMessage;
 
