@@ -435,6 +435,8 @@ implementation
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
+
+			call RoutingControl.start();
 		}
 		else
 		{
@@ -626,7 +628,7 @@ implementation
 
 	void x_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		/*if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
@@ -634,7 +636,7 @@ implementation
 
 			//simdbgverbose("stdout", "%s: Normal Snooped unseen Normal data=%u seqno=%u srcid=%u from %u.\n",
 			//	sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
-		}
+		}*/
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
