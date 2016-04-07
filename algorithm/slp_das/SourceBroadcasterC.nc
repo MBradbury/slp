@@ -71,6 +71,7 @@ implementation
     OtherList others;
     NeighbourList n_info;
     NeighbourList onehop;
+    LoopsList loops;
 
     uint16_t hop = BOT;
     am_addr_t parent = AM_BROADCAST_ADDR;
@@ -149,6 +150,7 @@ implementation
         others = OtherList_new();
         n_info = NeighbourList_new();
         onehop = NeighbourList_new();
+        loops = LoopsList_new();
 
 		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
@@ -307,6 +309,24 @@ implementation
         simdbg("stdout", "Sent search.\n");
     }
 
+    void process_loops()
+    {
+        int i;
+        for(i=0; i<loops.count; i++)
+        {
+            if(loops.loops[i].ids[0] == TOS_NODE_ID)
+            {
+                IDList tail = loops.loops[i];
+                IDList_remove(&tail, 0); //Remove head
+                if(IDList_contains(&tail, TOS_NODE_ID))
+                {
+                    LoopsList_remove(&loops, i);
+                    i--;
+                }
+            }
+        }
+    }
+
 	task void send_message_normal()
 	{
 		NormalMessage* message;
@@ -345,6 +365,10 @@ implementation
             if(type == SinkNode) init_search();
             call DissemTimer.startOneShot(get_dissem_period());
             return;
+        }
+        else if(period_count > SEARCH_PERIOD)
+        {
+            process_loops();
         }
         if(slot != BOT) send_dissem();
         process_dissem();
@@ -524,6 +548,15 @@ implementation
         {
             start_loop = TRUE;
             simdbg("stdout", "Started loop.\n");
+            if(loops.count == 0)
+            {
+                LoopMessage msg;
+                msg.source_id = TOS_NODE_ID;
+                msg.loop = IDList_new();
+                IDList_add(&(msg.loop), TOS_NODE_ID);
+                msg.dist = SLOT_LOOP_LENGTH - 1;
+                send_Loop_message(&msg, AM_BROADCAST_ADDR);
+            }
         }
         else if(other_info == NULL)
         {
@@ -549,5 +582,29 @@ implementation
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
         case NormalNode: Normal_receive_Search(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Search)
+
+    void Normal_receive_Loop(const LoopMessage* const rcvd, am_addr_t source_addr)
+    {
+        simdbg("stdout", "Received loop.\n");
+        if(rcvd->dist > 0)
+        {
+            LoopMessage msg;
+            msg.source_id = TOS_NODE_ID;
+            msg.loop = rcvd->loop;
+            IDList_add(&(msg.loop), TOS_NODE_ID);
+            msg.dist = rcvd->dist - 1;
+            send_Loop_message(&msg, AM_BROADCAST_ADDR);
+        }
+
+        if((rcvd->dist == 0) && (rcvd->loop.ids[0] == TOS_NODE_ID))
+        {
+            LoopsList_add_list(&loops, rcvd->loop);
+            start_loop = TRUE;
+        }
+    }
+
+    RECEIVE_MESSAGE_BEGIN(Loop, Receive)
+        case NormalNode: Normal_receive_Loop(rcvd, source_addr); break;
+    RECEIVE_MESSAGE_END(Loop)
     //}}}Receivers
 }
