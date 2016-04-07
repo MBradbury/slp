@@ -29,6 +29,12 @@ typedef nx_struct OtherList {
     OtherInfo info[MAX_NEIGHBOURS];
 } OtherList;
 
+typedef nx_struct LoopsList {
+    nx_uint16_t count;
+    IDList loops[MAX_NEIGHBOURS];
+} LoopsList;
+
+
 OtherInfo OtherInfo_new(uint16_t id);
 OtherList OtherList_new();
 void OtherList_add(OtherList* list, OtherInfo info);
@@ -52,8 +58,10 @@ IDList IDList_new();
 void IDList_add(IDList* list, uint16_t id);
 void IDList_sort(IDList* list);
 uint16_t IDList_indexOf(IDList* list, uint16_t el);
+bool IDList_contains(IDList* list, uint16_t el);
 IDList IDList_minus_parent(IDList* list, uint16_t parent);
 void IDList_clear(IDList* list);
+void IDList_remove(IDList* list, uint16_t idx);
 
 uint16_t rank(IDList* list, uint16_t id);
 
@@ -78,6 +86,11 @@ void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info);
 uint16_t NeighbourList_indexOf(const NeighbourList* list, uint16_t id);
 NeighbourInfo* NeighbourList_get(NeighbourList* list, uint16_t id);
 NeighbourInfo* NeighbourList_min_h(NeighbourList* list, IDList* parents);
+
+LoopsList LoopsList_new();
+void LoopsList_add(LoopsList* list);
+void LoopsList_add_list(LoopsList* list, IDList ids);
+void LoopsList_remove(LoopsList* list, uint16_t idx);
 
 IDList IDList_new()
 {
@@ -121,6 +134,11 @@ uint16_t IDList_indexOf(IDList* list, uint16_t el)
     return UINT16_MAX;
 }
 
+bool IDList_contains(IDList* list, uint16_t el)
+{
+    return IDList_indexOf(list, el) != UINT16_MAX;
+}
+
 IDList IDList_minus_parent(IDList* list, uint16_t parent)
 {
     IDList newList = IDList_new();
@@ -138,6 +156,17 @@ IDList IDList_minus_parent(IDList* list, uint16_t parent)
 void IDList_clear(IDList* list)
 {
     list->count = 0;
+}
+
+void IDList_remove(IDList* list, uint16_t idx)
+{
+    int i;
+    if(idx > list->count) return;
+    for(i = idx+1; i<list->count; i++)
+    {
+        list->ids[i-1] = list->ids[i];
+    }
+    list->count = list->count - 1;
 }
 
 uint16_t rank(IDList* list, uint16_t id)
@@ -438,5 +467,37 @@ OtherInfo* OtherList_get(OtherList* list, uint16_t id)
         }
     }
     return NULL;
+}
+
+LoopsList LoopsList_new()
+{
+    LoopsList list;
+    list.count = 0;
+    return list;
+}
+
+void LoopsList_add(LoopsList* list)
+{
+    if(list->count >= MAX_NEIGHBOURS) return;
+    list->loops[list->count] = IDList_new();
+    list->count = list->count + 1;
+}
+
+void LoopsList_add_list(LoopsList* list, IDList ids)
+{
+    if(list->count >= MAX_NEIGHBOURS) return;
+    list->loops[list->count] = ids;
+    list->count = list->count + 1;
+}
+
+void LoopsList_remove(LoopsList* list, uint16_t idx)
+{
+    int i;
+    if(idx > list->count) return;
+    for(i = idx+1; i<list->count; i++)
+    {
+        list->loops[i-1] = list->loops[i];
+    }
+    list->count = list->count - 1;
 }
 #endif /* UTILS_H */
