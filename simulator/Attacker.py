@@ -28,6 +28,8 @@ class Attacker(object):
         self.steps_towards = {}
         self.steps_away = {}
 
+        self.moves_in_response_to = {}
+
         self.min_source_distance = {}
 
     def setup(self, sim, start_node_id, ident):
@@ -44,6 +46,8 @@ class Attacker(object):
 
         self.steps_towards = {source: 0 for source in self._source_ids()}
         self.steps_away = {source: 0 for source in self._source_ids()}
+
+        self.moves_in_response_to = collections.Counter()
 
         self.min_source_distance = {source: self._sim.node_distance(start_node_id, source) for source in self._source_ids()}
 
@@ -91,6 +95,8 @@ class Attacker(object):
         if self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
             self._move(time, prox_from_id)
+
+            self.moves_in_response_to[msg_type] += 1
 
             self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
