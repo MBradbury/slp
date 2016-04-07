@@ -66,6 +66,14 @@ implementation
 	App.BeaconSend -> BeaconSender;
 	App.BeaconReceive -> BeaconReceiver;
 
+	components
+		new AMSenderC(INFORM_CHANNEL) as InformSender,
+		new AMReceiverC(INFORM_CHANNEL) as InformReceiver;
+
+	App.InformSend -> InformSender;
+	App.InformReceive -> InformReceiver;
+
+
 	components FakeMessageGeneratorP;
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
 
@@ -77,14 +85,16 @@ implementation
 	App.NormalSeqNos -> NormalSeqNos;
 
 	components
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances,
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
+		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
 	App.SourceDistances -> SourceDistances;
-	App.SinkSourceDistances -> SinkSourceDistances;
 
 
 	components CollectionC;
 	App.RoutingControl -> CollectionC;
+	App.RootControl -> CollectionC;
+	//App.CollectionPacket -> CollectionC;
+	//App.CtpInfo -> CollectionC;
+	//App.CtpCongestion -> CollectionC;
 
 	CollectionC.CollectionDebug -> App;
 
@@ -95,10 +105,4 @@ implementation
 	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
 	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
 	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
-
-	App.Packet -> CollectionC;
-	App.RootControl -> CollectionC;
-	//App.CollectionPacket -> CollectionC;
-	//App.CtpInfo -> CollectionC;
-	//App.CtpCongestion -> CollectionC;
 }

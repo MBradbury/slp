@@ -405,7 +405,7 @@ class CLI(CommandLineCommon.CLI):
         )
 
         custom_yaxis_range_max = {
-            'captured': 25,
+            'captured': 50,
             'sent': 20000
         }
 
