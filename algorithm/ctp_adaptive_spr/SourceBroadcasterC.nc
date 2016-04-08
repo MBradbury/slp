@@ -398,7 +398,7 @@ implementation
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			// Wait for 2 seconds before detecting source to allow the CTP to set up
-			call ObjectDetector.start_later(3 * 1000);
+			call ObjectDetector.start();
 
 			call RoutingControl.start();
 		}
@@ -616,16 +616,6 @@ implementation
 	void x_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		update_source_distance_normal(rcvd);
-
-		/*if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
-		{
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-
-			METRIC_RCV_NORMAL(rcvd);
-
-			//simdbgverbose("stdout", "%s: Normal Snooped unseen Normal data=%u seqno=%u srcid=%u from %u.\n",
-			//	sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
-		}*/
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
@@ -663,8 +653,8 @@ implementation
 	}
 
 	INTERCEPT_MESSAGE_BEGIN(Normal, Intercept)
-		case SourceNode: break;
-		case SinkNode: break;
+		case SourceNode: break; // Should never happen
+		case SinkNode: break; // Should never happen
 		case TempFakeNode:
 		case TailFakeNode:
 		case PermFakeNode:
