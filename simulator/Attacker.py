@@ -323,14 +323,13 @@ class TimedBacktrackingAttacker(Attacker):
 
         self._sequence_numbers = {}
         self._last_move_time = None
-        self._previous_location = None
+        self._previous_locations = []
 
     def _move_to_previous_location_on_timeout(self, time):
-        if self._last_move_time is not None and self._previous_location is not None and np.isclose(time, self._last_move_time + self._wait_time_secs):
-            self._move(time, self._previous_location)
+        if self._last_move_time is not None and len(self._previous_locations) > 0 and np.isclose(time, self._last_move_time + self._wait_time_secs):
+            self._move(time, self._previous_locations.pop())
 
             self._last_move_time = time
-            self._previous_location = None
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
@@ -342,9 +341,9 @@ class TimedBacktrackingAttacker(Attacker):
         self._sequence_numbers[seqno_key] = sequence_number
 
         self._last_move_time = time
-        self._previous_location = node_id
+        self._previous_locations.append(node_id)
 
-        self._sim.tossim.register_event_callback(self._move_to_previous_location_on_timeout, time + self._wait_time_secs)
+        self._sim.tossim.register_event_callback(self._move_to_previous_location_on_timeout, self._last_move_time + self._wait_time_secs)
 
     def __str__(self):
         return type(self).__name__ + "(wait_time_secs={})".format(self._wait_time_secs)
