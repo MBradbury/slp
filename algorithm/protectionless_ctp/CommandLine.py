@@ -58,7 +58,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 2000
 
-    attacker_models = ['SeqNosReactiveAttacker()']
+    attacker_models = ['TimedBacktrackingAttacker(wait_time_secs={source_period})']
 
     local_parameter_names = tuple()
 
@@ -79,6 +79,13 @@ class CLI(CommandLineCommon.CLI):
         # This is done so that regardless of the number of sources the overall
         # network's normal message generation rate is the same.
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
+
+        # Provide the argument to the attacker model
+        argument_product = [
+            (s, c, am.format(source_period=sp), nm, cm, d, sp)
+            for (s, c, am, nm, cm, d, sp)
+            in argument_product
+        ]
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
