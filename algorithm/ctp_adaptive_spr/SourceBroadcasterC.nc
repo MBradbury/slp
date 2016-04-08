@@ -242,7 +242,7 @@ implementation
 
 		const uint32_t result_period = (uint32_t)ceil(period);
 
-		simdbg("stdout", "get_tfs_period=%u\n", period);
+		simdbg("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
