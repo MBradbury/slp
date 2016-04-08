@@ -8,6 +8,7 @@
 #include <Timer.h>
 #include <TinyError.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
@@ -275,7 +276,7 @@ implementation
 	}
 
 	//m short random walk and n long random walk messages combination.
-	uint16_t message_mshort_nlong(uint16_t m, uint16_t n)
+	uint16_t short_long_sequence_random_walk(uint16_t m, uint16_t n)
 	{
 		uint16_t random_walk_remaining;
 		uint16_t seq_reminder = random_walk_message_no % (m+n);
@@ -305,6 +306,36 @@ implementation
 		return random_walk_remaining;		
 	}
 
+	uint16_t long_short_sequence_random_walk(uint16_t m, uint16_t n)
+	{
+		uint16_t random_walk_remaining;
+		uint16_t seq_reminder = random_walk_message_no % (m+n);
+
+		if( seq_reminder% (m+n) <= m && seq_reminder % (m+n) != 0)
+		{
+			random_walk_remaining = LONG_RANDOM_WALK_HOPS;
+			message_current_type = LONG_RANDOM_MESSAGE;
+		}
+		else
+		{
+			random_walk_remaining = RANDOM_WALK_HOPS;
+			message_current_type = SHORT_RANDOM_MESSAGE;
+		}
+
+		if((seq_reminder-1)% (m+n) <= m && (seq_reminder-1) % (m+n) != 0)
+		{
+			message_previous_type = LONG_RANDOM_MESSAGE;
+		}
+		else
+		{
+			message_previous_type = SHORT_RANDOM_MESSAGE;
+		}
+			
+		random_walk_message_no += 1;
+
+		return random_walk_remaining;
+	}
+
 	void generate_message()
 	{
 		typedef enum random_walk_possible_directions
@@ -327,7 +358,21 @@ implementation
 			message.source_distance = 0;
 
 			//add adaptive phantom code here.
-			message.random_walk_hop_remaining = message_mshort_nlong(short_long[0],short_long[1],&message);
+			#if SHORT_LONG_SEQUENCE && LONG_SHORT_SEQUENCE
+			{
+				simdbgerror("only need one sequence!");
+				exit(-1);
+			}
+			#if SHORT_LONG_SEQUENCE
+				message.random_walk_hop_remaining = short_long_sequence_random_walk(short_long[0],short_long[1]);
+			#elif LONG_SHORT_SEQUENCE
+				message.random_walk_hop_remaining = long_short_sequence_random_walk(short_long[0],short_long[1]);
+			#else
+				{
+				simdbgerror("need one sequence!");
+				exit(-1);
+				}
+			#endif
 
 		//SPACE_BEHIND_SINK means more space behind the sink.
 		//fit for Source Corner.  
