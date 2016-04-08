@@ -59,6 +59,7 @@ module SourceBroadcasterC
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
+	uses interface Timer<TMilli> as InformSenderTimer;
 
 	uses interface AMPacket;
 
@@ -212,8 +213,11 @@ implementation
 	{
 		const uint16_t distance = get_dist_to_pull_back();
 		const uint16_t est_num_sources = estimated_number_of_sources();
+		const uint32_t result = distance * est_num_sources;
 
-		return distance * est_num_sources;
+		simdbg("stdout", "get_tfs_num_msg_to_send=%u (distance=%u, est_num_sources=%u)\n", result, distance, est_num_sources);
+
+		return result;
 	}
 
 	uint32_t get_tfs_duration(void)
@@ -225,7 +229,7 @@ implementation
 			duration -= get_away_delay();
 		}
 
-		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		simdbg("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
 		return duration;
 	}
@@ -251,7 +255,7 @@ implementation
 
 		const uint32_t result_period = (uint32_t)ceil(period_per_source);
 
-		simdbg("stdout", "get_pfs_period=%u\n", result_period);
+		simdbg("stdout", "get_pfs_period=%u (est_num_sources=%f)\n", result_period, est_num_sources);
 
 		return result_period;
 	}
@@ -333,14 +337,12 @@ implementation
 	bool update_source_distance(am_addr_t source_id, uint16_t source_distance)
 	{
 		const uint16_t* distance = call SourceDistances.get(source_id);
+		bool result = FALSE;
 
-		if (distance == NULL)
+		if (distance == NULL || source_distance < *distance)
 		{
 			call SourceDistances.put(source_id, source_distance);
-		}
-		else
-		{
-			call SourceDistances.put(source_id, min(*distance, source_distance));
+			result = TRUE;
 		}
 
 		if (min_source_distance == BOTTOM || min_source_distance > source_distance)
@@ -350,7 +352,7 @@ implementation
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
 
-		return TRUE;
+		return result;
 	}
 	inline bool update_source_distance_normal(const NormalMessage* rcvd)
 	{
@@ -424,7 +426,9 @@ implementation
 			type = SourceNode;
 			call SourceDistances.put(TOS_NODE_ID, 0);
 
-			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
+			call InformSenderTimer.startOneShot(500);
+
+			call BroadcastNormalTimer.startOneShot(1000 + SOURCE_PERIOD_MS);
 		}
 	}
 
@@ -550,6 +554,32 @@ implementation
 		{
 			simdbgverbose("stdout", "Send failed rescheduling beaconing\n");
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+		}
+	}
+
+
+	event void InformSenderTimer.fired()
+	{
+		InformMessage message;
+		bool result;
+
+		simdbgverbose("stdout", "%s: InformSenderTimer fired.\n", sim_time_string());
+
+		if (busy)
+		{
+			simdbgverbose("stdout", "Device is busy rescheduling inform\n");
+			call InformSenderTimer.startOneShot(beacon_send_wait());
+			return;
+		}
+		
+		message.source_id = TOS_NODE_ID;
+		message.source_distance = 0;
+
+		result = send_Inform_message(&message, AM_BROADCAST_ADDR);
+		if (!result)
+		{
+			simdbgverbose("stdout", "Send failed rescheduling inform\n");
+			call InformSenderTimer.startOneShot(beacon_send_wait());
 		}
 	}
 
@@ -891,9 +921,20 @@ implementation
 
 	void x_receive_Inform(const InformMessage* const rcvd, am_addr_t source_addr)
 	{
-		update_source_distance_inform(rcvd);
+		simdbg("stdout", "Received inform from %u via %u walked %u\n", rcvd->source_id, source_addr, rcvd->source_distance);
 
-		METRIC_RCV_INFORM(rcvd);
+		if (update_source_distance_inform(rcvd))
+		{
+			InformMessage forwarding_message = *rcvd;
+
+			METRIC_RCV_INFORM(rcvd);
+
+			simdbg("stdout", "Forwarding inform (srcdist of %u is %u)\n", rcvd->source_id, *call SourceDistances.get(rcvd->source_id));
+
+			forwarding_message.source_distance += 1;
+
+			send_Inform_message(&forwarding_message, AM_BROADCAST_ADDR);
+		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Inform, Receive)
