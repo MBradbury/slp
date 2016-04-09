@@ -113,7 +113,7 @@ implementation
   	bool message_reach_corner(uint16_t messageID)	{return (messageID==0||messageID==TOPOLOGY_SIZE-1||messageID==TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1)||messageID==TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
 
 
-	uint16_t random_neighbour_node_chosen_seclect (NormalMessage *message, uint16_t choose)
+	uint16_t random_neighbour_node_chosen(NormalMessage *message, uint16_t choose)
 	{
 		uint16_t neighbour_west_node, neighbour_east_node, neighbour_north_node, neighbour_south_node; 
 		uint16_t neighbour_node_chosen = 0;
@@ -127,7 +127,7 @@ implementation
 
 		random_number=call Random.rand16()%2;
 
-		biased_random_number=call Random.rand16()%BIASED_RANDOM_WALK_FACTOR;
+		biased_random_number=call Random.rand16()%100;
 
 		switch(choose)
 		{
@@ -163,7 +163,7 @@ implementation
 
       		case(BIASED_X_AXIS):
       			
-    			if(biased_random_number == 0)
+    			if(biased_random_number > BIASED_RANDOM_WALK_FACTOR)
     			//small possibility follow the y axis.
     			{
     				//simdbg("slp-debug",": (x)y move.\n");
@@ -178,7 +178,7 @@ implementation
     			break;
 
     		case(BIASED_Y_AXIS):
-    			if (biased_random_number == 0)
+    			if (biased_random_number > BIASED_RANDOM_WALK_FACTOR)
     			//small possibility follow the x axis.
     			{
     				//simdbg("slp-debug",": (y)x move.\n");
@@ -198,7 +198,7 @@ implementation
 
 	bool random_walk(NormalMessage* message)
 	{
-		message->target = random_neighbour_node_chosen_seclect (message, message->random_walk_direction);
+		message->target = random_neighbour_node_chosen(message, message->random_walk_direction);
 
 		//message->target = neighbour_node_chosen;
 
@@ -363,7 +363,7 @@ implementation
 				simdbgerror("only need one sequence!");
 				exit(-1);
 			}
-			#if SHORT_LONG_SEQUENCE
+			#elif SHORT_LONG_SEQUENCE
 				message.random_walk_hop_remaining = short_long_sequence_random_walk(short_long[0],short_long[1]);
 			#elif LONG_SHORT_SEQUENCE
 				message.random_walk_hop_remaining = long_short_sequence_random_walk(short_long[0],short_long[1]);
@@ -438,8 +438,7 @@ implementation
 		}
 
 		// if next message is short random walk, wait for the WAIT_BEFORE_SHORT_MS time.
-		if(WAIT_BEFORE_SHORT == TRUE && RANDOM_WALK_HOPS < LONG_RANDOM_WALK_HOPS && \
-			message_previous_type ==LONG_RANDOM_MESSAGE && message_current_type == SHORT_RANDOM_MESSAGE)
+		if(message_previous_type == LONG_RANDOM_MESSAGE && message_current_type == SHORT_RANDOM_MESSAGE)
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + get_source_period());
 		else
 			call BroadcastNormalTimer.startOneShot(get_source_period());
