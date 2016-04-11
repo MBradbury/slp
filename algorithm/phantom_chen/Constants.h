@@ -16,9 +16,9 @@ enum Channels
 #define BIASED_X_AXIS        4
 #define BIASED_Y_AXIS        5
 
-#define SHORT_RANDOM_MESSAGE 0
-#define LONG_RANDOM_MESSAGE  1
-#define TRUE 1
-#define FALSE 0
+//define the global vaiable.
+//make it work for multiple sources.
+uint16_t message_no = 1;
 
 #endif // SLP_CONSTANTS_H
+

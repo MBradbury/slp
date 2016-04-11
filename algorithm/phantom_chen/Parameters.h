@@ -1,11 +1,10 @@
-#ifndef SLP_MESSAGES_NORMALMESSAGE_H
-#define SLP_MESSAGES_NORMALMESSAGE_H
-
 //percentage
-#define BIASED_RANDOM_WALK_FACTOR 90
-uint16_t short_long[] = {1,1};
-//#define SHORT_LONG_SEQUENCE TRUE
-#define LONG_SHORT_SEQUENCE TRUE
+#define Biased_No 90
+
+uint16_t short_long[] = {1,2};
+
+#define LOND_SHORT_SEQUENCE 0
+//#define SHORT_LONG_SEQUENCE 0
 
 
-#endif 
+ 
