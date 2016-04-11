@@ -280,8 +280,8 @@ implementation
 
 		ran=call Random.rand16()%(random_walk_range);
 
-		simdbg("slp-debug","random number: %d ",ran);
-		//simdbg("slp-debug","random No: %d, short_random_walk[%d]:%d, long_random_walk[%d]:%d ", ran, ran,short_random_walk[ran], ran, long_random_walk[ran]);
+		simdbg("slp-debug","random No: %d, short_random_walk[%d]:%d, long_random_walk[%d]:%d ", ran, ran,short_random_walk[ran], ran, long_random_walk[ran]);
+
 
 		random_walk_remaining = (last_random_walk % (m+n) <= m && last_random_walk % (m+n) != 0)?  short_random_walk[ran]: long_random_walk[ran];
 		last_random_walk += 1;
