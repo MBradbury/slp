@@ -10,6 +10,8 @@ implementation
 {
 	bool detected = FALSE;
 
+	uint32_t additional_delay = 0;
+
 	uint32_t current_index = 0; 
 
 
@@ -55,7 +57,7 @@ implementation
 		}
 	}
 
-	void start_next_timer(uint32_t delay)
+	void start_next_timer(void)
 	{
 		const slp_period_t* period;
 		uint32_t length;
@@ -64,31 +66,26 @@ implementation
 		{
 			simdbgverbose("stdout", "Starting a detection timer for %u.\n", period[current_index].from);
 
-			call DetectionTimer.startOneShotAt(delay + period[current_index].from, 0);
+			call DetectionTimer.startOneShotAt(additional_delay + period[current_index].from, 0);
 		}
 	}
 
 	command void ObjectDetector.start()
 	{
-		start_next_timer(0);
+		additional_delay = 0;
+		start_next_timer();
 	}
 
 	command void ObjectDetector.start_later(uint32_t delay)
 	{
-		start_next_timer(delay);
+		additional_delay = delay;
+		start_next_timer();
 	}
 
 	command void ObjectDetector.stop()
 	{
 		detected = FALSE;
 		signal ObjectDetector.stoppedDetecting();
-	}
-	
-	default event void ObjectDetector.detect()
-	{
-	}
-	default event void ObjectDetector.stoppedDetecting()
-	{
 	}
 
 	command bool ObjectDetector.isDetected()
@@ -111,11 +108,12 @@ implementation
 			// is to continue forever
 			if (period[current_index].to != (uint32_t)-1)
 			{
-				const uint32_t expire_at = period[current_index].to - period[current_index].from;
+				simdbgverbose("stdout", "Starting an expiration timer.\n");
 
-				simdbgverbose("stdout", "Starting an expiration timer in %ums.\n", expire_at);
-
-				call ExpireTimer.startOneShot(expire_at);
+				call ExpireTimer.startOneShotAt(
+					additional_delay + period[current_index].from,
+					additional_delay + period[current_index].to
+				);
 			}
 		}
 
@@ -130,6 +128,6 @@ implementation
 
 		++current_index;
 
-		start_next_timer(0);
+		start_next_timer();
 	}
 }
