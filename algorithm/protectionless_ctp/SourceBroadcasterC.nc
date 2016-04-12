@@ -19,6 +19,7 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
+	uses interface Timer<TMilli> as StartupTimer;
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 
 	uses interface AMPacket;
@@ -96,9 +97,11 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			call ObjectDetector.start();
+			call ObjectDetector.start_later(5 * 1000);
 
 			call RoutingControl.start();
+
+			call StartupTimer.startOneShot(4 * 1000);
 		}
 		else
 		{
@@ -161,6 +164,10 @@ implementation
 			sim_time_string(), message.sequence_number, message.source_id);
 
 		call BroadcastNormalTimer.startOneShot(get_source_period());
+	}
+
+	event void StartupTimer.fired()
+	{
 	}
 
 

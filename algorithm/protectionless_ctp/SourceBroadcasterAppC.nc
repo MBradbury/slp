@@ -30,8 +30,10 @@ implementation
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
+	components new TimerMilliC() as StartupTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
+	App.StartupTimer -> StartupTimer;
 
 
 	// Object Detector - For Source movement
