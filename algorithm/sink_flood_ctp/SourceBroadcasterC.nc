@@ -107,9 +107,9 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			call ObjectDetector.start();
-
 			call RoutingControl.start();
+
+			call ObjectDetector.start_later(5 * 1000);
 		}
 		else
 		{
