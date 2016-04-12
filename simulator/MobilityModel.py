@@ -64,6 +64,9 @@ class MobilityModel(object):
 
         return build_arguments
 
+    def __str__(self):
+        return type(self).__name__ + "()"
+
 class StationaryMobilityModel(MobilityModel):
     def __init__(self):
         super(StationaryMobilityModel, self).__init__()
@@ -75,9 +78,6 @@ class StationaryMobilityModel(MobilityModel):
             times[source_id] = [(0, float('inf'))]
 
         self._setup_impl(configuration, times)
-
-    def __repr__(self):
-        return "StationaryMobilityModel()"
 
 class RandomWalkMobilityModel(MobilityModel):
     def __init__(self, max_time, duration):
@@ -94,9 +94,8 @@ class RandomWalkMobilityModel(MobilityModel):
         # to move the source to after the duration
         raise NotImplementedError()
 
-    def __repr__(self):
-        return "RandomWalkMobilityModel(max_time={}, duration={})".format(
-            self.max_time, self.duration)
+    def __str__(self):
+        return type(self).__name__ + "(max_time={}, duration={})".format(self.max_time, self.duration)
 
 
 class TowardsSinkMobilityModel(MobilityModel):
@@ -118,14 +117,17 @@ class TowardsSinkMobilityModel(MobilityModel):
             for (i, node) in enumerate(path):
                 end_time = current_time + self.duration if (i + 1) != len(path) else float('inf')
 
-                times[node] = [(current_time, end_time)]
+                if node not in times:
+                    times[node] = [(current_time, end_time)]
+                else:
+                    times[node].append( (current_time, end_time) )
 
                 current_time += self.duration
 
         self._setup_impl(configuration, times)
 
-    def __repr__(self):
-        return "TowardsSinkMobilityModel(duration={})".format(self.duration)
+    def __str__(self):
+        return type(self).__name__ + "(duration={})".format(self.duration)
 
 def models():
     """A list of the names of the available models."""
@@ -133,6 +135,9 @@ def models():
 
 def eval_input(source):
     result = restricted_eval(source, models())
+
+    if result in models():
+        raise RuntimeError("The source mobility model ({}) is not valid. (Did you forget the brackets after the name?)".format(source))
 
     if not isinstance(result, MobilityModel):
         raise RuntimeError("The source mobility model ({}) is not valid.".format(source))
