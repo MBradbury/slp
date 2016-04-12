@@ -426,8 +426,8 @@ implementation
 
 		if(current_message == SHORT_RANDOM_WALK && previous_message == LONG_RANDOM_WALK)
 		{
-			printf("should wait before short!%d,%d ",current_message,previous_message);
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			//printf("should wait before short!%d,%d ",current_message,previous_message);
+			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + get_source_period());
 		}
 		else
 			call BroadcastNormalTimer.startOneShot(get_source_period());
