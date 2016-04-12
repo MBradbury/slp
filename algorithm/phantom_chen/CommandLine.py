@@ -81,7 +81,7 @@ class RunSimulations(RunSimulationsCommon):
                
         if unfixed_sp in safety_period_types:
             
-            if ssd_max > (network_size-1) * 1.5:         #Further* configurations in all random_walk types
+            if ssd_max > (network_size-1) * 1.5:   #Further* configurations in all random_walk types
                 return  time_taken
             #random_walk_types except Further* configuration
             else:
@@ -134,9 +134,9 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    wait_before_short = [100, 150, 200]
+    wait_before_short = [100, 200, 300]
 
-    repeats = 1000
+    repeats = 500
 
     local_parameter_names = ('short walk length', 'long walk length', 'wait before short')
 
@@ -213,13 +213,13 @@ class CLI(CommandLineCommon.CLI):
         names = self.parameter_names()
         size = args[names.index('network size')]
         if size == 11:
-            return datetime.timedelta(hours=1)
-        elif size == 15:
             return datetime.timedelta(hours=2)
-        elif size == 21:
-            return datetime.timedelta(hours=3)
-        elif size == 25:
+        elif size == 15:
             return datetime.timedelta(hours=4)
+        elif size == 21:
+            return datetime.timedelta(hours=8)
+        elif size == 25:
+            return datetime.timedelta(hours=16)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
