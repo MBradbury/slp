@@ -1,6 +1,6 @@
 from __future__ import division
 
-import collections
+from collections import Counter, deque
 
 import numpy as np
 
@@ -25,8 +25,8 @@ class Attacker(object):
         self.ident = None
 
         # Metric initialisation from here onwards
-        self.steps_towards = {}
-        self.steps_away = {}
+        self.steps_towards = Counter()
+        self.steps_away = Counter()
 
         self.moves_in_response_to = {}
 
@@ -44,10 +44,7 @@ class Attacker(object):
         self._has_found_source = self.found_source_slow()
         self.moves = 0
 
-        self.steps_towards = {source: 0 for source in self._source_ids()}
-        self.steps_away = {source: 0 for source in self._source_ids()}
-
-        self.moves_in_response_to = collections.Counter()
+        self.moves_in_response_to = Counter()
 
         self.min_source_distance = {source: self._sim.node_distance(start_node_id, source) for source in self._source_ids()}
 
@@ -126,7 +123,10 @@ class Attacker(object):
             elif new_distance < old_distance:
                 self.steps_towards[source] += 1
 
-            self.min_source_distance[source] = min(self.min_source_distance[source], new_distance)
+            if source in self.min_source_distance:
+                self.min_source_distance[source] = min(self.min_source_distance[source], new_distance)
+            else:
+                self.min_source_distance[source] = new_distance
 
         self.position = node_id
         self._has_found_source = self.found_source_slow()
@@ -203,7 +203,7 @@ class IgnorePastNLocationsReactiveAttacker(Attacker):
     def __init__(self, memory_size):
         super(IgnorePastNLocationsReactiveAttacker, self).__init__()
         self._memory_size = memory_size
-        self._previous_locations = collections.deque(maxlen=memory_size)
+        self._previous_locations = deque(maxlen=memory_size)
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         return prox_from_id not in self._previous_locations
