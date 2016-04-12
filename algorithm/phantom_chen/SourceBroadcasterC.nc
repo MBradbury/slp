@@ -371,7 +371,7 @@ implementation
 					//normally the short random walk is set to less than half of source sink distance.
 					if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
 					{
-					simdbg("slp-debug","short random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
+					simdbg("slp-debug","short random walk, message number:%d ",message.sequence_number);
 					message.random_walk_direction = random_walk_direction_chosen = S_se;
 					}
 					else
@@ -379,7 +379,7 @@ implementation
 					//randomly choose the random is whether follow the x axis or y axis.
 					random_walk_direction_chosen = (flip_coin == 0)? Biased_x_axis : Biased_y_axis;
 					message.random_walk_direction = random_walk_direction_chosen;
-					simdbg("slp-debug","long random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
+					simdbg("slp-debug","long random walk, message number:%d ",message.sequence_number);
 					}
 			}
 			//fit for the situation that the sink is located in the corner or in the border, NO_SPACE_BEHIND_SINK.
@@ -392,13 +392,13 @@ implementation
 					{					
 						if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
 						{
-							simdbg("slp-debug","short random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());	
+							//simdbg("slp-debug","short random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());	
 							message.random_walk_direction = random_walk_direction_chosen = S_se;
 						}
 						else
 						{
 							message.random_walk_direction = random_walk_direction_chosen = S_se;
-							simdbg("slp-debug","long random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
+							//simdbg("slp-debug","long random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
 						}
 					}
 
@@ -426,18 +426,26 @@ implementation
 
 		if(current_message == SHORT_RANDOM_WALK && previous_message == LONG_RANDOM_WALK)
 		{
-			//printf("should wait before short!%d,%d ",current_message,previous_message);
+			//simdbg("stdout", "should wait before short!  ",current_message,previous_message);
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + get_source_period());
+			//simdbg("stdout","sim time: %s\n", sim_time_string());
+			printf("<wbs>sim time:%s\n",sim_time_string());
 		}
 		else
+		{
 			call BroadcastNormalTimer.startOneShot(get_source_period());
+			//simdbg("stdout","<normal>sim time: %s\n", sim_time_string());
+			printf("<normal>sim time:%s\n",sim_time_string());
+		}
+
 	}
 
 
 	event void BroadcastNormalTimer.fired()
 	{
 		
-		generate_message();  
+		generate_message();
+		//printf("sim time after message generate:%s\n", sim_time_string());
 	}
 
 
