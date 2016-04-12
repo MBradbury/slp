@@ -426,9 +426,9 @@ implementation
 			type = SourceNode;
 			call SourceDistances.put(TOS_NODE_ID, 0);
 
-			call InformSenderTimer.startOneShot(500);
+			call InformSenderTimer.startOneShot(SOURCE_PERIOD_MS / 2 + (int)ceil((SOURCE_PERIOD_MS / 4) * random_float()));
 
-			call BroadcastNormalTimer.startOneShot(1000 + SOURCE_PERIOD_MS);
+			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 		}
 	}
 
@@ -556,7 +556,6 @@ implementation
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
 	}
-
 
 	event void InformSenderTimer.fired()
 	{
@@ -712,7 +711,8 @@ implementation
 
 		sink_id = rcvd->source_id;
 
-		simdbg("stdout", "received away message seqno=%u\n", rcvd->sequence_number);
+		simdbg("stdout", "received away message seqno=%u dsink=%u\n",
+			rcvd->sequence_number, rcvd->sink_distance);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -911,7 +911,8 @@ implementation
 
 	void x_receive_Inform(const InformMessage* const rcvd, am_addr_t source_addr)
 	{
-		simdbg("stdout", "Received inform from %u via %u walked %u\n", rcvd->source_id, source_addr, rcvd->source_distance);
+		simdbg("stdout", "Received inform from %u via %u walked %u\n",
+			rcvd->source_id, source_addr, rcvd->source_distance);
 
 		if (update_source_distance_inform(rcvd))
 		{
@@ -919,7 +920,8 @@ implementation
 
 			METRIC_RCV_INFORM(rcvd);
 
-			simdbg("stdout", "Forwarding inform (srcdist of %u is %u)\n", rcvd->source_id, *call SourceDistances.get(rcvd->source_id));
+			simdbg("stdout", "Forwarding inform (srcdist of %u is %u)\n",
+				rcvd->source_id, *call SourceDistances.get(rcvd->source_id));
 
 			forwarding_message.source_distance += 1;
 
