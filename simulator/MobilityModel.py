@@ -105,21 +105,22 @@ class TowardsSinkMobilityModel(MobilityModel):
         self.duration = duration
 
     def setup(self, configuration):
-        path = configuration.shortest_path(configuration.source_id, configuration.sink_id)
-
-        # Remove the last element from the list as the sink cannot become a source
-        path = path[:-1]
-
         times = OrderedDict()
 
-        current_time = 0
+        for source_id in configuration.source_ids:
+            path = configuration.shortest_path(source_id, configuration.sink_id)
 
-        for (i, node) in enumerate(path):
-            end_time = current_time + self.duration if (i + 1) != len(path) else float('inf')
+            # Remove the last element from the list as the sink cannot become a source
+            path = path[:-1]
 
-            times[node] = [(current_time, end_time)]
+            current_time = 0
 
-            current_time += self.duration
+            for (i, node) in enumerate(path):
+                end_time = current_time + self.duration if (i + 1) != len(path) else float('inf')
+
+                times[node] = [(current_time, end_time)]
+
+                current_time += self.duration
 
         self._setup_impl(configuration, times)
 
@@ -133,7 +134,7 @@ def models():
 def eval_input(source):
     result = restricted_eval(source, models())
 
-    if isinstance(result, MobilityModel):
-        raise RuntimeError("The source ({}) is not valid.".format(source))
+    if not isinstance(result, MobilityModel):
+        raise RuntimeError("The source mobility model ({}) is not valid.".format(source))
 
     return result

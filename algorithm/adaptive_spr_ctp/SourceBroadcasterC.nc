@@ -397,10 +397,9 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
-			// Wait for 2 seconds before detecting source to allow the CTP to set up
-			call ObjectDetector.start();
-
 			call RoutingControl.start();
+
+			call ObjectDetector.start_later(5 * 1000);
 		}
 		else
 		{
@@ -426,7 +425,7 @@ implementation
 			type = SourceNode;
 			call SourceDistances.put(TOS_NODE_ID, 0);
 
-			call InformSenderTimer.startOneShot(SOURCE_PERIOD_MS / 2 + (int)ceil((SOURCE_PERIOD_MS / 4) * random_float()));
+			call InformSenderTimer.startOneShot((int)ceil((SOURCE_PERIOD_MS / 4) * random_float()));
 
 			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 		}

@@ -10,7 +10,7 @@ implementation
 {
 	bool detected = FALSE;
 
-	uint32_t additional_delay = 0;
+	uint32_t start_delay = 0;
 
 	uint32_t current_index = 0; 
 
@@ -66,19 +66,19 @@ implementation
 		{
 			simdbgverbose("stdout", "Starting a detection timer for %u.\n", period[current_index].from);
 
-			call DetectionTimer.startOneShotAt(additional_delay + period[current_index].from, 0);
+			call DetectionTimer.startOneShotAt(0, start_delay + period[current_index].from);
 		}
 	}
 
 	command void ObjectDetector.start()
 	{
-		additional_delay = 0;
+		start_delay = 0;
 		start_next_timer();
 	}
 
 	command void ObjectDetector.start_later(uint32_t delay)
 	{
-		additional_delay = delay;
+		start_delay = delay;
 		start_next_timer();
 	}
 
@@ -86,6 +86,9 @@ implementation
 	{
 		detected = FALSE;
 		signal ObjectDetector.stoppedDetecting();
+
+		call DetectionTimer.stop();
+		call ExpireTimer.stop();
 	}
 
 	command bool ObjectDetector.isDetected()
@@ -98,7 +101,7 @@ implementation
 		const slp_period_t* period;
 		uint32_t length;
 
-		simdbgverbose("stdout", "Detected an object.\n");
+		simdbgverbose("stdout", "Detected an object at %s.\n", sim_time_string());
 
 		detected = TRUE;
 
@@ -108,12 +111,14 @@ implementation
 			// is to continue forever
 			if (period[current_index].to != (uint32_t)-1)
 			{
-				simdbgverbose("stdout", "Starting an expiration timer.\n");
+				const uint32_t from = period[current_index].from;
+				const uint32_t to = period[current_index].to;
 
-				call ExpireTimer.startOneShotAt(
-					additional_delay + period[current_index].from,
-					additional_delay + period[current_index].to
-				);
+				const uint32_t timer_length = to - from;
+
+				simdbgverbose("stdout", "Starting an expiration timer from %u to %u for %u.\n", from, to, timer_length);
+
+				call ExpireTimer.startOneShot(timer_length);
 			}
 		}
 
@@ -122,9 +127,10 @@ implementation
 
 	event void ExpireTimer.fired()
 	{
-		simdbgverbose("stdout", "Stopped detecting an object.\n");
+		simdbgverbose("stdout", "Stopped detecting an object as %s.\n", sim_time_string());
 
-		call ObjectDetector.stop();
+		detected = FALSE;
+		signal ObjectDetector.stoppedDetecting();
 
 		++current_index;
 
