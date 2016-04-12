@@ -46,6 +46,7 @@ class RunSimulations(RunSimulationsCommon):
         'phantom_walkabouts':[1,1]
         }
         ##################################################################
+
         if len(random_walk_types) ==1:
             pass
         else:
@@ -58,28 +59,41 @@ class RunSimulations(RunSimulationsCommon):
             n = random_walk_types['phantom_walkabouts'][1]
             ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)
 
-        safety_period = {'only_short_random_walk': time_taken, \
+        unfixed_sp = {'only_short_random_walk': time_taken, \
                          'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
-                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken,\
-                          'fixed_safety_period': 1.3*time_taken}       
-        
-        return safety_period['fixed_safety_period']
-        '''
-        #Further* configurations in all random_walk types
-        
-        if ssd_max > (network_size-1) * 1.5:
-            return  time_taken
-        #random_walk_types except Further* configuration
+                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken}
+
+        fixed_sp = 1.3*time_taken
+
+        ##########################################################################
+        safety_period_types = [
+            #unfixed_sp, \
+            fixed_sp]    
+        ##########################################################################
+
+        if len(safety_period_types) == 1:
+            pass
         else:
-            if 'only_short_random_walk' in random_walk_types:
-                return safety_period['only_short_random_walk']
-            elif 'only_long_random_walk' in random_walk_types:
-                return safety_period['only_long_random_walk']
-            elif 'phantom_walkabouts' in random_walk_types:
-                return safety_period['phantom_walkabouts']
+            raise RuntimeError("Need ONE safety period type!")
+
+        if fixed_sp in safety_period_types:
+            return safety_period_types[0]        
+               
+        if unfixed_sp in safety_period_types:
+            
+            if ssd_max > (network_size-1) * 1.5:         #Further* configurations in all random_walk types
+                return  time_taken
+            #random_walk_types except Further* configuration
             else:
-                raise RuntimeError("unknown safety_period!")
-        '''
+                if 'only_short_random_walk' in random_walk_types:
+                    return safety_period_types[0]['only_short_random_walk']
+                elif 'only_long_random_walk' in random_walk_types:
+                    return safety_period_types[0]['only_long_random_walk']
+                elif 'phantom_walkabouts' in random_walk_types:
+                    return safety_period_types[0]['phantom_walkabouts']
+                else:
+                    raise RuntimeError("unknown safety_period!")
+        
 
 
 class CLI(CommandLineCommon.CLI):
@@ -99,13 +113,13 @@ class CLI(CommandLineCommon.CLI):
     #source_periods = [ 0.125 ]
 
     configurations = [
-        #'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'SourceCorner',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -405,7 +419,7 @@ class CLI(CommandLineCommon.CLI):
         )
 
         custom_yaxis_range_max = {
-            'captured': 25,
+            'captured': 50,
             'sent': 20000
         }
 

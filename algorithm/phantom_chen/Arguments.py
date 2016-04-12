@@ -19,7 +19,7 @@ class Arguments(ArgumentsCommon):
         parser.add_argument("--short-walk-length", type=int, required=True)
         parser.add_argument("--long-walk-length", type=int, required=True)
 
-        parser.add_argument("--wait-before-short", type=int, required=True, description="In milliseconds")
+        parser.add_argument("--wait-before-short", type=int, required=True)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
