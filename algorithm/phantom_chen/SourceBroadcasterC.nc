@@ -11,16 +11,6 @@
 #include <assert.h>
 #include <stdlib.h>
 
-
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-
-
-#define SHORT_RANDOM_WALK 0
-#define LONG_RANDOM_WALK 1
-
-uint16_t current_message = 0;
-uint16_t previous_message = 0;
-
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -296,7 +286,29 @@ implementation
 	uint16_t long_short_sequence_random_walk(uint16_t m, uint16_t n)
 	{
 		uint16_t random_walk_remaining;
-		random_walk_remaining = (message_no % (m+n) <= n && message_no % (m+n) != 0)? LONG_RANDOM_WALK_HOPS : RANDOM_WALK_HOPS;
+		uint16_t re = message_no % (m+n);
+		uint16_t pre_re = (message_no-1) % (m+n);
+
+		if(re <= n && re != 0)
+		{
+			random_walk_remaining = LONG_RANDOM_WALK_HOPS;
+			current_message = LONG_RANDOM_WALK;
+		}
+		else
+		{
+			random_walk_remaining = RANDOM_WALK_HOPS;
+			current_message = SHORT_RANDOM_WALK;
+		}
+
+		if(pre_re <= n && pre_re != 0)
+		{
+			previous_message = LONG_RANDOM_WALK;
+		}
+		else
+		{
+			previous_message = SHORT_RANDOM_WALK;
+		}
+
 		message_no += 1;
 		return random_walk_remaining;
 	}
@@ -331,12 +343,14 @@ implementation
 			#elif defined(SHORT_LONG_SEQUENCE)
 			{
 				message.random_walk_hop_remaining = short_long_sequence_random_walk(short_long[0],short_long[1]);
-				printf("current_message:%d  ",current_message);
-				printf("previous_message:%d  ",previous_message);
+				//printf("current_message:%d  ",current_message);
+				//printf("previous_message:%d  ",previous_message);
 			}
 			#elif defined(LOND_SHORT_SEQUENCE)
 			{
 				message.random_walk_hop_remaining =long_short_sequence_random_walk(short_long[0],short_long[1]);
+				//printf("current_message:%d  ",current_message);
+				//printf("previous_message:%d  ",previous_message);
 			}
 			#else
 			{
@@ -410,7 +424,13 @@ implementation
 			}
 		}
 
-		call BroadcastNormalTimer.startOneShot(get_source_period());
+		if(current_message == SHORT_RANDOM_WALK && previous_message == LONG_RANDOM_WALK)
+		{
+			printf("should wait before short!%d,%d ",current_message,previous_message);
+			call BroadcastNormalTimer.startOneShot(get_source_period());
+		}
+		else
+			call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
 
