@@ -58,7 +58,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 2000
 
-    attacker_models = ['TimedBacktrackingAttacker(wait_time_secs={source_period})']
+    attacker_models = ['TimedBacktrackingAttacker(wait_time_secs={source_period})', 'SeqNosReactiveAttacker()']
 
     local_parameter_names = tuple()
 
