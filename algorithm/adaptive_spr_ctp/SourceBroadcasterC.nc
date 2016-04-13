@@ -228,9 +228,9 @@ implementation
 		const uint32_t msg = get_tfs_num_msg_to_send();
 		const double period = duration / (double)msg;
 
-		const double fake_rcv_ratio_at_src = 1.0;
+		const double fake_rcv_ratio_at_src_estimate = 1.0;
 
-		const uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src);
+		const uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src_estimate);
 
 		simdbg("stdout", "get_tfs_period=%u\n", result_period);
 
@@ -243,9 +243,9 @@ implementation
 
 		const double period_per_source = SOURCE_PERIOD_MS / est_num_sources;
 
-		const double fake_rcv_ratio_at_src = 1.0;
+		const double fake_rcv_ratio_at_src_estimate = 1.0;
 
-		const uint32_t result_period = (uint32_t)ceil(period_per_source * fake_rcv_ratio_at_src);
+		const uint32_t result_period = (uint32_t)ceil(period_per_source * fake_rcv_ratio_at_src_estimate);
 
 		simdbg("stdout", "get_pfs_period=%u (est_num_sources=%f)\n", result_period, est_num_sources);
 
