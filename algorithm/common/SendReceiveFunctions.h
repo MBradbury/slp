@@ -12,7 +12,7 @@
 #define SEQUENCE_NUMBER_SPEC "%" PRIi64
 #define DISTANCE_SPEC "%d"
 
-// The SEQUENCE_NUMBER parameter will typically be of type NXSequenceNumber,
+// The SEQUENCE_NUMBER parameter will typically be of type NXSequenceNumber or have the value BOTTOM,
 // this is why it needs to be cast to an int64_t first.
 #define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
 	simdbg_clear("Metric-COMMUNICATE", \
