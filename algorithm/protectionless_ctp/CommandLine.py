@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os, itertools
+import os, itertools, datetime
 
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
