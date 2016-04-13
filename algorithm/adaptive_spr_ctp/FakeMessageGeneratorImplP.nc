@@ -62,15 +62,6 @@ implementation
 		call SendFakeTimer.stop();
 	}
 
-	default event uint32_t FakeMessageGenerator.calculatePeriod()
-	{
-		return 0;
-	}
-	
-	default event void FakeMessageGenerator.sent(error_t error, const FakeMessage* message)
-	{
-	}
-
 	bool send_fake_message()
 	{
 		error_t status;
