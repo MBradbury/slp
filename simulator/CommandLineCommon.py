@@ -146,14 +146,7 @@ class CLI(object):
             touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
             touch("{}/__init__.py".format(cluster_directory))
 
-            try:
-                self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
-            except IOError as e:
-                message = str(e)
-                if '-results.csv' in message and 'No such file or directory' in message:
-                    raise RuntimeError("No results file is present. Perhaps rerun the command with 'no-skip-complete'.")
-                else:
-                    raise
+            self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
 
         if 'copy' in args:
             cluster.copy_to()
