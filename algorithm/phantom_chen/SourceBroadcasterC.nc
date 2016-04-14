@@ -1,6 +1,5 @@
 #include "Constants.h"
 #include "Common.h"
-#include "Parameters.h"
 #include "SendReceiveFunctions.h"
 
 #include "NormalMessage.h"
@@ -10,6 +9,8 @@
 
 #include <assert.h>
 #include <stdlib.h>
+
+static const uint16_t short_long[] = {SHORT_COUNT, LONG_COUNT};
 
 module SourceBroadcasterC
 {
@@ -103,7 +104,7 @@ implementation
 
 		random_number=call Random.rand16()%2;
 
-		biased_random_number=call Random.rand16()%Biased_No;
+		biased_random_number=call Random.rand16()%100;
 
 		switch(choose)
 		{
