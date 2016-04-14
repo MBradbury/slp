@@ -107,13 +107,21 @@ class RunSimulationsCommon(object):
             raise KeyError("Failed to find the safety period key {} and source period {}".format(key, repr(source_period)), ex)
 
     def _load_existing_results(self, argument_names):
-        results_summary = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=argument_names[len(simulator.common.global_parameter_names):],
-            results=('repeats',))
+        try:
+            results_summary = results.Results(
+                self.algorithm_module.result_file_path,
+                parameters=argument_names[len(simulator.common.global_parameter_names):],
+                results=('repeats',))
 
-        # (size, config, attacker_model, noise_model, communication_model, distance, period) -> repeats
-        self._existing_results = results_summary.parameter_set()
+            # (size, config, attacker_model, noise_model, communication_model, distance, period) -> repeats
+            self._existing_results = results_summary.parameter_set()
+        except IOError as e:
+            message = str(e)
+            if 'No such file or directory' in message:
+                raise RuntimeError("The results file {} is not present. Perhaps rerun the command with 'no-skip-complete'?".format(
+                    self.algorithm_module.result_file_path))
+            else:
+                raise
 
     def _already_processed(self, repeats, arguments):
         if not self._skip_completed_simulations:

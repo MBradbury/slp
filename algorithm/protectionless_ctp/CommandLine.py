@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os, itertools
+import os, itertools, datetime
 
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
@@ -58,7 +58,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 2000
 
-    attacker_models = ['TimedBacktrackingAttacker(wait_time_secs={source_period})']
+    attacker_models = ['TimedBacktrackingAttacker(wait_time_secs={source_period})', 'SeqNosReactiveAttacker()']
 
     local_parameter_names = tuple()
 
@@ -88,6 +88,24 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
+
+    def _time_estimater(self, *args):
+        """Estimates how long simulations are run for. Override this in algorithm
+        specific CommandLine if these values are too small or too big. In general
+        these have been good amounts of time to run simulations for. You might want
+        to adjust the number of repeats to get the simulation time in this range."""
+        names = self.parameter_names()
+        size = args[names.index('network size')]
+        if size == 11:
+            return datetime.timedelta(hours=3)
+        elif size == 15:
+            return datetime.timedelta(hours=6)
+        elif size == 21:
+            return datetime.timedelta(hours=12)
+        elif size == 25:
+            return datetime.timedelta(hours=24)
+        else:
+            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)

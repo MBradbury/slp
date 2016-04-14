@@ -5,7 +5,7 @@ def build_sim(directory, **kwargs):
 
     flags = " ".join("-D{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
 
-    command = 'make micaz sim-fast SLP_PARAMETER_CFLAGS="{}"'.format(flags)
+    command = 'make micaz sim SLP_PARAMETER_CFLAGS="{}"'.format(flags)
 
     result = subprocess.check_call(
         command,
