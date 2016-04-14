@@ -157,7 +157,8 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			simdbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n", sim_time_string(), rcvd->sequence_number, source_addr);
+			simdbgverbose("SourceBroadcasterC", "%s: Received unseen Normal seqno=%u from %u.\n",
+				sim_time_string(), rcvd->sequence_number, source_addr);
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;

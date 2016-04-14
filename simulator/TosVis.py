@@ -79,7 +79,12 @@ class GuiSimulation(Simulation):
         self._node_position_scale_factor = args.gui_scale
 
         # e.g. "SourceBroadcasterC.min_source_distance"
-        self._node_label = args.gui_node_label 
+        self._node_label = args.gui_node_label
+
+        if self._node_label is not None:
+            variables = self.nesc_app.variables.variables()[0::3]
+            if self._node_label not in variables:
+                raise RuntimeError("The variable {} was not present in the list known to python".format(self._node_label))
 
         self._debug_analyzer = DebugAnalyzer()
 
