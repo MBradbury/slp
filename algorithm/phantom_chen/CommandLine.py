@@ -67,8 +67,9 @@ class RunSimulations(RunSimulationsCommon):
 
         ##########################################################################
         safety_period_types = [
-            #unfixed_sp, \
-            fixed_sp]    
+            unfixed_sp,
+            #fixed_sp
+        ]    
         ##########################################################################
 
         if len(safety_period_types) == 1:
