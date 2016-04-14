@@ -25,7 +25,7 @@ enum Channels
 //make it work for multiple sources.
 uint16_t message_no = 1;
 uint16_t current_message = 0;
-uint16_t previous_message = 0;
+uint16_t next_message = 0;
 
 #endif // SLP_CONSTANTS_H
 
