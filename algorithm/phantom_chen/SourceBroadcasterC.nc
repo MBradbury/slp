@@ -257,7 +257,7 @@ implementation
 	{
 		uint16_t random_walk_remaining;
 		uint16_t re = message_no % (m+n);
-		uint16_t next_re = (message_no+1) % (m+n);
+		uint16_t pre_re = (message_no-1) % (m+n);
 
 		if(re <= m && re != 0)
 		{
@@ -270,13 +270,13 @@ implementation
 			current_message = LONG_RANDOM_WALK;
 		}
 
-		if(next_re <= m && next_re != 0)
+		if(pre_re <= m && pre_re != 0)
 		{
-			next_message = SHORT_RANDOM_WALK;
+			previous_message = SHORT_RANDOM_WALK;
 		}
 		else
 		{
-			next_message = LONG_RANDOM_WALK;
+			previous_message = LONG_RANDOM_WALK;
 		}
 
 		message_no += 1;
@@ -288,7 +288,7 @@ implementation
 	{
 		uint16_t random_walk_remaining;
 		uint16_t re = message_no % (m+n);
-		uint16_t next_re = (message_no + 1) % (m+n);
+		uint16_t pre_re = (message_no-1) % (m+n);
 
 		if(re <= n && re != 0)
 		{
@@ -301,13 +301,13 @@ implementation
 			current_message = SHORT_RANDOM_WALK;
 		}
 
-		if(next_re <= n && next_re != 0)
+		if(pre_re <= n && pre_re != 0)
 		{
-			next_message = LONG_RANDOM_WALK;
+			previous_message = LONG_RANDOM_WALK;
 		}
 		else
 		{
-			next_message = SHORT_RANDOM_WALK;
+			previous_message = SHORT_RANDOM_WALK;
 		}
 
 		message_no += 1;
@@ -425,18 +425,18 @@ implementation
 			}
 		}
 
-		if(current_message == LONG_RANDOM_WALK && next_message == SHORT_RANDOM_WALK)
+		if(current_message == SHORT_RANDOM_WALK && previous_message == LONG_RANDOM_WALK)
 		{
 			//simdbg("stdout", "should wait before short!  ",current_message,previous_message);
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + get_source_period());
 			//simdbg("stdout","sim time: %s\n", sim_time_string());
-			simdbg("stdout","<wbs>sim time:%s\n",sim_time_string());
+			printf("<wbs>current message:%d, last message:%d, sim time:%s\n",current_message, previous_message, sim_time_string());
 		}
 		else
 		{
 			call BroadcastNormalTimer.startOneShot(get_source_period());
 			//simdbg("stdout","<normal>sim time: %s\n", sim_time_string());
-			simdbg("stdout","<normal>sim time:%s\n",sim_time_string());
+			printf("<normal>current message:%d, last message:%d, sim time:%s\n",current_message, previous_message,sim_time_string());
 		}
 
 	}
