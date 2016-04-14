@@ -429,13 +429,13 @@ implementation
 			//simdbg("stdout", "should wait before short!  ",current_message,previous_message);
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + get_source_period());
 			//simdbg("stdout","sim time: %s\n", sim_time_string());
-			printf("<wbs>sim time:%s\n",sim_time_string());
+			printf("<wbs>current message:%d, last message:%d, sim time:%s\n",current_message, previous_message, sim_time_string());
 		}
 		else
 		{
 			call BroadcastNormalTimer.startOneShot(get_source_period());
 			//simdbg("stdout","<normal>sim time: %s\n", sim_time_string());
-			printf("<normal>sim time:%s\n",sim_time_string());
+			printf("<normal>current message:%d, last message:%d, sim time:%s\n",current_message, previous_message,sim_time_string());
 		}
 
 	}
