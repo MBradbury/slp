@@ -134,11 +134,19 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    wait_before_short = [100, 200, 300]
+    direction_biases = [0.9]
+
+    orders = ["LongShort", "ShortLong"]
+
+    wait_before_short = [0, 100, 200, 300]
+
+    short_counts = [0, 1, 2]
+    long_counts = [0, 1, 2]
 
     repeats = 500
 
-    local_parameter_names = ('short walk length', 'long walk length', 'wait before short')
+    local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
+                             'order', 'short count', 'long count', 'wait before short')
 
 
     def __init__(self):
@@ -233,13 +241,14 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.wait_before_short
+            [self.distance], self.source_periods, self.direction_biases, self.orders,
+            self.short_counts, self.long_counts, self.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, swl, lwl, wbs)
+            (s, c, am, nm, cm, d, sp, swl, lwl, db, o, sc, lc, wbs)
 
-            for (s, c, am, nm, cm, d, sp, wbs) in argument_product
+            for (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs) in argument_product
 
             for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
         ]        
