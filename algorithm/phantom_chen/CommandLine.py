@@ -137,9 +137,12 @@ class CLI(CommandLineCommon.CLI):
 
     direction_biases = [0.9]
 
-    orders = ["LongShort", "ShortLong"]
+    orders = [
+    "LongShort", 
+    #"ShortLong"
+    ]
 
-    wait_before_short = [0, 100, 200, 300]
+    wait_before_short = [0]
 
     short_counts = [1]
     long_counts = [1]
