@@ -252,14 +252,14 @@ implementation
 		}
 	}
 
-	//m short random walk and n long random walk messages combination.
-	uint16_t short_long_sequence_random_walk(uint16_t m, uint16_t n)
+	//sm short random walk and ln long random walk messages combination.
+	uint16_t short_long_sequence_random_walk(uint16_t sm, uint16_t ln)
 	{
 		uint16_t random_walk_remaining;
-		uint16_t current = message_no % (m+n);
-		uint16_t next = (message_no-1) % (m+n);
+		uint16_t current = message_no % (sm+ln);
+		uint16_t next = (message_no+1) % (sm+ln);
 
-		if(current <= m && current != 0)
+		if(current <= sm && current != 0)
 		{
 			random_walk_remaining = RANDOM_WALK_HOPS;
 			current_message = SHORT_RANDOM_WALK;
@@ -270,7 +270,7 @@ implementation
 			current_message = LONG_RANDOM_WALK;
 		}
 
-		if(next <= m && next != 0)
+		if(next <= sm && next != 0)
 		{
 			next_message = SHORT_RANDOM_WALK;
 		}
@@ -284,13 +284,13 @@ implementation
 		return random_walk_remaining;
 	}
 
-	uint16_t long_short_sequence_random_walk(uint16_t m, uint16_t n)
+	uint16_t long_short_sequence_random_walk(uint16_t sm, uint16_t ln)
 	{
 		uint16_t random_walk_remaining;
-		uint16_t current = message_no % (m+n);
-		uint16_t next = (message_no-1) % (m+n);
+		uint16_t current = message_no % (sm+ln);
+		uint16_t next = (message_no+1) % (sm+ln);
 
-		if(current <= n && current != 0)
+		if(current <= ln && current != 0)
 		{
 			random_walk_remaining = LONG_RANDOM_WALK_HOPS;
 			current_message = LONG_RANDOM_WALK;
@@ -301,7 +301,7 @@ implementation
 			current_message = SHORT_RANDOM_WALK;
 		}
 
-		if(next <= n && next != 0)
+		if(next <= ln && next != 0)
 		{
 			next_message = LONG_RANDOM_WALK;
 		}
@@ -336,27 +336,14 @@ implementation
 			message.source_id = TOS_NODE_ID;
 			message.source_distance = 0;
 
-			#if defined(SHORT_LONG_SEQUENCE) && defined(LOND_SHORT_SEQUENCE)
+			#if defined(SHORT_LONG_SEQUENCE)
 			{
-				simdbg("slp-debug","more than one sequence!\n");
-				exit(-1);			
-			}
-			#elif defined(SHORT_LONG_SEQUENCE)
-			{
-				message.random_walk_hop_remaining = short_long_sequence_random_walk(short_long[0],short_long[1]);
-				//printf("current_message:%d  ",current_message);
-				//printf("next_message:%d  ",next_message);
-			}
-			#elif defined(LOND_SHORT_SEQUENCE)
-			{
-				message.random_walk_hop_remaining =long_short_sequence_random_walk(short_long[0],short_long[1]);
-				//printf("current_message:%d  ",current_message);
-				//printf("next_message:%d  ",next_message);
+				//message.random_walk_hop_remaining = short_long_sequence_random_walk(short_long[0],short_long[1]);
+				message.random_walk_hop_remaining = short_long_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
 			}
 			#else
 			{
-				simdbg("slp-debug","need one sequence!\n");
-				exit(-1);
+				message.random_walk_hop_remaining =long_short_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
 			}
 			#endif
 
@@ -372,7 +359,7 @@ implementation
 					//normally the short random walk is set to less than half of source sink distance.
 					if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
 					{
-					simdbg("slp-debug","short random walk, message number:%d ",message.sequence_number);
+					simdbg("slp-debug","short random walk, message number:%d\n",message.sequence_number);
 					message.random_walk_direction = random_walk_direction_chosen = S_se;
 					}
 					else
@@ -380,7 +367,7 @@ implementation
 					//randomly choose the random is whether follow the x axis or y axis.
 					random_walk_direction_chosen = (flip_coin == 0)? Biased_x_axis : Biased_y_axis;
 					message.random_walk_direction = random_walk_direction_chosen;
-					simdbg("slp-debug","long random walk, message number:%d ",message.sequence_number);
+					simdbg("slp-debug","long random walk, message number:%d\n",message.sequence_number);
 					}
 			}
 			//fit for the situation that the sink is located in the corner or in the border, NO_SPACE_BEHIND_SINK.
@@ -425,18 +412,18 @@ implementation
 			}
 		}
 
-		if(current_message == SHORT_RANDOM_WALK && next_message == LONG_RANDOM_WALK)
+		if(current_message == LONG_RANDOM_WALK && next_message == SHORT_RANDOM_WALK)
 		{
 			//simdbg("stdout", "should wait before short!  ",current_message,next_message);
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + get_source_period());
 			//simdbg("stdout","sim time: %s\n", sim_time_string());
-			printf("<wbs>current message:%d, last message:%d, sim time:%s\n",current_message, next_message, sim_time_string());
+			//printf("<wbs>current message:%d, next message:%d, sim time:%s\n",current_message, next_message, sim_time_string());
 		}
 		else
 		{
 			call BroadcastNormalTimer.startOneShot(get_source_period());
 			//simdbg("stdout","<normal>sim time: %s\n", sim_time_string());
-			printf("<normal>current message:%d, last message:%d, sim time:%s\n",current_message, next_message,sim_time_string());
+			//printf("<normal>current message:%d, next message:%d, sim time:%s\n",current_message, next_message,sim_time_string());
 		}
 
 	}
@@ -446,7 +433,6 @@ implementation
 	{
 		
 		generate_message();
-		//printf("sim time after message generate:%s\n", sim_time_string());
 	}
 
 
