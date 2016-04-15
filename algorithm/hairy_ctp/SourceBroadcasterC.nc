@@ -20,6 +20,7 @@ module SourceBroadcasterC
 
 	uses interface Boot;
 	uses interface Leds;
+	uses interface Random;
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as FakeWalkTimer;
@@ -52,7 +53,7 @@ module SourceBroadcasterC
 	uses interface CtpInfo;
 	//uses interface CtpCongestion;
 
-	uses interface Dictionary as Sources;
+	uses interface Dictionary<am_addr_t, uint16_t> as Sources;
 }
 
 implementation
@@ -73,6 +74,20 @@ implementation
 		case NormalNode:			return "NormalNode";
 		default:					return "<unknown> ";
 		}
+	}
+
+	// Produces a random float between 0 and 1
+	float random_float(void)
+	{
+		// There appears to be problem with the 32 bit random number generator
+		// in TinyOS that means it will not generate numbers in the full range
+		// that a 32 bit integer can hold. So use the 16 bit value instead.
+		// With the 16 bit integer we get better float values to compared to the
+		// fake source probability.
+		// Ref: https://github.com/tinyos/tinyos-main/issues/248
+		const uint16_t rnd = call Random.rand16();
+
+		return ((float)rnd) / UINT16_MAX;
 	}
 
 	// This function is to be used by the source node to get the
@@ -165,52 +180,75 @@ implementation
 		const uint8_t num_neighbours = call CtpInfo.numNeighbors();
 		uint8_t i = 0;
 
-		uint16_t max_metric = 0;
+		uint16_t etx;
+		error_t status;
+
+		uint16_t max_metric = etx;
+
+		status = call CtpInfo.getEtx(&etx);
+
+		simdbg("stdout", "Starting selection of next fake node with etx %u\n", etx);
 
 		for (i = 0; i != num_neighbours; ++i)
 		{
 			const am_addr_t neighbour_addr = call CtpInfo.getNeighborAddr(i);
-			const uint16_t neighbour_quality = call CtpInfo.getNeighborRouteQuality(i);
+			const uint16_t link_quality = call CtpInfo.getNeighborLinkQuality(i);
+			const uint16_t route_quality = call CtpInfo.getNeighborRouteQuality(i);
+
+			const uint16_t neighbour_quality = route_quality - link_quality;
 
 			am_addr_t parent;
-			uint16_t etx;
-			error_t status;
+
+			simdbg("stdout", "Considering %u with link=%u route=%u q=%u ::\t", neighbour_addr, link_quality, route_quality, neighbour_quality);
 
 			// Don't want to select any node that was part of the CTP route
 			if (call Sources.contains_key(neighbour_addr))
 			{
+				simdbg_clear("stdout", "discarded as child of CTP route\n");
 				continue;
 			}
 
 			status = call CtpInfo.getParent(&parent);
 			if (status == SUCCESS && call Sources.contains_key(parent))
 			{
+				simdbg_clear("stdout", "discarded as parent of CTP route\n");
 				continue;
 			}
 
 			// Do not select the source
-			status = call CtpInfo.getEtx(&etx);
 			if (status == SUCCESS && etx == 0)
 			{
+				simdbg_clear("stdout", "discarded as sink\n");
 				continue;
 			}
 
-			if (neighbour_quality == UINT16_MAX)
+			if (link_quality == UINT16_MAX || route_quality == UINT16_MAX || neighbour_quality == 0)
 			{
+				simdbg_clear("stdout", "discarded as unknown neighbour quality\n");
 				continue;
 			}
 
 			if (neighbour_quality > max_metric)
 			{
+				simdbg_clear("stdout", "SELECTED\n");
+
 				max_metric = neighbour_quality;
 				target = neighbour_addr;
 			}
+			else
+			{
+				simdbg_clear("stdout", "discarded as quality is too low\n");
+			}
 		}
+
+		simdbg("stdout", "Chosen fake node %u\n\n", target);
 
 		return target;
 	}
 
 	USE_MESSAGE_NO_TARGET(Normal);
+	USE_MESSAGE(Choose);
+	USE_MESSAGE(Fake);
 
 	event void BroadcastNormalTimer.fired()
 	{
@@ -306,7 +344,7 @@ implementation
 
 			if (rcvd->source_distance >= 2)
 			{
-				call FakeWalkTimer.startOneShot(send_wait())
+				call FakeWalkTimer.startOneShot(send_wait());
 			}
 		}
 
@@ -320,20 +358,49 @@ implementation
 	INTERCEPT_MESSAGE_END(Normal)
 
 
+	void Normal_receive_Choose(const ChooseMessage* rcvd, am_addr_t source_addr)
+	{
+		const am_addr_t target = fake_walk_target();
+
+		simdbg("stdout", "Normal receive choose\n");
+
+		// If there is no target become a fake sources
+		if (target == AM_BROADCAST_ADDR)
+		{
+			simdbg("stdout", "Became PFS\n");
+		}
+		// Otherwise keep sending the choose message 
+		else
+		{
+			call FakeWalkTimer.startOneShot(send_wait());
+		}
+	}
 
 
 	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
+		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
+		case SourceNode:
+		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Choose)
 
 	RECEIVE_MESSAGE_BEGIN(Choose, Snoop)
+		case NormalNode:
+		case SourceNode:
+		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Choose)
 
 
 
 	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
+		case NormalNode:
+		case SourceNode:
+		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Fake)
 
 	RECEIVE_MESSAGE_BEGIN(Fake, Snoop)
+		case NormalNode:
+		case SourceNode:
+		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Fake)
 
 
