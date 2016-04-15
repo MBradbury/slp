@@ -348,36 +348,43 @@ class TimedBacktrackingAttacker(Attacker):
     def __str__(self):
         return type(self).__name__ + "(wait_time_secs={})".format(self._wait_time_secs)
 
-class ABDAttacker(Attacker):
-    def __init__(self, period, messages_per_period, history_window):
+class HMAttacker(Attacker):
+    def __init__(self, period, history_window_size, moves_per_period):
         super(ABDAttacker, self).__init__()
 
         self._period = period
-        self._messages_per_period = messages_per_period
+        self._moves_per_period = moves_per_period
         self._history_window = history_window
 
-        self._previous_location = None
+        self._history = [None] * self._history_window
+        self._history_index = 0
+
         self._messages = []
+        self._num_moves = 0
 
     def setup_event_callbacks(self):
         self._sim.tossim.register_event_callback(self._clear_messages, self._period)
 
     def _clear_messages(self, current_time):
         self._messages = []
+        self._num_moves = 0
 
         print("Cleared messages at {}".format(current_time))
 
         self._sim.tossim.register_event_callback(self._clear_messages, current_time + self._period)
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
-        return True
+        return self._num_moves < self._moves_per_period
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
-        pass
+        self._history[self._history_index] = node_id
+        self._history_index = (self._history_index + 1) % self._history_window
+
+        self._num_moves += 1
 
     def __str__(self):
-        return type(self).__name__ + "(period={},messages_per_period={},history_window={})".format(
-            self._period, self._messages_per_period, self._history_window)
+        return type(self).__name__ + "(period={},history_window_size={},moves_per_period={})".format(
+            self._period, self._history_window_size, self._moves_per_period)
 
 def models():
     """A list of the the available attacker models."""
