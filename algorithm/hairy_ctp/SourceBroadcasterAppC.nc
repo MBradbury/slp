@@ -14,9 +14,11 @@ implementation
 	// Low levels events such as boot and LED control
 	components MainC;
 	components LedsC;
+	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
+	App.Random -> RandomC;
 
 #ifdef USE_SERIAL_PRINTF
 	components SerialPrintfC;
