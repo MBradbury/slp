@@ -42,7 +42,7 @@ class CLI(CommandLineCommon.CLI):
         #'Source2Corners',
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker()']
+    attacker_models = ['SeqNosReactiveAttacker()']
 
     slot_period = []
     dissem_period = []
@@ -58,20 +58,16 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
-
         runner = RunSimulations(
             driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations,
-            safety_periods=safety_periods
+            skip_completed_simulations=skip_completed_simulations
         )
 
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
             [self.distance], self.source_periods, self.slot_period, self.dissem_period,
-            self.tdms_num_slots, self.slot_loop_length
+            self.tdma_num_slots, self.slot_loop_length
         )
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
