@@ -10,8 +10,6 @@
 #include <assert.h>
 #include <stdlib.h>
 
-static const uint16_t short_long[] = {SHORT_COUNT, LONG_COUNT};
-
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -338,7 +336,6 @@ implementation
 
 			#if defined(SHORT_LONG_SEQUENCE)
 			{
-				//message.random_walk_hop_remaining = short_long_sequence_random_walk(short_long[0],short_long[1]);
 				message.random_walk_hop_remaining = short_long_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
 			}
 			#else
@@ -348,9 +345,6 @@ implementation
 			#endif
 
 			//add adaptive phantom code here.
-			//message.random_walk_hop_remaining = short_long_sequence_random_walk(short_long[0],short_long[1]);
-			//message.random_walk_hop_remaining =long_short_sequence_random_walk(short_long[0],short_long[1]);
-
 			//SPACE_BEHIND_SINK means more space behind the sink.
 			//fit for Source Corner.  
 			#ifdef SPACE_BEHIND_SINK
