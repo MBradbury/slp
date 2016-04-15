@@ -1,5 +1,6 @@
 from __future__ import division
 
+import random
 from collections import Counter, deque
 
 import numpy as np
@@ -91,9 +92,7 @@ class Attacker(object):
 
         if self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
-            self._move(time, prox_from_id)
-
-            self.moves_in_response_to[msg_type] += 1
+            self._move(time, prox_from_id, msg_type=msg_type)
 
             self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
@@ -109,10 +108,13 @@ class Attacker(object):
         """Checks if the source has been found, using a cached variable."""
         return self._has_found_source
 
-    def _move(self, time, node_id):
+    def _move(self, time, node_id, msg_type=None):
         """Moved the source to a new location."""
 
         self.moves += 1
+
+        if msg_type is not None:
+            self.moves_in_response_to[msg_type] += 1
 
         for source in self._source_ids():
             new_distance = self._sim.node_distance(source, node_id)
@@ -349,42 +351,67 @@ class TimedBacktrackingAttacker(Attacker):
         return type(self).__name__ + "(wait_time_secs={})".format(self._wait_time_secs)
 
 class HMAttacker(Attacker):
-    def __init__(self, period, history_window_size, moves_per_period):
+    def __init__(self, clear_period, history_window_size, moves_per_period):
         super(ABDAttacker, self).__init__()
 
-        self._period = period
+        self._clear_period = clear_period
         self._moves_per_period = moves_per_period
-        self._history_window = history_window
+        self._history_window_size = history_window_size
 
-        self._history = [None] * self._history_window
+        self._history = [None] * self._history_window_size
         self._history_index = 0
 
         self._messages = []
         self._num_moves = 0
 
+        self._next_message_count_wait = random.randint(1, self._moves_per_period - self._num_moves)
+
     def setup_event_callbacks(self):
-        self._sim.tossim.register_event_callback(self._clear_messages, self._period)
+        self._sim.tossim.register_event_callback(self._clear_messages, self._clear_period)
 
     def _clear_messages(self, current_time):
         self._messages = []
         self._num_moves = 0
+        self._next_message_count_wait = random.randint(1, self._moves_per_period - self._num_moves)
 
         print("Cleared messages at {}".format(current_time))
 
-        self._sim.tossim.register_event_callback(self._clear_messages, current_time + self._period)
+        self._sim.tossim.register_event_callback(self._clear_messages, current_time + self._clear_period)
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
-        return self._num_moves < self._moves_per_period
+
+        self.messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
+
+        can_move = self._num_moves < self._moves_per_period
+        choose_move = len(self.messages) == self._next_message_count_wait
+
+        if can_move and choose_move:
+            filtered_message = [
+                (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
+                for (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
+                in self.messages
+
+                if node_id not in self._history
+            ]
+
+            (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = random.choice(self.filtered_message)
+
+            self._move(time, prox_from_id, msg_type=msg_type)
+
+            self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
+        
+        return False
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         self._history[self._history_index] = node_id
-        self._history_index = (self._history_index + 1) % self._history_window
+        self._history_index = (self._history_index + 1) % self._history_window_size
 
         self._num_moves += 1
+        self._next_message_count_wait = random.randint(1, self._moves_per_period - self._num_moves)
 
     def __str__(self):
-        return type(self).__name__ + "(period={},history_window_size={},moves_per_period={})".format(
-            self._period, self._history_window_size, self._moves_per_period)
+        return type(self).__name__ + "(clear_period={},history_window_size={},moves_per_period={})".format(
+            self._clear_period, self._history_window_size, self._moves_per_period)
 
 def models():
     """A list of the the available attacker models."""
