@@ -17,6 +17,8 @@ enum Channels
 #define SOUTH_EAST_DIRECTION 3
 #define BIASED_X_AXIS        4
 #define BIASED_Y_AXIS        5
+#define NORMAL_NORTH_EAST_DIRECTION 6
+#define NORMAL_SOUTH_WEST_DIRECTION 7
 
 #define SHORT_RANDOM_WALK 0
 #define LONG_RANDOM_WALK 1
