@@ -365,14 +365,14 @@ implementation
 					//normally the short random walk is set less than half of source sink distance.
 					if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
 					{
-					simdbg("slp-debug","short random walk, message number:%d.\n",message.sequence_number);
+					simdbg("slp-debug","short random walk, message number:%d, random walk length:%d.\n",message.sequence_number,message.random_walk_hop_remaining);
 					message.random_walk_direction = random_walk_direction_chosen = S_se;
 					}
 					else
 					{
 					random_walk_direction_chosen = (flip_coin == 0)? Biased_x_axis : Biased_y_axis;
 					message.random_walk_direction = random_walk_direction_chosen;
-					simdbg("slp-debug","long random walk, message number:%d.\n",message.sequence_number);
+					simdbg("slp-debug","long random walk, message number:%d, random walk length:%d.\n",message.sequence_number, message.random_walk_hop_remaining);
 					}
 			}
 			//fit for the situation that the sink is located in the corner or in the border, NO_SPACE_BEHIND_SINK.
