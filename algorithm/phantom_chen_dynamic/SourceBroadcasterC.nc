@@ -8,20 +8,7 @@
 #include <TinyError.h>
 
 #include <assert.h>
-
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-
-#define NORTH_WEST_DIRECTION 0
-#define NORTH_EAST_DIRECTION 1
-#define SOUTH_WEST_DIRECTION 2
-#define SOUTH_EAST_DIRECTION 3
-#define BIASED_X_AXIS        4
-#define BIASED_Y_AXIS        5
-
-//define the global vaiable.
-//make it work for multiple sources.
-uint16_t last_random_walk = 1;
-uint16_t short_long[] = {1,1};
+#include <stdlib.h>
 
 module SourceBroadcasterC
 {
@@ -80,32 +67,31 @@ implementation
 
 	USE_MESSAGE(Normal);
 
-  	bool left_bottom_corner(uint16_t messageID)		{return (messageID==0)?TRUE:FALSE;}
+  	bool left_bottom_corner(uint16_t NodeID)		{return (NodeID==0)?TRUE:FALSE;}
 
-  	bool right_bottom_corner(uint16_t messageID)	{return (messageID==TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+  	bool right_bottom_corner(uint16_t NodeID)	{return (NodeID==TOPOLOGY_SIZE-1)?TRUE:FALSE;}
 
-  	bool left_top_corner(uint16_t messageID)		{return (messageID==TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1))?TRUE:FALSE;}
+  	bool left_top_corner(uint16_t NodeID)		{return (NodeID==TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1))?TRUE:FALSE;}
 
-  	bool right_top_corner(uint16_t messageID)		{return (messageID==TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+  	bool right_top_corner(uint16_t NodeID)		{return (NodeID==TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
 
+ 	bool left_border(uint16_t NodeID)			{return (NodeID%TOPOLOGY_SIZE==0 && NodeID!=0 && NodeID!=TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1))?TRUE:FALSE;}
 
+  	bool right_border(uint16_t NodeID)			{return ((NodeID+1)%TOPOLOGY_SIZE == 0 && NodeID!=TOPOLOGY_SIZE-1 && NodeID!=TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
 
- 	bool left_border(uint16_t messageID)			{return (messageID%TOPOLOGY_SIZE==0 && messageID!=0 && messageID!=TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1))?TRUE:FALSE;}
+  	bool bottom(uint16_t NodeID)					{return (NodeID>0 && NodeID<TOPOLOGY_SIZE-1)?TRUE:FALSE;}
 
-  	bool right_border(uint16_t messageID)			{return ((messageID+1)%TOPOLOGY_SIZE == 0 && messageID!=TOPOLOGY_SIZE-1 && messageID!=TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+  	bool top(uint16_t NodeID)					{return (NodeID>TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1) && NodeID<TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
 
-  	bool bottom(uint16_t messageID)					{return (messageID>0 && messageID<TOPOLOGY_SIZE-1)?TRUE:FALSE;}
-
-  	bool top(uint16_t messageID)					{return (messageID>TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1) && messageID<TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
-
-  	bool message_reach_corner(uint16_t messageID)	{return (messageID==0||messageID==TOPOLOGY_SIZE-1||messageID==TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1)||messageID==TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
+  	bool message_reach_corner(uint16_t NodeID)	{return (NodeID==0||NodeID==TOPOLOGY_SIZE-1||NodeID==TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1)||NodeID==TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
 
 
-	uint16_t random_neighbour_node_chosen_seclect (NormalMessage *message, uint16_t choose)
+	uint16_t random_neighbour_node_seclect (NormalMessage *message, uint16_t choose)
 	{
 		uint16_t neighbour_west_node, neighbour_east_node, neighbour_north_node, neighbour_south_node; 
 		uint16_t neighbour_node_chosen = 0;
-		uint16_t random_number,biased_random_number;
+		uint16_t random_number; 
+		uint16_t biased_random_number;
 
 
 		neighbour_west_node = TOS_NODE_ID -1;
@@ -114,68 +100,66 @@ implementation
 		neighbour_south_node = TOS_NODE_ID + TOPOLOGY_SIZE;
 
 		random_number=call Random.rand16()%2;
-
-		biased_random_number=call Random.rand16()%10;
+		biased_random_number=call Random.rand16()%100;
 
 		switch(choose)
 		{
-			case(NORTH_WEST_DIRECTION):
+			case NORTH_WEST_DIRECTION:
     			if (left_border(TOS_NODE_ID)) 					neighbour_node_chosen = neighbour_north_node;
     			else if (bottom(TOS_NODE_ID)) 					neighbour_node_chosen = neighbour_west_node;
     			else if (left_bottom_corner(TOS_NODE_ID)) 		neighbour_node_chosen = TOS_NODE_ID; //stop here.
-    			else 											neighbour_node_chosen=(random_number==0)?neighbour_west_node:neighbour_north_node;
+    			else 											neighbour_node_chosen=(random_number==0)? neighbour_west_node : neighbour_north_node;
       			break;
 
-    		case(NORTH_EAST_DIRECTION):
+    		case NORTH_EAST_DIRECTION:
     			if (bottom(TOS_NODE_ID)) 												neighbour_node_chosen = neighbour_east_node;
     			else if (right_bottom_corner(TOS_NODE_ID))								neighbour_node_chosen = neighbour_south_node;
+    			// for SinkCorner
     			else if (right_border(TOS_NODE_ID)) 									neighbour_node_chosen = neighbour_south_node;
-    			else																	neighbour_node_chosen=(random_number==0)?neighbour_east_node:neighbour_north_node;
+    			else      																neighbour_node_chosen=(random_number==0)?neighbour_east_node:neighbour_north_node;
   				break;
 
-  			case(SOUTH_WEST_DIRECTION):
+  			case SOUTH_WEST_DIRECTION:
     			if (left_border(TOS_NODE_ID))  					neighbour_node_chosen = neighbour_south_node;
+    			// for SinkCorner
     			else if(top(TOS_NODE_ID))						neighbour_node_chosen = neighbour_east_node;				
     			else if(left_top_corner(TOS_NODE_ID))			neighbour_node_chosen = neighbour_east_node;
     			else 											neighbour_node_chosen=(random_number==0)?neighbour_west_node:neighbour_south_node;
     			break;
 
-    		case(SOUTH_EAST_DIRECTION):
+    		case SOUTH_EAST_DIRECTION:
     			if (right_bottom_corner(TOS_NODE_ID)||right_border(TOS_NODE_ID))  	neighbour_node_chosen = neighbour_south_node;
     			else if (left_top_corner(TOS_NODE_ID) || top(TOS_NODE_ID)) 			neighbour_node_chosen = neighbour_east_node;
-    			else if (right_top_corner(TOS_NODE_ID))								neighbour_node_chosen = TOS_NODE_ID; //add stop code here.
+    			else if (right_top_corner(TOS_NODE_ID))								neighbour_node_chosen = TOS_NODE_ID; //stop here.
     			else																neighbour_node_chosen=(random_number==0)?neighbour_east_node:neighbour_south_node;
       			break;
 
-      		case(BIASED_X_AXIS):
-      			
-    			if(biased_random_number == 0)
-    			//small possibility follow the y axis.
-    			{
-    				//simdbg("slp-debug",": (x)y move.\n");
-      				neighbour_node_chosen = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? neighbour_east_node:neighbour_south_node;
-    			}
+      		case BIASED_X_AXIS:     			
+    			if(biased_random_number <= Biased_No)
+    				neighbour_node_chosen = (right_border(TOS_NODE_ID) || right_bottom_corner(TOS_NODE_ID)) ? neighbour_south_node:neighbour_east_node;     				
     			else
-    			//high possibility follow the x axis.
-    			{
-    				//simdbg("slp-debug",": (x)x move.\n");
-      				neighbour_node_chosen = (right_border(TOS_NODE_ID) || right_bottom_corner(TOS_NODE_ID)) ? neighbour_south_node:neighbour_east_node;
-    			}
+      				neighbour_node_chosen = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? neighbour_east_node:neighbour_south_node;
     			break;
 
-    		case(BIASED_Y_AXIS):
-    			if (biased_random_number == 0)
-    			//small possibility follow the x axis.
-    			{
-    				//simdbg("slp-debug",": (y)x move.\n");
-    				neighbour_node_chosen = (right_border(TOS_NODE_ID)||right_bottom_corner(TOS_NODE_ID)) ? neighbour_south_node:neighbour_east_node;
-    			}
+    		case BIASED_Y_AXIS:
+    			if (biased_random_number <= Biased_No)
+    				neighbour_node_chosen = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? neighbour_east_node:neighbour_south_node;
     			else
-    			//high possibility follow the y axis.
-    			{
-    				//simdbg("slp-debug",": (y)y move.\n");
-      				neighbour_node_chosen = (top(TOS_NODE_ID) || left_top_corner(TOS_NODE_ID)) ? neighbour_east_node:neighbour_south_node;    
-				}
+      				 neighbour_node_chosen = (right_border(TOS_NODE_ID)||right_bottom_corner(TOS_NODE_ID)) ? neighbour_south_node:neighbour_east_node;   
+    			break;
+
+    		case NORMAL_NORTH_EAST_DIRECTION:
+    			if (bottom(TOS_NODE_ID)) 												neighbour_node_chosen = neighbour_east_node;
+    			else if (right_bottom_corner(TOS_NODE_ID))								neighbour_node_chosen = TOS_NODE_ID;
+    			else if (right_border(TOS_NODE_ID)) 									neighbour_node_chosen = neighbour_north_node;
+    			else      																neighbour_node_chosen=(random_number==0)?neighbour_east_node:neighbour_north_node;
+  				break;
+
+  			case NORMAL_SOUTH_WEST_DIRECTION:
+    			if (left_border(TOS_NODE_ID))  					neighbour_node_chosen = neighbour_south_node;
+    			else if(top(TOS_NODE_ID))						neighbour_node_chosen = neighbour_west_node;				
+    			else if(left_top_corner(TOS_NODE_ID))			neighbour_node_chosen = TOS_NODE_ID;
+    			else 											neighbour_node_chosen=(random_number==0)?neighbour_west_node:neighbour_south_node;
     			break;
 		}
 
@@ -184,18 +168,12 @@ implementation
 
 	bool random_walk(NormalMessage* message)
 	{
-		message->target = random_neighbour_node_chosen_seclect (message, message->random_walk_direction);
-
-		//message->target = neighbour_node_chosen;
+		message->target = random_neighbour_node_seclect(message, message->random_walk_direction);
 
 		if (message_reach_corner(message->target))
-		{
 			message->random_walk_hop_remaining = 0;
-		}
 		else
-		{
 			message->random_walk_hop_remaining -= 1;
-		}
 
 		return send_Normal_message(message, message->target);
 	}
@@ -203,7 +181,6 @@ implementation
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
-
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
@@ -261,16 +238,16 @@ implementation
 		}
 	}
 
-	//m short random walk and n long random walk messages combination.
-	uint16_t message_mshort_nlong(uint16_t m, uint16_t n)
+	uint16_t short_long_sequence_random_walk(uint16_t sm, uint16_t ln)
 	{
-		uint16_t random_walk_remaining, ran;
-		uint16_t i;
+		uint16_t random_walk_remaining;
+		uint16_t ran, i;
+		uint16_t current = message_no % (sm+ln);
+		uint16_t next = (message_no+1) % (sm+ln);
 
 		uint16_t random_walk_range = RANDOM_WALK_HOPS-1;
 		uint16_t short_random_walk[random_walk_range];
 		uint16_t long_random_walk[random_walk_range];
-
 
 		for(i = 0; i < random_walk_range;i++)
 		{
@@ -280,23 +257,81 @@ implementation
 
 		ran=call Random.rand16()%(random_walk_range);
 
-		simdbg("slp-debug","random No: %d, short_random_walk[%d]:%d, long_random_walk[%d]:%d ", ran, ran,short_random_walk[ran], ran, long_random_walk[ran]);
+		if(current <= sm && current != 0)
+		{
+			random_walk_remaining = short_random_walk[ran];
+			current_message = SHORT_RANDOM_WALK;
+		}
+		else
+		{
+			random_walk_remaining = long_random_walk[ran];
+			current_message = LONG_RANDOM_WALK;
+		}
 
+		if(next <= sm && next != 0)
+		{
+			next_message = SHORT_RANDOM_WALK;
+		}
+		else
+		{
+			next_message = LONG_RANDOM_WALK;
+		}
 
-		random_walk_remaining = (last_random_walk % (m+n) <= m && last_random_walk % (m+n) != 0)?  short_random_walk[ran]: long_random_walk[ran];
-		last_random_walk += 1;
+		message_no += 1;
 
+		return random_walk_remaining;
+	}
+
+	uint16_t long_short_sequence_random_walk(uint16_t sm, uint16_t ln)
+	{
+		uint16_t random_walk_remaining;
+		uint16_t ran, i;
+		uint16_t current = message_no % (sm+ln);
+		uint16_t next = (message_no+1) % (sm+ln);
+
+		uint16_t random_walk_range = RANDOM_WALK_HOPS-1;
+		uint16_t short_random_walk[random_walk_range];
+		uint16_t long_random_walk[random_walk_range];
+
+		for(i = 0; i < random_walk_range;i++)
+		{
+			short_random_walk[random_walk_range-i-1] = RANDOM_WALK_HOPS-i;
+			long_random_walk[random_walk_range-i-1] = LONG_RANDOM_WALK_HOPS - i;
+		}
+
+		ran=call Random.rand16()%(random_walk_range);
+
+		if(current <= ln && current != 0)
+		{
+			random_walk_remaining = long_random_walk[ran];
+			current_message = LONG_RANDOM_WALK;
+		}
+		else
+		{
+			random_walk_remaining = short_random_walk[ran];
+			current_message = SHORT_RANDOM_WALK;
+		}
+
+		if(next <= ln && next != 0)
+		{
+			next_message = LONG_RANDOM_WALK;
+		}
+		else
+		{
+			next_message = SHORT_RANDOM_WALK;
+		}
+
+		message_no += 1;
 		return random_walk_remaining;
 	}
 
 
 	void generate_message()
 	{
-		//NormalMessage message;
 		typedef enum random_walk_possible_directions
 		{
 
-			S_nw, S_ne, S_ws, S_se,Biased_x_axis, Biased_y_axis
+			S_nw, S_ne, S_ws, S_se, Biased_x_axis, Biased_y_axis, N_ne, N_ws
 
 		} random_walk_direction;
 
@@ -312,106 +347,102 @@ implementation
 			message.source_id = TOS_NODE_ID;
 			message.source_distance = 0;
 
-			//sink_source_distance_calculation();
-
-			//add adaptive phantom code here.
-			message.random_walk_hop_remaining = message_mshort_nlong(short_long[0],short_long[1]);
-
-		//SPACE_BEHIND_SINK means more space behind the sink.
-		//fit for Source Corner.  
-		#ifdef SPACE_BEHIND_SINK
+			#if defined(SHORT_LONG_SEQUENCE)
 			{
-				message.source_sink_distance = TOPOLOGY_SIZE;
-				//if random walk length is shorter than the source sink distance, biased random walk is no need to implement.
-				//normally the short random walk is set to less than half of source sink distance.
-				if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
-				{
-					simdbg("slp-debug","short random walk length: %d\n", message.random_walk_hop_remaining);
-					//simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk, sim_time_string());
-					//random_walk_direction_chosen = S_se;
-					message.random_walk_direction = random_walk_direction_chosen = S_se;
-				}
-				else
-				{
-					//randomly choose the random is whether follow the x axis or y axis.
-					random_walk_direction_chosen = (flip_coin == 0)? Biased_x_axis : Biased_y_axis;
-					message.random_walk_direction = random_walk_direction_chosen;
-					simdbg("slp-debug","long random walk length: %d\n", message.random_walk_hop_remaining);
-					//simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
-				}
+				message.random_walk_hop_remaining = short_long_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
 			}
-		//fit for the situation that the sink is located in the corner or in the border, NO_SPACE_BEHIND_SINK.
-		//fit for SinkCorner or FurtherSinkCorner
-		#else
+			#else
 			{
-				// fit for FurtherSinkCorner.
-				//ensure all source ID is les than TOPOLOGY_SIZE*3, even with 3 sources.
-				if (message.source_id < TOPOLOGY_SIZE*3)
-				{
-					message.source_sink_distance = 2*TOPOLOGY_SIZE;
+				message.random_walk_hop_remaining =long_short_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
+			}
+			#endif
 
+			//SPACE_BEHIND_SINK means more space behind the sink.
+			//fit for Source Corner.  
+			#ifdef SPACE_BEHIND_SINK
+				{
+					//if random walk length is shorter than the source-sink distance, biased random walk is no need to implement.
+					//normally the short random walk is set less than half of source sink distance.
 					if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
 					{
-						simdbg("slp-debug","short random walk length: %d\n", message.random_walk_hop_remaining);
-						//simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());	
-						message.random_walk_direction = random_walk_direction_chosen = S_se;
+					simdbg("slp-debug","short random walk, message number:%d.\n",message.sequence_number);
+					message.random_walk_direction = random_walk_direction_chosen = S_se;
 					}
 					else
 					{
-						message.random_walk_direction = random_walk_direction_chosen = S_se;
-						//message.random_walk_direction = (flip_coin == 0)?4:5;
-						simdbg("slp-debug","long random walk length: %d\n", message.random_walk_hop_remaining);
-						//simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());
+					random_walk_direction_chosen = (flip_coin == 0)? Biased_x_axis : Biased_y_axis;
+					message.random_walk_direction = random_walk_direction_chosen;
+					simdbg("slp-debug","long random walk, message number:%d.\n",message.sequence_number);
 					}
-				}
-
-				//fit for SinkCorner.
-				//biased random walk is not applied here.
-				else
+			}
+			//fit for the situation that the sink is located in the corner or in the border, NO_SPACE_BEHIND_SINK.
+			//fit for SinkCorner or FurtherSinkCorner
+			#else
 				{
-					message.source_sink_distance = TOPOLOGY_SIZE;
-
-					if(message.random_walk_hop_remaining < TOPOLOGY_SIZE)
-					{
-						simdbg("slp-debug","short random walk length: %d\n", message.random_walk_hop_remaining);
-						//simdbg("slp-debug","short random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number, last_random_walk,sim_time_string());
+					// fit for FurtherSinkCorner.
+					//ensure all source ID is les than TOPOLOGY_SIZE*3, even with 3 sources.
+					if (message.source_id < TOPOLOGY_SIZE*3)
+					{					
+						if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
+						{
+							simdbg("slp-debug","short random walk, message number:%d.\n",message.sequence_number);	
+							message.random_walk_direction = random_walk_direction_chosen = S_se;
+						}
+						else
+						{
+							message.random_walk_direction = random_walk_direction_chosen = S_se;
+							simdbg("slp-debug","long random walk, message number:%d.\n",message.sequence_number);
+						}
 					}
+
+					//fit for SinkCorner.
+					//biased random walk is not applied here.
 					else
 					{
-						simdbg("slp-debug","short random walk length: %d\n", message.random_walk_hop_remaining);
-						//simdbg("slp-debug","long random walk, message number:%d, last random walk flag:%d, sim time:%s\n",message.sequence_number,last_random_walk,sim_time_string());	
-						//message.random_walk_direction = call Random.rand16()%4;
+						if(message.random_walk_hop_remaining < TOPOLOGY_SIZE)
+							simdbg("slp-debug","short random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
+						else
+							simdbg("slp-debug","long random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
+
 						random_walk_direction_chosen = (flip_coin == 0)? S_ne: S_ws;
 						message.random_walk_direction = random_walk_direction_chosen;
 					}
+				
 				}
-				
-			}
-#endif
+			#endif
+
 			if (random_walk(&message))
-			{
-				
+			{				
 				call NormalSeqNos.increment(TOS_NODE_ID);
 			}
 		}
 
-		call BroadcastNormalTimer.startOneShot(get_source_period());
+		if(current_message == LONG_RANDOM_WALK && next_message == SHORT_RANDOM_WALK)
+		{
+			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + get_source_period());
+			//simdbg("stdout","sim time: %s\n", sim_time_string());
+			//printf("<wbs>current message:%d, next message:%d, sim time:%s\n",current_message, next_message, sim_time_string());
+		}
+		else
+		{
+			call BroadcastNormalTimer.startOneShot(get_source_period());
+			//simdbg("stdout","<normal>sim time: %s\n", sim_time_string());
+			//printf("<normal>current message:%d, next message:%d, sim time:%s\n",current_message, next_message,sim_time_string());
+		}
+
 	}
 
 
 	event void BroadcastNormalTimer.fired()
 	{
 		
-		generate_message();  
+		generate_message();
 	}
-
-
 
 	bool flooding(NormalMessage* message)
 	{
 		return send_Normal_message(message, AM_BROADCAST_ADDR);
 	}
-
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{

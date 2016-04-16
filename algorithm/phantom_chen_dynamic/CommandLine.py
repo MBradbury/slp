@@ -43,9 +43,10 @@ class RunSimulations(RunSimulationsCommon):
         random_walk_types = {
         #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
-        'phantom_walkabouts':[1,2]
+        'phantom_walkabouts':[1,1]
         }
         ##################################################################
+
         if len(random_walk_types) ==1:
             pass
         else:
@@ -58,28 +59,42 @@ class RunSimulations(RunSimulationsCommon):
             n = random_walk_types['phantom_walkabouts'][1]
             ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)
 
-        safety_period = {'only_short_random_walk': time_taken, \
+        unfixed_sp = {'only_short_random_walk': time_taken, \
                          'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
-                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken,\
-                          'fixed_safety_period': 1.3*time_taken}       
-        
-        return safety_period['fixed_safety_period']
-        '''
-        #Further* configurations in all random_walk types
-        
-        if ssd_max > (network_size-1) * 1.5:
-            return  time_taken
-        #random_walk_types except Further* configuration
+                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken}
+
+        fixed_sp = {'flooding_safety_period': time_taken, 'medium_safety_period': 1.3*time_taken}
+
+        ##########################################################################
+        safety_period_types = [
+            unfixed_sp,
+            #fixed_sp
+        ]    
+        ##########################################################################
+
+        if len(safety_period_types) == 1:
+            pass
         else:
-            if 'only_short_random_walk' in random_walk_types:
-                return safety_period['only_short_random_walk']
-            elif 'only_long_random_walk' in random_walk_types:
-                return safety_period['only_long_random_walk']
-            elif 'phantom_walkabouts' in random_walk_types:
-                return safety_period['phantom_walkabouts']
+            raise RuntimeError("Need ONE safety period type!")
+
+        if fixed_sp in safety_period_types:
+            return safety_period_types[0]['medium_safety_period']      
+               
+        if unfixed_sp in safety_period_types:
+            
+            if ssd_max > (network_size-1) * 1.5:   #Further* configurations in all random_walk types
+                return  time_taken
+            #random_walk_types except Further* configuration
             else:
-                raise RuntimeError("unknown safety_period!")
-        '''
+                if 'only_short_random_walk' in random_walk_types:
+                    return safety_period_types[0]['only_short_random_walk']
+                elif 'only_long_random_walk' in random_walk_types:
+                    return safety_period_types[0]['only_long_random_walk']
+                elif 'phantom_walkabouts' in random_walk_types:
+                    return safety_period_types[0]['phantom_walkabouts']
+                else:
+                    raise RuntimeError("unknown safety_period!")
+        
 
 
 class CLI(CommandLineCommon.CLI):
@@ -92,18 +107,18 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    #sizes = [11, 15, 21, 25]
-    sizes = [21]
+    sizes = [11, 15, 21, 25]
+    #sizes = [21]
 
-    #source_periods = [1.0, 0.5, 0.25, 0.125]
-    source_periods = [ 0.125 ]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
+    #source_periods = [ 0.125 ]
 
     configurations = [
         'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        'SinkCorner',
+        #'SinkCorner',
         #'SinkCorner2Source',
         #'SinkCorner3Source',
 
@@ -120,28 +135,36 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
+    direction_biases = [0.9]
+
+    orders = [
+    "LongShort", 
+    #"ShortLong"
+    ]
+
+    wait_before_short = [0]
+
+    short_counts = [1]
+    long_counts = [1]
+
     repeats = 500
 
-    local_parameter_names = ('short walk length', 'long walk length')
+    local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
+                             'order', 'short count', 'long count', 'wait before short')
 
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _short_long_walk_lengths(self, s, c, am, nm, d, sp):
+    def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
         half_ssd = int(math.floor(s/2)) + 1
         half_ssd_further = s
         ssd_further = 2*s
 
-        random_walk_short = half_ssd
-        random_walk_long = s + half_ssd
-        random_walk_short_for_further = half_ssd_further
-        random_walk_long_for_further = ssd_further+half_ssd_further
-
-        #random_walk_short = list(range(2, half_ssd))
-        #random_walk_long = list(range(s+2, s+half_ssd))
-        #random_walk_short_for_further = list(range(2, half_ssd_further))
-        #random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
+        random_walk_short = list(range(2, half_ssd))
+        random_walk_long = list(range(s+2, s+half_ssd))
+        random_walk_short_for_further = list(range(2, half_ssd_further))
+        random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
 
         non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
 
@@ -192,10 +215,7 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
-        dynamic_list = [walk_short, walk_long]
-
-        #return list(walk_short, walk_long)
-        return dynamic_list
+        return list(zip(walk_short, walk_long))
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -205,13 +225,13 @@ class CLI(CommandLineCommon.CLI):
         names = self.parameter_names()
         size = args[names.index('network size')]
         if size == 11:
-            return datetime.timedelta(hours=1)
-        elif size == 15:
             return datetime.timedelta(hours=2)
-        elif size == 21:
-            return datetime.timedelta(hours=3)
-        elif size == 25:
+        elif size == 15:
             return datetime.timedelta(hours=4)
+        elif size == 21:
+            return datetime.timedelta(hours=8)
+        elif size == 25:
+            return datetime.timedelta(hours=16)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
@@ -225,21 +245,21 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods
+            [self.distance], self.source_periods, self.direction_biases, self.orders,
+            self.short_counts, self.long_counts, self.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, swl, lwl)
+            (s, c, am, nm, cm, d, sp, swl, lwl, db, o, sc, lc, wbs)
 
-            for (s, c, am, nm, cm, d, sp) in argument_product
+            for (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs) in argument_product
 
-            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp)
+            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
         ]        
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
-        
 
     def _run_table(self, args):
         phantom_results = results.Results(
@@ -273,6 +293,9 @@ class CLI(CommandLineCommon.CLI):
             ('short walk length', ' hops')
         ]
 
+        custom_yaxis_range_max = {
+        }
+
         for (parameter_name, parameter_unit) in parameters:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
@@ -288,6 +311,9 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
+
+                if result_name in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
                 g.create(phantom_results)
 
@@ -355,6 +381,11 @@ class CLI(CommandLineCommon.CLI):
             source_period_normalisation="NumSources"
         )
 
+        custom_yaxis_range_max = {
+            'captured': 50,
+            'sent': 20000
+        }
+
         combine = ["short walk length", "long walk length"]
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -370,6 +401,9 @@ class CLI(CommandLineCommon.CLI):
             g.xaxis_label = 'Network Size'
             g.yaxis_label = yaxis_label
             g.key_position = key_position
+
+            if yaxis in custom_yaxis_range_max:
+                g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
             g.create(phantom_results)
 
@@ -397,6 +431,11 @@ class CLI(CommandLineCommon.CLI):
             source_period_normalisation="NumSources"
         )
 
+        custom_yaxis_range_max = {
+            'captured': 50,
+            'sent': 20000
+        }
+
         combine = ["short walk length", "long walk length"]
 
         parameters = [
@@ -423,6 +462,9 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
+
+                if yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
                 g.create(phantom_results)
 
