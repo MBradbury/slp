@@ -5,7 +5,6 @@
 #include "NormalMessage.h"
 #include "DissemMessage.h"
 #include "SearchMessage.h"
-#include "LoopMessage.h"
 
 #include "utils.h"
 
@@ -53,9 +52,6 @@ module SourceBroadcasterC
 
     uses interface AMSend as SearchSend;
     uses interface Receive as SearchReceive;
-
-    uses interface AMSend as LoopSend;
-    uses interface Receive as LoopReceive;
 
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
