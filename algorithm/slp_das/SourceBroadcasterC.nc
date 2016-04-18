@@ -79,7 +79,8 @@ implementation
 
     bool start = TRUE;
     bool slot_active = FALSE;
-    bool start_loop = FALSE;
+    bool start_node = FALSE;
+    uint16_t redir_length = 0;
 
     uint32_t period_count = 0;
 
@@ -222,7 +223,6 @@ implementation
 	USE_MESSAGE(Normal);
     USE_MESSAGE(Dissem);
     USE_MESSAGE(Search);
-    USE_MESSAGE(Loop);
 
     void init()
     {
@@ -546,17 +546,8 @@ implementation
         simdbg("stdout", "Received search.\n");
         if(rcvd->dist == 0)
         {
-            start_loop = TRUE;
-            simdbg("stdout", "Started loop.\n");
-            if(loops.count == 0)
-            {
-                LoopMessage msg;
-                msg.source_id = TOS_NODE_ID;
-                msg.loop = IDList_new();
-                IDList_add(&(msg.loop), TOS_NODE_ID);
-                msg.dist = SLOT_LOOP_LENGTH - 1;
-                send_Loop_message(&msg, AM_BROADCAST_ADDR);
-            }
+            start_node = TRUE;
+            redir_length = rcvd->pr;
         }
         else if(other_info == NULL)
         {
@@ -569,6 +560,7 @@ implementation
             int new_dist = rcvd->dist - hop;
             msg.source_id = TOS_NODE_ID;
             msg.dist = (new_dist<0) ? 0 : new_dist;
+            msg.pr = rcvd->pr;
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbg("stdout", "Sent search message again.\n");
         }
@@ -582,29 +574,5 @@ implementation
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
         case NormalNode: Normal_receive_Search(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Search)
-
-    void Normal_receive_Loop(const LoopMessage* const rcvd, am_addr_t source_addr)
-    {
-        simdbg("stdout", "Received loop.\n");
-        if(rcvd->dist > 0)
-        {
-            LoopMessage msg;
-            msg.source_id = TOS_NODE_ID;
-            msg.loop = rcvd->loop;
-            IDList_add(&(msg.loop), TOS_NODE_ID);
-            msg.dist = rcvd->dist - 1;
-            send_Loop_message(&msg, AM_BROADCAST_ADDR);
-        }
-
-        if((rcvd->dist == 0) && (rcvd->loop.ids[0] == TOS_NODE_ID))
-        {
-            LoopsList_add_list(&loops, rcvd->loop);
-            start_loop = TRUE;
-        }
-    }
-
-    RECEIVE_MESSAGE_BEGIN(Loop, Receive)
-        case NormalNode: Normal_receive_Loop(rcvd, source_addr); break;
-    RECEIVE_MESSAGE_END(Loop)
     //}}}Receivers
 }
