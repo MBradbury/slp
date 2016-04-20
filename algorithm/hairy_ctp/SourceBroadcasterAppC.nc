@@ -32,10 +32,16 @@ implementation
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
+	components new TimerMilliC() as BroadcastBeaconTimer;
 	components new TimerMilliC() as FakeWalkTimer;
+	components new TimerMilliC() as FakeSendTimer;
+	components new TimerMilliC() as EtxTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
+	App.BroadcastBeaconTimer -> BroadcastBeaconTimer;
 	App.FakeWalkTimer -> FakeWalkTimer;
+	App.FakeSendTimer -> FakeSendTimer;
+	App.EtxTimer -> EtxTimer;
 
 
 	// Object Detector - For Source movement
@@ -84,8 +90,20 @@ implementation
 	App.FakeReceive -> FakeReceiver;
 	App.FakeSnoop -> FakeSnooper;
 
+	components
+		new AMSenderC(BEACON_CHANNEL) as BeaconSender,
+		new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;
+
+	App.BeaconSend -> BeaconSender;
+	App.BeaconReceive -> BeaconReceiver;
+
 
 	components
 		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as Sources;
 	App.Sources -> Sources;
+
+
+	components
+		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighboursMinSourceDistance;
+	App.NeighboursMinSourceDistance -> NeighboursMinSourceDistance;
 }

@@ -5,6 +5,7 @@
 #include "NormalMessage.h"
 #include "FakeMessage.h"
 #include "ChooseMessage.h"
+#include "BeaconMessage.h"
 
 #include <CtpDebugMsg.h>
 #include <Timer.h>
@@ -23,7 +24,10 @@ module SourceBroadcasterC
 	uses interface Random;
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
+	uses interface Timer<TMilli> as BroadcastBeaconTimer;
 	uses interface Timer<TMilli> as FakeWalkTimer;
+	uses interface Timer<TMilli> as FakeSendTimer;
+	uses interface Timer<TMilli> as EtxTimer;
 
 	uses interface AMPacket;
 
@@ -44,6 +48,9 @@ module SourceBroadcasterC
 	uses interface Receive as FakeReceive;
 	uses interface Receive as FakeSnoop;
 
+	uses interface AMSend as BeaconSend;
+	uses interface Receive as BeaconReceive;
+
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -54,6 +61,8 @@ module SourceBroadcasterC
 	//uses interface CtpCongestion;
 
 	uses interface Dictionary<am_addr_t, uint16_t> as Sources;
+
+	uses interface Dictionary<am_addr_t, uint16_t> as NeighboursMinSourceDistance;
 }
 
 implementation
@@ -104,6 +113,13 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
+	bool ctp_route = FALSE;
+	am_addr_t fake_walk_parent = AM_BROADCAST_ADDR;
+
+	SequenceNumber fake_sequence_number;
+
+	int32_t min_source_distance = BOTTOM;
+
 	uint32_t send_wait(void)
 	{
 		return 75U + (uint32_t)(50U * random_float());
@@ -120,7 +136,11 @@ implementation
 			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
+		sequence_number_init(&fake_sequence_number);
+
 		call RadioControl.start();
+
+		call EtxTimer.startPeriodic(200);
 	}
 
 	event void RadioControl.startDone(error_t err)
@@ -155,8 +175,11 @@ implementation
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
+			min_source_distance = 0;
 
 			call BroadcastNormalTimer.startOneShot(get_source_period());
+
+			call BroadcastBeaconTimer.startOneShot(send_wait());
 		}
 	}
 
@@ -183,9 +206,13 @@ implementation
 		uint16_t etx;
 		error_t status;
 
-		uint16_t max_metric = etx;
+		uint16_t max_neighbour_etx = UINT16_MAX;
 
 		status = call CtpInfo.getEtx(&etx);
+		if (status == SUCCESS)
+		{
+			max_neighbour_etx = etx;
+		}
 
 		simdbg("stdout", "Starting selection of next fake node with etx %u\n", etx);
 
@@ -195,11 +222,13 @@ implementation
 			const uint16_t link_quality = call CtpInfo.getNeighborLinkQuality(i);
 			const uint16_t route_quality = call CtpInfo.getNeighborRouteQuality(i);
 
-			const uint16_t neighbour_quality = route_quality - link_quality;
+			const uint16_t neighbour_etx = route_quality - link_quality;
+
+			const uint16_t* neighbour_min_source_distance = call NeighboursMinSourceDistance.get(neighbour_addr);
 
 			am_addr_t parent;
 
-			simdbg("stdout", "Considering %u with link=%u route=%u q=%u ::\t", neighbour_addr, link_quality, route_quality, neighbour_quality);
+			simdbg("stdout", "Considering %u with link=%u route=%u q=%u ::\t", neighbour_addr, link_quality, route_quality, neighbour_etx);
 
 			// Don't want to select any node that was part of the CTP route
 			if (call Sources.contains_key(neighbour_addr))
@@ -222,17 +251,23 @@ implementation
 				continue;
 			}
 
-			if (link_quality == UINT16_MAX || route_quality == UINT16_MAX || neighbour_quality == 0)
+			if (link_quality == UINT16_MAX || route_quality == UINT16_MAX || neighbour_etx == 0)
 			{
 				simdbg_clear("stdout", "discarded as unknown neighbour quality\n");
 				continue;
 			}
 
-			if (neighbour_quality > max_metric)
+			if (neighbour_min_source_distance != NULL && *neighbour_min_source_distance < min_source_distance)
+			{
+				simdbg_clear("stdout", "discarded as our min source distance is higher than the neighbours\n");
+				continue;
+			}
+
+			if (neighbour_etx > etx && neighbour_etx < max_neighbour_etx)
 			{
 				simdbg_clear("stdout", "SELECTED\n");
 
-				max_metric = neighbour_quality;
+				max_neighbour_etx = neighbour_etx;
 				target = neighbour_addr;
 			}
 			else
@@ -249,6 +284,7 @@ implementation
 	USE_MESSAGE_NO_TARGET(Normal);
 	USE_MESSAGE(Choose);
 	USE_MESSAGE(Fake);
+	USE_MESSAGE(Beacon);
 
 	event void BroadcastNormalTimer.fired()
 	{
@@ -271,6 +307,15 @@ implementation
 		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
+	event void BroadcastBeaconTimer.fired()
+	{
+		BeaconMessage message;
+
+		message.neighbour_min_source_distance = min_source_distance;
+
+		send_Beacon_message(&message, AM_BROADCAST_ADDR);
+	}
+
 	event void FakeWalkTimer.fired()
 	{
 		ChooseMessage message;
@@ -280,9 +325,30 @@ implementation
 		send_Choose_message(&message, target);
 	}
 
+	uint16_t etx = 0;
+
+	event void FakeSendTimer.fired()
+	{
+		FakeMessage message;
+
+		message.sequence_number = sequence_number_next(&fake_sequence_number);
+		message.source_id = TOS_NODE_ID;
+
+		send_Fake_message(&message, fake_walk_parent);
+
+		sequence_number_increment(&fake_sequence_number);
+	}
+
+	event void EtxTimer.fired()
+	{
+		call CtpInfo.getEtx(&etx);
+	}
+
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
+
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
@@ -304,6 +370,8 @@ implementation
 
 	void Normal_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
+
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
@@ -331,6 +399,8 @@ implementation
 			call Sources.put(rcvd->source_id, 1);
 		}
 
+		min_source_distance = minbot(min_source_distance, rcvd->source_distance + 1);
+
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
@@ -342,11 +412,13 @@ implementation
 
 			rcvd->source_distance += 1;
 
-			if (rcvd->source_distance >= 2)
+			if (!ctp_route && rcvd->source_distance >= 2 && (rcvd->source_distance % 3) == 0)
 			{
 				call FakeWalkTimer.startOneShot(send_wait());
 			}
 		}
+
+		ctp_route = TRUE;
 
 		return TRUE;
 	}
@@ -364,14 +436,22 @@ implementation
 
 		simdbg("stdout", "Normal receive choose\n");
 
+		fake_walk_parent = source_addr;
+
 		// If there is no target become a fake sources
 		if (target == AM_BROADCAST_ADDR)
 		{
-			simdbg("stdout", "Became PFS\n");
+			simdbg("stdout", "Became PFS\n\n");
+
+			call Leds.led0On();
+
+			call FakeSendTimer.startPeriodic(500);
 		}
 		// Otherwise keep sending the choose message 
 		else
 		{
+			call Leds.led1On();
+
 			call FakeWalkTimer.startOneShot(send_wait());
 		}
 	}
@@ -390,9 +470,30 @@ implementation
 	RECEIVE_MESSAGE_END(Choose)
 
 
+	void Normal_receive_Fake(const FakeMessage* rcvd, am_addr_t source_addr)
+	{
+		FakeMessage forwarding_message = *rcvd;
+
+		if (fake_walk_parent != AM_BROADCAST_ADDR)
+		{
+			simdbg("stdout", "Received fake message from %u forwarding to %u\n", source_addr, fake_walk_parent);
+
+			send_Fake_message(&forwarding_message, fake_walk_parent);
+		}
+		else if (ctp_route)
+		{
+			am_addr_t ctp_parent;
+
+			if (call CtpInfo.getParent(&ctp_parent) == SUCCESS)
+			{
+				send_Fake_message(&forwarding_message, ctp_parent);
+			}
+		}
+	}
+
 
 	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
-		case NormalNode:
+		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;
 		case SourceNode:
 		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Fake)
@@ -403,6 +504,38 @@ implementation
 		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Fake)
 
+
+	void x_receive_Beacon(const BeaconMessage* rcvd, am_addr_t source_addr)
+	{
+		uint16_t* neighbour_min_source_distance = call NeighboursMinSourceDistance.get(source_addr);
+
+		if (rcvd->neighbour_min_source_distance == BOTTOM)
+		{
+			return;
+		}
+
+		if (neighbour_min_source_distance == NULL)
+		{
+			call NeighboursMinSourceDistance.put(source_addr, rcvd->neighbour_min_source_distance);
+		}
+		else if (rcvd->neighbour_min_source_distance < *neighbour_min_source_distance)
+		{
+			*neighbour_min_source_distance = rcvd->neighbour_min_source_distance;
+		}
+
+		if (min_source_distance == BOTTOM || rcvd->neighbour_min_source_distance + 1 < min_source_distance)
+		{
+			min_source_distance = rcvd->neighbour_min_source_distance + 1;
+
+			call BroadcastBeaconTimer.startOneShot(send_wait());
+		}
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
+		case NormalNode:
+		case SourceNode:
+		case SinkNode: x_receive_Beacon(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Beacon)
 
 	// The following is simply for metric gathering.
 	// The CTP debug events are hooked into so we have correctly record when a message has been sent.
