@@ -75,7 +75,7 @@ class Analyzer(AnalyzerCommon):
             for (key, value) in d1.items():
                 result[key] = value / (d1[key] + d2[key])
 
-            return result
+            return str(result)
 
         d['rcvd further hops']     = lambda x: dp(x.average_of['ReceivedFromFurtherHops'], x.average_of['ReceivedFromCloserOrSameHops'])
         d['rcvd further meters']   = lambda x: dp(x.average_of['ReceivedFromFurtherMeters'], x.average_of['ReceivedFromCloserOrSameMeters'])
