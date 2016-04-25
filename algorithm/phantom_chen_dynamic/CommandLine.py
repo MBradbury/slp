@@ -118,9 +118,9 @@ class CLI(CommandLineCommon.CLI):
         'Source2CornerTop',
         'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -156,15 +156,16 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
+    def _short_long_walk_lengths(self, s):
         half_ssd = int(math.floor(s/2)) + 1
         half_ssd_further = s
         ssd_further = 2*s
 
-        random_walk_short = list(range(2, half_ssd))
-        random_walk_long = list(range(s+2, s+half_ssd))
-        random_walk_short_for_further = list(range(2, half_ssd_further))
-        random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
+        random_walk_short = half_ssd
+        random_walk_long = s+half_ssd
+        random_walk_short_for_further = half_ssd_further
+        random_walk_long_for_further = ssd_further+half_ssd_further
+
 
         non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
 
@@ -215,7 +216,7 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
-        return list(zip(walk_short, walk_long))
+        return list([walk_short, walk_long])
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -254,8 +255,8 @@ class CLI(CommandLineCommon.CLI):
 
             for (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs) in argument_product
 
-            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
-        ]        
+            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)          
+        ]      
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
