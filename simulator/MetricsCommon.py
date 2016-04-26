@@ -4,7 +4,7 @@ import simulator.Attacker
 from simulator.Simulation import OutputCatcher
 
 from collections import Counter, OrderedDict, defaultdict
-import re, sys
+import re, sys, math
 
 import numpy as np
 
@@ -25,6 +25,9 @@ class MetricsCommon(object):
 
         self.sent = defaultdict(Counter)
         self.received = defaultdict(Counter)
+
+        self._time_bin_width = 0.5
+        self.sent_over_time = defaultdict(list)
 
         self.received_from_closer_or_same_hops = Counter()
         self.received_from_further_hops = Counter()
@@ -64,16 +67,25 @@ class MetricsCommon(object):
         else:
             raise RuntimeError("Unknown communication type of {}".format(comm_type))
 
+    def _time_to_bin(self, time):
+        return int(math.floor(time / self._time_bin_width))
+
     def process_BCAST(self, line):
         (kind, time, node_id, status, sequence_number) = line.split(',')
 
         if status == "success":
             node_id = int(node_id)
+            time = self.sim.ticks_to_seconds(float(time))
 
             self.sent[kind][node_id] += 1
 
+            hist = self.sent_over_time[kind]
+            bin_no = self._time_to_bin(time)
+            if len(hist) <= bin_no:
+                hist.extend([0] * (bin_no - len(hist) + 1))
+            hist[bin_no] += 1
+
             if node_id in self.source_ids and kind == "Normal":
-                time = self.sim.ticks_to_seconds(float(time))
                 sequence_number = int(sequence_number)
 
                 # There are some times when we do not know the sequence number of the normal message
@@ -354,6 +366,9 @@ class MetricsCommon(object):
         d["NodeWasSource"]                 = lambda x: x.node_was_source()
         d["SentHeatMap"]                   = lambda x: MetricsCommon.smaller_dict_str(x.sent_heat_map())
         d["ReceivedHeatMap"]               = lambda x: MetricsCommon.smaller_dict_str(x.received_heat_map())
+
+        d["TimeBinWidth"]                  = lambda x: x._time_bin_width
+        d["SentOverTime"]                  = lambda x: MetricsCommon.smaller_dict_str(dict(x.sent_over_time))
 
         d["ReceivedFromCloserOrSameHops"]  = lambda x: dict(x.received_from_closer_or_same_hops)
         d["ReceivedFromFurtherHops"]       = lambda x: dict(x.received_from_further_hops)
