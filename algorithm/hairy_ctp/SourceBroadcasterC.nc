@@ -122,7 +122,7 @@ implementation
 
 	uint32_t send_wait(void)
 	{
-		return 75U + (uint32_t)(50U * random_float());
+		return 25U + (uint32_t)(30U * random_float());
 	}
 
 	event void Boot.booted()
