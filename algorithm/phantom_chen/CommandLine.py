@@ -43,7 +43,7 @@ class RunSimulations(RunSimulationsCommon):
         random_walk_types = {
         #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
-        'phantom_walkabouts':[1,1]
+        'phantom_walkabouts':[1,2]
         }
         ##################################################################
 
@@ -108,10 +108,8 @@ class CLI(CommandLineCommon.CLI):
     communication_models = ["ideal"]
 
     sizes = [11, 15, 21, 25]
-    #sizes = [21]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
-    #source_periods = [ 0.125 ]
 
     configurations = [
         'SourceCorner',
@@ -138,14 +136,14 @@ class CLI(CommandLineCommon.CLI):
     direction_biases = [0.9]
 
     orders = [
-    "LongShort", 
-    #"ShortLong"
+    #"LongShort", 
+    "ShortLong"
     ]
 
-    wait_before_short = [0]
+    wait_before_short = [0, 100, 200]
 
     short_counts = [1]
-    long_counts = [1]
+    long_counts = [2]
 
     repeats = 500
 

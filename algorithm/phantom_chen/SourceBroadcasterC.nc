@@ -55,7 +55,16 @@ implementation
 	}
 
 	bool busy = FALSE;
+
 	message_t packet;
+
+	//check topology type.
+	typedef enum Topologies
+	{
+		SourceCorner, SinkCorner, FurtherSinkCorner
+	} TopologyType;
+
+	TopologyType topo;
 
 	uint32_t extra_to_send = 0;
 
@@ -85,6 +94,27 @@ implementation
 
   	bool message_reach_corner(uint16_t NodeID)	{return (NodeID==0||NodeID==TOPOLOGY_SIZE-1||NodeID==TOPOLOGY_SIZE*(TOPOLOGY_SIZE-1)||NodeID==TOPOLOGY_SIZE*TOPOLOGY_SIZE-1)?TRUE:FALSE;}
 
+  	uint16_t TopologyTypeCheck(NormalMessage* message)
+  	{
+  		uint16_t nodes = TOPOLOGY_SIZE * TOPOLOGY_SIZE;
+  		if(message->source_id == 0 || message->source_id == 2 || message->source_id == TOPOLOGY_SIZE + 1)
+  			if (SINK_NODE_ID == (nodes-1)/2)
+  				topo = SourceCorner;
+  			else if (SINK_NODE_ID == nodes-1)
+  				topo = FurtherSinkCorner;
+  			else
+  				simdbg("stdout","unknown topology1.\n");
+
+  		else if (message->source_id == (nodes-1)/2-1 || message->source_id == (nodes-1)/2 || message->source_id == (nodes-1)/2+1 || message->source_id == (nodes-1)/2 + TOPOLOGY_SIZE)
+  			if (SINK_NODE_ID == nodes-1)
+  				topo = SinkCorner;
+  			else
+  				simdbg("stdout","unknown topology2.\n");
+  		else
+  			simdbg("stdout","unknown topology3.\n");
+
+  		return topo;
+  	}
 
 	uint16_t random_neighbour_node_seclect (NormalMessage *message, uint16_t choose)
 	{
@@ -312,6 +342,7 @@ implementation
 		random_walk_direction random_walk_direction_chosen;
 
 		uint16_t flip_coin = call Random.rand16()%2;
+		uint16_t topology;
 
 		if (!busy)
 		{
@@ -331,59 +362,52 @@ implementation
 			}
 			#endif
 
-			//SPACE_BEHIND_SINK means more space behind the sink.
-			//fit for Source Corner.  
-			#ifdef SPACE_BEHIND_SINK
+			topology = TopologyTypeCheck(&message);
+
+			if(topology == SourceCorner)
+			{
+				//if random walk length is shorter than the source-sink distance, biased random walk is no need to implement.
+				//normally the short random walk is set less than half of source sink distance.
+				simdbg("stdout","topology type: SourceCorner.\n");
+				if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
 				{
-					//if random walk length is shorter than the source-sink distance, biased random walk is no need to implement.
-					//normally the short random walk is set less than half of source sink distance.
-					if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
-					{
 					simdbg("slp-debug","short random walk, message number:%d.\n",message.sequence_number);
 					message.random_walk_direction = random_walk_direction_chosen = S_se;
-					}
-					else
-					{
+				}
+				else
+				{
 					random_walk_direction_chosen = (flip_coin == 0)? Biased_x_axis : Biased_y_axis;
 					message.random_walk_direction = random_walk_direction_chosen;
 					simdbg("slp-debug","long random walk, message number:%d.\n",message.sequence_number);
-					}
-			}
-			//fit for the situation that the sink is located in the corner or in the border, NO_SPACE_BEHIND_SINK.
-			//fit for SinkCorner or FurtherSinkCorner
-			#else
-				{
-					// fit for FurtherSinkCorner.
-					//ensure all source ID is les than TOPOLOGY_SIZE*3, even with 3 sources.
-					if (message.source_id < TOPOLOGY_SIZE*3)
-					{					
-						if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
-						{
-							simdbg("slp-debug","short random walk, message number:%d.\n",message.sequence_number);	
-							message.random_walk_direction = random_walk_direction_chosen = S_se;
-						}
-						else
-						{
-							message.random_walk_direction = random_walk_direction_chosen = S_se;
-							simdbg("slp-debug","long random walk, message number:%d.\n",message.sequence_number);
-						}
-					}
-
-					//fit for SinkCorner.
-					//biased random walk is not applied here.
-					else
-					{
-						if(message.random_walk_hop_remaining < TOPOLOGY_SIZE)
-							simdbg("slp-debug","short random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
-						else
-							simdbg("slp-debug","long random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
-
-						random_walk_direction_chosen = (flip_coin == 0)? S_ne: S_ws;
-						message.random_walk_direction = random_walk_direction_chosen;
-					}
-				
 				}
-			#endif
+			}
+			else if (topology == FurtherSinkCorner)
+			{
+				simdbg("stdout","topology type: FurtherSinkCorner.\n");					
+				if (message.random_walk_hop_remaining < TOPOLOGY_SIZE)
+				{
+					simdbg("slp-debug","short random walk, message number:%d.\n",message.sequence_number);	
+					message.random_walk_direction = random_walk_direction_chosen = S_se;
+				}
+				else
+				{
+					message.random_walk_direction = random_walk_direction_chosen = S_se;
+					simdbg("slp-debug","long random walk, message number:%d.\n",message.sequence_number);
+				}
+			}
+			else if (topology == SinkCorner)
+			{
+				simdbg("stdout","topology type: SinkCorner.\n");
+				if(message.random_walk_hop_remaining < TOPOLOGY_SIZE)
+					simdbg("slp-debug","short random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
+				else
+					simdbg("slp-debug","long random walk, message number:%d, sim time:%s\n",message.sequence_number,sim_time_string());
+
+				random_walk_direction_chosen = (flip_coin == 0)? S_ne: S_ws;
+				message.random_walk_direction = random_walk_direction_chosen;
+			}
+			else
+				simdbg("slp-debug","unknown topology.\n");
 
 			if (random_walk(&message))
 			{				
