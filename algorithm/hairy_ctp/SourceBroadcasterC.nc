@@ -13,6 +13,8 @@
 
 #include <assert.h>
 
+#define CHOOSE_RETRY_LIMIT 20
+
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance)
 
 module SourceBroadcasterC
@@ -120,6 +122,8 @@ implementation
 
 	int32_t min_source_distance = BOTTOM;
 
+	uint32_t choose_retry_count = 0;
+
 	uint32_t send_wait(void)
 	{
 		return 25U + (uint32_t)(30U * random_float());
@@ -209,10 +213,6 @@ implementation
 		uint16_t max_neighbour_etx = UINT16_MAX;
 
 		status = call CtpInfo.getEtx(&etx);
-		if (status == SUCCESS)
-		{
-			max_neighbour_etx = etx;
-		}
 
 		simdbg("stdout", "Starting selection of next fake node with etx %u\n", etx);
 
@@ -226,9 +226,12 @@ implementation
 
 			const uint16_t* neighbour_min_source_distance = call NeighboursMinSourceDistance.get(neighbour_addr);
 
+			const int32_t nmsd = neighbour_min_source_distance == NULL ? BOTTOM : (int32_t)*neighbour_min_source_distance;
+
 			am_addr_t parent;
 
-			simdbg("stdout", "Considering %u with link=%u route=%u q=%u ::\t", neighbour_addr, link_quality, route_quality, neighbour_etx);
+			simdbg("stdout", "Considering %u with link=%u route=%u q=%u nmsd=%d ::\t",
+				neighbour_addr, link_quality, route_quality, neighbour_etx, nmsd);
 
 			// Don't want to select any node that was part of the CTP route
 			if (call Sources.contains_key(neighbour_addr))
@@ -281,6 +284,22 @@ implementation
 		return target;
 	}
 
+	void become_fake_source(void)
+	{
+		ChooseMessage message;
+		message.at_end = TRUE;
+
+		simdbg("stdout", "Became PFS\n\n");
+
+		call Leds.led1On();
+
+		call FakeSendTimer.startPeriodic(500);
+
+		send_Choose_message(&message, AM_BROADCAST_ADDR);
+
+		choose_retry_count = 0;
+	}
+
 	USE_MESSAGE_NO_TARGET(Normal);
 	USE_MESSAGE(Choose);
 	USE_MESSAGE(Fake);
@@ -318,11 +337,25 @@ implementation
 
 	event void FakeWalkTimer.fired()
 	{
-		ChooseMessage message;
+		if (choose_retry_count >= CHOOSE_RETRY_LIMIT)
+		{
+			become_fake_source();
+		}
+		else
+		{
+			am_addr_t target;
 
-		am_addr_t target = fake_walk_target();
+			ChooseMessage message;
+			message.at_end = FALSE;
 
-		send_Choose_message(&message, target);
+			target = fake_walk_target();
+
+			send_Choose_message(&message, target);
+
+			choose_retry_count += 1;
+
+			call FakeWalkTimer.startOneShot(send_wait());
+		}
 	}
 
 	uint16_t etx = 0;
@@ -412,7 +445,7 @@ implementation
 
 			rcvd->source_distance += 1;
 
-			if (!ctp_route && rcvd->source_distance >= 2 && (rcvd->source_distance % 3) == 0)
+			if (!ctp_route && rcvd->source_distance >= 2 && (rcvd->source_distance % 2) == 0)
 			{
 				call FakeWalkTimer.startOneShot(send_wait());
 			}
@@ -438,21 +471,38 @@ implementation
 
 		fake_walk_parent = source_addr;
 
-		// If there is no target become a fake sources
-		if (target == AM_BROADCAST_ADDR)
+		if (rcvd->at_end)
 		{
-			simdbg("stdout", "Became PFS\n\n");
-
-			call Leds.led0On();
-
-			call FakeSendTimer.startPeriodic(500);
+			// Received choose telling us to stop sending choose messages
+			call FakeWalkTimer.stop();
 		}
-		// Otherwise keep sending the choose message 
+		else if (call FakeSendTimer.isRunning())
+		{
+			// Send a choose ack message to stop neighbours forwarding choose messages
+
+			ChooseMessage message;
+			message.at_end = TRUE;
+
+			call FakeWalkTimer.stop();
+
+			send_Choose_message(&message, AM_BROADCAST_ADDR);
+
+			choose_retry_count = 0;
+		}
 		else
 		{
-			call Leds.led1On();
+			// If there is no target become a fake sources
+			if (target == AM_BROADCAST_ADDR)
+			{
+				become_fake_source();
+			}
+			// Otherwise keep sending the choose message 
+			else
+			{
+				call Leds.led2On();
 
-			call FakeWalkTimer.startOneShot(send_wait());
+				call FakeWalkTimer.startOneShot(send_wait());
+			}
 		}
 	}
 
@@ -463,8 +513,17 @@ implementation
 		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Choose)
 
+
+	void Normal_snoop_Choose(const ChooseMessage* rcvd, am_addr_t source_addr)
+	{
+		if (rcvd->at_end)
+		{
+			call FakeWalkTimer.stop();
+		}
+	}
+
 	RECEIVE_MESSAGE_BEGIN(Choose, Snoop)
-		case NormalNode:
+		case NormalNode: Normal_snoop_Choose(rcvd, source_addr); break;
 		case SourceNode:
 		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Choose)

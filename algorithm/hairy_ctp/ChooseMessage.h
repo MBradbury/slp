@@ -5,6 +5,8 @@
 
 typedef nx_struct ChooseMessage {
 
+	nx_uint8_t at_end;
+
 } ChooseMessage;
 
 inline SequenceNumberWithBottom Choose_get_sequence_number(const ChooseMessage* msg) { return UNKNOWN_SEQNO; }
