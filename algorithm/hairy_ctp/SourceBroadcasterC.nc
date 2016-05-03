@@ -284,6 +284,11 @@ implementation
 		return target;
 	}
 
+	USE_MESSAGE_NO_TARGET(Normal);
+	USE_MESSAGE(Choose);
+	USE_MESSAGE(Fake);
+	USE_MESSAGE(Beacon);
+
 	void become_fake_source(void)
 	{
 		ChooseMessage message;
@@ -300,10 +305,6 @@ implementation
 		choose_retry_count = 0;
 	}
 
-	USE_MESSAGE_NO_TARGET(Normal);
-	USE_MESSAGE(Choose);
-	USE_MESSAGE(Fake);
-	USE_MESSAGE(Beacon);
 
 	event void BroadcastNormalTimer.fired()
 	{
@@ -465,11 +466,7 @@ implementation
 
 	void Normal_receive_Choose(const ChooseMessage* rcvd, am_addr_t source_addr)
 	{
-		const am_addr_t target = fake_walk_target();
-
 		simdbg("stdout", "Normal receive choose\n");
-
-		fake_walk_parent = source_addr;
 
 		if (rcvd->at_end)
 		{
@@ -491,6 +488,10 @@ implementation
 		}
 		else
 		{
+			const am_addr_t target = fake_walk_target();
+
+			fake_walk_parent = source_addr;
+
 			// If there is no target become a fake sources
 			if (target == AM_BROADCAST_ADDR)
 			{
