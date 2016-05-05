@@ -126,7 +126,7 @@ implementation
 
 	uint32_t send_wait(void)
 	{
-		return 25U + (uint32_t)(30U * random_float());
+		return 18U + (uint32_t)(24U * random_float());
 	}
 
 	event void Boot.booted()
@@ -233,24 +233,18 @@ implementation
 			simdbg("stdout", "Considering %u with link=%u route=%u q=%u nmsd=%d ::\t",
 				neighbour_addr, link_quality, route_quality, neighbour_etx, nmsd);
 
-			// Don't want to select any node that was part of the CTP route
+			// Don't want to select a node adjacent to a source node
 			if (call Sources.contains_key(neighbour_addr))
 			{
 				simdbg_clear("stdout", "discarded as child of CTP route\n");
 				continue;
 			}
 
+			// Don't want to select any node that was part of the CTP route
 			status = call CtpInfo.getParent(&parent);
-			if (status == SUCCESS && call Sources.contains_key(parent))
+			if (status == SUCCESS && neighbour_addr == parent)
 			{
 				simdbg_clear("stdout", "discarded as parent of CTP route\n");
-				continue;
-			}
-
-			// Do not select the source
-			if (status == SUCCESS && etx == 0)
-			{
-				simdbg_clear("stdout", "discarded as sink\n");
 				continue;
 			}
 
@@ -298,11 +292,25 @@ implementation
 
 		call Leds.led1On();
 
-		call FakeSendTimer.startPeriodic(500);
+		call FakeSendTimer.startPeriodic(750);
 
 		send_Choose_message(&message, AM_BROADCAST_ADDR);
 
 		choose_retry_count = 0;
+	}
+
+	void become_normal(void)
+	{
+		simdbg("stdout", "Became Normal\n\n");
+
+		call Leds.led1Off();
+
+		call FakeSendTimer.stop();
+	}
+
+	bool is_fake_source(void)
+	{
+		return call FakeSendTimer.isRunning();
 	}
 
 
@@ -367,6 +375,7 @@ implementation
 
 		message.sequence_number = sequence_number_next(&fake_sequence_number);
 		message.source_id = TOS_NODE_ID;
+		message.sender_min_source_distance = min_source_distance;
 
 		send_Fake_message(&message, fake_walk_parent);
 
@@ -446,9 +455,12 @@ implementation
 
 			rcvd->source_distance += 1;
 
-			if (!ctp_route && rcvd->source_distance >= 2 && (rcvd->source_distance % 2) == 0)
+			if (!ctp_route)
 			{
-				call FakeWalkTimer.startOneShot(send_wait());
+				if (rcvd->source_distance >= 2 && (rcvd->source_distance % 2) == 0)
+				{
+					call FakeWalkTimer.startOneShot(send_wait());
+				}
 			}
 		}
 
@@ -471,18 +483,18 @@ implementation
 		if (rcvd->at_end)
 		{
 			// Received choose telling us to stop sending choose messages
-			call FakeWalkTimer.stop();
+			become_normal();
 		}
-		else if (call FakeSendTimer.isRunning())
+		else if (is_fake_source())
 		{
 			// Send a choose ack message to stop neighbours forwarding choose messages
 
 			ChooseMessage message;
 			message.at_end = TRUE;
 
-			call FakeWalkTimer.stop();
-
 			send_Choose_message(&message, AM_BROADCAST_ADDR);
+
+			become_normal();
 
 			choose_retry_count = 0;
 		}
@@ -519,7 +531,7 @@ implementation
 	{
 		if (rcvd->at_end)
 		{
-			call FakeWalkTimer.stop();
+			become_normal();
 		}
 	}
 
@@ -536,17 +548,26 @@ implementation
 
 		if (fake_walk_parent != AM_BROADCAST_ADDR)
 		{
-			simdbg("stdout", "Received fake message from %u forwarding to %u\n", source_addr, fake_walk_parent);
+			//simdbg("stdout", "Received fake message from %u forwarding to %u\n", source_addr, fake_walk_parent);
 
 			send_Fake_message(&forwarding_message, fake_walk_parent);
 		}
 		else if (ctp_route)
 		{
-			am_addr_t ctp_parent;
+			/*am_addr_t ctp_parent;
 
 			if (call CtpInfo.getParent(&ctp_parent) == SUCCESS)
 			{
 				send_Fake_message(&forwarding_message, ctp_parent);
+			}*/
+		}
+
+		if (is_fake_source())
+		{
+			if (rcvd->sender_min_source_distance != BOTTOM && min_source_distance != BOTTOM &&
+				rcvd->sender_min_source_distance > min_source_distance)
+			{
+				become_normal();
 			}
 		}
 	}
