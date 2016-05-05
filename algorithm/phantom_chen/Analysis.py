@@ -15,7 +15,13 @@ class Analyzer(AnalyzerCommon):
 
         d['short walk length']  = lambda x: x.opts['short_walk_length']
         d['long walk length']   = lambda x: x.opts['long_walk_length']
-        
+        d['direction bias']     = lambda x: x.opts['direction_bias']
+        d['order']              = lambda x: x.opts['order']
+        d['short count']        = lambda x: x.opts['short_count']
+        d['long count']         = lambda x: x.opts['long_count']
+        d['wait before short']  = lambda x: x.opts['wait_before_short']
+
+
         d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
         d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
         d['captured']           = lambda x: str(x.average_of['Captured'])

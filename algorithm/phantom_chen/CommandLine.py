@@ -43,7 +43,7 @@ class RunSimulations(RunSimulationsCommon):
         random_walk_types = {
         #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
-        'phantom_walkabouts':[1,1]
+        'phantom_walkabouts':[1,2]
         }
         ##################################################################
 
@@ -63,12 +63,13 @@ class RunSimulations(RunSimulationsCommon):
                          'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
                          'phantom_walkabouts': ssd_ls / ssd_avg *time_taken}
 
-        fixed_sp = 1.3*time_taken
+        fixed_sp = {'flooding_safety_period': time_taken, 'medium_safety_period': 1.3*time_taken}
 
         ##########################################################################
         safety_period_types = [
-            #unfixed_sp, \
-            fixed_sp]    
+            unfixed_sp,
+            #fixed_sp
+        ]    
         ##########################################################################
 
         if len(safety_period_types) == 1:
@@ -77,7 +78,7 @@ class RunSimulations(RunSimulationsCommon):
             raise RuntimeError("Need ONE safety period type!")
 
         if fixed_sp in safety_period_types:
-            return safety_period_types[0]        
+            return safety_period_types[0]['medium_safety_period']      
                
         if unfixed_sp in safety_period_types:
             
@@ -107,19 +108,17 @@ class CLI(CommandLineCommon.CLI):
     communication_models = ["ideal"]
 
     sizes = [11, 15, 21, 25]
-    #sizes = [21]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
-    #source_periods = [ 0.125 ]
 
     configurations = [
         'SourceCorner',
         'Source2CornerTop',
         'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -136,12 +135,15 @@ class CLI(CommandLineCommon.CLI):
 
     direction_biases = [0.9]
 
-    orders = ["LongShort", "ShortLong"]
+    orders = [
+    #"LongShort", 
+    "ShortLong"
+    ]
 
-    wait_before_short = [0, 100, 200, 300]
+    wait_before_short = [0, 100, 200]
 
-    short_counts = [0, 1, 2]
-    long_counts = [0, 1, 2]
+    short_counts = [1]
+    long_counts = [2]
 
     repeats = 500
 
