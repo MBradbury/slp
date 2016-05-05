@@ -44,10 +44,10 @@ class CLI(CommandLineCommon.CLI):
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    slot_period = []
-    dissem_period = []
-    tdma_num_slots = []
-    slot_loop_length = []
+    slot_period = [0.1]
+    dissem_period = [0.5]
+    tdma_num_slots = [120]
+    slot_loop_length = [4]
 
     repeats = 300
 
@@ -70,7 +70,7 @@ class CLI(CommandLineCommon.CLI):
             self.tdma_num_slots, self.slot_loop_length
         )
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), list(argument_product))
 
     def run(self, args):
         super(CLI, self).run(args)

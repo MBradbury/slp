@@ -63,13 +63,6 @@ implementation
     App.SearchSend -> SearchSender;
     App.SearchReceive ->SearchReceiver;
 
-    components
-        new AMSenderC(LOOP_CHANNEL) as LoopSender,
-        new AMReceiverC(LOOP_CHANNEL) as LoopReceiver;
-
-    App.LoopSend -> LoopSender;
-    App.LoopReceive -> LoopReceiver;
-
     // Message Queue
     components
         new PoolC(NormalMessage, MESSAGE_QUEUE_SIZE) as MessagePool,
