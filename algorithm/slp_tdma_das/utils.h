@@ -39,7 +39,6 @@ typedef nx_struct OtherList {
 
 
 
-
 IDList IDList_new();
 void IDList_add(IDList* list, uint16_t id);
 void IDList_sort(IDList* list);

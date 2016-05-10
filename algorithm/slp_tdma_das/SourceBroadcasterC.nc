@@ -4,6 +4,8 @@
 
 #include "NormalMessage.h"
 #include "DissemMessage.h"
+#include "SearchMessage.h"
+#include "ChangeMessage.h"
 
 #include "utils.h"
 
@@ -45,6 +47,12 @@ module SourceBroadcasterC
 
     uses interface AMSend as DissemSend;
     uses interface Receive as DissemReceive;
+
+    uses interface AMSend as SearchSend;
+    uses interface Receive as SearchReceive;
+
+    uses interface AMSend as ChangeSend;
+    uses interface Receive as ChangeReceive;
 
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
@@ -199,6 +207,8 @@ implementation
 
 	USE_MESSAGE(Normal);
     USE_MESSAGE(Dissem);
+    USE_MESSAGE(Search);
+    USE_MESSAGE(Change);
 
     void init()
     {
@@ -490,5 +500,27 @@ implementation
         case NormalNode: x_receive_Dissem(rcvd, source_addr); break;
         case SinkNode  : Sink_receive_Dissem(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Dissem)
+
+    void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)
+    {
+        return;
+    }
+
+    RECEIVE_MESSAGE_BEGIN(Search, Receive)
+        case SourceNode: break;
+        case NormalNode: Normal_receive_Search(rcvd, source_addr); break;
+        case SinkNode:   break;
+    RECEIVE_MESSAGE_END(Search)
+
+    void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)
+    {
+        return;
+    }
+
+    RECEIVE_MESSAGE_BEGIN(Change, Receive)
+        case SourceNode: break;
+        case NormalNode: Normal_receive_Change(rcvd, source_addr); break;
+        case SinkNode:   break;
+    RECEIVE_MESSAGE_END(Change)
     //}}}Receivers
 }
