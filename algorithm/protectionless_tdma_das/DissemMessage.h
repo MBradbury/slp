@@ -5,7 +5,8 @@
 
 typedef nx_struct DissemMessage {
     nx_am_addr_t source_id;
-    NeighbourList N;
+    nx_uint8_t normal;
+    OnehopList N;
 } DissemMessage;
 
 inline SequenceNumberWithBottom Dissem_get_sequence_number(const DissemMessage* msg) { return BOTTOM; }
