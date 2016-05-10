@@ -47,11 +47,11 @@ class CLI(CommandLineCommon.CLI):
     slot_period = [0.1]
     dissem_period = [0.5]
     tdma_num_slots = [120]
-    slot_loop_length = [4]
+    slot_assignment_interval = [4]
 
     repeats = 300
 
-    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot loop length')
+    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval')
 
 
     def __init__(self):
@@ -67,7 +67,7 @@ class CLI(CommandLineCommon.CLI):
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
             [self.distance], self.source_periods, self.slot_period, self.dissem_period,
-            self.tdma_num_slots, self.slot_loop_length
+            self.tdma_num_slots, self.slot_assignment_interval
         )
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), list(argument_product))

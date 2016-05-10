@@ -1,11 +1,14 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#define MAX_NEIGHBOURS 16
+#include <string.h>
+
+#define MAX_ONEHOP 5
+#define MAX_TWOHOP 13
 
 typedef nx_struct IDList {
     nx_uint16_t count;
-    nx_uint16_t ids[MAX_NEIGHBOURS];
+    nx_uint16_t ids[MAX_TWOHOP];
 } IDList;
 
 typedef nx_struct NeighbourInfo {
@@ -16,8 +19,13 @@ typedef nx_struct NeighbourInfo {
 
 typedef nx_struct NeighbourList {
     nx_uint16_t count;
-    NeighbourInfo info[MAX_NEIGHBOURS];
+    NeighbourInfo info[MAX_TWOHOP];
 } NeighbourList;
+
+typedef nx_struct OnehopList {
+    nx_uint16_t count;
+    NeighbourInfo info[MAX_ONEHOP];
+} OnehopList;
 
 typedef nx_struct OtherInfo {
     nx_am_addr_t id;
@@ -26,27 +34,11 @@ typedef nx_struct OtherInfo {
 
 typedef nx_struct OtherList {
     nx_uint16_t count;
-    OtherInfo info[MAX_NEIGHBOURS];
+    OtherInfo info[MAX_TWOHOP];
 } OtherList;
 
-OtherInfo OtherInfo_new(uint16_t id);
-OtherList OtherList_new();
-void OtherList_add(OtherList* list, OtherInfo info);
-uint16_t OtherList_indexOf(const OtherList* list, uint16_t id);
-OtherInfo* OtherList_get(OtherList* list, uint16_t id);
 
 
-typedef nx_struct SlotDetails {
-    nx_am_addr_t id;
-    nx_uint16_t slot;
-    nx_uint16_t hop;
-    IDList neighbours;
-} SlotDetails;
-
-typedef nx_struct SlotList {
-    nx_uint16_t count;
-    SlotDetails slots[MAX_NEIGHBOURS];
-} SlotList;
 
 IDList IDList_new();
 void IDList_add(IDList* list, uint16_t id);
@@ -57,20 +49,6 @@ void IDList_clear(IDList* list);
 
 uint16_t rank(IDList* list, uint16_t id);
 
-SlotDetails SlotDetails_new(uint16_t id, uint16_t slot, uint16_t hop, IDList neighbours);
-SlotList SlotList_new();
-void SlotList_add(SlotList* list, uint16_t id, uint16_t slot, uint16_t hop, IDList neighbours);
-void SlotList_add_details(SlotList* list, SlotDetails details);
-uint16_t SlotList_indexOf(const SlotList* list, uint16_t id);
-bool SlotList_contains_id(const SlotList* list, uint16_t id);
-bool SlotList_collision(const SlotList* list);
-SlotList SlotList_n_from_s(SlotList* list, uint16_t slot);
-SlotList SlotList_n_from_sh(SlotList* list, uint16_t slot, uint16_t hop);
-SlotDetails SlotList_min_h(SlotList* list);
-void SlotList_clear(SlotList* list);
-SlotList SlotList_minus_parent(SlotList* list, uint16_t parent);
-IDList SlotList_to_ids(const SlotList* list);
-
 NeighbourInfo NeighbourInfo_new(uint16_t id, int hop, int slot);
 NeighbourList NeighbourList_new();
 void NeighbourList_add(NeighbourList* list, uint16_t id, int hop, int slot);
@@ -78,6 +56,16 @@ void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info);
 uint16_t NeighbourList_indexOf(const NeighbourList* list, uint16_t id);
 NeighbourInfo* NeighbourList_get(NeighbourList* list, uint16_t id);
 NeighbourInfo* NeighbourList_min_h(NeighbourList* list, IDList* parents);
+void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newList);
+void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList);
+void OnehopList_to_NeighbourList(OnehopList* list, NeighbourList* newList);
+
+OtherInfo OtherInfo_new(uint16_t id);
+OtherList OtherList_new();
+void OtherList_add(OtherList* list, OtherInfo info);
+uint16_t OtherList_indexOf(const OtherList* list, uint16_t id);
+OtherInfo* OtherList_get(OtherList* list, uint16_t id);
+
 
 IDList IDList_new()
 {
@@ -88,7 +76,11 @@ IDList IDList_new()
 
 void IDList_add(IDList* list, uint16_t id)
 {
-    if(list->count >= MAX_NEIGHBOURS) return;
+    if(list->count >= MAX_TWOHOP)
+    {
+        simdbg("stdout", "IDList is full\n");
+        return;
+    }
     if(IDList_indexOf(list, id) != UINT16_MAX) return;
     list->ids[list->count] = id;
     list->count = list->count + 1;
@@ -150,154 +142,6 @@ uint16_t rank(IDList* list, uint16_t id)
 }
 
 
-SlotDetails SlotDetails_new(uint16_t id, uint16_t slot, uint16_t hop, IDList neighbours)
-{
-    SlotDetails s;
-    s.id = id;
-    s.slot = slot;
-    s.hop = hop;
-    s.neighbours = neighbours;
-    return s;
-}
-
-SlotList SlotList_new()
-{
-    SlotList list;
-    list.count = 0;
-    return list;
-}
-
-void SlotList_add(SlotList* list, uint16_t id, uint16_t slot, uint16_t hop, IDList neighbours)
-{
-    uint16_t i;
-    if(list->count >= MAX_NEIGHBOURS) return;
-    i = SlotList_indexOf(list, id);
-    if(i == UINT16_MAX){
-        i = list->count;
-        list->count = list->count + 1;
-    }
-    list->slots[i] = SlotDetails_new(id, slot, hop, neighbours);
-}
-
-
-void SlotList_add_details(SlotList* list, SlotDetails details)
-{
-    uint16_t i;
-    if(list->count >= MAX_NEIGHBOURS) return;
-    i = SlotList_indexOf(list, details.id);
-    if(i == UINT16_MAX){
-        i = list->count;
-        list->count = list->count + 1;
-    }
-    list->slots[i] = details;
-}
-
-uint16_t SlotList_indexOf(const SlotList* list, uint16_t id)
-{
-    uint16_t i;
-    for(i = 0; i < list->count; i++)
-    {
-        if(list->slots[i].id == id) return i;
-    }
-    return UINT16_MAX;
-}
-
-bool SlotList_contains_id(const SlotList* list, uint16_t id)
-{
-    return SlotList_indexOf(list, id) != UINT16_MAX;
-}
-
-
-bool SlotList_collision(const SlotList* list)
-{
-    uint16_t i,j;
-    if(list->count == 0) return FALSE; //Should return false anyway
-    for (i = 0; i < list->count; i++) {
-        for (j = i + 1; j < list->count; j++) {
-            if (list->slots[i].slot == list->slots[j].slot) {
-                return TRUE;
-            }
-        }
-    }
-    return FALSE;
-}
-
-SlotList SlotList_n_from_s(SlotList* list, uint16_t slot)
-{
-    uint16_t i;
-    SlotList slots = SlotList_new();
-
-    for(i=0; i<list->count; i++)
-    {
-        if(list->slots[i].slot == slot)
-        {
-            SlotList_add_details(&slots, list->slots[i]);
-        }
-    }
-    return slots;
-}
-
-SlotList SlotList_n_from_sh(SlotList* list, uint16_t slot, uint16_t hop)
-{
-    uint16_t i;
-    SlotList slots = SlotList_new();
-
-    for(i=0; i<list->count; i++)
-    {
-        if((list->slots[i].slot == slot) && (list->slots[i].hop == hop))
-        {
-            SlotList_add_details(&slots, list->slots[i]);
-        }
-    }
-    return slots;
-}
-
-
-SlotDetails SlotList_min_h(SlotList* list)
-{
-    uint16_t i;
-    uint16_t mini=0;
-    uint16_t minhop = UINT16_MAX;
-    for(i=0; i<list->count; i++)
-    {
-        if(list->slots[i].hop < minhop)
-        {
-            minhop = list->slots[i].hop;
-            mini = i;
-        }
-    }
-    return list->slots[mini];
-}
-
-void SlotList_clear(SlotList* list)
-{
-    list->count = 0;
-}
-
-SlotList SlotList_minus_parent(SlotList* list, uint16_t parent)
-{
-    SlotList newList = SlotList_new();
-    uint16_t i;
-    for(i=0; i< list->count; i++)
-    {
-        if(list->slots[i].id != parent)
-        {
-            SlotList_add_details(&newList, list->slots[i]);
-        }
-    }
-    return newList;
-}
-
-IDList SlotList_to_ids(const SlotList* list)
-{
-    IDList newList = IDList_new();
-    uint16_t i;
-    for(i=0; i<list->count; i++)
-    {
-        IDList_add(&newList, list->slots[i].id);
-    }
-    return newList;
-}
 
 
 NeighbourInfo NeighbourInfo_new(uint16_t id, int hop, int slot)
@@ -321,7 +165,11 @@ void NeighbourList_add(NeighbourList* list, uint16_t id, int hop, int slot)
     uint16_t i;
     i = NeighbourList_indexOf(list, id);
     if(i == UINT16_MAX){
-        if(list->count >= MAX_NEIGHBOURS) return;
+        if(list->count >= MAX_TWOHOP)
+        {
+            simdbg("stdout", "NeighbourList is full.\n");
+            return;
+        }
         i = list->count;
         list->count = list->count + 1;
     }
@@ -333,7 +181,11 @@ void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info)
     uint16_t i;
     i = NeighbourList_indexOf(list, info.id);
     if(i == UINT16_MAX){
-        if(list->count >= MAX_NEIGHBOURS) return;
+        if(list->count >= MAX_TWOHOP)
+        {
+            simdbg("stdout", "NeighbourList is full.\n");
+            return;
+        }
         i = list->count;
         list->count = list->count + 1;
     }
@@ -390,6 +242,36 @@ NeighbourInfo* NeighbourList_min_h(NeighbourList* list, IDList* parents)
     }
 }
 
+void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newList)
+{
+    int i;
+    NeighbourList tempList = NeighbourList_new();
+    for(i = 0; i< onehop->count; i++)
+    {
+        NeighbourInfo* info = NeighbourList_get(list, onehop->ids[i]);
+        if(info == NULL) continue;
+        NeighbourList_add_info(&tempList, *info);
+    }
+    NeighbourList_to_OnehopList(&tempList, newList);
+}
+
+void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList)
+{
+    if(list->count > 9)
+    {
+        simdbg("stdout", "NeighbourList too big to coerce to OnehopList. Truncating.\n");
+    }
+    newList->count = (list->count > 9) ? 9 : list->count;
+    memcpy(&(newList->info), &(list->info), 9*sizeof(NeighbourInfo));
+}
+
+void OnehopList_to_NeighbourList(OnehopList* list, NeighbourList* newList)
+{
+    *newList = NeighbourList_new();
+    newList->count = list->count;
+    memcpy(&(newList->info), &(list->info), 9*sizeof(NeighbourInfo));
+}
+
 OtherInfo OtherInfo_new(uint16_t id)
 {
     OtherInfo info;
@@ -408,7 +290,7 @@ OtherList OtherList_new()
 void OtherList_add(OtherList* list, OtherInfo info)
 {
     uint16_t i;
-    if(list->count >= MAX_NEIGHBOURS) return;
+    if(list->count >= MAX_TWOHOP) return;
     i = OtherList_indexOf(list, info.id);
     if(i == UINT16_MAX){
         i = list->count;
