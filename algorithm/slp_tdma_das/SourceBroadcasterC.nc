@@ -23,6 +23,10 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
+#define PR_DIST 4
+#define PR_LENGTH 4
+#define SEARCH_PERIOD_COUNT 20
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -76,6 +80,10 @@ implementation
     bool slot_active = FALSE;
     bool normal = TRUE;
 
+    uint32_t period_count = 0;
+    bool start_node = FALSE;
+    uint32_t redir_length = 0;
+
     typedef enum
 	{
 		SourceNode, SinkNode, NormalNode
@@ -127,6 +135,16 @@ implementation
     uint32_t get_assignment_interval()
     {
         return SLOT_ASSIGNMENT_INTERVAL;
+    }
+
+    uint32_t get_pr_dist()
+    {
+        return PR_DIST;
+    }
+
+    uint32_t get_pr_length()
+    {
+        return PR_LENGTH;
     }
     //###################}}}
 
@@ -285,6 +303,18 @@ implementation
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
     }
 
+    void send_search_init()
+    {
+        if(type == SinkNode)
+        {
+            SearchMessage msg;
+            msg.source_id = TOS_NODE_ID;
+            msg.dist = get_pr_dist();
+            msg.pr = get_pr_length();
+            send_Search_message(&msg, AM_BROADCAST_ADDR);
+        }
+    }
+
 	task void send_normal()
 	{
 		NormalMessage* message;
@@ -317,6 +347,17 @@ implementation
     event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
+        period_count++;
+        if(period_count == SEARCH_PERIOD_COUNT)
+        {
+            send_search_init();
+            call DissemTimer.startOneShot(get_dissem_period()); //Give search messages time to propogate
+            return;
+        }
+        else if(period_count > SEARCH_PERIOD_COUNT)
+        {
+            //Blank
+        }
         if(slot != BOT) send_dissem();
         process_dissem();
         call PreSlotTimer.startOneShot(get_dissem_period());
@@ -503,7 +544,32 @@ implementation
 
     void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)
     {
-        return;
+        OtherInfo* other_info = OtherList_get(&others, parent);
+        simdbg("stdout", "Received search\n");
+        if(rcvd->dist == 0)
+        {
+            start_node = TRUE;
+            redir_length = rcvd->pr;
+        }
+        else if(other_info == NULL)
+        {
+            simdbg("stdout", "Received search message but other_info was NULL\n");
+        }
+        else if((rcvd->dist > 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count))
+        {
+            SearchMessage msg;
+            msg.source_id = TOS_NODE_ID;
+            msg.pr = rcvd->pr;
+            msg.dist = rcvd->dist - hop;
+            msg.dist = (msg.dist<0) ? 0 : msg.dist;
+            send_Search_message(&msg, AM_BROADCAST_ADDR);
+            simdbg("stdout", "Sent search message again\n");
+        }
+        else
+        {
+            simdbg("stdout", "rcvd->dist=%u, (parent==source_addr)=%u, rank=%u, rank count=%u\n",
+                    rcvd->dist, (parent == source_addr), rank(&(other_info->N), TOS_NODE_ID), other_info->N.count);
+        }
     }
 
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
