@@ -277,7 +277,6 @@ implementation
             slot = info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
             simdbg("stdout", "Chosen slot %u.\n", slot);
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-            /*NeighbourList_add(&onehop, TOS_NODE_ID, hop, slot);*/
         }
 
         for(i=0; i<n_info.count; i++)
@@ -475,6 +474,7 @@ implementation
         int i;
         NeighbourInfo* source;
         NeighbourList rcvdList;
+        OtherInfo* other_info;
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
         METRIC_RCV_DISSEM(rcvd);
@@ -506,6 +506,16 @@ implementation
                     NeighbourList_add_info(&n_info, rcvdList.info[i]);
                 }
             }
+            //XXX Cheap hack to ensure parent's neighbourhood is stored for SearchMessages
+            other_info = OtherList_get(&others, source_addr);
+            if(other_info != NULL)
+            {
+                for(i = 0; i<rcvd->N.count; i++)
+                {
+                    IDList_add(&(other_info->N), rcvd->N.info[i].id);
+                }
+            }
+            //XXX End hack
         }
         else
         {
@@ -567,7 +577,7 @@ implementation
         }
         else
         {
-            simdbg("stdout", "rcvd->dist=%u, (parent==source_addr)=%u, rank=%u, rank count=%u\n",
+            simdbg("stdout", "rcvd->dist=%u, (parent==source_addr)=%u, rank=%u, rank_count=%u\n",
                     rcvd->dist, (parent == source_addr), rank(&(other_info->N), TOS_NODE_ID), other_info->N.count);
         }
     }
