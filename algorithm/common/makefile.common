@@ -1,6 +1,7 @@
 
 CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat  -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable
 
+CFLAGS += -DPOWERTOSSIMZ
 
 ifdef USE_SERIAL_PRINTF
 

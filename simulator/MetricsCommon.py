@@ -6,6 +6,8 @@ from simulator.Simulation import OutputCatcher
 from collections import Counter, OrderedDict, defaultdict
 import re, sys, math
 
+from models.power import postprocessZ as powertossimz
+
 import numpy as np
 
 try:
@@ -44,11 +46,18 @@ class MetricsCommon(object):
         self.became_source_times = defaultdict(list)
         self.became_normal_after_source_times = defaultdict(list)
 
+        powertossimz.maxmotes = configuration.size()
+        powertossimz.simfreq = sim.tossim.ticksPerSecond()
+        powertossimz.initstate()
+
         # Normal nodes becoming the source, or source nodes becoming normal
         self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
 
         # BCAST / RCV / DELIVER events
         self.register('Metric-COMMUNICATE', self.process_COMMUNICATE)
+
+        # Handle PowerTOSSIM-Z events
+        self.register('ENERGY_HANDLER', self.process_ENERGY_HANDLER)
 
     def register(self, name, function):
         catcher = OutputCatcher(function)
@@ -173,6 +182,9 @@ class MetricsCommon(object):
 
         else:
             raise RuntimeError("Unknown state {}".format(state))
+
+    def process_ENERGY_HANDLER(self, line):
+        powertossimz.handle_event(line)
 
     def seed(self):
         return self.sim.seed
@@ -383,5 +395,7 @@ class MetricsCommon(object):
 
     def print_results(self, stream=sys.stdout):
         results = [str(fn(self)) for fn in self.items().values()]
+
+        powertossimz.print_summary()
         
         print("|".join(results), file=stream)
