@@ -109,12 +109,13 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
+    #source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [1.0]
 
     configurations = [
         'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
         #'SinkCorner',
         #'SinkCorner2Source',
