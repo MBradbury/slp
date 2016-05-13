@@ -43,7 +43,7 @@ class RunSimulations(RunSimulationsCommon):
         random_walk_types = {
         #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
-        'phantom_walkabouts':[1,2]
+        'phantom_walkabouts':[1,1]
         }
         ##################################################################
 
@@ -116,9 +116,9 @@ class CLI(CommandLineCommon.CLI):
         'Source2CornerTop',
         'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -140,10 +140,10 @@ class CLI(CommandLineCommon.CLI):
     "ShortLong"
     ]
 
-    wait_before_short = [100]
+    wait_before_short = [0]
 
     short_counts = [1]
-    long_counts = [2]
+    long_counts = [1]
 
     repeats = 500
 
