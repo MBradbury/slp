@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <string.h>
+#include <stdlib.h>
 
 #define MAX_ONEHOP 5
 #define MAX_TWOHOP 13
@@ -47,6 +48,13 @@ IDList IDList_minus_parent(IDList* list, uint16_t parent);
 void IDList_clear(IDList* list);
 
 uint16_t rank(IDList* list, uint16_t id);
+uint16_t choose(IDList* list);
+
+uint16_t choose(IDList* list)
+{
+    if(list->count == 0) return UINT16_MAX;
+    else return list->ids[rand() % list->count];
+}
 
 NeighbourInfo NeighbourInfo_new(uint16_t id, int hop, int slot);
 NeighbourList NeighbourList_new();
@@ -58,6 +66,18 @@ NeighbourInfo* NeighbourList_min_h(NeighbourList* list, IDList* parents);
 void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newList);
 void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList);
 void OnehopList_to_NeighbourList(OnehopList* list, NeighbourList* newList);
+uint16_t OnehopList_min_slot(OnehopList* list);
+
+uint16_t OnehopList_min_slot(OnehopList* list)
+{
+    uint16_t min_slot = list->info[0].slot;
+    int i;
+    for(i = 0; i < list->count; i++)
+    {
+        min_slot = (min_slot > list->info[i].slot) ? list->info[i].slot : min_slot;
+    }
+    return min_slot;
+}
 
 OtherInfo OtherInfo_new(uint16_t id);
 OtherList OtherList_new();

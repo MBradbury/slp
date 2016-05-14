@@ -23,8 +23,8 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
-#define PR_DIST 4
-#define PR_LENGTH 4
+#define PR_DIST 2
+#define PR_LENGTH 20
 #define SEARCH_PERIOD_COUNT 20
 
 module SourceBroadcasterC
@@ -314,6 +314,24 @@ implementation
         }
     }
 
+    void send_change_init()
+    {
+        if(start_node && redir_length > 0)
+        {
+            ChangeMessage msg;
+            IDList npar = IDList_minus_parent(&potential_parents, parent);
+            OnehopList onehop;
+            simdbg("stdout", "CHANGE HAS BEGUN\n");
+            start_node = FALSE;
+            NeighbourList_select(&n_info, &neighbours, &onehop);
+            msg.source_id = TOS_NODE_ID;
+            msg.a_node = choose(&potential_parents); //choose(&npar);
+            msg.n_slot = OnehopList_min_slot(&onehop);
+            msg.len_d = redir_length - 1;
+            send_Change_message(&msg, AM_BROADCAST_ADDR);
+        }
+    }
+
 	task void send_normal()
 	{
 		NormalMessage* message;
@@ -353,7 +371,13 @@ implementation
             call DissemTimer.startOneShot(get_dissem_period()); //Give search messages time to propogate
             return;
         }
-        else if(period_count > SEARCH_PERIOD_COUNT)
+        else if(period_count == SEARCH_PERIOD_COUNT+1)
+        {
+            send_change_init();
+            call DissemTimer.startOneShot(get_dissem_period()); //Give change messages time to propogate
+            return;
+        }
+        else if(period_count > SEARCH_PERIOD_COUNT+1)
         {
             //Blank
         }
@@ -570,7 +594,7 @@ implementation
             SearchMessage msg;
             msg.source_id = TOS_NODE_ID;
             msg.pr = rcvd->pr;
-            msg.dist = rcvd->dist - hop;
+            msg.dist = rcvd->dist - 1; //rcvd->dist - hop;
             msg.dist = (msg.dist<0) ? 0 : msg.dist;
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbg("stdout", "Sent search message again\n");
@@ -590,7 +614,31 @@ implementation
 
     void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)
     {
-        return;
+        if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID)
+        {
+            ChangeMessage msg;
+            OnehopList onehop;
+            /*IDList npar = IDList_minus_parent(&potential_parents, parent); //XXX Problem is this is often empty*/
+            IDList npar = IDList_minus_parent(&neighbours, TOS_NODE_ID);
+            npar = IDList_minus_parent(&npar, parent);
+            simdbg("stdout", "Received change\n");
+            simdbg("Node-Change-Notification", "The node has become a TFS\n");
+            NeighbourList_select(&n_info, &neighbours, &onehop);
+            slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
+            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            msg.source_id = TOS_NODE_ID;
+            msg.a_node = choose(&npar); //choose(&npar);
+            msg.n_slot = OnehopList_min_slot(&onehop);
+            msg.len_d = rcvd->len_d - 1;
+            send_Change_message(&msg, AM_BROADCAST_ADDR);
+        }
+        else if(rcvd->len_d == 0 && rcvd->a_node == TOS_NODE_ID)
+        {
+            simdbg("Node-Change-Notification", "The node has become a TFS\n");
+            normal = FALSE;
+            slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
+            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+        }
     }
 
     RECEIVE_MESSAGE_BEGIN(Change, Receive)
