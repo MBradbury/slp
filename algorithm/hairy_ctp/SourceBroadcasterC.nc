@@ -16,6 +16,9 @@
 #define CHOOSE_RETRY_LIMIT 20
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance)
+#define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
+#define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, BOTTOM, BOTTOM, BOTTOM)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 module SourceBroadcasterC
 {
@@ -478,6 +481,8 @@ implementation
 
 	void Normal_receive_Choose(const ChooseMessage* rcvd, am_addr_t source_addr)
 	{
+		METRIC_RCV_CHOOSE(rcvd);
+
 		simdbg("stdout", "Normal receive choose\n");
 
 		if (rcvd->at_end)
@@ -546,6 +551,8 @@ implementation
 	{
 		FakeMessage forwarding_message = *rcvd;
 
+		METRIC_RCV_FAKE(rcvd);
+
 		if (fake_walk_parent != AM_BROADCAST_ADDR)
 		{
 			//simdbg("stdout", "Received fake message from %u forwarding to %u\n", source_addr, fake_walk_parent);
@@ -589,6 +596,8 @@ implementation
 	void x_receive_Beacon(const BeaconMessage* rcvd, am_addr_t source_addr)
 	{
 		uint16_t* neighbour_min_source_distance = call NeighboursMinSourceDistance.get(source_addr);
+
+		METRIC_RCV_BEACON(rcvd);
 
 		if (rcvd->neighbour_min_source_distance == BOTTOM)
 		{
