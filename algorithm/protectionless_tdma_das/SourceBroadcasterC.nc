@@ -204,12 +204,12 @@ implementation
     {
         if (type == SinkNode)
         {
-            int i;
+            /*int i;
             for(i=0; i<neighbours.count; i++)
             {
                 simdbg("stdout", "NEVER CALLED\n"); //Because no neighbours discovered initially
                 NeighbourList_add(&n_info, neighbours.ids[i], BOT, BOT);
-            }
+            }*/
             
             hop = 0;
             parent = AM_BROADCAST_ADDR;
@@ -231,7 +231,7 @@ implementation
     void process_dissem()
     {
         int i;
-        simdbg("stdout", "Processing DISSEM...\n");
+        //simdbg("stdout", "Processing DISSEM...\n");
         if(slot == BOT && type != SinkNode)
         {
             NeighbourInfo* info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
@@ -241,11 +241,11 @@ implementation
                 /*simdbg("stdout", "Info was NULL.\n");*/
                 return;
             }
-            simdbg("stdout", "Info was: ID=%u, hop=%u, slot=%u.\n", info->id, info->hop, info->slot);
+            simdbg("stdout", "Info for n-info with min hop was: ID=%u, hop=%u, slot=%u.\n", info->id, info->hop, info->slot);
 
             other_info = OtherList_get(&others, info->id);
             if(other_info == NULL) {
-                simdbg("stdout", "Other info was NULL.\n");
+                simdbgerror("stdout", "Other info was NULL.\n");
                 return;
             }
 
@@ -253,8 +253,7 @@ implementation
             parent = info->id; //info->slot is equivalent to parent slot
             slot = info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
 
-            simdbg("stdout", "Chosen parent %u.\n", parent);
-            simdbg("stdout", "Chosen slot %u.\n", slot);
+            simdbg("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, slot, hop);
 
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
         }
@@ -287,6 +286,8 @@ implementation
         msg.source_id = TOS_NODE_ID;
         msg.normal = normal;
         NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
+
+        simdbg("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");
 
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
     }
@@ -448,7 +449,7 @@ implementation
     void x_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
-        NeighbourInfo* source;
+        const NeighbourInfo* source;
         NeighbourList rcvdList;
 
         METRIC_RCV_DISSEM(rcvd);
@@ -456,28 +457,29 @@ implementation
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
 
+        // Record that the sender is in our 1-hop neighbourhood
         IDList_add(&neighbours, source_addr);
 
         if(rcvd->normal)
         {
             if(slot == BOT && source->slot != BOT)
             {
-                OtherInfo* info;
+                OtherInfo* others_source_addr;
 
                 IDList_add(&potential_parents, source_addr);
 
-                info = OtherList_get(&others, source_addr);
-                if(info == NULL)
+                others_source_addr = OtherList_get(&others, source_addr);
+                if(others_source_addr == NULL)
                 {
                     OtherList_add(&others, OtherInfo_new(source_addr));
-                    info = OtherList_get(&others, source_addr);
+                    others_source_addr = OtherList_get(&others, source_addr);
                 }
 
                 for(i=0; i<rcvd->N.count; i++)
                 {
                     if(rcvd->N.info[i].slot == BOT)
                     {
-                        IDList_add(&(info->N), rcvdList.info[i].id);
+                        IDList_add(&(others_source_addr->N), rcvdList.info[i].id);
                     }
                 }
             }
@@ -486,7 +488,7 @@ implementation
             {
                 if(rcvd->N.info[i].slot != BOT)
                 {
-                    NeighbourList_add_info(&n_info, rcvdList.info[i]);
+                    NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
                 }
             }
         }
@@ -502,7 +504,7 @@ implementation
                     normal = FALSE;
                 }
                 /*NeighbourList_add_info(&n_info, *NeighbourList_get(&(rcvd->N), source_addr));*/
-                NeighbourList_add_info(&n_info, *source);
+                NeighbourList_add_info(&n_info, source);
             }
         }
     }
@@ -517,7 +519,7 @@ implementation
 
         for(i = 0; i<rcvd->N.count; i++)
         {
-            NeighbourList_add_info(&n_info, rcvd->N.info[i]);
+            NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
         }
     }
 

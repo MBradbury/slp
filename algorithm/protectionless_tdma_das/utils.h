@@ -56,13 +56,15 @@ uint16_t rank(IDList* list, am_addr_t id);
 NeighbourInfo NeighbourInfo_new(am_addr_t id, int hop, int slot);
 NeighbourList NeighbourList_new();
 void NeighbourList_add(NeighbourList* list, am_addr_t id, int hop, int slot);
-void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info);
+void NeighbourList_add_info(NeighbourList* list, const NeighbourInfo* info);
 uint16_t NeighbourList_indexOf(const NeighbourList* list, am_addr_t id);
 NeighbourInfo* NeighbourList_get(NeighbourList* list, am_addr_t id);
 NeighbourInfo* NeighbourList_info_for_min_hop(NeighbourList* list, IDList* parents);
 void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newList);
 void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList);
 void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList);
+
+void OnehopList_print(const OnehopList* list);
 
 OtherInfo OtherInfo_new(am_addr_t id);
 OtherList OtherList_new();
@@ -85,8 +87,6 @@ void IDList_add(IDList* list, am_addr_t id)
         simdbgerror("stdout", "IDList is full\n");
         return;
     }
-
-    simdbg("stdout", "Adding to idlist\n");
 
     if(IDList_indexOf(list, id) != UINT16_MAX) return;
     list->ids[list->count] = id;
@@ -193,10 +193,10 @@ void NeighbourList_add(NeighbourList* list, am_addr_t id, int hop, int slot)
     list->info[i] = NeighbourInfo_new(id, hop, slot);
 }
 
-void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info)
+void NeighbourList_add_info(NeighbourList* list, const NeighbourInfo* info)
 {
     uint16_t i;
-    i = NeighbourList_indexOf(list, info.id);
+    i = NeighbourList_indexOf(list, info->id);
     if(i == UINT16_MAX){
         if(list->count >= MAX_TWOHOP)
         {
@@ -204,9 +204,9 @@ void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info)
             return;
         }
         i = list->count;
-        list->count = list->count + 1;
+        list->count += 1;
     }
-    list->info[i] = info;
+    list->info[i] = *info;
 }
 
 uint16_t NeighbourList_indexOf(const NeighbourList* list, am_addr_t id)
@@ -265,9 +265,13 @@ void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newLi
     NeighbourList tempList = NeighbourList_new();
     for(i = 0; i< onehop->count; i++)
     {
-        NeighbourInfo* info = NeighbourList_get(list, onehop->ids[i]);
-        if(info == NULL) continue;
-        NeighbourList_add_info(&tempList, *info);
+        const NeighbourInfo* info = NeighbourList_get(list, onehop->ids[i]);
+        if(info == NULL)
+        {
+            simdbgerror("stdout", "Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
+            continue;
+        }
+        NeighbourList_add_info(&tempList, info);
     }
     NeighbourList_to_OnehopList(&tempList, newList);
 }
@@ -287,6 +291,18 @@ void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList)
     *newList = NeighbourList_new();
     newList->count = list->count;
     memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
+}
+
+void OnehopList_print(const OnehopList* list)
+{
+    uint16_t i;
+    simdbg_clear("stdout", "OnehopList size=%u [", list->count);
+    for (i = 0; i < list->count; ++i)
+    {
+        simdbg_clear("stdout", "(id=%u, slot=%u, hop=%u), ",
+            list->info[i].id, list->info[i].slot, list->info[i].hop);
+    }
+    simdbg_clear("stdout", "]");
 }
 
 OtherInfo OtherInfo_new(am_addr_t id)
