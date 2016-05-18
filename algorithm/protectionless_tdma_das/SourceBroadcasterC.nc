@@ -21,7 +21,6 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
-
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -60,7 +59,6 @@ implementation
     IDList potential_parents;
     OtherList others;
     NeighbourList n_info;
-    NeighbourList onehop;
 
     uint16_t hop = BOT;
     am_addr_t parent = AM_BROADCAST_ADDR;
@@ -68,6 +66,7 @@ implementation
 
     bool start = TRUE;
     bool slot_active = FALSE;
+    bool normal = TRUE;
 
     typedef enum
 	{
@@ -117,9 +116,9 @@ implementation
         return TDMA_NUM_SLOTS;
     }
 
-    uint32_t get_loop_length()
+    uint32_t get_assignment_interval()
     {
-        return SLOT_LOOP_LENGTH;
+        return SLOT_ASSIGNMENT_INTERVAL;
     }
     //###################}}}
 
@@ -130,7 +129,6 @@ implementation
         potential_parents = IDList_new();
         others = OtherList_new();
         n_info = NeighbourList_new();
-        onehop = NeighbourList_new();
 
 		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
@@ -209,6 +207,7 @@ implementation
             int i;
             for(i=0; i<neighbours.count; i++)
             {
+                simdbg("stdout", "NEVER CALLED\n"); //Because no neighbours discovered initially
                 NeighbourList_add(&n_info, neighbours.ids[i], BOT, BOT);
             }
             start = FALSE;
@@ -216,13 +215,12 @@ implementation
             parent = AM_BROADCAST_ADDR;
             slot = get_tdma_num_slots(); //Delta
             NeighbourList_add(&n_info, TOS_NODE_ID, 0, get_tdma_num_slots()); //Delta
-            NeighbourList_add(&onehop, TOS_NODE_ID, 0, get_tdma_num_slots());
         }
         else
         {
             NeighbourList_add(&n_info, TOS_NODE_ID, BOT, BOT);
-            NeighbourList_add(&onehop, TOS_NODE_ID, BOT, BOT);
         }
+        IDList_add(&neighbours, TOS_NODE_ID);
     }
 
 
@@ -248,10 +246,10 @@ implementation
             hop = info->hop + 1;
             parent = info->id; //info->slot is equivalent to parent slot
             simdbg("stdout", "Chosen parent %u.\n", parent);
-            slot = info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_loop_length() - 1;
+            slot = info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
             simdbg("stdout", "Chosen slot %u.\n", slot);
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-            NeighbourList_add(&onehop, TOS_NODE_ID, hop, slot);
+            /*NeighbourList_add(&onehop, TOS_NODE_ID, hop, slot);*/
         }
 
         for(i=0; i<n_info.count; i++)
@@ -262,7 +260,6 @@ implementation
                 {
                     slot = slot - 1;
                     NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-                    NeighbourList_add(&onehop, TOS_NODE_ID, hop, slot);
                     simdbg("stdout", "Adjusted slot %u.\n", slot);
                 }
             }
@@ -273,11 +270,12 @@ implementation
     {
         DissemMessage msg;
         msg.source_id = TOS_NODE_ID;
-        msg.N = onehop;
+        msg.normal = normal;
+        NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
     }
 
-	task void send_message_normal()
+	task void send_normal()
 	{
 		NormalMessage* message;
 
@@ -299,7 +297,7 @@ implementation
 
         if(slot_active && !(call MessageQueue.empty()))
         {
-            post send_message_normal();
+            post send_normal();
         }
 	}
 
@@ -309,7 +307,7 @@ implementation
     event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
-        if(slot != BOT) send_dissem(); //TODO: Test this doesn't cause problems
+        if(slot != BOT) send_dissem();
         process_dissem();
         call PreSlotTimer.startOneShot(get_dissem_period());
     }
@@ -328,7 +326,7 @@ implementation
         slot_active = TRUE;
         if(slot != BOT)
         {
-            post send_message_normal();
+            post send_normal();
         }
         call PostSlotTimer.startOneShot(get_slot_period());
     }
@@ -343,11 +341,11 @@ implementation
 
     event void EnqueueNormalTimer.fired()
     {
+        /*simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());*/
         if(slot != BOT)
         {
             NormalMessage* message;
 
-            /*simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());*/
             message = call MessagePool.get();
             if (message != NULL)
             {
@@ -377,7 +375,7 @@ implementation
     //Receivers{{{
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-        simdbg("stdout", "Received normal.\n");
+        /*simdbg("stdout", "Received normal.\n");*/
 		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
 			NormalMessage* forwarding_message;
@@ -416,6 +414,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+        case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
@@ -423,30 +422,54 @@ implementation
     void x_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
+        NeighbourInfo* source;
+        NeighbourList rcvdList;
+        OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
+        source = NeighbourList_get(&rcvdList, source_addr);
         METRIC_RCV_DISSEM(rcvd);
         IDList_add(&neighbours, source_addr);
-        NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
-        if(slot == BOT && NeighbourList_get(&(rcvd->N), source_addr)->slot != BOT)
+        if(rcvd->normal)
         {
-            OtherInfo* info = OtherList_get(&others, source_addr);
-            IDList_add(&potential_parents, source_addr);
-            if(info == NULL)
+            if(slot == BOT && source->slot != BOT)
             {
-                OtherList_add(&others, OtherInfo_new(source_addr));
-                info = OtherList_get(&others, source_addr);
-            }
-            for(i=0; i<rcvd->N.count; i++)
-            {
-                if(rcvd->N.info[i].slot == BOT)
+                OtherInfo* info = OtherList_get(&others, source_addr);
+                IDList_add(&potential_parents, source_addr);
+                if(info == NULL)
                 {
-                    IDList_add(&(info->N), rcvd->N.info[i].id);
+                    OtherList_add(&others, OtherInfo_new(source_addr));
+                    info = OtherList_get(&others, source_addr);
+                }
+                for(i=0; i<rcvd->N.count; i++)
+                {
+                    if(rcvd->N.info[i].slot == BOT)
+                    {
+                        IDList_add(&(info->N), rcvdList.info[i].id);
+                    }
+                }
+            }
+
+            for(i = 0; i<rcvd->N.count; i++)
+            {
+                if(rcvd->N.info[i].slot != BOT)
+                {
+                    NeighbourList_add_info(&n_info, rcvdList.info[i]);
                 }
             }
         }
-
-        for(i = 0; i<rcvd->N.count; i++)
+        else
         {
-            NeighbourList_add_info(&n_info, rcvd->N.info[i]);
+            if(parent == source_addr)
+            {
+                /*if(slot >= NeighbourList_get(&(rcvd->N), source_addr)->slot)*/
+                if(slot >= source->slot)
+                {
+                    /*slot = NeighbourList_get(&(rcvd->N), source_addr)->slot - (NeighbourList_get(&n_info, parent)->slot - NeighbourList_get(&(rcvd->N), parent)->slot);*/
+                    slot = source->slot - (NeighbourList_get(&n_info, parent)->slot - source->slot);
+                    normal = FALSE;
+                }
+                /*NeighbourList_add_info(&n_info, *NeighbourList_get(&(rcvd->N), source_addr));*/
+                NeighbourList_add_info(&n_info, *source);
+            }
         }
     }
 
@@ -455,7 +478,6 @@ implementation
         int i;
         METRIC_RCV_DISSEM(rcvd);
         IDList_add(&neighbours, source_addr);
-        NeighbourList_add_info(&onehop, *NeighbourList_get(&(rcvd->N), source_addr));
         for(i = 0; i<rcvd->N.count; i++)
         {
             NeighbourList_add_info(&n_info, rcvd->N.info[i]);
