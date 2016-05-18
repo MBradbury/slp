@@ -60,7 +60,7 @@ NeighbourInfo* NeighbourList_get(NeighbourList* list, uint16_t id);
 NeighbourInfo* NeighbourList_min_h(NeighbourList* list, IDList* parents);
 void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newList);
 void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList);
-void OnehopList_to_NeighbourList(OnehopList* list, NeighbourList* newList);
+void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList);
 
 OtherInfo OtherInfo_new(uint16_t id);
 OtherList OtherList_new();
@@ -267,7 +267,7 @@ void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList)
     memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
 }
 
-void OnehopList_to_NeighbourList(OnehopList* list, NeighbourList* newList)
+void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList)
 {
     *newList = NeighbourList_new();
     newList->count = list->count;

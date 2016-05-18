@@ -4,8 +4,6 @@ import itertools
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
-
 from data.table import safety_period
 
 from data.run.common import RunSimulationsCommon as RunSimulations

@@ -214,7 +214,7 @@ implementation
             hop = 0;
             parent = AM_BROADCAST_ADDR;
             slot = get_tdma_num_slots(); //Delta
-            NeighbourList_add(&n_info, TOS_NODE_ID, 0, get_tdma_num_slots()); //Delta
+            NeighbourList_add(&n_info, TOS_NODE_ID, 0, slot);
         }
         else
         {
