@@ -55,10 +55,10 @@ module SourceBroadcasterC
 implementation
 {
     //Initialisation variables{{{
-    IDList neighbours;
+    IDList neighbours; // List of one-hop neighbours
     IDList potential_parents;
     OtherList others;
-    NeighbourList n_info;
+    NeighbourList n_info; // Information about 2-hop neighbours
 
     uint16_t hop = BOT;
     am_addr_t parent = AM_BROADCAST_ADDR;
@@ -261,13 +261,21 @@ implementation
 
         for(i=0; i<n_info.count; i++)
         {
-            if(n_info.info[i].slot == slot)
+            const NeighbourInfo* n_info_i = &n_info.info[i];
+            // Check if there is a slot collision with a neighbour
+            // Do not check for slot collisions with ourself
+            if(n_info_i->slot == slot && n_info_i->id != TOS_NODE_ID)
             {
-                if((hop > n_info.info[i].hop) || ((hop == n_info.info[i].hop) && (TOS_NODE_ID > n_info.info[i].id)))
+                // To make sure only one node resolves the slot (rather than both)
+                // Have the node further from the sink resolve.
+                // If nodes have the same distance use the node id as a tie breaker.
+                if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
                 {
                     slot = slot - 1;
                     NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-                    simdbg("stdout", "Adjusted slot %u.\n", slot);
+
+                    simdbg("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
+                        slot, n_info_i->id, n_info_i->slot);
                 }
             }
         }
@@ -279,6 +287,7 @@ implementation
         msg.source_id = TOS_NODE_ID;
         msg.normal = normal;
         NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
+
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
     }
 
@@ -446,19 +455,24 @@ implementation
 
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
+
         IDList_add(&neighbours, source_addr);
 
         if(rcvd->normal)
         {
             if(slot == BOT && source->slot != BOT)
             {
-                OtherInfo* info = OtherList_get(&others, source_addr);
+                OtherInfo* info;
+
                 IDList_add(&potential_parents, source_addr);
+
+                info = OtherList_get(&others, source_addr);
                 if(info == NULL)
                 {
                     OtherList_add(&others, OtherInfo_new(source_addr));
                     info = OtherList_get(&others, source_addr);
                 }
+
                 for(i=0; i<rcvd->N.count; i++)
                 {
                     if(rcvd->N.info[i].slot == BOT)
@@ -496,8 +510,11 @@ implementation
     void Sink_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
+
         METRIC_RCV_DISSEM(rcvd);
+
         IDList_add(&neighbours, source_addr);
+
         for(i = 0; i<rcvd->N.count; i++)
         {
             NeighbourList_add_info(&n_info, rcvd->N.info[i]);
