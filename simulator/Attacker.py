@@ -11,11 +11,11 @@ from data.restricted_eval import restricted_eval
 
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
-_messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon', 'Inform'}
+_messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon', 'Inform', 'Search', 'Change'}
 
 # An attacker can detect these are not messages to follow,
 # so the attacker will ignore these messages.
-_messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon', 'Inform'}
+_messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon', 'Inform', 'Search', 'Change'}
 
 class Attacker(object):
     def __init__(self):
