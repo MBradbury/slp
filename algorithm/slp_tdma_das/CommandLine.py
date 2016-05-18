@@ -42,39 +42,35 @@ class CLI(CommandLineCommon.CLI):
         #'Source2Corners',
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker()']
+    attacker_models = ['SeqNosReactiveAttacker()']
 
-    slot_period = []
-    dissem_period = []
-    tdma_num_slots = []
-    slot_loop_length = []
+    slot_period = [0.1]
+    dissem_period = [0.5]
+    tdma_num_slots = [120]
+    slot_assignment_interval = [4]
 
     repeats = 300
 
-    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot loop length')
+    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval')
 
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
-
         runner = RunSimulations(
             driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations,
-            safety_periods=safety_periods
+            skip_completed_simulations=skip_completed_simulations
         )
 
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
             [self.distance], self.source_periods, self.slot_period, self.dissem_period,
-            self.tdms_num_slots, self.slot_loop_length
+            self.tdma_num_slots, self.slot_assignment_interval
         )
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), list(argument_product))
 
     def run(self, args):
         super(CLI, self).run(args)
