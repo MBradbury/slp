@@ -1,10 +1,12 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "Constants.h"
+
 #include <string.h>
 
-#define MAX_ONEHOP 5
-#define MAX_TWOHOP 13
+#define MAX_ONEHOP SLP_MAX_1_HOP_NEIGHBOURHOOD
+#define MAX_TWOHOP SLP_MAX_2_HOP_NEIGHBOURHOOD
 
 typedef nx_struct IDList {
     nx_uint16_t count;
@@ -257,19 +259,19 @@ void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newLi
 
 void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList)
 {
-    if(list->count > 9)
+    if(list->count > MAX_ONEHOP)
     {
         simdbg("stdout", "NeighbourList too big to coerce to OnehopList. Truncating.\n");
     }
-    newList->count = (list->count > 9) ? 9 : list->count;
-    memcpy(&(newList->info), &(list->info), 9*sizeof(NeighbourInfo));
+    newList->count = (list->count > MAX_ONEHOP) ? MAX_ONEHOP : list->count;
+    memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
 }
 
 void OnehopList_to_NeighbourList(OnehopList* list, NeighbourList* newList)
 {
     *newList = NeighbourList_new();
     newList->count = list->count;
-    memcpy(&(newList->info), &(list->info), 9*sizeof(NeighbourInfo));
+    memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
 }
 
 OtherInfo OtherInfo_new(uint16_t id)

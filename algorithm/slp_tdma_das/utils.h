@@ -1,11 +1,12 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <string.h>
-#include <stdlib.h>
+#include "Constants.h"
 
-#define MAX_ONEHOP 5
-#define MAX_TWOHOP 13
+#include <string.h>
+
+#define MAX_ONEHOP SLP_MAX_1_HOP_NEIGHBOURHOOD
+#define MAX_TWOHOP SLP_MAX_2_HOP_NEIGHBOURHOOD
 
 typedef nx_struct IDList {
     nx_uint16_t count;
@@ -48,13 +49,7 @@ IDList IDList_minus_parent(IDList* list, uint16_t parent);
 void IDList_clear(IDList* list);
 
 uint16_t rank(IDList* list, uint16_t id);
-uint16_t choose(IDList* list);
 
-uint16_t choose(IDList* list)
-{
-    if(list->count == 0) return UINT16_MAX;
-    else return list->ids[rand() % list->count];
-}
 
 NeighbourInfo NeighbourInfo_new(uint16_t id, int hop, int slot);
 NeighbourList NeighbourList_new();
@@ -65,7 +60,7 @@ NeighbourInfo* NeighbourList_get(NeighbourList* list, uint16_t id);
 NeighbourInfo* NeighbourList_min_h(NeighbourList* list, IDList* parents);
 void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newList);
 void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList);
-void OnehopList_to_NeighbourList(OnehopList* list, NeighbourList* newList);
+void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList);
 uint16_t OnehopList_min_slot(OnehopList* list);
 
 uint16_t OnehopList_min_slot(OnehopList* list)
@@ -186,7 +181,7 @@ void NeighbourList_add(NeighbourList* list, uint16_t id, int hop, int slot)
     if(i == UINT16_MAX){
         if(list->count >= MAX_TWOHOP)
         {
-            simdbg("stdout", "NeighbourList is full.\n");
+            simdbgerror("stdout", "NeighbourList is full.\n");
             return;
         }
         i = list->count;
@@ -202,7 +197,7 @@ void NeighbourList_add_info(NeighbourList* list, NeighbourInfo info)
     if(i == UINT16_MAX){
         if(list->count >= MAX_TWOHOP)
         {
-            simdbg("stdout", "NeighbourList is full.\n");
+            simdbgerror("stdout", "NeighbourList is full.\n");
             return;
         }
         i = list->count;
@@ -276,19 +271,19 @@ void NeighbourList_select(NeighbourList* list, IDList* onehop, OnehopList* newLi
 
 void NeighbourList_to_OnehopList(NeighbourList* list, OnehopList *newList)
 {
-    if(list->count > 9)
+    if(list->count > MAX_ONEHOP)
     {
-        simdbg("stdout", "NeighbourList too big to coerce to OnehopList. Truncating.\n");
+        simdbgerror("stdout", "NeighbourList too big to coerce to OnehopList. Truncating.\n");
     }
-    newList->count = (list->count > 9) ? 9 : list->count;
-    memcpy(&(newList->info), &(list->info), 9*sizeof(NeighbourInfo));
+    newList->count = (list->count > MAX_ONEHOP) ? MAX_ONEHOP : list->count;
+    memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
 }
 
-void OnehopList_to_NeighbourList(OnehopList* list, NeighbourList* newList)
+void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList)
 {
     *newList = NeighbourList_new();
     newList->count = list->count;
-    memcpy(&(newList->info), &(list->info), 9*sizeof(NeighbourInfo));
+    memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
 }
 
 OtherInfo OtherInfo_new(uint16_t id)

@@ -17,6 +17,8 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, msg->source_id, BOTTOM, 1)
+#define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, msg->source_id, BOTTOM, 1)
+#define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, msg->source_id, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -31,6 +33,7 @@ module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
+    uses interface Random;
 
     uses interface Timer<TMilli> as DissemTimer;
 	uses interface Timer<TMilli> as EnqueueNormalTimer;
@@ -242,7 +245,7 @@ implementation
             hop = 0;
             parent = AM_BROADCAST_ADDR;
             slot = get_tdma_num_slots(); //Delta
-            NeighbourList_add(&n_info, TOS_NODE_ID, 0, get_tdma_num_slots()); //Delta
+            NeighbourList_add(&n_info, TOS_NODE_ID, 0, slot); //Delta
         }
         else
         {
@@ -251,6 +254,11 @@ implementation
         IDList_add(&neighbours, TOS_NODE_ID);
     }
 
+    uint16_t choose(const IDList* list)
+    {
+        if (list->count == 0) return UINT16_MAX;
+        else return list->ids[(call Random.rand16()) % list->count];
+    }
 
     void process_dissem()
     {
@@ -580,6 +588,7 @@ implementation
     {
         OtherInfo* other_info = OtherList_get(&others, parent);
         simdbg("stdout", "Received search\n");
+        METRIC_RCV_SEARCH(rcvd);
         if(rcvd->dist == 0)
         {
             start_node = TRUE;
@@ -614,6 +623,7 @@ implementation
 
     void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)
     {
+        METRIC_RCV_CHANGE(rcvd);
         if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID)
         {
             ChangeMessage msg;
@@ -622,7 +632,6 @@ implementation
             IDList npar = IDList_minus_parent(&neighbours, TOS_NODE_ID);
             npar = IDList_minus_parent(&npar, parent);
             simdbg("stdout", "Received change\n");
-            simdbg("Node-Change-Notification", "The node has become a TFS\n");
             NeighbourList_select(&n_info, &neighbours, &onehop);
             slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
@@ -634,7 +643,6 @@ implementation
         }
         else if(rcvd->len_d == 0 && rcvd->a_node == TOS_NODE_ID)
         {
-            simdbg("Node-Change-Notification", "The node has become a TFS\n");
             normal = FALSE;
             slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
