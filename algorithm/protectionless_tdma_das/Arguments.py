@@ -26,5 +26,4 @@ class Arguments(ArgumentsCommon):
         result["TDMA_NUM_SLOTS"] = self.args.tdma_num_slots
         result["SLOT_ASSIGNMENT_INTERVAL"] = self.args.slot_assignment_interval
 
-
         return result
