@@ -202,7 +202,7 @@ implementation
 
     void init()
     {
-        if(type == SinkNode)
+        if (type == SinkNode)
         {
             int i;
             for(i=0; i<neighbours.count; i++)
@@ -210,28 +210,33 @@ implementation
                 simdbg("stdout", "NEVER CALLED\n"); //Because no neighbours discovered initially
                 NeighbourList_add(&n_info, neighbours.ids[i], BOT, BOT);
             }
-            start = FALSE;
+            
             hop = 0;
             parent = AM_BROADCAST_ADDR;
             slot = get_tdma_num_slots(); //Delta
+
+            start = FALSE;
+
             NeighbourList_add(&n_info, TOS_NODE_ID, 0, slot);
         }
         else
         {
-            NeighbourList_add(&n_info, TOS_NODE_ID, BOT, BOT);
+            NeighbourList_add(&n_info, TOS_NODE_ID, BOT, BOT); // TODO: Should this be added to the algorithm
         }
-        IDList_add(&neighbours, TOS_NODE_ID);
+
+        IDList_add(&neighbours, TOS_NODE_ID); // TODO: Should this be added to the algorithm
     }
 
 
     void process_dissem()
     {
         int i;
-        /*simdbg("stdout", "Processing...\n");*/
+        simdbg("stdout", "Processing DISSEM...\n");
         if(slot == BOT && type != SinkNode)
         {
-            NeighbourInfo* info = NeighbourList_min_h(&n_info, &potential_parents);
+            NeighbourInfo* info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
             OtherInfo* other_info;
+
             if (info == NULL) {
                 /*simdbg("stdout", "Info was NULL.\n");*/
                 return;
@@ -243,13 +248,15 @@ implementation
                 simdbg("stdout", "Other info was NULL.\n");
                 return;
             }
+
             hop = info->hop + 1;
             parent = info->id; //info->slot is equivalent to parent slot
-            simdbg("stdout", "Chosen parent %u.\n", parent);
             slot = info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
+
+            simdbg("stdout", "Chosen parent %u.\n", parent);
             simdbg("stdout", "Chosen slot %u.\n", slot);
+
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-            /*NeighbourList_add(&onehop, TOS_NODE_ID, hop, slot);*/
         }
 
         for(i=0; i<n_info.count; i++)
@@ -434,10 +441,13 @@ implementation
         int i;
         NeighbourInfo* source;
         NeighbourList rcvdList;
+
+        METRIC_RCV_DISSEM(rcvd);
+
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
-        METRIC_RCV_DISSEM(rcvd);
         IDList_add(&neighbours, source_addr);
+
         if(rcvd->normal)
         {
             if(slot == BOT && source->slot != BOT)
