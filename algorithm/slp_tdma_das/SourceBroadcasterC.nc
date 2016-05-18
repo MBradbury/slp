@@ -341,30 +341,39 @@ implementation
     }
 
 	task void send_normal()
-	{
-		NormalMessage* message;
+    {
+        NormalMessage* message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
-
-		message = call MessageQueue.dequeue();
-
-		if (message != NULL)
-		{
-			if (send_Normal_message(message, AM_BROADCAST_ADDR))
-			{
-				call MessagePool.put(message);
-			}
-			else
-			{
-				simdbgerror("stdout", "send failed, not returning memory to pool so it will be tried again\n");
-			}
-		}
-
-        if(slot_active && !(call MessageQueue.empty()))
+        // This task may be delayed, such that it is scheduled when the slot is active,
+        // but called after the slot is no longer active.
+        // So it is important to check here if the slot is still active before sending.
+        if (!slot_active)
         {
-            post send_normal();
+            return;
         }
-	}
+
+        simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
+
+        message = call MessageQueue.dequeue();
+
+        if (message != NULL)
+        {
+            error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
+            if (send_result == SUCCESS)
+            {
+                call MessagePool.put(message);
+            }
+            else
+            {
+                simdbgerror("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
+            }
+
+            if (slot_active && !(call MessageQueue.empty()))
+            {
+                post send_normal();
+            }
+        }
+    }
 
     //Main Logic}}}
 
