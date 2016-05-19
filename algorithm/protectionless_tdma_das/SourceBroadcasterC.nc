@@ -25,8 +25,10 @@ module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
+    uses interface Random;
 
     uses interface Timer<TMilli> as DissemTimer;
+    uses interface Timer<TMilli> as DissemTimerSender;
 	uses interface Timer<TMilli> as EnqueueNormalTimer;
     uses interface Timer<TMilli> as PreSlotTimer;
     uses interface Timer<TMilli> as SlotTimer;
@@ -85,6 +87,20 @@ implementation
 		default:					return "<unknown> ";
 		}
 	}
+
+    // Produces a random float between 0 and 1
+    float random_float(void)
+    {
+        // There appears to be problem with the 32 bit random number generator
+        // in TinyOS that means it will not generate numbers in the full range
+        // that a 32 bit integer can hold. So use the 16 bit value instead.
+        // With the 16 bit integer we get better float values to compared to the
+        // fake source probability.
+        // Ref: https://github.com/tinyos/tinyos-main/issues/248
+        const uint16_t rnd = call Random.rand16();
+
+        return ((float)rnd) / UINT16_MAX;
+    }
 
 	uint32_t extra_to_send = 0; //Used in the macros
 	bool busy = FALSE; //Used in the macros
@@ -259,29 +275,38 @@ implementation
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
         }
 
-        for(i=0; i<n_info.count; i++)
+        if (slot != BOT)
         {
-            const NeighbourInfo* n_info_i = &n_info.info[i];
-            // Check if there is a slot collision with a neighbour
-            // Do not check for slot collisions with ourself
-            if(n_info_i->slot == slot && n_info_i->id != TOS_NODE_ID)
-            {
-                // To make sure only one node resolves the slot (rather than both)
-                // Have the node further from the sink resolve.
-                // If nodes have the same distance use the node id as a tie breaker.
-                if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
-                {
-                    slot = slot - 1;
-                    NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            simdbg("stdout", "Checking Neighbours for slot collisions (our slot %u / hop %u): ", slot, hop); NeighbourList_print(&n_info); simdbg_clear("stdout", "\n");
 
-                    simdbg("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
-                        slot, n_info_i->id, n_info_i->slot);
+            for(i=0; i<n_info.count; i++)
+            {
+                const NeighbourInfo* n_info_i = &n_info.info[i];
+                // Check if there is a slot collision with a neighbour
+                // Do not check for slot collisions with ourself
+                if(n_info_i->slot == slot && n_info_i->id != TOS_NODE_ID)
+                {
+
+                    simdbg("stdout", "Found colliding slot from node %u, will evaluate if (%u || (%u && %u))\n",
+                        n_info_i->id, hop > n_info_i->hop), (hop == n_info_i->hop), (TOS_NODE_ID > n_info_i->id));
+
+                    // To make sure only one node resolves the slot (rather than both)
+                    // Have the node further from the sink resolve.
+                    // If nodes have the same distance use the node id as a tie breaker.
+                    if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
+                    {
+                        slot = slot - 1;
+                        NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+
+                        simdbg("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
+                            slot, n_info_i->id, n_info_i->slot);
+                    }
                 }
             }
         }
     }
 
-    void send_dissem(void)
+    event void DissemTimerSender.fired()
     {
         DissemMessage msg;
         msg.normal = normal;
@@ -333,8 +358,13 @@ implementation
     event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
-        if(slot != BOT) send_dissem();
         process_dissem();
+
+        if(slot != BOT)
+        {
+            call DissemTimerSender.startOneShot((uint32_t)(get_slot_period() * random_float()));
+        }
+
         call PreSlotTimer.startOneShot(get_dissem_period());
     }
 
