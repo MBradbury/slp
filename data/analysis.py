@@ -181,7 +181,7 @@ class Analyse(object):
                 return source_rate / num_sources
 
             elif name == "energy_impact":
-                # From Great Duck Island paper, in nAh
+                # From Great Duck Island paper, in nanoamp hours
                 cost_per_bcast_nah = 20.0
                 cost_per_deliver_nah = 8.0
 
@@ -190,7 +190,10 @@ class Analyse(object):
 
                 num_sources = self._get_from_opts_or_values("num_sources", values)
 
-                return (sent * cost_per_bcast_nah + received * cost_per_deliver_nah) * 0.001
+                # The energy cost in milliamp hours
+                cost_mah = (sent * cost_per_bcast_nah + received * cost_per_deliver_nah) / 1000000.0
+
+                return cost_mah
 
             else:
                 return float(self.opts[name])
