@@ -195,6 +195,19 @@ class Analyse(object):
 
                 return cost_mah
 
+            elif name == "energy_impact_time":
+                energy_impact = self._get_from_opts_or_values("energy_impact", values)
+                num_sources = self._get_from_opts_or_values("num_sources", values)
+                time_taken = self._get_from_opts_or_values("TimeTaken", values)
+
+                energy_impact_per_node_per_second = (energy_impact / num_sources) / time_taken
+
+                battery_capacity_mah = 2200
+
+                impact_seconds = battery_capacity_mah / energy_impact_per_node_per_second
+
+                return impact_seconds * 60 * 60
+
             else:
                 return float(self.opts[name])
 

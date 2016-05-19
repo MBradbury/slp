@@ -178,6 +178,7 @@ class CLI(CommandLineCommon.CLI):
 
             'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
             'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
+            'energy impact time': ('Energy Impact Time (hours)', 'left top'),
         }
 
         custom_yaxis_range_max = {
