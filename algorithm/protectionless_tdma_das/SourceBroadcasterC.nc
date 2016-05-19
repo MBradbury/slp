@@ -14,7 +14,7 @@
 #include <stdlib.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, msg->source_id, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -258,7 +258,7 @@ implementation
                 return;
             }
             simdbg("stdout", "Info for n-info with min hop was: ID=%u, hop=%u, slot=%u.\n",
-                info->id, info->hop, info->slot);
+                    info->id, info->hop, info->slot);
 
             other_info = OtherList_get(&others, info->id);
             if(other_info == NULL) {
@@ -310,7 +310,7 @@ implementation
     {
         DissemMessage msg;
         msg.normal = normal;
-        NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
+        NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
         simdbg("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");
 
@@ -352,12 +352,26 @@ implementation
 		}
 	}
 
+    void MessageQueue_clear()
+    {
+        NormalMessage* message;
+        while(!(call MessageQueue.empty()))
+        {
+            message = call MessageQueue.dequeue();
+            if(message)
+            {
+                call MessagePool.put(message);
+            }
+        }
+    }
     //Main Logic}}}
 
     //Timers.fired(){{{
     event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
+        if(type != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
+        if(slot != BOT) send_dissem();
         process_dissem();
 
         if(slot != BOT)
