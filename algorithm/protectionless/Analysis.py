@@ -41,7 +41,10 @@ class Analyzer(AnalyzerCommon):
         return (
             ('Sent', 'TimeTaken'),
             ('NormalSent', 'TimeTaken'),
-            ('TimeTaken', 'source_period')
+            ('TimeTaken', 'source_period'),
+
+            ('energy_impact', 'network_size'),
+            (('energy_impact', 'network_size'), 'TimeTaken'),
         )
 
     @staticmethod
@@ -69,7 +72,15 @@ class Analyzer(AnalyzerCommon):
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
 
-        def dp(d1, d2):
+        def dp(x, n1, n2):
+
+            d1 = x.average_of.get(n1, None)
+            d2 = x.average_of.get(n2, None)
+
+            # Allow missing results
+            if d1 is None or d2 is None:
+                return "None"
+
             result = {}
 
             for (key, value) in d1.items():
@@ -77,12 +88,15 @@ class Analyzer(AnalyzerCommon):
 
             return str(result)
 
-        d['rcvd further hops']     = lambda x: dp(x.average_of['ReceivedFromFurtherHops'], x.average_of['ReceivedFromCloserOrSameHops'])
-        d['rcvd further meters']   = lambda x: dp(x.average_of['ReceivedFromFurtherMeters'], x.average_of['ReceivedFromCloserOrSameMeters'])
+        d['rcvd further hops']     = lambda x: dp(x, 'ReceivedFromFurtherHops', 'ReceivedFromCloserOrSameHops')
+        d['rcvd further meters']   = lambda x: dp(x, 'ReceivedFromFurtherMeters', 'ReceivedFromCloserOrSameMeters')
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
         d['norm(time taken,source period)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(TimeTaken,source_period)')
+
+        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,network_size)')
+        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,network_size),TimeTaken)')
 
         return d
 
