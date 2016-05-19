@@ -14,7 +14,7 @@
 #include <stdlib.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, msg->source_id, BOTTOM, 1)
+#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -288,7 +288,7 @@ implementation
                 {
 
                     simdbg("stdout", "Found colliding slot from node %u, will evaluate if (%u || (%u && %u))\n",
-                        n_info_i->id, hop > n_info_i->hop), (hop == n_info_i->hop), (TOS_NODE_ID > n_info_i->id));
+                        n_info_i->id, (hop > n_info_i->hop), (hop == n_info_i->hop), (TOS_NODE_ID > n_info_i->id));
 
                     // To make sure only one node resolves the slot (rather than both)
                     // Have the node further from the sink resolve.
@@ -371,14 +371,13 @@ implementation
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         if(type != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
-        if(slot != BOT) send_dissem();
-        process_dissem();
 
         if(slot != BOT)
         {
             call DissemTimerSender.startOneShot((uint32_t)(get_slot_period() * random_float()));
         }
 
+        process_dissem();
         call PreSlotTimer.startOneShot(get_dissem_period());
     }
 
