@@ -14,7 +14,7 @@
 #include <stdlib.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, msg->source_id, BOTTOM, 1)
+#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -95,28 +95,28 @@ implementation
 	// This function is to be used by the source node to get the
 	// period it should use at the current time.
 	// DO NOT use this for nodes other than the source!
-	uint32_t get_source_period()
+	uint32_t get_source_period(void)
 	{
 		assert(type == SourceNode);
 		return call SourcePeriodModel.get();
 	}
 
-    uint32_t get_dissem_period()
+    uint32_t get_dissem_period(void)
     {
         return DISSEM_PERIOD_MS;
     }
 
-    uint32_t get_slot_period()
+    uint32_t get_slot_period(void)
     {
         return SLOT_PERIOD_MS;
     }
 
-    uint32_t get_tdma_num_slots()
+    uint32_t get_tdma_num_slots(void)
     {
         return TDMA_NUM_SLOTS;
     }
 
-    uint32_t get_assignment_interval()
+    uint32_t get_assignment_interval(void)
     {
         return SLOT_ASSIGNMENT_INTERVAL;
     }
@@ -200,7 +200,7 @@ implementation
 	USE_MESSAGE(Normal);
     USE_MESSAGE(Dissem);
 
-    void init()
+    void init(void)
     {
         if (type == SinkNode)
         {
@@ -228,20 +228,21 @@ implementation
     }
 
 
-    void process_dissem()
+    void process_dissem(void)
     {
         int i;
         //simdbg("stdout", "Processing DISSEM...\n");
-        if(slot == BOT && type != SinkNode)
+        if(slot == BOT)
         {
-            NeighbourInfo* info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
+            const NeighbourInfo* info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
             OtherInfo* other_info;
 
             if (info == NULL) {
                 /*simdbg("stdout", "Info was NULL.\n");*/
                 return;
             }
-            simdbg("stdout", "Info for n-info with min hop was: ID=%u, hop=%u, slot=%u.\n", info->id, info->hop, info->slot);
+            simdbg("stdout", "Info for n-info with min hop was: ID=%u, hop=%u, slot=%u.\n",
+                info->id, info->hop, info->slot);
 
             other_info = OtherList_get(&others, info->id);
             if(other_info == NULL) {
@@ -280,10 +281,9 @@ implementation
         }
     }
 
-    void send_dissem()
+    void send_dissem(void)
     {
         DissemMessage msg;
-        msg.source_id = TOS_NODE_ID;
         msg.normal = normal;
         NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
 
@@ -292,7 +292,7 @@ implementation
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
     }
 
-	task void send_normal()
+	task void send_normal(void)
 	{
 		NormalMessage* message;
 
@@ -340,7 +340,7 @@ implementation
 
     event void PreSlotTimer.fired()
     {
-        uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
+        const uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
         /*PRINTF0("%s: PreSlotTimer fired.\n", sim_time_string());*/
         call SlotTimer.startOneShot(s*get_slot_period());
     }
@@ -359,10 +359,10 @@ implementation
 
     event void PostSlotTimer.fired()
     {
-        uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
+        const uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
         /*PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());*/
         slot_active = FALSE;
-        call DissemTimer.startOneShot((get_tdma_num_slots()-(s-1))*get_slot_period());
+        call DissemTimer.startOneShot((get_tdma_num_slots() - (s-1)) * get_slot_period());
     }
 
     event void EnqueueNormalTimer.fired()
