@@ -16,9 +16,9 @@
 #include <stdlib.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, msg->source_id, BOTTOM, 1)
-#define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, msg->source_id, BOTTOM, 1)
-#define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, msg->source_id, BOTTOM, 1)
+#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -304,7 +304,6 @@ implementation
     void send_dissem()
     {
         DissemMessage msg;
-        msg.source_id = TOS_NODE_ID;
         msg.normal = normal;
         NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
@@ -315,7 +314,6 @@ implementation
         if(type == SinkNode)
         {
             SearchMessage msg;
-            msg.source_id = TOS_NODE_ID;
             msg.dist = get_pr_dist();
             msg.pr = get_pr_length();
             send_Search_message(&msg, AM_BROADCAST_ADDR);
@@ -332,7 +330,6 @@ implementation
             simdbg("stdout", "CHANGE HAS BEGUN\n");
             start_node = FALSE;
             NeighbourList_select(&n_info, &neighbours, &onehop);
-            msg.source_id = TOS_NODE_ID;
             msg.a_node = choose(&potential_parents); //choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = redir_length - 1;
@@ -610,7 +607,6 @@ implementation
         else if((rcvd->dist > 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count))
         {
             SearchMessage msg;
-            msg.source_id = TOS_NODE_ID;
             msg.pr = rcvd->pr;
             msg.dist = rcvd->dist - 1; //rcvd->dist - hop;
             msg.dist = (msg.dist<0) ? 0 : msg.dist;
@@ -644,7 +640,6 @@ implementation
             NeighbourList_select(&n_info, &neighbours, &onehop);
             slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-            msg.source_id = TOS_NODE_ID;
             msg.a_node = choose(&npar); //choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = rcvd->len_d - 1;
