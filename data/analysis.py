@@ -180,6 +180,18 @@ class Analyse(object):
                 num_sources = self._get_from_opts_or_values("num_sources", values)
                 return source_rate / num_sources
 
+            elif name == "energy_impact":
+                # From Great Duck Island paper, in nAh
+                cost_per_bcast_nah = 20.0
+                cost_per_deliver_nah = 8.0
+
+                sent = self._get_from_opts_or_values("Sent", values)
+                received = self._get_from_opts_or_values("Received", values)
+
+                num_sources = self._get_from_opts_or_values("num_sources", values)
+
+                return (sent * cost_per_bcast_nah + received * cost_per_deliver_nah) * 0.001
+
             else:
                 return float(self.opts[name])
 
@@ -429,6 +441,17 @@ class AnalyzerCommon(object):
         d['source period']      = lambda x: x.opts['source_period']
 
         return d
+
+    @staticmethod
+    def common_results(d):
+        # These metrics are ones that all simulations should have
+        d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
+        d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
+        d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered', allow_missing=True)
+
+        d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
+        d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
+        d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
 
     @staticmethod
     def _format_results(x, name, allow_missing=False, average_corrector=lambda x: x, variance_corrector=lambda x: x):
