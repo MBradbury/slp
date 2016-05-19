@@ -285,7 +285,7 @@ implementation
         DissemMessage msg;
         msg.source_id = TOS_NODE_ID;
         msg.normal = normal;
-        NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
+        NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
         simdbg("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");
 
@@ -327,12 +327,25 @@ implementation
 		}
 	}
 
+    void MessageQueue_clear()
+    {
+        NormalMessage* message;
+        while(!(call MessageQueue.empty()))
+        {
+            message = call MessageQueue.dequeue();
+            if(message)
+            {
+                call MessagePool.put(message);
+            }
+        }
+    }
     //Main Logic}}}
 
     //Timers.fired(){{{
     event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
+        if(type != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(slot != BOT) send_dissem();
         process_dissem();
         call PreSlotTimer.startOneShot(get_dissem_period());
