@@ -250,25 +250,25 @@ implementation
         //simdbg("stdout", "Processing DISSEM...\n");
         if(slot == BOT)
         {
-            const NeighbourInfo* info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
+            const NeighbourInfo* parent_info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
             OtherInfo* other_info;
 
-            if (info == NULL) {
+            if (parent_info == NULL) {
                 /*simdbg("stdout", "Info was NULL.\n");*/
                 return;
             }
             simdbg("stdout", "Info for n-info with min hop was: ID=%u, hop=%u, slot=%u.\n",
-                    info->id, info->hop, info->slot);
+                parent_info->id, parent_info->hop, parent_info->slot);
 
-            other_info = OtherList_get(&others, info->id);
+            other_info = OtherList_get(&others, parent_info->id);
             if(other_info == NULL) {
                 simdbgerror("stdout", "Other info was NULL.\n");
                 return;
             }
 
-            hop = info->hop + 1;
-            parent = info->id; //info->slot is equivalent to parent slot
-            slot = info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
+            hop = parent_info->hop + 1;
+            parent = parent_info->id;
+            slot = parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
 
             simdbg("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, slot, hop);
 
