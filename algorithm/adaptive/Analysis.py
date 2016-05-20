@@ -15,6 +15,7 @@ class Analyzer(AnalyzerCommon):
 
             ('energy_impact', 'network_size'),
             (('energy_impact', 'network_size'), 'TimeTaken'),
+            ('energy_impact_time', '1'),
         )
 
     @staticmethod
@@ -51,7 +52,7 @@ class Analyzer(AnalyzerCommon):
 
         d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,network_size)')
         d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,network_size),TimeTaken)')
-        d['energy impact time'] = lambda x: AnalyzerCommon._format_results(x, 'energy_impact_time')
+        d['energy impact time'] = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact_time,1)')
 
         return d
 
