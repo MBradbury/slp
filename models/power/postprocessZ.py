@@ -717,6 +717,13 @@ def handle_event(l):
 
 ########################  "Main" code ###################
 
+def total_energy(mote):
+    total_sum = sum(total[mote].values())
+
+    cpu_active_e = state[mote]['cpu_cycles'] * voltage * em['CPU_ACTIVE']/em['CPU_FREQ']
+
+    return total_sum + cpu_active_e
+
 def print_summary():
     global total, battery, mote_died
     global maxseen, battery_total_charge,eff_table_filename,rec_table_filename,efftable,rectable, tracefile
