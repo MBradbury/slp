@@ -195,18 +195,18 @@ class Analyse(object):
 
                 return cost_mah
 
-            elif name == "energy_impact_time":
+            elif name == "daily_allowance_used":
                 energy_impact = self._get_from_opts_or_values("energy_impact", values)
-                num_sources = self._get_from_opts_or_values("num_sources", values)
+                network_size = self._get_from_opts_or_values("network_size", values)
                 time_taken = self._get_from_opts_or_values("TimeTaken", values)
 
-                energy_impact_per_node_per_second = (energy_impact / num_sources) / time_taken
+                energy_impact_per_node_per_second = (energy_impact / network_size) / time_taken
 
-                battery_capacity_mah = 2200
+                energy_impact_per_node_per_day = energy_impact_per_node_per_second * 60.0 * 60.0 * 24.0
 
-                impact_seconds = battery_capacity_mah / energy_impact_per_node_per_second
+                daily_allowance_mah = 6.9
 
-                return impact_seconds * 60 * 60
+                return (energy_impact_per_node_per_day / daily_allowance_mah) * 100.0
 
             elif name == "1":
                 return 1.0
