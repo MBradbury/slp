@@ -208,6 +208,9 @@ class Analyse(object):
 
                 return impact_seconds * 60 * 60
 
+            elif name == "1":
+                return 1.0
+
             else:
                 return float(self.opts[name])
 
