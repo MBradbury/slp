@@ -357,6 +357,17 @@ class MetricsCommon(object):
 
         return result
 
+    def energy_per_node(self):
+        return {
+            node_id: powertossimz.total_energy(node_id)
+
+            for (node_id, coord) in enumerate(self.configuration.topology.nodes)
+        }
+
+    def energy_overall(self):
+        return sum(self.energy_per_node().values())
+
+
     @staticmethod
     def smaller_dict_str(d):
         return str(d).replace(": ", ":").replace(", ", ",")
@@ -388,6 +399,9 @@ class MetricsCommon(object):
         d["SentHeatMap"]                   = lambda x: MetricsCommon.smaller_dict_str(x.sent_heat_map())
         d["ReceivedHeatMap"]               = lambda x: MetricsCommon.smaller_dict_str(x.received_heat_map())
 
+        d["EnergyPerNode"]                 = lambda x: MetricsCommon.smaller_dict_str(x.energy_per_node())
+        d["EnergyOverall"]                 = lambda x: x.energy_overall()
+
         d["TimeBinWidth"]                  = lambda x: x._time_bin_width
         d["SentOverTime"]                  = lambda x: MetricsCommon.smaller_dict_str(dict(x.sent_over_time))
 
@@ -405,6 +419,6 @@ class MetricsCommon(object):
     def print_results(self, stream=sys.stdout):
         results = [str(fn(self)) for fn in self.items().values()]
 
-        powertossimz.print_summary()
+        #powertossimz.print_summary()
         
         print("|".join(results), file=stream)
