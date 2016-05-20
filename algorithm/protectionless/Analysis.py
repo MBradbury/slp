@@ -4,13 +4,13 @@ from data.analysis import Analyse, AnalysisResults, AnalyzerCommon
 
 from simulator import SourcePeriodModel
 
-class AnalyseWithOutlierDetection(Analyse):
+"""class AnalyseWithOutlierDetection(Analyse):
     def detect_outlier(self, values):
         return None
 
         # Disable outlier detection, as we handle failing to capture
         # the source differently now
-        """# Discard simulations that didn't capture the source
+        # Discard simulations that didn't capture the source
         captured_index = self.headings.index("Captured")
         captured = bool(values[captured_index])
 
