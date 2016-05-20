@@ -161,24 +161,23 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'normal': ('Normal Messages Sent', 'left top'),
-            'fake': ('Fake Messages Sent', 'left top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'tfs': ('Number of TFS Created', 'left top'),
-            'pfs': ('Number of PFS Created', 'left top'),
-            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
-
+            #'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            #'captured': ('Capture Ratio (%)', 'right top'),
+            #'normal': ('Normal Messages Sent', 'left top'),
+            #'fake': ('Fake Messages Sent', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            #'tfs': ('Number of TFS Created', 'left top'),
+            #'pfs': ('Number of PFS Created', 'left top'),
+            #'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
+            #'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            #'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
+            #'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
+            #'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
             'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
             'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
-            'energy impact time': ('Energy Impact Time (hours)', 'left top'),
+            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
         }
 
         custom_yaxis_range_max = {
@@ -193,6 +192,8 @@ class CLI(CommandLineCommon.CLI):
             'norm(fake,time taken)': 12000,
             'norm(normal,time taken)': 3500,
             'ssd': 30,
+            'energy impact per node per second': 0.00025,
+            'energy allowance used': 350,
         }
 
         protectionless_results = results.Results(
