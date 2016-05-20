@@ -161,20 +161,23 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'normal': ('Normal Messages Sent', 'left top'),
-            'fake': ('Fake Messages Sent', 'left top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'tfs': ('Number of TFS Created', 'left top'),
-            'pfs': ('Number of PFS Created', 'left top'),
-            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
+            #'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            #'captured': ('Capture Ratio (%)', 'right top'),
+            #'normal': ('Normal Messages Sent', 'left top'),
+            #'fake': ('Fake Messages Sent', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            #'tfs': ('Number of TFS Created', 'left top'),
+            #'pfs': ('Number of PFS Created', 'left top'),
+            #'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
+            #'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            #'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
+            #'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
+            #'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
+            'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
+            'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
+            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
         }
 
         custom_yaxis_range_max = {
@@ -189,6 +192,8 @@ class CLI(CommandLineCommon.CLI):
             'norm(fake,time taken)': 12000,
             'norm(normal,time taken)': 3500,
             'ssd': 30,
+            'energy impact per node per second': 0.00025,
+            'energy allowance used': 350,
         }
 
         protectionless_results = results.Results(
@@ -207,16 +212,16 @@ class CLI(CommandLineCommon.CLI):
             parameters=adaptive.CommandLine.CLI.local_parameter_names,
             results=graph_parameters.keys())
 
-        def graph_min_max_versus(result_name):
-            name = 'min-max-{}-versus-{}'.format(adaptive.name, result_name)
+        def graph_min_max_versus(result_name, xaxis):
+            name = 'min-max-{}-versus-{}-{}'.format(adaptive.name, result_name, xaxis)
 
             yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if result_name == 'attacker distance' else scalar_extractor(x)
 
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=result_name, vary='approach', yextractor=yextractor)
+                xaxis=xaxis, yaxis=result_name, vary='approach', yextractor=yextractor)
 
-            g.xaxis_label = 'Network Size'
+            g.xaxis_label = xaxis.title()
             g.yaxis_label = graph_parameters[result_name][0]
             g.key_position = graph_parameters[result_name][1]
 
@@ -259,7 +264,18 @@ class CLI(CommandLineCommon.CLI):
             ).run()
 
         for result_name in graph_parameters.keys():
-            graph_min_max_versus(result_name)
+            graph_min_max_versus(result_name, 'network size')
+
+
+        custom_yaxis_range_max = {
+            #'energy impact per node per second': 0.00025,
+            #'energy allowance used': 350,
+        }
+
+        for result_name in graph_parameters.keys():
+            graph_min_max_versus(result_name, 'source period')
+
+
 
     def run(self, args):
         super(CLI, self).run(args)

@@ -1,12 +1,18 @@
 from __future__ import print_function, division
 
-import numpy
+import numpy as np
 from numpy import mean, median
 from numpy import var as variance
 
-import sys, ast, math, os, fnmatch, timeit, datetime, collections, traceback
+import pandas as pd
+
+from  more_itertools import unique_everseen
+
+import sys, ast, re, math, os, fnmatch, timeit, datetime, collections, traceback
 from collections import OrderedDict
 from numbers import Number
+
+from data.memoize import memoize
 
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
@@ -45,45 +51,93 @@ def _normalised_value_names(values):
     for value in values:
         all_results.extend(_dfs_names(value))
 
-    # Get unique results maintaining insertion order
-    result = []
-    for r in all_results:
-        if r not in result:
-            result.append(r)
+    unique_results = tuple(unique_everseen(all_results))
 
-    return result
+    return unique_results
+
+def _inf_handling_literal_eval(item):
+     # ast.literal_eval will not parse inf correctly.
+    # passing 2e308 will return a float('inf') instead.
+    #
+    # The fast_eval version will parse inf when on its own correctly,
+    # so this hack is not needed there.
+    item = item.replace('inf', '2e308')
+
+    return ast.literal_eval(item)
+
+def _parse_dict_node_to_value(indict):
+    # Parse a dict like "{1: 10, 2: 20, 3: 40}"
+
+    if indict == "{}":
+        return {}
+
+    return {
+        int(k): int(v)
+        for (k, v) in (csplit.split(":") for csplit in indict[1:-1].split(","))
+    }
+
+DICT_TUPLE_KEY_RE = re.compile(r'\((\d+), (\d+)\): (\d+\.\d+|\d+)')
+DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+): (\d+\.\d+|\d+)')
+
+def _parse_dict_tuple_nodes_to_value(indict):
+    # Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
+    # but also handle the old style of "{0: 1}"
+
+    # Handle two sorts of attacker distance dicts
+    # 1. {attacker_id: distance}
+    # 2. {(source_id, attacker_id): distance}}
+    
+    # New style
+    d1 = {
+        (int(a), int(b)): float(c)
+        for (a, b, c) in DICT_TUPLE_KEY_RE.findall(indict)
+    }
+
+    # Old style - assume the source is 0
+    d2 = {
+        (0, int(b)): float(c)
+        for (b, c) in DICT_TUPLE_KEY_OLD_RE.findall(indict)
+    }
+
+    d1.update(d2)
+
+    return d1
 
 class Analyse(object):
 
-    # When a converter is not present, the custom literal eval will be used
-    FAST_HEADINGS_CONVERTERS = {
-        "Seed": int,
-        "Sent": int,
-        "Captured": lambda x: x == "True",
-        "Received": int,
-        "ReceiveRatio": float,
-        "TimeTaken": float,
-        "WallTime": float,
-        "EventCount": int,
-        "NormalLatency": float,
-        "NormalSinkSourceHops": float,
-        "NormalSent": int,
-        "SentHeatMap": ast.literal_eval,
-        "ReceivedHeatMap": ast.literal_eval,
-        "AttackerDistance": ast.literal_eval,
-        "AttackerMoves": ast.literal_eval,
-        #"NodeWasSource": ast.literal_eval, # Doesn't work due to inf strings
+    HEADING_DTYPES = {
+        "Seed": np.int64,
+        "Sent": np.uint32,
+        "Captured": np.bool_,
+        "Received": np.uint32,
+        "ReceiveRatio": np.float_,
+        "TimeTaken": np.float_,
+        "WallTime": np.float_,
+        "EventCount": np.uint64,
+        "NormalLatency": np.float_,
+        "NormalSinkSourceHops": np.float_,
+        "NormalSent": np.uint32,
+    }
+
+    HEADING_CONVERTERS = {
+        #"Collisions": ast.literal_eval,
+        "SentHeatMap": _parse_dict_node_to_value,
+        "ReceivedHeatMap": _parse_dict_node_to_value,
+        "AttackerDistance": _parse_dict_tuple_nodes_to_value,
+        "AttackerMoves": _parse_dict_node_to_value,
+        "AttackerStepsAway": _parse_dict_tuple_nodes_to_value,
+        "AttackerStepsTowards": _parse_dict_tuple_nodes_to_value,
+        "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
+        "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
+        "NodeWasSource": _inf_handling_literal_eval,
     }
 
     def __init__(self, infile, normalised_values):
 
         self.opts = {}
 
-        self.headings = []
-        #self.data = []
+        self.unnormalised_headings = []
         self.columns = {}
-
-        self._unnormalised_headings_count = None
 
         with open(infile, 'r') as f:
             line_number = 0
@@ -95,7 +149,7 @@ class Analyse(object):
                 # We need to remove the new line at the end of the line
                 line = line.strip()
 
-                if len(self.headings) == 0 and '=' in line:
+                if len(self.unnormalised_headings) == 0 and '=' in line:
                     # We are reading the options so record them.
                     # Some option values will have an '=' in them so only split once.
                     opt = line.split('=', 1)
@@ -104,43 +158,51 @@ class Analyse(object):
 
                 elif line.startswith('#'):
                     # Read the headings
-                    self.headings = line[1:].split('|')
+                    self.unnormalised_headings = line[1:].split('|')
 
-                    self._unnormalised_headings_count = len(self.headings)
+                    break
 
-                    self.headings.extend(_normalised_value_names(normalised_values))
+        if line_number == 0:
+            raise EmptyFileError(infile)
 
-                    self.columns = {heading: list() for heading in self.headings}
+        self._unnormalised_headings_count = len(self.unnormalised_headings)
 
-                elif '|' in line:
-                    try:
-                        # Read the actual data
-                        values = self._better_literal_eval(line_number, line.split('|'))
+        self.additional_normalised_headings = _normalised_value_names(normalised_values)
 
-                        self.check_consistent(values, line_number)
+        self.headings = list(self.unnormalised_headings)
+        self.headings.extend(self.additional_normalised_headings)
 
-                        self.detect_outlier(values)
+        self.columns = pd.read_csv(infile,
+            names=self.unnormalised_headings, header=None,
+            sep='|',
+            skiprows=line_number,
+            dtype=self.HEADING_DTYPES, converters=self.HEADING_CONVERTERS,
+            compression=None,
+            #verbose=True
+        )
 
-                        # Create the per line normalised values
-                        for (num, den) in normalised_values:
-                            num_value = self._get_from_opts_or_values(_normalised_value_name(num), values)
-                            den_value = self._get_from_opts_or_values(_normalised_value_name(den), values)
+        # Removes rows with infs in certain columns
+        self.columns = self.columns.replace([np.inf, -np.inf], np.nan)
+        self.columns.dropna(subset=["NormalLatency"], how="all")
 
-                            values.append(num_value / den_value)
+        for (norm_head, (num, den)) in zip(self.additional_normalised_headings, normalised_values):
 
-                        #self.data.append(values)
+            num = _normalised_value_name(num)
+            den = _normalised_value_name(den)
 
-                        for (name, value) in zip(self.headings, values):
-                            self.columns[name].append(value)
+            self.columns[norm_head] = self.columns.apply(lambda row: self._get_norm_value(num, den, row),
+                axis=1, raw=True, reduce=True)
 
-                    except (TypeError, RuntimeError, SyntaxError) as e:
-                        print("Unable to process line {} due to {}".format(line_number, e), file=sys.stderr)
+    @memoize
+    def headings_index(self, name):
+        return self.headings.index(name)
 
-                else:
-                    print("Unable to parse line {} : '{}'".format(line_number, line))
+    def _get_norm_value(self, num, den, row):
+        num_value = self._get_from_opts_or_values(num, row)
+        den_value = self._get_from_opts_or_values(den, row)
 
-            if line_number == 0 or len(next(iter(self.columns))) == 0:
-                raise EmptyFileError(infile)
+        return np.float_(num_value / den_value)
+
 
     def _get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
@@ -149,7 +211,9 @@ class Analyse(object):
 
     def _get_from_opts_or_values(self, name, values):
         try:
-            index = self.headings.index(_normalised_value_name(name))
+            index = self.headings.index(name)
+
+            #print(name + " " + key + " " + str(values))
 
             return values[index]
         except ValueError:
@@ -180,44 +244,39 @@ class Analyse(object):
                 num_sources = self._get_from_opts_or_values("num_sources", values)
                 return source_rate / num_sources
 
+            elif name == "energy_impact":
+                # From Great Duck Island paper, in nanoamp hours
+                cost_per_bcast_nah = 20.0
+                cost_per_deliver_nah = 8.0
+
+                sent = self._get_from_opts_or_values("Sent", values)
+                received = self._get_from_opts_or_values("Received", values)
+
+                num_sources = self._get_from_opts_or_values("num_sources", values)
+
+                # The energy cost in milliamp hours
+                cost_mah = (sent * cost_per_bcast_nah + received * cost_per_deliver_nah) / 1000000.0
+
+                return cost_mah
+
+            elif name == "daily_allowance_used":
+                energy_impact = self._get_from_opts_or_values("energy_impact", values)
+                network_size = self._get_from_opts_or_values("network_size", values)
+                time_taken = self._get_from_opts_or_values("TimeTaken", values)
+
+                energy_impact_per_node_per_second = (energy_impact / network_size) / time_taken
+
+                energy_impact_per_node_per_day = energy_impact_per_node_per_second * 60.0 * 60.0 * 24.0
+
+                daily_allowance_mah = 6.9
+
+                return (energy_impact_per_node_per_day / daily_allowance_mah) * 100.0
+
+            elif name == "1":
+                return 1.0
+
             else:
                 return float(self.opts[name])
-
-
-    def _better_literal_eval(self, line_number, items):
-        
-        if self._unnormalised_headings_count != len(items):
-            raise RuntimeError("The number of headings ({}) is not the same as the number of values ({}) on line {}".format(
-                self._unnormalised_headings_count, len(items), line_number))
-
-        values = []
-
-        lit = None
-
-        for (heading, item) in zip(self.headings, items):
-
-            fast_eval = self.FAST_HEADINGS_CONVERTERS.get(heading, None)
-
-            try:
-                if fast_eval is not None:
-                    lit = fast_eval(item)
-                else:
-                    # ast.literal_eval will not parse inf correctly.
-                    # passing 2e308 will return a float('inf') instead.
-                    #
-                    # The fast_eval version will parse inf when on its own correctly,
-                    # so this hack is not needed there.
-                    item = item.replace('inf', '2e308')
-
-                    lit = ast.literal_eval(item)
-            except ValueError as e:
-                print("Unable to process line {} due to {} ({}={})".format(line_number, e, heading, item), file=sys.stderr)
-                lit = None
-
-            values.append(lit)
-
-        return values
-
 
     def check_consistent(self, values, line_number):
         """Perform multiple sanity checks on the data generated"""
@@ -260,7 +319,7 @@ class Analyse(object):
         # 1. {attacker_id: distance}
         # 2. {(source_id, attacker_id): distance}}
         any_at_source = any(
-            numpy.isclose(dist, 0.0) if isinstance(dist, Number) else any(numpy.isclose(v, 0.0) for (k, v) in dist.items())
+            np.isclose(dist, 0.0) if isinstance(dist, Number) else any(np.isclose(v, 0.0) for (k, v) in dist.items())
             for dist
             in attacker_distance.values()
         )
@@ -286,61 +345,41 @@ class Analyse(object):
         excluded from the analysis"""
         pass
 
-    @staticmethod
-    def _to_float(value):
-        """Convert boolean to floats to allow averaging
-        the number of time the source was captured."""
-        if value is True:
-            return 1.0
-        elif value is False:
-            return 0.0
-        else:
-            return float(value)
-
     def average_of(self, header):
         values = self.columns[header]
 
-        if isinstance(values[0], dict):
-            return self.dict_mean(values)
-        else:
-            # Some values may be inf, if they are lets ignore the values that were inf.
-            filtered = [x for x in (self._to_float(value) for value in values) if not math.isinf(x)]
+        first = values[0]
 
-            # Unless all the values are inf, when we should probably pass this fact onwards.
-            if len(filtered) != 0:
-                return mean(filtered)
-            else:
-                return float('inf')
+        if isinstance(first, dict):
+            return self.dict_mean(values)
+        elif isinstance(first, str):
+            raise TypeError("Cannot find the average of a string for {}".format(header))
+        else:
+            return values.mean()
 
     def variance_of(self, header):
         values = self.columns[header]
 
-        if isinstance(values[0], dict):
-            raise NotImplementedError()
-        else:
-            # Some values may be inf, if they are lets ignore the values that were inf.
-            filtered = [x for x in (self._to_float(value) for value in values) if not math.isinf(x)]
+        first = values[0]
 
-            # Unless all the values are inf, when we should probably pass this fact onwards.
-            if len(filtered) != 0:
-                return variance(filtered)
-            else:
-                return float('nan')
+        if isinstance(first, dict):
+            raise NotImplementedError("Finding the variance of dicts is not implemented")
+        elif isinstance(first, str):
+            raise TypeError("Cannot find the variance of a string for {}".format(header))
+        else:
+            return values.var()
 
     def median_of(self, header):
         values = self.columns[header]
 
-        if isinstance(values[0], dict):
-            raise NotImplementedError()
-        else:
-            # Some values may be inf, if they are lets ignore the values that were inf.
-            filtered = [x for x in (self._to_float(value) for value in values) if not math.isinf(x)]
+        first = values[0]
 
-            # Unless all the values are inf, when we should probably pass this fact onwards.
-            if len(filtered) != 0:
-                return median(values)
-            else:
-                return float('nan')
+        if isinstance(first, dict):
+            raise NotImplementedError("Finding the median of dicts is not implemented")
+        elif isinstance(first, str):
+            raise TypeError("Cannot find the median of a string for {}".format(header))
+        else:
+            return values.median()
 
 
     @staticmethod
@@ -372,9 +411,14 @@ class AnalysisResults:
         self.variance_of = {}
         self.median_of = {}
 
-        expected_fail = ['Collisions']
+        skip = ["Seed"]
+
+        expected_fail = ['Collisions', "NodeWasSource"]
 
         for heading in analysis.headings:
+            if heading in skip:
+                continue
+
             try:
                 self.average_of[heading] = analysis.average_of(heading)
             except NotImplementedError:
@@ -393,10 +437,9 @@ class AnalysisResults:
                     print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
                     #print(traceback.format_exc(), file=sys.stderr)
 
-        self.median_of['TimeTaken'] = analysis.average_of('TimeTaken')
+        self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
 
         self.opts = analysis.opts
-        #self.data = analysis.data
         self.columns = analysis.columns
 
     def number_of_repeats(self):
@@ -407,10 +450,10 @@ class AnalysisResults:
         return len(self.columns[aname])
 
 class AnalyzerCommon(object):
-    def __init__(self, results_directory, values, normalised_values=tuple()):
+    def __init__(self, results_directory, values, normalised_values=None):
         self.results_directory = results_directory
         self.values = values
-        self.normalised_values = normalised_values
+        self.normalised_values = normalised_values if normalised_values is not None else tuple()
 
     @staticmethod
     def common_results_header():
@@ -429,6 +472,17 @@ class AnalyzerCommon(object):
         d['source period']      = lambda x: x.opts['source_period']
 
         return d
+
+    @staticmethod
+    def common_results(d):
+        # These metrics are ones that all simulations should have
+        d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
+        d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
+        d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered', allow_missing=True)
+
+        d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
+        d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
+        d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
 
     @staticmethod
     def _format_results(x, name, allow_missing=False, average_corrector=lambda x: x, variance_corrector=lambda x: x):

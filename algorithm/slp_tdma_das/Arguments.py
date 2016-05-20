@@ -5,7 +5,7 @@ import simulator.MobilityModel
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="Protectionless TDMA DAS", add_help=True)
+        parser = argparse.ArgumentParser(description="SLP TDMA DAS", add_help=True)
         super(Arguments, self).__init__(parser, has_safety_period=False)
 
         parser.add_argument("--source-period",
@@ -25,6 +25,5 @@ class Arguments(ArgumentsCommon):
         result["DISSEM_PERIOD_MS"] = int(self.args.dissem_period * 1000)
         result["TDMA_NUM_SLOTS"] = self.args.tdma_num_slots
         result["SLOT_ASSIGNMENT_INTERVAL"] = self.args.slot_assignment_interval
-
 
         return result

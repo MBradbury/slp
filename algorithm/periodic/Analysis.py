@@ -7,7 +7,15 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def normalised_parameters():
-        return tuple()
+        return (
+            ('Sent', 'TimeTaken'),
+            ('NormalSent', 'TimeTaken'),
+            ('TimeTaken', 'source_period'),
+
+            ('energy_impact', 'network_size'),
+            (('energy_impact', 'network_size'), 'TimeTaken'),
+            ('daily_allowance_used', '1'),
+        )
 
     @staticmethod
     def results_header():
@@ -26,9 +34,17 @@ class Analyzer(AnalyzerCommon):
         d['dummy normal']       = lambda x: AnalyzerCommon._format_results(x, 'DummyNormalSent')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
 
-        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
+        #d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+
+        d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
+        d['norm(time taken,source period)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(TimeTaken,source_period)')
+
+        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,network_size)')
+        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,network_size),TimeTaken)')
+        d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
 
         return d

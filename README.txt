@@ -33,6 +33,10 @@ source ~/tinyos.env
 cd slp-algorithms-tinyos/tinyos/support/sdk/java/net/tinyos/sim
 javac LinkLayerModel.java
 
+5. Install python libraries
+
+sudo pip install scipy numpy pandas more_itertools
+
 ==Updating from upstream==
 
 Ideally you will have forked the slp-algorithms-tinyos repository.
