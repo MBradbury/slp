@@ -379,10 +379,10 @@ class MetricsCommon(object):
         d["TimeBinWidth"]                  = lambda x: x._time_bin_width
         d["SentOverTime"]                  = lambda x: MetricsCommon.smaller_dict_str(dict(x.sent_over_time))
 
-        d["ReceivedFromCloserOrSameHops"]  = lambda x: dict(x.received_from_closer_or_same_hops)
-        d["ReceivedFromFurtherHops"]       = lambda x: dict(x.received_from_further_hops)
-        d["ReceivedFromCloserOrSameMeters"]= lambda x: dict(x.received_from_closer_or_same_meters)
-        d["ReceivedFromFurtherMeters"]     = lambda x: dict(x.received_from_further_meters)
+        d["ReceivedFromCloserOrSameHops"]  = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_closer_or_same_hops))
+        d["ReceivedFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_further_hops))
+        d["ReceivedFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_closer_or_same_meters))
+        d["ReceivedFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_further_meters))
 
         return d
 
