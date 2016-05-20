@@ -16,7 +16,9 @@
 #include <stdlib.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, msg->source_id, BOTTOM, 1)
+#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -31,6 +33,7 @@ module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
+    uses interface Random;
 
     uses interface Timer<TMilli> as DissemTimer;
 	uses interface Timer<TMilli> as EnqueueNormalTimer;
@@ -242,7 +245,7 @@ implementation
             hop = 0;
             parent = AM_BROADCAST_ADDR;
             slot = get_tdma_num_slots(); //Delta
-            NeighbourList_add(&n_info, TOS_NODE_ID, 0, get_tdma_num_slots()); //Delta
+            NeighbourList_add(&n_info, TOS_NODE_ID, 0, slot); //Delta
         }
         else
         {
@@ -251,6 +254,11 @@ implementation
         IDList_add(&neighbours, TOS_NODE_ID);
     }
 
+    uint16_t choose(const IDList* list)
+    {
+        if (list->count == 0) return UINT16_MAX;
+        else return list->ids[(call Random.rand16()) % list->count];
+    }
 
     void process_dissem()
     {
@@ -296,7 +304,6 @@ implementation
     void send_dissem()
     {
         DissemMessage msg;
-        msg.source_id = TOS_NODE_ID;
         msg.normal = normal;
         NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
@@ -307,7 +314,6 @@ implementation
         if(type == SinkNode)
         {
             SearchMessage msg;
-            msg.source_id = TOS_NODE_ID;
             msg.dist = get_pr_dist();
             msg.pr = get_pr_length();
             send_Search_message(&msg, AM_BROADCAST_ADDR);
@@ -324,7 +330,6 @@ implementation
             simdbg("stdout", "CHANGE HAS BEGUN\n");
             start_node = FALSE;
             NeighbourList_select(&n_info, &neighbours, &onehop);
-            msg.source_id = TOS_NODE_ID;
             msg.a_node = choose(&potential_parents); //choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = redir_length - 1;
@@ -333,30 +338,39 @@ implementation
     }
 
 	task void send_normal()
-	{
-		NormalMessage* message;
+    {
+        NormalMessage* message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
-
-		message = call MessageQueue.dequeue();
-
-		if (message != NULL)
-		{
-			if (send_Normal_message(message, AM_BROADCAST_ADDR))
-			{
-				call MessagePool.put(message);
-			}
-			else
-			{
-				simdbgerror("stdout", "send failed, not returning memory to pool so it will be tried again\n");
-			}
-		}
-
-        if(slot_active && !(call MessageQueue.empty()))
+        // This task may be delayed, such that it is scheduled when the slot is active,
+        // but called after the slot is no longer active.
+        // So it is important to check here if the slot is still active before sending.
+        if (!slot_active)
         {
-            post send_normal();
+            return;
         }
-	}
+
+        simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
+
+        message = call MessageQueue.dequeue();
+
+        if (message != NULL)
+        {
+            error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
+            if (send_result == SUCCESS)
+            {
+                call MessagePool.put(message);
+            }
+            else
+            {
+                simdbgerror("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
+            }
+
+            if (slot_active && !(call MessageQueue.empty()))
+            {
+                post send_normal();
+            }
+        }
+    }
 
     //Main Logic}}}
 
@@ -580,6 +594,7 @@ implementation
     {
         OtherInfo* other_info = OtherList_get(&others, parent);
         simdbg("stdout", "Received search\n");
+        METRIC_RCV_SEARCH(rcvd);
         if(rcvd->dist == 0)
         {
             start_node = TRUE;
@@ -592,7 +607,6 @@ implementation
         else if((rcvd->dist > 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count))
         {
             SearchMessage msg;
-            msg.source_id = TOS_NODE_ID;
             msg.pr = rcvd->pr;
             msg.dist = rcvd->dist - 1; //rcvd->dist - hop;
             msg.dist = (msg.dist<0) ? 0 : msg.dist;
@@ -614,6 +628,7 @@ implementation
 
     void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)
     {
+        METRIC_RCV_CHANGE(rcvd);
         if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID)
         {
             ChangeMessage msg;
@@ -622,11 +637,9 @@ implementation
             IDList npar = IDList_minus_parent(&neighbours, TOS_NODE_ID);
             npar = IDList_minus_parent(&npar, parent);
             simdbg("stdout", "Received change\n");
-            simdbg("Node-Change-Notification", "The node has become a TFS\n");
             NeighbourList_select(&n_info, &neighbours, &onehop);
             slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-            msg.source_id = TOS_NODE_ID;
             msg.a_node = choose(&npar); //choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = rcvd->len_d - 1;
@@ -634,7 +647,6 @@ implementation
         }
         else if(rcvd->len_d == 0 && rcvd->a_node == TOS_NODE_ID)
         {
-            simdbg("Node-Change-Notification", "The node has become a TFS\n");
             normal = FALSE;
             slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);

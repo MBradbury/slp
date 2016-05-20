@@ -34,6 +34,8 @@ class Metrics(MetricsCommon):
     def items():
         d = MetricsCommon.items()
         d["DissemSent"]               = lambda x: x.number_sent("Dissem")
+        d["ChangeSent"]               = lambda x: x.number_sent("Change")
+        d["SearchSent"]               = lambda x: x.number_sent("Search")
 
         d["PoolFull"]                 = lambda x: dict(x.pool_full)
         d["FirstSendTime"]            = lambda x: x.first_normal_send_times()

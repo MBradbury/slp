@@ -4,7 +4,7 @@ import simulator.Attacker
 from simulator.Simulation import OutputCatcher
 
 from collections import Counter, OrderedDict, defaultdict
-import re, sys, math
+import sys, math
 
 from models.power import postprocessZ as powertossimz
 
@@ -27,6 +27,7 @@ class MetricsCommon(object):
 
         self.sent = defaultdict(Counter)
         self.received = defaultdict(Counter)
+        self.delivered = defaultdict(Counter)
 
         self._time_bin_width = 0.5
         self.sent_over_time = defaultdict(list)
@@ -147,7 +148,11 @@ class MetricsCommon(object):
                     self.received_from_closer_or_same_meters[source_id] += 1
 
     def process_DELIVER(self, line):
-        pass
+        (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number) = line.split(',')
+
+        node_id = int(node_id)
+
+        self.delivered[kind][node_id] += 1
 
     #COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')
 
@@ -203,6 +208,9 @@ class MetricsCommon(object):
 
     def total_received(self):
         return sum(sum(received.values()) for received in self.received.values())
+
+    def total_delivered(self):
+        return sum(sum(delivered.values()) for delivered in self.delivered.values())
 
     def sent_heat_map(self):
         return dict(sum(self.sent.values(), Counter()))
@@ -359,6 +367,7 @@ class MetricsCommon(object):
         d["Seed"]                          = lambda x: x.seed()
         d["Sent"]                          = lambda x: x.total_sent()
         d["Received"]                      = lambda x: x.total_received()
+        d["Delivered"]                     = lambda x: x.total_delivered()
         d["Collisions"]                    = lambda x: None
         d["Captured"]                      = lambda x: x.captured()
         d["ReceiveRatio"]                  = lambda x: x.receive_ratio()

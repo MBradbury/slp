@@ -152,11 +152,16 @@ class Grapher(GrapherBase):
                 if self.key_height is not None:
                     graph_p.write('set key height {}\n'.format(self.key_height))
 
-            xvalues_as_ints = map(int, xvalues)
+            if self.xaxis == "network size":
+                xvalues_as_num = map(int, xvalues)
+                xvalues_padding = 1
+            else:
+                xvalues_as_num = map(float, xvalues)
+                xvalues_padding = 0.1
 
             # Should remain the same as we are testing with
             # a limited sized grid of nodes
-            graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_ints) - 1, max(xvalues_as_ints) + 1))
+            graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_num) - xvalues_padding, max(xvalues_as_num) + xvalues_padding))
             graph_p.write('set xtics ({})\n'.format(",".join(sorted(xvalues))))
 
             if self.xaxis_font is not None:

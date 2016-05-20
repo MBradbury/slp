@@ -12,6 +12,10 @@ class Analyzer(AnalyzerCommon):
             ('FakeSent', 'TimeTaken'),
             (('FakeSent', 'TimeTaken'), 'source_rate'),
             ('NormalSent', 'TimeTaken'),
+
+            ('energy_impact', 'network_size'),
+            (('energy_impact', 'network_size'), 'TimeTaken'),
+            ('daily_allowance_used', '1'),
         )
 
     @staticmethod
@@ -19,15 +23,14 @@ class Analyzer(AnalyzerCommon):
         d = AnalyzerCommon.common_results_header()
 
         d['approach']           = lambda x: x.opts['approach']
+
+        AnalyzerCommon.common_results(d)
         
-        d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
-        d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
         d['captured']           = lambda x: str(x.average_of['Captured'])
         d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance', average_corrector=Analyzer._correct_attacker_distance)
         d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
-        d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
         d['choose']             = lambda x: AnalyzerCommon._format_results(x, 'ChooseSent')
@@ -36,9 +39,6 @@ class Analyzer(AnalyzerCommon):
         d['pfs']                = lambda x: AnalyzerCommon._format_results(x, 'PFS')
         d['fake to normal']     = lambda x: AnalyzerCommon._format_results(x, 'FakeToNormal')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
-
-        d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
-        d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
@@ -49,6 +49,10 @@ class Analyzer(AnalyzerCommon):
         d['norm(norm(fake,time taken),source rate)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(FakeSent,TimeTaken),source_rate)')
 
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
+
+        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,network_size)')
+        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,network_size),TimeTaken)')
+        d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
 
         return d
 
