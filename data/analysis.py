@@ -65,19 +65,20 @@ def _inf_handling_literal_eval(item):
 
     return ast.literal_eval(item)
 
+DICT_NODE_KEY_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*[,}]')
+
 def _parse_dict_node_to_value(indict):
     # Parse a dict like "{1: 10, 2: 20, 3: 40}"
 
-    if indict == "{}":
-        return {}
-
-    return {
-        int(k): int(v)
-        for (k, v) in (csplit.split(":") for csplit in indict[1:-1].split(","))
+    result = {
+        int(a): float(b)
+        for (a, b) in DICT_NODE_KEY_RE.findall(indict)
     }
 
-DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)')
-DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)')
+    return result
+
+DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*[,}]')
+DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*[,}]')
 
 def _parse_dict_tuple_nodes_to_value(indict):
     # Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
