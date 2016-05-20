@@ -76,8 +76,8 @@ def _parse_dict_node_to_value(indict):
         for (k, v) in (csplit.split(":") for csplit in indict[1:-1].split(","))
     }
 
-DICT_TUPLE_KEY_RE = re.compile(r'\((\d+), (\d+)\): (\d+\.\d+|\d+)')
-DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+): (\d+\.\d+|\d+)')
+DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)')
+DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)')
 
 def _parse_dict_tuple_nodes_to_value(indict):
     # Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
