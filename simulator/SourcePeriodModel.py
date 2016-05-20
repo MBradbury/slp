@@ -4,6 +4,8 @@ import math, numbers
 
 from data.restricted_eval import restricted_eval
 
+from data.memoize import memoize
+
 class PeriodModel(object):
     def __init__(self, times):
         self.period_times = times
@@ -120,6 +122,7 @@ def models():
     """A list of the names of the available period models."""
     return [cls for cls in PeriodModel.__subclasses__()]
 
+@memoize
 def eval_input(source):
     result = restricted_eval(source, models())
 
