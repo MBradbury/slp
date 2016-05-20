@@ -83,26 +83,23 @@ def _parse_dict_tuple_nodes_to_value(indict):
     # Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
     # but also handle the old style of "{0: 1}"
 
-    #print(indict)
-    #print(DICT_TUPLE_KEY_RE.findall(indict))
-    #print()
+    # Handle two sorts of attacker distance dicts
+    # 1. {attacker_id: distance}
+    # 2. {(source_id, attacker_id): distance}}
     
+    # New style
     d1 = {
         (int(a), int(b)): float(c)
         for (a, b, c) in DICT_TUPLE_KEY_RE.findall(indict)
     }
 
-    # Old style
+    # Old style - assume the source is 0
     d2 = {
         (0, int(b)): float(c)
         for (b, c) in DICT_TUPLE_KEY_OLD_RE.findall(indict)
     }
 
     d1.update(d2)
-
-    #print(d1)
-    #print(ast.literal_eval(indict))
-    #print()
 
     return d1
 
