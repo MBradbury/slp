@@ -4,7 +4,7 @@ import simulator.Attacker
 from simulator.Simulation import OutputCatcher
 
 from collections import Counter, OrderedDict, defaultdict
-import re, sys, math
+import sys, math
 
 import numpy as np
 
