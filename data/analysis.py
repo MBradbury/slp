@@ -278,11 +278,12 @@ class Analyse(object):
 
                 return (energy_impact_per_node_per_day / daily_allowance_mah) * 100.0
 
-            elif name == "1":
-                return 1.0
-
             else:
-                return float(self.opts[name])
+                # Handle normalising with arbitrary numbers
+                try:
+                    return float(name)
+                except ValueError:
+                    return float(self.opts[name])
 
     def check_consistent(self, values, line_number):
         """Perform multiple sanity checks on the data generated"""
@@ -537,7 +538,7 @@ class AnalyzerCommon(object):
 
                     outqueue.put((path, line, None))
 
-                except EmptyFileError as e:
+                except Exception as e:
                     outqueue.put((path, None, e))
 
 
