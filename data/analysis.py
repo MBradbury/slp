@@ -274,7 +274,8 @@ class Analyse(object):
 
                 energy_impact_per_node_per_day = energy_impact_per_node_per_second * 60.0 * 60.0 * 24.0
 
-                daily_allowance_mah = 6.9
+                # Allowance after considering CPU is 1.9 mAh
+                daily_allowance_mah = 1.9
 
                 return (energy_impact_per_node_per_day / daily_allowance_mah) * 100.0
 
