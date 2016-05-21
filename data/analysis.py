@@ -12,6 +12,8 @@ import sys, ast, re, math, os, fnmatch, timeit, datetime, collections, traceback
 from collections import OrderedDict
 from numbers import Number
 
+import multiprocessing
+
 from data.memoize import memoize
 
 import simulator.Configuration as Configuration
@@ -508,6 +510,40 @@ class AnalyzerCommon(object):
         return AnalysisResults(self.analyse_path(path))
 
     def run(self, summary_file):
+        
+        def worker(inqueue, outqueue):
+            while True:
+                item = inqueue.get()
+
+                if item is None:
+                    return
+
+                path = item
+
+                try:
+                    result = self.analyse_and_summarise_path(path)
+
+                    # Skip 0 length results
+                    if result.number_of_repeats() == 0:
+                        outqueue.put((path, None, "There are 0 repeats"))
+                        continue
+
+                    line_data = [fn(result) for fn in self.values.values()]
+
+                    outqueue.put((path, line_data, None))
+
+                except EmptyFileError as e:
+                    outqueue.put((path, None, e))
+
+
+        nprocs = multiprocessing.cpu_count()
+
+        inqueue = multiprocessing.Queue()
+        outqueue = multiprocessing.Queue()
+
+        pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue))
+        
+
         summary_file_path = os.path.join(self.results_directory, summary_file)
 
         # The output files we need to process.
@@ -516,31 +552,31 @@ class AnalyzerCommon(object):
 
         total = len(files)
 
+
+        for infile in files:
+            path = os.path.join(self.results_directory, infile)
+            inqueue.put(path)
+
+        # Push the queue sentinel
+        for i in range(nprocs):
+            inqueue.put(None)
+
+
         with open(summary_file_path, 'w') as out:
 
             print("|".join(self.values.keys()), file=out)
 
             start_time = timeit.default_timer()
 
-            for (num, infile) in enumerate(files):
-                path = os.path.join(self.results_directory, infile)
+            for num in range(total):
+                (path, line_data, error) = outqueue.get()
 
                 print('Analysing {0}'.format(path))
-            
-                try:
-                    result = self.analyse_and_summarise_path(path)
-                    
-                    # Skip 0 length results
-                    if result.number_of_repeats() == 0:
-                        print("Skipping as there is no data.")
-                        continue
 
-                    line_data = [fn(result) for fn in self.values.values()]
-
+                if error is None:
                     print("|".join(line_data), file=out)
-
-                except EmptyFileError as e:
-                    print(e)
+                else:
+                    print("Error processing {} with {}".format(path, error))
 
                 current_time_taken = timeit.default_timer() - start_time
                 time_per_job = current_time_taken / (num + 1)
@@ -555,3 +591,12 @@ class AnalyzerCommon(object):
                 print()
 
             print('Finished writing {}'.format(summary_file))
+
+        inqueue.close()
+        inqueue.join_thread()
+
+        outqueue.close()
+        outqueue.join_thread()
+
+        pool.close()
+        pool.join()
