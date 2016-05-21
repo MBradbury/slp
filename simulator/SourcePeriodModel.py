@@ -1,10 +1,10 @@
 from collections import OrderedDict
 
-import math, numbers
-
-from data.restricted_eval import restricted_eval
+import math
+import numbers
 
 from data.memoize import memoize
+from data.restricted_eval import restricted_eval
 
 class PeriodModel(object):
     def __init__(self, times):
@@ -124,6 +124,7 @@ def models():
 
 @memoize
 def create_specific(source):
+    """Creates a source period model from the :source: string"""
     result = restricted_eval(source, models())
 
     if isinstance(result, numbers.Number):
@@ -133,5 +134,7 @@ def create_specific(source):
     else:
         raise RuntimeError("The source ({}) is not valid.".format(source))
 
+# eval_input must be a function so it can be used as a type parameter for the arguments
 def eval_input(source):
+    """Creates a source period model from the :source: string"""
     return create_specific(source)
