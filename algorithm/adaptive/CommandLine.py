@@ -254,7 +254,7 @@ class CLI(CommandLineCommon.CLI):
 
         template_results = results.Results(
             template.result_file_path,
-            parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
+            parameters=template.CommandLine.CLI.local_parameter_names,
             results=graph_parameters.keys())
 
         def graph_min_max_versus(result_name):
@@ -270,11 +270,13 @@ class CLI(CommandLineCommon.CLI):
 
             g.yaxis_font = g.xaxis_font = "',15'"
 
-            g.key_font = "',20'"
-            g.key_spacing = "2"
-            g.key_width = "+6"
+            g.nokey = True
+            #g.key_font = "',20'"
+            #g.key_spacing = "2"
+            #g.key_width = "-5.5"
 
             g.point_size = '2'
+            g.line_width = 2
 
             g.min_label = 'Static - Lowest'
             g.max_label = 'Static - Highest'
@@ -290,6 +292,8 @@ class CLI(CommandLineCommon.CLI):
                     'PB_ATTACKER_EST_APPROACH': 'Pull Attacker'
                 }[name]
             g.vvalue_label_converter = vvalue_converter
+
+            g.generate_legend_graph = True
 
             g.create(template_results, adaptive_results)
 
