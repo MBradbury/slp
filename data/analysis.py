@@ -1,21 +1,23 @@
 from __future__ import print_function, division
 
-import numpy as np
-from numpy import mean, median
-from numpy import var as variance
-
-import pandas as pd
+import ast
+from collections import OrderedDict, Sequence
+import datetime
+import fnmatch
+import math
+import multiprocessing
+from numbers import Number
+import os
+import re
+import sys
+import timeit
+import traceback
 
 from  more_itertools import unique_everseen
-
-import sys, ast, re, math, os, fnmatch, timeit, datetime, collections, traceback
-from collections import OrderedDict
-from numbers import Number
-
-import multiprocessing
+import numpy as np
+import pandas as pd
 
 from data.memoize import memoize
-
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
@@ -27,7 +29,7 @@ class EmptyFileError(RuntimeError):
 def _normalised_value_name(value):
     if isinstance(value, str):
         return value
-    elif isinstance(value, collections.Sequence) and len(value) == 2:
+    elif isinstance(value, Sequence) and len(value) == 2:
         return "norm({},{})".format(_normalised_value_name(value[0]), _normalised_value_name(value[1]))
     else:
         raise RuntimeError("Unknown type or length for value '{}' of type {}".format(value, type(value)))
@@ -38,7 +40,7 @@ def _dfs_names(value):
     if isinstance(value, str):
         #result.append(value)
         pass
-    elif isinstance(value, collections.Sequence) and len(value) == 2:
+    elif isinstance(value, Sequence) and len(value) == 2:
         result.extend(_dfs_names(value[0]))
         result.extend(_dfs_names(value[1]))
         result.append(_normalised_value_name(value))
@@ -528,9 +530,9 @@ class AnalyzerCommon(object):
                         outqueue.put((path, None, "There are 0 repeats"))
                         continue
 
-                    line_data = [fn(result) for fn in self.values.values()]
+                    line = "|".join(fn(result) for fn in self.values.values())
 
-                    outqueue.put((path, line_data, None))
+                    outqueue.put((path, line, None))
 
                 except EmptyFileError as e:
                     outqueue.put((path, None, e))
@@ -542,7 +544,7 @@ class AnalyzerCommon(object):
         outqueue = multiprocessing.Queue()
 
         pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue))
-        
+
 
         summary_file_path = os.path.join(self.results_directory, summary_file)
 
@@ -569,12 +571,12 @@ class AnalyzerCommon(object):
             start_time = timeit.default_timer()
 
             for num in range(total):
-                (path, line_data, error) = outqueue.get()
+                (path, line, error) = outqueue.get()
 
                 print('Analysing {0}'.format(path))
 
                 if error is None:
-                    print("|".join(line_data), file=out)
+                    print(line, file=out)
                 else:
                     print("Error processing {} with {}".format(path, error))
 
