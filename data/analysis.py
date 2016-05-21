@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from data.memoize import memoize
+import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
@@ -468,19 +469,20 @@ class AnalyzerCommon(object):
         d['repeats']            = lambda x: str(x.number_of_repeats())
 
         # The options that all simulations must include
-        d['network size']       = lambda x: x.opts['network_size']
-        d['configuration']      = lambda x: x.opts['configuration']
-        d['attacker model']     = lambda x: x.opts['attacker_model']
-        d['noise model']        = lambda x: x.opts['noise_model']
-        d['communication model']= lambda x: x.opts['communication_model']
-        d['distance']           = lambda x: x.opts['distance']
-        d['source period']      = lambda x: x.opts['source_period']
+        # We do not loop though opts to allow algorithms to rename parameters if they wish
+        for parameter in simulator.common.global_parameter_names:
+
+            parameter_underscore = parameter.replace(" ", "_")
+
+            d[parameter]        = lambda x, name=parameter_underscore: x.opts[name]
 
         return d
 
     @staticmethod
     def common_results(d):
-        # These metrics are ones that all simulations should have
+        """These metrics are ones that all simulations should have.
+        But this function doesn't need to be used if the metrics need special treatment."""
+
         d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
         d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
         d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered', allow_missing=True)
@@ -512,6 +514,7 @@ class AnalyzerCommon(object):
         return AnalysisResults(self.analyse_path(path))
 
     def run(self, summary_file):
+        """Perform the analysis and write the output to the :summary_file:"""
         
         def worker(inqueue, outqueue):
             while True:
