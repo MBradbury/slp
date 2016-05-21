@@ -29,27 +29,42 @@ class Grapher(GrapherBase):
 
         dat = {}
 
-        min_comparison_results = {}
-        max_comparison_results = {}
+        min_comparison_results = []
+        max_comparison_results = []
         baseline_comparison_results = {}
 
-        # Find the min and max results over all parameter combinations 
-        for (data_key, items1) in comparison_results.data.items():
-            for (src_period, items2) in items1.items():
+        # Handle the case where a single comparison result is provided
+        if not isinstance(comparison_results, list):
+            comparison_results = [comparison_results]
 
-                local_min = None
-                local_max = None
+            self.max_label = [self.max_label]
+            self.min_label = [self.min_label]
 
-                for (params, results) in items2.items():
-                    yvalue_index = comparison_results.result_names.index(self.yaxis)
-                    yvalue = results[yvalue_index]
-                    yvalue = self.yextractor(yvalue)
+        for comparison_result in comparison_results:
 
-                    local_min = yvalue if local_min is None else min(local_min, yvalue)
-                    local_max = yvalue if local_max is None else max(local_max, yvalue)
+            min_comparison_result = {}
+            max_comparison_result = {}
 
-                min_comparison_results.setdefault(data_key, {})[src_period] = local_min
-                max_comparison_results.setdefault(data_key, {})[src_period] = local_max
+            # Find the min and max results over all parameter combinations 
+            for (data_key, items1) in comparison_result.data.items():
+                for (src_period, items2) in items1.items():
+
+                    local_min = None
+                    local_max = None
+
+                    for (params, results) in items2.items():
+                        yvalue_index = comparison_result.result_names.index(self.yaxis)
+                        yvalue = results[yvalue_index]
+                        yvalue = self.yextractor(yvalue)
+
+                        local_min = yvalue if local_min is None else min(local_min, yvalue)
+                        local_max = yvalue if local_max is None else max(local_max, yvalue)
+
+                    min_comparison_result.setdefault(data_key, {})[src_period] = local_min
+                    max_comparison_result.setdefault(data_key, {})[src_period] = local_max
+
+            min_comparison_results.append(min_comparison_result)
+            max_comparison_results.append(max_comparison_result)
 
         if baseline_results is not None:
             for (data_key, items1) in baseline_results.data.items():
@@ -88,15 +103,18 @@ class Grapher(GrapherBase):
 
                     comp_label = "{} ({})".format(self.comparison_label, self.vvalue_label_converter(vvalue))
 
-                    if data_key in max_comparison_results:
-                        dat.setdefault((key_names, values), {})[(xvalue, self.max_label)] = max_comparison_results[data_key].get(src_period)
+                    dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue
 
-                        dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue
+                    for (i, (max_comparison_result, min_comparison_result)) in enumerate(zip(max_comparison_results, min_comparison_results)):
 
-                        dat.setdefault((key_names, values), {})[(xvalue, self.min_label)] = min_comparison_results[data_key].get(src_period)
+                        if data_key in max_comparison_result and data_key in min_comparison_result:
 
-                        if baseline_results is not None:
-                            dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
+                            dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_comparison_result[data_key].get(src_period)
+
+                            dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_comparison_result[data_key].get(src_period)
+
+                    if baseline_results is not None:
+                        dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
 
 
         for ((key_names, key_values), values) in dat.items():
