@@ -123,7 +123,7 @@ def models():
     return [cls for cls in PeriodModel.__subclasses__()]
 
 @memoize
-def eval_input(source):
+def create_specific(source):
     result = restricted_eval(source, models())
 
     if isinstance(result, numbers.Number):
@@ -132,3 +132,6 @@ def eval_input(source):
         return result
     else:
         raise RuntimeError("The source ({}) is not valid.".format(source))
+
+def eval_input(source):
+    return create_specific(source)
