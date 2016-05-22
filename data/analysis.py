@@ -274,10 +274,17 @@ class Analyse(object):
 
                 energy_impact_per_node_per_day = energy_impact_per_node_per_second * 60.0 * 60.0 * 24.0
 
-                # Allowance after considering CPU is 1.9 mAh
-                daily_allowance_mah = 1.9
+                daily_allowance_mah = 6.9
 
-                return (energy_impact_per_node_per_day / daily_allowance_mah) * 100.0
+                cpu_power_consumption_ma = 5
+
+                duty_cycle = 0.04
+
+                daily_allowance_mah -= cpu_power_consumption_ma * 24 * duty_cycle
+
+                energy_impact_per_node_per_day_when_active = energy_impact_per_node_per_day * duty_cycle
+
+                return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
 
             else:
                 # Handle normalising with arbitrary numbers
