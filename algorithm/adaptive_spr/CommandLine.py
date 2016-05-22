@@ -152,7 +152,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
-            parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
+            parameters=adaptive.CommandLine.CLI.local_parameter_names,
             results=results_to_compare)
 
         result_table = comparison.ResultTable(adaptive_results, adaptive_spr_results)
@@ -161,21 +161,21 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            #'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            #'captured': ('Capture Ratio (%)', 'right top'),
-            #'normal': ('Normal Messages Sent', 'left top'),
-            #'fake': ('Fake Messages Sent', 'left top'),
-            #'sent': ('Total Messages Sent', 'left top'),
-            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            #'tfs': ('Number of TFS Created', 'left top'),
-            #'pfs': ('Number of PFS Created', 'left top'),
-            #'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
-            #'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-            #'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
-            #'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
-            #'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
-            'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'normal': ('Normal Messages Sent', 'left top'),
+            'fake': ('Fake Messages Sent', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'tfs': ('Number of TFS Created', 'left top'),
+            'pfs': ('Number of PFS Created', 'left top'),
+            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
+            #'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
             'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
             'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
         }
@@ -193,7 +193,7 @@ class CLI(CommandLineCommon.CLI):
             'norm(normal,time taken)': 3500,
             'ssd': 30,
             'energy impact per node per second': 0.00025,
-            'energy allowance used': 350,
+            'energy allowance used': 100,
         }
 
         protectionless_results = results.Results(
