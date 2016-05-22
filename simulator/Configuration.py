@@ -1,8 +1,10 @@
 from __future__ import print_function, division
 
 import itertools
-
+import numpy as np
 from scipy.spatial.distance import euclidean
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import shortest_path
 
 from data.memoize import memoize
 from simulator.Topology import SimpleTree, Line, Ring, Grid, Random
@@ -33,6 +35,8 @@ class Configuration(object):
         self._dist_matrix = None
         self._predecessors = None
 
+        self._build_connectivity_matrix()
+
     def build_arguments(self):
         build_arguments = {
             "SINK_NODE_ID": self.sink_id
@@ -52,31 +56,20 @@ class Configuration(object):
             self.sink_id, self.source_ids, self.space_behind_sink, self.topology
         )
 
-    def build_connectivity_matrix(self, return_predecessors=False):
-        if self._dist_matrix is None or (self._predecessors is None and return_predecessors):
-            import numpy
-            from scipy.sparse import csr_matrix
-            from scipy.sparse.csgraph import shortest_path
+    def _build_connectivity_matrix(self):
+        connectivity_matrix = np.zeros((self.size(), self.size()))
 
-            connectivity_matrix = numpy.zeros((self.size(), self.size()))
+        for (y, x) in itertools.product(xrange(self.size()), xrange(self.size())):
+            connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
+        connectivity_matrix = csr_matrix(connectivity_matrix)
 
-            for (y, x) in itertools.product(xrange(self.size()), xrange(self.size())):
-                connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
-            connectivity_matrix = csr_matrix(connectivity_matrix)
-
-            ret = shortest_path(connectivity_matrix, return_predecessors=return_predecessors)
-
-            if return_predecessors:
-                self._dist_matrix, self._predecessors = ret
-            else:
-                self._dist_matrix = ret
+        self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, return_predecessors=True)
 
     def size(self):
         return len(self.topology.nodes)
 
     def is_connected(self, i, j):
-        nodes = self.topology.nodes
-        return euclidean(nodes[i], nodes[j]) <= self.topology.distance
+        return self.node_distance_meters(i, j) <= self.topology.distance
 
     def one_hop_neighbours(self, node):
         for i in xrange(len(self.topology.nodes)):
@@ -84,7 +77,6 @@ class Configuration(object):
                 yield i
 
     def node_distance(self, node1, node2):
-        self.build_connectivity_matrix()
         return self._dist_matrix[node1, node2]
 
     def ssd(self, source_id):
@@ -96,7 +88,6 @@ class Configuration(object):
 
     def node_sink_distance(self, node):
         """The number of hops between the sink and the specified node"""
-        self.build_connectivity_matrix()
         return self._dist_matrix[node, self.sink_id]
 
     def node_source_distance(self, node, source_id):
@@ -104,11 +95,11 @@ class Configuration(object):
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
-        self.build_connectivity_matrix()
         return self._dist_matrix[node, source_id]
 
     def node_distance_meters(self, node1, node2):
-        return euclidean(self.topology.nodes[node1], self.topology.nodes[node2])
+        nodes = self.topology.nodes
+        return euclidean(nodes[node1], nodes[node2])
 
     def ssd_meters(self, source_id):
         """The number of meters between the sink and the specified source node"""
@@ -132,7 +123,6 @@ class Configuration(object):
 
     def shortest_path(self, node_from, node_to):
         """Returns a list of nodes that will take you from node_from to node_to along the shortest path."""
-        self.build_connectivity_matrix(return_predecessors=True)
 
         path = []
 

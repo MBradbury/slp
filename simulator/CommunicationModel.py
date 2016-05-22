@@ -62,27 +62,28 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
     def _obtain_radio_pt_pn(self, rnd, topology):
 
+        s = self.s
         t = np.zeros((2, 2))
 
-        if self.s[0,0] == 0 and self.s[1,1] == 0:
+        if s[0,0] == 0 and s[1,1] == 0:
             pass
 
-        elif self.s[0,0] == 0 and self.s[1,1] != 0:
+        elif s[0,0] == 0 and s[1,1] != 0:
             raise RuntimeError("Symmetric links require both, S11 and S22 to be 0, not only S11.")
 
         else:
-            if self.s[0,1] != self.s[1,0]:
+            if s[0,1] != s[1,0]:
                 raise RuntimeError("S12 and S21 must have the same value.")
 
-            if abs(self.s[0,1]) > sqrt(self.s[0,0] * self.s[1,1]):
+            if abs(s[0,1]) > sqrt(s[0,0] * s[1,1]):
                 raise RuntimeError("S12 (and S21) must be less than sqrt(S11xS22).")
 
-            t00 = sqrt(self.s[0,0])
+            t00 = sqrt(s[0,0])
 
             t[0,0] = t00
-            t[0,1] = self.s[0,1] / t00
+            t[0,1] = s[0,1] / t00
             t[1,0] = 0.0
-            t[1,1] = sqrt((self.s[0,0] * self.s[1,1] - self.s[0,1] * self.s[0,1]) / self.s[0,0])
+            t[1,1] = sqrt((s[0,0] * s[1,1] - s[0,1] * s[0,1]) / s[0,0])
 
         
         for (i, ni) in enumerate(topology.nodes):
