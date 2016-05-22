@@ -1,12 +1,13 @@
 from __future__ import print_function, division
 
-import simulator.Attacker
-from simulator.Simulation import OutputCatcher
-
 from collections import Counter, OrderedDict, defaultdict
-import sys, math
+import math
+import sys
 
 import numpy as np
+
+import simulator.Attacker
+from simulator.Simulation import OutputCatcher
 
 try:
     # Python 2
@@ -162,7 +163,7 @@ class MetricsCommon(object):
         raise NotImplementedError()
 
     def process_SOURCE_CHANGE(self, line):
-        (state, node_id) = line.strip().split(',')
+        (state, node_id) = line.split(',')
 
         node_id = int(node_id)
         time = self.sim_time()
