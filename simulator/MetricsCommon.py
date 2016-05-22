@@ -99,7 +99,6 @@ class MetricsCommon(object):
         (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
         
         node_id = int(node_id)
-        proximate_source_id = int(proximate_source_id)
 
         self.received[kind][node_id] += 1
 
@@ -121,6 +120,8 @@ class MetricsCommon(object):
         # node_source_distance functions as when the source is mobile this code
         # will try to get a distance that the configuration doesn't believe the be a source.
         if kind not in simulator.Attacker._messages_to_ignore:
+            proximate_source_id = int(proximate_source_id)
+
             for source_id in self.source_ids:
                 prox_distance = self.configuration.node_distance(proximate_source_id, source_id)
                 node_distance = self.configuration.node_distance(node_id, source_id)
