@@ -65,7 +65,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         t = np.zeros((2, 2))
 
         if self.s[0,0] == 0 and self.s[1,1] == 0:
-            return
+            pass
 
         elif self.s[0,0] == 0 and self.s[1,1] != 0:
             raise RuntimeError("Symmetric links require both, S11 and S22 to be 0, not only S11.")
