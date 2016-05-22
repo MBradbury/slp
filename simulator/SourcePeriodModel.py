@@ -1,5 +1,6 @@
-from collections import OrderedDict
+from __future__ import print_function, division
 
+from collections import OrderedDict
 import math
 import numbers
 
