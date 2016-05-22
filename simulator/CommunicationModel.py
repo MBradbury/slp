@@ -30,13 +30,16 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.output_power_var = None
 
     def setup(self, sim):
+        topology = sim.metrics.configuration.topology
+        seed = sim.seed
+        self._setup(topology, seed)
+
+    def _setup(self, topology, seed):
         # Need to use the same java prng to maintain backwards compatibility
         # with existing results
-        from _TOSSIM import JavaRandom as Random
+        from java_random import JavaRandom as Random
 
-        topology = sim.metrics.configuration.topology
-
-        rnd = Random(sim.seed)
+        rnd = Random(seed)
 
         self._check_topology(topology)
 
