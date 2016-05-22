@@ -1,11 +1,11 @@
+from __future__ import print_function, division
 
 import itertools
-
-from simulator.Topology import SimpleTree, Line, Ring, Grid, Random
 
 from scipy.spatial.distance import euclidean
 
 from data.memoize import memoize
+from simulator.Topology import SimpleTree, Line, Ring, Grid, Random
 
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_id, space_behind_sink):
