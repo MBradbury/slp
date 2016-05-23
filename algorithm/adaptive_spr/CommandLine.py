@@ -12,7 +12,7 @@ adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
 from data import results
 
 from data.table import safety_period, fake_result, comparison
-from data.graph import summary, versus, bar, min_max_versus
+from data.graph import summary, versus, bar, min_max_versus, dual_min_max_versus
 from data.util import useful_log10, scalar_extractor
 
 from data.run.common import RunSimulationsCommon as RunSimulations
@@ -192,7 +192,7 @@ class CLI(CommandLineCommon.CLI):
             'norm(fake,time taken)': 12000,
             'norm(normal,time taken)': 3500,
             'ssd': 30,
-            'energy impact per node per second': 0.00025,
+            'energy impact per node per second': 0.0003,
             'energy allowance used': 100,
         }
 
@@ -276,6 +276,90 @@ class CLI(CommandLineCommon.CLI):
             graph_min_max_versus(result_name, 'source period')
 
 
+    def _run_dual_min_max_versus(self, args):
+        graph_parameters = {
+            ('captured', 'sent'): ('Capture Ratio (%)', 'Messages Sent', 'right top'),
+        }
+
+        custom_yaxis_range_max = {
+            'fake': 400000,
+            'captured': 10,
+        }
+
+        results_to_load = [param for sublist in graph_parameters.keys() for param in sublist]
+
+        protectionless_results = results.Results(
+            protectionless.result_file_path,
+            parameters=protectionless.CommandLine.CLI.local_parameter_names,
+            results=list(set(results_to_load) & set(protectionless.Analysis.Analyzer.results_header().keys()))
+        )
+
+        adaptive_spr_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.local_parameter_names,
+            results=results_to_load)
+
+        adaptive_results = results.Results(
+            adaptive.result_file_path,
+            parameters=adaptive.CommandLine.CLI.local_parameter_names,
+            results=results_to_load)
+
+        def graph_dual_min_max_versus(result_name1, result_name2, xaxis):
+            name = 'dual-min-max-{}-versus-{}_{}-{}'.format(adaptive.name, result_name1, result_name2, xaxis)
+
+            g = dual_min_max_versus.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis=xaxis, yaxis1=result_name1, yaxis2=result_name2, vary='approach', yextractor=scalar_extractor)
+
+            g.xaxis_label = xaxis.title()
+            g.yaxis1_label = graph_parameters[(result_name1, result_name2)][0]
+            g.yaxis2_label = graph_parameters[(result_name1, result_name2)][1]
+            g.key_position = graph_parameters[(result_name1, result_name2)][2]
+
+            g.yaxis_font = g.xaxis_font = "',15'"
+
+            g.nokey = True
+            #g.key_font = "',20'"
+            #g.key_spacing = "2"
+            #g.key_width = "+6"
+
+            g.point_size = '2'
+            g.line_width = 2
+
+            g.min_label = 'Dynamic - Lowest'
+            g.max_label = 'Dynamic - Highest'
+            g.comparison_label = 'DynamicSpr'
+            g.vary_label = ''
+
+            if result_name1 in custom_yaxis_range_max:
+                g.yaxis1_range_max = custom_yaxis_range_max[result_name1]
+
+            if result_name2 in custom_yaxis_range_max:
+                g.yaxis2_range_max = custom_yaxis_range_max[result_name2]
+
+            def vvalue_converter(name):
+                return {
+                    "PB_FIXED1_APPROACH": "Fixed1",
+                    "PB_FIXED2_APPROACH": "Fixed2",
+                    "PB_RND_APPROACH": "Rnd",
+                }[name]
+            g.vvalue_label_converter = vvalue_converter
+
+            #g.generate_legend_graph = True
+
+            if result_name1 in protectionless_results.result_names and result_name2 in protectionless_results.result_names:
+                g.create(adaptive_results, adaptive_spr_results, baseline_results=protectionless_results)
+            else:
+                g.create(adaptive_results, adaptive_spr_results)
+
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+            ).run()
+
+        for (result_name1, result_name2) in graph_parameters.keys():
+            graph_dual_min_max_versus(result_name1, result_name2, 'network size')
+
 
     def run(self, args):
         super(CLI, self).run(args)
@@ -291,3 +375,6 @@ class CLI(CommandLineCommon.CLI):
 
         if 'min-max-versus' in args:
             self._run_min_max_versus(args)
+
+        if 'dual-min-max-versus' in args:
+            self._run_dual_min_max_versus(args)
