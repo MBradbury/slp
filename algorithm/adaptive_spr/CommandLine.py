@@ -8,6 +8,7 @@ import algorithm.protectionless as protectionless
 
 # The import statement doesn't work, so we need to use __import__ instead
 adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
+template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
 
 from data import results
 
@@ -161,28 +162,28 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+#            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+#            'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
-            'normal': ('Normal Messages Sent', 'left top'),
+#            'normal': ('Normal Messages Sent', 'left top'),
             'fake': ('Fake Messages Sent', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'tfs': ('Number of TFS Created', 'left top'),
-            'pfs': ('Number of PFS Created', 'left top'),
-            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
-            #'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
-            'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
-            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
+#            'tfs': ('Number of TFS Created', 'left top'),
+#            'pfs': ('Number of PFS Created', 'left top'),
+#            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
+#            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+#            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
+#            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
+#            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
+#            #'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
+#            'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
+#            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
         }
 
         custom_yaxis_range_max = {
-            'fake': 400000,
-            'captured': 10,
+            'fake': 600000,
+            'captured': 20,
             'received ratio': 100,
             'attacker distance': 120,
             'normal latency': 200,
@@ -212,6 +213,11 @@ class CLI(CommandLineCommon.CLI):
             parameters=adaptive.CommandLine.CLI.local_parameter_names,
             results=graph_parameters.keys())
 
+        template_results = results.Results(
+            template.result_file_path,
+            parameters=template.CommandLine.CLI.local_parameter_names,
+            results=graph_parameters.keys())
+
         def graph_min_max_versus(result_name, xaxis):
             name = 'min-max-{}-versus-{}-{}'.format(adaptive.name, result_name, xaxis)
 
@@ -235,8 +241,8 @@ class CLI(CommandLineCommon.CLI):
             g.point_size = '2'
             g.line_width = 2
 
-            g.min_label = 'Dynamic - Lowest'
-            g.max_label = 'Dynamic - Highest'
+            g.min_label = ['Dynamic - Lowest', 'Static - Lowest']
+            g.max_label = ['Dynamic - Highest', 'Static - Highest']
             g.comparison_label = 'DynamicSpr'
             g.vary_label = ''
 
@@ -254,9 +260,9 @@ class CLI(CommandLineCommon.CLI):
             g.generate_legend_graph = True
 
             if result_name in protectionless_results.result_names:
-                g.create(adaptive_results, adaptive_spr_results, baseline_results=protectionless_results)
+                g.create([adaptive_results, template_results], adaptive_spr_results, baseline_results=protectionless_results)
             else:
-                g.create(adaptive_results, adaptive_spr_results)
+                g.create([adaptive_results, template_results], adaptive_spr_results)
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
