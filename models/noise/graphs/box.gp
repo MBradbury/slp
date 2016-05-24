@@ -18,6 +18,8 @@ set ytics nomirror
 
 set yrange [-35:-105]
 
+set ylabel "Decibels (dB)"
+
 set output "box-graph.pdf"
 
 plot "<(head -n 1000 ../meyer-heavy.txt)" using (1):1 title "meyer-heavy", "<(head -n 1000 ../casino-lab.txt)" using (2):1 title "casino-lab"
