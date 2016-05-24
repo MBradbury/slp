@@ -4,7 +4,7 @@ set terminal pdf enhanced
 
 set style fill solid
 
-binwidth=1
+binwidth = 1
 
 bin(x,width)=width*floor(x/width) + width/2.0
 
@@ -12,6 +12,8 @@ set boxwidth binwidth
 
 set xrange [-105:-35]
 set yrange [0:750]
+
+set xtics auto
 
 set xlabel "Decibels (dB)"
 set ylabel "Count"
