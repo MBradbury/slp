@@ -43,7 +43,7 @@ class RunSimulations(RunSimulationsCommon):
         random_walk_types = {
         #'only_short_random_walk':[1,1],
         #'only_long_random_walk':[1,1],
-        'phantom_walkabouts':[1,2]
+        'phantom_walkabouts':[1,1]
         }
         ##################################################################
 
@@ -136,14 +136,14 @@ class CLI(CommandLineCommon.CLI):
     direction_biases = [0.9]
 
     orders = [
-    #"LongShort", 
-    "ShortLong"
+    "LongShort", 
+    #"ShortLong"
     ]
 
-    wait_before_short = [0, 100, 200]
+    wait_before_short = [100, 200]
 
     short_counts = [1]
-    long_counts = [2]
+    long_counts = [1]
 
     repeats = 500
 
