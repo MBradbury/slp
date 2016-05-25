@@ -358,7 +358,7 @@ implementation
 			}
 			#else
 			{
-				message.random_walk_hop_remaining =long_short_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
+				message.random_walk_hop_remaining = long_short_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
 			}
 			#endif
 
