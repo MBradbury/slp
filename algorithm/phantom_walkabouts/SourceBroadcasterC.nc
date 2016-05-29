@@ -93,10 +93,10 @@ implementation
 
 	NodeType type = NormalNode;
 
-	typedef enum
-	{
-		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
-	} SetType;
+	//typedef enum
+	//{
+	//	UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
+	//} SetType;
 
 	const char* type_to_string()
 	{
@@ -118,6 +118,18 @@ implementation
 
 	uint32_t extra_to_send = 0;
 
+	am_addr_t se[2]={-1,-1}; 
+	am_addr_t ws[2]={-1,-1}; 
+	am_addr_t nw[2]={-1,-1}; 
+	am_addr_t ne[2]={-1,-1};
+
+	//uint32_t se = 0, ws =0, nw = 0, ne =0;
+
+	typedef enum
+	{
+		nw_dir, ne_dir, ws_dir, se_dir
+	} SetType;
+
 	uint32_t get_source_period()
 	{
 		assert(type == SourceNode);
@@ -138,16 +150,51 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	am_addr_t random_walk_target(const am_addr_t* to_ignore, size_t to_ignore_length)
+	SetType random_walk_direction()
+	{ 
+		uint32_t possible_set;
+		uint32_t i;
+		const uint16_t rnd = call Random.rand16()%4;
+
+		for(i = 0; i != neighbours.size; ++i)
+		{
+			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			if (landmark_distance < neighbour->contents.distance &&  neighbour->address < TOS_NODE_ID-1)
+			{
+				nw[0] = neighbour->address;
+				ne[0] = neighbour->address;
+			}
+			else if (landmark_distance < neighbour->contents.distance && TOS_NODE_ID == neighbour->address+1)
+			{
+				nw[1] = neighbour->address;
+				ws[0] = neighbour->address;
+			}
+			else if(landmark_distance > neighbour->contents.distance && neighbour->address > TOS_NODE_ID+1)
+			{
+				ws[1] =neighbour->address;
+				se[0] = neighbour->address;
+			}
+			else if (landmark_distance > neighbour->contents.distance && neighbour->address == TOS_NODE_ID+1)
+			{
+				se[1]=neighbour->address;
+				ne[1] =neighbour->address;
+			}
+			else
+				 simdbgverbose("stdout","error here!TOS_NODE_ID= %u, neighbour address= %u\n",TOS_NODE_ID, neighbour->address);
+		}
+
+		if (rnd == 0)	return nw_dir;
+		else if(rnd == 1)	return ne_dir;
+		else if (rnd == 2)	return ws_dir;
+		else	return se_dir;
+
+	}
+
+	am_addr_t random_walk_target(SetType set, const am_addr_t* to_ignore, size_t to_ignore_length)
 	{
 		am_addr_t chosen_address;
 		uint32_t i;
-
-		struct direction
-		{
-			am_addr_t dir1;
-			am_addr_t dir2;
-		};
 
 		distance_neighbours_t local_neighbours;
 		init_distance_neighbours(&local_neighbours);
@@ -197,22 +244,28 @@ implementation
 		{
 			// Choose a neighbour with equal probabilities.
 			const uint16_t rnd = call Random.rand16();
-			const uint16_t neighbour_index = rnd % local_neighbours.size;
+			const uint16_t neighbour_index = rnd % 2;
 
-			const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+			if (set == nw_dir) chosen_address = nw[neighbour_index];
+			else if (set == ne_dir) chosen_address = ne[neighbour_index];
+			else if (set == ws_dir) chosen_address = ws[neighbour_index];
+			else if (set == se_dir) chosen_address = se[neighbour_index];
+			else	simdbgverbose("stdout","error...\n");
 
-			chosen_address = neighbour->address;
+			//const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+
+			//chosen_address = neighbour->address;
 
 #ifdef SLP_VERBOSE_DEBUG
 			//print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
-			simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
-				chosen_address, neighbour_index, rnd, local_neighbours.size,
-				neighbour->contents.distance, landmark_distance);
+			//simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
+			//	chosen_address, neighbour_index, rnd, local_neighbours.size,
+			//	neighbour->contents.distance, landmark_distance);
 		}
 
-
+		simdbgverbose("stdout","chosen_address:%u\n",chosen_address);
 		return chosen_address;
 	}
 	uint32_t beacon_send_wait()
@@ -313,7 +366,9 @@ implementation
 		message.source_distance = 0;
 		message.landmark_distance_of_sender = landmark_distance;
 
-		target = random_walk_target(NULL, 0);
+		message.further_or_closer_set = random_walk_direction();
+
+		target = random_walk_target(message.further_or_closer_set, NULL, 0);
 
 		// If we don't know who our neighbours are, then we
 		// cannot unicast to one of them.
@@ -399,7 +454,7 @@ implementation
 				am_addr_t target;
 
 				// Get a target, ignoring the node that sent us this message
-				target = random_walk_target(&source_addr, 1);
+				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 
 				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
 
@@ -492,8 +547,8 @@ implementation
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
-		simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
-		  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
+		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
+		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
 	}
 
 	// We need to snoop packets that may be unicasted,
