@@ -118,10 +118,10 @@ implementation
 
 	uint32_t extra_to_send = 0;
 
-	am_addr_t se[2]={-1,-1}; 
-	am_addr_t ws[2]={-1,-1}; 
-	am_addr_t nw[2]={-1,-1}; 
-	am_addr_t ne[2]={-1,-1};
+	am_addr_t se[2]={0,0}; 
+	am_addr_t ws[2]={0,0}; 
+	am_addr_t nw[2]={0,0}; 
+	am_addr_t ne[2]={0,0};
 
 	//uint32_t se = 0, ws =0, nw = 0, ne =0;
 
@@ -155,34 +155,6 @@ implementation
 		uint32_t possible_set;
 		uint32_t i;
 		const uint16_t rnd = call Random.rand16()%4;
-
-		for(i = 0; i != neighbours.size; ++i)
-		{
-			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
-
-			if (landmark_distance < neighbour->contents.distance &&  neighbour->address < TOS_NODE_ID-1)
-			{
-				nw[0] = neighbour->address;
-				ne[0] = neighbour->address;
-			}
-			else if (landmark_distance < neighbour->contents.distance && TOS_NODE_ID == neighbour->address+1)
-			{
-				nw[1] = neighbour->address;
-				ws[0] = neighbour->address;
-			}
-			else if(landmark_distance > neighbour->contents.distance && neighbour->address > TOS_NODE_ID+1)
-			{
-				ws[1] =neighbour->address;
-				se[0] = neighbour->address;
-			}
-			else if (landmark_distance > neighbour->contents.distance && neighbour->address == TOS_NODE_ID+1)
-			{
-				se[1]=neighbour->address;
-				ne[1] =neighbour->address;
-			}
-			else
-				 simdbgverbose("stdout","error here!TOS_NODE_ID= %u, neighbour address= %u\n",TOS_NODE_ID, neighbour->address);
-		}
 
 		if (rnd == 0)	return nw_dir;
 		else if(rnd == 1)	return ne_dir;
@@ -242,9 +214,37 @@ implementation
 		}
 		else
 		{
-			// Choose a neighbour with equal probabilities.
 			const uint16_t rnd = call Random.rand16();
 			const uint16_t neighbour_index = rnd % 2;
+
+			for(i = 0; i != neighbours.size; ++i)
+			{
+			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			if (landmark_distance < neighbour->contents.distance &&  neighbour->address < TOS_NODE_ID-1)
+			{
+				nw[0] = neighbour->address;
+				ne[0] = neighbour->address;
+			}
+			else if (landmark_distance < neighbour->contents.distance && TOS_NODE_ID == neighbour->address+1)
+			{
+				nw[1] = neighbour->address;
+				ws[0] = neighbour->address;
+			}
+			else if(landmark_distance > neighbour->contents.distance && neighbour->address > TOS_NODE_ID+1)
+			{
+				ws[1] =neighbour->address;
+				se[0] = neighbour->address;
+			}
+			else if (landmark_distance > neighbour->contents.distance && neighbour->address == TOS_NODE_ID+1)
+			{
+				se[1]=neighbour->address;
+				ne[1] =neighbour->address;
+			}
+			else
+				 simdbgverbose("stdout","error here!TOS_NODE_ID= %u, neighbour address= %u\n",TOS_NODE_ID, neighbour->address);
+			}
+			// Choose a neighbour with equal probabilities.
 
 			if (set == nw_dir) chosen_address = nw[neighbour_index];
 			else if (set == ne_dir) chosen_address = ne[neighbour_index];
@@ -266,6 +266,11 @@ implementation
 		}
 
 		simdbgverbose("stdout","chosen_address:%u\n",chosen_address);
+
+		simdbgverbose("stdout","nw:%u, %u\n",nw[0],nw[1]);
+		simdbgverbose("stdout","ne:%u, %u\n",ne[0],ne[1]);
+		simdbgverbose("stdout","ws:%u, %u\n",ws[0],ws[1]);
+		simdbgverbose("stdout","se:%u, %u\n",se[0],se[1]);
 		return chosen_address;
 	}
 	uint32_t beacon_send_wait()
