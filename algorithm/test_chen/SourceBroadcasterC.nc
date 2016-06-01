@@ -9,7 +9,6 @@
 
 #include <Timer.h>
 #include <TinyError.h>
-#include <stdio.h>
 
 #include <assert.h>
 
@@ -17,22 +16,21 @@
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
-uint16_t message_no = 1;
-
 typedef struct
 {
-	int16_t distance;
+	int16_t bottom_right_distance;
 } distance_container_t;
 
 void distance_update(distance_container_t* find, distance_container_t const* given)
 {
-	find->distance = minbot(find->distance, given->distance);
+	find->bottom_right_distance = minbot(find->bottom_right_distance, given->bottom_right_distance);
+	find->bottom_right_distance = minbot(find->bottom_right_distance, given->bottom_right_distance);  
 }
 
 void distance_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
-		i, address, contents->distance);
+		i, address, contents->bottom_right_distance);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
@@ -93,10 +91,10 @@ implementation
 
 	NodeType type = NormalNode;
 
-	//typedef enum
-	//{
-	//	UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
-	//} SetType;
+	typedef enum
+	{
+		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
+	} SetType;
 
 	const char* type_to_string()
 	{
@@ -117,18 +115,6 @@ implementation
 	message_t packet;
 
 	uint32_t extra_to_send = 0;
-
-	am_addr_t se[2]={0,0}; 
-	am_addr_t ws[2]={0,0}; 
-	am_addr_t nw[2]={0,0}; 
-	am_addr_t ne[2]={0,0};
-
-	//uint32_t se = 0, ws =0, nw = 0, ne =0;
-
-	typedef enum
-	{
-		nw_dir, ne_dir, ws_dir, se_dir
-	} SetType;
 
 	uint32_t get_source_period()
 	{
@@ -151,19 +137,61 @@ implementation
 	}
 
 	SetType random_walk_direction()
-	{ 
-		uint32_t possible_set;
-		uint32_t i;
-		const uint16_t rnd = call Random.rand16()%4;
+	{
+		uint32_t possible_sets = UnknownSet;
 
-		if (rnd == 0)	return nw_dir;
-		else if(rnd == 1)	return ne_dir;
-		else if (rnd == 2)	return ws_dir;
-		else	return se_dir;
+		// We want compare sink distance if we do not know our sink distance
+		if (landmark_distance != BOTTOM)
+		{
+			uint32_t i;
 
+			// Find nodes whose sink distance is less than or greater than
+			// our sink distance.
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				distance_container_t const* const neighbour = &neighbours.data[i].contents;
+
+				if (landmark_distance < neighbour->bottom_right_distance)
+				{
+					possible_sets |= FurtherSet;
+				}
+				else //if (landmark_distance >= neighbour->bottom_right_distance)
+				{
+					possible_sets |= CloserSet;
+				}
+			}
+		}
+
+		if (possible_sets == (FurtherSet | CloserSet))
+		{
+			// Both directions possible, so randomly pick one of them
+			const uint16_t rnd = call Random.rand16() % 2;
+			if (rnd == 0)
+			{
+				return FurtherSet;
+			}
+			else
+			{
+				return CloserSet;
+			}
+		}
+		else if ((possible_sets & FurtherSet) != 0)
+		{
+			return FurtherSet;
+		}
+		else if ((possible_sets & CloserSet) != 0)
+		{
+			return CloserSet;
+		}
+		else
+		{
+			// No known neighbours, so have a go at flooding.
+			// Someone might get this message
+			return UnknownSet;
+		}
 	}
 
-	am_addr_t random_walk_target(SetType set, const am_addr_t* to_ignore, size_t to_ignore_length)
+	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
 	{
 		am_addr_t chosen_address;
 		uint32_t i;
@@ -173,7 +201,7 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (landmark_distance != BOTTOM)
+		if (landmark_distance != BOTTOM && further_or_closer_set != UnknownSet)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -201,78 +229,42 @@ implementation
 				//simdbgverbose("stdout", "[%u]: further_or_closer_set=%d, dist=%d neighbour.dist=%d \n",
 				//  neighbour->address, further_or_closer_set, landmark_distance, neighbour->contents.distance);
 
-				insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				if ((further_or_closer_set == FurtherSet && landmark_distance < neighbour->contents.bottom_right_distance) ||
+					(further_or_closer_set == CloserSet && landmark_distance >= neighbour->contents.bottom_right_distance))
+				{
+					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
 			}
 		}
 
 		if (local_neighbours.size == 0)
 		{
-			//simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
-			//	landmark_distance, neighbours.size);
+			simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
+				landmark_distance, neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
 		else
 		{
-			const uint16_t rnd = call Random.rand16();
-			const uint16_t neighbour_index = rnd % 2;
-
-			for(i = 0; i != neighbours.size; ++i)
-			{
-			distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
-
-			if (landmark_distance < neighbour->contents.distance &&  neighbour->address < TOS_NODE_ID-1)
-			{
-				nw[0] = neighbour->address;
-				ne[0] = neighbour->address;
-			}
-			else if (landmark_distance < neighbour->contents.distance && TOS_NODE_ID == neighbour->address+1)
-			{
-				nw[1] = neighbour->address;
-				ws[0] = neighbour->address;
-			}
-			else if(landmark_distance > neighbour->contents.distance && neighbour->address > TOS_NODE_ID+1)
-			{
-				ws[1] =neighbour->address;
-				se[0] = neighbour->address;
-			}
-			else if (landmark_distance > neighbour->contents.distance && neighbour->address == TOS_NODE_ID+1)
-			{
-				se[1]=neighbour->address;
-				ne[1] =neighbour->address;
-			}
-			else
-				 simdbgverbose("stdout","error here!TOS_NODE_ID= %u, neighbour address= %u\n",TOS_NODE_ID, neighbour->address);
-			}
 			// Choose a neighbour with equal probabilities.
+			const uint16_t rnd = call Random.rand16();
+			const uint16_t neighbour_index = rnd % local_neighbours.size;
+			const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			if (set == nw_dir) chosen_address = nw[neighbour_index];
-			else if (set == ne_dir) chosen_address = ne[neighbour_index];
-			else if (set == ws_dir) chosen_address = ws[neighbour_index];
-			else if (set == se_dir) chosen_address = se[neighbour_index];
-			else	simdbgverbose("stdout","error...\n");
-
-			//const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
-
-			//chosen_address = neighbour->address;
+			chosen_address = neighbour->address;
 
 #ifdef SLP_VERBOSE_DEBUG
-			//print_distance_neighbours("stdout", &local_neighbours);
+			print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
-			//simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
-			//	chosen_address, neighbour_index, rnd, local_neighbours.size,
-			//	neighbour->contents.distance, landmark_distance);
+			simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				neighbour->contents.bottom_right_distance, landmark_distance);
 		}
 
-		simdbgverbose("stdout","chosen_address:%u\n",chosen_address);
-
-		simdbgverbose("stdout","nw:%u, %u\n",nw[0],nw[1]);
-		simdbgverbose("stdout","ne:%u, %u\n",ne[0],ne[1]);
-		simdbgverbose("stdout","ws:%u, %u\n",ws[0],ws[1]);
-		simdbgverbose("stdout","se:%u, %u\n",se[0],se[1]);
 		return chosen_address;
 	}
+
 	uint32_t beacon_send_wait()
 	{
 		return 75U + (uint32_t)(50U * random_float());
@@ -284,7 +276,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		//simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		init_distance_neighbours(&neighbours);
 
@@ -303,11 +295,12 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			//simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 
-			if (TOS_NODE_ID == LANDMARK_NODE_ID)
+			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID)
+			//if (TOS_NODE_ID == TOP_RIGHT_NODE_ID || TOS_NODE_ID == TOP_LEFT_NODE_ID)
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
@@ -322,7 +315,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		//simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
@@ -360,10 +353,10 @@ implementation
 
 		const uint32_t source_period = get_source_period();
 
-		//simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
-		//print_distance_neighbours("stdout", &neighbours);
+		print_distance_neighbours("stdout", &neighbours);
 #endif
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -381,8 +374,8 @@ implementation
 		{
 			message.broadcast = (target == AM_BROADCAST_ADDR);
 
-			//simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
-			//	sim_time_string(), target, message.further_or_closer_set);
+			simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
+				sim_time_string(), target, message.further_or_closer_set);
 
 			call Packet.clear(&packet);
 
@@ -404,30 +397,33 @@ implementation
 	{
 		AwayMessage message;
 
-		landmark_distance = 0;
-
-		//simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
-
-		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
-		message.source_id = TOS_NODE_ID;
-		message.landmark_distance = landmark_distance;
-
-		call Packet.clear(&packet);
-
-		extra_to_send = 2;
-		if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID)
 		{
-			call AwaySeqNos.increment(TOS_NODE_ID);
-		}
+			landmark_distance = 0;
 
-		//simdbgverbose("stdout", "Away sent\n");
+			simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
+
+			message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+			message.source_id = TOS_NODE_ID;
+			message.landmark_distance = landmark_distance;
+
+			call Packet.clear(&packet);
+
+			extra_to_send = 2;
+			if (send_Away_message(&message, AM_BROADCAST_ADDR))
+			{
+				call AwaySeqNos.increment(TOS_NODE_ID);
+			}
+
+			simdbgverbose("stdout", "Away sent\n");
+		}
 	}
 
 	event void BeaconSenderTimer.fired()
 	{
 		BeaconMessage message;
 
-		//simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
 		message.landmark_distance_of_sender = landmark_distance;
 
@@ -458,6 +454,25 @@ implementation
 			{
 				am_addr_t target;
 
+				// The previous node(s) were unable to choose a direction,
+				// so lets try to work out the direction the message should go in.
+				if (forwarding_message.further_or_closer_set == UnknownSet)
+				{
+					const distance_neighbour_detail_t* neighbour_detail = find_distance_neighbour(&neighbours, source_addr);
+					if (neighbour_detail != NULL)
+					{
+						forwarding_message.further_or_closer_set =
+							neighbour_detail->contents.bottom_right_distance < landmark_distance ? FurtherSet : CloserSet;
+					}
+					else
+					{
+						forwarding_message.further_or_closer_set = random_walk_direction();
+					}
+
+					simdbgverbose("stdout", "%s: Unknown direction, setting to %d\n",
+						sim_time_string(), forwarding_message.further_or_closer_set);
+				}
+
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 
@@ -474,8 +489,8 @@ implementation
 					return;
 				}
 
-				//simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
-				//	sim_time_string(), TOS_NODE_ID, target);
+				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+					sim_time_string(), TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
 

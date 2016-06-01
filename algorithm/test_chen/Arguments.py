@@ -26,6 +26,12 @@ class Arguments(ArgumentsCommon):
 
         result["LANDMARK_NODE_ID"] = self._get_landmark_node_id()
 
+        configuration = Configuration.create(self.args.configuration, self.args)
+
+        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
+
+        result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
+
         return result
 
     def _get_landmark_node_id(self):
