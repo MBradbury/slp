@@ -13,8 +13,8 @@
 #include <assert.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY_BOTTOM_LEFT(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_bottom_left_distance + 1)
-#define METRIC_RCV_AWAY_BOTTOM_RIGHT(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_bottom_right_distance + 1)
+#define METRIC_RCV_AWAY_BOTTOM_LEFT(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->bottom_left_sequence_number, msg->landmark_bottom_left_distance + 1)
+#define METRIC_RCV_AWAY_BOTTOM_RIGHT(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->bottom_right_sequence_number, msg->landmark_bottom_right_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 #define BottomLeft 0
@@ -420,7 +420,7 @@ implementation
 
 			simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
 
-			message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+			message.bottom_left_sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 			message.source_id = TOS_NODE_ID;
 			message.landmark_bottom_left_distance = landmark_bottom_left_distance;
 			message.bottom_left_or_right = BottomLeft;
@@ -441,7 +441,7 @@ implementation
 
 			simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
 
-			message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+			message.bottom_right_sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 			message.source_id = TOS_NODE_ID;
 			message.landmark_bottom_right_distance = landmark_bottom_right_distance;
 			message.bottom_left_or_right = BottomRight;
@@ -639,11 +639,12 @@ implementation
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_bottom_left_distance);
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_bottom_right_distance);
 
-		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number) && rcvd->bottom_left_or_right == BottomLeft)
+		if (call AwaySeqNos.before(rcvd->source_id, rcvd->bottom_left_sequence_number) && rcvd->bottom_left_or_right == BottomLeft)
 		{
 			AwayMessage forwarding_message;
+			simdbgverbose("stdout","here: BottomLeft.\n");
 
-			call AwaySeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			call AwaySeqNos.update(rcvd->source_id, rcvd->bottom_left_sequence_number);
 			
 			METRIC_RCV_AWAY_BOTTOM_LEFT(rcvd);
 
@@ -658,11 +659,11 @@ implementation
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
-		else	//Bottom Right away message.
+		else if (call AwaySeqNos.before(rcvd->source_id, rcvd->bottom_right_sequence_number) && rcvd->bottom_left_or_right == BottomRight)
 		{
 			AwayMessage forwarding_message;
-
-			call AwaySeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			simdbgverbose("stdout","here: BottomRight.\n");
+			call AwaySeqNos.update(rcvd->source_id, rcvd->bottom_right_sequence_number);
 			
 			METRIC_RCV_AWAY_BOTTOM_RIGHT(rcvd);
 
@@ -677,6 +678,8 @@ implementation
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
+		else
+			simdbgverbose("stdout","here: errror!.\n");
 
 #ifdef SLP_VERBOSE_DEBUG
 		//print_distance_neighbours("stdout", &neighbours);
