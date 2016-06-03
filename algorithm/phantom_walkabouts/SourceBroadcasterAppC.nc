@@ -76,7 +76,7 @@ implementation
 
 	components
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos,
-		new SequenceNumbersP(SLP_MAX_NUM_SINKS) as AwaySeqNos;
+		new SequenceNumbersP(2) as AwaySeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 	App.AwaySeqNos -> AwaySeqNos;
  

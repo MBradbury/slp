@@ -13,8 +13,7 @@
 #include <assert.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY_BOTTOM_LEFT(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->bottom_left_sequence_number, msg->landmark_bottom_left_distance + 1)
-#define METRIC_RCV_AWAY_BOTTOM_RIGHT(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->bottom_right_sequence_number, msg->landmark_bottom_right_distance + 1)
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 #define BottomLeft 0
@@ -34,24 +33,40 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 
 void distance_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
-	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
-		i, address, contents->bottom_left_distance);
+	simdbg_clear(name, "[%u] => addr=%u / bl=%d, br=%d",
+		i, address, contents->bottom_left_distance, contents->bottom_right_distance);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
-#define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
+#define UPDATE_NEIGHBOURS_BL(rcvd, source_addr, name) \
 { \
-	const distance_container_t dist = { rcvd->name }; \
+	distance_container_t dist; \
+	dist.bottom_left_distance = rcvd->name; \
+	dist.bottom_right_distance = BOTTOM; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
-#define UPDATE_LANDMARK_DISTANCE(rcvd, name) \
+#define UPDATE_NEIGHBOURS_BR(rcvd, source_addr, name) \
+{ \
+	distance_container_t dist; \
+	dist.bottom_left_distance = BOTTOM; \
+	dist.bottom_right_distance = rcvd->name; \
+	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_LANDMARK_DISTANCE_BL(rcvd, name) \
 { \
 	if (rcvd->name != BOTTOM) \
 	{ \
-		landmark_bottom_left_distance = minbot(landmark_bottom_left_distance, rcvd->name + 1); \
-		landmark_bottom_right_distance = minbot(landmark_bottom_right_distance, rcvd->name + 1); \
+		landmark_bottom_left_distance = minbot(landmark_bottom_left_distance, botinc(rcvd->name)); \
+	} \
+}
+#define UPDATE_LANDMARK_DISTANCE_BR(rcvd, name) \
+{ \
+	if (rcvd->name != BOTTOM) \
+	{ \
+		landmark_bottom_right_distance = minbot(landmark_bottom_right_distance, botinc(rcvd->name)); \
 	} \
 }
 
@@ -99,14 +114,8 @@ implementation
 
 	typedef enum
 	{
-		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
+		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1), CloserSideSet = (1 << 2), FurtherSideSet = (1 << 3)
 	} SetType;
-
-//	typedef enum
-//	{
-//		BottomLeft, BottomRight
-//	} AwayMessageType;
-
 
 	const char* type_to_string()
 	{
@@ -122,6 +131,11 @@ implementation
 	int16_t landmark_bottom_left_distance = BOTTOM;
 
 	int16_t landmark_bottom_right_distance = BOTTOM;
+
+	int16_t FurtherSet_neighbours = 0;
+	int16_t CloserSideSet_neighbours = 0;
+	int16_t CloserSet_neighbours = 0;
+	int16_t FurtherSideSet_neighbours = 0;
 
 	distance_neighbours_t neighbours;
 
@@ -150,9 +164,30 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+	void reset_neighbour_numbers()
+	{
+		FurtherSideSet_neighbours = 0;
+		CloserSideSet_neighbours = 0;
+		FurtherSet_neighbours = 0;
+		CloserSet_neighbours = 0;
+	}
+
+	uint16_t avaiable_set(uint32_t set)
+	{
+		uint16_t i = 0;
+		while(set != 0)
+		{
+			set = set >> 1;
+			i++;
+		}
+		return i;
+	}
+
 	SetType random_walk_direction()
 	{
 		uint32_t possible_sets = UnknownSet;
+		uint32_t a_set;
+		uint16_t rnd;
 
 		// We want compare sink distance if we do not know our sink distance
 		if (landmark_bottom_left_distance != BOTTOM)
@@ -167,42 +202,41 @@ implementation
 
 				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
 				{
-					possible_sets |= FurtherSet;
+					FurtherSideSet_neighbours++;
 				}
-				else //if (landmark_distance >= neighbour->bottom_left_distance)
+				if (landmark_bottom_left_distance > neighbour->bottom_left_distance)
 				{
-					possible_sets |= CloserSet;
+					CloserSideSet_neighbours++;
 				}
+				if (landmark_bottom_right_distance <  neighbour->bottom_right_distance)
+				{
+					FurtherSet_neighbours++;
+				}
+				else 		//landmark_bottom_right_distance > neighbour->bottom_right_distance
+				{
+					CloserSet_neighbours++;
+				}
+				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
+
+			if (FurtherSideSet_neighbours == 2)	possible_sets |= FurtherSideSet;
+			if (CloserSideSet_neighbours == 2)	possible_sets |= CloserSideSet; 
+			if (FurtherSet_neighbours == 2)		possible_sets |= FurtherSet;
+			if (CloserSet_neighbours == 2)		possible_sets |= CloserSet;
+			a_set = avaiable_set(possible_sets);
+			reset_neighbour_numbers();
 		}
 
-		if (possible_sets == (FurtherSet | CloserSet))
-		{
-			// Both directions possible, so randomly pick one of them
-			const uint16_t rnd = call Random.rand16() % 2;
-			if (rnd == 0)
-			{
-				return FurtherSet;
-			}
-			else
-			{
-				return CloserSet;
-			}
-		}
-		else if ((possible_sets & FurtherSet) != 0)
-		{
-			return FurtherSet;
-		}
-		else if ((possible_sets & CloserSet) != 0)
-		{
-			return CloserSet;
-		}
-		else
-		{
-			// No known neighbours, so have a go at flooding.
-			// Someone might get this message
-			return UnknownSet;
-		}
+		rnd = call Random.rand16() % a_set;
+		possible_sets = (possible_sets+1) >> (rnd+1);
+
+		printf("possible set=%d\n", possible_sets);
+
+		if (possible_sets == CloserSet) 			return CloserSet;
+		else if (possible_sets == FurtherSet) 		return FurtherSet;
+		else if (possible_sets == CloserSideSet) 	return CloserSideSet;
+		else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
+		else return UnknownSet;
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -215,7 +249,7 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (landmark_bottom_left_distance != BOTTOM && further_or_closer_set != UnknownSet)
+		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM && further_or_closer_set != UnknownSet)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -243,8 +277,10 @@ implementation
 				//simdbgverbose("stdout", "[%u]: further_or_closer_set=%d, dist=%d neighbour.dist=%d \n",
 				//  neighbour->address, further_or_closer_set, landmark_distance, neighbour->contents.distance);
 
-				if ((further_or_closer_set == FurtherSet && landmark_bottom_left_distance < neighbour->contents.bottom_left_distance) ||
-					(further_or_closer_set == CloserSet && landmark_bottom_left_distance >= neighbour->contents.bottom_left_distance))
+				if ((further_or_closer_set == FurtherSet && landmark_bottom_right_distance < neighbour->contents.bottom_right_distance) ||
+					(further_or_closer_set == CloserSet && landmark_bottom_right_distance >= neighbour->contents.bottom_right_distance) ||
+					(further_or_closer_set == FurtherSideSet && landmark_bottom_left_distance < neighbour->contents.bottom_left_distance) ||
+					(further_or_closer_set == CloserSideSet && landmark_bottom_left_distance >= neighbour->contents.bottom_left_distance))
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -268,12 +304,13 @@ implementation
 			chosen_address = neighbour->address;
 
 #ifdef SLP_VERBOSE_DEBUG
-			//print_distance_neighbours("stdout", &local_neighbours);
+			print_distance_neighbours("stdout", &local_neighbours);
+			//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance);
 #endif
 
-			//simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
-			//	chosen_address, neighbour_index, rnd, local_neighbours.size,
-			//	neighbour->contents.bottom_left_distance, landmark_bottom_left_distance);
+			simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				neighbour->contents.bottom_left_distance, landmark_bottom_left_distance);
 		}
 
 		return chosen_address;
@@ -313,8 +350,7 @@ implementation
 
 			call ObjectDetector.start();
 
-			//if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID || TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
-			if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
+			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID || TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
@@ -372,6 +408,7 @@ implementation
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
+		//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance);
 #endif
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -417,47 +454,31 @@ implementation
 		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
 		{
 			landmark_bottom_left_distance = 0;
-
-			simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
-
-			message.bottom_left_sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
-			message.source_id = TOS_NODE_ID;
-			message.landmark_bottom_left_distance = landmark_bottom_left_distance;
 			message.bottom_left_or_right = BottomLeft;
-
-			call Packet.clear(&packet);
-
-			extra_to_send = 2;
-			if (send_Away_message(&message, AM_BROADCAST_ADDR))
-			{
-				call AwaySeqNos.increment(TOS_NODE_ID);
-			}
-
-			simdbgverbose("stdout", "Bottom Left Away sent,%u\n",message.bottom_left_or_right);
 		}
-		else if(TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID)	//bottom right away message.
+		else if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID)
 		{
 			landmark_bottom_right_distance = 0;
-
-			simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
-
-			message.bottom_right_sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
-			message.source_id = TOS_NODE_ID;
-			message.landmark_bottom_right_distance = landmark_bottom_right_distance;
 			message.bottom_left_or_right = BottomRight;
-
-			call Packet.clear(&packet);
-
-			extra_to_send = 2;
-			if (send_Away_message(&message, AM_BROADCAST_ADDR))
-			{
-				call AwaySeqNos.increment(TOS_NODE_ID);
-			}
-
-			simdbgverbose("stdout", "Bottom Right Away sent\n");
 		}
 		else
-			simdbgverbose("stdout", "Neither Left or Right Away sent\n");
+		{
+			simdbgerror("stdout", "Error!\n");
+		}
+
+		simdbg("stdout", "%s: AwaySenderTimer fired.\n", sim_time_string());
+
+		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		message.source_id = TOS_NODE_ID;
+		message.landmark_distance = 0;
+
+		call Packet.clear(&packet);
+
+		extra_to_send = 2;
+		if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		{
+			call AwaySeqNos.increment(TOS_NODE_ID);
+		}
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -476,11 +497,11 @@ implementation
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_left_sender);
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
 		
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -492,6 +513,7 @@ implementation
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
+			//forwarding_message.landmark_distance_of_sender = landmark_bottom_left_distance;
 			forwarding_message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 			forwarding_message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
 
@@ -575,11 +597,11 @@ implementation
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_left_sender);
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
@@ -591,11 +613,11 @@ implementation
 	// If the sink snoops a normal message, we may as well just deliver it
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_left_sender);
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
 
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
@@ -612,11 +634,11 @@ implementation
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_left_sender);
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
 
 		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
@@ -633,24 +655,27 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_bottom_left_distance);
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_bottom_right_distance);
+		if (rcvd->bottom_left_or_right == BottomLeft)
+		{
+			UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance);
+			UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance);
+		}
+		else 	//if (rcvd->bottom_left_or_right == BottomRight)
+		{
+			UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance);
+			UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance);
+		}
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_bottom_left_distance);
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_bottom_right_distance);
-
-		if (call AwaySeqNos.before(rcvd->source_id, rcvd->bottom_left_sequence_number) && rcvd->bottom_left_or_right == BottomLeft)
+		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
-			simdbgverbose("stdout","here: BottomLeft.\n");
 
-			call AwaySeqNos.update(rcvd->source_id, rcvd->bottom_left_sequence_number);
+			call AwaySeqNos.update(rcvd->source_id, rcvd->sequence_number);
 			
-			METRIC_RCV_AWAY_BOTTOM_LEFT(rcvd);
+			METRIC_RCV_AWAY(rcvd);
 
 			forwarding_message = *rcvd;
-			forwarding_message.landmark_bottom_left_distance += 1;
-			forwarding_message.bottom_left_or_right = BottomLeft;
+			forwarding_message.landmark_distance += 1;
 
 			call Packet.clear(&packet);
 			
@@ -659,31 +684,10 @@ implementation
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
-		else if (call AwaySeqNos.before(rcvd->source_id, rcvd->bottom_right_sequence_number) && rcvd->bottom_left_or_right == BottomRight)
-		{
-			AwayMessage forwarding_message;
-			simdbgverbose("stdout","here: BottomRight.\n");
-			call AwaySeqNos.update(rcvd->source_id, rcvd->bottom_right_sequence_number);
-			
-			METRIC_RCV_AWAY_BOTTOM_RIGHT(rcvd);
 
-			forwarding_message = *rcvd;
-			forwarding_message.landmark_bottom_right_distance += 1;
-			forwarding_message.bottom_left_or_right = BottomRight;
-
-			call Packet.clear(&packet);
-			
-			extra_to_send = 1;
-			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
-
-			call BeaconSenderTimer.startOneShot(beacon_send_wait());
-		}
-		else
-			simdbgverbose("stdout","here: errror!.\n");
-
-#ifdef SLP_VERBOSE_DEBUG
+//#ifdef SLP_VERBOSE_DEBUG
 		//print_distance_neighbours("stdout", &neighbours);
-#endif
+//#endif
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
@@ -695,11 +699,11 @@ implementation
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
-
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_left_sender);
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
 
 		METRIC_RCV_BEACON(rcvd);
 	}
