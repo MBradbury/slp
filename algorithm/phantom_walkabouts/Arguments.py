@@ -28,9 +28,11 @@ class Arguments(ArgumentsCommon):
 
         configuration = Configuration.create(self.args.configuration, self.args)
 
+        result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
+
         result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
 
-        result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
+        result["TOP_RIGHT_NODE_ID"] = configuration.topology.top_right
 
         return result
 
