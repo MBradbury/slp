@@ -13,6 +13,12 @@ typedef nx_struct AwayMessage
   // has travelled from the landmark node. 
   nx_uint16_t landmark_distance;
 
+  nx_uint16_t sink_bl_dist;
+
+  nx_uint16_t sink_br_dist;
+
+  nx_uint16_t sink_tr_dist;
+
   nx_uint8_t bottom_left_or_right;
 
 } AwayMessage;
