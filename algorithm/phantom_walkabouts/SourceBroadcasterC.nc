@@ -21,6 +21,7 @@
 #define BottomLeft 0
 #define BottomRight 1
 #define SINK 2
+#define TopRight 3
 
 typedef struct
 {
@@ -357,7 +358,7 @@ implementation
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d\n", sink_bl_dist, sink_br_dist);
+			simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
 			//sink_location_check();
 			//printf("%d\n", location);
 
@@ -741,6 +742,8 @@ implementation
 			sink_bl_dist = rcvd->sink_bl_dist;
 		if (rcvd->bottom_left_or_right == BottomRight)
 			sink_br_dist = rcvd->sink_br_dist;
+		if (rcvd->bottom_left_or_right == TopRight)
+			sink_tr_dist = rcvd->sink_tr_dist;
 
 		simdbgverbose("stdout","<x_receive_Away>sink_bl_dist=%d, sink_br_dist=%d\n", sink_bl_dist, sink_br_dist);
 		
@@ -771,7 +774,6 @@ implementation
 			message.source_id = TOS_NODE_ID;
 			message.landmark_distance = 0;
 			message.sink_bl_dist = sink_bl_dist;
-			//bl_message.sink_br_dist = sink_br_dist;
 
 			call Packet.clear(&packet);
 
@@ -792,7 +794,6 @@ implementation
 			message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 			message.source_id = TOS_NODE_ID;
 			message.landmark_distance = 0;
-			//br_message.sink_bl_dist = sink_bl_dist;
 			message.sink_br_dist = sink_br_dist;
 
 			call Packet.clear(&packet);
@@ -804,13 +805,25 @@ implementation
 			}
 		}
 
-		//else if (rcvd->node_id == TOP_RIGHT_NODE_ID && rcvd->bottom_left_or_right == SINK)
-		//	sink_tr_dist = rcvd->landmark_distance;
-		else
+		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->bottom_left_or_right == SINK)
 		{
-			//printf("<else> sink_bl_dist=%d\n", sink_bl_dist);
-		}
+			AwayMessage message;
 
+			sink_tr_dist = rcvd->landmark_distance;
+			message.bottom_left_or_right = TopRight;
+			message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+			message.source_id = TOS_NODE_ID;
+			message.landmark_distance = 0;
+			message.sink_tr_dist = sink_tr_dist;
+
+			call Packet.clear(&packet);
+
+			extra_to_send = 2;
+			if (send_Away_message(&message, AM_BROADCAST_ADDR))
+			{
+				call AwaySeqNos.increment(TOS_NODE_ID);
+			}
+		}
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -825,7 +838,7 @@ implementation
 
 			forwarding_message.sink_bl_dist = sink_bl_dist;
 			forwarding_message.sink_br_dist = sink_br_dist;
-			//forwarding_message.sink_tr_dist = sink_tr_dist;
+			forwarding_message.sink_tr_dist = sink_tr_dist;
 
 			call Packet.clear(&packet);
 			
