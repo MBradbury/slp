@@ -10,6 +10,7 @@
 #include <Timer.h>
 #include <TinyError.h>
 #include <math.h>
+#include <unistd.h>
 
 #include <assert.h>
 
@@ -220,6 +221,7 @@ implementation
 		return i;
 	}
 
+/*
 	void sink_location_check()
 	{
 		if (sink_bl_dist != BOTTOM && sink_br_dist !=BOTTOM && sink_tr_dist != BOTTOM)
@@ -233,6 +235,7 @@ implementation
 		else
 			location = Others;
 	}
+*/
 
 	SetType random_walk_direction()
 	{
@@ -354,7 +357,7 @@ implementation
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			printf("sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
+			simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d\n", sink_bl_dist, sink_br_dist);
 			//sink_location_check();
 			//printf("%d\n", location);
 
@@ -407,7 +410,7 @@ implementation
 
 			call ObjectDetector.start();
 
-			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID || TOS_NODE_ID == BOTTOM_LEFT_NODE_ID || TOS_NODE_ID == SINK_NODE_ID)
+			if (TOS_NODE_ID == SINK_NODE_ID)
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
@@ -508,7 +511,7 @@ implementation
 	event void AwaySenderTimer.fired()
 	{
 		AwayMessage message;
-
+/*
 		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
 		{
 			landmark_bottom_left_distance = 0;
@@ -519,7 +522,8 @@ implementation
 			landmark_bottom_right_distance = 0;
 			message.bottom_left_or_right = BottomRight;
 		}
-		else if (TOS_NODE_ID == SINK_NODE_ID)
+*/
+		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			landmark_sink_distance = 0;
 			message.bottom_left_or_right = SINK;
@@ -550,6 +554,8 @@ implementation
 		BeaconMessage message;
 
 		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+
+		//simdbg("stdout","<BeaconSenderTimer>sink_bl_dist=%d, location=%d\n", sink_bl_dist, location);
 
 		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
@@ -729,20 +735,26 @@ implementation
 	RECEIVE_MESSAGE_END(Normal)
 
 
-	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr, int16_t *sink_bl)
+	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		if (rcvd->bottom_left_or_right == BottomLeft)
+			sink_bl_dist = rcvd->sink_bl_dist;
+		if (rcvd->bottom_left_or_right == BottomRight)
+			sink_br_dist = rcvd->sink_br_dist;
+
+		simdbgverbose("stdout","<x_receive_Away>sink_bl_dist=%d, sink_br_dist=%d\n", sink_bl_dist, sink_br_dist);
 		
 		if (rcvd->bottom_left_or_right == BottomLeft)
 		{
 			UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance);
 			UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance);
 		}
-		else if (rcvd->bottom_left_or_right == BottomRight)
+		if (rcvd->bottom_left_or_right == BottomRight)
 		{
 			UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance);
 			UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance);
 		}
-		else //if (rcvd->bottom_left_or_right == SINK)
+		if (rcvd->bottom_left_or_right == SINK)
 		{
 			UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, landmark_distance);
 			UPDATE_LANDMARK_DISTANCE_SINK(rcvd, landmark_distance);
@@ -750,13 +762,55 @@ implementation
 
 		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID && rcvd->bottom_left_or_right == SINK)
 		{
-			*sink_bl = rcvd->landmark_distance;
-			printf("sink_bl_dist=%d\n", *sink_bl);
+			AwayMessage message;
+
+			sink_bl_dist = rcvd->landmark_distance;
+			landmark_bottom_left_distance = 0;
+			message.bottom_left_or_right = BottomLeft;
+			message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+			message.source_id = TOS_NODE_ID;
+			message.landmark_distance = 0;
+			message.sink_bl_dist = sink_bl_dist;
+			//bl_message.sink_br_dist = sink_br_dist;
+
+			call Packet.clear(&packet);
+
+			extra_to_send = 2;
+			if (send_Away_message(&message, AM_BROADCAST_ADDR))
+			{
+				call AwaySeqNos.increment(TOS_NODE_ID);
+			}
 		}
+
 		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->bottom_left_or_right == SINK)
+		{
+			AwayMessage message;
+
 			sink_br_dist = rcvd->landmark_distance;
-		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->bottom_left_or_right == SINK)
-			sink_tr_dist = rcvd->landmark_distance;
+			landmark_bottom_right_distance = 0;
+			message.bottom_left_or_right = BottomRight;
+			message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+			message.source_id = TOS_NODE_ID;
+			message.landmark_distance = 0;
+			//br_message.sink_bl_dist = sink_bl_dist;
+			message.sink_br_dist = sink_br_dist;
+
+			call Packet.clear(&packet);
+
+			extra_to_send = 2;
+			if (send_Away_message(&message, AM_BROADCAST_ADDR))
+			{
+				call AwaySeqNos.increment(TOS_NODE_ID);
+			}
+		}
+
+		//else if (rcvd->node_id == TOP_RIGHT_NODE_ID && rcvd->bottom_left_or_right == SINK)
+		//	sink_tr_dist = rcvd->landmark_distance;
+		else
+		{
+			//printf("<else> sink_bl_dist=%d\n", sink_bl_dist);
+		}
+
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -769,6 +823,10 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.landmark_distance += 1;
 
+			forwarding_message.sink_bl_dist = sink_bl_dist;
+			forwarding_message.sink_br_dist = sink_br_dist;
+			//forwarding_message.sink_tr_dist = sink_tr_dist;
+
 			call Packet.clear(&packet);
 			
 			extra_to_send = 1;
@@ -776,6 +834,7 @@ implementation
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
+
 
 //#ifdef SLP_VERBOSE_DEBUG
 		//print_distance_neighbours("stdout", &neighbours);
@@ -785,7 +844,7 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
 		case NormalNode:
 		case SourceNode:
-		case SinkNode: x_receive_Away(msg, rcvd, source_addr, &sink_bl_dist); break;
+		case SinkNode: x_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
