@@ -43,9 +43,9 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         self._check_topology(topology)
 
-        self.noise_floor = np.zeros(len(topology.nodes))
-        self.output_power_var = np.zeros(len(topology.nodes))
-        self.link_gain = np.zeros((len(topology.nodes), len(topology.nodes)))
+        self.noise_floor = np.zeros(len(topology.nodes), dtype=np.float64)
+        self.output_power_var = np.zeros(len(topology.nodes), dtype=np.float64)
+        self.link_gain = np.zeros((len(topology.nodes), len(topology.nodes)), dtype=np.float64)
 
         self._obtain_radio_pt_pn(rnd, topology)
 
@@ -63,7 +63,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
     def _obtain_radio_pt_pn(self, rnd, topology):
 
         s = self.s
-        t = np.zeros((2, 2))
+        t = np.zeros((2, 2), dtype=np.float64)
 
         if s[0,0] == 0 and s[1,1] == 0:
             pass
