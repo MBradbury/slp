@@ -1,10 +1,9 @@
-from simulator.topovis.common import INF, DEFAULT, Color, Parameters
 from time import sleep, time as systime
 from functools import wraps
 from threading import Timer
 from heapq import heappush, heappop
-import inspect
 
+from simulator.topovis.common import INF, DEFAULT, Color, Parameters
 
 ###############################################
 class LineStyle(object):
@@ -429,7 +428,7 @@ class Scene:
         """
         # resolve ident and inform plotters manually
         # XXX will try to use decorator later on
-        if ident == None:
+        if ident is None:
             ident = self._getUniqueId()
         for plotter in self.plotters:
             plotter.circle(x, y, r, ident, line, fill)
@@ -446,7 +445,7 @@ class Scene:
         """
         # resolve ident and inform plotters manually
         # XXX will try to use decorator later on
-        if ident == None:
+        if ident is None:
             ident = self._getUniqueId()
         for plotter in self.plotters:
             plotter.line(x1, y1, x2, y2, ident, line)
@@ -463,7 +462,7 @@ class Scene:
         """
         # resolve ident and inform plotters manually
         # XXX will try to use decorator later on
-        if ident == None:
+        if ident is None:
             ident = self._getUniqueId()
         for plotter in self.plotters:
             plotter.rect(x1, y1, x2, y2, ident, line, fill)
