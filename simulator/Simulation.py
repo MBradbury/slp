@@ -290,8 +290,7 @@ class Simulation(object):
     def _read_noise_from_file(path):
         with open(path, "r") as f:
             for line in f:
-                line = line.strip()
-                if len(line) != 0:
+                if len(line) > 0 and not line.isspace():
                     yield int(line)
 
     def add_attacker(self, attacker):
