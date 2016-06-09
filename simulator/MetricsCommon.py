@@ -252,7 +252,7 @@ class MetricsCommon(object):
 
     def attacker_source_distance(self):
         return {
-            (source_id, attacker.ident): self.sim.node_distance(source_id, attacker.position)
+            (source_id, attacker.ident): self.configuration.node_distance_meters(source_id, attacker.position)
 
             for attacker
             in self.sim.attackers
@@ -263,7 +263,7 @@ class MetricsCommon(object):
 
     def attacker_sink_distance(self):
         return {
-            (sink_id, attacker.ident): self.sim.node_distance(sink_id, attacker.position)
+            (sink_id, attacker.ident): self.configuration.node_distance_meters(sink_id, attacker.position)
 
             for attacker
             in self.sim.attackers

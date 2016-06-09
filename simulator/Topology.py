@@ -1,16 +1,30 @@
-import os, random, itertools
-from scipy.spatial.distance import euclidean
+import os
 
-class Line(object):
+import numpy as np
+
+class Topology(object):
+    def __init__(self):
+        self.nodes = None
+
+    def node_distance_meters(self, node1, node2):
+        # See: https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
+        return np.linalg.norm(self.nodes[node1] - self.nodes[node2])
+
+    def coord_distance_meters(self, coord1, coord2):
+        return np.linalg.norm(coord1 - coord2)
+
+class Line(Topology):
     def __init__(self, size, distance, initial_position=10.0):
+        super(Line, self).__init__()
+
         self.size = size
         self.distance = distance
 
         y = 0
 
         self.nodes = [
-            (float(x * distance + initial_position), float(y * distance + initial_position))
-            for x in range(size)
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
+            for x in xrange(size)
         ]
 
         self.centre_node = (len(self.nodes) - 1) / 2
@@ -18,15 +32,17 @@ class Line(object):
     def __str__(self):
         return "Line<size={}>".format(self.size)
 
-class Grid(object):
+class Grid(Topology):
     def __init__(self, size, distance, initial_position=10.0):
+        super(Grid, self).__init__()
+
         self.size = size
         self.distance = distance
 
         self.nodes = [
-            (float(x * distance + initial_position), float(y * distance + initial_position))
-            for y in range(size)
-            for x in range(size)
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
+            for y in xrange(size)
+            for x in xrange(size)
         ]
 
         self.top_left = 0
@@ -38,16 +54,18 @@ class Grid(object):
     def __str__(self):
         return "Grid<size={}>".format(self.size)
 
-class Circle(object):
+class Circle(Topology):
     def __init__(self, diameter, distance, initial_position=10.0):
+        super(Circle, self).__init__()
+
         self.diameter_in_hops = diameter
         self.diameter = self.diameter_in_hops * distance
         self.distance = distance
 
         self.nodes = [
-            (float(x * distance + initial_position), float(y * distance + initial_position))
-            for y in range(diameter)
-            for x in range(diameter)
+            np.array(f(loat(x * distance + initial_position), float(y * distance + initial_position)))
+            for y in xrange(diameter)
+            for x in xrange(diameter)
         ]
 
         self.centre_node = (len(self.nodes) - 1) / 2
@@ -55,46 +73,54 @@ class Circle(object):
         centre_node_pos = self.nodes[self.centre_node]
 
         def in_circle(position):
-            return euclidean(centre_node_pos, position) < self.diameter / 2.0
+            return self.coord_distance_meters(centre_node_pos, position) < self.diameter / 2.0
 
         self.nodes = [pos for pos in self.nodes if in_circle(pos)]
 
     def __str__(self):
         return "Circle<diameter={}>".format(self.diameter_in_hops)
 
-class Ring(object):
+class Ring(Topology):
     def __init__(self, diameter, distance, initial_position=10.0):
+        super(Ring, self).__init__()
+
         self.diameter = diameter
         self.distance = distance
 
         self.nodes = [
-            (float(x * distance + initial_position), float(y * distance + initial_position))
-            for y in range(diameter)
-            for x in range(diameter)
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
+            for y in xrange(diameter)
+            for x in xrange(diameter)
             if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)
         ]
 
     def __str__(self):
         return "Ring<diameter={}>".format(self.diameter)
 
-class SimpleTree(object):
+class SimpleTree(Topology):
     """Creates a tree with a single branch."""
     def __init__(self, size, distance, initial_position=10.0):
+        super(SimpleTree, self).__init__()
+
         self.size = size
         self.distance = distance
 
         self.nodes = [
-            (float(x * distance + initial_position), float(y * distance + initial_position))
-            for y in range(size)
-            for x in range(size)
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
+            for y in xrange(size)
+            for x in xrange(size)
             if (y == 0 or x == (size - 1) / 2)
         ]
 
     def __str__(self):
         return "SimpleTree<size={}>".format(self.size)
 
-class Random(object):
+class Random(Topology):
     def __init__(self, network_size, distance, seed=3, initial_position=10.0):
+        super(Random, self).__init__()
+
+        import random
+
         self.seed = seed
         self.size = network_size
         self.distance = distance
@@ -110,15 +136,15 @@ class Random(object):
         self.area = ((min_x_pos, max_x_pos), (min_y_pos, max_y_pos))
 
         def random_coordinate():
-            return (
+            return np.array((
                 rnd.uniform(min_x_pos, max_x_pos),
                 rnd.uniform(min_y_pos, max_y_pos)
-            )
+            ))
 
         def check_nodes(node):
             """All nodes must not be closer than 1m, as TOSSIM doesn't allow this."""
             return all(
-                euclidean(node, other_node) > 1.0
+                self.coord_distance_meters(node, other_node) > 1.0
                 for other_node
                 in self.nodes
             )
@@ -129,7 +155,7 @@ class Random(object):
         for i in range(network_size ** 2):
             coord = None
 
-            for x in range(max_retries):
+            for x in xrange(max_retries):
                 coord = random_coordinate()
 
                 if check_nodes(coord):

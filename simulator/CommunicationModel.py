@@ -4,7 +4,6 @@ from math import log10, sqrt
 from itertools import islice
 
 import numpy as np
-from scipy.spatial.distance import euclidean
 
 class CommunicationModel(object):
     def __init__(self):
@@ -37,6 +36,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
     def _setup(self, topology, seed):
         # Need to use the same java prng to maintain backwards compatibility
         # with existing results
+        # TODO: When creating results from scratch, switch to python's rng as it is much better
         from java_random import JavaRandom as Random
 
         rnd = Random(seed)
@@ -55,7 +55,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         for (i, ni) in enumerate(topology.nodes):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
 
-                distance = euclidean(ni, nj)
+                distance = topology.coord_distance_meters(ni, nj)
                 if distance < self.d0:
                     raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
                         distance, i, ni, j, nj, self.d0))
@@ -101,7 +101,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
                 rnd1 = rnd.nextGaussian()
 
-                distance = euclidean(ni, nj)
+                distance = topology.coord_distance_meters(ni, nj)
 
                 pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
 
@@ -133,7 +133,7 @@ class IdealCommunicationModel(CommunicationModel):
     def _obtain_link_gain(self, topology, wireless_range):
         for (i, ni) in enumerate(topology.nodes):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
-                if euclidean(ni, nj) <= wireless_range:
+                if topology.coord_distance_meters(ni, nj) <= wireless_range:
                     self.link_gain[i,j] = self.connection_strength
                     self.link_gain[j,i] = self.connection_strength
                 else:

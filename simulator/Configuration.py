@@ -2,7 +2,6 @@ from __future__ import print_function, division
 
 import itertools
 import numpy as np
-from scipy.spatial.distance import euclidean
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import shortest_path
 
@@ -98,8 +97,7 @@ class Configuration(object):
         return self._dist_matrix[node, source_id]
 
     def node_distance_meters(self, node1, node2):
-        nodes = self.topology.nodes
-        return euclidean(nodes[node1], nodes[node2])
+        return self.topology.node_distance_meters(node1, node2)
 
     def ssd_meters(self, source_id):
         """The number of meters between the sink and the specified source node"""
@@ -110,14 +108,14 @@ class Configuration(object):
 
     def node_sink_distance_meters(self, node):
         """The number of meters between the sink and the specified node"""
-        return euclidean(self.topology.nodes[self.sink_id], self.topology.nodes[node])
+        return self.node_distance_meters(self.sink_id, node)
 
     def node_source_distance_meters(self, node, source_id):
         """The number of meters between the specified source and the specified node"""
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
-        return euclidean(self.topology.nodes[source_id], self.topology.nodes[node])
+        return self.node_distance_meters(node, source_id)
 
 
 
