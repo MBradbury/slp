@@ -1,5 +1,8 @@
-from __future__ import print_function
-import os, sys, datetime
+from __future__ import print_function, division
+
+import datetime
+import os
+import sys
 
 import simulator.common
 
