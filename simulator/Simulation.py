@@ -1,17 +1,19 @@
 from __future__ import print_function, division
-import os, timeit, struct, importlib, sys, glob, select, random
 
+from collections import namedtuple
+import glob
+import importlib
 from itertools import islice
+import os
+import random
+import select
+import struct
+import sys
+import timeit
 
 from simulator.Topology import topology_path
 
-from scipy.spatial.distance import euclidean
-
-class Node(object):
-    def __init__(self, node_id, location, tossim_node):
-        self.nid = node_id
-        self.location = location
-        self.tossim_node = tossim_node
+Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
 class OutputCatcher(object):
     def __init__(self, linefn):
@@ -131,9 +133,9 @@ class Simulation(object):
 
         self._read_poller.register(fd, select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
 
-    def node_distance(self, left, right):
+    def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
-        return euclidean(self.nodes[left].location, self.nodes[right].location)
+        return self.metrics.configuration.node_distance_meters(left, right)
 
     def ticks_to_seconds(self, ticks):
         """Converts simulation time ticks into seconds"""
