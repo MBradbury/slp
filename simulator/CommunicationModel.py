@@ -43,9 +43,11 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         self._check_topology(topology)
 
-        self.noise_floor = np.zeros(len(topology.nodes), dtype=np.float64)
-        self.output_power_var = np.zeros(len(topology.nodes), dtype=np.float64)
-        self.link_gain = np.zeros((len(topology.nodes), len(topology.nodes)), dtype=np.float64)
+        num_nodes = len(topology.nodes)
+
+        self.noise_floor = np.zeros(num_nodes, dtype=np.float64)
+        self.output_power_var = np.zeros(num_nodes, dtype=np.float64)
+        self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
         self._obtain_radio_pt_pn(rnd, topology)
 
@@ -124,11 +126,14 @@ class IdealCommunicationModel(CommunicationModel):
     def setup(self, sim):
         topology = sim.metrics.configuration.topology
 
-        self.noise_floor = np.zeros(len(topology.nodes))
-        self.link_gain = np.zeros((len(topology.nodes), len(topology.nodes)))
+        num_nodes = len(topology.nodes)
+
+        # All nodes have the same noise floor
+        self.noise_floor = np.full(num_nodes, self.noise_floor_pn, dtype=np.float64)
+
+        self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
         self._obtain_link_gain(topology, sim.wireless_range)
-        self._obtain_noise_floor(topology)
 
     def _obtain_link_gain(self, topology, wireless_range):
         for (i, ni) in enumerate(topology.nodes):
@@ -140,10 +145,6 @@ class IdealCommunicationModel(CommunicationModel):
                     # Use NaNs to signal that there is no link between these two nodes
                     self.link_gain[i,j] = float('NaN')
                     self.link_gain[j,i] = float('NaN')
-
-    def _obtain_noise_floor(self, topology):
-        for (i, ni) in enumerate(topology.nodes):
-            self.noise_floor[i] = self.noise_floor_pn
 
 
 

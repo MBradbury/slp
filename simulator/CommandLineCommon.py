@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import datetime
+import importlib
 import os
 import sys
 
@@ -32,7 +33,8 @@ class CLI(object):
     def __init__(self, package):
         super(CLI, self).__init__()
 
-        self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
+        self.algorithm_module = importlib.import_module(package)
+        self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
 
     def parameter_names(self):
         return tuple(list(self.global_parameter_names) + list(self.local_parameter_names))

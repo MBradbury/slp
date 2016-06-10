@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-import itertools
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import shortest_path
@@ -56,10 +55,11 @@ class Configuration(object):
         )
 
     def _build_connectivity_matrix(self):
-        connectivity_matrix = np.zeros((self.size(), self.size()))
+        connectivity_matrix = np.zeros((self.size(), self.size()), dtype=np.int_)
 
-        for (y, x) in itertools.product(xrange(self.size()), xrange(self.size())):
-            connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
+        for y in xrange(self.size()):
+            for x in xrange(self.size()):
+                connectivity_matrix[x,y] = self.is_connected(x, y)
         connectivity_matrix = csr_matrix(connectivity_matrix)
 
         self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, return_predecessors=True)
