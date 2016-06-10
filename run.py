@@ -62,9 +62,11 @@ if a.args.mode in {"GUI", "SINGLE"}:
     import simulator.DoRun
 
 else:
-    import subprocess, multiprocessing.pool, traceback
-    from threading import Lock
     from datetime import datetime
+    import multiprocessing.pool
+    import subprocess
+    from threading import Lock
+    import traceback
 
     print_lock = Lock()
 
@@ -111,6 +113,10 @@ else:
 
     sys.stderr.flush()
 
+    # Use a thread pool for a number of reasons:
+    # 1. We don't need the GIL-free nature of a process pool as our work is done is subprocesses
+    # 2. If this process hangs the threads will terminate when this process is killed.
+    #    The process pool would stay alive.
     job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
 
     try:

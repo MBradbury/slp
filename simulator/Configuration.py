@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 
 import numpy as np
-from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import shortest_path
 
 from data.memoize import memoize
@@ -60,9 +59,8 @@ class Configuration(object):
         for y in xrange(self.size()):
             for x in xrange(self.size()):
                 connectivity_matrix[x,y] = self.is_connected(x, y)
-        connectivity_matrix = csr_matrix(connectivity_matrix)
 
-        self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, return_predecessors=True)
+        self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, directed=True, return_predecessors=True)
 
     def size(self):
         return len(self.topology.nodes)
