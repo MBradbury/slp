@@ -154,7 +154,7 @@ class Grapher(GrapherBase):
 
             if self.xaxis == "network size":
                 xvalues_as_num = map(int, xvalues)
-                xvalues_padding = 1
+                xvalues_padding = int(min(xvalues_as_num) / 10)
             else:
                 xvalues_as_num = map(float, xvalues)
                 xvalues_padding = 0.1
