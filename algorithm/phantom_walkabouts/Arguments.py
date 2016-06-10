@@ -28,7 +28,7 @@ class Arguments(ArgumentsCommon):
 
         #parser.add_argument("--wait-before-short", type=int, required=True)
 
-        #parser.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
+        parser.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
 
         parser.add_argument("--order", type=str, choices=order_choices, required=True)
 
@@ -44,6 +44,8 @@ class Arguments(ArgumentsCommon):
         result["LONG_RANDOM_WALK_HOPS"] = int(self.args.long_walk_length)
 
         result["LANDMARK_NODE_ID"] = self._get_landmark_node_id()
+
+        result["Biased_No"] = int(self.args.direction_bias *100)
 
         configuration = Configuration.create(self.args.configuration, self.args)
 
