@@ -13,7 +13,12 @@ class Analyzer(AnalyzerCommon):
     def results_header():
         d = AnalyzerCommon.common_results_header()
 
-        d['walk length']        = lambda x: x.opts['random_walk_hops']
+        d['short walk length']  = lambda x: x.opts['short_walk_length']
+        d['long walk length']   = lambda x: x.opts['long_walk_length']
+        d['short count']        = lambda x: x.opts['short_count']
+        d['long count']         = lambda x: x.opts['long_count']
+        d['order']              = lambda x: x.opts['order']
+
         d['landmark node']      = lambda x: x.opts['landmark_node']
         
         d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')

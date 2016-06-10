@@ -184,7 +184,8 @@ implementation
 	int16_t CloserSet_neighbours = 0;
 	int16_t FurtherSideSet_neighbours = 0;
 
-	//int16_t biased_direction = BOTTOM;
+	int16_t srw_count = 0;	//short random walk count.
+	int16_t lrw_count = 0;	//long random walk remianing.
 
 	distance_neighbours_t neighbours;
 
@@ -442,14 +443,48 @@ implementation
 			//simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
 
 #ifdef SLP_VERBOSE_DEBUG
-			print_distance_neighbours("stdout", &local_neighbours);
+			//print_distance_neighbours("stdout", &local_neighbours);
 #endif
 
-			simdbgverbose("stdout", "Location:%u, biased_direction:%u, Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
-				location, biased_direction, chosen_address, neighbour_index, rnd, local_neighbours.size);
+			//simdbgverbose("stdout", "Location:%u, biased_direction:%u, Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
+			//	location, biased_direction, chosen_address, neighbour_index, rnd, local_neighbours.size);
 		}
 
 		return chosen_address;
+	}
+
+	int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
+	{
+		int16_t rw;
+		if (short_count != 0)
+		{	
+			rw = RANDOM_WALK_HOPS;
+			srw_count -= 1;
+		}
+		else
+		{
+			rw = LONG_RANDOM_WALK_HOPS;
+			lrw_count -= 1;
+		}
+
+		return rw;
+	}
+
+	int16_t long_short_sequence_random_walk(int16_t short_count, int16_t long_count)
+	{
+		int16_t rw;
+		if (long_count != 0)
+		{
+			rw = LONG_RANDOM_WALK_HOPS;
+			lrw_count -= 1;
+		}
+		else
+		{
+			rw = RANDOM_WALK_HOPS;
+			srw_count -= 1;
+		}
+
+		return rw;
 	}
 
 	uint32_t beacon_send_wait()
@@ -604,14 +639,35 @@ implementation
 		//print_distance_neighbours("stdout", &neighbours);
 #endif
 
+		if (srw_count == 0 && lrw_count ==0)
+		{
+			srw_count = SHORT_COUNT;
+			lrw_count = LONG_COUNT;
+		}
+
+		#if defined(SHORT_LONG_SEQUENCE)
+		{
+			message.random_walk_hops = short_long_sequence_random_walk(srw_count, lrw_count);
+		}
+		#else
+		{
+			message.random_walk_hops = long_short_sequence_random_walk(srw_count, lrw_count);
+		}
+		#endif
+
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 		message.biased_direction = 0;	//initialise the biased_direction when first generate message.
 
+		message.srw_count = srw_count;
+		message.lrw_count = lrw_count;
+
 		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
 		message.landmark_distance_of_sink_sender = landmark_sink_distance;
+
+		printf("random walk hops=%d\n", message.random_walk_hops);
 
 		message.further_or_closer_set = random_walk_direction();
 
@@ -625,8 +681,8 @@ implementation
 		{
 			message.broadcast = (target == AM_BROADCAST_ADDR);
 
-			simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
-				sim_time_string(), target, message.further_or_closer_set);
+			//simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
+			//	sim_time_string(), target, message.further_or_closer_set);
 
 			call Packet.clear(&packet);
 
@@ -712,7 +768,7 @@ implementation
 			forwarding_message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
 			forwarding_message.landmark_distance_of_sink_sender = landmark_sink_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->broadcast && TOS_NODE_ID != SINK_NODE_ID)
+			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast && TOS_NODE_ID != SINK_NODE_ID)
 			{
 				am_addr_t target;
 				// The previous node(s) were unable to choose a direction,
@@ -760,7 +816,7 @@ implementation
 			}
 			else
 			{
-				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == SINK_NODE_ID))
+				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || TOS_NODE_ID == SINK_NODE_ID))
 				{
 					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
@@ -779,6 +835,8 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		srw_count = rcvd -> srw_count;
+		lrw_count = rcvd -> lrw_count;
 		process_normal(msg, rcvd, source_addr);
 	}
 
