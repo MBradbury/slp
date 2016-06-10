@@ -411,7 +411,7 @@ implementation
 						neighbour = &local_neighbours.data[i];
 						if(biased_direction == H)
 						{
-							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < 90)
+							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < Biased_No)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -420,7 +420,7 @@ implementation
 						}
 						else		//biased_direction is V
 						{
-							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < 90)
+							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < Biased_No)
 							{
 								chosen_address = neighbour->address;
 								break;
