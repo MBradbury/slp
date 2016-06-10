@@ -18,6 +18,17 @@ class LinkLayerCommunicationModel(CommunicationModel):
     def __init__(self, path_loss_exponent, shadowing_stddev, d0, pl_d0, noise_floor, s, white_gausian_noise):
         super(LinkLayerCommunicationModel, self).__init__()
 
+        # Argument validity checking
+        if s[0,1] != s[1,0]:
+            raise RuntimeError("S12 and S21 must have the same value.")
+
+        if abs(s[0,1]) > sqrt(s[0,0] * s[1,1]):
+            raise RuntimeError("S12 (and S21) must be less than sqrt(S11xS22).")
+
+        if s[0,0] == 0 and s[1,1] != 0:
+            raise RuntimeError("Symmetric links require both, S11 and S22 to be 0, not only S11.")
+
+        # Assign parameters
         self.path_loss_exponent = path_loss_exponent
         self.shadowing_stddev = shadowing_stddev
         self.d0 = d0
@@ -57,7 +68,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         for (i, ni) in enumerate(topology.nodes):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
 
-                distance = topology.coord_distance_meters(ni, nj)
+                distance = np.linalg.norm(ni - nj) # Euclidean distance
                 if distance < self.d0:
                     raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
                         distance, i, ni, j, nj, self.d0))
@@ -70,16 +81,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         if s[0,0] == 0 and s[1,1] == 0:
             pass
 
-        elif s[0,0] == 0 and s[1,1] != 0:
-            raise RuntimeError("Symmetric links require both, S11 and S22 to be 0, not only S11.")
-
         else:
-            if s[0,1] != s[1,0]:
-                raise RuntimeError("S12 and S21 must have the same value.")
-
-            if abs(s[0,1]) > sqrt(s[0,0] * s[1,1]):
-                raise RuntimeError("S12 (and S21) must be less than sqrt(S11xS22).")
-
             t00 = sqrt(s[0,0])
 
             t[0,0] = t00
@@ -103,7 +105,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
                 rnd1 = rnd.nextGaussian()
 
-                distance = topology.coord_distance_meters(ni, nj)
+                distance = np.linalg.norm(ni - nj) # Euclidean distance
 
                 pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
 
