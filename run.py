@@ -102,7 +102,7 @@ else:
             process.kill()
             raise
 
-    subprocess_args = ["python", "-m", "simulator.DoRun"] + sys.argv[1:]
+    subprocess_args = ["python", "-OO", "-m", "simulator.DoRun"] + sys.argv[1:]
 
     if a.args.job_id is not None:
         print("Starting cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)

@@ -61,11 +61,8 @@ def _normalised_value_names(values):
     return unique_results
 
 def _inf_handling_literal_eval(item):
-     # ast.literal_eval will not parse inf correctly.
+    # ast.literal_eval will not parse inf correctly.
     # passing 2e308 will return a float('inf') instead.
-    #
-    # The fast_eval version will parse inf when on its own correctly,
-    # so this hack is not needed there.
     item = item.replace('inf', '2e308')
 
     return ast.literal_eval(item)

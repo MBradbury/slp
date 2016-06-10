@@ -25,7 +25,7 @@ class Line(Topology):
 
         self.nodes = [
             np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
-            for x in xrange(size)
+            for x in range(size)
         ]
 
         self.centre_node = (len(self.nodes) - 1) / 2
@@ -42,8 +42,8 @@ class Grid(Topology):
 
         self.nodes = [
             np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
-            for y in xrange(size)
-            for x in xrange(size)
+            for y in range(size)
+            for x in range(size)
         ]
 
         self.top_left = 0
@@ -65,8 +65,8 @@ class Circle(Topology):
 
         self.nodes = [
             np.array(f(loat(x * distance + initial_position), float(y * distance + initial_position)))
-            for y in xrange(diameter)
-            for x in xrange(diameter)
+            for y in range(diameter)
+            for x in range(diameter)
         ]
 
         self.centre_node = (len(self.nodes) - 1) / 2
@@ -90,8 +90,8 @@ class Ring(Topology):
 
         self.nodes = [
             np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
-            for y in xrange(diameter)
-            for x in xrange(diameter)
+            for y in range(diameter)
+            for x in range(diameter)
             if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)
         ]
 
@@ -108,8 +108,8 @@ class SimpleTree(Topology):
 
         self.nodes = [
             np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
-            for y in xrange(size)
-            for x in xrange(size)
+            for y in range(size)
+            for x in range(size)
             if (y == 0 or x == (size - 1) / 2)
         ]
 
@@ -156,7 +156,7 @@ class Random(Topology):
         for i in range(network_size ** 2):
             coord = None
 
-            for x in xrange(max_retries):
+            for x in range(max_retries):
                 coord = random_coordinate()
 
                 if check_nodes(coord):

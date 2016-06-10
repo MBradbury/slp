@@ -56,8 +56,8 @@ class Configuration(object):
     def _build_connectivity_matrix(self):
         connectivity_matrix = np.zeros((self.size(), self.size()), dtype=np.int_)
 
-        for y in xrange(self.size()):
-            for x in xrange(self.size()):
+        for y in range(self.size()):
+            for x in range(self.size()):
                 connectivity_matrix[x,y] = self.is_connected(x, y)
 
         self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, directed=True, return_predecessors=True)
@@ -69,7 +69,7 @@ class Configuration(object):
         return self.topology.node_distance_meters(i, j) <= self.topology.distance
 
     def one_hop_neighbours(self, node):
-        for i in xrange(len(self.topology.nodes)):
+        for i in range(len(self.topology.nodes)):
             if i != node and self.is_connected(node, i):
                 yield i
 
