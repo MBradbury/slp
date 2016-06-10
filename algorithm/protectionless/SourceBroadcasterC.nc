@@ -180,5 +180,6 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
+		case SourceNode: break;
 	RECEIVE_MESSAGE_END(Normal)
 }
