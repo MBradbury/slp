@@ -61,7 +61,7 @@ class Simulation(object):
         self.radio = self.tossim.radio()
 
         self._out_procs = {}
-        self._read_poller = select.poll()
+        self._read_poller = select.epoll()
 
         # Record the seed we are using
         self.seed = args.seed if args.seed is not None else self._secure_random()
@@ -131,7 +131,7 @@ class Simulation(object):
 
         self._out_procs[fd] = op
 
-        self._read_poller.register(fd, select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
+        self._read_poller.register(fd, select.EPOLLIN | select.EPOLLPRI | select.EPOLLHUP | select.EPOLLERR)
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
@@ -218,8 +218,8 @@ class Simulation(object):
     @staticmethod
     def write_topology_file(node_locations, location="."):
         with open(os.path.join(location, "topology.txt"), "w") as of:
-            for (nid, loc) in enumerate(node_locations):
-                print("{}\t{}\t{}".format(nid, loc[0], loc[1]), file=of)
+            for (nid, (x, y)) in enumerate(node_locations):
+                print("{}\t{}\t{}".format(nid, x, y), file=of)
 
     def _setup_radio_link_layer_model_java(self):
         import subprocess
@@ -243,7 +243,7 @@ class Simulation(object):
     
     def _setup_radio_link_layer_model_python(self):
         """The python port of the java LinkLayerModel"""
-        import CommunicationModel
+        import simulator.CommunicationModel as CommunicationModel
         import numpy as np
 
         model = CommunicationModel.eval_input(self.communication_model)
