@@ -66,7 +66,7 @@ class Configuration(object):
         return len(self.topology.nodes)
 
     def is_connected(self, i, j):
-        return self.node_distance_meters(i, j) <= self.topology.distance
+        return self.topology.node_distance_meters(i, j) <= self.topology.distance
 
     def one_hop_neighbours(self, node):
         for i in xrange(len(self.topology.nodes)):
@@ -106,14 +106,14 @@ class Configuration(object):
 
     def node_sink_distance_meters(self, node):
         """The number of meters between the sink and the specified node"""
-        return self.node_distance_meters(self.sink_id, node)
+        return self.topology.node_distance_meters(self.sink_id, node)
 
     def node_source_distance_meters(self, node, source_id):
         """The number of meters between the specified source and the specified node"""
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
-        return self.node_distance_meters(node, source_id)
+        return self.topology.node_distance_meters(node, source_id)
 
 
 

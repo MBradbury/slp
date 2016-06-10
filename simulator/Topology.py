@@ -10,7 +10,8 @@ class Topology(object):
         # See: https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
         return np.linalg.norm(self.nodes[node1] - self.nodes[node2])
 
-    def coord_distance_meters(self, coord1, coord2):
+    @staticmethod
+    def coord_distance_meters(coord1, coord2):
         return np.linalg.norm(coord1 - coord2)
 
 class Line(Topology):
