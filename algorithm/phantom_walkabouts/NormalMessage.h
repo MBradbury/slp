@@ -26,6 +26,12 @@ typedef nx_struct NormalMessage
 
   nx_uint8_t broadcast;
 
+  nx_int16_t random_walk_hops;
+
+  nx_uint16_t srw_count;
+  
+  nx_uint16_t lrw_count;
+
 } NormalMessage;
 
 inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
