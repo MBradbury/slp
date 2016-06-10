@@ -111,7 +111,8 @@ class CLI(CommandLineCommon.CLI):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys())
+            results=tuple(graph_parameters.keys()),
+            network_size_normalisation="UseNumNodes"
         )
 
         parameters = [
@@ -129,7 +130,7 @@ class CLI(CommandLineCommon.CLI):
                     yextractor=scalar_extractor
                 )
 
-                g.xaxis_label = 'Network Size'
+                g.xaxis_label = 'Number of Nodes'
                 g.yaxis_label = yaxis_label
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
@@ -176,19 +177,22 @@ class CLI(CommandLineCommon.CLI):
         protectionless_results = results.Results(
             protectionless.result_file_path,
             parameters=tuple(),
-            results=graph_parameters.keys()
+            results=graph_parameters.keys(),
+            network_size_normalisation="UseNumNodes"
         )
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
             parameters=('approach',),
-            results=graph_parameters.keys()
+            results=graph_parameters.keys(),
+            network_size_normalisation="UseNumNodes"
         )
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=graph_parameters.keys()
+            results=graph_parameters.keys(),
+            network_size_normalisation="UseNumNodes"
         )
 
         def graph_min_max_versus(result_name):
@@ -198,7 +202,7 @@ class CLI(CommandLineCommon.CLI):
                 self.algorithm_module.graphs_path, name,
                 xaxis='network size', yaxis=result_name, vary='walk length', yextractor=scalar_extractor)
 
-            g.xaxis_label = 'Network Size'
+            g.xaxis_label = 'Number of Nodes'
             g.yaxis_label = graph_parameters[result_name][0]
             g.key_position = graph_parameters[result_name][1]
 
