@@ -2,17 +2,18 @@ import os
 
 import numpy as np
 
+from euclidean import euclidean2_2d
+
 class Topology(object):
     def __init__(self):
         self.nodes = None
 
     def node_distance_meters(self, node1, node2):
-        # See: https://stackoverflow.com/questions/1401712/how-can-the-euclidean-distance-be-calculated-with-numpy
-        return np.linalg.norm(self.nodes[node1] - self.nodes[node2])
+        return euclidean2_2d(self.nodes[node1], self.nodes[node2])
 
     @staticmethod
     def coord_distance_meters(coord1, coord2):
-        return np.linalg.norm(coord1 - coord2)
+        return euclidean2_2d(coord1, coord2)
 
 class Line(Topology):
     def __init__(self, size, distance, initial_position=10.0):
@@ -24,7 +25,7 @@ class Line(Topology):
         y = 0
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
             for x in range(size)
         ]
 
@@ -41,7 +42,7 @@ class Grid(Topology):
         self.distance = distance
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
             for y in range(size)
             for x in range(size)
         ]
@@ -64,7 +65,7 @@ class Circle(Topology):
         self.distance = distance
 
         self.nodes = [
-            np.array(f(loat(x * distance + initial_position), float(y * distance + initial_position)))
+            np.array(f(loat(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
             for y in range(diameter)
             for x in range(diameter)
         ]
@@ -89,7 +90,7 @@ class Ring(Topology):
         self.distance = distance
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
             for y in range(diameter)
             for x in range(diameter)
             if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)
@@ -107,7 +108,7 @@ class SimpleTree(Topology):
         self.distance = distance
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)))
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
             for y in range(size)
             for x in range(size)
             if (y == 0 or x == (size - 1) / 2)
@@ -140,7 +141,7 @@ class Random(Topology):
             return np.array((
                 rnd.uniform(min_x_pos, max_x_pos),
                 rnd.uniform(min_y_pos, max_y_pos)
-            ))
+            ), dtype=np.float64)
 
         def check_nodes(node):
             """All nodes must not be closer than 1m, as TOSSIM doesn't allow this."""
