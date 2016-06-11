@@ -282,9 +282,10 @@ class Simulation(object):
         noises = list(islice(self._read_noise_from_file(path), count))
 
         for node in self.nodes:
+            tnode = node.tossim_node
             for noise in noises:
-                node.tossim_node.addNoiseTraceReading(noise)
-            node.tossim_node.createNoiseModel()
+                tnode.addNoiseTraceReading(noise)
+            tnode.createNoiseModel()
 
     @staticmethod
     def _read_noise_from_file(path):
