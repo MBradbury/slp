@@ -5,6 +5,8 @@ from itertools import islice
 
 import numpy as np
 
+from euclidean import euclidean2_2d
+
 class CommunicationModel(object):
     def __init__(self):
         self.noise_floor = None
@@ -71,7 +73,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         for (i, ni) in enumerate(topology.nodes):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
 
-                distance = np.linalg.norm(ni - nj) # Euclidean distance
+                distance = euclidean2_2d(ni, nj)
                 if distance < self.d0:
                     raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
                         distance, i, ni, j, nj, self.d0))
@@ -108,7 +110,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
                 rnd1 = rnd.nextGaussian()
 
-                distance = np.linalg.norm(ni - nj) # Euclidean distance
+                distance = euclidean2_2d(ni, nj)
 
                 pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
 
@@ -143,7 +145,7 @@ class IdealCommunicationModel(CommunicationModel):
     def _obtain_link_gain(self, topology, wireless_range):
         for (i, ni) in enumerate(topology.nodes):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
-                if np.linalg.norm(ni - nj) <= wireless_range:
+                if euclidean2_2d(ni, nj) <= wireless_range:
                     self.link_gain[i,j] = self.connection_strength
                     self.link_gain[j,i] = self.connection_strength
                 else:
