@@ -52,7 +52,8 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         rnd = Random(seed)
 
-        self._check_topology(topology)
+        if __debug__:
+            self._check_topology(topology)
 
         num_nodes = len(topology.nodes)
 
@@ -65,6 +66,8 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self._obtain_link_gain(rnd, topology)
 
     def _check_topology(self, topology):
+        """Check that all nodes are at least d0 distance away from each other.
+        This model does not work correctly when nodes are closer than d0."""
         for (i, ni) in enumerate(topology.nodes):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
 
@@ -140,7 +143,7 @@ class IdealCommunicationModel(CommunicationModel):
     def _obtain_link_gain(self, topology, wireless_range):
         for (i, ni) in enumerate(topology.nodes):
             for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
-                if topology.coord_distance_meters(ni, nj) <= wireless_range:
+                if np.linalg.norm(ni - nj) <= wireless_range:
                     self.link_gain[i,j] = self.connection_strength
                     self.link_gain[j,i] = self.connection_strength
                 else:
