@@ -2,7 +2,12 @@ import os
 
 import numpy as np
 
-from euclidean import euclidean2_2d
+# Use our custom fast euclidean function,
+# fallback to the slow scipy version.
+try:
+    from euclidean import euclidean2_2d
+except ImportError:
+    from scipy.spatial.distance import euclidean as euclidean2_2d
 
 class Topology(object):
     def __init__(self):
