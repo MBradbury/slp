@@ -59,8 +59,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         rnd = Random(seed)
 
-        if __debug__:
-            self._check_topology(topology)
+        self._check_topology(topology)
 
         num_nodes = len(topology.nodes)
 
