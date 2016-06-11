@@ -1,7 +1,7 @@
 from __future__ import division
 
 from math import log10, sqrt
-from itertools import islice
+from itertools import combinations
 
 import numpy as np
 
@@ -75,8 +75,8 @@ class LinkLayerCommunicationModel(CommunicationModel):
     def _check_topology(self, topology):
         """Check that all nodes are at least d0 distance away from each other.
         This model does not work correctly when nodes are closer than d0."""
-        for (i, ni) in enumerate(topology.nodes):
-            for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
+
+        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
 
                 distance = euclidean2_2d(ni, nj)
                 if distance < self.d0:
@@ -111,19 +111,18 @@ class LinkLayerCommunicationModel(CommunicationModel):
             self.output_power_var[i] = t[0,1] * rnd1 + t[1,1] * rnd2
 
     def _obtain_link_gain(self, rnd, topology):
-        for (i, ni) in enumerate(topology.nodes):
-            for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
-                rnd1 = rnd.nextGaussian()
+        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
+            rnd1 = rnd.nextGaussian()
 
-                distance = euclidean2_2d(ni, nj)
+            distance = euclidean2_2d(ni, nj)
 
-                pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
+            pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
 
-                # The results here need to be rounded to 2 d.p. to make sure
-                # that the results of the simulation match the java results.
+            # The results here need to be rounded to 2 d.p. to make sure
+            # that the results of the simulation match the java results.
 
-                self.link_gain[i,j] = round(self.output_power_var[i] + pathloss, 2)
-                self.link_gain[j,i] = round(self.output_power_var[j] + pathloss, 2)
+            self.link_gain[i,j] = round(self.output_power_var[i] + pathloss, 2)
+            self.link_gain[j,i] = round(self.output_power_var[j] + pathloss, 2)
 
 
 
@@ -148,15 +147,14 @@ class IdealCommunicationModel(CommunicationModel):
         self._obtain_link_gain(topology, sim.wireless_range)
 
     def _obtain_link_gain(self, topology, wireless_range):
-        for (i, ni) in enumerate(topology.nodes):
-            for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
-                if euclidean2_2d(ni, nj) <= wireless_range:
-                    self.link_gain[i,j] = self.connection_strength
-                    self.link_gain[j,i] = self.connection_strength
-                else:
-                    # Use NaNs to signal that there is no link between these two nodes
-                    self.link_gain[i,j] = float('NaN')
-                    self.link_gain[j,i] = float('NaN')
+        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
+            if euclidean2_2d(ni, nj) <= wireless_range:
+                self.link_gain[i,j] = self.connection_strength
+                self.link_gain[j,i] = self.connection_strength
+            else:
+                # Use NaNs to signal that there is no link between these two nodes
+                self.link_gain[i,j] = float('NaN')
+                self.link_gain[j,i] = float('NaN')
 
 
 
