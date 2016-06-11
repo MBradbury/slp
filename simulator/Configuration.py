@@ -2,6 +2,7 @@ from __future__ import print_function, division
 
 import numpy as np
 from scipy.sparse.csgraph import shortest_path
+from scipy.spatial.distance import cdist
 
 from data.memoize import memoize
 from simulator.Topology import SimpleTree, Line, Ring, Grid, Random
@@ -54,11 +55,9 @@ class Configuration(object):
         )
 
     def _build_connectivity_matrix(self):
-        connectivity_matrix = np.zeros((self.size(), self.size()), dtype=np.int_)
+        self._dist_matrix_meters = cdist(self.topology.nodes, self.topology.nodes, 'euclidean')
 
-        for y in range(self.size()):
-            for x in range(self.size()):
-                connectivity_matrix[x,y] = self.is_connected(x, y)
+        connectivity_matrix = self._dist_matrix_meters <= self.topology.distance
 
         self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, directed=True, return_predecessors=True)
 
@@ -66,7 +65,7 @@ class Configuration(object):
         return len(self.topology.nodes)
 
     def is_connected(self, i, j):
-        return self.topology.node_distance_meters(i, j) <= self.topology.distance
+        return self._dist_matrix_meters[i,j] <= self.topology.distance
 
     def one_hop_neighbours(self, node):
         for i in range(len(self.topology.nodes)):
@@ -95,7 +94,7 @@ class Configuration(object):
         return self._dist_matrix[node, source_id]
 
     def node_distance_meters(self, node1, node2):
-        return self.topology.node_distance_meters(node1, node2)
+        return self._dist_matrix_meters[node1,node2]
 
     def ssd_meters(self, source_id):
         """The number of meters between the sink and the specified source node"""
