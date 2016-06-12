@@ -69,6 +69,9 @@ class Simulation(object):
         # Set tossim seed
         self.tossim.randomSeed(self.seed)
 
+        # Make sure the time starts at 0
+        self.tossim.setTime(0)
+
         # It is important to seed python's random number generator
         # as well as TOSSIM's. If this is not done then the simulations
         # will differ when the seeds are the same.
@@ -117,6 +120,11 @@ class Simulation(object):
         return self
 
     def __exit__(self, tp, value, tb):
+
+        # Turn off to allow subsequent simulations
+        for node in self.nodes:
+            node.tossim_node.turnOff()
+
         del self._read_poller
 
         for op in self._out_procs.values():
