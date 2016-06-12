@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-
 from __future__ import print_function
 
-import sys, importlib
+import importlib
+import sys
 
 module = sys.argv[1]
 
@@ -59,7 +59,8 @@ if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
 # Because of the way TOSSIM is architectured each individual simulation
 # needs to be run in a separate process.
 if a.args.mode in {"GUI", "SINGLE"}:
-    import simulator.DoRun
+    from simulator.DoRun import run_simulation
+    run_simulation(module, a)
 
 else:
     from datetime import datetime
@@ -88,9 +89,8 @@ else:
                 sys.stderr.flush()
 
             if process.returncode != 0:
-                error_message = "Bad return code {}".format(process.returncode)
                 with print_lock:
-                    print(error_message, file=sys.stderr)
+                    print("Bad return code {}".format(process.returncode), file=sys.stderr)
                     sys.stderr.flush()
                 raise RuntimeError(error_message)
 

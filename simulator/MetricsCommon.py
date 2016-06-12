@@ -2,7 +2,6 @@ from __future__ import print_function, division
 
 from collections import Counter, OrderedDict, defaultdict
 import math
-import sys
 
 try:
     # Python 2
@@ -389,10 +388,14 @@ class MetricsCommon(object):
         return d
 
     @classmethod
-    def print_header(cls, stream=sys.stdout):
+    def print_header(cls, stream=None):
+        """Print the results header to the specified stream (defaults to sys.stdout)."""
         print("#" + "|".join(cls.items().keys()), file=stream)
 
-    def print_results(self, stream=sys.stdout):
-        results = [str(fn(self)) for fn in self.items().values()]
-        
-        print("|".join(results), file=stream)
+    def get_results(self):
+        """Get the results in the result file format."""
+        return "|".join(str(fn(self)) for fn in self.items().values())
+
+    def print_results(self, stream=None):
+        """Print the results to the specified stream (defaults to sys.stdout)."""
+        print(self.get_results(), file=stream)
