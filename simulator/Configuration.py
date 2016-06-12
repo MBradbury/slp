@@ -434,8 +434,8 @@ class SourceEdgeCorner(Configuration):
         )
 
 class RandomConnected(Configuration):
-    def __init__(self, network_size, distance):
-        random = Random(network_size, distance)
+    def __init__(self, network_size, distance, seed):
+        random = Random(network_size, distance, seed=seed)
 
         super(RandomConnected, self).__init__(
             random,
