@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import sys, importlib, traceback, copy
+import copy
+import importlib
+import sys
 
 import simulator.Configuration as Configuration
 
@@ -32,6 +34,7 @@ with Simulation(module, configuration, a.args) as sim:
     try:
         sim.run()
     except (KeyboardInterrupt, SystemExit, RuntimeError) as ex:
+        import traceback
         print("Killing run due to {}".format(ex), file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
         sys.exit(3)
