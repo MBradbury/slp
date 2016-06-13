@@ -105,7 +105,7 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'source dropped': 100,
-            'paths reached end': 4,
+            'paths reached end': 100,
         }
 
         phantom_results = results.Results(
