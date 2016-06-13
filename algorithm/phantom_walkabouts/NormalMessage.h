@@ -32,6 +32,10 @@ typedef nx_struct NormalMessage
   
   nx_uint16_t lrw_count;
 
+  nx_uint8_t nextMessageType;
+
+  nx_uint8_t currentMessageTpye;
+
 } NormalMessage;
 
 inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
