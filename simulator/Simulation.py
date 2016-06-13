@@ -1,17 +1,19 @@
 from __future__ import print_function, division
-import os, timeit, struct, importlib, sys, glob, select, random
 
+from collections import namedtuple
+import glob
+import importlib
 from itertools import islice
+import os
+import random
+import select
+import struct
+import sys
+import timeit
 
 from simulator.Topology import topology_path
 
-from scipy.spatial.distance import euclidean
-
-class Node(object):
-    def __init__(self, node_id, location, tossim_node):
-        self.nid = node_id
-        self.location = location
-        self.tossim_node = tossim_node
+Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
 class OutputCatcher(object):
     def __init__(self, linefn):
@@ -59,13 +61,16 @@ class Simulation(object):
         self.radio = self.tossim.radio()
 
         self._out_procs = {}
-        self._read_poller = select.poll()
+        self._read_poller = select.epoll()
 
         # Record the seed we are using
         self.seed = args.seed if args.seed is not None else self._secure_random()
 
         # Set tossim seed
         self.tossim.randomSeed(self.seed)
+
+        # Make sure the time starts at 0
+        self.tossim.setTime(0)
 
         # It is important to seed python's random number generator
         # as well as TOSSIM's. If this is not done then the simulations
@@ -115,6 +120,11 @@ class Simulation(object):
         return self
 
     def __exit__(self, tp, value, tb):
+
+        # Turn off to allow subsequent simulations
+        for node in self.nodes:
+            node.tossim_node.turnOff()
+
         del self._read_poller
 
         for op in self._out_procs.values():
@@ -129,11 +139,11 @@ class Simulation(object):
 
         self._out_procs[fd] = op
 
-        self._read_poller.register(fd, select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
+        self._read_poller.register(fd, select.EPOLLIN | select.EPOLLPRI | select.EPOLLHUP | select.EPOLLERR)
 
-    def node_distance(self, left, right):
+    def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
-        return euclidean(self.nodes[left].location, self.nodes[right].location)
+        return self.metrics.configuration.node_distance_meters(left, right)
 
     def ticks_to_seconds(self, ticks):
         """Converts simulation time ticks into seconds"""
@@ -216,8 +226,8 @@ class Simulation(object):
     @staticmethod
     def write_topology_file(node_locations, location="."):
         with open(os.path.join(location, "topology.txt"), "w") as of:
-            for (nid, loc) in enumerate(node_locations):
-                print("{}\t{}\t{}".format(nid, loc[0], loc[1]), file=of)
+            for (nid, (x, y)) in enumerate(node_locations):
+                print("{}\t{}\t{}".format(nid, x, y), file=of)
 
     def _setup_radio_link_layer_model_java(self):
         import subprocess
@@ -241,7 +251,7 @@ class Simulation(object):
     
     def _setup_radio_link_layer_model_python(self):
         """The python port of the java LinkLayerModel"""
-        import CommunicationModel
+        import simulator.CommunicationModel as CommunicationModel
         import numpy as np
 
         model = CommunicationModel.eval_input(self.communication_model)
@@ -280,16 +290,16 @@ class Simulation(object):
         noises = list(islice(self._read_noise_from_file(path), count))
 
         for node in self.nodes:
+            tnode = node.tossim_node
             for noise in noises:
-                node.tossim_node.addNoiseTraceReading(noise)
-            node.tossim_node.createNoiseModel()
+                tnode.addNoiseTraceReading(noise)
+            tnode.createNoiseModel()
 
     @staticmethod
     def _read_noise_from_file(path):
         with open(path, "r") as f:
             for line in f:
-                line = line.strip()
-                if len(line) != 0:
+                if len(line) > 0 and not line.isspace():
                     yield int(line)
 
     def add_attacker(self, attacker):

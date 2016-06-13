@@ -1,8 +1,7 @@
 from collections import OrderedDict
+import math
 
 from data.restricted_eval import restricted_eval
-
-import math
 
 class MobilityModel(object):
     def __init__(self):

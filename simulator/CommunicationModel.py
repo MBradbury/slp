@@ -1,10 +1,16 @@
 from __future__ import division
 
 from math import log10, sqrt
-from itertools import islice
+from itertools import combinations
 
 import numpy as np
-from scipy.spatial.distance import euclidean
+
+# Use our custom fast euclidean function,
+# fallback to the slow scipy version.
+try:
+    from euclidean import euclidean2_2d
+except ImportError:
+    from scipy.spatial.distance import euclidean as euclidean2_2d
 
 class CommunicationModel(object):
     def __init__(self):
@@ -19,6 +25,17 @@ class LinkLayerCommunicationModel(CommunicationModel):
     def __init__(self, path_loss_exponent, shadowing_stddev, d0, pl_d0, noise_floor, s, white_gausian_noise):
         super(LinkLayerCommunicationModel, self).__init__()
 
+        # Argument validity checking
+        if s[0,1] != s[1,0]:
+            raise RuntimeError("S12 and S21 must have the same value.")
+
+        if abs(s[0,1]) > sqrt(s[0,0] * s[1,1]):
+            raise RuntimeError("S12 (and S21) must be less than sqrt(S11xS22).")
+
+        if s[0,0] == 0 and s[1,1] != 0:
+            raise RuntimeError("Symmetric links require both, S11 and S22 to be 0, not only S11.")
+
+        # Assign parameters
         self.path_loss_exponent = path_loss_exponent
         self.shadowing_stddev = shadowing_stddev
         self.d0 = d0
@@ -37,25 +54,31 @@ class LinkLayerCommunicationModel(CommunicationModel):
     def _setup(self, topology, seed):
         # Need to use the same java prng to maintain backwards compatibility
         # with existing results
+        # TODO: When creating results from scratch, switch to python's rng as it is much better
         from java_random import JavaRandom as Random
 
         rnd = Random(seed)
 
-        self._check_topology(topology)
+        if __debug__:
+            self._check_topology(topology)
 
-        self.noise_floor = np.zeros(len(topology.nodes))
-        self.output_power_var = np.zeros(len(topology.nodes))
-        self.link_gain = np.zeros((len(topology.nodes), len(topology.nodes)))
+        num_nodes = len(topology.nodes)
+
+        self.noise_floor = np.zeros(num_nodes, dtype=np.float64)
+        self.output_power_var = np.zeros(num_nodes, dtype=np.float64)
+        self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
         self._obtain_radio_pt_pn(rnd, topology)
 
         self._obtain_link_gain(rnd, topology)
 
     def _check_topology(self, topology):
-        for (i, ni) in enumerate(topology.nodes):
-            for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
+        """Check that all nodes are at least d0 distance away from each other.
+        This model does not work correctly when nodes are closer than d0."""
 
-                distance = euclidean(ni, nj)
+        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
+
+                distance = euclidean2_2d(ni, nj)
                 if distance < self.d0:
                     raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
                         distance, i, ni, j, nj, self.d0))
@@ -63,21 +86,12 @@ class LinkLayerCommunicationModel(CommunicationModel):
     def _obtain_radio_pt_pn(self, rnd, topology):
 
         s = self.s
-        t = np.zeros((2, 2))
+        t = np.zeros((2, 2), dtype=np.float64)
 
         if s[0,0] == 0 and s[1,1] == 0:
             pass
 
-        elif s[0,0] == 0 and s[1,1] != 0:
-            raise RuntimeError("Symmetric links require both, S11 and S22 to be 0, not only S11.")
-
         else:
-            if s[0,1] != s[1,0]:
-                raise RuntimeError("S12 and S21 must have the same value.")
-
-            if abs(s[0,1]) > sqrt(s[0,0] * s[1,1]):
-                raise RuntimeError("S12 (and S21) must be less than sqrt(S11xS22).")
-
             t00 = sqrt(s[0,0])
 
             t[0,0] = t00
@@ -97,19 +111,18 @@ class LinkLayerCommunicationModel(CommunicationModel):
             self.output_power_var[i] = t[0,1] * rnd1 + t[1,1] * rnd2
 
     def _obtain_link_gain(self, rnd, topology):
-        for (i, ni) in enumerate(topology.nodes):
-            for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
-                rnd1 = rnd.nextGaussian()
+        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
+            rnd1 = rnd.nextGaussian()
 
-                distance = euclidean(ni, nj)
+            distance = euclidean2_2d(ni, nj)
 
-                pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
+            pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
 
-                # The results here need to be rounded to 2 d.p. to make sure
-                # that the results of the simulation match the java results.
+            # The results here need to be rounded to 2 d.p. to make sure
+            # that the results of the simulation match the java results.
 
-                self.link_gain[i,j] = round(self.output_power_var[i] + pathloss, 2)
-                self.link_gain[j,i] = round(self.output_power_var[j] + pathloss, 2)
+            self.link_gain[i,j] = round(self.output_power_var[i] + pathloss, 2)
+            self.link_gain[j,i] = round(self.output_power_var[j] + pathloss, 2)
 
 
 
@@ -124,26 +137,24 @@ class IdealCommunicationModel(CommunicationModel):
     def setup(self, sim):
         topology = sim.metrics.configuration.topology
 
-        self.noise_floor = np.zeros(len(topology.nodes))
-        self.link_gain = np.zeros((len(topology.nodes), len(topology.nodes)))
+        num_nodes = len(topology.nodes)
+
+        # All nodes have the same noise floor
+        self.noise_floor = np.full(num_nodes, self.noise_floor_pn, dtype=np.float64)
+
+        self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
         self._obtain_link_gain(topology, sim.wireless_range)
-        self._obtain_noise_floor(topology)
 
     def _obtain_link_gain(self, topology, wireless_range):
-        for (i, ni) in enumerate(topology.nodes):
-            for (j, nj) in enumerate(islice(topology.nodes, i+1, None), start=i+1):
-                if euclidean(ni, nj) <= wireless_range:
-                    self.link_gain[i,j] = self.connection_strength
-                    self.link_gain[j,i] = self.connection_strength
-                else:
-                    # Use NaNs to signal that there is no link between these two nodes
-                    self.link_gain[i,j] = float('NaN')
-                    self.link_gain[j,i] = float('NaN')
-
-    def _obtain_noise_floor(self, topology):
-        for (i, ni) in enumerate(topology.nodes):
-            self.noise_floor[i] = self.noise_floor_pn
+        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
+            if euclidean2_2d(ni, nj) <= wireless_range:
+                self.link_gain[i,j] = self.connection_strength
+                self.link_gain[j,i] = self.connection_strength
+            else:
+                # Use NaNs to signal that there is no link between these two nodes
+                self.link_gain[i,j] = float('NaN')
+                self.link_gain[j,i] = float('NaN')
 
 
 

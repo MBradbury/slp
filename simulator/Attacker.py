@@ -47,7 +47,7 @@ class Attacker(object):
 
         self.moves_in_response_to = Counter()
 
-        self.min_source_distance = {source: self._sim.node_distance(start_node_id, source) for source in self._source_ids()}
+        self.min_source_distance = {source: self._sim.node_distance_meters(start_node_id, source) for source in self._source_ids()}
 
         self.setup_event_callbacks()
 
@@ -117,8 +117,8 @@ class Attacker(object):
             self.moves_in_response_to[msg_type] += 1
 
         for source in self._source_ids():
-            new_distance = self._sim.node_distance(source, node_id)
-            old_distance = self._sim.node_distance(source, self.position)
+            new_distance = self._sim.node_distance_meters(source, node_id)
+            old_distance = self._sim.node_distance_meters(source, self.position)
 
             if new_distance > old_distance:
                 self.steps_away[source] += 1

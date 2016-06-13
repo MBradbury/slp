@@ -1,5 +1,5 @@
-
-import subprocess, sys
+import subprocess
+import sys
 
 def build_sim(directory, **kwargs):
 

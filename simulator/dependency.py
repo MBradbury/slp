@@ -1,4 +1,5 @@
-import os, subprocess
+import os
+import subprocess
 
 def check_java():
     """Checks if the java executable can be found"""
