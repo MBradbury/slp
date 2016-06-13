@@ -2,12 +2,6 @@ from __future__ import print_function, division
 
 from collections import Counter, OrderedDict, defaultdict
 import math
-import sys
-
-import numpy as np
-
-import simulator.Attacker
-from simulator.Simulation import OutputCatcher
 
 try:
     # Python 2
@@ -15,6 +9,11 @@ try:
 except ImportError:
     #Python 3
     from itertools import zip_longest as izip_longest
+
+import numpy as np
+
+import simulator.Attacker
+from simulator.Simulation import OutputCatcher
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration):
@@ -252,7 +251,7 @@ class MetricsCommon(object):
 
     def attacker_source_distance(self):
         return {
-            (source_id, attacker.ident): self.sim.node_distance(source_id, attacker.position)
+            (source_id, attacker.ident): self.configuration.node_distance_meters(source_id, attacker.position)
 
             for attacker
             in self.sim.attackers
@@ -263,7 +262,7 @@ class MetricsCommon(object):
 
     def attacker_sink_distance(self):
         return {
-            (sink_id, attacker.ident): self.sim.node_distance(sink_id, attacker.position)
+            (sink_id, attacker.ident): self.configuration.node_distance_meters(sink_id, attacker.position)
 
             for attacker
             in self.sim.attackers
@@ -389,10 +388,14 @@ class MetricsCommon(object):
         return d
 
     @classmethod
-    def print_header(cls, stream=sys.stdout):
+    def print_header(cls, stream=None):
+        """Print the results header to the specified stream (defaults to sys.stdout)."""
         print("#" + "|".join(cls.items().keys()), file=stream)
 
-    def print_results(self, stream=sys.stdout):
-        results = [str(fn(self)) for fn in self.items().values()]
-        
-        print("|".join(results), file=stream)
+    def get_results(self):
+        """Get the results in the result file format."""
+        return "|".join(str(fn(self)) for fn in self.items().values())
+
+    def print_results(self, stream=None):
+        """Print the results to the specified stream (defaults to sys.stdout)."""
+        print(self.get_results(), file=stream)

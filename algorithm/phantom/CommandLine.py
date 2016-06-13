@@ -105,13 +105,14 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'source dropped': 100,
-            'paths reached end': 4,
+            'paths reached end': 100,
         }
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys())
+            results=tuple(graph_parameters.keys()),
+            network_size_normalisation="UseNumNodes"
         )
 
         parameters = [
@@ -129,7 +130,7 @@ class CLI(CommandLineCommon.CLI):
                     yextractor=scalar_extractor
                 )
 
-                g.xaxis_label = 'Network Size'
+                g.xaxis_label = 'Number of Nodes'
                 g.yaxis_label = yaxis_label
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
@@ -156,7 +157,10 @@ class CLI(CommandLineCommon.CLI):
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
+            'norm(norm(sent,time taken),num_nodes)': ('Total Messages Sent per node per second', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'right top'),
+            'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
+            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
         }
 
         custom_yaxis_range_max = {
@@ -164,26 +168,31 @@ class CLI(CommandLineCommon.CLI):
             'captured': 20,
             'received ratio': 100,
             'normal latency': 300,
+            'norm(norm(sent,time taken),num_nodes)': 30,
+            'energy allowance used': 100,
         }
 
-        nokey = {'sent', 'received ratio'}
+        nokey = {'sent', 'received ratio', 'norm(norm(sent,time taken),num_nodes)'}
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
             parameters=tuple(),
-            results=graph_parameters.keys()
+            results=graph_parameters.keys(),
+            network_size_normalisation="UseNumNodes"
         )
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
             parameters=('approach',),
-            results=graph_parameters.keys()
+            results=graph_parameters.keys(),
+            network_size_normalisation="UseNumNodes"
         )
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=graph_parameters.keys()
+            results=graph_parameters.keys(),
+            network_size_normalisation="UseNumNodes"
         )
 
         def graph_min_max_versus(result_name):
@@ -193,7 +202,7 @@ class CLI(CommandLineCommon.CLI):
                 self.algorithm_module.graphs_path, name,
                 xaxis='network size', yaxis=result_name, vary='walk length', yextractor=scalar_extractor)
 
-            g.xaxis_label = 'Network Size'
+            g.xaxis_label = 'Number of Nodes'
             g.yaxis_label = graph_parameters[result_name][0]
             g.key_position = graph_parameters[result_name][1]
 
@@ -204,6 +213,8 @@ class CLI(CommandLineCommon.CLI):
             g.comparison_label = 'Phantom'
             g.baseline_label = 'Protectionless - Baseline'
             g.vary_label = ''
+
+            g.generate_legend_graph = True
 
             g.point_size = 1.3
             g.line_width = 4

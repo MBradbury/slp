@@ -29,6 +29,7 @@ class PeriodModel(object):
         build_arguments = {}
 
         def to_tinyos_format(time):
+            """Return the time in milliseconds"""
             return int(time * 1000)
 
         periods = [
@@ -55,6 +56,8 @@ class PeriodModel(object):
         return repr(self)
 
 class FixedPeriodModel(PeriodModel):
+    """The sources broadcast at a fixed rate forever"""
+    
     def __init__(self, period):
 
         self.period = float(period)
