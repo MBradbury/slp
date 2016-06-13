@@ -26,7 +26,7 @@ class Arguments(ArgumentsCommon):
         parser.add_argument("--short-walk-length", type=int, required=True)
         parser.add_argument("--long-walk-length", type=int, required=True)
 
-        #parser.add_argument("--wait-before-short", type=int, required=True)
+        parser.add_argument("--wait-before-short", type=int, required=True)
 
         parser.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
 
@@ -54,6 +54,8 @@ class Arguments(ArgumentsCommon):
         result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
 
         result["TOP_RIGHT_NODE_ID"] = configuration.topology.top_right
+
+        result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
 
         if self.args.order == "LongShort":
             result["LOND_SHORT_SEQUENCE"] = 0

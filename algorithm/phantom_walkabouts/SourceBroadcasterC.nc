@@ -138,7 +138,6 @@ implementation
 	{
 		SourceNode, SinkNode, NormalNode
 	} NodeType;
-
 	NodeType type = NormalNode;
 
 	typedef enum
@@ -150,15 +149,20 @@ implementation
 	{
 		UnknownLocation, Centre, Others 
 	}SinkLocation;
-
 	SinkLocation location = UnknownLocation;
 
 	typedef enum
 	{
 		UnknownBiased, H, V 
 	}BiasedType;
-
 	BiasedType biased = UnknownBiased;
+
+	typedef enum
+	{
+		UnknownMessageType, ShortRandomWalk, LongRandomWalk
+	}MessageType;
+	MessageType messagetype = UnknownMessageType;
+	MessageType nextmessagetype = UnknownMessageType;
 
 	const char* type_to_string()
 	{
@@ -487,6 +491,29 @@ implementation
 		return rw;
 	}
 
+	int16_t sl_next_message_type(int16_t srw, int16_t lrw)
+	{
+		int16_t ns;
+		if (srw == 0 && lrw != 0)
+			ns = 2;
+		else
+			ns = 1;
+
+		return ns;
+	}
+
+	int16_t ls_next_message_type(int16_t srw, int16_t lrw)
+	{
+		int16_t ns;
+		if (lrw == 0 && srw != 0)
+			ns = 1;
+		else
+			ns = 2;
+			
+		return ns;
+
+	}
+
 	uint32_t beacon_send_wait()
 	{
 		return 75U + (uint32_t)(50U * random_float());
@@ -550,7 +577,8 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(5* get_source_period());
+			//call BroadcastNormalTimer.startOneShot(5* get_source_period());
+			call BroadcastNormalTimer.startOneShot(5 * 1000);
 		}
 	}
 
@@ -648,12 +676,27 @@ implementation
 		#if defined(SHORT_LONG_SEQUENCE)
 		{
 			message.random_walk_hops = short_long_sequence_random_walk(srw_count, lrw_count);
+			nextmessagetype = sl_next_message_type(srw_count, lrw_count);
 		}
 		#else
 		{
 			message.random_walk_hops = long_short_sequence_random_walk(srw_count, lrw_count);
+			nextmessagetype = ls_next_message_type(srw_count, lrw_count);
 		}
 		#endif
+
+		message.nextMessageType = nextmessagetype;
+
+		if (message.random_walk_hops == RANDOM_WALK_HOPS)
+		{
+			messagetype = ShortRandomWalk;
+			message.currentMessageTpye = messagetype;
+		}
+		else
+		{
+			messagetype = LongRandomWalk;
+			message.currentMessageTpye = messagetype;
+		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -666,8 +709,6 @@ implementation
 		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
 		message.landmark_distance_of_sink_sender = landmark_sink_distance;
-
-		printf("random walk hops=%d\n", message.random_walk_hops);
 
 		message.further_or_closer_set = random_walk_direction();
 
@@ -697,7 +738,14 @@ implementation
 				sim_time(), TOS_NODE_ID, message.sequence_number);
 		}
 
-		call BroadcastNormalTimer.startOneShot(source_period);
+		if (message.currentMessageTpye == LongRandomWalk && message.nextMessageType == ShortRandomWalk)
+		{
+			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + source_period);
+		}
+		else
+		{
+			call BroadcastNormalTimer.startOneShot(source_period);
+		}
 	}
 
 	event void AwaySenderTimer.fired()
