@@ -37,9 +37,20 @@ This is optional if python_java_random is installed in the next step.
 
 5. Install python libraries
 
-sudo pip install scipy numpy pandas more_itertools
-sudo pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
-sudo pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
+pip install scipy numpy pandas more_itertools pip --upgrade
+pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
+pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
+
+==Using pyenv==
+
+If you do not have python installed, or have an install that requires
+admin permissions to use pip install, then pyenv is a good alternative.
+
+curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+
+MAKE_OPTS=profile-opt pyenv install 2.7.11
+
+pyenv global 2.7.11
 
 ==Updating from upstream==
 
