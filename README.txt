@@ -28,14 +28,7 @@ Add the following to ~/.bashrc
 
 source ~/tinyos.env
 
-4. Compile parts of the simulation (optional)
-
-cd slp-algorithms-tinyos/tinyos/support/sdk/java/net/tinyos/sim
-javac LinkLayerModel.java
-
-This is optional if python_java_random is installed in the next step.
-
-5. Install python libraries
+4. Install python libraries
 
 pip install scipy numpy pandas more_itertools pip --upgrade
 pip install git+git://github.com/MBradbury/python_java_random.git --upgrade

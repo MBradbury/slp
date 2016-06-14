@@ -11,6 +11,7 @@ import struct
 import sys
 import timeit
 
+import simulator.CommunicationModel
 from simulator.Topology import topology_path
 
 Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
@@ -227,34 +228,13 @@ class Simulation(object):
     def write_topology_file(node_locations, location="."):
         with open(os.path.join(location, "topology.txt"), "w") as of:
             for (nid, (x, y)) in enumerate(node_locations):
-                print("{}\t{}\t{}".format(nid, x, y), file=of)
+                print("{}\t{}\t{}".format(nid, x, y), file=of)    
 
-    def _setup_radio_link_layer_model_java(self):
-        import subprocess
-        output = subprocess.check_output(
-            "java -Xms256m -Xmx512m -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel {} {} {}".format(
-                self.communications_model_path(), self.topology_path, self.seed),
-            shell=True)
-
-        for line in output.splitlines():
-            parts = line.strip().split("\t")
-
-            if parts[0] == "gain":
-                (g, from_node_id, to_node_id, gain) = parts
-
-                self.radio.add(int(from_node_id), int(to_node_id), float(gain))
-
-            elif parts[0] == "noise":
-                (n, node_id, noise_floor, awgn) = parts
-
-                self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
-    
-    def _setup_radio_link_layer_model_python(self):
-        """The python port of the java LinkLayerModel"""
-        import simulator.CommunicationModel as CommunicationModel
+    def setup_radio(self):
+        """Creates radio links for node pairs that are in range."""
         import numpy as np
 
-        model = CommunicationModel.eval_input(self.communication_model)
+        model = simulator.CommunicationModel.eval_input(self.communication_model)
 
         cm = model()
         cm.setup(self)
@@ -269,15 +249,6 @@ class Simulation(object):
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
             self.radio.setNoise(i, noise_floor, cm.white_gausian_noise)
-
-    def setup_radio(self):
-        """Creates radio links for node pairs that are in range."""
-        # Try to use the python implementation, if the java_random module
-        # cannot be found then revert back to using the Java implementation.
-        try:
-            self._setup_radio_link_layer_model_python()
-        except ImportError:
-            self._setup_radio_link_layer_model_java()
 
     def setup_noise_models(self):
         """Create the noise model for each of the nodes in the network."""
@@ -308,10 +279,6 @@ class Simulation(object):
     def any_attacker_found_source(self):
         return self.attacker_found_source
 
-    def communications_model_path(self):
-        """The path to the communications model, specified in the algorithm arguments."""
-        return os.path.join('models', 'communication', self.communication_model + '.txt')
-
     def noise_model_path(self):
         """The path to the noise model, specified in the algorithm arguments."""
         return os.path.join('models', 'noise', self.noise_model + '.txt')
@@ -327,12 +294,8 @@ class Simulation(object):
 
     @staticmethod
     def available_communication_models():
-        """Gets the names of the communication models available in the models directory"""
-        return [
-            os.path.splitext(os.path.basename(model_file))[0]
-            for model_file
-            in glob.glob('models/communication/*.txt')
-        ] + ["ideal"]
+        """Gets the names of the communication models available"""
+        return simulator.CommunicationModel.MODEL_NAME_MAPPING.keys()
 
     @staticmethod
     def _secure_random():
