@@ -201,7 +201,7 @@ Doing so will run all parameter combinations as specified in the <algorithm>/Com
 ==Job Notification==
 
 A useful feature is the ability to be notified when a job is completed or cancelled via email.
-This can be done in two ways:
+This can be done in two ways (#2 is recommended, as I tend to forget to do #1):
 
 1) By specifying "notify=<email address>" when submitting your jobs.
 
