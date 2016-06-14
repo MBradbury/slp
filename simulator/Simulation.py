@@ -7,7 +7,6 @@ from itertools import islice
 import os
 import random
 import select
-import struct
 import sys
 import timeit
 
@@ -299,4 +298,5 @@ class Simulation(object):
 
     @staticmethod
     def _secure_random():
+        import struct
         return struct.unpack("<i", os.urandom(4))[0]
