@@ -15,7 +15,7 @@ def run_simulation(module, a, count=1):
     else:
         from simulator.Simulation import Simulation
 
-    for n in xrange(count):
+    for n in range(count):
         with Simulation(module, configuration, a.args) as sim:
 
             # Create a copy of the provided attacker model
