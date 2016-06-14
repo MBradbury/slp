@@ -295,7 +295,7 @@ implementation
 				{
 					CloserSet_neighbours++;
 				}
-				//simdbgverbose("stdout","FurtherSideSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSet_neighbours=%d\n", \
+				//simdbgverbose("stdout","FurtherSideSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSet_neighbours=%d\n",
 				//	FurtherSideSet_neighbours, CloserSideSet_neighbours, FurtherSet_neighbours, CloserSet_neighbours);
 				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
@@ -372,8 +372,8 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
-				landmark_bottom_left_distance, neighbours.size);
+			//simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
+			//	landmark_bottom_left_distance, neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
@@ -387,7 +387,6 @@ implementation
 
 			if (location == UnknownLocation)
 			{
-				//simdbgverbose("stdout", "location == UnknownLocation");
 				sink_location_check();
 			}
 
@@ -395,7 +394,6 @@ implementation
 			{
 				if (biased_direction == UnknownBiased)
 				{
-					//neighbour_index = rnd % local_neighbours.size;
 					neighbour = &local_neighbours.data[neighbour_index];
 
 					if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance)
@@ -441,18 +439,15 @@ implementation
 				neighbour = &local_neighbours.data[neighbour_index];
 				chosen_address = neighbour->address;
 			}
-
-			
-
 			//simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
 
 #ifdef SLP_VERBOSE_DEBUG
-			//print_distance_neighbours("stdout", &local_neighbours);
+			print_distance_neighbours("stdout", &local_neighbours);
 #endif
-
-			//simdbgverbose("stdout", "Location:%u, biased_direction:%u, Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
-			//	location, biased_direction, chosen_address, neighbour_index, rnd, local_neighbours.size);
 		}
+
+		//simdbgverbose("stdout", "Location:%u, biased_direction:%u, Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
+		//		location, biased_direction, chosen_address, neighbour_index, rnd, local_neighbours.size);
 
 		return chosen_address;
 	}
@@ -852,7 +847,7 @@ implementation
 					simdbg_clear("Metric-PATH_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, rcvd->sequence_number, rcvd->source_distance);
 
-					return;
+					//return;
 				}
 
 				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
