@@ -40,6 +40,12 @@ if a.args.mode != "CLUSTER":
     # The assumption is that any processes running are of the same topology
     Simulation.write_topology_file(configuration.topology.nodes)
 
+# Set the thread count, but only for jobs that need it
+if a.args.mode in {"CLUSTER", "PARALLEL"}:
+    if a.args.thread_count is None:
+        import multiprocessing
+        a.args.thread_count = multiprocessing.cpu_count()
+
 # When doing cluster array jobs only print out this header information on the first job
 if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
 
