@@ -193,6 +193,56 @@ implementation
 		}
 	}
 
+	SetType neighbour_check(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
+	{
+		uint32_t i;
+
+		distance_neighbours_t local_neighbours;
+		init_distance_neighbours(&local_neighbours);
+
+		// If we don't know our sink distance then we cannot work
+		// out which neighbour is in closer or further.
+		if (landmark_distance != BOTTOM && further_or_closer_set != UnknownSet)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				// Skip neighbours we have been asked to
+				if (to_ignore != NULL)
+				{
+					size_t j;
+					bool found = FALSE;
+					for (j = 0; j != to_ignore_length; ++j)
+					{
+						if (to_ignore[j] == neighbour->address)
+						{
+							found = TRUE;
+							break;
+						}
+					}
+					if (found)
+					{
+						continue;
+					}
+				}
+
+				if ((further_or_closer_set == FurtherSet && landmark_distance < neighbour->contents.distance) ||
+					(further_or_closer_set == CloserSet && landmark_distance >= neighbour->contents.distance))
+				{
+					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+			}
+		}
+		if (local_neighbours.size == 0)
+		{
+			simdbg("stdout","Need change Set.\n");
+			return (further_or_closer_set == FurtherSet)? CloserSet: FurtherSet;
+		}
+		else
+			return further_or_closer_set;
+	}
+
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
 	{
 		am_addr_t chosen_address;
@@ -239,20 +289,18 @@ implementation
 				}
 			}
 		}
-		simdbg("stdout","--------------------local_neighbours.size=%d\n", local_neighbours.size);
+		simdbg("stdout","--------------local_neighbours.size=%d-----------------\n", local_neighbours.size);
 
 		if (local_neighbours.size == 0)
 		{
-			simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
-				landmark_distance, neighbours.size);
+			simdbgerror("stdout", "no neighbour is chosen!\n");
 
-			chosen_address = AM_BROADCAST_ADDR;
+			//chosen_address = AM_BROADCAST_ADDR;
 		}
 		else if (local_neighbours.size == 1)
 		{
-			neighbour_target = &local_neighbours.data[0];
+			chosen_address = (&local_neighbours.data[0])->address;
 		}
-
 		else
 		{
 			int16_t m,j;
@@ -266,11 +314,10 @@ implementation
 						bias_neighbours[j].address = local_neighbours.data[j].address;
 						bias_neighbours[j].neighbour_size = node_neighbours[m].neighbour_size;
 						simdbg("stdout", "bias_neighbour[%d].address=%d, bias_neighbour[%d].neighbour_size=%d\n",
-							j, bias_neighbours[j].address, j, node_neighbours[m].neighbour_size);
+							j, bias_neighbours[j].address, j, bias_neighbours[j].neighbour_size);
 					}
 				}
 			}
-
 
 			if (bias_neighbours[0].neighbour_size == bias_neighbours[1].neighbour_size)
 			{
@@ -283,10 +330,11 @@ implementation
 			}
 			else
 			{
-				if (bias_neighbours[0].neighbour_size > bias_neighbours[1].neighbour_size)
+				if (bias_neighbours[0].neighbour_size < bias_neighbours[1].neighbour_size)
 					neighbour_target = &local_neighbours.data[0];
 				else
 					neighbour_target = &local_neighbours.data[1];
+				simdbg("stdout", "pick small one: %d\n", neighbour_target->address);
 			} 
 
 			chosen_address = neighbour_target->address;
@@ -422,9 +470,10 @@ implementation
 		message.source_distance = 0;
 		message.landmark_distance_of_sender = landmark_distance;
 
-		message.further_or_closer_set = random_walk_direction();
+		message.further_or_closer_set = random_walk_direction();	//choose further or closer.
 
 		target = random_walk_target(message.further_or_closer_set, NULL, 0);
+		simdbg("stdout","---------------------------------------------------------------------\n");
 
 		// If we don't know who our neighbours are, then we
 		// cannot unicast to one of them.
@@ -543,6 +592,10 @@ implementation
 				}
 
 				// Get a target, ignoring the node that sent us this message
+
+				//simdbg("stdout","received_message dir:%d\n", rcvd->further_or_closer_set);
+				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);//if chosen size is 0, choose the other set.
+				//simdbg("stdout","forwarding_message dir:%d\n", forwarding_message.further_or_closer_set);
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 
 				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
