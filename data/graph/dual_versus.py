@@ -30,7 +30,7 @@ class Grapher(GrapherBase):
         self.vary_label =  vary if not isinstance(vary, collections.Sequence) else "/".join(vary)
         self.vary_prefix = ''
 
-        self.yaxis_range_max = '*'
+        self.yaxis1_range_max = '*'
         self.yaxis2_range_max = '*'
 
         self.yaxis_font = None
@@ -51,6 +51,8 @@ class Grapher(GrapherBase):
         self.error_bars = False
 
         self.generate_legend_graph = False
+
+        self.only_show_yaxis1 = False
 
     def _value_extractor(self, yvalue):
         if self.error_bars:
@@ -171,11 +173,11 @@ class Grapher(GrapherBase):
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
 
-            graph_p.write('set yrange [0:{}]\n'.format(self.yaxis_range_max))
-            graph_p.write('set ytics auto\n')
+            graph_p.write('set yrange [0:{}]\n'.format(self.yaxis1_range_max))
+            graph_p.write('set ytics auto nomirror\n')
 
             graph_p.write('set y2range [0:{}]\n'.format(self.yaxis2_range_max))
-            graph_p.write('set y2tics auto\n')
+            graph_p.write('set y2tics auto nomirror\n')
 
             if self.yaxis_font is not None:
                 graph_p.write('set ytics font {}\n'.format(self.yaxis_font))
@@ -208,7 +210,9 @@ class Grapher(GrapherBase):
                         number=number, ycol=x + 1, line_width=self.line_width, axes=axes))
 
             process_vvalues(vvalues1, 1, "x1y1")
-            process_vvalues(vvalues2, 2, "x1y2")
+
+            if not self.only_show_yaxis1:
+                process_vvalues(vvalues2, 2, "x1y2")
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
@@ -257,7 +261,9 @@ class Grapher(GrapherBase):
                             line_width=self.line_width, axes=axes))
 
             process_vvalues(vvalues1, 1, "x1y1")
-            process_vvalues(vvalues2, 2, "x1y2")
+
+            if not self.only_show_yaxis1:
+                process_vvalues(vvalues2, 2, "x1y2")
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
