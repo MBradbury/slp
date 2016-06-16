@@ -659,7 +659,7 @@ implementation
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
-		//print_distance_neighbours("stdout", &neighbours);
+		print_distance_neighbours("stdout", &neighbours);
 #endif
 
 		if (srw_count == 0 && lrw_count ==0)
@@ -1023,7 +1023,7 @@ implementation
 
 
 #ifdef SLP_VERBOSE_DEBUG
-		//print_distance_neighbours("stdout", &neighbours);
+		print_distance_neighbours("stdout", &neighbours);
 #endif
 	}
 
