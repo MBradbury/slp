@@ -95,8 +95,9 @@ else:
                 sys.stderr.flush()
 
             if process.returncode != 0:
+                error_message = "Bad return code {}".format(process.returncode)
                 with print_lock:
-                    print("Bad return code {}".format(process.returncode), file=sys.stderr)
+                    print(error_message, file=sys.stderr)
                     sys.stderr.flush()
                 raise RuntimeError(error_message)
 
