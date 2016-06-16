@@ -17,8 +17,8 @@
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sender_distance + 1)
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sender_distance + 1)
-#define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
+#define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, msg->sender_distance + 1)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, source_addr, BOTTOM, 1)
 
 typedef struct
 {
@@ -424,7 +424,6 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
-		//message.sink_source_distance = sink_source_distance;
 
 		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
 		message.fake_sequence_increments = source_fake_sequence_increments;
@@ -633,17 +632,19 @@ implementation
 					become_Fake(rcvd, TempFakeNode);
 				}
 			}
-
-			target = fake_walk_target();
-
-			if (target == AM_BROADCAST_ADDR)
-			{
-				become_Fake(rcvd, PermFakeNode);
-			}
 			else
 			{
-				//dbg("stdout", "Becoming a TFS because there is a node %u that can be next.\n", target);
-				become_Fake(rcvd, TempFakeNode);
+				target = fake_walk_target();
+
+				if (target == AM_BROADCAST_ADDR)
+				{
+					become_Fake(rcvd, PermFakeNode);
+				}
+				else
+				{
+					//dbg("stdout", "Becoming a TFS because there is a node %u that can be next.\n", target);
+					become_Fake(rcvd, TempFakeNode);
+				}
 			}
 		}
 	}
@@ -666,6 +667,8 @@ implementation
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
+
+			forwarding_message.sender_distance += 1;
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -692,6 +695,8 @@ implementation
 
 			METRIC_RCV_FAKE(rcvd);
 
+			forwarding_message.sender_distance += 1;
+
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
@@ -705,6 +710,8 @@ implementation
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
+
+			forwarding_message.sender_distance += 1;
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
