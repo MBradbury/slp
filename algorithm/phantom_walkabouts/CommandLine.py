@@ -110,16 +110,17 @@ class CLI(CommandLineCommon.CLI):
     #sizes = [11, 15, 21, 25]
     sizes = [21]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
+    #source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [1.0]
 
     configurations = [
         'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -141,7 +142,7 @@ class CLI(CommandLineCommon.CLI):
     "ShortLong"
     ]
 
-    wait_before_short = [0, 100, 200]
+    wait_before_short = [0, 100]
 
     short_counts = [1]
     long_counts = [1]
