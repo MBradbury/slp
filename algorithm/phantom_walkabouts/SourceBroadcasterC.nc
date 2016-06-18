@@ -483,26 +483,26 @@ implementation
 
 	MessageType sl_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType type;
+		MessageType sl_type;
 
 		if (srw == 0 && lrw != 0)
-			type = LongRandomWalk;
+			sl_type = LongRandomWalk;
 		else
-			type = ShortRandomWalk;
+			sl_type = ShortRandomWalk;
 
-		return type;
+		return sl_type;
 	}
 
 	MessageType ls_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType type;
+		MessageType ls_type;
 
 		if (lrw == 0 && srw != 0)
-			type = ShortRandomWalk;
+			ls_type = ShortRandomWalk;
 		else
-			type = LongRandomWalk;
+			ls_type = LongRandomWalk;
 
-		return type;
+		return ls_type;
 	}
 
 	uint32_t beacon_send_wait()
