@@ -18,11 +18,6 @@
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
-#define BottomLeft 0
-#define BottomRight 1
-#define SINK 2
-#define TopRight 3
-
 typedef struct
 {
 	int16_t bottom_left_distance;
@@ -153,9 +148,9 @@ implementation
 
 	typedef enum
 	{
-		UnknownBiased, H, V 
+		UnknownBias, H, V 
 	}BiasedType;
-	BiasedType biased = UnknownBiased;
+	BiasedType biased = UnknownBias;
 
 	typedef enum
 	{
@@ -189,7 +184,7 @@ implementation
 	int16_t FurtherSideSet_neighbours = 0;
 
 	int16_t srw_count = 0;	//short random walk count.
-	int16_t lrw_count = 0;	//long random walk remianing.
+	int16_t lrw_count = 0;	//long random walk count.
 
 	distance_neighbours_t neighbours;
 
@@ -392,7 +387,7 @@ implementation
 
 			if (location == Centre && further_or_closer_set == CloserSet)	//deal with biased random walk here.
 			{
-				if (biased_direction == UnknownBiased)
+				if (biased_direction == UnknownBias)
 				{
 					neighbour = &local_neighbours.data[neighbour_index];
 
@@ -486,27 +481,28 @@ implementation
 		return rw;
 	}
 
-	int16_t sl_next_message_type(int16_t srw, int16_t lrw)
+	MessageType sl_next_message_type(int16_t srw, int16_t lrw)
 	{
-		int16_t ns;
-		if (srw == 0 && lrw != 0)
-			ns = 2;
-		else
-			ns = 1;
+		MessageType type;
 
-		return ns;
+		if (srw == 0 && lrw != 0)
+			type = LongRandomWalk;
+		else
+			type = ShortRandomWalk;
+
+		return type;
 	}
 
-	int16_t ls_next_message_type(int16_t srw, int16_t lrw)
+	MessageType ls_next_message_type(int16_t srw, int16_t lrw)
 	{
-		int16_t ns;
-		if (lrw == 0 && srw != 0)
-			ns = 1;
-		else
-			ns = 2;
-			
-		return ns;
+		MessageType type;
 
+		if (lrw == 0 && srw != 0)
+			type = ShortRandomWalk;
+		else
+			type = LongRandomWalk;
+
+		return type;
 	}
 
 	uint32_t beacon_send_wait()
@@ -595,7 +591,7 @@ implementation
 		AwayMessage message;
 
 		landmark_bottom_left_distance = 0;
-		message.landmark_location = BottomLeft;
+		message.landmark_location = BOTTOMLEFT;
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = 0;
@@ -615,7 +611,7 @@ implementation
 		AwayMessage message;
 
 		landmark_bottom_right_distance = 0;
-		message.landmark_location = BottomRight;
+		message.landmark_location = BOTTOMRIGHT;
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = 0;
@@ -634,7 +630,7 @@ implementation
 	{
 		AwayMessage message;
 
-		message.landmark_location = TopRight;
+		message.landmark_location = TOPRIGHT;
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = 0;
@@ -662,7 +658,7 @@ implementation
 		print_distance_neighbours("stdout", &neighbours);
 #endif
 
-		if (srw_count == 0 && lrw_count ==0)
+		if (srw_count == 0 && lrw_count == 0)
 		{
 			srw_count = SHORT_COUNT;
 			lrw_count = LONG_COUNT;
@@ -680,17 +676,17 @@ implementation
 		}
 		#endif
 
-		message.nextMessageType = nextmessagetype;
+		//message.nextMessageType = nextmessagetype;
 
 		if (message.random_walk_hops == RANDOM_WALK_HOPS)
 		{
 			messagetype = ShortRandomWalk;
-			message.currentMessageTpye = messagetype;
+			//message.currentMessageTpye = messagetype;
 		}
 		else
 		{
 			messagetype = LongRandomWalk;
-			message.currentMessageTpye = messagetype;
+			//message.currentMessageTpye = messagetype;
 		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -698,8 +694,8 @@ implementation
 		message.source_distance = 0;
 		message.biased_direction = 0;	//initialise the biased_direction when first generate message.
 
-		message.srw_count = srw_count;
-		message.lrw_count = lrw_count;
+		//message.srw_count = srw_count;
+		//message.lrw_count = lrw_count;
 
 		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
@@ -709,7 +705,7 @@ implementation
 
 		target = random_walk_target(message.further_or_closer_set, message.biased_direction, NULL, 0);
 		
-		message.biased_direction = biased;		
+		message.biased_direction = biased;		//initialise biased_direction as UnknownBias. 
 
 		// If we don't know who our neighbours are, then we
 		// cannot unicast to one of them.
@@ -733,7 +729,8 @@ implementation
 				sim_time(), TOS_NODE_ID, message.sequence_number);
 		}
 
-		if (message.currentMessageTpye == LongRandomWalk && message.nextMessageType == ShortRandomWalk)
+		//if (message.currentMessageTpye == LongRandomWalk && message.nextMessageType == ShortRandomWalk)
+		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
 		{
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + source_period);
 		}
@@ -878,8 +875,8 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		srw_count = rcvd -> srw_count;
-		lrw_count = rcvd -> lrw_count;
+		//srw_count = rcvd -> srw_count;
+		//lrw_count = rcvd -> lrw_count;
 		process_normal(msg, rcvd, source_addr);
 	}
 
@@ -958,13 +955,13 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{		
-		if (rcvd->landmark_location == BottomLeft)
+		if (rcvd->landmark_location == BOTTOMLEFT)
 		{
 			sink_bl_dist = rcvd->sink_bl_dist;
 			UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance);
 			UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance);
 		}
-		if (rcvd->landmark_location == BottomRight)
+		if (rcvd->landmark_location == BOTTOMRIGHT)
 		{
 			sink_br_dist = rcvd->sink_br_dist;
 			UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance);
@@ -975,7 +972,7 @@ implementation
 			UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, landmark_distance);
 			UPDATE_LANDMARK_DISTANCE_SINK(rcvd, landmark_distance);
 		}
-		if (rcvd->landmark_location == TopRight)
+		if (rcvd->landmark_location == TOPRIGHT)
 			sink_tr_dist = rcvd->sink_tr_dist;
 
 

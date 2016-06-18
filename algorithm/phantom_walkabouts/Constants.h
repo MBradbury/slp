@@ -15,4 +15,9 @@ enum Channels
 #define CENTRE_AREA 5 		//hops from the real cenre
 #define MAX_NUM_NEIGHBOURS 2 //max neighbours each direction
 
+#define BOTTOMLEFT 0
+#define BOTTOMRIGHT 1
+#define SINK 2
+#define TOPRIGHT 3
+
 #endif // SLP_CONSTANTS_H

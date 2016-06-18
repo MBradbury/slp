@@ -28,13 +28,13 @@ typedef nx_struct NormalMessage
 
   nx_int16_t random_walk_hops;
 
-  nx_uint16_t srw_count;
+  //nx_uint16_t srw_count;
   
-  nx_uint16_t lrw_count;
+  //nx_uint16_t lrw_count;
 
-  nx_uint8_t nextMessageType;
+  //nx_uint8_t nextMessageType;
 
-  nx_uint8_t currentMessageTpye;
+  //nx_uint8_t currentMessageTpye;
 
 } NormalMessage;
 
