@@ -58,6 +58,10 @@ implementation
 
 	message_t packet;
 
+	uint16_t message_no = 1;
+	uint16_t current_message = 0;
+	uint16_t next_message = 0;
+
 	//check topology type.
 	typedef enum Topologies
 	{
