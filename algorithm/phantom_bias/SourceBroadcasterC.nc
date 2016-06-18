@@ -110,6 +110,13 @@ implementation
 	}bias_neighbour;
 	bias_neighbour bias_neighbours[2]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
 
+	typedef enum
+	{
+		UnknownMessageType, ShortRandomWalk, LongRandomWalk
+	}MessageType;
+	MessageType messagetype = UnknownMessageType;
+	MessageType nextmessagetype = UnknownMessageType;
+
 	const char* type_to_string()
 	{
 		switch (type)
@@ -330,7 +337,7 @@ implementation
 			else
 			{
 				neighbour_target = (bias_neighbours[0].neighbour_size < bias_neighbours[1].neighbour_size)? &local_neighbours.data[0]: &local_neighbours.data[1];
-				simdbg("stdout", "pick small one: %d\n", neighbour_target->address);
+				simdbgverbose("stdout", "pick small one: %d\n", neighbour_target->address);
 			} 
 
 			chosen_address = neighbour_target->address;
@@ -461,7 +468,8 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			//call BroadcastNormalTimer.startOneShot(get_source_period());
+			call BroadcastNormalTimer.startOneShot(2 * 1000); // 2 seconds
 		}
 	}
 
@@ -529,8 +537,8 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 			nextmessagetype = ls_next_message_type(srw_count, lrw_count);
 		}
 		#endif
-
-		MessageType = (message.random_walk_hops == RANDOM_WALK_HOPS)? ShortRandomWalk : LongRandomWalk;
+		simdbg("stdout","random walk length:%d\n", message.random_walk_hops);
+		messagetype = (message.random_walk_hops == RANDOM_WALK_HOPS)? ShortRandomWalk : LongRandomWalk;
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -642,7 +650,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 			forwarding_message.source_distance += 1;
 			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
+			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
 			{
 				am_addr_t target;
 
@@ -693,7 +701,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 			}
 			else
 			{
-				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == LANDMARK_NODE_ID))
+				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || TOS_NODE_ID == LANDMARK_NODE_ID))
 				{
 					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
