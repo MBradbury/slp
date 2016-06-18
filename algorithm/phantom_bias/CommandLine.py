@@ -1,21 +1,37 @@
 from __future__ import print_function
 
-import os, itertools
+import os, itertools, math, datetime
+
+import numpy as np
 
 from simulator import CommandLineCommon
 
 import algorithm.protectionless as protectionless
 
-# The import statement doesn't work, so we need to use __import__ instead
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
+from simulator import Configuration
 
 from data import results
 
 from data.table import safety_period, fake_result
-from data.graph import summary, versus, min_max_versus
+from data.graph import summary, versus
 from data.util import scalar_extractor
 
-from data.run.common import RunSimulationsCommon as RunSimulations
+from data.run.common import RunSimulationsCommon
+
+class RunSimulations(RunSimulationsCommon):
+    def _get_safety_period(self, argument_names, arguments):
+        time_taken = super(RunSimulations, self)._get_safety_period(argument_names, arguments)
+
+        if time_taken is None:
+            return None
+
+        configuration_name = arguments[argument_names.index('configuration')]
+        network_size = int(arguments[argument_names.index('network size')])
+        distance = float(arguments[argument_names.index('distance')])
+
+        configuration = Configuration.create_specific(configuration_name, network_size, distance)
+
+        return 1.3 * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -23,9 +39,9 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    noise_models = ["meyer-heavy", "casino-lab"]
+    noise_models = ["meyer-heavy"]
 
-    communication_models = ["no-asymmetry", "high-asymmetry", "ideal"]
+    communication_models = ["ideal"]
 
     sizes = [11, 15, 21, 25]
 
@@ -33,60 +49,154 @@ class CLI(CommandLineCommon.CLI):
 
     configurations = [
         'SourceCorner',
-        #'SinkCorner',
-        #'FurtherSinkCorner',
-        #'Generic1',
-        #'Generic2',
-        
-        #'RingTop',
-        #'RingOpposite',
-        #'RingMiddle',
-        
-        #'CircleEdges',
-        #'CircleSourceCentre',
-        #'CircleSinkCentre',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        #'Source2Corners',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
+
+        #'FurtherSinkCorner',
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
     ]
 
-    attacker_models = ['SeqNoReactiveAttacker()']
+    random_walk_types = [
+        #'only_short_random_walk',
+        #'only_long_random_walk',
+        'phantom_bias'
+    ]
 
-    walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
+    attacker_models = ['SeqNosReactiveAttacker()']
 
-    landmark_nodes = ['sink_id', 'bottom_right']
+    orders = [
+    "ShortLong",
+    #"LongShort",
+    
+    ]
+
+    wait_before_short = [0, 100]
+
+    short_counts = [1]
+    long_counts = [1]
 
     repeats = 500
 
-    local_parameter_names = ('walk length', 'landmark node')
-
-
+    local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
+                             'order', 'short count', 'long count', 'wait before short')
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
+    def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
+        half_ssd = int(math.floor(s/2)) + 1
+        half_ssd_further = s
+        ssd_further = 2*s
+
+        random_walk_short = list(range(2, half_ssd))
+        random_walk_long = list(range(s+2, s+half_ssd))
+        random_walk_short_for_further = list(range(2, half_ssd_further))
+        random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
+
+        non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
+
+        further = any(topo for topo in ['FurtherSinkCorner','FurtherSinkCorner2Source','FurtherSinkCorner3Source'] if topo in self.configurations)
+
+        #check the random-walk_tye.
+        if len(self.random_walk_types) == 1:
+            pass
+        else:
+            raise RuntimeError("only support ONE random_walk_type!")
+
+        #set up the walk_short and walk_long
+        if non_further and further:
+            raise RuntimeError("Build other configurations with Further* configurations!")
+
+        if non_further:
+            if 'only_short_random_walk' in self.random_walk_types:
+                walk_short = random_walk_short
+                walk_long = random_walk_short
+
+            elif 'only_long_random_walk' in self.random_walk_types:
+                walk_short = random_walk_long
+                walk_long = random_walk_long
+        
+            elif 'phantom_bias' in self.random_walk_types:
+                walk_short = random_walk_short
+                walk_long = random_walk_long
+
+            else:
+                raise RuntimeError("error in the function: _short_long_walk_lengths")
+
+        elif further:
+            if 'only_short_random_walk' in self.random_walk_types:
+                walk_short = random_walk_short_for_further
+                walk_long = random_walk_short_for_further
+
+            elif 'only_long_random_walk' in self.random_walk_types:
+                walk_short = random_walk_long_for_further
+                walk_long = random_walk_long_for_further
+        
+            elif 'phantom_bias' in self.random_walk_types:
+                walk_short = random_walk_short_for_further
+                walk_long = random_walk_long_for_further
+
+            else:
+                raise RuntimeError("error in the function: _short_long_walk_lengths")
+        
+        else:
+            raise RuntimeError("error in the function: _short_long_walk_lengths")
+
+        return list(zip(walk_short, walk_long))
+
+    def _time_estimater(self, *args):
+        """Estimates how long simulations are run for. Override this in algorithm
+        specific CommandLine if these values are too small or too big. In general
+        these have been good amounts of time to run simulations for. You might want
+        to adjust the number of repeats to get the simulation time in this range."""
+        names = self.parameter_names()
+        size = args[names.index('network size')]
+        if size == 11:
+            return datetime.timedelta(hours=2)
+        elif size == 15:
+            return datetime.timedelta(hours=4)
+        elif size == 21:
+            return datetime.timedelta(hours=8)
+        elif size == 25:
+            return datetime.timedelta(hours=16)
+        else:
+            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
+        time_taken = safety_period_table_generator.time_taken()
 
         runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
+            skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
 
-        argument_product = list(itertools.ifilter(
-            lambda (size, _1, _2, _3, _4, _5, _6, walk_length, _7): walk_length in self.walk_hop_lengths[size],
-            itertools.product(
-                self.sizes, self.configurations,
-                self.attacker_models, self.noise_models, self.communication_models,
-                [self.distance], self.source_periods,
-                set(itertools.chain(*self.walk_hop_lengths.values())), self.landmark_nodes)
-        ))
+        argument_product = itertools.product(
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.source_periods, self.direction_biases, self.orders,
+            self.short_counts, self.long_counts, self.wait_before_short
+        )
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        argument_product = [
+            (s, c, am, nm, cm, d, sp, swl, lwl, db, o, sc, lc, wbs)
 
+            for (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs) in argument_product
+
+            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
+        ]        
+
+        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
     def _run_table(self, args):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end', 'source dropped'))
+            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
         result_table = fake_result.ResultTable(phantom_results)
 
@@ -99,26 +209,23 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'paths reached end': ('Paths Reached End (%)', 'right top'),
-            'source dropped': ('Source Dropped Messages (%)', 'right top'),
-        }
-
-        custom_yaxis_range_max = {
-            'source dropped': 100,
-            'paths reached end': 100,
         }
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
             results=tuple(graph_parameters.keys()),
-            network_size_normalisation="UseNumNodes"
+            source_period_normalisation="NumSources"
         )
 
         parameters = [
             ('source period', ' seconds'),
-            ('walk length', ' hops')
+            ('long walk length', ' hops'),
+            ('short walk length', ' hops')
         ]
+
+        custom_yaxis_range_max = {
+        }
 
         for (parameter_name, parameter_unit) in parameters:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -130,19 +237,14 @@ class CLI(CommandLineCommon.CLI):
                     yextractor=scalar_extractor
                 )
 
-                g.xaxis_label = 'Number of Nodes'
+                g.xaxis_label = 'Network Size'
                 g.yaxis_label = yaxis_label
                 g.vary_label = parameter_name.title()
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
 
-                g.point_size = 1.3
-                g.line_width = 4
-                g.yaxis_font = "',14'"
-                g.xaxis_font = "',12'"
-
-                if yaxis in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+                if result_name in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[result_name]
 
                 g.create(phantom_results)
 
@@ -151,90 +253,156 @@ class CLI(CommandLineCommon.CLI):
                     self.algorithm_module.name + '-' + name
                 ).run()
 
-    def _run_min_max_versus(self, args):
+    def _run_scatter_graph(self, args):
+        from data.graph import scatter
+
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (ms)', 'at 17.5,290'),
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
-            'norm(norm(sent,time taken),num_nodes)': ('Total Messages Sent per node per second', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'right top'),
-            'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
-            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
         }
-
-        custom_yaxis_range_max = {
-            'sent': 450000,
-            'captured': 20,
-            'received ratio': 100,
-            'normal latency': 300,
-            'norm(norm(sent,time taken),num_nodes)': 30,
-            'energy allowance used': 100,
-        }
-
-        nokey = {'sent', 'received ratio', 'norm(norm(sent,time taken),num_nodes)'}
-
-        protectionless_results = results.Results(
-            protectionless.result_file_path,
-            parameters=tuple(),
-            results=graph_parameters.keys(),
-            network_size_normalisation="UseNumNodes"
-        )
-
-        adaptive_results = results.Results(
-            adaptive.result_file_path,
-            parameters=('approach',),
-            results=graph_parameters.keys(),
-            network_size_normalisation="UseNumNodes"
-        )
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=graph_parameters.keys(),
-            network_size_normalisation="UseNumNodes"
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation="NumSources"
         )
 
-        def graph_min_max_versus(result_name):
-            name = 'min-max-{}-versus-{}'.format(result_name, adaptive.name)
+        combine = ["short walk length", "long walk length"]
 
-            g = min_max_versus.Grapher(
+        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+
+            name = '{}-comb-{}'.format(yaxis.replace(" ", "_"), "=".join(combine).replace(" ", "-"))
+
+            g = scatter.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=result_name, vary='walk length', yextractor=scalar_extractor)
+                xaxis='network size', yaxis=yaxis, combine=combine,
+                yextractor=scalar_extractor
+            )
 
-            g.xaxis_label = 'Number of Nodes'
-            g.yaxis_label = graph_parameters[result_name][0]
-            g.key_position = graph_parameters[result_name][1]
+            g.xaxis_label = 'Network Size'
+            g.yaxis_label = yaxis_label
+            g.key_position = key_position
 
-            g.nokey = result_name in nokey
-
-            g.min_label = 'Dynamic - Lowest'
-            g.max_label = 'Dynamic - Highest'
-            g.comparison_label = 'Phantom'
-            g.baseline_label = 'Protectionless - Baseline'
-            g.vary_label = ''
-
-            g.generate_legend_graph = True
-
-            g.point_size = 1.3
-            g.line_width = 4
-            g.yaxis_font = "',14'"
-            g.xaxis_font = "',12'"
-
-            if result_name in custom_yaxis_range_max:
-                g.yaxis_range_max = custom_yaxis_range_max[result_name]
-
-            g.vvalue_label_converter = lambda value: "W_h = {}".format(value)
-
-            g.create(adaptive_results, phantom_results, protectionless_results)
+            g.create(phantom_results)
 
             summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                self.algorithm_module.graphs_path,
+                self.algorithm_module.name + '-' + name
             ).run()
 
-        for result_name in graph_parameters.keys():
-            graph_min_max_versus(result_name)
+    def _run_best_worst_average_graph(self, args):
+        from data.graph import best_worst_average_versus
+
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+        }
+
+        phantom_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.local_parameter_names,
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation="NumSources"
+        )
+
+        custom_yaxis_range_max = {
+            'captured': 50,
+            'sent': 20000
+        }
+
+        combine = ["short walk length", "long walk length"]
+
+        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+
+            name = '{}-bwa-{}'.format(yaxis.replace(" ", "_"), "=".join(combine).replace(" ", "-"))
+
+            g = best_worst_average_versus.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis='network size', yaxis=yaxis, vary=combine,
+                yextractor=scalar_extractor
+            )
+
+            g.xaxis_label = 'Network Size'
+            g.yaxis_label = yaxis_label
+            g.key_position = key_position
+
+            if yaxis in custom_yaxis_range_max:
+                g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
+            g.create(phantom_results)
+
+            summary.GraphSummary(
+                self.algorithm_module.graphs_path,
+                self.algorithm_module.name + '-' + name
+            ).run()
+
+    def _run_average_graph(self, args):
+        import numpy as np
+        from data.graph import combine_versus
+
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+        }
+
+        phantom_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.local_parameter_names,
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation="NumSources"
+        )
+
+        custom_yaxis_range_max = {
+            'captured': 50,
+            'sent': 20000
+        }
+
+        combine = ["short walk length", "long walk length"]
+
+        parameters = [
+            ('source period', ' seconds'),
+        ]
+
+        for (parameter_name, parameter_unit) in parameters:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+
+                name = '{}-v-{}-i-{}'.format(
+                    yaxis.replace(" ", "_"),
+                    parameter_name.replace(" ", "-"),
+                    "=".join(combine).replace(" ", "-")
+                )
+
+                g = combine_versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis='network size', yaxis=yaxis, vary=parameter_name, combine=combine, combine_function=np.mean,
+                    yextractor=scalar_extractor
+                )
+
+                g.xaxis_label = 'Network Size'
+                g.yaxis_label = yaxis_label
+                g.vary_label = parameter_name.title()
+                g.vary_prefix = parameter_unit
+                g.key_position = key_position
+
+                if yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
+                g.create(phantom_results)
+
+                summary.GraphSummary(
+                    self.algorithm_module.graphs_path,
+                    self.algorithm_module.name + '-' + name
+                ).run()
 
     def run(self, args):
         super(CLI, self).run(args)
@@ -245,5 +413,11 @@ class CLI(CommandLineCommon.CLI):
         if 'graph' in args:
             self._run_graph(args)
 
-        if 'min-max-versus' in args:
-            self._run_min_max_versus(args)
+        if 'average-graph' in args:
+            self._run_average_graph(args)
+
+        if 'scatter-graph' in args:
+            self._run_scatter_graph(args)
+
+        if 'best-worst-average-graph' in args:
+            self._run_best_worst_average_graph(args)
