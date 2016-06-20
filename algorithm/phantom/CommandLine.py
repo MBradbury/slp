@@ -136,6 +136,10 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
 
+                g.nokey = True
+
+                g.generate_legend_graph = True
+
                 g.point_size = 1.3
                 g.line_width = 4
                 g.yaxis_font = "',14'"
@@ -165,14 +169,15 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'sent': 450000,
-            'captured': 20,
+            'captured': 40,
             'received ratio': 100,
             'normal latency': 300,
             'norm(norm(sent,time taken),num_nodes)': 30,
             'energy allowance used': 100,
         }
 
-        nokey = {'sent', 'received ratio', 'norm(norm(sent,time taken),num_nodes)'}
+        nokey = {'captured', 'sent', 'received ratio',
+                 'norm(norm(sent,time taken),num_nodes)', 'energy allowance used'}
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
