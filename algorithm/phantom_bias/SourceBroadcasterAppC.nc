@@ -34,9 +34,9 @@ implementation
 
 	App.AwaySenderTimer -> AwaySenderTimer;
 
-	//components new TimerMilliC() as DelaySenderTimer;
+	components new TimerMilliC() as DelaySenderTimer;
 
-	//App.DelaySenderTimer -> DelaySenderTimer;
+	App.DelaySenderTimer -> DelaySenderTimer;
 
 	components new TimerMilliC() as BeaconSenderTimer;
 

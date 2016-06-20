@@ -44,6 +44,8 @@ class Arguments(ArgumentsCommon):
         result["LANDMARK_NODE_ID"] = self._get_landmark_node_id()
 
         configuration = Configuration.create(self.args.configuration, self.args)
+        
+        result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
 
