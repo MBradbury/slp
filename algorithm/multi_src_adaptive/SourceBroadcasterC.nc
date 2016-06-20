@@ -322,6 +322,20 @@ implementation
 		}*/
 	}
 
+	void stop_pfs_candidate(uint16_t max_hop)
+	{
+		// TODO: "max_hop != UINT16_MAX" is a hack, find out where UINT16_MAX comes from and fix it!
+
+		if (is_pfs_candidate && (!first_source_distance_set || (max_hop != UINT16_MAX && max_hop > first_source_distance + 1)))
+		{
+			//simdbg("stdout", "%s is no longer a PFS candidate as !first_source_distance_set=%d || %u > %u\n",
+			//	type_to_string(), !first_source_distance_set, max_hop, first_source_distance + 1);
+
+			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
+		}
+	}
+
 	bool busy = FALSE;
 	message_t packet;
 
@@ -475,11 +489,7 @@ implementation
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		stop_pfs_candidate(rcvd->max_hop);
 
 		update_source_distance(rcvd);
 
@@ -601,11 +611,7 @@ implementation
 
 	void Normal_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		stop_pfs_candidate(rcvd->max_hop);
 
 		if (algorithm == UnknownAlgorithm)
 		{
@@ -654,11 +660,7 @@ implementation
 
 	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		stop_pfs_candidate(rcvd->max_hop);
 
 		if (algorithm == UnknownAlgorithm)
 		{
@@ -737,11 +739,7 @@ implementation
 
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		stop_pfs_candidate(rcvd->max_hop);
 
 		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
 
@@ -764,11 +762,7 @@ implementation
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		stop_pfs_candidate(rcvd->max_hop);
 
 		min_sink_source_distance = minbot(min_sink_source_distance, rcvd->min_sink_source_distance);
 
