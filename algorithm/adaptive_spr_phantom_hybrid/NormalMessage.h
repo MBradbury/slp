@@ -18,6 +18,12 @@ typedef nx_struct NormalMessage {
 
   //nx_int16_t sink_source_distance;
 
+  nx_int16_t landmark_distance_of_sender;
+
+  nx_uint8_t further_or_closer_set;
+
+  nx_uint8_t broadcast;
+
 } NormalMessage;
 
 inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
