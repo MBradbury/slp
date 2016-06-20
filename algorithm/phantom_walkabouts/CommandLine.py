@@ -43,18 +43,18 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15, 21, 25]
+    sizes = [11]
 
-    source_periods = [1.0, 0.5, 0.25, 0.125]
+    source_periods = [1.0]
 
     configurations = [
         'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -77,7 +77,7 @@ class CLI(CommandLineCommon.CLI):
     
     ]
 
-    wait_before_short = [0, 100]
+    wait_before_short = [0]
 
     short_counts = [1]
     long_counts = [1]
@@ -91,6 +91,64 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
+        '''
+        normal_short_range = int(math.floor(s/2)) + 1
+        normal_long_range = 1.5*s
+
+        further_short_range = s
+        further_long_range = 2.5*s
+
+        non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
+        further = any(topo for topo in ['FurtherSinkCorner','FurtherSinkCorner2Source','FurtherSinkCorner3Source'] if topo in self.configurations)
+
+        #check the random-walk_tye.
+        if len(self.random_walk_types) == 1:
+            pass
+        else:
+            raise RuntimeError("only support ONE random_walk_type!")
+
+        #set up the walk_short and walk_long
+        if non_further and further:
+            raise RuntimeError("Build other configurations with Further* configurations!")
+
+        if non_further:
+            if 'only_short_random_walk' in self.random_walk_types:
+                walk_short = normal_short_range
+                walk_long = normal_short_range
+
+            elif 'only_long_random_walk' in self.random_walk_types:
+                walk_short = normal_long_range
+                walk_long = normal_long_range
+        
+            elif 'phantom_walkabouts' in self.random_walk_types:
+                walk_short = normal_short_range
+                walk_long = normal_long_range
+
+            else:
+                raise RuntimeError("error in the function: _short_long_walk_lengths")
+
+        elif further:
+            if 'only_short_random_walk' in self.random_walk_types:
+                walk_short = further_short_range
+                walk_long = further_short_range
+
+            elif 'only_long_random_walk' in self.random_walk_types:
+                walk_short = further_long_range
+                walk_long = further_long_range
+        
+            elif 'phantom_walkabouts' in self.random_walk_types:
+                walk_short = further_short_range
+                walk_long = further_long_range
+
+            else:
+                raise RuntimeError("error in the function: _short_long_walk_lengths")
+        
+        else:
+            raise RuntimeError("error in the function: _short_long_walk_lengths")
+
+        return list(zip(walk_short, walk_long))
+
+        '''
         half_ssd = int(math.floor(s/2)) + 1
         half_ssd_further = s
         ssd_further = 2*s
@@ -150,6 +208,7 @@ class CLI(CommandLineCommon.CLI):
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
         return list(zip(walk_short, walk_long))
+        
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm

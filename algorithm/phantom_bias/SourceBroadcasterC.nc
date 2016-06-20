@@ -55,7 +55,7 @@ module SourceBroadcasterC
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
-	//uses interface Timer<TMilli> as DelaySenderTimer;
+	uses interface Timer<TMilli> as DelaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
 
 	uses interface Packet;
@@ -485,14 +485,13 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
-/*
+
 	event void DelaySenderTimer.fired()
 	{
 		AwayMessage message;
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		
-		//message.landmark_location = Corner;
 		message.source_id = TOS_NODE_ID;
 		message.node_id = TOS_NODE_ID;
 		message.landmark_distance = 0;
@@ -506,7 +505,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 			call AwaySeqNos.increment(TOS_NODE_ID);
 		}
 	}
-*/
+
 	event void BroadcastNormalTimer.fired()
 	{
 		NormalMessage message;
@@ -783,6 +782,28 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 	RECEIVE_MESSAGE_END(Normal)
 
 
+	void update_neighbour_size(AwayMessage* message)
+	{
+		int16_t ii;
+		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
+		{
+			if(node_neighbours[ii].address == message->node_id)
+			{
+				node_neighbours[ii].neighbour_size = (node_neighbours[ii].neighbour_size <= message->neighbour_size)? 
+				message->neighbour_size: node_neighbours[ii].neighbour_size;
+				break;
+			}
+			else if (node_neighbours[ii].address == BOTTOM)
+			{
+				node_neighbours[ii].address = message->node_id;
+				node_neighbours[ii].neighbour_size = message->neighbour_size;
+				break;
+			}
+			else
+				continue;
+		}
+	}
+
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
 		int16_t ii;
@@ -790,6 +811,13 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
+
+		update_neighbour_size(&rcvd);
+
+		if (TOS_NODE_ID == TOP_LEFT_NODE_ID)
+			{
+				call DelaySenderTimer.startOneShot(3*1000);
+			}
 
 /*		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
 		{
