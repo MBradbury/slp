@@ -17,6 +17,8 @@ typedef nx_struct AwayMessage
 
   nx_uint16_t neighbour_size;
 
+  nx_uint8_t landmark_location;
+
 
 } AwayMessage;
 
