@@ -12,6 +12,9 @@
 
 #include <assert.h>
 
+#define TOPLEFT 0
+#define SINK 1
+
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
@@ -34,9 +37,11 @@ void distance_print(char* name, size_t i, am_addr_t address, distance_container_
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
+
 #define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
 { \
-	const distance_container_t dist = { rcvd->name }; \
+	distance_container_t dist; \
+	dist.distance = rcvd->name; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
@@ -350,7 +355,7 @@ implementation
 		return chosen_address;
 	}
 
-int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
+	int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 	{
 		int16_t rw;
 		if (short_count != 0)
@@ -469,7 +474,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 			type = SourceNode;
 
 			//call BroadcastNormalTimer.startOneShot(get_source_period());
-			call BroadcastNormalTimer.startOneShot(2 * 1000); // 2 seconds
+			call BroadcastNormalTimer.startOneShot(3 * 1000); // 2 seconds
 		}
 	}
 
@@ -488,21 +493,26 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 
 	event void DelaySenderTimer.fired()
 	{
-		AwayMessage message;
+		AwayMessage amessage;
 
-		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
-		
-		message.source_id = TOS_NODE_ID;
-		message.node_id = TOS_NODE_ID;
-		message.landmark_distance = 0;
-		message.neighbour_size = neighbours.size;
+		amessage.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+	
+		amessage.source_id = TOS_NODE_ID;
+		amessage.node_id = TOS_NODE_ID;
+		amessage.landmark_distance = 0;
+		amessage.neighbour_size = neighbours.size;
 
 		call Packet.clear(&packet);
 
 		extra_to_send = 2;
-		if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		if (send_Away_message(&amessage, AM_BROADCAST_ADDR))
 		{
+			
 			call AwaySeqNos.increment(TOS_NODE_ID);
+		}
+		else
+		{
+			simdbg("stdout","fail send it\n");
 		}
 	}
 
@@ -595,6 +605,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 
 		message.neighbour_size = neighbours.size;
 		message.node_id = TOS_NODE_ID;
+		message.landmark_location = SINK;
 
 		call Packet.clear(&packet);
 
@@ -732,6 +743,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
@@ -746,6 +758,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 	// If the sink snoops a normal message, we may as well just deliver it
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
@@ -765,6 +778,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
@@ -781,45 +795,14 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 		case NormalNode: x_snoop_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
-
-	void update_neighbour_size(AwayMessage* message)
-	{
-		int16_t ii;
-		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
-		{
-			if(node_neighbours[ii].address == message->node_id)
-			{
-				node_neighbours[ii].neighbour_size = (node_neighbours[ii].neighbour_size <= message->neighbour_size)? 
-				message->neighbour_size: node_neighbours[ii].neighbour_size;
-				break;
-			}
-			else if (node_neighbours[ii].address == BOTTOM)
-			{
-				node_neighbours[ii].address = message->node_id;
-				node_neighbours[ii].neighbour_size = message->neighbour_size;
-				break;
-			}
-			else
-				continue;
-		}
-	}
-
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
 		int16_t ii;
 
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
-
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
-
-		update_neighbour_size(&rcvd);
-
-		if (TOS_NODE_ID == TOP_LEFT_NODE_ID)
-			{
-				call DelaySenderTimer.startOneShot(3*1000);
-			}
-
-/*		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
+/*
+		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
 		{
 			if(node_neighbours[ii].address == rcvd->node_id)
 			{
@@ -836,7 +819,10 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 			else
 				continue;
 		}
-*/
+*/		
+		if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location ==SINK)
+			call DelaySenderTimer.startOneShot(1*1000);
+
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -882,6 +868,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 
 		METRIC_RCV_BEACON(rcvd);
 
+/*
 		for (i=0; i!=SLP_MAX_1_HOP_NEIGHBOURHOOD; i++)
 		{
 			if(node_neighbours[i].address == rcvd->node_id)
@@ -899,6 +886,7 @@ int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
 			else
 				continue;
 		}
+*/		
 
 	}
 
