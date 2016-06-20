@@ -72,6 +72,7 @@ module SourceBroadcasterC
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
+	uses interface Receive as NormalSnoop;
 
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
@@ -99,6 +100,11 @@ implementation
 	} NodeType;
 
 	NodeType type = NormalNode;
+
+	typedef enum
+	{
+		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
+	} SetType;
 
 	const char* type_to_string()
 	{
@@ -280,6 +286,135 @@ implementation
 		return chosen_address;
 	}
 
+	SetType random_walk_direction()
+	{
+		uint32_t possible_sets = UnknownSet;
+
+		// We want compare sink distance if we do not know our sink distance
+		if (landmark_distance != BOTTOM)
+		{
+			uint32_t i;
+
+			// Find nodes whose sink distance is less than or greater than
+			// our sink distance.
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				distance_container_t const* const neighbour = &neighbours.data[i].contents;
+
+				if (landmark_distance < neighbour->landmark_distance)
+				{
+					possible_sets |= FurtherSet;
+				}
+				else //if (landmark_distance >= neighbour->distance)
+				{
+					possible_sets |= CloserSet;
+				}
+			}
+		}
+
+		if (possible_sets == (FurtherSet | CloserSet))
+		{
+			// Both directions possible, so randomly pick one of them
+			const uint16_t rnd = call Random.rand16() % 2;
+			if (rnd == 0)
+			{
+				return FurtherSet;
+			}
+			else
+			{
+				return CloserSet;
+			}
+		}
+		else if ((possible_sets & FurtherSet) != 0)
+		{
+			return FurtherSet;
+		}
+		else if ((possible_sets & CloserSet) != 0)
+		{
+			return CloserSet;
+		}
+		else
+		{
+			// No known neighbours, so have a go at flooding.
+			// Someone might get this message
+			return UnknownSet;
+		}
+	}
+
+	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
+	{
+		am_addr_t chosen_address;
+		uint32_t i;
+
+		distance_neighbours_t local_neighbours;
+		init_distance_neighbours(&local_neighbours);
+
+		// If we don't know our sink distance then we cannot work
+		// out which neighbour is in closer or further.
+		if (landmark_distance != BOTTOM && further_or_closer_set != UnknownSet)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				// Skip neighbours we have been asked to
+				if (to_ignore != NULL)
+				{
+					size_t j;
+					bool found = FALSE;
+					for (j = 0; j != to_ignore_length; ++j)
+					{
+						if (to_ignore[j] == neighbour->address)
+						{
+							found = TRUE;
+							break;
+						}
+					}
+					if (found)
+					{
+						continue;
+					}
+				}
+
+				//simdbgverbose("stdout", "[%u]: further_or_closer_set=%d, dist=%d neighbour.dist=%d \n",
+				//  neighbour->address, further_or_closer_set, landmark_distance, neighbour->contents.distance);
+
+				if ((further_or_closer_set == FurtherSet && landmark_distance < neighbour->contents.landmark_distance) ||
+					(further_or_closer_set == CloserSet && landmark_distance >= neighbour->contents.landmark_distance))
+				{
+					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+			}
+		}
+
+		if (local_neighbours.size == 0)
+		{
+			simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
+				landmark_distance, neighbours.size);
+
+			chosen_address = AM_BROADCAST_ADDR;
+		}
+		else
+		{
+			// Choose a neighbour with equal probabilities.
+			const uint16_t rnd = call Random.rand16();
+			const uint16_t neighbour_index = rnd % local_neighbours.size;
+			const distance_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+
+			chosen_address = neighbour->address;
+
+#ifdef SLP_VERBOSE_DEBUG
+			print_distance_neighbours("stdout", &local_neighbours);
+#endif
+
+			simdbgverbose("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dist=%d my-dist=%d)\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				neighbour->contents.distance, landmark_distance);
+		}
+
+		return chosen_address;
+	}
+
 	bool busy = FALSE;
 	message_t packet;
 
@@ -418,6 +553,7 @@ implementation
 	event void BroadcastNormalTimer.fired()
 	{
 		NormalMessage message;
+		am_addr_t target;
 
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
@@ -428,9 +564,30 @@ implementation
 		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
 		message.fake_sequence_increments = source_fake_sequence_increments;
 
-		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
+		message.further_or_closer_set = random_walk_direction();
+
+		target = random_walk_target(message.further_or_closer_set, NULL, 0);
+
+		// If we don't know who our neighbours are, then we
+		// cannot unicast to one of them.
+		if (target != AM_BROADCAST_ADDR)
 		{
-			call NormalSeqNos.increment(TOS_NODE_ID);
+			message.broadcast = (target == AM_BROADCAST_ADDR);
+
+			simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
+				sim_time_string(), target, message.further_or_closer_set);
+
+			call Packet.clear(&packet);
+
+			if (send_Normal_message(&message, target))
+			{
+				call NormalSeqNos.increment(TOS_NODE_ID);
+			}
+		}
+		else
+		{
+			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
+				sim_time(), TOS_NODE_ID, message.sequence_number);
 		}
 
 		call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
@@ -479,9 +636,13 @@ implementation
 
 
 
-	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	bool process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		update_fake_source_seq(rcvd);
+
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->landmark_distance_of_sender);
+
+		UPDATE_LANDMARK_DISTANCE(rcvd->landmark_distance_of_sender);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -491,6 +652,88 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
+			forwarding_message = *rcvd;
+			forwarding_message.source_distance += 1;
+			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
+			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
+
+			forwarding_message.landmark_distance_of_sender = landmark_distance;
+
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
+			{
+				am_addr_t target;
+
+				// The previous node(s) were unable to choose a direction,
+				// so lets try to work out the direction the message should go in.
+				if (forwarding_message.further_or_closer_set == UnknownSet)
+				{
+					const distance_neighbour_detail_t* neighbour_detail = find_distance_neighbour(&neighbours, source_addr);
+					if (neighbour_detail != NULL)
+					{
+						forwarding_message.further_or_closer_set =
+							neighbour_detail->contents.landmark_distance < landmark_distance ? FurtherSet : CloserSet;
+					}
+					else
+					{
+						forwarding_message.further_or_closer_set = random_walk_direction();
+					}
+
+					simdbgverbose("stdout", "%s: Unknown direction, setting to %d\n",
+						sim_time_string(), forwarding_message.further_or_closer_set);
+				}
+
+				// Get a target, ignoring the node that sent us this message
+				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
+
+				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
+
+				// A node on the path away from, or towards the landmark node
+				// doesn't have anyone to send to.
+				// We do not want to broadcast here as it may lead the attacker towards the source.
+				if (target == AM_BROADCAST_ADDR)
+				{
+					simdbg_clear("Metric-PATH_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+						sim_time(), TOS_NODE_ID, rcvd->sequence_number, rcvd->source_distance);
+
+					return TRUE;
+				}
+
+				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+					sim_time_string(), TOS_NODE_ID, target);
+
+				call Packet.clear(&packet);
+
+				send_Normal_message(&forwarding_message, target);
+			}
+			else
+			{
+				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == LANDMARK_NODE_ID))
+				{
+					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+						sim_time(), TOS_NODE_ID, source_addr,
+						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+				}
+
+				// We want other nodes to continue broadcasting
+				forwarding_message.broadcast = TRUE;
+
+				call Packet.clear(&packet);
+
+				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}
+
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+
+
+
+	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (process_normal(msg, rcvd, source_addr))
+		{
 			if (first_source_distance == BOTTOM)
 			{
 				first_source_distance = rcvd->source_distance + 1;
@@ -498,26 +741,13 @@ implementation
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
 			}
-
-			forwarding_message = *rcvd;
-			forwarding_message.source_distance += 1;
-			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
-
-			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
-	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		update_fake_source_seq(rcvd);
-
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (process_normal(msg, rcvd, source_addr))
 		{
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-
-			METRIC_RCV_NORMAL(rcvd);
-
 			if (first_source_distance == BOTTOM)
 			{
 				first_source_distance = rcvd->source_distance + 1;
@@ -542,38 +772,68 @@ implementation
 			if (!sink_received_choose_reponse)
 			{
 				call ChooseSenderTimer.startOneShot(get_choose_delay());
-			}			
+			}
 		}
 	}
 
-	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Fake_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		update_fake_source_seq(rcvd);
-
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
-		{
-			NormalMessage forwarding_message;
-
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-
-			METRIC_RCV_NORMAL(rcvd);
-
-			forwarding_message = *rcvd;
-			forwarding_message.source_distance += 1;
-			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
-
-			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
-		}
+		process_normal(msg, rcvd, source_addr);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
-		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
-		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Normal(msg, rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: Fake_receive_Normal(rcvd, source_addr); break;
+		case PermFakeNode: Fake_receive_Normal(msg, rcvd, source_addr); break;
+		case SourceNode: break;
 	RECEIVE_MESSAGE_END(Normal)
+
+
+
+	// If the sink snoops a normal message, we may as well just deliver it
+	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->landmark_distance_of_sender);
+
+		UPDATE_LANDMARK_DISTANCE(rcvd->landmark_distance_of_sender);
+
+		// TODO: Enable this when the sink can snoop and then correctly
+		// respond to a message being received.
+		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV_NORMAL(rcvd);
+
+			simdbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
+				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
+		}*/
+	}
+
+	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->landmark_distance_of_sender);
+
+		UPDATE_LANDMARK_DISTANCE(rcvd->landmark_distance_of_sender);
+
+		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
+		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
+	}
+
+	// We need to snoop packets that may be unicasted,
+	// so the attacker properly responds to them.
+	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
+		case SinkNode: Sink_snoop_Normal(msg, rcvd, source_addr); break;
+
+		case PermFakeNode:
+		case TempFakeNode:
+		case TailFakeNode:
+		case SourceNode:
+		case NormalNode: x_snoop_Normal(msg, rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Normal)
+
 
 
 	void x_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
@@ -652,6 +912,10 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
 		case SinkNode: Sink_receive_Choose(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
+
+		case TempFakeNode: break;
+		case PermFakeNode: break;
+		case TailFakeNode: break;
 	RECEIVE_MESSAGE_END(Choose)
 
 
