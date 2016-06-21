@@ -36,6 +36,7 @@ javac LinkLayerModel.java
 5. Install python libraries
 
 sudo pip install scipy numpy pandas more_itertools
+sudo pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
 
 ==Updating from upstream==
 

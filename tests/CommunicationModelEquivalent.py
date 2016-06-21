@@ -87,8 +87,7 @@ class TestCommunicationModelEquivalent(unittest.TestCase):
             for (llmo, cmo) in zip(llm_out, cm_out):
                 self.assertEqual(llmo, cmo)
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         os.remove("tests/topology.txt")
 
 if __name__ == "__main__":

@@ -219,13 +219,6 @@ class Simulation(object):
             for (nid, loc) in enumerate(node_locations):
                 print("{}\t{}\t{}".format(nid, loc[0], loc[1]), file=of)
 
-    def _setup_radio_link_layer_model(self):
-        use_java = True
-        if use_java:
-            self._setup_radio_link_layer_model_java()
-        else:
-            self._setup_radio_link_layer_model_python()
-
     def _setup_radio_link_layer_model_java(self):
         import subprocess
         output = subprocess.check_output(
@@ -233,10 +226,7 @@ class Simulation(object):
                 self.communications_model_path(), self.topology_path, self.seed),
             shell=True)
 
-        #f = open("java.out", "w")
-
         for line in output.splitlines():
-            #print(line.strip(), file=f)
             parts = line.strip().split("\t")
 
             if parts[0] == "gain":
@@ -248,8 +238,6 @@ class Simulation(object):
                 (n, node_id, noise_floor, awgn) = parts
 
                 self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
-
-        #f.close()
     
     def _setup_radio_link_layer_model_python(self):
         """The python port of the java LinkLayerModel"""
@@ -257,8 +245,6 @@ class Simulation(object):
         import numpy as np
 
         model = CommunicationModel.eval_input(self.communication_model)
-
-        #f = open("python.out", "w")
 
         cm = model()
         cm.setup(self)
@@ -268,21 +254,20 @@ class Simulation(object):
                 continue
             if np.isnan(gain):
                 continue
-            #print("gain\t{}\t{}\t{:.2f}".format(i, j, gain), file=f)
+
             self.radio.add(i, j, gain)
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
-            #print("noise\t{}\t{:.2f}\t{:.2f}".format(i, noise_floor, cm.white_gausian_noise), file=f)
             self.radio.setNoise(i, noise_floor, cm.white_gausian_noise)
-
-        #f.close()
 
     def setup_radio(self):
         """Creates radio links for node pairs that are in range."""
-        if self.communication_model == "ideal":
+        # Try to use the python implementation, if the java_random module
+        # cannot be found then revert back to using the Java implementation.
+        try:
             self._setup_radio_link_layer_model_python()
-        else:
-            self._setup_radio_link_layer_model()
+        except ImportError:
+            self._setup_radio_link_layer_model_java()
 
     def setup_noise_models(self):
         """Create the noise model for each of the nodes in the network."""
