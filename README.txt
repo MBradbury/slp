@@ -34,6 +34,16 @@ pip install scipy numpy pandas more_itertools pip --upgrade
 pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
 pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
 
+
+Note: When installing python_euclidean2_2d you may need to specify the path to the numpy headers.
+You can execute the following line to get the location of the numpy headers.
+
+python -c "import numpy; print(numpy.get_include())"
+
+Installing python_euclidean2_2d then looks something like:
+
+CFLAGS="-I~/.pyenv/versions/2.7.11/lib/python2.7/site-packages/numpy/core/include" pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
+
 ==Using pyenv==
 
 If you do not have python installed, or have an install that requires
