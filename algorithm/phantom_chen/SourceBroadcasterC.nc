@@ -58,6 +58,10 @@ implementation
 
 	message_t packet;
 
+	uint16_t message_no = 1;
+	uint16_t current_message = 0;
+	uint16_t next_message = 0;
+
 	//check topology type.
 	typedef enum Topologies
 	{
@@ -358,7 +362,7 @@ implementation
 			}
 			#else
 			{
-				message.random_walk_hop_remaining =long_short_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
+				message.random_walk_hop_remaining = long_short_sequence_random_walk(SHORT_COUNT,LONG_COUNT);
 			}
 			#endif
 
