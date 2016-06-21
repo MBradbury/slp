@@ -1030,8 +1030,7 @@ implementation
 			call DelayBLSenderTimer.startOneShot(0.5 * 1000);	
 		}
 
-		if ((TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK) ||
-			(TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && BOTTOM_RIGHT_NODE_ID == SINK_NODE_ID))
+		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID-1 && rcvd->landmark_location == SINK)
 		{
 			sink_br_dist = rcvd->landmark_distance;
 			call DelayBRSenderTimer.startOneShot(1 * 1000);
