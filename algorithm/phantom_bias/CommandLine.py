@@ -31,71 +31,7 @@ class RunSimulations(RunSimulationsCommon):
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
 
-        ssd_avg = np.mean(list(configuration.ssd(source) for source in configuration.source_ids))
-        ssd_max = max(configuration.ssd(source) for source in configuration.source_ids)
-
-        #short_random_walk_length
-        s = float(arguments[argument_names.index('short walk length')])
-        #long_random_walk_length
-        l = float(arguments[argument_names.index('long walk length')])
-        
-        #################################################################
-        random_walk_types = {
-        #'only_short_random_walk':[1,1],
-        #'only_long_random_walk':[1,1],
-        'phantom_walkabouts':[1,1]
-        }
-        ##################################################################
-
-        if len(random_walk_types) ==1:
-            pass
-        else:
-            raise RuntimeError("only support ONE random_walk_type!")
-
-        if 'phantom_walkabouts' not in random_walk_types:
-            ssd_ls = 0;
-        else:
-            m = random_walk_types['phantom_walkabouts'][0]
-            n = random_walk_types['phantom_walkabouts'][1]
-            ssd_ls = (m*ssd_avg + n*(s+1.5*ssd_max))/(m+n)
-
-        unfixed_sp = {'only_short_random_walk': time_taken, \
-                         'only_long_random_walk': (l+0.5*ssd_max)/ssd_avg *time_taken,\
-                         'phantom_walkabouts': ssd_ls / ssd_avg *time_taken}
-
-        fixed_sp = {'flooding_safety_period': time_taken, 'medium_safety_period': 1.3*time_taken}
-
-        ##########################################################################
-        safety_period_types = [
-            unfixed_sp,
-            #fixed_sp
-        ]    
-        ##########################################################################
-
-        if len(safety_period_types) == 1:
-            pass
-        else:
-            raise RuntimeError("Need ONE safety period type!")
-
-        if fixed_sp in safety_period_types:
-            return safety_period_types[0]['medium_safety_period']      
-               
-        if unfixed_sp in safety_period_types:
-            
-            if ssd_max > (network_size-1) * 1.5:   #Further* configurations in all random_walk types
-                return  time_taken
-            #random_walk_types except Further* configuration
-            else:
-                if 'only_short_random_walk' in random_walk_types:
-                    return safety_period_types[0]['only_short_random_walk']
-                elif 'only_long_random_walk' in random_walk_types:
-                    return safety_period_types[0]['only_long_random_walk']
-                elif 'phantom_walkabouts' in random_walk_types:
-                    return safety_period_types[0]['phantom_walkabouts']
-                else:
-                    raise RuntimeError("unknown safety_period!")
-        
-
+        return 1.3 * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -107,20 +43,18 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    #sizes = [11, 15, 21, 25]
-    sizes = [11]
+    sizes = [11, 15, 21, 25]
 
-    #source_periods = [1.0, 0.5, 0.25, 0.125]
-    source_periods = [1.0]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
         'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -130,19 +64,18 @@ class CLI(CommandLineCommon.CLI):
     random_walk_types = [
         #'only_short_random_walk',
         #'only_long_random_walk',
-        'phantom_walkabouts'
+        'phantom_bias'
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
 
-    direction_biases = [0.9]
-
     orders = [
-    #"LongShort", 
-    "ShortLong"
+    "ShortLong",
+    #"LongShort",
+    
     ]
 
-    wait_before_short = [0]
+    wait_before_short = [0, 100]
 
     short_counts = [1]
     long_counts = [1]
@@ -151,8 +84,6 @@ class CLI(CommandLineCommon.CLI):
 
     local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
                              'order', 'short count', 'long count', 'wait before short')
-
-
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
@@ -189,7 +120,7 @@ class CLI(CommandLineCommon.CLI):
                 walk_short = random_walk_long
                 walk_long = random_walk_long
         
-            elif 'phantom_walkabouts' in self.random_walk_types:
+            elif 'phantom_bias' in self.random_walk_types:
                 walk_short = random_walk_short
                 walk_long = random_walk_long
 
@@ -205,7 +136,7 @@ class CLI(CommandLineCommon.CLI):
                 walk_short = random_walk_long_for_further
                 walk_long = random_walk_long_for_further
         
-            elif 'phantom_walkabouts' in self.random_walk_types:
+            elif 'phantom_bias' in self.random_walk_types:
                 walk_short = random_walk_short_for_further
                 walk_long = random_walk_long_for_further
 
