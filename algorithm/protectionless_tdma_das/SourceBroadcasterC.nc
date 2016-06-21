@@ -73,7 +73,8 @@ implementation
     bool start = TRUE;
     bool slot_active = FALSE;
     bool normal = TRUE;
-    bool altered_slot = FALSE;
+    /*bool altered_slot = FALSE;*/
+    uint32_t period_counter = 0;
 
     typedef enum
 	{
@@ -140,6 +141,11 @@ implementation
     uint32_t get_assignment_interval(void)
     {
         return SLOT_ASSIGNMENT_INTERVAL;
+    }
+
+    uint32_t get_minimum_setup_periods(void)
+    {
+        return TDMA_SETUP_PERIODS;
     }
     //###################}}}
 
@@ -308,7 +314,7 @@ implementation
                     // If nodes have the same distance use the node id as a tie breaker.
                     if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
                     {
-                        altered_slot = TRUE;
+                        /*altered_slot = TRUE;*/
                         slot = slot - 1;
                         NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
 
@@ -328,10 +334,9 @@ implementation
                         CollisionMessage msg;
                         msg.a = neighbour_info.info[i].id;
                         msg.a_hop = neighbour_info.info[i].hop;
-                        msg.a_slot = neighbour_info.info[i].slot;
                         msg.b = neighbour_info.info[j].id;
                         msg.b_hop = neighbour_info.info[j].hop;
-                        msg.b_slot = neighbour_info.info[j].slot;
+                        msg.slot = neighbour_info.info[i].slot;
                         send_Collision_message(&msg, AM_BROADCAST_ADDR);
                         simdbg("stdout", "Node %u and %u collide. Sending message...\n", neighbour_info.info[i].id, neighbour_info.info[j].id);
                     }
@@ -405,7 +410,7 @@ implementation
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         if(type != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
-        altered_slot = FALSE;
+        /*altered_slot = FALSE;*/
         if(slot != BOT)
         {
             call DissemTimerSender.startOneShot((uint32_t)(get_slot_period() * random_float()));
@@ -413,6 +418,7 @@ implementation
 
         process_dissem();
         process_collision();
+        period_counter++;
         call PreSlotTimer.startOneShot(get_dissem_period());
     }
 
@@ -446,7 +452,7 @@ implementation
     event void EnqueueNormalTimer.fired()
     {
         /*simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());*/
-        if(slot != BOT)
+        if(slot != BOT && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
 
@@ -609,36 +615,56 @@ implementation
     RECEIVE_MESSAGE_END(Dissem)
 
 
+/*
+ *    void x_receive_Collision(const CollisionMessage* const rcvd, am_addr_t source_addr)
+ *    {
+ *        simdbg("stdout", "Received collision message.\n");
+ *        [>if (altered_slot) return;<]
+ *        [>if(altered_slot || slot != rcvd->a_slot) return;<]
+ *        if(slot != rcvd->slot) return; //Stale data
+ *        if(rcvd->a == TOS_NODE_ID)
+ *        {
+ *            if((hop > rcvd->b_hop) || (hop == rcvd->b_hop && TOS_NODE_ID > rcvd->b))
+ *            {
+ *                slot = slot - 1;
+ *                NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+ *
+ *                simdbg("stdout", "(Collision Message) Adjusted slot of current node to %u because node %u has slot %u.\n",
+ *                    slot, rcvd->b, slot+1);
+ *                [>altered_slot = TRUE;<]
+ *            }
+ *        }
+ *        else if(rcvd->b == TOS_NODE_ID)
+ *        {
+ *            if((hop > rcvd->a_hop) || (hop == rcvd->a_hop && TOS_NODE_ID > rcvd->a))
+ *            {
+ *                slot = slot - 1;
+ *                NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+ *
+ *                simdbg("stdout", "(Collision Message) Adjusted slot of current node to %u because node %u has slot %u.\n",
+ *                    slot, rcvd->a, slot+1);
+ *                [>altered_slot = TRUE;<]
+ *            }
+ *        }
+ *    }
+ */
+
     void x_receive_Collision(const CollisionMessage* const rcvd, am_addr_t source_addr)
     {
-        simdbg("stdout", "Received collision message.\n");
-        if (altered_slot) return;
-        /*if(altered_slot || slot != rcvd->a_slot) return;*/
-        if(rcvd->a == TOS_NODE_ID)
-        {
-            if((hop > rcvd->b_hop) || (hop == rcvd->b_hop && TOS_NODE_ID > rcvd->b))
-            {
-                slot = slot - 1;
-                NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-
-                simdbg("stdout", "(Collision Message) Adjusted slot of current node to %u because node %u has slot %u.\n",
-                    slot, rcvd->b, slot+1);
-                altered_slot = TRUE;
-            }
-        }
-        else if(rcvd->b == TOS_NODE_ID)
-        {
-            if((hop > rcvd->a_hop) || (hop == rcvd->a_hop && TOS_NODE_ID > rcvd->a))
-            {
-                slot = slot - 1;
-                NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-
-                simdbg("stdout", "(Collision Message) Adjusted slot of current node to %u because node %u has slot %u.\n",
-                    slot, rcvd->a, slot+1);
-                altered_slot = TRUE;
-            }
+        int r;
+        IDList ranked = IDList_new();
+        if(slot != rcvd->slot) return; //Data is stale
+        IDList_add(&ranked, rcvd->a);
+        IDList_add(&ranked, rcvd->b);
+        r = rank(&ranked, TOS_NODE_ID);
+        if(r == UINT16_MAX) return;
+        else {
+            slot = slot - r + 1;
+            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            /*altered_slot = TRUE;*/
         }
     }
+
 
     RECEIVE_MESSAGE_BEGIN(Collision, Receive)
         case SourceNode:
