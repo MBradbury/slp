@@ -278,7 +278,7 @@ class Analyse(object):
 
                 cpu_power_consumption_ma = 5
 
-                duty_cycle = 0.04
+                duty_cycle = 0.042
 
                 daily_allowance_mah -= cpu_power_consumption_ma * 24 * duty_cycle
 

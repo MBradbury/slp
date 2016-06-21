@@ -13,10 +13,11 @@ def check_link_layer_model():
 
 def check_all():
     """Checks all requirements are satisfied"""
-    checks = [
-        check_java,
-        check_link_layer_model
-    ]
 
-    for check in checks:
-        check()
+    # We either need the python module java_random, or LinkLayerModel to be compiled
+    # and Java to be present.
+    try:
+        import java_random
+    except ImportError:
+        check_java()
+        check_link_layer_model()
