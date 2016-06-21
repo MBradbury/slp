@@ -32,7 +32,7 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
 }
 
-void distance_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	simdbg_clear(name, "[%u] => addr=%u / bl=%d, br=%d,sink_dist=%d",
 		i, address, contents->bottom_left_distance, contents->bottom_right_distance, contents->sink_distance);
