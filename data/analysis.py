@@ -133,6 +133,11 @@ class Analyse(object):
         "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
         "NodeWasSource": _inf_handling_literal_eval,
+
+        "ReceivedFromCloserOrSameHops": _parse_dict_node_to_value,
+        "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
+        "ReceivedFromFurtherHops": _parse_dict_node_to_value,
+        "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile, normalised_values):
