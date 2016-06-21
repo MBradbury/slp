@@ -53,6 +53,8 @@ class Arguments(ArgumentsCommon):
 
         result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
 
+        result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
+
         result["TOP_RIGHT_NODE_ID"] = configuration.topology.top_right
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
