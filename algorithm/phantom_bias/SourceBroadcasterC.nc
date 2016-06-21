@@ -26,7 +26,7 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 	find->distance = minbot(find->distance, given->distance);
 }
 
-void distance_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
 		i, address, contents->distance);
@@ -57,7 +57,6 @@ module SourceBroadcasterC
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
-	uses interface Timer<TMilli> as DelaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
 
 	uses interface Packet;
@@ -210,7 +209,7 @@ implementation
 		uint32_t i;
 
 		distance_neighbours_t local_neighbours;
-		//init_distance_neighbours(&local_neighbours);
+		init_distance_neighbours(&local_neighbours);
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
@@ -242,23 +241,26 @@ implementation
 				if ((further_or_closer_set == FurtherSet && landmark_distance < neighbour->contents.distance) ||
 					(further_or_closer_set == CloserSet && landmark_distance >= neighbour->contents.distance))
 				{
-					local_neighbours.size++;
-					//insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+					//local_neighbours.size++;
+					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
 			}
 		}
 		if (further_or_closer_set == CloserSet && local_neighbours.size == 1)
 		{
-			simdbg("stdout","need change to further!\n");
+			simdbgverbose("stdout","need change to further!\n");
 			return FurtherSet;
 		}
 		else if (local_neighbours.size == 0)
 		{
-			simdbg("stdout","Need change Set.\n");
+			simdbgverbose("stdout","Need change Set.\n");
 			return (further_or_closer_set == FurtherSet)? CloserSet: FurtherSet;
 		}
 		else
+		{
+			simdbgverbose("stdout", "<neighbour check>set type:%d, local neighbour size: %u\n",further_or_closer_set, local_neighbours.size);
 			return further_or_closer_set;
+		}
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -308,14 +310,15 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			simdbg("stdout", "no neighbour is chosen! so broadcast!\n");
+			simdbgverbose("stdout", "no neighbour is chosen! so broadcast!\n");
 			chosen_address = AM_BROADCAST_ADDR;
 
 		}
 
 		else if (local_neighbours.size == 1)
 		{
-			chosen_address = (&local_neighbours.data[0])->address;
+			chosen_address = local_neighbours.data[0].address;
+			simdbgverbose("stdout", "neighbour size 1, so choose: %d\n", chosen_address);
 		}
 
 		else
@@ -478,8 +481,7 @@ implementation
 
 			type = SourceNode;
 
-			//call BroadcastNormalTimer.startOneShot(get_source_period());
-			call BroadcastNormalTimer.startOneShot(3 * 1000); // 2 seconds
+			call BroadcastNormalTimer.startOneShot(3 * 1000); // 3 seconds
 		}
 	}
 
@@ -493,31 +495,6 @@ implementation
 
 			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
-		}
-	}
-
-	event void DelaySenderTimer.fired()
-	{
-		AwayMessage amessage;
-
-		amessage.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
-	
-		amessage.source_id = TOS_NODE_ID;
-		amessage.node_id = TOS_NODE_ID;
-		amessage.landmark_distance = 0;
-		amessage.neighbour_size = neighbours.size;
-
-		call Packet.clear(&packet);
-
-		extra_to_send = 2;
-		if (send_Away_message(&amessage, AM_BROADCAST_ADDR))
-		{
-			
-			call AwaySeqNos.increment(TOS_NODE_ID);
-		}
-		else
-		{
-			simdbg("stdout","fail send it\n");
 		}
 	}
 
@@ -551,7 +528,7 @@ implementation
 			nextmessagetype = ls_next_message_type(srw_count, lrw_count);
 		}
 		#endif
-		//simdbg("stdout","random walk length:%d\n", message.random_walk_hops);
+		//simdbgverbose("stdout","random walk length:%d\n", message.random_walk_hops);
 		messagetype = (message.random_walk_hops == RANDOM_WALK_HOPS)? ShortRandomWalk : LongRandomWalk;
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -695,7 +672,7 @@ implementation
 
 				// The previous node(s) were unable to choose a direction,
 				// so lets try to work out the direction the message should go in.
-				/*
+/*
 				if (forwarding_message.further_or_closer_set == UnknownSet)
 				{
 					const distance_neighbour_detail_t* neighbour_detail = find_distance_neighbour(&neighbours, source_addr);
@@ -718,6 +695,7 @@ implementation
 				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);//if chosen size is 0, choose the other set.
 				
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
+				simdbgverbose("stdout", "After target function, target is %d\n", target);
 
 				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
 
@@ -849,10 +827,6 @@ implementation
 			else
 				continue;
 		}
-	
-		//if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location ==SINK)
-		//	call DelaySenderTimer.startOneShot(1*1000);
-
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
