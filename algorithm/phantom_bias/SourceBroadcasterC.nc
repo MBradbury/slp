@@ -12,9 +12,6 @@
 
 #include <assert.h>
 
-#define TOPLEFT 0
-#define SINK 1
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
@@ -213,7 +210,7 @@ implementation
 		uint32_t i;
 
 		distance_neighbours_t local_neighbours;
-		init_distance_neighbours(&local_neighbours);
+		//init_distance_neighbours(&local_neighbours);
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
@@ -245,11 +242,17 @@ implementation
 				if ((further_or_closer_set == FurtherSet && landmark_distance < neighbour->contents.distance) ||
 					(further_or_closer_set == CloserSet && landmark_distance >= neighbour->contents.distance))
 				{
-					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+					local_neighbours.size++;
+					//insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
 			}
 		}
-		if (local_neighbours.size == 0)
+		if (further_or_closer_set == CloserSet && local_neighbours.size == 1)
+		{
+			simdbg("stdout","need change to further!\n");
+			return FurtherSet;
+		}
+		else if (local_neighbours.size == 0)
 		{
 			simdbg("stdout","Need change Set.\n");
 			return (further_or_closer_set == FurtherSet)? CloserSet: FurtherSet;
@@ -301,11 +304,13 @@ implementation
 				}
 			}
 		}
-		simdbgverbose("stdout","--------------local_neighbours.size=%d-----------------\n", local_neighbours.size);
+		simdbgverbose("stdout","--------------neighbours size is %d-----------------\n", local_neighbours.size);
 
 		if (local_neighbours.size == 0)
 		{
-			simdbgerror("stdout", "no neighbour is chosen!\n");
+			simdbg("stdout", "no neighbour is chosen! so broadcast!\n");
+			chosen_address = AM_BROADCAST_ADDR;
+
 		}
 
 		else if (local_neighbours.size == 1)
@@ -325,8 +330,8 @@ implementation
 					{
 						bias_neighbours[j].address = local_neighbours.data[j].address;
 						bias_neighbours[j].neighbour_size = node_neighbours[m].neighbour_size;
-						simdbgverbose("stdout", "bias_neighbour[%d].address=%d, bias_neighbour[%d].neighbour_size=%d\n",
-							j, bias_neighbours[j].address, j, bias_neighbours[j].neighbour_size);
+						simdbgverbose("stdout", "neighbour[%d], address is %d, neighbour_size is %d\n",
+							j, bias_neighbours[j].address, bias_neighbours[j].neighbour_size);
 					}
 				}
 			}
@@ -337,12 +342,12 @@ implementation
 				const uint16_t rnd = call Random.rand16();
 				const uint16_t neighbour_index = rnd % local_neighbours.size;
 				neighbour_target = &local_neighbours.data[neighbour_index];
-				simdbgverbose("stdout","randomly pick one. Chosen:%d\n, local_neighbours.size:%d\n", neighbour_target->address, local_neighbours.size);
+				simdbgverbose("stdout","randomly pick one. Chosen:%d\n", neighbour_target->address);
 			}
 			else
 			{
 				neighbour_target = (bias_neighbours[0].neighbour_size < bias_neighbours[1].neighbour_size)? &local_neighbours.data[0]: &local_neighbours.data[1];
-				simdbgverbose("stdout", "pick small one: %d\n", neighbour_target->address);
+				simdbgverbose("stdout", "pick smaller one: %d\n", neighbour_target->address);
 			} 
 
 			chosen_address = neighbour_target->address;
@@ -526,7 +531,7 @@ implementation
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
-		print_distance_neighbours("stdout", &neighbours);
+		//print_distance_neighbours("stdout", &neighbours);
 #endif
 
 		if (srw_count == 0 && lrw_count == 0)
@@ -546,7 +551,7 @@ implementation
 			nextmessagetype = ls_next_message_type(srw_count, lrw_count);
 		}
 		#endif
-		simdbg("stdout","random walk length:%d\n", message.random_walk_hops);
+		//simdbg("stdout","random walk length:%d\n", message.random_walk_hops);
 		messagetype = (message.random_walk_hops == RANDOM_WALK_HOPS)? ShortRandomWalk : LongRandomWalk;
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -554,10 +559,13 @@ implementation
 		message.source_distance = 0;
 		message.landmark_distance_of_sender = landmark_distance;
 
+		message.neighbour_size = neighbours.size;
+		message.node_id = TOS_NODE_ID;
+
 		message.further_or_closer_set = random_walk_direction();	//choose further or closer.
 
 		target = random_walk_target(message.further_or_closer_set, NULL, 0);
-		simdbgverbose("stdout","---------------------------------------------------------------------\n");
+		simdbgverbose("stdout","----------------------------new message-----------------------------------------\n");
 
 		// If we don't know who our neighbours are, then we
 		// cannot unicast to one of them.
@@ -605,7 +613,6 @@ implementation
 
 		message.neighbour_size = neighbours.size;
 		message.node_id = TOS_NODE_ID;
-		message.landmark_location = SINK;
 
 		call Packet.clear(&packet);
 
@@ -615,7 +622,7 @@ implementation
 			call AwaySeqNos.increment(TOS_NODE_ID);
 		}
 
-		simdbgverbose("stdout", "Away sent\n");
+		//simdbgverbose("stdout", "Away sent\n");
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -636,18 +643,37 @@ implementation
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-/*		
-		int16_t j;
-		for (j=0;j!=SLP_MAX_1_HOP_NEIGHBOURHOOD;j++)
-		{
-			if(node_neighbours[j].address!=BOTTOM)
-				simdbg("stdout","neighbour address:%d, neighbour size:%d\n", node_neighbours[j].address, node_neighbours[j].neighbour_size);
-		}
-*/
+		
+		int16_t i,j;
+
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 		
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
+		for (i=0; i!=SLP_MAX_1_HOP_NEIGHBOURHOOD; i++)
+		{
+			if(node_neighbours[i].address == rcvd->node_id)
+			{
+				node_neighbours[i].neighbour_size = (node_neighbours[i].neighbour_size <= rcvd->neighbour_size)? 
+				rcvd->neighbour_size: node_neighbours[i].neighbour_size;
+				break;
+			}
+			else if (node_neighbours[i].address == BOTTOM)
+			{
+				node_neighbours[i].address = rcvd->node_id;
+				node_neighbours[i].neighbour_size = rcvd->neighbour_size;
+				break;
+			}
+			else
+				continue;
+		}
+/*
+		for (j=0;j!=SLP_MAX_1_HOP_NEIGHBOURHOOD;j++)
+		{
+			if(node_neighbours[j].address!=BOTTOM)
+				simdbg("stdout","<After>neighbour address:%d, neighbour size:%d\n", node_neighbours[j].address, node_neighbours[j].neighbour_size);
+		}
+*/
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
@@ -660,12 +686,16 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
+			forwarding_message.neighbour_size = neighbours.size;
+			forwarding_message.node_id = TOS_NODE_ID;
+
 			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
 			{
 				am_addr_t target;
 
 				// The previous node(s) were unable to choose a direction,
 				// so lets try to work out the direction the message should go in.
+				/*
 				if (forwarding_message.further_or_closer_set == UnknownSet)
 				{
 					const distance_neighbour_detail_t* neighbour_detail = find_distance_neighbour(&neighbours, source_addr);
@@ -682,7 +712,7 @@ implementation
 					simdbgverbose("stdout", "%s: Unknown direction, setting to %d\n",
 						sim_time_string(), forwarding_message.further_or_closer_set);
 				}
-
+*/
 				// Get a target, ignoring the node that sent us this message
 
 				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);//if chosen size is 0, choose the other set.
@@ -702,8 +732,8 @@ implementation
 					return;
 				}
 
-				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
-					sim_time_string(), TOS_NODE_ID, target);
+				//simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+				//	sim_time_string(), TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
 
@@ -801,7 +831,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
-/*
+
 		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
 		{
 			if(node_neighbours[ii].address == rcvd->node_id)
@@ -819,9 +849,9 @@ implementation
 			else
 				continue;
 		}
-*/		
-		if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location ==SINK)
-			call DelaySenderTimer.startOneShot(1*1000);
+	
+		//if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location ==SINK)
+		//	call DelaySenderTimer.startOneShot(1*1000);
 
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
@@ -847,7 +877,7 @@ implementation
 		}
 
 #ifdef SLP_VERBOSE_DEBUG
-		print_distance_neighbours("stdout", &neighbours);
+		//print_distance_neighbours("stdout", &neighbours);
 #endif
 	}
 
@@ -868,7 +898,7 @@ implementation
 
 		METRIC_RCV_BEACON(rcvd);
 
-/*
+
 		for (i=0; i!=SLP_MAX_1_HOP_NEIGHBOURHOOD; i++)
 		{
 			if(node_neighbours[i].address == rcvd->node_id)
@@ -886,7 +916,7 @@ implementation
 			else
 				continue;
 		}
-*/		
+	
 
 	}
 

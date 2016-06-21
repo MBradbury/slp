@@ -16,13 +16,15 @@ typedef nx_struct NormalMessage
 
   nx_int16_t landmark_distance_of_sender;
 
-  nx_int16_t landmark_distance_of_top_left_sender;
-
   nx_uint8_t further_or_closer_set;
 
   nx_uint8_t broadcast;
 
   nx_int16_t random_walk_hops;
+
+  nx_uint16_t neighbour_size;
+
+  nx_uint16_t node_id;
 
 } NormalMessage;
 
