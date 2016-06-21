@@ -332,7 +332,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("stdout","error here!\n");
+			return UnknownSet;
 		}
 
 
@@ -343,7 +343,7 @@ implementation
 		else if (possible_sets == FurtherSet) 		return FurtherSet;
 		else if (possible_sets == CloserSideSet) 	return CloserSideSet;
 		else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
-		else return UnknownSet;
+		else 										return UnknownSet;
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, BiasedType biased_direction, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -353,6 +353,9 @@ implementation
 
 		distance_neighbours_t local_neighbours;
 		init_distance_neighbours(&local_neighbours);
+
+		if (further_or_closer_set == UnknownSet)
+			return AM_BROADCAST_ADDR;
 
 		//simdbgverbose("stdout","<in random_walk_target()> further_or_closer_set= %d\n",further_or_closer_set);
 
