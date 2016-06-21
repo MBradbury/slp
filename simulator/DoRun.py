@@ -28,13 +28,19 @@ def run_simulation(module, a, count=1):
 
             try:
                 sim.run()
-            except (KeyboardInterrupt, SystemExit, RuntimeError) as ex:
+            except Exception as ex:
                 import traceback
                 print("Killing run due to {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
                 return 1
             else:
-                sim.metrics.print_results()
+                try:
+                    sim.metrics.print_results()
+                except Exception as ex:
+                    import traceback
+                    print("Failed to print metrics due to {}".format(ex), file=sys.stderr)
+                    print(traceback.format_exc(), file=sys.stderr)
+                    return 2
 
     return 0
 
