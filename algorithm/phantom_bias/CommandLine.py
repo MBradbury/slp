@@ -82,7 +82,7 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 500
 
-    local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
+    local_parameter_names = ('short walk length', 'long walk length',
                              'order', 'short count', 'long count', 'wait before short')
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -176,14 +176,14 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.direction_biases, self.orders,
+            [self.distance], self.source_periods, self.orders,
             self.short_counts, self.long_counts, self.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, swl, lwl, db, o, sc, lc, wbs)
+            (s, c, am, nm, cm, d, sp, swl, lwl, o, sc, lc, wbs)
 
-            for (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs) in argument_product
+            for (s, c, am, nm, cm, d, sp, o, sc, lc, wbs) in argument_product
 
             for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
         ]        
