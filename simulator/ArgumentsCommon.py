@@ -1,5 +1,3 @@
-import multiprocessing
-
 from simulator.Simulation import Simulation
 import simulator.Attacker as Attacker
 import simulator.Configuration as Configuration
@@ -26,7 +24,7 @@ class ArgumentsCommon(object):
             parser.add_argument("-safety", "--safety-period", type=float, required=True)
 
         parser.add_argument("--job-size", type=int, default=1)
-        parser.add_argument("--thread-count", type=int, default=multiprocessing.cpu_count())
+        parser.add_argument("--thread-count", type=int, default=None)
 
         parser.add_argument("--job-id", type=int, default=None, help="Used to pass the array id when this job has been submitted as a job array to the cluster.")
 
@@ -40,6 +38,7 @@ class ArgumentsCommon(object):
         # Haven't parsed anything yet
         self.args = None
 
+        # Don't show these arguments when printing the argument values before showing the results
         self.arguments_to_hide = {"job_id", "verbose", "gui_node_label", "gui_scale"}
 
     def parse(self, argv):

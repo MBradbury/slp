@@ -1,6 +1,10 @@
-import os, shutil, stat, errno, math
+import errno
+import math
+import os
+import shutil
+import stat
 
-import numpy
+import numpy as np
 
 def create_dirtree(path):
     if not os.path.exists(path):
@@ -63,7 +67,7 @@ def useful_log10(data):
 def scalar_extractor(x):
     if x is None:
         return None
-    elif numpy.isscalar(x):
+    elif np.isscalar(x):
         return x
     else:
         (val, stddev) = x

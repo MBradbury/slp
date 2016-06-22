@@ -28,15 +28,32 @@ Add the following to ~/.bashrc
 
 source ~/tinyos.env
 
-4. Compile parts of the simulation
+4. Install python libraries
 
-cd slp-algorithms-tinyos/tinyos/support/sdk/java/net/tinyos/sim
-javac LinkLayerModel.java
+pip install scipy numpy pandas more_itertools pip --upgrade
+pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
+pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
 
-5. Install python libraries
 
-sudo pip install scipy numpy pandas more_itertools
-sudo pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
+Note: When installing python_euclidean2_2d you may need to specify the path to the numpy headers.
+You can execute the following line to get the location of the numpy headers.
+
+python -c "import numpy; print(numpy.get_include())"
+
+Installing python_euclidean2_2d then looks something like:
+
+CFLAGS="-I~/.pyenv/versions/2.7.11/lib/python2.7/site-packages/numpy/core/include" pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
+
+==Using pyenv==
+
+If you do not have python installed, or have an install that requires
+admin permissions to use pip install, then pyenv is a good alternative.
+
+curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+
+MAKE_OPTS=profile-opt pyenv install 2.7.11
+
+pyenv global 2.7.11
 
 ==Updating from upstream==
 
@@ -194,7 +211,7 @@ Doing so will run all parameter combinations as specified in the <algorithm>/Com
 ==Job Notification==
 
 A useful feature is the ability to be notified when a job is completed or cancelled via email.
-This can be done in two ways:
+This can be done in two ways (#2 is recommended, as I tend to forget to do #1):
 
 1) By specifying "notify=<email address>" when submitting your jobs.
 
