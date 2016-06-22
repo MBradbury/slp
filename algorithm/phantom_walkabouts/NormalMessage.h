@@ -18,6 +18,8 @@ typedef nx_struct NormalMessage
 
   nx_int16_t landmark_distance_of_bottom_right_sender;
 
+  nx_int16_t landmark_distance_of_top_right_sender;
+
   nx_int16_t landmark_distance_of_sink_sender;
 
   nx_uint8_t further_or_closer_set;
