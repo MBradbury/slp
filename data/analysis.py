@@ -61,11 +61,8 @@ def _normalised_value_names(values):
     return unique_results
 
 def _inf_handling_literal_eval(item):
-     # ast.literal_eval will not parse inf correctly.
+    # ast.literal_eval will not parse inf correctly.
     # passing 2e308 will return a float('inf') instead.
-    #
-    # The fast_eval version will parse inf when on its own correctly,
-    # so this hack is not needed there.
     item = item.replace('inf', '2e308')
 
     return ast.literal_eval(item)
@@ -136,6 +133,11 @@ class Analyse(object):
         "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
         "NodeWasSource": _inf_handling_literal_eval,
+
+        "ReceivedFromCloserOrSameHops": _parse_dict_node_to_value,
+        "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
+        "ReceivedFromFurtherHops": _parse_dict_node_to_value,
+        "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile, normalised_values):
@@ -223,7 +225,7 @@ class Analyse(object):
 
             return values[index]
         except ValueError:
-            if name == "network_size":
+            if name == "num_nodes":
                 configuration = self._get_configuration()
                 return configuration.size()
 
@@ -267,10 +269,10 @@ class Analyse(object):
 
             elif name == "daily_allowance_used":
                 energy_impact = self._get_from_opts_or_values("energy_impact", values)
-                network_size = self._get_from_opts_or_values("network_size", values)
+                num_nodes = self._get_from_opts_or_values("num_nodes", values)
                 time_taken = self._get_from_opts_or_values("TimeTaken", values)
 
-                energy_impact_per_node_per_second = (energy_impact / network_size) / time_taken
+                energy_impact_per_node_per_second = (energy_impact / num_nodes) / time_taken
 
                 energy_impact_per_node_per_day = energy_impact_per_node_per_second * 60.0 * 60.0 * 24.0
 
@@ -358,6 +360,7 @@ class Analyse(object):
     def detect_outlier(self, values):
         """Raise an exception in this function if an individual result should be
         excluded from the analysis"""
+        # TODO: Call this
         pass
 
     def average_of(self, header):
@@ -464,6 +467,11 @@ class AnalysisResults:
         # Find the length of that list
         return len(self.columns[aname])
 
+    def get_configuration(self):
+        return Configuration.create_specific(self.opts['configuration'],
+                                             int(self.opts['network_size']),
+                                             float(self.opts['distance']))
+
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values, normalised_values=None):
         self.results_directory = results_directory
@@ -476,6 +484,9 @@ class AnalyzerCommon(object):
         
         # Include the number of simulations that were analysed
         d['repeats']            = lambda x: str(x.number_of_repeats())
+
+        # Give everyone access to the number of nodes in the simulation
+        d['num nodes']          = lambda x: str(x.get_configuration().size())
 
         # The options that all simulations must include
         # We do not loop though opts to allow algorithms to rename parameters if they wish

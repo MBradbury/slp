@@ -1,10 +1,8 @@
 from __future__ import print_function, division
 
-import itertools
 import numpy as np
-from scipy.spatial.distance import euclidean
-from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import shortest_path
+from scipy.spatial.distance import cdist
 
 from data.memoize import memoize
 from simulator.Topology import SimpleTree, Line, Ring, Grid, Random
@@ -57,22 +55,20 @@ class Configuration(object):
         )
 
     def _build_connectivity_matrix(self):
-        connectivity_matrix = np.zeros((self.size(), self.size()))
+        self._dist_matrix_meters = cdist(self.topology.nodes, self.topology.nodes, 'euclidean')
 
-        for (y, x) in itertools.product(xrange(self.size()), xrange(self.size())):
-            connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
-        connectivity_matrix = csr_matrix(connectivity_matrix)
+        connectivity_matrix = self._dist_matrix_meters <= self.topology.distance
 
-        self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, return_predecessors=True)
+        self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, directed=True, return_predecessors=True)
 
     def size(self):
         return len(self.topology.nodes)
 
     def is_connected(self, i, j):
-        return self.node_distance_meters(i, j) <= self.topology.distance
+        return self._dist_matrix_meters[i,j] <= self.topology.distance
 
     def one_hop_neighbours(self, node):
-        for i in xrange(len(self.topology.nodes)):
+        for i in range(len(self.topology.nodes)):
             if i != node and self.is_connected(node, i):
                 yield i
 
@@ -98,8 +94,7 @@ class Configuration(object):
         return self._dist_matrix[node, source_id]
 
     def node_distance_meters(self, node1, node2):
-        nodes = self.topology.nodes
-        return euclidean(nodes[node1], nodes[node2])
+        return self._dist_matrix_meters[node1,node2]
 
     def ssd_meters(self, source_id):
         """The number of meters between the sink and the specified source node"""
@@ -110,14 +105,14 @@ class Configuration(object):
 
     def node_sink_distance_meters(self, node):
         """The number of meters between the sink and the specified node"""
-        return euclidean(self.topology.nodes[self.sink_id], self.topology.nodes[node])
+        return self.topology.node_distance_meters(self.sink_id, node)
 
     def node_source_distance_meters(self, node, source_id):
         """The number of meters between the specified source and the specified node"""
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
-        return euclidean(self.topology.nodes[source_id], self.topology.nodes[node])
+        return self.topology.node_distance_meters(node, source_id)
 
 
 
@@ -343,6 +338,17 @@ class Source2Corners(Configuration):
             space_behind_sink=True
         )
 
+class Source3Corners(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Source3Corners, self).__init__(
+            grid,
+            source_ids={network_size - 1, len(grid.nodes) - network_size, len(grid.nodes) - 1},
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=False
+        )
+
 class Source4Corners(Configuration):
     def __init__(self, network_size, distance):
         grid = Grid(network_size, distance)
@@ -397,6 +403,17 @@ class Source2Corner(Configuration):
             space_behind_sink=True
         )
 
+class FurtherSinkSource2Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(FurtherSinkSource2Corner, self).__init__(
+            grid,
+            source_ids={3, network_size * 3},
+            sink_id=len(grid.nodes) - 1,
+            space_behind_sink=True
+        )
+
 class Source3Corner(Configuration):
     def __init__(self, network_size, distance):
         grid = Grid(network_size, distance)
@@ -439,8 +456,8 @@ class SourceEdgeCorner(Configuration):
         )
 
 class RandomConnected(Configuration):
-    def __init__(self, network_size, distance):
-        random = Random(network_size, distance)
+    def __init__(self, network_size, distance, seed):
+        random = Random(network_size, distance, seed=seed)
 
         super(RandomConnected, self).__init__(
             random,

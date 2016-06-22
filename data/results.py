@@ -9,7 +9,7 @@ import simulator.common
 from simulator import Configuration, SourcePeriodModel
 
 class Results(object):
-    def __init__(self, result_file, parameters, results, source_period_normalisation=None):
+    def __init__(self, result_file, parameters, results, source_period_normalisation=None, network_size_normalisation=None):
         self.parameter_names = list(parameters)
         self.result_names = list(results)
 
@@ -20,7 +20,7 @@ class Results(object):
         for param in self.global_parameter_names:
             setattr(self, self.name_to_attr(param), set())
 
-        self._read_results(result_file, source_period_normalisation)
+        self._read_results(result_file, source_period_normalisation, network_size_normalisation)
 
     def parameters(self):
         return [
@@ -32,7 +32,7 @@ class Results(object):
     def name_to_attr(name):
         return name.replace(" ", "_") + "s"
 
-    def _read_results(self, result_file, source_period_normalisation):
+    def _read_results(self, result_file, source_period_normalisation, network_size_normalisation):
         with open(result_file, 'r') as f:
 
             seen_first = False
@@ -54,8 +54,6 @@ class Results(object):
 
                     get_value = partial(_get_value_for, values=values)
 
-                    table_key = tuple(get_value(name) for name in self.global_parameter_names)
-
                     src_period = get_value('source period')
 
                     if source_period_normalisation is None:
@@ -72,6 +70,14 @@ class Results(object):
                     else:
                         raise RuntimeError("Unknown source period normalisation strategy '{}'".format(source_period_normalisation))
 
+                    if network_size_normalisation is None:
+                        pass
+                    elif network_size_normalisation == "UseNumNodes":
+                        values[headers.index('network size')] = values[headers.index('num nodes')]
+                    else:
+                        raise RuntimeError("Unknown network size normalisation strategy '{}'".format(network_size_normalisation))
+
+                    table_key = tuple(get_value(name) for name in self.global_parameter_names)
 
                     params = tuple([self._process(name, headers, values) for name in self.parameter_names])
                     results = tuple([self._process(name, headers, values) for name in self.result_names])
@@ -86,11 +92,6 @@ class Results(object):
                     headers = values
 
     def _process(self, name, headers, values):
-
-        #if name.startswith("norm"):
-        #    left, right = name[5:-1].split(",", 1)
-        #    return self._process(left, headers, values) / self._process(right, headers, values)
-
         index = headers.index(name)
         value = values[index]
 

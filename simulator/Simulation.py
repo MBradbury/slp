@@ -1,17 +1,19 @@
 from __future__ import print_function, division
-import os, timeit, struct, importlib, sys, glob, select, random
 
+from collections import namedtuple
+import glob
+import importlib
 from itertools import islice
+import os
+import random
+import select
+import sys
+import timeit
 
+import simulator.CommunicationModel
 from simulator.Topology import topology_path
 
-from scipy.spatial.distance import euclidean
-
-class Node(object):
-    def __init__(self, node_id, location, tossim_node):
-        self.nid = node_id
-        self.location = location
-        self.tossim_node = tossim_node
+Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
 class OutputCatcher(object):
     def __init__(self, linefn):
@@ -59,13 +61,16 @@ class Simulation(object):
         self.radio = self.tossim.radio()
 
         self._out_procs = {}
-        self._read_poller = select.poll()
+        self._read_poller = select.epoll()
 
         # Record the seed we are using
         self.seed = args.seed if args.seed is not None else self._secure_random()
 
         # Set tossim seed
         self.tossim.randomSeed(self.seed)
+
+        # Make sure the time starts at 0
+        self.tossim.setTime(0)
 
         # It is important to seed python's random number generator
         # as well as TOSSIM's. If this is not done then the simulations
@@ -115,6 +120,11 @@ class Simulation(object):
         return self
 
     def __exit__(self, tp, value, tb):
+
+        # Turn off to allow subsequent simulations
+        for node in self.nodes:
+            node.tossim_node.turnOff()
+
         del self._read_poller
 
         for op in self._out_procs.values():
@@ -129,11 +139,11 @@ class Simulation(object):
 
         self._out_procs[fd] = op
 
-        self._read_poller.register(fd, select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
+        self._read_poller.register(fd, select.EPOLLIN | select.EPOLLPRI | select.EPOLLHUP | select.EPOLLERR)
 
-    def node_distance(self, left, right):
+    def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
-        return euclidean(self.nodes[left].location, self.nodes[right].location)
+        return self.metrics.configuration.node_distance_meters(left, right)
 
     def ticks_to_seconds(self, ticks):
         """Converts simulation time ticks into seconds"""
@@ -216,35 +226,14 @@ class Simulation(object):
     @staticmethod
     def write_topology_file(node_locations, location="."):
         with open(os.path.join(location, "topology.txt"), "w") as of:
-            for (nid, loc) in enumerate(node_locations):
-                print("{}\t{}\t{}".format(nid, loc[0], loc[1]), file=of)
+            for (nid, (x, y)) in enumerate(node_locations):
+                print("{}\t{}\t{}".format(nid, x, y), file=of)    
 
-    def _setup_radio_link_layer_model_java(self):
-        import subprocess
-        output = subprocess.check_output(
-            "java -Xms256m -Xmx512m -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel {} {} {}".format(
-                self.communications_model_path(), self.topology_path, self.seed),
-            shell=True)
-
-        for line in output.splitlines():
-            parts = line.strip().split("\t")
-
-            if parts[0] == "gain":
-                (g, from_node_id, to_node_id, gain) = parts
-
-                self.radio.add(int(from_node_id), int(to_node_id), float(gain))
-
-            elif parts[0] == "noise":
-                (n, node_id, noise_floor, awgn) = parts
-
-                self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
-    
-    def _setup_radio_link_layer_model_python(self):
-        """The python port of the java LinkLayerModel"""
-        import CommunicationModel
+    def setup_radio(self):
+        """Creates radio links for node pairs that are in range."""
         import numpy as np
 
-        model = CommunicationModel.eval_input(self.communication_model)
+        model = simulator.CommunicationModel.eval_input(self.communication_model)
 
         cm = model()
         cm.setup(self)
@@ -260,15 +249,6 @@ class Simulation(object):
         for (i, noise_floor) in enumerate(cm.noise_floor):
             self.radio.setNoise(i, noise_floor, cm.white_gausian_noise)
 
-    def setup_radio(self):
-        """Creates radio links for node pairs that are in range."""
-        # Try to use the python implementation, if the java_random module
-        # cannot be found then revert back to using the Java implementation.
-        try:
-            self._setup_radio_link_layer_model_python()
-        except ImportError:
-            self._setup_radio_link_layer_model_java()
-
     def setup_noise_models(self):
         """Create the noise model for each of the nodes in the network."""
         path = self.noise_model_path()
@@ -280,16 +260,16 @@ class Simulation(object):
         noises = list(islice(self._read_noise_from_file(path), count))
 
         for node in self.nodes:
+            tnode = node.tossim_node
             for noise in noises:
-                node.tossim_node.addNoiseTraceReading(noise)
-            node.tossim_node.createNoiseModel()
+                tnode.addNoiseTraceReading(noise)
+            tnode.createNoiseModel()
 
     @staticmethod
     def _read_noise_from_file(path):
         with open(path, "r") as f:
             for line in f:
-                line = line.strip()
-                if len(line) != 0:
+                if len(line) > 0 and not line.isspace():
                     yield int(line)
 
     def add_attacker(self, attacker):
@@ -297,10 +277,6 @@ class Simulation(object):
 
     def any_attacker_found_source(self):
         return self.attacker_found_source
-
-    def communications_model_path(self):
-        """The path to the communications model, specified in the algorithm arguments."""
-        return os.path.join('models', 'communication', self.communication_model + '.txt')
 
     def noise_model_path(self):
         """The path to the noise model, specified in the algorithm arguments."""
@@ -317,13 +293,10 @@ class Simulation(object):
 
     @staticmethod
     def available_communication_models():
-        """Gets the names of the communication models available in the models directory"""
-        return [
-            os.path.splitext(os.path.basename(model_file))[0]
-            for model_file
-            in glob.glob('models/communication/*.txt')
-        ] + ["ideal"]
+        """Gets the names of the communication models available"""
+        return simulator.CommunicationModel.MODEL_NAME_MAPPING.keys()
 
     @staticmethod
     def _secure_random():
+        import struct
         return struct.unpack("<i", os.urandom(4))[0]

@@ -30,7 +30,6 @@ implementation
     components
         /*new TimerMilliC() as BroadcastTimer,*/
         new TimerMilliC() as DissemTimer,
-        new TimerMilliC() as DissemTimerSender,
         new TimerMilliC() as EnqueueNormalTimer,
         new TimerMilliC() as PreSlotTimer,
         new TimerMilliC() as SlotTimer,
@@ -38,7 +37,6 @@ implementation
 
     /*App.BroadcastTimer -> BroadcastTimer;*/
     App.DissemTimer -> DissemTimer;
-    App.DissemTimerSender -> DissemTimerSender;
     App.EnqueueNormalTimer -> EnqueueNormalTimer;
     App.PreSlotTimer -> PreSlotTimer;
     App.SlotTimer -> SlotTimer;

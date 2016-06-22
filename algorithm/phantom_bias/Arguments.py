@@ -3,7 +3,6 @@ from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 import simulator.Configuration as Configuration
-import simulator.Topology as Topology
 
 def restricted_float(x):
     x = float(x)
@@ -15,7 +14,7 @@ order_choices = ["LongShort", "ShortLong"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Phantom (Chen's)", add_help=True)
+        parser = argparse.ArgumentParser(description="SLP Phantom_Bias", add_help=True)
         super(Arguments, self).__init__(parser, has_safety_period=True)
 
         parser.add_argument("--source-period",
@@ -29,12 +28,12 @@ class Arguments(ArgumentsCommon):
 
         parser.add_argument("--wait-before-short", type=int, required=True)
 
-        parser.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
-
         parser.add_argument("--order", type=str, choices=order_choices, required=True)
 
         parser.add_argument("--short-count", type=int, required=True)
         parser.add_argument("--long-count", type=int, required=True)
+
+        parser.add_argument("--landmark-node", default="sink_id")
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
@@ -42,16 +41,13 @@ class Arguments(ArgumentsCommon):
         result["RANDOM_WALK_HOPS"] = int(self.args.short_walk_length)
         result["LONG_RANDOM_WALK_HOPS"] = int(self.args.long_walk_length)
 
+        result["LANDMARK_NODE_ID"] = self._get_landmark_node_id()
+
         configuration = Configuration.create(self.args.configuration, self.args)
-
-        if not isinstance(configuration.topology, Topology.Grid):
-            raise RuntimeError("Topology must be a grid")
-
-        result["TOPOLOGY_SIZE"] = int(math.sqrt(len(configuration.topology.nodes)))
+        
+        result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
-
-        result["Biased_No"] = int(self.args.direction_bias * 100)
 
         if self.args.order == "LongShort":
             result["LOND_SHORT_SEQUENCE"] = 0
@@ -62,3 +58,24 @@ class Arguments(ArgumentsCommon):
         result["LONG_COUNT"] = int(self.args.long_count)
 
         return result
+
+    def _get_landmark_node_id(self):
+        landmark = self.args.landmark_node
+        configuration = Configuration.create(self.args.configuration, self.args)
+
+        try:
+            landmark = int(landmark)
+
+            max_id = len(configuration.topology.nodes)
+            if landmark < 0 or landmark >= max_id:
+                raise RuntimeError("The landmark node id is not in the range of [0,{})".format(max_id))
+
+            return landmark
+
+        except ValueError:
+            attr_sources = [configuration, configuration.topology]
+            for attr_source in attr_sources:
+                if hasattr(attr_source, landmark):
+                    return int(getattr(attr_source, landmark))
+            else:
+                raise RuntimeError("No way to work out landmark node from {}.".format(landmark))
