@@ -493,9 +493,6 @@ implementation
 			rw = LONG_RANDOM_WALK_HOPS;
 			lrw_count -= 1;
 		}
-
-
-
 		return rw;
 	}
 
@@ -512,7 +509,6 @@ implementation
 			rw = RANDOM_WALK_HOPS;
 			srw_count -= 1;
 		}
-
 		return rw;
 	}
 
@@ -559,8 +555,6 @@ implementation
 		{
 			type = SinkNode;
 			simdbg("Node-Change-Notification", "The node has become a Sink\n");
-
-			//sink_distance = 0;
 		}
 
 		call RadioControl.start();
@@ -603,7 +597,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(5 * 1000);
+			call BroadcastNormalTimer.startOneShot(5 * 1000);	//wait till beacon messages send finished.
 		}
 	}
 
@@ -760,11 +754,11 @@ implementation
 				call NormalSeqNos.increment(TOS_NODE_ID);
 			}
 		}
-		//else
-		//{
-		//	simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
-		//		sim_time(), TOS_NODE_ID, message.sequence_number);
-		//}
+		else
+		{
+			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
+				sim_time(), TOS_NODE_ID, message.sequence_number);
+		}
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
 		{
@@ -848,34 +842,17 @@ implementation
 			forwarding_message.landmark_distance_of_top_right_sender = landmark_top_right_distance;
 			forwarding_message.landmark_distance_of_sink_sender = landmark_sink_distance;
 
-			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast && TOS_NODE_ID != SINK_NODE_ID)
+			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast)
 			{
 				am_addr_t target;
+
+				// The previous node(s) were unable to choose a direction,
+				// so lets try to work out the direction the message should go in.
 				if (forwarding_message.further_or_closer_set == UnknownSet)
 				{
 					forwarding_message.further_or_closer_set = random_walk_direction();
 				}
 
-				// The previous node(s) were unable to choose a direction,
-				// so lets try to work out the direction the message should go in.
-/*
-				if (forwarding_message.further_or_closer_set == UnknownSet)
-				{
-					const distance_neighbour_detail_t* neighbour_detail = find_distance_neighbour(&neighbours, source_addr);
-					if (neighbour_detail != NULL)
-					{
-						forwarding_message.further_or_closer_set =
-							neighbour_detail->contents.bottom_left_distance < landmark_bottom_left_distance ? FurtherSet : CloserSet;
-					}
-					else
-					{
-						forwarding_message.further_or_closer_set = random_walk_direction();
-					}
-
-					simdbgverbose("stdout", "%s: Unknown direction, setting to %d\n",
-						sim_time_string(), forwarding_message.further_or_closer_set);				
-				}
-*/
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
 				
@@ -884,7 +861,12 @@ implementation
 				// A node on the path away from, or towards the landmark node
 				// doesn't have anyone to send to.
 				// We do not want to broadcast here as it may lead the attacker towards the source.
-				if (target == AM_BROADCAST_ADDR)
+				//if (target == AM_BROADCAST_ADDR)
+				//{
+					//return;
+				//}
+				// if the message reach the sink, do not need flood.
+				if (TOS_NODE_ID == SINK_NODE_ID)
 				{
 					return;
 				}
@@ -898,7 +880,7 @@ implementation
 			}
 			else
 			{
-				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || TOS_NODE_ID == SINK_NODE_ID))
+				if (!rcvd->broadcast && rcvd->source_distance + 1 == rcvd->random_walk_hops)
 				{
 					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,

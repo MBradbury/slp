@@ -82,7 +82,7 @@ class CLI(CommandLineCommon.CLI):
     short_counts = [1]
     long_counts = [1]
 
-    repeats = 500
+    repeats = 1000
 
 
     local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
@@ -91,64 +91,6 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
-        '''
-        normal_short_range = int(math.floor(s/2)) + 1
-        normal_long_range = 1.5*s
-
-        further_short_range = s
-        further_long_range = 2.5*s
-
-        non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
-        further = any(topo for topo in ['FurtherSinkCorner','FurtherSinkCorner2Source','FurtherSinkCorner3Source'] if topo in self.configurations)
-
-        #check the random-walk_tye.
-        if len(self.random_walk_types) == 1:
-            pass
-        else:
-            raise RuntimeError("only support ONE random_walk_type!")
-
-        #set up the walk_short and walk_long
-        if non_further and further:
-            raise RuntimeError("Build other configurations with Further* configurations!")
-
-        if non_further:
-            if 'only_short_random_walk' in self.random_walk_types:
-                walk_short = normal_short_range
-                walk_long = normal_short_range
-
-            elif 'only_long_random_walk' in self.random_walk_types:
-                walk_short = normal_long_range
-                walk_long = normal_long_range
-        
-            elif 'phantom_walkabouts' in self.random_walk_types:
-                walk_short = normal_short_range
-                walk_long = normal_long_range
-
-            else:
-                raise RuntimeError("error in the function: _short_long_walk_lengths")
-
-        elif further:
-            if 'only_short_random_walk' in self.random_walk_types:
-                walk_short = further_short_range
-                walk_long = further_short_range
-
-            elif 'only_long_random_walk' in self.random_walk_types:
-                walk_short = further_long_range
-                walk_long = further_long_range
-        
-            elif 'phantom_walkabouts' in self.random_walk_types:
-                walk_short = further_short_range
-                walk_long = further_long_range
-
-            else:
-                raise RuntimeError("error in the function: _short_long_walk_lengths")
-        
-        else:
-            raise RuntimeError("error in the function: _short_long_walk_lengths")
-
-        return list(zip(walk_short, walk_long))
-
-        '''
         half_ssd = int(math.floor(s/2)) + 1
         half_ssd_further = s
         ssd_further = 2*s
@@ -218,13 +160,13 @@ class CLI(CommandLineCommon.CLI):
         names = self.parameter_names()
         size = args[names.index('network size')]
         if size == 11:
-            return datetime.timedelta(hours=2)
-        elif size == 15:
             return datetime.timedelta(hours=4)
-        elif size == 21:
+        elif size == 15:
             return datetime.timedelta(hours=8)
-        elif size == 25:
+        elif size == 21:
             return datetime.timedelta(hours=16)
+        elif size == 25:
+            return datetime.timedelta(hours=32)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
