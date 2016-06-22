@@ -805,11 +805,11 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		int16_t ii;
+		//int16_t ii;
 
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
-
+/*
 		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
 		{
 			if(node_neighbours[ii].address == rcvd->node_id)
@@ -827,7 +827,7 @@ implementation
 			else
 				continue;
 		}
-
+*/
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
