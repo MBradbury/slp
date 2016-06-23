@@ -36,7 +36,8 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 
 #define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
 { \
-	const distance_container_t dist = { rcvd->name }; \
+	distance_container_t dist; \
+	dist.distance = rcvd->name;  \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
@@ -95,6 +96,27 @@ implementation
 		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
 	} SetType;
 
+	typedef struct
+	{
+		int16_t address;
+		int16_t neighbour_size;
+	}neighbour_info;
+	neighbour_info node_neighbours[SLP_MAX_1_HOP_NEIGHBOURHOOD]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
+
+	typedef struct
+	{
+		int16_t address;
+		int16_t neighbour_size;
+	}bias_neighbour;
+	bias_neighbour bias_neighbours[2]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
+
+	typedef enum
+	{
+		UnknownMessageType, ShortRandomWalk, LongRandomWalk
+	}MessageType;
+	MessageType messagetype = UnknownMessageType;
+	MessageType nextmessagetype = UnknownMessageType;
+
 	const char* type_to_string()
 	{
 		switch (type)
@@ -107,6 +129,9 @@ implementation
 	}
 
 	int16_t landmark_distance = BOTTOM;
+
+	int16_t srw_count = 0;	//short random walk count.
+	int16_t lrw_count = 0;	//long random walk count.
 
 	distance_neighbours_t neighbours;
 
@@ -326,7 +351,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call BroadcastNormalTimer.startOneShot(3*1000);
 		}
 	}
 
@@ -403,6 +428,9 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = landmark_distance;
 
+		message.neighbour_size = neighbours.size;
+		message.node_id = TOS_NODE_ID;
+
 		call Packet.clear(&packet);
 
 		extra_to_send = 2;
@@ -421,6 +449,9 @@ implementation
 		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
 		message.landmark_distance_of_sender = landmark_distance;
+
+		message.neighbour_size = neighbours.size;
+		message.node_id = TOS_NODE_ID;
 
 		call Packet.clear(&packet);
 
@@ -592,6 +623,9 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.landmark_distance += 1;
 
+			forwarding_message.node_id = TOS_NODE_ID;
+			forwarding_message.neighbour_size = neighbours.size;
+
 			call Packet.clear(&packet);
 			
 			extra_to_send = 1;
@@ -614,11 +648,31 @@ implementation
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
+		int16_t i;
+
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
+
+		for (i=0; i!=SLP_MAX_1_HOP_NEIGHBOURHOOD; i++)
+		{
+			if(node_neighbours[i].address == rcvd->node_id)
+			{
+				node_neighbours[i].neighbour_size = (node_neighbours[i].neighbour_size <= rcvd->neighbour_size)? 
+				rcvd->neighbour_size: node_neighbours[i].neighbour_size;
+				break;
+			}
+			else if (node_neighbours[i].address == BOTTOM)
+			{
+				node_neighbours[i].address = rcvd->node_id;
+				node_neighbours[i].neighbour_size = rcvd->neighbour_size;
+				break;
+			}
+			else
+				continue;
+		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
