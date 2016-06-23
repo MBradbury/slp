@@ -350,7 +350,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(3*1000);
+			call BroadcastNormalTimer.startOneShot(get_source_period());
 		}
 	}
 
