@@ -599,7 +599,7 @@ implementation
 			forwarding_message.landmark_distance += 1;
 
 			forwarding_message.node_id = TOS_NODE_ID;
-			//forwarding_message.neighbour_size = neighbours.size;
+			forwarding_message.neighbour_size = neighbours.size;
 
 			call Packet.clear(&packet);
 			
