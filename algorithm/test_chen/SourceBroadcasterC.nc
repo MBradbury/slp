@@ -109,7 +109,6 @@ implementation
 	int16_t landmark_distance = BOTTOM;
 
 	distance_neighbours_t neighbours;
-	neighbours.size = 0;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -404,7 +403,7 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = landmark_distance;
 
-		message.neighbour_size = neighbours.size;
+		//message.neighbour_size = 0;
 		message.node_id = TOS_NODE_ID;
 
 		call Packet.clear(&packet);
@@ -600,7 +599,7 @@ implementation
 			forwarding_message.landmark_distance += 1;
 
 			forwarding_message.node_id = TOS_NODE_ID;
-			forwarding_message.neighbour_size = neighbours.size;
+			//forwarding_message.neighbour_size = neighbours.size;
 
 			call Packet.clear(&packet);
 			
