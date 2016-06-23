@@ -647,14 +647,14 @@ implementation
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		int16_t i;
+		//int16_t i;
 
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
-
+/*
 		for (i=0; i!=SLP_MAX_1_HOP_NEIGHBOURHOOD; i++)
 		{
 			if(node_neighbours[i].address == rcvd->node_id)
@@ -672,6 +672,7 @@ implementation
 			else
 				continue;
 		}
+*/
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
