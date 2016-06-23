@@ -403,8 +403,7 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = landmark_distance;
 
-		//message.neighbour_size = 0;
-		message.node_id = TOS_NODE_ID;
+		//message.node_id = TOS_NODE_ID;
 
 		call Packet.clear(&packet);
 
@@ -425,7 +424,7 @@ implementation
 
 		message.landmark_distance_of_sender = landmark_distance;
 
-		message.node_id = TOS_NODE_ID;
+		//message.node_id = TOS_NODE_ID;
 
 		call Packet.clear(&packet);
 
@@ -597,7 +596,7 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.landmark_distance += 1;
 
-			forwarding_message.node_id = TOS_NODE_ID;
+			//forwarding_message.node_id = TOS_NODE_ID;
 
 			call Packet.clear(&packet);
 			
