@@ -44,13 +44,14 @@ class CLI(CommandLineCommon.CLI):
 
     slot_period = [0.1]
     dissem_period = [0.5]
-    tdma_num_slots = [120]
+    tdma_num_slots = [200]
     slot_assignment_interval = [4]
-    minimum_setup_periods = []
+    minimum_setup_periods = [0]
+    pre_beacon_periods = [3]
 
     repeats = 300
 
-    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval', 'minimum setup periods')
+    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval', 'minimum setup periods', 'pre beacon periods')
 
 
     def __init__(self):
