@@ -129,8 +129,8 @@ implementation
 
 	int16_t landmark_distance = BOTTOM;
 
-	//int16_t srw_count = 0;	//short random walk count.
-	//int16_t lrw_count = 0;	//long random walk count.
+	int16_t srw_count = 0;	//short random walk count.
+	int16_t lrw_count = 0;	//long random walk count.
 
 	distance_neighbours_t neighbours;
 
@@ -350,7 +350,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call BroadcastNormalTimer.startOneShot(3*1000);
 		}
 	}
 

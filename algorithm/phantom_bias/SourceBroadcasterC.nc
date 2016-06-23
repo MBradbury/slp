@@ -37,8 +37,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 
 #define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
 { \
-	distance_container_t dist; \
-	dist.distance = rcvd->name; \
+	const distance_container_t dist =  {rcvd->name}; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
