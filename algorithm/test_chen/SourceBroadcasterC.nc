@@ -95,6 +95,7 @@ implementation
 		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
 	} SetType;
 
+/*
 	typedef struct
 	{
 		int16_t address;
@@ -115,7 +116,7 @@ implementation
 	}MessageType;
 	MessageType messagetype = UnknownMessageType;
 	MessageType nextmessagetype = UnknownMessageType;
-
+*/
 	const char* type_to_string()
 	{
 		switch (type)
@@ -129,8 +130,8 @@ implementation
 
 	int16_t landmark_distance = BOTTOM;
 
-	int16_t srw_count = 0;	//short random walk count.
-	int16_t lrw_count = 0;	//long random walk count.
+	//int16_t srw_count = 0;	//short random walk count.
+	//int16_t lrw_count = 0;	//long random walk count.
 
 	distance_neighbours_t neighbours;
 
