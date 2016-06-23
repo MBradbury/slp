@@ -5,7 +5,7 @@ typedef nx_struct BeaconMessage
 {
   nx_int16_t landmark_distance_of_sender;
 
-  nx_uint16_t node_id;
+  nx_am_addr_t node_id;
 
   nx_uint16_t neighbour_size;
 
