@@ -22,8 +22,6 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
-#define TDMA_PRE_BEACON_PERIODS 5
-
 module SourceBroadcasterC
 {
 	uses interface Boot;
