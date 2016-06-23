@@ -425,7 +425,6 @@ implementation
 
 		message.landmark_distance_of_sender = landmark_distance;
 
-		//message.neighbour_size = neighbours.size;
 		message.node_id = TOS_NODE_ID;
 
 		call Packet.clear(&packet);
@@ -599,11 +598,6 @@ implementation
 			forwarding_message.landmark_distance += 1;
 
 			forwarding_message.node_id = TOS_NODE_ID;
-
-	////////////////////////////////////////////
-			//forwarding_message.neighbour_size = neighbours.size;
-	///////////////////////////////////////////
-			
 
 			call Packet.clear(&packet);
 			
