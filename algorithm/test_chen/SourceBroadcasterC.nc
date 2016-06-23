@@ -425,7 +425,7 @@ implementation
 
 		message.landmark_distance_of_sender = landmark_distance;
 
-		message.neighbour_size = neighbours.size;
+		//message.neighbour_size = neighbours.size;
 		message.node_id = TOS_NODE_ID;
 
 		call Packet.clear(&packet);
