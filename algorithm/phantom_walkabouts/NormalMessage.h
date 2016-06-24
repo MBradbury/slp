@@ -12,7 +12,7 @@ typedef nx_struct NormalMessage
 
   // The number of hops that this message
   // has travelled from the source. 
-  nx_int16_t source_distance;
+  nx_uint16_t source_distance;
 
   nx_int16_t landmark_distance_of_bottom_left_sender;
 
@@ -28,7 +28,7 @@ typedef nx_struct NormalMessage
 
   nx_uint8_t broadcast;
 
-  nx_int16_t random_walk_hops;
+  nx_uint16_t random_walk_hops;
 
   //nx_uint16_t srw_count;
   
