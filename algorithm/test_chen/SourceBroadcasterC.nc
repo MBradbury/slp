@@ -9,6 +9,8 @@
 
 #include <Timer.h>
 #include <TinyError.h>
+#include <math.h>
+#include <unistd.h>
 
 #include <assert.h>
 
@@ -18,33 +20,98 @@
 
 typedef struct
 {
-	int16_t distance;
+	uint16_t bottom_left_distance;
+	uint16_t bottom_right_distance;
+	uint16_t top_right_distance;
+	uint16_t sink_distance;
 } distance_container_t;
 
 void distance_update(distance_container_t* find, distance_container_t const* given)
 {
-	find->distance = minbot(find->distance, given->distance);
+	find->bottom_left_distance = minbot(find->bottom_left_distance, given->bottom_left_distance);
+	find->bottom_right_distance = minbot(find->bottom_right_distance, given->bottom_right_distance);
+	find->top_right_distance = minbot(find->top_right_distance, given->top_right_distance);
+
+	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
 }
 
 void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
-	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
-		i, address, contents->distance);
+	simdbg_clear(name, "[%u] => addr=%u / bl=%d, br=%d, tr=%d, sink_dist=%d",
+		i, address, contents->bottom_left_distance, contents->bottom_right_distance, contents->top_right_distance, contents->sink_distance);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
-#define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
+#define UPDATE_NEIGHBOURS_BL(rcvd, source_addr, name) \
 { \
-	const distance_container_t dist =  {rcvd->name}; \
+	distance_container_t dist; \
+	dist.bottom_left_distance = rcvd->name; \
+	dist.bottom_right_distance = BOTTOM; \
+	dist.top_right_distance = BOTTOM; \
+	dist.sink_distance = BOTTOM; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
-#define UPDATE_LANDMARK_DISTANCE(rcvd, name) \
+#define UPDATE_NEIGHBOURS_BR(rcvd, source_addr, name) \
+{ \
+	distance_container_t dist; \
+	dist.bottom_left_distance = BOTTOM; \
+	dist.bottom_right_distance = rcvd->name; \
+	dist.top_right_distance = BOTTOM; \
+	dist.sink_distance = BOTTOM; \
+	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_NEIGHBOURS_TR(rcvd, source_addr, name) \
+{ \
+	distance_container_t dist; \
+	dist.bottom_left_distance = BOTTOM; \
+	dist.top_right_distance = rcvd->name; \
+	dist.bottom_right_distance = BOTTOM; \
+	dist.sink_distance = BOTTOM; \
+	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, name) \
+{ \
+	distance_container_t dist; \
+	dist.sink_distance = rcvd->name;\
+	dist.bottom_left_distance = BOTTOM; \
+	dist.bottom_right_distance = BOTTOM; \
+	dist.top_right_distance = BOTTOM; \
+	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_LANDMARK_DISTANCE_BL(rcvd, name) \
 { \
 	if (rcvd->name != BOTTOM) \
 	{ \
-		landmark_distance = minbot(landmark_distance, rcvd->name + 1); \
+		landmark_bottom_left_distance = minbot(landmark_bottom_left_distance, botinc(rcvd->name)); \
+	} \
+}
+
+#define UPDATE_LANDMARK_DISTANCE_BR(rcvd, name) \
+{ \
+	if (rcvd->name != BOTTOM) \
+	{ \
+		landmark_bottom_right_distance = minbot(landmark_bottom_right_distance, botinc(rcvd->name)); \
+	} \
+}
+
+#define UPDATE_LANDMARK_DISTANCE_TR(rcvd, name) \
+{ \
+	if (rcvd->name != BOTTOM) \
+	{ \
+		landmark_top_right_distance = minbot(landmark_top_right_distance, botinc(rcvd->name)); \
+	} \
+}
+
+#define UPDATE_LANDMARK_DISTANCE_SINK(rcvd, name) \
+{ \
+	if (rcvd->name != BOTTOM) \
+	{ \
+		landmark_sink_distance = minbot(landmark_sink_distance, botinc(rcvd->name)); \
 	} \
 }
 
@@ -55,6 +122,9 @@ module SourceBroadcasterC
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
+	uses interface Timer<TMilli> as DelayBLSenderTimer;
+	uses interface Timer<TMilli> as DelayBRSenderTimer;
+	uses interface Timer<TMilli> as DelayTRSenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
 
 	uses interface Packet;
@@ -106,7 +176,22 @@ implementation
 		}
 	}
 
-	int16_t landmark_distance = BOTTOM;
+	uint16_t landmark_bottom_left_distance = BOTTOM;
+	uint16_t landmark_bottom_right_distance = BOTTOM;
+	uint16_t landmark_top_right_distance = BOTTOM;
+	uint16_t landmark_sink_distance = BOTTOM;
+
+	uint16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
+	uint16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
+	uint16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
+
+	uint16_t FurtherSet_neighbours = 0;
+	uint16_t CloserSideSet_neighbours = 0;
+	uint16_t CloserSet_neighbours = 0;
+	uint16_t FurtherSideSet_neighbours = 0;
+
+	uint16_t srw_count = 0;	//short random walk count.
+	uint16_t lrw_count = 0;	//long random walk count.
 
 	distance_neighbours_t neighbours;
 
@@ -140,7 +225,7 @@ implementation
 		uint32_t possible_sets = UnknownSet;
 
 		// We want compare sink distance if we do not know our sink distance
-		if (landmark_distance != BOTTOM)
+		if (landmark_bottom_left_distance != BOTTOM)
 		{
 			uint32_t i;
 
@@ -150,7 +235,7 @@ implementation
 			{
 				distance_container_t const* const neighbour = &neighbours.data[i].contents;
 
-				if (landmark_distance < neighbour->distance)
+				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
 				{
 					possible_sets |= FurtherSet;
 				}
@@ -200,7 +285,7 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (landmark_distance != BOTTOM && further_or_closer_set != UnknownSet)
+		if (landmark_bottom_left_distance != BOTTOM && further_or_closer_set != UnknownSet)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -228,8 +313,8 @@ implementation
 				//simdbgverbose("stdout", "[%u]: further_or_closer_set=%d, dist=%d neighbour.dist=%d \n",
 				//  neighbour->address, further_or_closer_set, landmark_distance, neighbour->contents.distance);
 
-				if ((further_or_closer_set == FurtherSet && landmark_distance < neighbour->contents.distance) ||
-					(further_or_closer_set == CloserSet && landmark_distance >= neighbour->contents.distance))
+				if ((further_or_closer_set == FurtherSet && landmark_bottom_left_distance < neighbour->contents.bottom_left_distance) ||
+					(further_or_closer_set == CloserSet && landmark_bottom_left_distance >= neighbour->contents.bottom_left_distance))
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -298,7 +383,7 @@ implementation
 
 			call ObjectDetector.start();
 
-			if (TOS_NODE_ID == LANDMARK_NODE_ID)
+			if (TOS_NODE_ID == SINK_NODE_ID)
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
@@ -326,7 +411,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call BroadcastNormalTimer.startOneShot(5*1000);
 		}
 	}
 
@@ -340,6 +425,66 @@ implementation
 
 			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+		}
+	}
+
+	event void DelayBLSenderTimer.fired()
+	{
+		AwayMessage message;
+
+		landmark_bottom_left_distance = 0;
+		message.landmark_location = BOTTOMLEFT;
+		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		message.source_id = TOS_NODE_ID;
+		message.landmark_distance = 0;
+		message.sink_bl_dist = sink_bl_dist;
+
+		call Packet.clear(&packet);
+
+		extra_to_send = 2;
+		if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		{
+			call AwaySeqNos.increment(TOS_NODE_ID);
+		}
+	}
+
+	event void DelayBRSenderTimer.fired()
+	{
+		AwayMessage message;
+
+		landmark_bottom_right_distance = 0;
+		message.landmark_location = BOTTOMRIGHT;
+		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		message.source_id = TOS_NODE_ID;
+		message.landmark_distance = 0;
+		message.sink_br_dist = sink_br_dist;
+
+		call Packet.clear(&packet);
+
+		extra_to_send = 2;
+		if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		{
+			call AwaySeqNos.increment(TOS_NODE_ID);
+		}
+	}
+
+	event void DelayTRSenderTimer.fired()
+	{
+		AwayMessage message;
+
+		landmark_top_right_distance = 0;
+		message.landmark_location = TOPRIGHT;
+		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		message.source_id = TOS_NODE_ID;
+		message.landmark_distance = 0;
+		message.sink_tr_dist = sink_tr_dist;
+
+		call Packet.clear(&packet);
+
+		extra_to_send = 2;
+		if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		{
+			call AwaySeqNos.increment(TOS_NODE_ID);
 		}
 	}
 
@@ -360,7 +505,11 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
-		message.landmark_distance_of_sender = landmark_distance;
+		
+		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
+		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
+		message.landmark_distance_of_top_right_sender = landmark_top_right_distance;
+		message.landmark_distance_of_sink_sender = landmark_sink_distance;
 
 		message.further_or_closer_set = random_walk_direction();
 
@@ -395,15 +544,19 @@ implementation
 	{
 		AwayMessage message;
 
-		landmark_distance = 0;
-
-		simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
+		if (TOS_NODE_ID == SINK_NODE_ID)
+		{
+			landmark_sink_distance = 0;
+			message.landmark_location = SINK;
+		}
+		else
+		{
+			simdbgerror("stdout", "Error!\n");
+		}
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
-		message.landmark_distance = landmark_distance;
-
-		message.node_id = TOS_NODE_ID;
+		message.landmark_distance = 0;
 
 		call Packet.clear(&packet);
 
@@ -413,7 +566,6 @@ implementation
 			call AwaySeqNos.increment(TOS_NODE_ID);
 		}
 
-		simdbgverbose("stdout", "Away sent\n");
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -422,9 +574,10 @@ implementation
 
 		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
-		message.landmark_distance_of_sender = landmark_distance;
-
-		message.node_id = TOS_NODE_ID;
+		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
+		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
+		message.landmark_distance_of_top_right_sender = landmark_top_right_distance;
+		message.landmark_distance_of_sink_sender = landmark_sink_distance;
 
 		call Packet.clear(&packet);
 
@@ -433,9 +586,15 @@ implementation
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_TR(rcvd, landmark_distance_of_top_right_sender);
+		UPDATE_LANDMARK_DISTANCE_SINK(rcvd, landmark_distance_of_sink_sender);
 		
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_TR(rcvd, source_addr, landmark_distance_of_top_right_sender);		
+		UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, landmark_distance_of_sink_sender);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -447,14 +606,19 @@ implementation
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
-			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
-			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
+			forwarding_message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
+			forwarding_message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
+			forwarding_message.landmark_distance_of_top_right_sender = landmark_top_right_distance;
+			forwarding_message.landmark_distance_of_sink_sender = landmark_sink_distance;
+
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
 			{
 				am_addr_t target;
 
 				// The previous node(s) were unable to choose a direction,
 				// so lets try to work out the direction the message should go in.
+/*
 				if (forwarding_message.further_or_closer_set == UnknownSet)
 				{
 					const distance_neighbour_detail_t* neighbour_detail = find_distance_neighbour(&neighbours, source_addr);
@@ -471,7 +635,7 @@ implementation
 					simdbgverbose("stdout", "%s: Unknown direction, setting to %d\n",
 						sim_time_string(), forwarding_message.further_or_closer_set);
 				}
-
+*/
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 
@@ -497,7 +661,7 @@ implementation
 			}
 			else
 			{
-				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || TOS_NODE_ID == LANDMARK_NODE_ID))
+				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == LANDMARK_NODE_ID))
 				{
 					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, source_addr,
@@ -529,9 +693,15 @@ implementation
 
 	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_TR(rcvd, source_addr, landmark_distance_of_top_right_sender);
+		UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, landmark_distance_of_sink_sender);
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_TR(rcvd, landmark_distance_of_top_right_sender);
+		UPDATE_LANDMARK_DISTANCE_SINK(rcvd, landmark_distance_of_sink_sender);
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
@@ -543,9 +713,15 @@ implementation
 	// If the sink snoops a normal message, we may as well just deliver it
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_TR(rcvd, source_addr, landmark_distance_of_top_right_sender);
+		UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, landmark_distance_of_sink_sender);
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_TR(rcvd, landmark_distance_of_top_right_sender);
+		UPDATE_LANDMARK_DISTANCE_SINK(rcvd, landmark_distance_of_sink_sender);
 
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
@@ -562,9 +738,15 @@ implementation
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_NEIGHBOURS_TR(rcvd, source_addr, landmark_distance_of_top_right_sender);
+		UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, landmark_distance_of_sink_sender);
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_TR(rcvd, landmark_distance_of_top_right_sender);
+		UPDATE_LANDMARK_DISTANCE_SINK(rcvd, landmark_distance_of_sink_sender);
 
 		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
@@ -581,9 +763,60 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
+		if (rcvd->landmark_location == BOTTOMLEFT)
+		{
+			sink_bl_dist = rcvd->sink_bl_dist;
+			UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance);
+			UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance);
+		}
+		if (rcvd->landmark_location == BOTTOMRIGHT)
+		{
+			sink_br_dist = rcvd->sink_br_dist;
+			UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance);
+			UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance);
+		}
+		if (rcvd->landmark_location == SINK)
+		{
+			UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, landmark_distance);
+			UPDATE_LANDMARK_DISTANCE_SINK(rcvd, landmark_distance);
+		}
+		if (rcvd->landmark_location == TOPRIGHT)
+		{
+			sink_tr_dist = rcvd->sink_tr_dist;
+			UPDATE_NEIGHBOURS_TR(rcvd, source_addr, landmark_distance);
+			UPDATE_LANDMARK_DISTANCE_TR(rcvd, landmark_distance);
+		}
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
+
+		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID && rcvd->landmark_location == SINK)
+		{
+			sink_bl_dist = rcvd->landmark_distance;
+			call DelayBLSenderTimer.startOneShot(0.5 * 1000);	
+		}
+
+		if (BOTTOM_RIGHT_NODE_ID == SINK_NODE_ID)
+		{
+			if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location == SINK)
+			{
+				sink_br_dist = rcvd->landmark_distance;
+				call DelayBRSenderTimer.startOneShot(1 * 1000);
+			}
+		}
+		else
+		{
+			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+			{
+				sink_br_dist = rcvd->landmark_distance;
+				call DelayBRSenderTimer.startOneShot(1 * 1000);
+			}
+		}
+
+		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+		{
+			sink_tr_dist = rcvd->landmark_distance;
+			call DelayTRSenderTimer.startOneShot(1.5 * 1000);
+		}
+
 
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -596,7 +829,9 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.landmark_distance += 1;
 
-			forwarding_message.node_id = TOS_NODE_ID;
+			forwarding_message.sink_bl_dist = sink_bl_dist;
+			forwarding_message.sink_br_dist = sink_br_dist;
+			forwarding_message.sink_tr_dist = sink_tr_dist;
 
 			call Packet.clear(&packet);
 			
@@ -605,6 +840,7 @@ implementation
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
+
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
@@ -620,10 +856,17 @@ implementation
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
+		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
+		
+		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
+		UPDATE_LANDMARK_DISTANCE_BR(rcvd, landmark_distance_of_bottom_right_sender);
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
+		UPDATE_NEIGHBOURS_TR(rcvd, source_addr, landmark_distance_of_top_right_sender);
+		UPDATE_LANDMARK_DISTANCE_TR(rcvd, landmark_distance_of_top_right_sender);
 
+		UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, landmark_distance_of_sink_sender);
+		UPDATE_LANDMARK_DISTANCE_SINK(rcvd, landmark_distance_of_sink_sender);
 		METRIC_RCV_BEACON(rcvd);
 	}
 
