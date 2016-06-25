@@ -247,14 +247,14 @@ implementation
 		CloserSet_neighbours = 0;
 	}
 
-	int16_t avaiable_set(uint32_t set)
+	uint32_t avaiable_set(uint32_t set)
 	{
 
-		int16_t i = 0;
+		uint32_t i = 0;
 
 		while(set != 0)
 		{
-			set = set >> 1;
+			set = set / 2;
 			i++;
 		}
 		return i;
