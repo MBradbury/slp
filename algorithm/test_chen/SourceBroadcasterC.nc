@@ -204,10 +204,10 @@ implementation
 	uint16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
 	uint16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
 
-	uint16_t FurtherSet_neighbours = 0;
-	uint16_t CloserSideSet_neighbours = 0;
-	uint16_t CloserSet_neighbours = 0;
-	uint16_t FurtherSideSet_neighbours = 0;
+	//uint16_t FurtherSet_neighbours = 0;
+	//uint16_t CloserSideSet_neighbours = 0;
+	//uint16_t CloserSet_neighbours = 0;
+	//uint16_t FurtherSideSet_neighbours = 0;
 
 	uint16_t srw_count = 0;	//short random walk count.
 	uint16_t lrw_count = 0;	//long random walk count.
@@ -238,7 +238,7 @@ implementation
 
 		return ((float)rnd) / UINT16_MAX;
 	}
-
+/*
 	void reset_neighbour_numbers()
 	{
 		FurtherSideSet_neighbours = 0;
@@ -246,7 +246,7 @@ implementation
 		FurtherSet_neighbours = 0;
 		CloserSet_neighbours = 0;
 	}
-
+*/
 	uint16_t avaiable_set(uint16_t set)
 	{
 
@@ -290,6 +290,11 @@ implementation
 		uint16_t rnd = 0;
 		uint16_t c_set;
 
+		uint16_t FurtherSet_neighbours = 0;
+		uint16_t CloserSideSet_neighbours = 0;
+		uint16_t CloserSet_neighbours = 0;
+		uint16_t FurtherSideSet_neighbours = 0;
+
 		// We want compare sink distance if we do not know our sink distance
 		//if (landmark_bottom_left_distance != BOTTOM)
 		//{
@@ -322,13 +327,13 @@ implementation
 				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
 
-			if (FurtherSideSet_neighbours == 2)	possible_sets |= FurtherSideSet;
+			if (FurtherSideSet_neighbours == 2)		possible_sets |= FurtherSideSet;
 			if (CloserSideSet_neighbours == 2)		possible_sets |= CloserSideSet; 
-			if (FurtherSet_neighbours == 2)		possible_sets |= FurtherSet;
+			if (FurtherSet_neighbours == 2)			possible_sets |= FurtherSet;
 			if (CloserSet_neighbours == 2)			possible_sets |= CloserSet;
 
 			a_set = avaiable_set(possible_sets);
-			reset_neighbour_numbers();
+			//reset_neighbour_numbers();
 
 			if (a_set == 1)
 				rnd = call Random.rand16() % 1;
@@ -345,10 +350,10 @@ implementation
 
 			c_set = (uint16_t) ((possible_sets+1) >> (rnd+1));
 
-			if (c_set == 1) 			return CloserSet;
-			else if (c_set == 2) 		return FurtherSet;
-			else if (c_set == 4) 		return CloserSideSet;
-			else if (c_set == 8) 		return FurtherSideSet;
+			if (c_set == (uint16_t)1) 			return CloserSet;
+			else if (c_set == (uint16_t)2) 		return FurtherSet;
+			else if (c_set == (uint16_t)4) 		return CloserSideSet;
+			else if (c_set == (uint16_t)8) 		return FurtherSideSet;
 			else 								return UnknownSet;
 		//}
 		//else
