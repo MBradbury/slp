@@ -334,7 +334,7 @@ implementation
 
 			a_set = avaiable_set(possible_sets);
 			//reset_neighbour_numbers();
-
+/*
 			if (a_set == 1)
 				rnd = call Random.rand16() % 1;
 			else if (a_set == 2)
@@ -345,8 +345,8 @@ implementation
 				rnd = call Random.rand16() % 4;
 			else
 				simdbgerror("stdout","error!\n");
-
-			//rnd = call Random.rand16() % a_set;
+*/
+			rnd = call Random.rand16() % a_set;
 
 			c_set = (uint16_t) ((possible_sets+1) >> (rnd+1));
 
