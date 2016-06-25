@@ -420,6 +420,62 @@ implementation
 		return chosen_address;
 	}
 
+	int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
+	{
+		int16_t rw;
+		if (short_count != 0)
+		{	
+			rw = RANDOM_WALK_HOPS;
+			srw_count -= 1;
+		}
+		else
+		{
+			rw = LONG_RANDOM_WALK_HOPS;
+			lrw_count -= 1;
+		}
+		return rw;
+	}
+
+	int16_t long_short_sequence_random_walk(int16_t short_count, int16_t long_count)
+	{
+		int16_t rw;
+		if (long_count != 0)
+		{
+			rw = LONG_RANDOM_WALK_HOPS;
+			lrw_count -= 1;
+		}
+		else
+		{
+			rw = RANDOM_WALK_HOPS;
+			srw_count -= 1;
+		}
+		return rw;
+	}
+
+	MessageType sl_next_message_type(int16_t srw, int16_t lrw)
+	{
+		MessageType sl_type;
+
+		if (srw == 0 && lrw != 0)
+			sl_type = LongRandomWalk;
+		else
+			sl_type = ShortRandomWalk;
+
+		return sl_type;
+	}
+
+	MessageType ls_next_message_type(int16_t srw, int16_t lrw)
+	{
+		MessageType ls_type;
+
+		if (lrw == 0 && srw != 0)
+			ls_type = ShortRandomWalk;
+		else
+			ls_type = LongRandomWalk;
+
+		return ls_type;
+	}
+
 	uint32_t beacon_send_wait()
 	{
 		return 75U + (uint32_t)(50U * random_float());
