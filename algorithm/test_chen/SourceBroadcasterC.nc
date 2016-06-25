@@ -260,7 +260,7 @@ implementation
 		return i;
 	}
 
-/*
+
 	void sink_location_check()
 	{
 		int16_t bl_br_dist;
@@ -281,7 +281,7 @@ implementation
 		else
 			location = Others;
 	}
-*/
+
 	
 		SetType random_walk_direction()
 	{
