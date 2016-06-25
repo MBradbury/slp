@@ -287,7 +287,7 @@ implementation
 	{
 		uint32_t possible_sets = UnknownSet;
 		uint16_t a_set = 0;	// number of avaiable sets.
-		uint16_t rnd;
+		uint16_t rnd = 0;
 
 		// We want compare sink distance if we do not know our sink distance
 		if (landmark_bottom_left_distance != BOTTOM)
@@ -330,23 +330,21 @@ implementation
 
 			a_set = avaiable_set(possible_sets);
 			reset_neighbour_numbers();
+
+			rnd = call Random.rand16() % a_set;
+			possible_sets = (possible_sets+1) >> (rnd+1);
+
+			if (possible_sets == CloserSet) 			return CloserSet;
+			else if (possible_sets == FurtherSet) 		return FurtherSet;
+			else if (possible_sets == CloserSideSet) 	return CloserSideSet;
+			else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
+			else 										return UnknownSet;
 		}
 		else
 		{
 			reset_neighbour_numbers();
 			return UnknownSet;
 		}
-
-		rnd = call Random.rand16() % a_set;
-		possible_sets = (possible_sets+1) >> (rnd+1);
-
-		//return CloserSet;
-
-		if (possible_sets == CloserSet) 			return CloserSet;
-		else if (possible_sets == FurtherSet) 		return FurtherSet;
-		else if (possible_sets == CloserSideSet) 	return CloserSideSet;
-		else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
-		else 										return UnknownSet;
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
