@@ -260,7 +260,7 @@ implementation
 		return i;
 	}
 
-
+/*
 	void sink_location_check()
 	{
 		int16_t bl_br_dist;
@@ -281,69 +281,61 @@ implementation
 		else
 			location = Others;
 	}
-
-	SetType random_walk_direction()
+*/
+	
+		SetType random_walk_direction()
 	{
 		uint32_t possible_sets = UnknownSet;
-		uint16_t a_set;	// number of avaiable sets.
-		uint16_t rnd;
 
 		// We want compare sink distance if we do not know our sink distance
 		if (landmark_bottom_left_distance != BOTTOM)
 		{
-			uint32_t m;
+			uint32_t i;
 
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
-			for (m = 0; m != neighbours.size; ++m)
+			for (i = 0; i != neighbours.size; ++i)
 			{
-				distance_container_t const* const neighbour = &neighbours.data[m].contents;
+				distance_container_t const* const neighbour = &neighbours.data[i].contents;
 
 				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
 				{
-					FurtherSideSet_neighbours++;
+					possible_sets |= FurtherSet;
 				}
-				if (landmark_bottom_left_distance > neighbour->bottom_left_distance)
+				else //if (landmark_distance >= neighbour->distance)
 				{
-					CloserSideSet_neighbours++;
+					possible_sets |= CloserSet;
 				}
-				if (landmark_bottom_right_distance <  neighbour->bottom_right_distance)
-				{
-					FurtherSet_neighbours++;
-				}
-				if (landmark_bottom_right_distance > neighbour->bottom_right_distance)
-				{
-					CloserSet_neighbours++;
-				}
-				//simdbgverbose("stdout","FurtherSideSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSet_neighbours=%d\n",
-				//	FurtherSideSet_neighbours, CloserSideSet_neighbours, FurtherSet_neighbours, CloserSet_neighbours);
-				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
+		}
 
-			if (FurtherSideSet_neighbours == MAX_NUM_NEIGHBOURS)	possible_sets |= FurtherSideSet;
-			if (CloserSideSet_neighbours == MAX_NUM_NEIGHBOURS)		possible_sets |= CloserSideSet; 
-			if (FurtherSet_neighbours == MAX_NUM_NEIGHBOURS)		possible_sets |= FurtherSet;
-			if (CloserSet_neighbours == MAX_NUM_NEIGHBOURS)			possible_sets |= CloserSet;
-
-			//simdbgverbose("stdout","possible_sets=%d\n", possible_sets);
-
-			a_set = avaiable_set(possible_sets);
-			reset_neighbour_numbers();
+		if (possible_sets == (FurtherSet | CloserSet))
+		{
+			// Both directions possible, so randomly pick one of them
+			const uint16_t rnd = call Random.rand16() % 2;
+			if (rnd == 0)
+			{
+				return FurtherSet;
+			}
+			else
+			{
+				return CloserSet;
+			}
+		}
+		else if ((possible_sets & FurtherSet) != 0)
+		{
+			return FurtherSet;
+		}
+		else if ((possible_sets & CloserSet) != 0)
+		{
+			return CloserSet;
 		}
 		else
 		{
+			// No known neighbours, so have a go at flooding.
+			// Someone might get this message
 			return UnknownSet;
 		}
-
-
-		rnd = call Random.rand16() % a_set;
-		possible_sets = (possible_sets+1) >> (rnd+1);
-
-		if (possible_sets == CloserSet) 			return CloserSet;
-		else if (possible_sets == FurtherSet) 		return FurtherSet;
-		else if (possible_sets == CloserSideSet) 	return CloserSideSet;
-		else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
-		else 										return UnknownSet;
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
