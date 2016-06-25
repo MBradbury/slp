@@ -31,7 +31,7 @@ class RunSimulations(RunSimulationsCommon):
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
 
-        return 1.3 * time_taken
+        return 1.3 * time_taken + 3
 
 class CLI(CommandLineCommon.CLI):
 
@@ -64,10 +64,12 @@ class CLI(CommandLineCommon.CLI):
     random_walk_types = [
         #'only_short_random_walk',
         #'only_long_random_walk',
-        'phantom_bias'
+        'phantom_walkabouts'
     ]
 
     attacker_models = ['SeqNosReactiveAttacker()']
+
+    direction_biases = [0.9]
 
     orders = [
     "ShortLong",
@@ -82,7 +84,8 @@ class CLI(CommandLineCommon.CLI):
 
     repeats = 500
 
-    local_parameter_names = ('short walk length', 'long walk length',
+
+    local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
                              'order', 'short count', 'long count', 'wait before short')
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -120,7 +123,7 @@ class CLI(CommandLineCommon.CLI):
                 walk_short = random_walk_long
                 walk_long = random_walk_long
         
-            elif 'phantom_bias' in self.random_walk_types:
+            elif 'phantom_walkabouts' in self.random_walk_types:
                 walk_short = random_walk_short
                 walk_long = random_walk_long
 
@@ -136,7 +139,7 @@ class CLI(CommandLineCommon.CLI):
                 walk_short = random_walk_long_for_further
                 walk_long = random_walk_long_for_further
         
-            elif 'phantom_bias' in self.random_walk_types:
+            elif 'phantom_walkabouts' in self.random_walk_types:
                 walk_short = random_walk_short_for_further
                 walk_long = random_walk_long_for_further
 
@@ -147,6 +150,7 @@ class CLI(CommandLineCommon.CLI):
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
         return list(zip(walk_short, walk_long))
+        
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -156,13 +160,13 @@ class CLI(CommandLineCommon.CLI):
         names = self.parameter_names()
         size = args[names.index('network size')]
         if size == 11:
-            return datetime.timedelta(hours=2)
-        elif size == 15:
             return datetime.timedelta(hours=4)
-        elif size == 21:
+        elif size == 15:
             return datetime.timedelta(hours=8)
-        elif size == 25:
+        elif size == 21:
             return datetime.timedelta(hours=16)
+        elif size == 25:
+            return datetime.timedelta(hours=32)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
@@ -176,14 +180,14 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.orders,
+            [self.distance], self.source_periods, self.direction_biases, self.orders,
             self.short_counts, self.long_counts, self.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, swl, lwl, o, sc, lc, wbs)
+            (s, c, am, nm, cm, d, sp, swl, lwl, db, o, sc, lc, wbs)
 
-            for (s, c, am, nm, cm, d, sp, o, sc, lc, wbs) in argument_product
+            for (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs) in argument_product
 
             for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
         ]        

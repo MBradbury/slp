@@ -14,7 +14,7 @@ order_choices = ["LongShort", "ShortLong"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Phantom_Bias", add_help=True)
+        parser = argparse.ArgumentParser(description="SLP Phantom_Walkabouts", add_help=True)
         super(Arguments, self).__init__(parser, has_safety_period=True)
 
         parser.add_argument("--source-period",
@@ -27,6 +27,8 @@ class Arguments(ArgumentsCommon):
         parser.add_argument("--long-walk-length", type=int, required=True)
 
         parser.add_argument("--wait-before-short", type=int, required=True)
+
+        parser.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
 
         parser.add_argument("--order", type=str, choices=order_choices, required=True)
 
@@ -43,9 +45,17 @@ class Arguments(ArgumentsCommon):
 
         result["LANDMARK_NODE_ID"] = self._get_landmark_node_id()
 
+        result["Biased_No"] = int(self.args.direction_bias *100)
+
         configuration = Configuration.create(self.args.configuration, self.args)
-        
+
+        result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
+
+        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
+
         result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
+
+        result["TOP_RIGHT_NODE_ID"] = configuration.topology.top_right
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
 

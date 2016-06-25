@@ -34,6 +34,18 @@ implementation
 
 	App.AwaySenderTimer -> AwaySenderTimer;
 
+	components new TimerMilliC() as DelayBLSenderTimer;
+
+	App.DelayBLSenderTimer -> DelayBLSenderTimer;
+
+	components new TimerMilliC() as DelayBRSenderTimer;
+
+	App.DelayBRSenderTimer -> DelayBRSenderTimer;
+
+	components new TimerMilliC() as DelayTRSenderTimer;
+
+	App.DelayTRSenderTimer -> DelayTRSenderTimer;
+
 	components new TimerMilliC() as BeaconSenderTimer;
 
 	App.BeaconSenderTimer -> BeaconSenderTimer;
@@ -76,7 +88,7 @@ implementation
 
 	components
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos,
-		new SequenceNumbersP(SLP_MAX_NUM_SINKS) as AwaySeqNos;
+		new SequenceNumbersP(SLP_MAX_NUM_AWAY_MESSAGES) as AwaySeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 	App.AwaySeqNos -> AwaySeqNos;
  

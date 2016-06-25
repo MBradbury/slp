@@ -13,14 +13,18 @@ typedef nx_struct AwayMessage
   // has travelled from the landmark node. 
   nx_uint16_t landmark_distance;
 
-  nx_int16_t node_id;
+  nx_uint16_t sink_bl_dist;
 
-  nx_int16_t neighbour_size;
+  nx_uint16_t sink_br_dist;
 
+  nx_uint16_t sink_tr_dist;
+
+  nx_uint16_t landmark_location;
 
 } AwayMessage;
 
 inline SequenceNumberWithBottom Away_get_sequence_number(const AwayMessage* msg) { return msg->sequence_number; }
+
 inline int32_t Away_get_source_id(const AwayMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_AWAYMESSAGE_H
