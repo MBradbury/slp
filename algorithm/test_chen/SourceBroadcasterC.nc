@@ -337,10 +337,10 @@ implementation
 			return UnknownSet;
 		}
 
-		return CloserSet;
+		rnd = call Random.rand16() % a_set;
+		possible_sets = (possible_sets+1) >> (rnd+1);
 
-		//rnd = call Random.rand16() % a_set;
-		//possible_sets = (possible_sets+1) >> (rnd+1);
+		return CloserSet;
 
 		//if (possible_sets == CloserSet) 			return CloserSet;
 		//else if (possible_sets == FurtherSet) 		return FurtherSet;
