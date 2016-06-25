@@ -337,15 +337,16 @@ implementation
 			return UnknownSet;
 		}
 
+		return CloserSet;
 
-		rnd = call Random.rand16() % a_set;
-		possible_sets = (possible_sets+1) >> (rnd+1);
+		//rnd = call Random.rand16() % a_set;
+		//possible_sets = (possible_sets+1) >> (rnd+1);
 
-		if (possible_sets == CloserSet) 			return CloserSet;
-		else if (possible_sets == FurtherSet) 		return FurtherSet;
-		else if (possible_sets == CloserSideSet) 	return CloserSideSet;
-		else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
-		else 										return UnknownSet;
+		//if (possible_sets == CloserSet) 			return CloserSet;
+		//else if (possible_sets == FurtherSet) 		return FurtherSet;
+		//else if (possible_sets == CloserSideSet) 	return CloserSideSet;
+		//else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
+		//else 										return UnknownSet;
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
