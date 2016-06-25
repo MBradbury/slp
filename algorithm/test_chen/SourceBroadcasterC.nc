@@ -157,13 +157,32 @@ implementation
 	{
 		SourceNode, SinkNode, NormalNode
 	} NodeType;
-
 	NodeType type = NormalNode;
 
 	typedef enum
 	{
-		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
+		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1), CloserSideSet = (1 << 2), FurtherSideSet = (1 << 3)
 	} SetType;
+
+	typedef enum
+	{
+		UnknownLocation, Centre, Others 
+	}SinkLocation;
+	SinkLocation location = UnknownLocation;
+
+	typedef enum
+	{
+		UnknownBias, H, V 
+	}BiasedType;
+	BiasedType biased = UnknownBias;
+
+	typedef enum
+	{
+		UnknownMessageType, ShortRandomWalk, LongRandomWalk
+	}MessageType;
+	MessageType messagetype = UnknownMessageType;
+	MessageType nextmessagetype = UnknownMessageType;
+
 
 	const char* type_to_string()
 	{
@@ -220,59 +239,111 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+	void reset_neighbour_numbers()
+	{
+		FurtherSideSet_neighbours = 0;
+		CloserSideSet_neighbours = 0;
+		FurtherSet_neighbours = 0;
+		CloserSet_neighbours = 0;
+	}
+
+	int16_t avaiable_set(uint32_t set)
+	{
+
+		int16_t i = 0;
+
+		while(set != 0)
+		{
+			set = set >> 1;
+			i++;
+		}
+		return i;
+	}
+
+
+	void sink_location_check()
+	{
+		int16_t bl_br_dist;
+		int16_t bl_tr_dist;
+		int16_t br_tr_dist;
+
+		if (sink_bl_dist != BOTTOM && sink_br_dist !=BOTTOM && sink_tr_dist != BOTTOM)
+		{
+			bl_br_dist = (int16_t) (abs(sink_bl_dist - sink_br_dist));
+			bl_tr_dist = (int16_t) (abs(sink_bl_dist - sink_tr_dist));
+			br_tr_dist = (int16_t) (abs(sink_br_dist - sink_tr_dist));
+	
+			if ( bl_br_dist <= CENTRE_AREA && bl_tr_dist <= CENTRE_AREA && br_tr_dist <= CENTRE_AREA )
+				location = Centre;
+			else
+				location = Others;
+		}
+		else
+			location = Others;
+	}
+
 	SetType random_walk_direction()
 	{
 		uint32_t possible_sets = UnknownSet;
+		uint16_t a_set;	// number of avaiable sets.
+		uint16_t rnd;
 
 		// We want compare sink distance if we do not know our sink distance
 		if (landmark_bottom_left_distance != BOTTOM)
 		{
-			uint32_t i;
+			uint32_t m;
 
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
-			for (i = 0; i != neighbours.size; ++i)
+			for (m = 0; m != neighbours.size; ++m)
 			{
-				distance_container_t const* const neighbour = &neighbours.data[i].contents;
+				distance_container_t const* const neighbour = &neighbours.data[m].contents;
 
 				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
 				{
-					possible_sets |= FurtherSet;
+					FurtherSideSet_neighbours++;
 				}
-				else //if (landmark_distance >= neighbour->distance)
+				if (landmark_bottom_left_distance > neighbour->bottom_left_distance)
 				{
-					possible_sets |= CloserSet;
+					CloserSideSet_neighbours++;
 				}
+				if (landmark_bottom_right_distance <  neighbour->bottom_right_distance)
+				{
+					FurtherSet_neighbours++;
+				}
+				if (landmark_bottom_right_distance > neighbour->bottom_right_distance)
+				{
+					CloserSet_neighbours++;
+				}
+				//simdbgverbose("stdout","FurtherSideSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSet_neighbours=%d\n",
+				//	FurtherSideSet_neighbours, CloserSideSet_neighbours, FurtherSet_neighbours, CloserSet_neighbours);
+				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
-		}
 
-		if (possible_sets == (FurtherSet | CloserSet))
-		{
-			// Both directions possible, so randomly pick one of them
-			const uint16_t rnd = call Random.rand16() % 2;
-			if (rnd == 0)
-			{
-				return FurtherSet;
-			}
-			else
-			{
-				return CloserSet;
-			}
-		}
-		else if ((possible_sets & FurtherSet) != 0)
-		{
-			return FurtherSet;
-		}
-		else if ((possible_sets & CloserSet) != 0)
-		{
-			return CloserSet;
+			if (FurtherSideSet_neighbours == MAX_NUM_NEIGHBOURS)	possible_sets |= FurtherSideSet;
+			if (CloserSideSet_neighbours == MAX_NUM_NEIGHBOURS)		possible_sets |= CloserSideSet; 
+			if (FurtherSet_neighbours == MAX_NUM_NEIGHBOURS)		possible_sets |= FurtherSet;
+			if (CloserSet_neighbours == MAX_NUM_NEIGHBOURS)			possible_sets |= CloserSet;
+
+			//simdbgverbose("stdout","possible_sets=%d\n", possible_sets);
+
+			a_set = avaiable_set(possible_sets);
+			reset_neighbour_numbers();
 		}
 		else
 		{
-			// No known neighbours, so have a go at flooding.
-			// Someone might get this message
 			return UnknownSet;
 		}
+
+
+		rnd = call Random.rand16() % a_set;
+		possible_sets = (possible_sets+1) >> (rnd+1);
+
+		if (possible_sets == CloserSet) 			return CloserSet;
+		else if (possible_sets == FurtherSet) 		return FurtherSet;
+		else if (possible_sets == CloserSideSet) 	return CloserSideSet;
+		else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
+		else 										return UnknownSet;
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
