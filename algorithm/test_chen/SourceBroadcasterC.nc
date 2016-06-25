@@ -288,7 +288,7 @@ implementation
 		uint16_t possible_sets = UnknownSet;
 		uint16_t a_set = 0;	// number of avaiable sets.
 		uint16_t rnd = 0;
-		const uint16_t c_set;
+		uint16_t c_set;
 
 		// We want compare sink distance if we do not know our sink distance
 		//if (landmark_bottom_left_distance != BOTTOM)
