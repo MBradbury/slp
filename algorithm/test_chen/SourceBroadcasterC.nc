@@ -346,7 +346,7 @@ implementation
 			else
 				simdbgerror("stdout","error!\n");
 
-			rnd = call Random.rand16() % a_set;
+			//rnd = call Random.rand16() % a_set;
 
 			c_set = (uint16_t) ((possible_sets+1) >> (rnd+1));
 
