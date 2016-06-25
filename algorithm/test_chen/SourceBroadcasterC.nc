@@ -334,11 +334,11 @@ implementation
 			rnd = call Random.rand16() % a_set;
 			possible_sets = (possible_sets+1) >> (rnd+1);
 
-			if (possible_sets == CloserSet) 			return CloserSet;
-			else if (possible_sets == FurtherSet) 		return FurtherSet;
-			else if (possible_sets == CloserSideSet) 	return CloserSideSet;
-			else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
-			else 										return UnknownSet;
+			if (possible_sets == 1) 			return CloserSet;
+			else if (possible_sets == 2) 		return FurtherSet;
+			else if (possible_sets == 4) 		return CloserSideSet;
+			else if (possible_sets == 8) 		return FurtherSideSet;
+			else 								return UnknownSet;
 		}
 		else
 		{
