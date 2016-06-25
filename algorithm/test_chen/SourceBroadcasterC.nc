@@ -286,7 +286,7 @@ implementation
 	SetType random_walk_direction()
 	{
 		uint32_t possible_sets = UnknownSet;
-		uint16_t a_set;	// number of avaiable sets.
+		uint16_t a_set = 0;	// number of avaiable sets.
 		uint16_t rnd;
 
 		// We want compare sink distance if we do not know our sink distance
@@ -333,6 +333,7 @@ implementation
 		}
 		else
 		{
+			reset_neighbour_numbers();
 			return UnknownSet;
 		}
 
