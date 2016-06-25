@@ -332,7 +332,8 @@ implementation
 			reset_neighbour_numbers();
 
 			rnd = call Random.rand16() % a_set;
-			possible_sets = (possible_sets+1) >> (rnd+1);
+			//possible_sets = (possible_sets+1) >> (rnd+1);
+			possible_sets = (possible_sets+1) / (uint32_t) (pow(2, rnd+1));
 
 			if (possible_sets == 1) 			return CloserSet;
 			else if (possible_sets == 2) 		return FurtherSet;
