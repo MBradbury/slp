@@ -22,7 +22,7 @@ typedef nx_struct NormalMessage
 
   nx_int16_t landmark_distance_of_sink_sender;
 
-  nx_uint8_t further_or_closer_set;
+  nx_uint16_t further_or_closer_set;
 
   nx_uint8_t biased_direction;
 
