@@ -290,8 +290,8 @@ implementation
 		uint16_t rnd = 0;
 
 		// We want compare sink distance if we do not know our sink distance
-		if (landmark_bottom_left_distance != BOTTOM)
-		{
+		//if (landmark_bottom_left_distance != BOTTOM)
+		//{
 			uint16_t m;
 
 			// Find nodes whose sink distance is less than or greater than
@@ -333,19 +333,19 @@ implementation
 
 			rnd = call Random.rand16() % a_set;
 			//possible_sets = (possible_sets+1) >> (rnd+1);
-			possible_sets = (possible_sets+1) / (uint16_t) (pow(2, rnd+1));
+			possible_sets = (uint16_t)((possible_sets+1) / (pow(2, rnd+1)));
 
 			if (possible_sets == 1) 			return CloserSet;
 			else if (possible_sets == 2) 		return FurtherSet;
 			else if (possible_sets == 4) 		return CloserSideSet;
 			else if (possible_sets == 8) 		return FurtherSideSet;
 			else 								return UnknownSet;
-		}
-		else
-		{
-			reset_neighbour_numbers();
-			return UnknownSet;
-		}
+		//}
+		//else
+		//{
+		//	reset_neighbour_numbers();
+		//	return UnknownSet;
+		//}
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
