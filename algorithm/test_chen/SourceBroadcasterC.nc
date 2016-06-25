@@ -247,10 +247,10 @@ implementation
 		CloserSet_neighbours = 0;
 	}
 
-	uint32_t avaiable_set(uint32_t set)
+	uint16_t avaiable_set(uint16_t set)
 	{
 
-		uint32_t i = 0;
+		uint16_t i = 0;
 
 		while(set != 0)
 		{
@@ -285,14 +285,14 @@ implementation
 	
 	SetType random_walk_direction()
 	{
-		uint32_t possible_sets = UnknownSet;
+		uint16_t possible_sets = UnknownSet;
 		uint16_t a_set = 0;	// number of avaiable sets.
 		uint16_t rnd = 0;
 
 		// We want compare sink distance if we do not know our sink distance
 		if (landmark_bottom_left_distance != BOTTOM)
 		{
-			uint32_t m;
+			uint16_t m;
 
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
@@ -333,7 +333,7 @@ implementation
 
 			rnd = call Random.rand16() % a_set;
 			//possible_sets = (possible_sets+1) >> (rnd+1);
-			possible_sets = (possible_sets+1) / (uint32_t) (pow(2, rnd+1));
+			possible_sets = (possible_sets+1) / (uint16_t) (pow(2, rnd+1));
 
 			if (possible_sets == 1) 			return CloserSet;
 			else if (possible_sets == 2) 		return FurtherSet;
