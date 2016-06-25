@@ -288,6 +288,7 @@ implementation
 		uint16_t possible_sets = UnknownSet;
 		uint16_t a_set = 0;	// number of avaiable sets.
 		uint16_t rnd = 0;
+		uint16_t c_set;
 
 		// We want compare sink distance if we do not know our sink distance
 		//if (landmark_bottom_left_distance != BOTTOM)
@@ -330,16 +331,16 @@ implementation
 			reset_neighbour_numbers();
 
 			rnd = call Random.rand16() % a_set;
-			possible_sets = (possible_sets+1) >> (rnd+1);
+			c_set = (possible_sets+1) >> (rnd+1);
 			//possible_sets = (uint16_t)((possible_sets+1) / (pow(2, rnd+1)));
 
-			return CloserSet;
+			//return CloserSet;
 
-			//if (possible_sets == 1) 			return CloserSet;
-			//else if (possible_sets == 2) 		return FurtherSet;
-			//else if (possible_sets == 4) 		return CloserSideSet;
-			//else if (possible_sets == 8) 		return FurtherSideSet;
-			//else 								return UnknownSet;
+			if (c_set == 1) 			return CloserSet;
+			else if (c_set == 2) 		return FurtherSet;
+			else if (c_set == 4) 		return CloserSideSet;
+			else if (c_set == 8) 		return FurtherSideSet;
+			else 								return UnknownSet;
 		//}
 		//else
 		//{
