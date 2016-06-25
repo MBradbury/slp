@@ -326,20 +326,20 @@ implementation
 			if (FurtherSet_neighbours == MAX_NUM_NEIGHBOURS)		possible_sets |= FurtherSet;
 			if (CloserSet_neighbours == MAX_NUM_NEIGHBOURS)			possible_sets |= CloserSet;
 
-			//simdbgverbose("stdout","possible_sets=%d\n", possible_sets);
-
 			a_set = avaiable_set(possible_sets);
 			reset_neighbour_numbers();
 
 			rnd = call Random.rand16() % a_set;
-			//possible_sets = (possible_sets+1) >> (rnd+1);
-			possible_sets = (uint16_t)((possible_sets+1) / (pow(2, rnd+1)));
+			possible_sets = (possible_sets+1) >> (rnd+1);
+			//possible_sets = (uint16_t)((possible_sets+1) / (pow(2, rnd+1)));
 
-			if (possible_sets == 1) 			return CloserSet;
-			else if (possible_sets == 2) 		return FurtherSet;
-			else if (possible_sets == 4) 		return CloserSideSet;
-			else if (possible_sets == 8) 		return FurtherSideSet;
-			else 								return UnknownSet;
+			return CloserSet;
+
+			//if (possible_sets == 1) 			return CloserSet;
+			//else if (possible_sets == 2) 		return FurtherSet;
+			//else if (possible_sets == 4) 		return CloserSideSet;
+			//else if (possible_sets == 8) 		return FurtherSideSet;
+			//else 								return UnknownSet;
 		//}
 		//else
 		//{
