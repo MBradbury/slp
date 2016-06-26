@@ -327,12 +327,28 @@ implementation
 				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
 
-			if (FurtherSideSet_neighbours == 2)		possible_sets |= FurtherSideSet;
-			if (CloserSideSet_neighbours == 2)		possible_sets |= CloserSideSet; 
-			if (FurtherSet_neighbours == 2)			possible_sets |= FurtherSet;
-			if (CloserSet_neighbours == 2)			possible_sets |= CloserSet;
+			if (FurtherSideSet_neighbours == 2)
+			{
+				possible_sets |= FurtherSideSet;
+				a_set += 1;
+			}
+			if (CloserSideSet_neighbours == 2)
+			{
+				possible_sets |= CloserSideSet;
+				a_set += 1; 
+			}
+			if (FurtherSet_neighbours == 2)		
+			{
+				possible_sets |= FurtherSet;
+				a_set += 1;
+			}
+			if (CloserSet_neighbours == 2)	
+			{
+				possible_sets |= CloserSet;
+				a_set += 1;
+			}
 
-			a_set = avaiable_set(possible_sets);
+			//a_set = avaiable_set(possible_sets);
 			//reset_neighbour_numbers();
 /*
 			if (a_set == 1)
