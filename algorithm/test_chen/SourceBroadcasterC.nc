@@ -330,52 +330,63 @@ implementation
 			if (FurtherSideSet_neighbours == 2)
 			{
 				possible_sets |= FurtherSideSet;
-				//a_set += 1;
 			}
 			if (CloserSideSet_neighbours == 2)
 			{
 				possible_sets |= CloserSideSet;
-				//a_set += 1; 
 			}
 			if (FurtherSet_neighbours == 2)		
 			{
 				possible_sets |= FurtherSet;
-				//a_set += 1;
 			}
 			if (CloserSet_neighbours == 2)	
 			{
 				possible_sets |= CloserSet;
-				//a_set += 1;
 			}
 
-			a_set = avaiable_set(possible_sets);
-			//reset_neighbour_numbers();
+			//a_set = avaiable_set(possible_sets);
 
-			rnd = call Random.rand16() % a_set;
+			if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
+			{	
+				rnd = call Random.rand16() % 4;
+				if(rnd == 0)			return CloserSet;
+				else if (rnd ==1)		return FurtherSet;
+				else if (rnd == 2)		return CloserSideSet;
+				else					return FurtherSideSet;
+			}
 
-			if (possible_sets == CloserSet| FurtherSet|CloserSideSet|FurtherSideSet)
-				return CloserSet;
+			else if (possible_sets == (CloserSet|CloserSideSet))
+			{
+				rnd = call Random.rand16() % 2;
+				if(rnd == 0)			return CloserSet;
+				else					return CloserSideSet;
+			}
+
+			else if (possible_sets == (CloserSet|FurtherSideSet))
+			{
+				rnd = call Random.rand16() % 2;
+				if(rnd == 0)			return CloserSet;
+				else					return FurtherSideSet;
+			}
+
+			else if (possible_sets == (FurtherSet|FurtherSideSet))
+			{
+				rnd = call Random.rand16() % 2;
+				if(rnd == 0)			return FurtherSet;
+				else					return FurtherSideSet;
+			}
+
+			else if (possible_sets == (FurtherSet|CloserSideSet))
+			{
+				rnd = call Random.rand16() % 2;
+				if(rnd == 0)			return FurtherSet;
+				else					return CloserSideSet;
+			}
+			
 			else
-				return FurtherSet;
-
-			//c_set = (uint16_t) ((possible_sets+1) >> (rnd+1));
-
-			//if (c_set == 1) 				return CloserSet;
-			//else									return FurtherSet;
-
-/*
-			if (c_set == CloserSet) 				return CloserSet;
-			else if (c_set == FurtherSet) 			return FurtherSet;
-			else if (c_set == CloserSideSet) 		return CloserSideSet;
-			else if (c_set == FurtherSideSet) 		return FurtherSideSet;
-			else 									return UnknownSet;
-*/
-		//}
-		//else
-		//{
-		//	reset_neighbour_numbers();
-		//	return UnknownSet;
-		//}
+			{
+				return possible_sets;
+			}
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -671,6 +682,8 @@ implementation
 		message.landmark_distance_of_sink_sender = landmark_sink_distance;
 
 		message.further_or_closer_set = random_walk_direction();
+
+		simdbg("stdout","choose direction:%u\n",message.further_or_closer_set);
 
 		target = random_walk_target(message.further_or_closer_set, NULL, 0);
 
