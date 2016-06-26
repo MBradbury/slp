@@ -330,25 +330,25 @@ implementation
 			if (FurtherSideSet_neighbours == 2)
 			{
 				possible_sets |= FurtherSideSet;
-				a_set += 1;
+				//a_set += 1;
 			}
 			if (CloserSideSet_neighbours == 2)
 			{
 				possible_sets |= CloserSideSet;
-				a_set += 1; 
+				//a_set += 1; 
 			}
 			if (FurtherSet_neighbours == 2)		
 			{
 				possible_sets |= FurtherSet;
-				a_set += 1;
+				//a_set += 1;
 			}
 			if (CloserSet_neighbours == 2)	
 			{
 				possible_sets |= CloserSet;
-				a_set += 1;
+				//a_set += 1;
 			}
 
-			//a_set = avaiable_set(possible_sets);
+			a_set = avaiable_set(possible_sets);
 			//reset_neighbour_numbers();
 /*
 			if (a_set == 1)
@@ -366,11 +366,16 @@ implementation
 
 			c_set = (uint16_t) ((possible_sets+1) >> (rnd+1));
 
-			if (c_set == CloserSet) 			return CloserSet;
-			else if (c_set == FurtherSet) 		return FurtherSet;
+			if (c_set == CloserSet) 				return CloserSet;
+			else									return FurtherSet;
+
+/*
+			if (c_set == CloserSet) 				return CloserSet;
+			else if (c_set == FurtherSet) 			return FurtherSet;
 			else if (c_set == CloserSideSet) 		return CloserSideSet;
 			else if (c_set == FurtherSideSet) 		return FurtherSideSet;
-			else 								return UnknownSet;
+			else 									return UnknownSet;
+*/
 		//}
 		//else
 		//{
