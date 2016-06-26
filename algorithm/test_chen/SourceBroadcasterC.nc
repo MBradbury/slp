@@ -286,9 +286,6 @@ implementation
 	SetType random_walk_direction()
 	{
 		uint16_t possible_sets = UnknownSet;
-		uint16_t a_set = 0;	// number of avaiable sets.
-		uint16_t rnd = 0;
-		uint16_t c_set;
 
 		uint16_t FurtherSet_neighbours = 0;
 		uint16_t CloserSideSet_neighbours = 0;
@@ -344,11 +341,9 @@ implementation
 				possible_sets |= CloserSet;
 			}
 
-			//a_set = avaiable_set(possible_sets);
-
 			if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 			{	
-				rnd = call Random.rand16() % 4;
+				const uint16_t rnd = call Random.rand16() % 4;
 				if(rnd == 0)			return CloserSet;
 				else if (rnd ==1)		return FurtherSet;
 				else if (rnd == 2)		return CloserSideSet;
@@ -357,35 +352,52 @@ implementation
 
 			else if (possible_sets == (CloserSet|CloserSideSet))
 			{
-				rnd = call Random.rand16() % 2;
+				const uint16_t rnd = call Random.rand16() % 2;
 				if(rnd == 0)			return CloserSet;
 				else					return CloserSideSet;
 			}
 
 			else if (possible_sets == (CloserSet|FurtherSideSet))
 			{
-				rnd = call Random.rand16() % 2;
+				const uint16_t rnd = call Random.rand16() % 2;
 				if(rnd == 0)			return CloserSet;
 				else					return FurtherSideSet;
 			}
 
 			else if (possible_sets == (FurtherSet|FurtherSideSet))
 			{
-				rnd = call Random.rand16() % 2;
+				const uint16_t rnd = call Random.rand16() % 2;
 				if(rnd == 0)			return FurtherSet;
 				else					return FurtherSideSet;
 			}
 
 			else if (possible_sets == (FurtherSet|CloserSideSet))
 			{
-				rnd = call Random.rand16() % 2;
+				const uint16_t rnd = call Random.rand16() % 2;
 				if(rnd == 0)			return FurtherSet;
 				else					return CloserSideSet;
 			}
-			
+
+			else if ((possible_sets & CloserSet) != 0)
+			{
+				return CloserSet;
+			}
+			else if ((possible_sets & FurtherSet) != 0)
+			{
+				return FurtherSet;
+			}
+
+			else if ((possible_sets & CloserSideSet) != 0)
+			{
+				return CloserSideSet;
+			}
+			else if ((possible_sets & FurtherSideSet) != 0)
+			{
+				return FurtherSideSet;
+			}
 			else
 			{
-				return possible_sets;
+				return UnknownSet;
 			}
 	}
 
