@@ -203,11 +203,6 @@ implementation
 	uint16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
 	uint16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
 
-	uint16_t FurtherSet_neighbours = 0;
-	uint16_t CloserSideSet_neighbours = 0;
-	uint16_t CloserSet_neighbours = 0;
-	uint16_t FurtherSideSet_neighbours = 0;
-
 	uint16_t srw_count = 0;	//short random walk count.
 	uint16_t lrw_count = 0;	//long random walk count.
 
@@ -238,28 +233,6 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	void reset_neighbour_numbers()
-	{
-		FurtherSideSet_neighbours = 0;
-		CloserSideSet_neighbours = 0;
-		FurtherSet_neighbours = 0;
-		CloserSet_neighbours = 0;
-	}
-
-	int16_t avaiable_set(uint32_t set)
-	{
-
-		int16_t i = 0;
-
-		while(set != 0)
-		{
-			set = set >> 1;
-			i++;
-		}
-		return i;
-	}
-
-
 	void sink_location_check()
 	{
 		int16_t bl_br_dist;
@@ -285,8 +258,13 @@ implementation
 	SetType random_walk_direction()
 	{
 		uint32_t possible_sets = UnknownSet;
-		uint16_t a_set;	// number of avaiable sets.
-		uint16_t rnd;
+		//uint16_t a_set;	// number of avaiable sets.
+		//uint16_t rnd;
+
+		uint16_t FurtherSet_neighbours = 0;
+		uint16_t CloserSideSet_neighbours = 0;
+		uint16_t CloserSet_neighbours = 0;
+		uint16_t FurtherSideSet_neighbours = 0;
 
 		// We want compare sink distance if we do not know our sink distance
 		if (landmark_bottom_left_distance != BOTTOM)
@@ -320,22 +298,84 @@ implementation
 				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
 
-			if (FurtherSideSet_neighbours == MAX_NUM_NEIGHBOURS)	possible_sets |= FurtherSideSet;
-			if (CloserSideSet_neighbours == MAX_NUM_NEIGHBOURS)		possible_sets |= CloserSideSet; 
-			if (FurtherSet_neighbours == MAX_NUM_NEIGHBOURS)		possible_sets |= FurtherSet;
-			if (CloserSet_neighbours == MAX_NUM_NEIGHBOURS)			possible_sets |= CloserSet;
+			if (FurtherSideSet_neighbours == 2)	possible_sets |= FurtherSideSet;
+			if (CloserSideSet_neighbours == 2)		possible_sets |= CloserSideSet; 
+			if (FurtherSet_neighbours == 2)		possible_sets |= FurtherSet;
+			if (CloserSet_neighbours == 2)			possible_sets |= CloserSet;
+
+			simdbg("stdout","possible_sets:%d\n", possible_sets);
+
+			if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
+			{	
+				uint16_t rnd = call Random.rand16() % 4;
+				if(rnd == 0)			return CloserSet;
+				else if (rnd ==1)		return FurtherSet;
+				else if (rnd == 2)		return CloserSideSet;
+				else					return FurtherSideSet;
+			}
+
+			else if (possible_sets == (CloserSet|CloserSideSet))
+			{
+				uint16_t rnd = call Random.rand16() % 2;
+				if(rnd == 0)			return CloserSet;
+				else					return CloserSideSet;
+			}
+
+			else if (possible_sets == (CloserSet|FurtherSideSet))
+			{
+				 uint16_t rnd = call Random.rand16() % 2;
+				if(rnd == 0)			return CloserSet;
+				else					return FurtherSideSet;
+			}
+
+			else if (possible_sets == (FurtherSet|FurtherSideSet))
+			{
+				 uint16_t rnd = call Random.rand16() % 2;
+				if(rnd == 0)			return FurtherSet;
+				else					return FurtherSideSet;
+			}
+
+			else if (possible_sets == (FurtherSet|CloserSideSet))
+			{
+				 uint16_t rnd = call Random.rand16() % 2;
+				if(rnd == 0)			return FurtherSet;
+				else					return CloserSideSet;
+			}
+
+			else if ((possible_sets & CloserSet) != 0)
+			{
+				return CloserSet;
+			}
+			else if ((possible_sets & FurtherSet) != 0)
+			{
+				return FurtherSet;
+			}
+
+			else if ((possible_sets & CloserSideSet) != 0)
+			{
+				return CloserSideSet;
+			}
+			else if ((possible_sets & FurtherSideSet) != 0)
+			{
+				return FurtherSideSet;
+			}
+			else
+			{
+				return UnknownSet;
+			}
 
 			//simdbgverbose("stdout","possible_sets=%d\n", possible_sets);
 
-			a_set = avaiable_set(possible_sets);
-			reset_neighbour_numbers();
+			//a_set = avaiable_set(possible_sets);
+			//reset_neighbour_numbers();
 		}
+
 		else
 		{
 			return UnknownSet;
 		}
 
-
+/*
 		rnd = call Random.rand16() % a_set;
 		possible_sets = (possible_sets+1) >> (rnd+1);
 
@@ -344,6 +384,7 @@ implementation
 		else if (possible_sets == CloserSideSet) 	return CloserSideSet;
 		else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
 		else 										return UnknownSet;
+*/
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, BiasedType biased_direction, const am_addr_t* to_ignore, size_t to_ignore_length)
