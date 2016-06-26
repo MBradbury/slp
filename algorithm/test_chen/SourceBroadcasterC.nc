@@ -350,10 +350,10 @@ implementation
 
 			c_set = (uint16_t) ((possible_sets+1) >> (rnd+1));
 
-			if (c_set == 1) 			return CloserSet;
-			else if (c_set == 2) 		return FurtherSet;
-			else if (c_set == 4) 		return CloserSideSet;
-			else if (c_set == 8) 		return FurtherSideSet;
+			if (c_set == CloserSet) 			return CloserSet;
+			else if (c_set == FurtherSet) 		return FurtherSet;
+			else if (c_set == CloserSideSet) 		return CloserSideSet;
+			else if (c_set == FurtherSideSet) 		return FurtherSideSet;
 			else 								return UnknownSet;
 		//}
 		//else
