@@ -297,13 +297,14 @@ implementation
 				//	FurtherSideSet_neighbours, CloserSideSet_neighbours, FurtherSet_neighbours, CloserSet_neighbours);
 				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
+		}
 
 			if (FurtherSideSet_neighbours == 2)	possible_sets |= FurtherSideSet;
 			if (CloserSideSet_neighbours == 2)		possible_sets |= CloserSideSet; 
 			if (FurtherSet_neighbours == 2)		possible_sets |= FurtherSet;
 			if (CloserSet_neighbours == 2)			possible_sets |= CloserSet;
 
-			simdbg("stdout","possible_sets:%d\n", possible_sets);
+			//simdbg("stdout","possible_sets:%d\n", possible_sets);
 
 			if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 			{	
@@ -364,27 +365,6 @@ implementation
 				return UnknownSet;
 			}
 
-			//simdbgverbose("stdout","possible_sets=%d\n", possible_sets);
-
-			//a_set = avaiable_set(possible_sets);
-			//reset_neighbour_numbers();
-		}
-
-		else
-		{
-			return UnknownSet;
-		}
-
-/*
-		rnd = call Random.rand16() % a_set;
-		possible_sets = (possible_sets+1) >> (rnd+1);
-
-		if (possible_sets == CloserSet) 			return CloserSet;
-		else if (possible_sets == FurtherSet) 		return FurtherSet;
-		else if (possible_sets == CloserSideSet) 	return CloserSideSet;
-		else if (possible_sets == FurtherSideSet) 	return FurtherSideSet;
-		else 										return UnknownSet;
-*/
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, BiasedType biased_direction, const am_addr_t* to_ignore, size_t to_ignore_length)
