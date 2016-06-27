@@ -233,7 +233,63 @@ implementation
 
 		return ((float)rnd) / UINT16_MAX;
 	}
-	
+
+		SetType random_walk_direction()
+	{
+		uint32_t possible_sets = UnknownSet;
+
+		// We want compare sink distance if we do not know our sink distance
+		//if (landmark_distance != BOTTOM)
+		//{
+			uint32_t i;
+
+			// Find nodes whose sink distance is less than or greater than
+			// our sink distance.
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				distance_container_t const* const neighbour = &neighbours.data[i].contents;
+
+				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
+				{
+					possible_sets |= FurtherSet;
+				}
+				else //if (landmark_distance >= neighbour->distance)
+				{
+					possible_sets |= CloserSet;
+				}
+			}
+		//}
+
+		if (possible_sets == (FurtherSet | CloserSet))
+		{
+			// Both directions possible, so randomly pick one of them
+			const uint16_t rnd = call Random.rand16() % 2;
+			if (rnd == 0)
+			{
+				return FurtherSet;
+			}
+			else
+			{
+				return CloserSet;
+			}
+		}
+		else if ((possible_sets & FurtherSet) != 0)
+		{
+			return FurtherSet;
+		}
+		else if ((possible_sets & CloserSet) != 0)
+		{
+			return CloserSet;
+		}
+		else
+		{
+			// No known neighbours, so have a go at flooding.
+			// Someone might get this message
+			return UnknownSet;
+		}
+	}
+
+/*	
 	SetType random_walk_direction()
 	{
 		uint16_t possible_sets = UnknownSet;
@@ -272,7 +328,7 @@ implementation
 				}
 			}
 
-/*
+
 			if (FurtherSideSet_neighbours == 2)
 			{
 				possible_sets |= FurtherSideSet;
@@ -349,10 +405,10 @@ implementation
 			{
 				return UnknownSet;
 			}
-*/			
+		
 			return FurtherSet;
 	}
-
+*/
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
 	{
 		am_addr_t chosen_address;
