@@ -204,11 +204,6 @@ implementation
 	uint16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
 	uint16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
 
-	//uint16_t FurtherSet_neighbours = 0;
-	//uint16_t CloserSideSet_neighbours = 0;
-	//uint16_t CloserSet_neighbours = 0;
-	//uint16_t FurtherSideSet_neighbours = 0;
-
 	uint16_t srw_count = 0;	//short random walk count.
 	uint16_t lrw_count = 0;	//long random walk count.
 
@@ -238,28 +233,6 @@ implementation
 
 		return ((float)rnd) / UINT16_MAX;
 	}
-/*
-	void reset_neighbour_numbers()
-	{
-		FurtherSideSet_neighbours = 0;
-		CloserSideSet_neighbours = 0;
-		FurtherSet_neighbours = 0;
-		CloserSet_neighbours = 0;
-	}
-*/
-	uint16_t avaiable_set(uint16_t set)
-	{
-
-		uint16_t i = 0;
-
-		while(set != 0)
-		{
-			set = set / 2;
-			i++;
-		}
-		return i;
-	}
-
 
 	void sink_location_check()
 	{
@@ -319,9 +292,6 @@ implementation
 				{
 					CloserSet_neighbours++;
 				}
-				//simdbgverbose("stdout","FurtherSideSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSet_neighbours=%d\n",
-				//	FurtherSideSet_neighbours, CloserSideSet_neighbours, FurtherSet_neighbours, CloserSet_neighbours);
-				//simdbgverbose("stdout","landmark_bl=%d, landmark_br=%d, neighbour_bl=%d, neighbour_br=%d\n", landmark_bottom_left_distance, landmark_bottom_right_distance, neighbour->bottom_left_distance, neighbour->bottom_right_distance);
 			}
 
 			if (FurtherSideSet_neighbours == 2)
@@ -349,7 +319,7 @@ implementation
 				else if (rnd == 2)		return CloserSideSet;
 				else					return FurtherSideSet;
 			}
-
+/*
 			else if (possible_sets == (CloserSet|CloserSideSet))
 			{
 				uint16_t rnd = call Random.rand16() % 2;
@@ -395,6 +365,7 @@ implementation
 			{
 				return FurtherSideSet;
 			}
+*/
 			else
 			{
 				return UnknownSet;
