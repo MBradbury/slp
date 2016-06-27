@@ -234,6 +234,7 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+/*
 	void sink_location_check()
 	{
 		int16_t bl_br_dist;
@@ -254,7 +255,7 @@ implementation
 		else
 			location = Others;
 	}
-
+*/
 	
 	SetType random_walk_direction()
 	{
@@ -315,7 +316,7 @@ implementation
 			{	
 				uint16_t rnd = call Random.rand16() % 4;
 				if(rnd == 0)			return CloserSet;
-				else if (rnd ==1)		return FurtherSet;
+				else if (rnd == 1)		return FurtherSet;
 				else if (rnd == 2)		return CloserSideSet;
 				else					return FurtherSideSet;
 			}
