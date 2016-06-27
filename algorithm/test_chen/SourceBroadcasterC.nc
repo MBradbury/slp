@@ -252,7 +252,7 @@ implementation
 			// our sink distance.
 			for (i = 0; i != neighbours.size; ++i)
 			{
-				distance_container_t const* const neighbour = &neighbours.data[m].contents;
+				distance_container_t const* const neighbour = &neighbours.data[i].contents;
 
 				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
 				{
