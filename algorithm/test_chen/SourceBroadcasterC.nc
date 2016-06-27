@@ -247,7 +247,7 @@ implementation
 		//if (landmark_bottom_left_distance != BOTTOM)
 		//{
 			uint16_t i;
-
+/*
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
 			for (i = 0; i != neighbours.size; ++i)
@@ -272,7 +272,7 @@ implementation
 				}
 			}
 
-/*
+
 			if (FurtherSideSet_neighbours == 2)
 			{
 				possible_sets |= FurtherSideSet;
