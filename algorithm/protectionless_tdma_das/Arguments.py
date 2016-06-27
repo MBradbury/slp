@@ -16,6 +16,7 @@ class Arguments(ArgumentsCommon):
         parser.add_argument("-ai", "--slot-assignment-interval", type=int, required=True, help="The interval at which slot values are assigned")
         parser.add_argument("-msp", "--minimum-setup-periods", type=int, required=False, default=0, help="Minimum number of periods required for setup")
         parser.add_argument("-pbp", "--pre-beaconing-periods", type=int, required=False, default=3, help="Number of periods of neighbour discovery")
+        parser.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
         parser.add_argument("--source-mobility",
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
@@ -29,5 +30,6 @@ class Arguments(ArgumentsCommon):
         result["SLOT_ASSIGNMENT_INTERVAL"] = self.args.slot_assignment_interval
         result["TDMA_SETUP_PERIODS"] = self.args.minimum_setup_periods
         result["TDMA_PRE_BEACON_PERIODS"] = self.args.pre_beaconing_periods
+        result["TDMA_DISSEM_TIMEOUT"] = self.args.dissem_timeout
 
         return result

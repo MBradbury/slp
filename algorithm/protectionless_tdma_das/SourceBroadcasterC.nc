@@ -75,6 +75,7 @@ implementation
     bool normal = TRUE;
     /*bool altered_slot = FALSE;*/
     uint32_t period_counter = 0;
+    int dissem_sending = TDMA_DISSEM_TIMEOUT;
 
     typedef enum
 	{
@@ -319,10 +320,30 @@ implementation
 
                         simdbg("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
                             slot, n_info_i->id, n_info_i->slot);
+                        dissem_sending = TDMA_DISSEM_TIMEOUT;
                     }
                 }
             }
 
+            simdbg("stdout", "Checking for collisions between neighbours.\n");
+            for(i=0; i < n_info.count; i++)
+            {
+                if(n_info.info[i].slot == BOT)
+                {
+                    dissem_sending = TDMA_DISSEM_TIMEOUT;
+                    simdbg("stdout", "Detected node with slot=BOT, dissem_sending = TRUE\n");
+                    break;
+                }
+
+                for(j=i+1; j < n_info.count; j++)
+                {
+                    if(n_info.info[i].slot == n_info.info[j].slot)
+                    {
+                        simdbg("stdout", "Detected collision between %u and %u\n", n_info.info[i].id, n_info.info[j].id);
+                        break;
+                    }
+                }
+            }
             /*
              *simdbg("stdout", "Checking for collisions between neighbours.\n");
              *for(i=0; i < neighbour_info.count; i++)
@@ -348,13 +369,18 @@ implementation
 
     event void DissemTimerSender.fired()
     {
-        DissemMessage msg;
-        msg.normal = normal;
-        NeighbourList_select(&n_info, &neighbours, &(msg.N));
+        if(dissem_sending>0)
+        {
+            DissemMessage msg;
+            msg.normal = normal;
+            NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
-        simdbg("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");
+            simdbg("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");
 
-        send_Dissem_message(&msg, AM_BROADCAST_ADDR);
+            send_Dissem_message(&msg, AM_BROADCAST_ADDR);
+            dissem_sending--;
+        }
+        if(period_counter < get_pre_beacon_periods()) dissem_sending = TDMA_DISSEM_TIMEOUT;
     }
 
 	task void send_normal(void)
@@ -579,7 +605,13 @@ implementation
             {
                 if(rcvd->N.info[i].slot != BOT && rcvd->N.info[i].id != TOS_NODE_ID) //XXX Collision fix is here
                 {
-                    NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
+                    NeighbourInfo* oldinfo = NeighbourList_get(&n_info, rcvd->N.info[i].id);
+                    if(oldinfo == NULL || (rcvd->N.info[i].slot != oldinfo->slot && rcvd->N.info[i].slot < oldinfo->slot)) //XXX Stops stale data?
+                    {
+                        dissem_sending = TDMA_DISSEM_TIMEOUT;
+                        simdbg("stdout", "### Slot information was different, dissem_sending = TRUE\n");
+                        NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
+                    }
                 }
             }
         }
