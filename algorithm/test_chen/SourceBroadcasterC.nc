@@ -242,7 +242,7 @@ implementation
 		uint16_t CloserSideSet_neighbours = 0;
 		uint16_t CloserSet_neighbours = 0;
 		uint16_t FurtherSideSet_neighbours = 0;
-
+/*
 			uint32_t i;
 
 			// Find nodes whose sink distance is less than or greater than
@@ -289,8 +289,8 @@ implementation
 			return UnknownSet;
 		}
 
-/*
-			uint16_t i;
+*/
+			uint32_t i;
 
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
@@ -298,21 +298,25 @@ implementation
 			{
 				distance_container_t const* const neighbour = &neighbours.data[i].contents;
 
-				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
+				if (landmark_bottom_left_distance < neighbour->bottom_left_distance && landmark_bottom_right_distance <  neighbour->bottom_right_distance)
 				{
-					FurtherSideSet_neighbours++;
+					FurtherSet_neighbours ++;
+					FurtherSideSet_neighbours ++;					
 				}
-				if (landmark_bottom_left_distance > neighbour->bottom_left_distance)
+				else if (landmark_bottom_left_distance > neighbour->bottom_left_distance && landmark_bottom_right_distance < neighbour->bottom_right_distance)
 				{
-					CloserSideSet_neighbours++;
+					CloserSideSet_neighbours ++;
+					FurtherSet_neighbours ++;
 				}
-				if (landmark_bottom_right_distance <  neighbour->bottom_right_distance)
+				else if (landmark_bottom_left_distance > neighbour->bottom_left_distance && landmark_bottom_right_distance >  neighbour->bottom_right_distance)
 				{
-					FurtherSet_neighbours++;
+					CloserSet_neighbours ++;
+					CloserSideSet_neighbours ++;					
 				}
-				if (landmark_bottom_right_distance > neighbour->bottom_right_distance)
+				else //(landmark_bottom_left_distance < neighbour->bottom_left_distance && landmark_bottom_right_distance > neighbour->bottom_right_distance)
 				{
-					CloserSet_neighbours++;
+					CloserSet_neighbours ++;
+					FurtherSideSet_neighbours ++;
 				}
 			}
 
@@ -333,6 +337,8 @@ implementation
 			{
 				possible_sets |= CloserSet;
 			}
+
+			simdbg("stdout", "possible_sets=%u  ", possible_sets);
 
 			if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 			{	
@@ -393,7 +399,7 @@ implementation
 			{
 				return UnknownSet;
 			}
-*/		
+	
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
