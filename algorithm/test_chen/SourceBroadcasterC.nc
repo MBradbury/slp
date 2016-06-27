@@ -243,11 +243,9 @@ implementation
 		uint16_t CloserSet_neighbours = 0;
 		uint16_t FurtherSideSet_neighbours = 0;
 
-		// We want compare sink distance if we do not know our sink distance
-		//if (landmark_bottom_left_distance != BOTTOM)
-		//{
-			uint16_t i;
 /*
+			uint16_t i;
+
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
 			for (i = 0; i != neighbours.size; ++i)
