@@ -251,7 +251,7 @@ implementation
 			{
 				distance_container_t const* const neighbour = &neighbours.data[i].contents;
 
-				if (landmark_distance < neighbour->distance)
+				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
 				{
 					possible_sets |= FurtherSet;
 				}
