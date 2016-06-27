@@ -343,7 +343,7 @@ implementation
 
 			if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 			{	
-				const uint16_t rnd = call Random.rand16() % 4;
+				uint16_t rnd = call Random.rand16() % 4;
 				if(rnd == 0)			return CloserSet;
 				else if (rnd ==1)		return FurtherSet;
 				else if (rnd == 2)		return CloserSideSet;
@@ -352,28 +352,28 @@ implementation
 
 			else if (possible_sets == (CloserSet|CloserSideSet))
 			{
-				const uint16_t rnd = call Random.rand16() % 2;
+				uint16_t rnd = call Random.rand16() % 2;
 				if(rnd == 0)			return CloserSet;
 				else					return CloserSideSet;
 			}
 
 			else if (possible_sets == (CloserSet|FurtherSideSet))
 			{
-				const uint16_t rnd = call Random.rand16() % 2;
+				uint16_t rnd = call Random.rand16() % 2;
 				if(rnd == 0)			return CloserSet;
 				else					return FurtherSideSet;
 			}
 
 			else if (possible_sets == (FurtherSet|FurtherSideSet))
 			{
-				const uint16_t rnd = call Random.rand16() % 2;
+				uint16_t rnd = call Random.rand16() % 2;
 				if(rnd == 0)			return FurtherSet;
 				else					return FurtherSideSet;
 			}
 
 			else if (possible_sets == (FurtherSet|CloserSideSet))
 			{
-				const uint16_t rnd = call Random.rand16() % 2;
+				uint16_t rnd = call Random.rand16() % 2;
 				if(rnd == 0)			return FurtherSet;
 				else					return CloserSideSet;
 			}

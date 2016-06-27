@@ -235,15 +235,17 @@ implementation
 
 	void sink_location_check()
 	{
-		int16_t bl_br_dist;
-		int16_t bl_tr_dist;
-		int16_t br_tr_dist;
+		uint16_t bl_br_dist;
+		uint16_t bl_tr_dist;
+		uint16_t br_tr_dist;
+
+		uint16_t CENTRE_AREA = 5;
 
 		if (sink_bl_dist != BOTTOM && sink_br_dist !=BOTTOM && sink_tr_dist != BOTTOM)
 		{
-			bl_br_dist = (int16_t) (abs(sink_bl_dist - sink_br_dist));
-			bl_tr_dist = (int16_t) (abs(sink_bl_dist - sink_tr_dist));
-			br_tr_dist = (int16_t) (abs(sink_br_dist - sink_tr_dist));
+			bl_br_dist = (uint16_t) (abs(sink_bl_dist - sink_br_dist));
+			bl_tr_dist = (uint16_t) (abs(sink_bl_dist - sink_tr_dist));
+			br_tr_dist = (uint16_t) (abs(sink_br_dist - sink_tr_dist));
 	
 			if ( bl_br_dist <= CENTRE_AREA && bl_tr_dist <= CENTRE_AREA && br_tr_dist <= CENTRE_AREA )
 				location = Centre;
