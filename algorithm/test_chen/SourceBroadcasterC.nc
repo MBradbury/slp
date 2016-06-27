@@ -311,7 +311,7 @@ implementation
 			{
 				possible_sets |= CloserSet;
 			}
-
+/*
 			if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 			{	
 				uint16_t rnd = call Random.rand16() % 4;
@@ -320,7 +320,7 @@ implementation
 				else if (rnd == 2)		return CloserSideSet;
 				else					return FurtherSideSet;
 			}
-/*
+
 			else if (possible_sets == (CloserSet|CloserSideSet))
 			{
 				uint16_t rnd = call Random.rand16() % 2;
@@ -366,11 +366,13 @@ implementation
 			{
 				return FurtherSideSet;
 			}
-*/
+
 			else
 			{
 				return UnknownSet;
 			}
+*/			
+			return FurtherSet;
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
