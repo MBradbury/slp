@@ -237,12 +237,11 @@ implementation
 	SetType random_walk_direction()
 	{
 		uint16_t possible_sets = UnknownSet;
-
-		uint16_t FurtherSet_neighbours = 0;
-		uint16_t CloserSideSet_neighbours = 0;
-		uint16_t CloserSet_neighbours = 0;
-		uint16_t FurtherSideSet_neighbours = 0;
 /*
+		simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
+
+		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM)
+		{
 			uint32_t i;
 
 			// Find nodes whose sink distance is less than or greater than
@@ -260,6 +259,7 @@ implementation
 					possible_sets |= CloserSet;
 				}
 			}
+		}
 
 		if (possible_sets == (FurtherSet | CloserSet))
 		{
@@ -290,10 +290,15 @@ implementation
 		}
 
 */
-			uint32_t i;
+		uint16_t FurtherSet_neighbours = 0;
+		uint16_t CloserSideSet_neighbours = 0;
+		uint16_t CloserSet_neighbours = 0;
+		uint16_t FurtherSideSet_neighbours = 0;
 
-			// Find nodes whose sink distance is less than or greater than
-			// our sink distance.
+		uint32_t i;
+
+		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM)
+		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				distance_container_t const* const neighbour = &neighbours.data[i].contents;
@@ -319,87 +324,87 @@ implementation
 					FurtherSideSet_neighbours ++;
 				}
 			}
+			simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
+		}
 
+		if (FurtherSideSet_neighbours == 2)
+		{
+			possible_sets |= FurtherSideSet;
+		}
+		if (CloserSideSet_neighbours == 2)
+		{
+			possible_sets |= CloserSideSet;
+		}
+		if (FurtherSet_neighbours == 2)		
+		{
+			possible_sets |= FurtherSet;
+		}
+		if (CloserSet_neighbours == 2)	
+		{
+			possible_sets |= CloserSet;
+		}
 
-			if (FurtherSideSet_neighbours == 2)
-			{
-				possible_sets |= FurtherSideSet;
-			}
-			if (CloserSideSet_neighbours == 2)
-			{
-				possible_sets |= CloserSideSet;
-			}
-			if (FurtherSet_neighbours == 2)		
-			{
-				possible_sets |= FurtherSet;
-			}
-			if (CloserSet_neighbours == 2)	
-			{
-				possible_sets |= CloserSet;
-			}
+		simdbg("stdout", "possible_sets=%u  ", possible_sets);
 
-			simdbg("stdout", "possible_sets=%u  ", possible_sets);
+		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
+		{	
+			uint16_t rnd = call Random.rand16() % 4;
+			if(rnd == 0)			return CloserSet;
+			else if (rnd == 1)		return FurtherSet;
+			else if (rnd == 2)		return CloserSideSet;
+			else					return FurtherSideSet;
+		}
 
-			if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
-			{	
-				uint16_t rnd = call Random.rand16() % 4;
-				if(rnd == 0)			return CloserSet;
-				else if (rnd == 1)		return FurtherSet;
-				else if (rnd == 2)		return CloserSideSet;
-				else					return FurtherSideSet;
-			}
+		else if (possible_sets == (CloserSet|CloserSideSet))
+		{
+			uint16_t rnd = call Random.rand16() % 2;
+			if(rnd == 0)			return CloserSet;
+			else					return CloserSideSet;
+		}
 
-			else if (possible_sets == (CloserSet|CloserSideSet))
-			{
-				uint16_t rnd = call Random.rand16() % 2;
-				if(rnd == 0)			return CloserSet;
-				else					return CloserSideSet;
-			}
+		else if (possible_sets == (CloserSet|FurtherSideSet))
+		{
+			uint16_t rnd = call Random.rand16() % 2;
+			if(rnd == 0)			return CloserSet;
+			else					return FurtherSideSet;
+		}
 
-			else if (possible_sets == (CloserSet|FurtherSideSet))
-			{
-				uint16_t rnd = call Random.rand16() % 2;
-				if(rnd == 0)			return CloserSet;
-				else					return FurtherSideSet;
-			}
+		else if (possible_sets == (FurtherSet|FurtherSideSet))
+		{
+			uint16_t rnd = call Random.rand16() % 2;
+			if(rnd == 0)			return FurtherSet;
+			else					return FurtherSideSet;
+		}
 
-			else if (possible_sets == (FurtherSet|FurtherSideSet))
-			{
-				uint16_t rnd = call Random.rand16() % 2;
-				if(rnd == 0)			return FurtherSet;
-				else					return FurtherSideSet;
-			}
+		else if (possible_sets == (FurtherSet|CloserSideSet))
+		{
+			uint16_t rnd = call Random.rand16() % 2;
+			if(rnd == 0)			return FurtherSet;
+			else					return CloserSideSet;
+		}
 
-			else if (possible_sets == (FurtherSet|CloserSideSet))
-			{
-				uint16_t rnd = call Random.rand16() % 2;
-				if(rnd == 0)			return FurtherSet;
-				else					return CloserSideSet;
-			}
+		else if ((possible_sets & CloserSet) != 0)
+		{
+			return CloserSet;
+		}
+		else if ((possible_sets & FurtherSet) != 0)
+		{
+			return FurtherSet;
+		}
 
-			else if ((possible_sets & CloserSet) != 0)
-			{
-				return CloserSet;
-			}
-			else if ((possible_sets & FurtherSet) != 0)
-			{
-				return FurtherSet;
-			}
+		else if ((possible_sets & CloserSideSet) != 0)
+		{
+			return CloserSideSet;
+		}
+		else if ((possible_sets & FurtherSideSet) != 0)
+		{
+			return FurtherSideSet;
+		}
+		else
+		{
+			return UnknownSet;
+		}
 
-			else if ((possible_sets & CloserSideSet) != 0)
-			{
-				return CloserSideSet;
-			}
-			else if ((possible_sets & FurtherSideSet) != 0)
-			{
-				return FurtherSideSet;
-			}
-
-			else
-			{
-				return UnknownSet;
-			}
-	
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -447,6 +452,10 @@ implementation
 				}
 			}
 		}
+		else
+		{
+			chosen_address = AM_BROADCAST_ADDR;
+		}
 
 		if (local_neighbours.size == 0)
 		{
@@ -474,62 +483,6 @@ implementation
 		}
 
 		return chosen_address;
-	}
-
-	int16_t short_long_sequence_random_walk(int16_t short_count, int16_t long_count)
-	{
-		int16_t rw;
-		if (short_count != 0)
-		{	
-			rw = RANDOM_WALK_HOPS;
-			srw_count -= 1;
-		}
-		else
-		{
-			rw = LONG_RANDOM_WALK_HOPS;
-			lrw_count -= 1;
-		}
-		return rw;
-	}
-
-	int16_t long_short_sequence_random_walk(int16_t short_count, int16_t long_count)
-	{
-		int16_t rw;
-		if (long_count != 0)
-		{
-			rw = LONG_RANDOM_WALK_HOPS;
-			lrw_count -= 1;
-		}
-		else
-		{
-			rw = RANDOM_WALK_HOPS;
-			srw_count -= 1;
-		}
-		return rw;
-	}
-
-	MessageType sl_next_message_type(int16_t srw, int16_t lrw)
-	{
-		MessageType sl_type;
-
-		if (srw == 0 && lrw != 0)
-			sl_type = LongRandomWalk;
-		else
-			sl_type = ShortRandomWalk;
-
-		return sl_type;
-	}
-
-	MessageType ls_next_message_type(int16_t srw, int16_t lrw)
-	{
-		MessageType ls_type;
-
-		if (lrw == 0 && srw != 0)
-			ls_type = ShortRandomWalk;
-		else
-			ls_type = LongRandomWalk;
-
-		return ls_type;
 	}
 
 	uint32_t beacon_send_wait()
@@ -594,7 +547,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(5*1000);
+			call BroadcastNormalTimer.startOneShot(6 * 1000);
 		}
 	}
 
@@ -684,6 +637,8 @@ implementation
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
 #endif
+		
+		simdbg("stdout", "BroadcastNormalTimer fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -834,7 +789,7 @@ implementation
 					simdbg_clear("Metric-PATH_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC ",%u\n",
 						sim_time(), TOS_NODE_ID, rcvd->sequence_number, rcvd->source_distance);
 
-					return;
+					//return;
 				}
 
 				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
@@ -976,7 +931,8 @@ implementation
 		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID && rcvd->landmark_location == SINK)
 		{
 			sink_bl_dist = rcvd->landmark_distance;
-			call DelayBLSenderTimer.startOneShot(0.5 * 1000);	
+			call DelayBLSenderTimer.startOneShot(0.5 * 1000);
+			//call DelayBLSenderTimer.startOneShot(1 * 1000);	
 		}
 
 		if (BOTTOM_RIGHT_NODE_ID == SINK_NODE_ID)
@@ -984,7 +940,8 @@ implementation
 			if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location == SINK)
 			{
 				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(1 * 1000);
+				call DelayBRSenderTimer.startOneShot(1.5 * 1000);
+				//call DelayBRSenderTimer.startOneShot(2 * 1000);
 			}
 		}
 		else
@@ -992,14 +949,16 @@ implementation
 			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 			{
 				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(1 * 1000);
+				call DelayBRSenderTimer.startOneShot(2.5 * 1000);
+				//call DelayBRSenderTimer.startOneShot(3 * 1000);
 			}
 		}
 
 		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 		{
 			sink_tr_dist = rcvd->landmark_distance;
-			call DelayTRSenderTimer.startOneShot(1.5 * 1000);
+			call DelayTRSenderTimer.startOneShot(3.5 * 1000);
+			//call DelayTRSenderTimer.startOneShot(4 * 1000);
 		}
 
 
