@@ -7,8 +7,7 @@ protectionless_spr
 protectionless_ctp
 
 template	->	adaptive	-> adaptive_spr			-> src_angle_adaptive_spr
-							-> motion_adaptive
-							-> psrc_adaptive
+                                                    -> adaptive_spr_phantom_hybrid
 
 noforward
 
@@ -43,14 +42,6 @@ Many fixed parameters, were used to do a search to find good parameter values.
 
 ==adaptive==
 Modification of template to have parameters determined online.
-
-==motion_adaptive==
-Modification of adaptive to handle mobile sources.
-(Not fully implemented)
-
-==psrc_adaptive==
-Modification of adaptive to handle changing source periods.
-(Not fully implemented)
 
 ==multi_src_adaptive==
 Modification of adaptive to handle multiple sources.
