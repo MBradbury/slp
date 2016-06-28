@@ -237,8 +237,13 @@ implementation
 	SetType random_walk_direction()
 	{
 		uint16_t possible_sets = UnknownSet;
-/*
-		simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
+
+		uint32_t FurtherSet_neighbours = 0;
+		uint32_t CloserSideSet_neighbours = 0;
+		uint32_t CloserSet_neighbours = 0;
+		uint32_t FurtherSideSet_neighbours = 0;
+
+		//simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
 
 		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM)
 		{
@@ -250,16 +255,21 @@ implementation
 			{
 				distance_container_t const* const neighbour = &neighbours.data[i].contents;
 
-				if (landmark_bottom_left_distance < neighbour->bottom_left_distance)
+				if (landmark_bottom_right_distance < neighbour->bottom_right_distance)
 				{
 					possible_sets |= FurtherSet;
+					//FurtherSet_neighbours ++;
 				}
 				else //if (landmark_distance >= neighbour->distance)
 				{
 					possible_sets |= CloserSet;
+					//CloserSet_neighbours ++;
 				}
 			}
 		}
+
+		//if (CloserSet_neighbours == 2)	possible_sets |= CloserSet;
+		//if (FurtherSet_neighbours == 2)	possible_sets |= FurtherSet;
 
 		if (possible_sets == (FurtherSet | CloserSet))
 		{
@@ -289,16 +299,15 @@ implementation
 			return UnknownSet;
 		}
 
-*/
+/*
 		uint16_t FurtherSet_neighbours = 0;
 		uint16_t CloserSideSet_neighbours = 0;
 		uint16_t CloserSet_neighbours = 0;
 		uint16_t FurtherSideSet_neighbours = 0;
 
-		uint32_t i;
-
 		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM)
 		{
+			uint32_t i;
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				distance_container_t const* const neighbour = &neighbours.data[i].contents;
@@ -324,7 +333,7 @@ implementation
 					FurtherSideSet_neighbours ++;
 				}
 			}
-			simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
+			//simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
 		}
 
 		if (FurtherSideSet_neighbours == 2)
@@ -344,7 +353,7 @@ implementation
 			possible_sets |= CloserSet;
 		}
 
-		simdbg("stdout", "possible_sets=%u  ", possible_sets);
+		//simdbg("stdout", "possible_sets=%u  ", possible_sets);
 
 		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 		{	
@@ -404,7 +413,7 @@ implementation
 		{
 			return UnknownSet;
 		}
-
+*/
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -444,12 +453,20 @@ implementation
 
 				//simdbgverbose("stdout", "[%u]: further_or_closer_set=%d, dist=%d neighbour.dist=%d \n",
 				//  neighbour->address, further_or_closer_set, landmark_distance, neighbour->contents.distance);
-
-				if ((further_or_closer_set == FurtherSet && landmark_bottom_left_distance < neighbour->contents.bottom_left_distance) ||
-					(further_or_closer_set == CloserSet && landmark_bottom_left_distance >= neighbour->contents.bottom_left_distance))
+				if ((further_or_closer_set == FurtherSet && landmark_bottom_right_distance < neighbour->contents.bottom_right_distance) ||
+					(further_or_closer_set == CloserSet && landmark_bottom_right_distance >= neighbour->contents.bottom_right_distance))
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
+/*
+				if ((further_or_closer_set == FurtherSet && landmark_bottom_right_distance < neighbour->contents.bottom_right_distance) ||
+					(further_or_closer_set == CloserSet && landmark_bottom_right_distance >= neighbour->contents.bottom_right_distance) ||
+					(further_or_closer_set == FurtherSideSet && landmark_bottom_left_distance < neighbour->contents.bottom_left_distance) ||
+					(further_or_closer_set == CloserSideSet && landmark_bottom_left_distance >= neighbour->contents.bottom_left_distance))
+				{
+					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+*/				
 			}
 		}
 		else
@@ -638,7 +655,7 @@ implementation
 		print_distance_neighbours("stdout", &neighbours);
 #endif
 		
-		simdbg("stdout", "BroadcastNormalTimer fired.\n");
+		//simdbg("stdout", "BroadcastNormalTimer fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -651,7 +668,7 @@ implementation
 
 		message.further_or_closer_set = random_walk_direction();
 
-		simdbg("stdout","choose direction:%u\n",message.further_or_closer_set);
+		//simdbg("stdout","choose direction:%u\n",message.further_or_closer_set);
 
 		target = random_walk_target(message.further_or_closer_set, NULL, 0);
 
