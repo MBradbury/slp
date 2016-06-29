@@ -238,17 +238,15 @@ implementation
 	{
 		uint16_t possible_sets = UnknownSet;
 
-		uint32_t FurtherSet_neighbours = 0;
-		uint32_t CloserSideSet_neighbours = 0;
-		uint32_t CloserSet_neighbours = 0;
-		uint32_t FurtherSideSet_neighbours = 0;
+		uint16_t FurtherSet_neighbours = 0;
+		uint16_t CloserSet_neighbours = 0;
+		uint16_t aaaa =2;
 
 		//simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
 
 		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM)
 		{
 			uint32_t i;
-
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
 			for (i = 0; i != neighbours.size; ++i)
@@ -257,19 +255,19 @@ implementation
 
 				if (landmark_bottom_right_distance < neighbour->bottom_right_distance)
 				{
-					possible_sets |= FurtherSet;
-					//FurtherSet_neighbours ++;
+					//possible_sets |= FurtherSet;
+					FurtherSet_neighbours += 1;
 				}
 				else //if (landmark_distance >= neighbour->distance)
 				{
-					possible_sets |= CloserSet;
-					//CloserSet_neighbours ++;
+					//possible_sets |= CloserSet;
+					CloserSet_neighbours += 1;
 				}
 			}
 		}
 
-		//if (CloserSet_neighbours == 2)	possible_sets |= CloserSet;
-		//if (FurtherSet_neighbours == 2)	possible_sets |= FurtherSet;
+		if (CloserSet_neighbours == aaaa)	possible_sets |= CloserSet;
+		if (FurtherSet_neighbours == aaaa)	possible_sets |= FurtherSet;
 
 		if (possible_sets == (FurtherSet | CloserSet))
 		{
@@ -300,14 +298,17 @@ implementation
 		}
 
 /*
-		uint16_t FurtherSet_neighbours = 0;
-		uint16_t CloserSideSet_neighbours = 0;
-		uint16_t CloserSet_neighbours = 0;
-		uint16_t FurtherSideSet_neighbours = 0;
+
 
 		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM)
 		{
 			uint32_t i;
+
+			uint32_t FurtherSet_neighbours = 0;
+			uint32_t CloserSideSet_neighbours = 0;
+			uint32_t CloserSet_neighbours = 0;
+			uint32_t FurtherSideSet_neighbours = 0;
+
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				distance_container_t const* const neighbour = &neighbours.data[i].contents;
@@ -332,28 +333,25 @@ implementation
 					CloserSet_neighbours ++;
 					FurtherSideSet_neighbours ++;
 				}
+				if (FurtherSideSet_neighbours == 2)
+				{
+					possible_sets |= FurtherSideSet;
+				}
+				if (CloserSideSet_neighbours == 2)
+				{
+					possible_sets |= CloserSideSet;
+				}
+				if (FurtherSet_neighbours == 2)		
+				{
+					possible_sets |= FurtherSet;
+				}
+				if (CloserSet_neighbours == 2)	
+				{
+					possible_sets |= CloserSet;
+				}
 			}
 			//simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
 		}
-
-		if (FurtherSideSet_neighbours == 2)
-		{
-			possible_sets |= FurtherSideSet;
-		}
-		if (CloserSideSet_neighbours == 2)
-		{
-			possible_sets |= CloserSideSet;
-		}
-		if (FurtherSet_neighbours == 2)		
-		{
-			possible_sets |= FurtherSet;
-		}
-		if (CloserSet_neighbours == 2)	
-		{
-			possible_sets |= CloserSet;
-		}
-
-		//simdbg("stdout", "possible_sets=%u  ", possible_sets);
 
 		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 		{	
