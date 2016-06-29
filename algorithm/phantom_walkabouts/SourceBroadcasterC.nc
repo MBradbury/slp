@@ -260,18 +260,15 @@ implementation
 	SetType random_walk_direction()
 	{
 		uint32_t possible_sets = UnknownSet;
-		//uint16_t a_set;	// number of avaiable sets.
-		//uint16_t rnd;
-
-		uint16_t FurtherSet_neighbours = 0;
-		uint16_t CloserSideSet_neighbours = 0;
-		uint16_t CloserSet_neighbours = 0;
-		uint16_t FurtherSideSet_neighbours = 0;
 
 		// We want compare sink distance if we do not know our sink distance
 		if (landmark_bottom_left_distance != BOTTOM)
 		{
 			uint32_t m;
+			uint32_t FurtherSet_neighbours = 0;
+			uint32_t CloserSideSet_neighbours = 0;
+			uint32_t CloserSet_neighbours = 0;
+			uint32_t FurtherSideSet_neighbours = 0;
 
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
