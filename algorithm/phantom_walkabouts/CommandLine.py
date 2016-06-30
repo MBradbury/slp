@@ -45,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11]
 
-    source_periods = [3.0]
+    source_periods = [1.0]
 
     configurations = [
         'SourceCorner',

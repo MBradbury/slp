@@ -366,7 +366,7 @@ implementation
 		{
 			return CloserSideSet;
 		}
-		else if (possible_sets & FurtherSideSet)
+		else if (possible_sets == FurtherSideSet)
 		{
 			return FurtherSideSet;
 		}
