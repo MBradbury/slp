@@ -240,7 +240,6 @@ implementation
 
 		uint16_t FurtherSet_neighbours = 0;
 		uint16_t CloserSet_neighbours = 0;
-		uint16_t aaaa =2;
 
 		//simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
 
@@ -266,8 +265,8 @@ implementation
 			}
 		}
 
-		if (CloserSet_neighbours == aaaa)	possible_sets |= CloserSet;
-		if (FurtherSet_neighbours == aaaa)	possible_sets |= FurtherSet;
+		if (CloserSet_neighbours > 1)	possible_sets |= CloserSet;
+		if (FurtherSet_neighbours > 1)	possible_sets |= FurtherSet;
 
 		if (possible_sets == (FurtherSet | CloserSet))
 		{
