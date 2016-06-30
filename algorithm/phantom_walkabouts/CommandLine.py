@@ -31,7 +31,7 @@ class RunSimulations(RunSimulationsCommon):
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
 
-        return 1.3 * time_taken + 3
+        return 1.3 * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -82,7 +82,7 @@ class CLI(CommandLineCommon.CLI):
     short_counts = [1]
     long_counts = [1]
 
-    repeats = 500
+    repeats = 800
 
 
     local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
@@ -150,6 +150,7 @@ class CLI(CommandLineCommon.CLI):
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
         return list(zip(walk_short, walk_long))
+        #return list((x,y) for x in walk_short for y in walk_long)
         
 
     def _time_estimater(self, *args):
@@ -189,7 +190,7 @@ class CLI(CommandLineCommon.CLI):
 
             for (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs) in argument_product
 
-            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
+            for (swl,lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
         ]        
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
