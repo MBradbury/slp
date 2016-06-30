@@ -45,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11, 15, 21, 25]
 
-    source_periods = [0.25, 0.5, 1.0, 2.0]
+    source_periods = [ 3.0 ]
 
     configurations = [
         'SourceCorner',
@@ -71,15 +71,15 @@ class CLI(CommandLineCommon.CLI):
 
     orders = [
     "ShortLong",
-    "LongShort",   
+    #"LongShort",   
     ]
 
     wait_before_short = [0]
 
     short_counts = [1]
-    long_counts = [1, 2]
+    long_counts = [1]
 
-    repeats = 300
+    repeats = 1000
 
     local_parameter_names = ('short walk length', 'long walk length',
                              'order', 'short count', 'long count', 'wait before short')
