@@ -45,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11]
 
-    source_periods = [1.0]
+    source_periods = [3.0]
 
     configurations = [
         'SourceCorner',
@@ -82,7 +82,7 @@ class CLI(CommandLineCommon.CLI):
     short_counts = [1]
     long_counts = [1]
 
-    repeats = 800
+    repeats = 1000
 
 
     local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
