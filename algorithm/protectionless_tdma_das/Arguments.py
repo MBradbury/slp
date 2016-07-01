@@ -14,6 +14,7 @@ class Arguments(ArgumentsCommon):
         parser.add_argument("-dp", "--dissem-period", type=float, required=True)
         parser.add_argument("-ts", "--tdma-num-slots", type=int, required=True)
         parser.add_argument("-ai", "--slot-assignment-interval", type=int, required=True)
+        parser.add_argument("-msp", "--minimum-setup-periods", type=int, required=True)
         parser.add_argument("--source-mobility",
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
@@ -25,5 +26,6 @@ class Arguments(ArgumentsCommon):
         result["DISSEM_PERIOD_MS"] = int(self.args.dissem_period * 1000)
         result["TDMA_NUM_SLOTS"] = self.args.tdma_num_slots
         result["SLOT_ASSIGNMENT_INTERVAL"] = self.args.slot_assignment_interval
+        result["TDMA_SETUP_PERIODS"] = self.args.minimum_setup_periods
 
         return result
