@@ -43,18 +43,18 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11, 15, 21, 25]
+    sizes = [11]
 
-    source_periods = [ 3.0 ]
+    source_periods = [ 1.0 ]
 
     configurations = [
         'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
+        #'SinkCorner',
+        #'SinkCorner2Source',
+        #'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -79,7 +79,7 @@ class CLI(CommandLineCommon.CLI):
     short_counts = [1]
     long_counts = [1]
 
-    repeats = 1000
+    repeats = 500
 
     local_parameter_names = ('short walk length', 'long walk length',
                              'order', 'short count', 'long count', 'wait before short')
@@ -145,8 +145,8 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
-        #return list(zip(walk_short, walk_long))
-        return list((x,y) for x in walk_short for y in walk_long)
+        return list(zip(walk_short, walk_long))
+        #return list((x,y) for x in walk_short for y in walk_long)
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm

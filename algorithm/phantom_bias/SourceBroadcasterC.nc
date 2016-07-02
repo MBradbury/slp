@@ -620,7 +620,7 @@ implementation
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		
-		int16_t i,j;
+		int16_t i;
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 		
