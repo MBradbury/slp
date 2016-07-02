@@ -4,7 +4,7 @@
 
 #include "NormalMessage.h"
 #include "DissemMessage.h"
-#include "CollisionMessage.h"
+/*#include "CollisionMessage.h"*/
 
 #include "utils.h"
 
@@ -21,6 +21,8 @@
 
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
+
+#define TDMA_PRE_BEACON_PERIODS 5
 
 module SourceBroadcasterC
 {
@@ -49,8 +51,8 @@ module SourceBroadcasterC
     uses interface AMSend as DissemSend;
     uses interface Receive as DissemReceive;
 
-    uses interface AMSend as CollisionSend;
-    uses interface Receive as CollisionReceive;
+    /*uses interface AMSend as CollisionSend;*/
+    /*uses interface Receive as CollisionReceive;*/
 
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
@@ -73,7 +75,8 @@ implementation
     bool start = TRUE;
     bool slot_active = FALSE;
     bool normal = TRUE;
-    bool altered_slot = FALSE;
+    /*bool altered_slot = FALSE;*/
+    uint32_t period_counter = 0;
 
     typedef enum
 	{
@@ -140,6 +143,16 @@ implementation
     uint32_t get_assignment_interval(void)
     {
         return SLOT_ASSIGNMENT_INTERVAL;
+    }
+
+    uint32_t get_minimum_setup_periods(void)
+    {
+        return TDMA_SETUP_PERIODS;
+    }
+
+    uint32_t get_pre_beacon_periods(void)
+    {
+        return TDMA_PRE_BEACON_PERIODS;
     }
     //###################}}}
 
@@ -220,19 +233,12 @@ implementation
 
 	USE_MESSAGE(Normal);
     USE_MESSAGE(Dissem);
-    USE_MESSAGE(Collision);
+    /*USE_MESSAGE(Collision);*/
 
     void init(void)
     {
         if (type == SinkNode)
         {
-            /*int i;
-            for(i=0; i<neighbours.count; i++)
-            {
-                simdbg("stdout", "NEVER CALLED\n"); //Because no neighbours discovered initially
-                NeighbourList_add(&n_info, neighbours.ids[i], BOT, BOT);
-            }*/
-            
             hop = 0;
             parent = AM_BROADCAST_ADDR;
             slot = get_tdma_num_slots(); //Delta
@@ -276,6 +282,8 @@ implementation
             parent = parent_info->id;
             slot = parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
 
+            simdbg("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbg_clear("stdout", "\n");
+
             simdbg("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, slot, hop);
 
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
@@ -308,7 +316,6 @@ implementation
                     // If nodes have the same distance use the node id as a tie breaker.
                     if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
                     {
-                        altered_slot = TRUE;
                         slot = slot - 1;
                         NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
 
@@ -318,25 +325,26 @@ implementation
                 }
             }
 
-            simdbg("stdout", "Checking for collisions between neighbours.\n");
-            for(i=0; i < neighbour_info.count; i++)
-            {
-                for(j=i+1; j < neighbour_info.count; j++)
-                {
-                    if(neighbour_info.info[i].slot == neighbour_info.info[j].slot)
-                    {
-                        CollisionMessage msg;
-                        msg.a = neighbour_info.info[i].id;
-                        msg.a_hop = neighbour_info.info[i].hop;
-                        msg.a_slot = neighbour_info.info[i].slot;
-                        msg.b = neighbour_info.info[j].id;
-                        msg.b_hop = neighbour_info.info[j].hop;
-                        msg.b_slot = neighbour_info.info[j].slot;
-                        send_Collision_message(&msg, AM_BROADCAST_ADDR);
-                        simdbg("stdout", "Node %u and %u collide. Sending message...\n", neighbour_info.info[i].id, neighbour_info.info[j].id);
-                    }
-                }
-            }
+            /*
+             *simdbg("stdout", "Checking for collisions between neighbours.\n");
+             *for(i=0; i < neighbour_info.count; i++)
+             *{
+             *    for(j=i+1; j < neighbour_info.count; j++)
+             *    {
+             *        if(neighbour_info.info[i].slot == neighbour_info.info[j].slot)
+             *        {
+             *            CollisionMessage msg;
+             *            msg.a = neighbour_info.info[i].id;
+             *            msg.a_hop = neighbour_info.info[i].hop;
+             *            msg.b = neighbour_info.info[j].id;
+             *            msg.b_hop = neighbour_info.info[j].hop;
+             *            msg.slot = neighbour_info.info[i].slot;
+             *            send_Collision_message(&msg, AM_BROADCAST_ADDR);
+             *            simdbg("stdout", "Node %u and %u collide. Sending message...\n", neighbour_info.info[i].id, neighbour_info.info[j].id);
+             *        }
+             *    }
+             *}
+             */
         }
     }
 
@@ -404,15 +412,18 @@ implementation
     event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
+        period_counter++;
         if(type != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
-        altered_slot = FALSE;
-        if(slot != BOT)
+        if(slot != BOT || period_counter < get_pre_beacon_periods())
         {
             call DissemTimerSender.startOneShot((uint32_t)(get_slot_period() * random_float()));
         }
 
-        process_dissem();
-        process_collision();
+        if(period_counter > get_pre_beacon_periods())
+        {
+            process_dissem();
+            process_collision();
+        }
         call PreSlotTimer.startOneShot(get_dissem_period());
     }
 
@@ -446,7 +457,7 @@ implementation
     event void EnqueueNormalTimer.fired()
     {
         /*simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());*/
-        if(slot != BOT)
+        if(slot != BOT && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
 
@@ -537,6 +548,10 @@ implementation
 
         // Record that the sender is in our 1-hop neighbourhood
         IDList_add(&neighbours, source_addr);
+        if(NeighbourList_get(&n_info, source_addr) == NULL)
+        {
+            NeighbourList_add(&n_info, source_addr, BOT, BOT);
+        }
 
         if(rcvd->normal)
         {
@@ -564,7 +579,7 @@ implementation
 
             for(i = 0; i<rcvd->N.count; i++)
             {
-                if(rcvd->N.info[i].slot != BOT)
+                if(rcvd->N.info[i].slot != BOT && rcvd->N.info[i].id != TOS_NODE_ID) //XXX Collision fix is here
                 {
                     NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
                 }
@@ -609,41 +624,57 @@ implementation
     RECEIVE_MESSAGE_END(Dissem)
 
 
-    void x_receive_Collision(const CollisionMessage* const rcvd, am_addr_t source_addr)
-    {
-        simdbg("stdout", "Received collision message.\n");
-        if (altered_slot) return;
-        /*if(altered_slot || slot != rcvd->a_slot) return;*/
-        if(rcvd->a == TOS_NODE_ID)
-        {
-            if((hop > rcvd->b_hop) || (hop == rcvd->b_hop && TOS_NODE_ID > rcvd->b))
-            {
-                slot = slot - 1;
-                NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+/*
+ *    void x_receive_Collision(const CollisionMessage* const rcvd, am_addr_t source_addr)
+ *    {
+ *        [>if (altered_slot) return;<]
+ *        [>if(altered_slot || slot != rcvd->a_slot) return;<]
+ *        if(rcvd->a == TOS_NODE_ID || rcvd->b == TOS_NODE_ID)
+ *        {
+ *            simdbg("stdout", "Received collision message.\n");
+ *
+ *            if(slot != rcvd->slot)
+ *            {
+ *                simdbg("stdout", "(Collision Message) Slot was stale, slot:%u != rcvd:%u\n", slot, rcvd->slot);
+ *                return; //Stale data
+ *            }
+ *        }
+ *
+ *        if(rcvd->a == TOS_NODE_ID)
+ *        {
+ *            if((hop > rcvd->b_hop) || (hop == rcvd->b_hop && TOS_NODE_ID > rcvd->b))
+ *            {
+ *                slot = slot - 1;
+ *                NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+ *
+ *                simdbg("stdout", "(Collision Message) Adjusted slot of current node to %u because node %u has slot %u.\n",
+ *                    slot, rcvd->b, slot+1);
+ *                [>altered_slot = TRUE;<]
+ *            }
+ *        }
+ *        else if(rcvd->b == TOS_NODE_ID)
+ *        {
+ *            if((hop > rcvd->a_hop) || (hop == rcvd->a_hop && TOS_NODE_ID > rcvd->a))
+ *            {
+ *                slot = slot - 1;
+ *                NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+ *
+ *                simdbg("stdout", "(Collision Message) Adjusted slot of current node to %u because node %u has slot %u.\n",
+ *                    slot, rcvd->a, slot+1);
+ *                [>altered_slot = TRUE;<]
+ *            }
+ *        }
+ *    }
+ */
 
-                simdbg("stdout", "(Collision Message) Adjusted slot of current node to %u because node %u has slot %u.\n",
-                    slot, rcvd->b, slot+1);
-                altered_slot = TRUE;
-            }
-        }
-        else if(rcvd->b == TOS_NODE_ID)
-        {
-            if((hop > rcvd->a_hop) || (hop == rcvd->a_hop && TOS_NODE_ID > rcvd->a))
-            {
-                slot = slot - 1;
-                NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
 
-                simdbg("stdout", "(Collision Message) Adjusted slot of current node to %u because node %u has slot %u.\n",
-                    slot, rcvd->a, slot+1);
-                altered_slot = TRUE;
-            }
-        }
-    }
 
-    RECEIVE_MESSAGE_BEGIN(Collision, Receive)
-        case SourceNode:
-        case NormalNode:    x_receive_Collision(rcvd, source_addr); break;
-        case SinkNode:      break;
-    RECEIVE_MESSAGE_END(Collision)
+    /*
+     *RECEIVE_MESSAGE_BEGIN(Collision, Receive)
+     *    case SourceNode:
+     *    case NormalNode:    x_receive_Collision(rcvd, source_addr); break;
+     *    case SinkNode:      break;
+     *RECEIVE_MESSAGE_END(Collision)
+     */
     //}}}Receivers
 }

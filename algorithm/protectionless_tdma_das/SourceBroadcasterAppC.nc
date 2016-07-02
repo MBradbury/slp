@@ -69,12 +69,12 @@ implementation
     App.DissemSend -> DissemSender;
     App.DissemReceive ->DissemReceiver;
 
-    components
-        new AMSenderC(COLLISION_CHANNEL) as CollisionSender,
-        new AMReceiverC(COLLISION_CHANNEL) as CollisionReceiver;
+    /*components*/
+        /*new AMSenderC(COLLISION_CHANNEL) as CollisionSender,*/
+        /*new AMReceiverC(COLLISION_CHANNEL) as CollisionReceiver;*/
 
-    App.CollisionSend -> CollisionSender;
-    App.CollisionReceive ->CollisionReceiver;
+    /*App.CollisionSend -> CollisionSender;*/
+    /*App.CollisionReceive ->CollisionReceiver;*/
 
     // Message Queue
     components
