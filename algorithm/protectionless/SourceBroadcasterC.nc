@@ -7,7 +7,11 @@
 #include <Timer.h>
 #include <TinyError.h>
 
+#ifndef USE_SERIAL_PRINTF
 #include <assert.h>
+#else
+#define assert(...)
+#endif
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
@@ -75,6 +79,13 @@ implementation
 			type = SinkNode;
 			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
+		else
+		{
+			type = NormalNode;
+		}
+
+		busy = False;
+		extra_to_send = 0;
 
 		call RadioControl.start();
 	}

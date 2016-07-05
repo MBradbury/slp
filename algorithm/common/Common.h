@@ -45,14 +45,22 @@ inline double rad2deg(double r)
 #define simdbgerror(name, ...) printf(name ":" __VA_ARGS__); printfflush()
 #define simdbgerror_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
 
-#define PRIu8 "u"
-#define PRIu64 "llu"
-#define PRIi64 "lld"
-
 // TODO: Implement these time strings
 #define sim_time_string() "<TODO implement sim_time_string>"
 #define sim_time() 0ULL
 
+#endif
+
+#ifndef PRIu8
+#	define PRIu8 "u"
+#endif
+
+#ifndef PRIu64
+#	define PRIu64 "llu"
+#endif
+
+#ifndef PRIi64
+#	define PRIi64 "lld"
 #endif
 
 #ifdef SLP_VERBOSE_DEBUG

@@ -9,6 +9,7 @@
 
 #define PROXIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
 #define ULTIMATE_SOURCE_SPEC "%d"
+#define ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "%" PRIi32
 #define SEQUENCE_NUMBER_SPEC "%" PRIi64
 #define DISTANCE_SPEC "%d"
 
@@ -30,7 +31,7 @@
 #define METRIC_DELIVER(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
 	simdbg_clear("Metric-COMMUNICATE", \
 		"DELIVER:" MSG_TYPE_SPEC "," SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," \
-		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
+		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		#TYPE, sim_time(), TOS_NODE_ID, \
 		PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
 
@@ -212,7 +213,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
 	simdbg_clear("Attacker-RCV", \
-		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
+		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		sim_time(), #NAME, TOS_NODE_ID, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
 	if (len != sizeof(NAME##Message)) \
@@ -247,7 +248,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
 	simdbg_clear("Attacker-RCV", \
-		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
+		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		sim_time(), #NAME, TOS_NODE_ID, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
 	if (len != sizeof(NAME##Message)) \

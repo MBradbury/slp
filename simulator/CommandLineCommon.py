@@ -176,15 +176,19 @@ class CLI(object):
 
     def _run_testbed(self, args):
 
-        from data.run.driver.testbed_builder import Runner as Builder
+        from data import testbed_manager
+
+        testbed = testbed_manager.load(args)
 
         testbed_directory = os.path.join("testbed", self.algorithm_module.name)
 
         if 'build' in args:
+            from data.run.driver.testbed_builder import Runner as Builder
+
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            self._execute_runner(Builder(), testbed_directory, skip_completed_simulations=False)
+            self._execute_runner(Builder(testbed.platform()), testbed_directory, skip_completed_simulations=False)
 
         sys.exit(0)
 
