@@ -7,12 +7,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#ifndef USE_SERIAL_PRINTF
-#include <assert.h>
-#else
-#define assert(...)
-#endif
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
 module SourceBroadcasterC
