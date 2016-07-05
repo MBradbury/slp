@@ -36,19 +36,12 @@ inline double rad2deg(double r)
 
 // Compiling for testbeds, so need to route the simdbg to the printf library
 #ifdef USE_SERIAL_PRINTF
-
-#define NEW_PRINTF_SEMANTICS
-#include "printf.h"
-
-#define simdbg(name, ...) printf(name ":" __VA_ARGS__); printfflush()
-#define simdbg_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
-#define simdbgerror(name, ...) printf(name ":" __VA_ARGS__); printfflush()
-#define simdbgerror_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+#	define NEW_PRINTF_SEMANTICS
+#	include "printf.h"
 
 // TODO: Implement these time strings
-#define sim_time_string() "<TODO implement sim_time_string>"
-#define sim_time() 0ULL
-
+#	define sim_time_string() "<TODO implement sim_time_string>"
+#	define sim_time() 0ULL
 #endif
 
 #ifndef PRIu8
