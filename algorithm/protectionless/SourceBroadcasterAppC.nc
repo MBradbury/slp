@@ -19,7 +19,8 @@ implementation
 	App.Leds -> LedsC;
 
 #ifdef USE_SERIAL_PRINTF
-	components SerialPrintfC;
+	components PrintfC;
+	components SerialStartC;
 #endif
 
 	// Radio Control

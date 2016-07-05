@@ -4,7 +4,7 @@ CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat  -Wfloat-equ
 
 ifdef USE_SERIAL_PRINTF
 
-CFLAGS += -I$(TOSDIR)/lib/printf
+CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS
 
 CFLAGS += -Wsign-compare -Wpointer-sign
 

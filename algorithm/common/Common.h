@@ -34,9 +34,14 @@ inline double rad2deg(double r)
 	return r * (180.0 / M_PI);
 }
 
+#ifndef USE_SERIAL_PRINTF
+#	include <assert.h>
+#else
+#	define assert(...)
+#endif
+
 // Compiling for testbeds, so need to route the simdbg to the printf library
 #ifdef USE_SERIAL_PRINTF
-#	define NEW_PRINTF_SEMANTICS
 #	include "printf.h"
 
 // TODO: Implement these time strings
