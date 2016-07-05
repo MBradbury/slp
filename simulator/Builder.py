@@ -1,6 +1,8 @@
 import subprocess
 import sys
 
+ALLOWED_PLATFORMS = ("micaz", "telosb")
+
 def build_sim(directory, **kwargs):
 
     flags = " ".join("-D{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
@@ -17,11 +19,14 @@ def build_sim(directory, **kwargs):
 
     return result
 
-def build_actual(directory, **kwargs):
+def build_actual(directory, kind, **kwargs):
+
+    if kind not in ALLOWED_PLATFORMS:
+        raise RuntimeError("Unknown build platform {}. Only {} are allowed.".format(kind, ALLOWED_PLATFORMS))
 
     flags = " ".join("-D{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
 
-    command = 'make micaz SLP_PARAMETER_CFLAGS="{}" USE_SERIAL_PRINTF=1'.format(flags)
+    command = 'make {} SLP_PARAMETER_CFLAGS="{}" USE_SERIAL_PRINTF=1'.format(kind, flags)
 
     result = subprocess.check_call(
         command,
