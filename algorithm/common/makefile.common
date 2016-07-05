@@ -10,6 +10,6 @@ CFLAGS += -Wsign-compare -Wpointer-sign
 
 else
 
-CFLAGS += -Werror=sign-compare -Werror=pointer-sign -Werror=format
+CFLAGS += -Werror=pointer-sign -Werror=format
 
 endif
