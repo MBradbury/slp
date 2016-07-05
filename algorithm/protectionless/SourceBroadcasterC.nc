@@ -84,7 +84,7 @@ implementation
 			type = NormalNode;
 		}
 
-		busy = False;
+		busy = FALSE;
 		extra_to_send = 0;
 
 		call RadioControl.start();
