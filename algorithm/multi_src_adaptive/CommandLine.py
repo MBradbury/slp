@@ -27,11 +27,18 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["low-asymmetry"]
 
-    sizes = [11, 15, 21, 25]
+    sizes = [11, 15] #, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
     configurations = [
+        'SourceCorner',
+        'Source2Corner',
+        'Source2Corners',
+        'Source3Corners',
+        'Source4Corners',
+        'FurtherSinkSource2Corner',
+
         #'SourceCorner',
         #'SinkCorner',
         #'FurtherSinkCorner',
@@ -42,12 +49,12 @@ class CLI(CommandLineCommon.CLI):
         #'RingOpposite',
         #'RingMiddle',
 
-        'Source2Corners',
+        #'Source2Corners',
         #'Source4Corners',
-        'Source2Edges',
+        #'Source2Edges',
         #'Source4Edges',
-        'Source2Corner',
-        'SourceEdgeCorner',
+        #'Source2Corner',
+        #'SourceEdgeCorner',
 
         #'CircleEdges',
         #'CircleSourceCentre',
@@ -58,7 +65,7 @@ class CLI(CommandLineCommon.CLI):
 
     approaches = ["PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"]
 
-    repeats = 300
+    repeats = 500
 
     local_parameter_names = ('approach',)
 
@@ -79,6 +86,10 @@ class CLI(CommandLineCommon.CLI):
             [self.distance], self.source_periods, self.approaches
         ))
 
+        # Factor in the number of sources when selecting the source period.
+        # This is done so that regardless of the number of sources the overall
+        # network's normal message generation rate is the same.
+        argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
