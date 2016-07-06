@@ -96,9 +96,9 @@ class CLI(object):
         if size == 11:
             return datetime.timedelta(hours=9)
         elif size == 15:
-            return datetime.timedelta(hours=18)
+            return datetime.timedelta(hours=21)
         elif size == 21:
-            return datetime.timedelta(hours=36)
+            return datetime.timedelta(hours=42)
         elif size == 25:
             return datetime.timedelta(hours=72)
         else:
