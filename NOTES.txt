@@ -16,3 +16,7 @@ specific time has a bug. The attacker model causes different results when compar
 an attacker who does nothing and an attacker who does nothing and schedules an
 event every second. It is expected that these two models should produce the same
 result.
+
+=PrintfClient=
+
+See http://comments.gmane.org/gmane.os.tinyos.users/41337 for instructions to build the dependencies for PrintfClient.
