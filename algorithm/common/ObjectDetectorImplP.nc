@@ -5,6 +5,10 @@ module ObjectDetectorImplP
 
 	uses interface Timer<TMilli> as DetectionTimer;
 	uses interface Timer<TMilli> as ExpireTimer;
+
+#ifdef USE_SERIAL_PRINTF
+	uses interface LocalTime<TMilli>;
+#endif
 }
 implementation
 {
