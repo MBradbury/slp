@@ -51,7 +51,6 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
 
@@ -112,12 +111,6 @@ implementation
 	message_t packet;
 
 	uint32_t extra_to_send = 0;
-
-	uint32_t get_source_period()
-	{
-		assert(type == SourceNode);
-		return call SourcePeriodModel.get();
-	}
 
 	// Produces a random float between 0 and 1
 	float random_float()
@@ -324,7 +317,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call SourcePeriodModel.startPeriodic();
 		}
 	}
 
@@ -332,7 +325,7 @@ implementation
 	{
 		if (type == SourceNode)
 		{
-			call BroadcastNormalTimer.stop();
+			call SourcePeriodModel.stop();
 
 			type = NormalNode;
 
@@ -342,14 +335,12 @@ implementation
 	}
 
 
-	event void BroadcastNormalTimer.fired()
+	event void SourcePeriodModel.fired()
 	{
 		NormalMessage message;
 		am_addr_t target;
 
-		const uint32_t source_period = get_source_period();
-
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
@@ -385,8 +376,6 @@ implementation
 			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
 				sim_time(), TOS_NODE_ID, message.sequence_number);
 		}
-
-		call BroadcastNormalTimer.startOneShot(source_period);
 	}
 
 	event void AwaySenderTimer.fired()

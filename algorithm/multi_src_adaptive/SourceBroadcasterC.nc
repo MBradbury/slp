@@ -390,7 +390,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
+			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 		}
 	}
 
@@ -463,8 +463,6 @@ implementation
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
-
-		call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 	}
 
 	event void AwaySenderTimer.fired()

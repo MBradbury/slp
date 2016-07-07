@@ -29,10 +29,8 @@ implementation
 	App.AMPacket -> ActiveMessageC;
 
 	// Timers
-	components new TimerMilliC() as BroadcastNormalTimer;
 	components new TimerMilliC() as BroadcastFakeTimer;
 
-	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.BroadcastFakeTimer -> BroadcastFakeTimer;
 
 
