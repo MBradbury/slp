@@ -5,6 +5,8 @@ module SourcePeriodModelImplP
 	provides interface SourcePeriodModel;
 
 	uses interface LocalTime<TMilli>;
+
+	uses interface Timer<TMilli> as EventTimer;
 }
 implementation
 {
@@ -48,6 +50,25 @@ implementation
 
 		simdbgverbose("stdout", "Providing source period %u at time=%u\n",
 			period, current_time);
+
 		return period;
+	}
+
+	command void SourcePeriodModel.startPeriodic()
+	{
+		call EventTimer.startOneShot(call SourcePeriodModel.get());
+	}
+
+	command void SourcePeriodModel.stop()
+	{
+		call EventTimer.stop();
+	}
+
+	event void EventTimer.fired()
+	{
+		// TODO: Ensure that this does not cause time drift
+		call EventTimer.startOneShot(call SourcePeriodModel.get());
+
+		signal SourcePeriodModel.fired();
 	}
 }

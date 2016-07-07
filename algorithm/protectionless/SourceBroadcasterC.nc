@@ -18,8 +18,6 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 #endif
 
-	uses interface Timer<TMilli> as BroadcastNormalTimer;
-
 	uses interface Packet;
 	uses interface AMPacket;
 
@@ -52,15 +50,6 @@ implementation
 		case NormalNode:			return "NormalNode";
 		default:					return "<unknown> ";
 		}
-	}
-
-	// This function is to be used by the source node to get the
-	// period it should use at the current time.
-	// DO NOT use this for nodes other than the source!
-	uint32_t get_source_period()
-	{
-		assert(type == SourceNode);
-		return call SourcePeriodModel.get();
 	}
 
 	uint32_t extra_to_send = 0;
@@ -119,7 +108,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call SourcePeriodModel.startPeriodic();
 		}
 	}
 
@@ -127,7 +116,7 @@ implementation
 	{
 		if (type == SourceNode)
 		{
-			call BroadcastNormalTimer.stop();
+			call SourcePeriodModel.stop();
 
 			type = NormalNode;
 
@@ -138,11 +127,11 @@ implementation
 
 	USE_MESSAGE(Normal);
 
-	event void BroadcastNormalTimer.fired()
+	event void SourcePeriodModel.fired()
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
@@ -152,8 +141,6 @@ implementation
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
-
-		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
