@@ -14,6 +14,10 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
+#ifdef USE_SERIAL_PRINTF
+	uses interface LocalTime<TMilli>;
+#endif
+
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 
 	uses interface Packet;
