@@ -32,11 +32,7 @@ implementation
 
 	App.RadioControl -> ActiveMessageC;
 
-
 	// Timers
-	components new TimerMilliC() as BroadcastNormalTimer;
-
-	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 
 
 	// Networking

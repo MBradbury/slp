@@ -13,4 +13,9 @@ implementation
 	components LocalTimeMilliC;
 	
 	App.LocalTime -> LocalTimeMilliC;
+
+	//Timers
+	components new TimerMilliC() as EventTimer;
+
+	App.EventTimer -> EventTimer;
 }
