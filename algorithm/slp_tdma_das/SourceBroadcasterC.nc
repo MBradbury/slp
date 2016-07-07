@@ -25,9 +25,12 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
-#define PR_DIST 5
-#define PR_LENGTH 20
-#define SEARCH_PERIOD_COUNT 20
+//Distance search messages travel from sink
+#define PR_DIST 1
+
+//Length of phantom route
+#define PR_LENGTH 10
+#define SEARCH_PERIOD_COUNT 24
 
 module SourceBroadcasterC
 {
@@ -83,7 +86,7 @@ implementation
     bool start = TRUE;
     bool slot_active = FALSE;
     bool normal = TRUE;
-    /*bool altered_slot = FALSE;*/
+
     uint32_t period_counter = 0;
     int dissem_sending;
     bool start_node = FALSE;
@@ -407,14 +410,6 @@ implementation
             dissem_sending--;
         }
         if(period_counter < get_pre_beacon_periods()) dissem_sending = get_dissem_timeout();
-    }
-
-    void send_dissem()
-    {
-        DissemMessage msg;
-        msg.normal = normal;
-        NeighbourList_select(&n_info, &neighbours, &(msg.N)); //TODO Explain this to Arshad
-        send_Dissem_message(&msg, AM_BROADCAST_ADDR);
     }
 
     void send_search_init()
@@ -745,8 +740,8 @@ implementation
         {
             SearchMessage msg;
             msg.pr = rcvd->pr;
-            msg.dist = rcvd->dist - 1; //rcvd->dist - hop;
-            msg.dist = (msg.dist<0) ? 0 : msg.dist;
+            msg.dist = rcvd->dist - 1;
+            //msg.dist = (msg.dist<0) ? 0 : msg.dist;
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbg("stdout", "Sent search message again\n");
         }
@@ -786,7 +781,7 @@ implementation
         else if(rcvd->len_d == 0 && rcvd->a_node == TOS_NODE_ID)
         {
             normal = FALSE;
-            slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
+            slot = rcvd->n_slot - 1; //get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
         }
     }
