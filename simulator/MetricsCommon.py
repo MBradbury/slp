@@ -241,10 +241,7 @@ class MetricsCommon(object):
         if len(self.normal_sent_time) > 0 and np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
             send_modifier = 1
 
-        try:
-            return len(self.normal_latency) / (len(self.normal_sent_time) - send_modifier)
-        except ZeroDivisionError:
-            return None
+        return len(self.normal_latency) / (len(self.normal_sent_time) - send_modifier)
 
     def average_sink_source_hops(self):
         # It is possible that the sink has received no Normal messages
@@ -405,4 +402,10 @@ class MetricsCommon(object):
 
     def print_results(self, stream=None):
         """Print the results to the specified stream (defaults to sys.stdout)."""
-        print(self.get_results(), file=stream)
+        try:
+            print(self.get_results(), file=stream)
+        except Exception as ex:
+            import traceback
+            raise RuntimeError("Failed to get the result string for seed {} caused by {}\n{}".format(
+                self.seed(), ex, traceback.format_exc())
+            )
