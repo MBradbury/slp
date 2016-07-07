@@ -61,7 +61,7 @@ implementation
 
 	SequenceNumber fake_sequence_counter;
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	// Produces a random float between 0 and 1
 	float random_float(void)

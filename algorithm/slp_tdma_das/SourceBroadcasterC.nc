@@ -105,7 +105,7 @@ implementation
 		}
 	}
 
-	uint32_t extra_to_send = 0; //Used in the macros
+	unsigned int extra_to_send = 0; //Used in the macros
 	bool busy = FALSE; //Used in the macros
 	message_t packet; //Used in the macros
     //Initialisation variables}}}

@@ -134,7 +134,7 @@ implementation
 
 	bool first_normal_rcvd = FALSE;
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	typedef enum
 	{
