@@ -469,7 +469,7 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
@@ -488,7 +488,7 @@ implementation
 			type = NormalNode;
 			//source_distance = BOTTOM;
 
-			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}

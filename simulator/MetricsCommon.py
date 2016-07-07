@@ -162,7 +162,11 @@ class MetricsCommon(object):
         raise NotImplementedError()
 
     def process_SOURCE_CHANGE(self, line):
-        (state, node_id) = line.split(',')
+
+        # First get the string without "DEBUG (<NODEID>): "
+        without_dbg = line.split(':', 1)[1].strip()
+
+        (state, node_id) = without_dbg.split(',')
 
         node_id = int(node_id)
         time = self.sim_time()
@@ -178,7 +182,7 @@ class MetricsCommon(object):
             self.became_normal_after_source_times[node_id].append(time)
 
         else:
-            raise RuntimeError("Unknown state {}".format(state))
+            raise RuntimeError("Unknown state '{}'".format(state))
 
     def seed(self):
         return self.sim.seed
