@@ -21,6 +21,10 @@ implementation
 #ifdef USE_SERIAL_PRINTF
 	components PrintfC;
 	components SerialStartC;
+
+	components LocalTimeMilliC;
+	
+	App.LocalTime -> LocalTimeMilliC;
 #endif
 
 	// Radio Control
