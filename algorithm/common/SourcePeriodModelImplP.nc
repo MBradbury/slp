@@ -66,7 +66,6 @@ implementation
 
 	event void EventTimer.fired()
 	{
-		// TODO: Ensure that this does not cause time drift
 		call EventTimer.startOneShot(call SourcePeriodModel.get());
 
 		signal SourcePeriodModel.fired();
