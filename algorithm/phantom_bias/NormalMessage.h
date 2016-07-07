@@ -22,9 +22,9 @@ typedef nx_struct NormalMessage
 
   nx_int16_t random_walk_hops;
 
-  nx_uint16_t neighbour_size;
+  nx_int16_t neighbour_size;
 
-  nx_uint16_t node_id;
+  nx_int16_t node_id;
 
 } NormalMessage;
 
