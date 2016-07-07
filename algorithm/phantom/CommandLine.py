@@ -79,6 +79,11 @@ class CLI(CommandLineCommon.CLI):
                 set(itertools.chain(*self.walk_hop_lengths.values())), self.landmark_nodes)
         ))
 
+        # Factor in the number of sources when selecting the source period.
+        # This is done so that regardless of the number of sources the overall
+        # network's normal message generation rate is the same.
+        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+
         runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
 
 
