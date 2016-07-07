@@ -36,7 +36,6 @@ module SourceBroadcasterC
     uses interface Random;
 
     uses interface Timer<TMilli> as DissemTimer;
-	uses interface Timer<TMilli> as EnqueueNormalTimer;
     uses interface Timer<TMilli> as PreSlotTimer;
     uses interface Timer<TMilli> as SlotTimer;
     uses interface Timer<TMilli> as PostSlotTimer;
@@ -111,15 +110,6 @@ implementation
     //Initialisation variables}}}
 
     //Getter Functions{{{
-	// This function is to be used by the source node to get the
-	// period it should use at the current time.
-	// DO NOT use this for nodes other than the source!
-	uint32_t get_source_period()
-	{
-		assert(type == SourceNode);
-		return call SourcePeriodModel.get();
-	}
-
     uint32_t get_dissem_period()
     {
         return DISSEM_PERIOD_MS;
@@ -205,7 +195,7 @@ implementation
 
 			type = SourceNode;
 
-            call EnqueueNormalTimer.startOneShot(get_source_period());
+            call SourcePeriodModel.startPeriodic();
 		}
 	}
 
@@ -213,7 +203,7 @@ implementation
 	{
 		if (type == SourceNode)
 		{
-            call EnqueueNormalTimer.stop();
+            call SourcePeriodModel.stop();
 
 			type = NormalNode;
 
@@ -427,9 +417,9 @@ implementation
         call DissemTimer.startOneShot((get_tdma_num_slots()-(s-1))*get_slot_period());
     }
 
-    event void EnqueueNormalTimer.fired()
+    event void SourcePeriodModel.fired()
     {
-        /*simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());*/
+        /*simdbg("stdout", "%s: SourcePeriodModel fired.\n", sim_time_string());*/
         if(slot != BOT)
         {
             NormalMessage* message;
@@ -456,7 +446,6 @@ implementation
                 simdbg_clear("Metric-Pool-Full", "%u\n", TOS_NODE_ID);
             }
         }
-        call EnqueueNormalTimer.startOneShot(get_source_period());
     }
     //}}} Timers.fired()
 

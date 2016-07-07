@@ -32,7 +32,6 @@ module SourceBroadcasterC
 
     uses interface Timer<TMilli> as DissemTimer;
     uses interface Timer<TMilli> as DissemTimerSender;
-	uses interface Timer<TMilli> as EnqueueNormalTimer;
     uses interface Timer<TMilli> as PreSlotTimer;
     uses interface Timer<TMilli> as SlotTimer;
     uses interface Timer<TMilli> as PostSlotTimer;
@@ -210,7 +209,7 @@ implementation
 
 			type = SourceNode;
 
-            call EnqueueNormalTimer.startOneShot(get_source_period());
+            call SourcePeriodModel.startPeriodic();
 		}
 	}
 
@@ -218,7 +217,7 @@ implementation
 	{
 		if (type == SourceNode)
 		{
-            call EnqueueNormalTimer.stop();
+            call SourcePeriodModel.stop();
 
 			type = NormalNode;
 
@@ -454,9 +453,9 @@ implementation
         call DissemTimer.startOneShot((get_tdma_num_slots() - (s-1)) * get_slot_period());
     }
 
-    event void EnqueueNormalTimer.fired()
+    event void SourcePeriodModel.fired()
     {
-        /*simdbg("stdout", "%s: EnqueueNormalTimer fired.\n", sim_time_string());*/
+        /*simdbg("stdout", "%s: SourcePeriodModel fired.\n", sim_time_string());*/
         if(slot != BOT && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
@@ -483,8 +482,6 @@ implementation
                 simdbg_clear("Metric-Pool-Full", "%u\n", TOS_NODE_ID);
             }
         }
-
-        call EnqueueNormalTimer.startOneShot(get_source_period());
     }
     //}}} Timers.fired()
 
