@@ -475,7 +475,7 @@ implementation
 			type = SourceNode;
 			//source_distance = 0;
 
-			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
+			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 		}
 	}
 
@@ -589,8 +589,6 @@ implementation
 			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
 				sim_time(), TOS_NODE_ID, message.sequence_number);
 		}
-
-		call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 	}
 
 	event void AwaySenderTimer.fired()

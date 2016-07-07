@@ -22,7 +22,6 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as BroadcastFakeTimer;
 
 	uses interface AMPacket;
@@ -67,15 +66,6 @@ implementation
 		case NormalNode:			return "NormalNode";
 		default:					return "<unknown> ";
 		}
-	}
-
-	// This function is to be used by the source node to get the
-	// period it should use at the current time.
-	// DO NOT use this for nodes other than the source!
-	uint32_t get_source_period(void)
-	{
-		assert(type == SourceNode);
-		return call SourcePeriodModel.get();
 	}
 
 	SequenceNumber fake_sequence_counter;
@@ -134,7 +124,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call SourcePeriodModel.startPeriodic();
 		}
 	}
 
@@ -142,7 +132,7 @@ implementation
 	{
 		if (type == SourceNode)
 		{
-			call BroadcastNormalTimer.stop();
+			call SourcePeriodModel.stop();
 
 			type = NormalNode;
 
@@ -154,11 +144,11 @@ implementation
 	USE_MESSAGE_NO_TARGET(Normal);
 	USE_MESSAGE(Fake);
 
-	event void BroadcastNormalTimer.fired()
+	event void SourcePeriodModel.fired()
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -171,8 +161,6 @@ implementation
 
 		simdbgverbose("stdout", "%s: Generated Normal seqno=%u at %u.\n",
 			sim_time_string(), message.sequence_number, message.source_id);
-
-		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
 	event void BroadcastFakeTimer.fired()
