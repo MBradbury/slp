@@ -45,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
 
     sizes = [11]
 
-    source_periods = [1.0]
+    source_periods = [ 1.0 ]
 
     configurations = [
         'SourceCorner',
@@ -71,8 +71,7 @@ class CLI(CommandLineCommon.CLI):
 
     orders = [
     "ShortLong",
-    #"LongShort",
-    
+    #"LongShort",   
     ]
 
     wait_before_short = [0]
@@ -147,6 +146,7 @@ class CLI(CommandLineCommon.CLI):
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
         return list(zip(walk_short, walk_long))
+        #return list((x,y) for x in walk_short for y in walk_long)
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
