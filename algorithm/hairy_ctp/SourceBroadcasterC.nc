@@ -103,7 +103,7 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	bool busy = FALSE;
 	message_t packet;

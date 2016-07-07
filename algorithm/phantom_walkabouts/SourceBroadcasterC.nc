@@ -216,7 +216,7 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	uint32_t get_source_period()
 	{

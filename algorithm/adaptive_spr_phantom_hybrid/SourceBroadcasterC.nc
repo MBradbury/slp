@@ -136,7 +136,7 @@ implementation
 	int16_t first_source_distance = BOTTOM; // Used to direct the fake message walk
 	int16_t landmark_distance = BOTTOM; // Used to direct the normal message walk
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	// Produces a random float between 0 and 1
 	float random_float(void)

@@ -70,7 +70,7 @@ implementation
 
 	SequenceNumber fake_sequence_counter;
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	bool busy = FALSE;
 	message_t packet;

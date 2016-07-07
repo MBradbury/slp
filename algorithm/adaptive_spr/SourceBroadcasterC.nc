@@ -119,7 +119,7 @@ implementation
 
 	int16_t first_source_distance = BOTTOM;
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	typedef enum
 	{
