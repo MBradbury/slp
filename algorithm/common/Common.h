@@ -44,7 +44,7 @@ inline double rad2deg(double r)
 #ifdef USE_SERIAL_PRINTF
 #	include "printf.h"
 
-#	define sim_time_string() "<sim_time_string>"
+#	define sim_time_string() "<sim_time>"
 #	define sim_time() (call LocalTime.get())
 #endif
 
