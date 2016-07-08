@@ -26,6 +26,7 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
     uses interface Random;
+    uses interface LocalTime<TMilli>;
 
     uses interface Timer<TMilli> as DissemTimer;
     uses interface Timer<TMilli> as DissemTimerSender;
@@ -428,11 +429,12 @@ implementation
     event void DissemTimer.fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
+        uint32_t now = call LocalTime.get();
         period_counter++;
         if(type != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(slot != BOT || period_counter < get_pre_beacon_periods())
         {
-            call DissemTimerSender.startOneShot((uint32_t)(get_slot_period() * random_float()));
+            call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_slot_period() * random_float()));
         }
 
         if(period_counter > get_pre_beacon_periods())
@@ -440,34 +442,37 @@ implementation
             process_dissem();
             process_collision();
         }
-        call PreSlotTimer.startOneShot(get_dissem_period());
+        call PreSlotTimer.startOneShotAt(now, get_dissem_period());
     }
 
     event void PreSlotTimer.fired()
     {
+        uint32_t now = call LocalTime.get();
         const uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
         /*PRINTF0("%s: PreSlotTimer fired.\n", sim_time_string());*/
-        call SlotTimer.startOneShot(s*get_slot_period());
+        call SlotTimer.startOneShotAt(now, s*get_slot_period());
     }
 
 
     event void SlotTimer.fired()
     {
         /*PRINTF0("%s: SlotTimer fired.\n", sim_time_string());*/
+        uint32_t now = call LocalTime.get();
         slot_active = TRUE;
         if(slot != BOT)
         {
             post send_normal();
         }
-        call PostSlotTimer.startOneShot(get_slot_period());
+        call PostSlotTimer.startOneShotAt(now, get_slot_period());
     }
 
     event void PostSlotTimer.fired()
     {
+        uint32_t now = call LocalTime.get();
         const uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
         /*PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());*/
         slot_active = FALSE;
-        call DissemTimer.startOneShot((get_tdma_num_slots() - (s-1)) * get_slot_period());
+        call DissemTimer.startOneShotAt(now, (get_tdma_num_slots() - (s-1)) * get_slot_period());
     }
 
     event void SourcePeriodModel.fired()
