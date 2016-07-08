@@ -3,13 +3,15 @@
 
 #include "pp.h"
 
+#include <inttypes.h>
+
 #define MSG_TYPE_SPEC "%s"
 #define TOS_NODE_ID_SPEC "%u"
 
 #ifdef USE_SERIAL_PRINTF
 #	define SIM_TIME_SPEC "%" PRIu32
 #else
-#	define SIM_TIME_SPEC "%" PRIu64
+#	define SIM_TIME_SPEC "%" PRIi64
 #endif
 
 #define PROXIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
