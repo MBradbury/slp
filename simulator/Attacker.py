@@ -68,7 +68,10 @@ class Attacker(object):
         if self._has_found_source:
             return
 
-        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = line.split(',')
+        # First get the string without "DEBUG (<NODEID>): "
+        without_dbg = line.split(':', 1)[1].strip()
+
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = without_dbg.split(',')
 
         node_id = int(node_id)
 
