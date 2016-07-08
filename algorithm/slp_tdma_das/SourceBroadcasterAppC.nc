@@ -15,10 +15,12 @@ implementation
     components MainC;
     components LedsC;
     components RandomC;
+    components LocalTimeMilliC;
     
     App.Boot -> MainC;
     App.Leds -> LedsC;
     App.Random -> RandomC;
+    App.LocalTime -> LocalTimeMilliC;
 
 
     // Radio Control

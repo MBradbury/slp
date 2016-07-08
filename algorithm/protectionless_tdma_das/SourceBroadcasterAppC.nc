@@ -15,10 +15,12 @@ implementation
     components MainC;
     components LedsC;
     components RandomC;
+    components LocalTimeMilliC;
     
     App.Boot -> MainC;
     App.Leds -> LedsC;
     App.Random -> RandomC;
+    App.LocalTime -> LocalTimeMilliC;
 
 
     // Radio Control
@@ -39,7 +41,7 @@ implementation
     /*App.BroadcastTimer -> BroadcastTimer;*/
     App.DissemTimer -> DissemTimer;
     App.DissemTimerSender -> DissemTimerSender;
-    App.EnqueueNormalTimer -> EnqueueNormalTimer;
+    /*App.EnqueueNormalTimer -> EnqueueNormalTimer;*/
     App.PreSlotTimer -> PreSlotTimer;
     App.SlotTimer -> SlotTimer;
     App.PostSlotTimer -> PostSlotTimer;
