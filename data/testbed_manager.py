@@ -8,6 +8,10 @@ def load(args):
     import pkgutil
     import data.testbed as testbeds
 
+    # Allow a single name to be provided as a parameter
+    if isinstance(args, str):
+        args = (args,)
+
     testbed_modules = {modname: importer for (importer, modname, ispkg) in pkgutil.iter_modules(testbeds.__path__)}
     testbed_names = list(set(args).intersection(testbed_modules.keys()))
 

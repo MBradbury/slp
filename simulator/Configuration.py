@@ -495,7 +495,15 @@ def names():
 # Memoize this call to eliminate the overhead of creating many identical configurations.
 @memoize
 def create_specific(name, network_size, distance):
-    return [cls for cls in configurations() if cls.__name__ == name][0](network_size, distance)
+    confs = [cls for cls in configurations() if cls.__name__ == name]
+
+    if len(confs) == 0:
+        raise RuntimeError("No configurations were found using the name {}, size {} and distance {}".format(name, network_size, distance))
+
+    if len(confs) > 1:
+        raise RuntimeError("There are multiple configurations that have the name {}, not sure which one to choose".format(name))
+
+    return confs[0](network_size, distance)
 
 def create(name, args):
     return create_specific(name, args.network_size, args.distance)
