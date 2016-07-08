@@ -22,20 +22,20 @@
 // The SEQUENCE_NUMBER parameter will typically be of type NXSequenceNumber or have the value BOTTOM,
 // this is why it needs to be cast to an int64_t first.
 #define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
-	simdbg_clear("Metric-COMMUNICATE", \
+	simdbg("Metric-COMMUNICATE", \
 		"RCV:" MSG_TYPE_SPEC "," SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," \
 		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n", \
 		#TYPE, sim_time(), TOS_NODE_ID, \
 		PROXIMATE_SOURCE, ULTIMATE_SOURCE, (int64_t)SEQUENCE_NUMBER, DISTANCE)
 
 #define METRIC_BCAST(TYPE, STATUS, SEQUENCE_NUMBER) \
-	simdbg_clear("Metric-COMMUNICATE", \
+	simdbg("Metric-COMMUNICATE", \
 		"BCAST:" MSG_TYPE_SPEC "," SIM_TIME_SPEC "," TOS_NODE_ID_SPEC ",%s," SEQUENCE_NUMBER_SPEC "\n", \
 		#TYPE, sim_time(), TOS_NODE_ID, \
 		STATUS, SEQUENCE_NUMBER)
 
 #define METRIC_DELIVER(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
-	simdbg_clear("Metric-COMMUNICATE", \
+	simdbg("Metric-COMMUNICATE", \
 		"DELIVER:" MSG_TYPE_SPEC "," SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," \
 		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		#TYPE, sim_time(), TOS_NODE_ID, \
@@ -218,7 +218,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
-	simdbg_clear("Attacker-RCV", \
+	simdbg("Attacker-RCV", \
 		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		sim_time(), #NAME, TOS_NODE_ID, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
@@ -253,7 +253,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
-	simdbg_clear("Attacker-RCV", \
+	simdbg("Attacker-RCV", \
 		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		sim_time(), #NAME, TOS_NODE_ID, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \

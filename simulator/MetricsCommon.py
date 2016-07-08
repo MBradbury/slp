@@ -57,7 +57,10 @@ class MetricsCommon(object):
         self.sim.add_output_processor(catcher)
 
     def process_COMMUNICATE(self, line):
-        (comm_type, contents) = line.split(':', 1)
+        # First get the string without "DEBUG (<NODEID>): "
+        without_dbg = line.split(':', 1)[1].strip()
+
+        (comm_type, contents) = without_dbg.split(':', 1)
 
         if comm_type == 'BCAST':
             return self.process_BCAST(contents)
