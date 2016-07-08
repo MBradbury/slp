@@ -8,6 +8,8 @@
 #define MSG_TYPE_SPEC "%s"
 #define TOS_NODE_ID_SPEC "%u"
 
+// Time is a uint32_t when deploying on real hardware is it comes from LocalTime.
+// In a simulator time is sim_time_t which is a long long int.
 #ifdef USE_SERIAL_PRINTF
 #	define SIM_TIME_SPEC "%" PRIu32
 #else
