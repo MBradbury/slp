@@ -3,13 +3,19 @@
 
 #include "pp.h"
 
+#include <inttypes.h>
+
 #define MSG_TYPE_SPEC "%s"
 #define TOS_NODE_ID_SPEC "%u"
 
+// Time is a uint32_t when deploying on real hardware is it comes from LocalTime.
+// In a simulator time is sim_time_t which is a long long int.
 #ifdef USE_SERIAL_PRINTF
 #	define SIM_TIME_SPEC "%" PRIu32
 #else
-#	define SIM_TIME_SPEC "%" PRIu64
+// For some reason PRIi64 doesn't reliably work, so use the manual lli
+//#	define SIM_TIME_SPEC "%" PRIi64
+#	define SIM_TIME_SPEC "%lli"
 #endif
 
 #define PROXIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
