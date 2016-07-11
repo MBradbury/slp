@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
         pass
 
-    elif args.action == "read-logs"
+    elif args.action == "read-logs":
 
         # Get the logs off the testbed
 
