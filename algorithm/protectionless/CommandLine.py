@@ -114,9 +114,12 @@ class CLI(CommandLineCommon.CLI):
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources")
 
-        varying = ['configuration', 'source period']
+        varying = [
+            ("source period", " seconds"),
+            ("communication model", "~")
+        ]
 
-        for vary in varying:
+        for vary in (vary, vary_prefix):
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "_"))
 
@@ -130,9 +133,8 @@ class CLI(CommandLineCommon.CLI):
                 g.generate_legend_graph = True
 
                 g.xaxis_label = 'Network Size'
-                g.yaxis_label = yaxis_label
-                g.vary_label = ''
-                g.vary_prefix = ''
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_prefix
 
                 #g.nokey = True
                 g.key_position = key_position
