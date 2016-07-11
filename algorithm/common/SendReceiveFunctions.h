@@ -13,7 +13,9 @@
 #ifdef USE_SERIAL_PRINTF
 #	define SIM_TIME_SPEC "%" PRIu32
 #else
-#	define SIM_TIME_SPEC "%" PRIi64
+// For some reason PRIi64 doesn't reliably work, so use the manual lli
+//#	define SIM_TIME_SPEC "%" PRIi64
+#	define SIM_TIME_SPEC "%lli"
 #endif
 
 #define PROXIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
