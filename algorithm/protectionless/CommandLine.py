@@ -18,30 +18,16 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    #noise_models = ["meyer-heavy", "casino-lab"]
-    noise_models = ["meyer-heavy"]
+    noise_models = ["meyer-heavy", "casino-lab"]
 
-    #communication_models = ["low-asymmetry"]
-    communication_models = ["ideal"]
+    communication_models = ["low-asymmetry"] 
 
     sizes = [11, 15, 21, 25]
 
-    #source_periods = [1.0, 0.5, 0.25, 0.125]
-    source_periods = [2.0]
+    source_periods = [1.0, 0.5, 0.25, 0.125]
+
 
     configurations = [
-        'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
-
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
-
-        'FurtherSinkCorner',
-        'FurtherSinkCorner2Source',
-        'FurtherSinkCorner3Source'
-'''
         'SourceCorner',
         'SinkCorner',
         'FurtherSinkCorner',
@@ -69,7 +55,7 @@ class CLI(CommandLineCommon.CLI):
         'Source4Corners',
         'Source4Edges',        
         'Source2Corner2OppositeCorner'
-'''
+
     ]
 
     repeats = 2000
