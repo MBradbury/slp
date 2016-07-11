@@ -288,6 +288,20 @@ class Analyse(object):
 
                 return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
 
+            elif name == "good_move_ratio":
+
+                steps_towards = self._get_from_opts_or_values("AttackerStepsTowards", values)
+                steps_away =  self._get_from_opts_or_values("AttackerStepsAway", values)
+
+                ratios = []
+
+                for node_id in steps_towards.keys():
+                    ratios.append(float(steps_towards[node_id]) / (float(steps_towards[node_id]) + float(steps_away[node_id])))
+
+                ave = np.mean(ratios)
+
+                return ave
+
             else:
                 # Handle normalising with arbitrary numbers
                 try:
