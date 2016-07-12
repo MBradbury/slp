@@ -8,12 +8,15 @@ class DebugAnalyzer:
     AM_SEND = 1
     AM_RECV = 2
     CHANGE  = 3
+    DAS     = 4
 
     WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
     LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
     CHANGE_RE = re.compile(r'The node has become a ([a-zA-Z]+)')
+
+    DAS_RE    = re.compile(r'DAS is (\d)')
 
     ####################
     def __init__(self):
@@ -60,6 +63,12 @@ class DebugAnalyzer:
             kind = match.group(1)
             return (node_id, self.CHANGE, (kind,))
 
+        # Check whether DAS is broken
+        match = self.DAS_RE.match(detail)
+        if match is not None:
+            state = int(match.group(1))
+            return (node_id, self.DAS, (state,))
+
         return None
 
 ###############################################
@@ -94,6 +103,7 @@ class GuiSimulation(Simulation):
         dbg.register(self, 'AM')
         dbg.register(self, 'Fake-Notification')
         dbg.register(self, 'Node-Change-Notification')
+        dbg.register(self, 'DAS-State')
         self.add_output_processor(dbg)
         
     def _adjust_location(self, loc):
@@ -172,6 +182,14 @@ class GuiSimulation(Simulation):
 
         self.scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
 
+    def _animate_das_state(self, time, node, detail):
+        (state,) = detail
+        (x,y) = self.node_location(node)
+        if state == 0:
+            self.scene.execute(time,
+                    'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),width=5),delay=.8)'
+                    % (x, y, 10))
+
     ####################
     def _process_message(self, dbg):
         result = self._debug_analyzer.analyze(dbg)
@@ -184,7 +202,8 @@ class GuiSimulation(Simulation):
             DebugAnalyzer.LED: self._animate_leds,
             DebugAnalyzer.AM_SEND: self._animate_am_send,
             DebugAnalyzer.AM_RECV: self._animate_am_receive,
-            DebugAnalyzer.CHANGE: self._animate_change_state
+            DebugAnalyzer.CHANGE: self._animate_change_state,
+            DebugAnalyzer.DAS: self._animate_das_state
 
         }[event_type](self.sim_time(), node_id, detail)
 

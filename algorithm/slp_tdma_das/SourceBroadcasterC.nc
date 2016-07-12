@@ -372,6 +372,27 @@ implementation
                     }
                 }
             }
+
+            //Check to see if DAS has been broken
+            for(i=0; i < neighbour_info.count; i++)
+            {
+                if(neighbour_info.info[i].hop > hop) {
+                    if(neighbour_info.info[i].slot > slot) {
+                        simdbg("DAS-State", "DAS is 0\n");
+                    }
+                    else {
+                        simdbg("DAS-State", "DAS is 1\n");
+                    }
+                }
+                else if(neighbour_info.info[i].hop < hop) {
+                    if(neighbour_info.info[i].slot < slot) {
+                        simdbg("DAS-State", "DAS is 0\n");
+                    }
+                    else {
+                        simdbg("DAS-State", "DAS is 1\n");
+                    }
+                }
+            }
             /*
              *simdbg("stdout", "Checking for collisions between neighbours.\n");
              *for(i=0; i < neighbour_info.count; i++)
