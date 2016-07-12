@@ -43,7 +43,7 @@ implementation
 
 		call DurationTimer.startOneShot(duration_ms);
 
-		simdbgverbose("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %u ms.\n", duration_ms);
+		simdbgverbose("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %" PRIu32 " ms.\n", duration_ms);
 	}
 
 	command void FakeMessageGenerator.stop()
