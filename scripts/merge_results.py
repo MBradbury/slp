@@ -2,7 +2,8 @@
 
 from __future__ import print_function
 
-import os, fnmatch
+import fnmatch
+import os
 
 class MergeResults:
     def __init__(self, results_dir, merge_dir):
@@ -91,6 +92,8 @@ class MergeResults:
             except ValueError:
                 return other_path
 
+        return other_path
+
     def merge_files(self, result_file):
         result_path = os.path.join(self.results_dir, result_file)
         other_path = os.path.join(self.merge_dir, result_file)
@@ -141,7 +144,8 @@ def main(results_dir, to_merge_with_dir):
         print(failure)
 
 if __name__ == '__main__':
-    import sys, argparse
+    import argparse
+    import sys
 
     parser = argparse.ArgumentParser(description="Result Merger", add_help=True)
     parser.add_argument("--result-dir", type=str, required=True, help="The location of the main results files. The merged results will be stored here.")
