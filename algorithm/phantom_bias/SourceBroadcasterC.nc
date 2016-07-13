@@ -497,6 +497,10 @@ implementation
 		}
 	}
 
+	event void SourcePeriodModel.fired()
+	{
+	}
+
 	event void BroadcastNormalTimer.fired()
 	{
 		NormalMessage message;
