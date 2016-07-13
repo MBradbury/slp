@@ -20,11 +20,12 @@ class CLI(CommandLineCommon.CLI):
 
     noise_models = ["meyer-heavy", "casino-lab"]
 
-    communication_models = ["low-asymmetry"]
+    communication_models = ["low-asymmetry"] 
 
     sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
+
 
     configurations = [
         'SourceCorner',
@@ -54,6 +55,7 @@ class CLI(CommandLineCommon.CLI):
         'Source4Corners',
         'Source4Edges',        
         'Source2Corner2OppositeCorner'
+
     ]
 
     repeats = 2000
