@@ -70,8 +70,4 @@ implementation
 
 		signal SourcePeriodModel.fired();
 	}
-
-	default event void SourcePeriodModel.fired()
-	{
-	}
 }
