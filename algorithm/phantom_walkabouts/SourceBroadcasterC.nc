@@ -656,7 +656,7 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 3;
+		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -676,7 +676,7 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 4;
+		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -696,7 +696,7 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 5;
+		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
