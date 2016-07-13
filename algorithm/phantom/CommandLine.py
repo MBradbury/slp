@@ -23,9 +23,9 @@ class CLI(CommandLineCommon.CLI):
 
     distance = 4.5
 
-    #noise_models = ["meyer-heavy", "casino-lab"]
+    noise_models = ["meyer-heavy", "casino-lab"]
 
-    #communication_models = ["no-asymmetry", "high-asymmetry", "ideal"]
+    communication_models = ["no-asymmetry", "high-asymmetry", "ideal"]
 
     sizes = [11, 15, 21, 25]
 
