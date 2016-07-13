@@ -24,7 +24,7 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["low-asymmetry"]
 
-    sizes = [11, 15] #, 21, 25]
+    sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
@@ -113,6 +113,7 @@ class CLI(CommandLineCommon.CLI):
             'pfs': ('Number of PFS Created', 'left top'),
             'attacker distance': ('Meters', 'left top'),
             'good move ratio': ('Good Move Ratio (%)', 'right top'),
+            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
         adaptive_results = results.Results(

@@ -106,6 +106,7 @@ class CLI(CommandLineCommon.CLI):
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'good move ratio': ('Good Move Ratio (%)', 'right top'),
+            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
         protectionless_results = results.Results(
@@ -119,7 +120,7 @@ class CLI(CommandLineCommon.CLI):
             ("communication model", "~")
         ]
 
-        for vary in (vary, vary_prefix):
+        for (vary, vary_prefix) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "_"))
 
@@ -130,7 +131,7 @@ class CLI(CommandLineCommon.CLI):
                     xaxis='network size', yaxis=yaxis, vary=vary,
                     yextractor=yextractor)
 
-                g.generate_legend_graph = True
+                #g.generate_legend_graph = True
 
                 g.xaxis_label = 'Network Size'
                 g.vary_label = vary.title()
