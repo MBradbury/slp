@@ -101,11 +101,11 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            'safety period': ('Safety Period (seconds)', 'left top'),
-            'time taken': ('Time Taken (seconds)', 'left top'),
+            #'safety period': ('Safety Period (seconds)', 'left top'),
+            #'time taken': ('Time Taken (seconds)', 'left top'),
             #'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
-            'sent': ('Total Messages Sent', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'good move ratio': ('Good Move Ratio (%)', 'right top'),
             'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
@@ -121,6 +121,8 @@ class CLI(CommandLineCommon.CLI):
             ("source period", " seconds"),
             ("communication model", "~")
         ]
+
+        error_bars = set() # {'received ratio', 'good move ratio', 'norm(norm(sent,time taken),num_nodes)'}
 
         for (vary, vary_prefix) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -138,6 +140,8 @@ class CLI(CommandLineCommon.CLI):
                 g.xaxis_label = 'Network Size'
                 g.vary_label = vary.title()
                 g.vary_prefix = vary_prefix
+
+                g.error_bars = yaxis in error_bars
 
                 #g.nokey = True
                 g.key_position = key_position

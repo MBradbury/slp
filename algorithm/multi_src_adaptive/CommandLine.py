@@ -119,12 +119,15 @@ class CLI(CommandLineCommon.CLI):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation="NumSources")
 
         varying = [
             ("source period", " seconds"),
             ("communication model", "~")
         ]
+
+        error_bars = set() # {'received ratio', 'good move ratio', 'norm(norm(sent,time taken),num_nodes)'}
 
         for (vary, vary_prefix) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -141,6 +144,8 @@ class CLI(CommandLineCommon.CLI):
                 g.yaxis_label = yaxis_label
                 g.vary_label = vary.title()
                 g.vary_prefix = vary_prefix
+
+                g.error_bars = yaxis in error_bars
 
                 #g.nokey = True
                 g.key_position = key_position

@@ -2,6 +2,8 @@ from __future__ import print_function, division
 
 import os, itertools, math, collections
 
+import numpy as np
+
 import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
@@ -112,11 +114,16 @@ class Grapher(GrapherBase):
             for xvalue in sorted(xvalues):
                 row = [ xvalue ]
                 for vvalue in vvalues:
-                    yvalue = values.get((xvalue, vvalue), '?')
-                    if self.error_bars and yvalue != '?':
-                        row.extend(yvalue)
+                    yvalue = values.get((xvalue, vvalue), None)
+
+                    if self.error_bars:
+
+                        if yvalue is not None and not isinstance(yvalue, np.ndarray):
+                            raise RuntimeError("Cannot display error bars for {} as no stddev is included in the results".format(dir_name))
+
+                        row.extend(yvalue if yvalue is not None else ['?', '?'])
                     else:
-                        row.append(yvalue)
+                        row.append(yvalue if yvalue is not None else '?')
 
                 table.append(row)
 
