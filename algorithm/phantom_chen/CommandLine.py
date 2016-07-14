@@ -278,6 +278,7 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per node per second', 'right top'),
         }
 
         phantom_results = results.Results(
@@ -372,6 +373,7 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per node per second', 'right top'),
         }
 
         phantom_results = results.Results(
