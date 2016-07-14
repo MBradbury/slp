@@ -873,7 +873,7 @@ implementation
 		}
 		else
 		{
-			METRIC_BCAST(Fake, result, BOTTOM);
+			METRIC_BCAST(Fake, result, UNKNOWN_SEQNO);
 		}
 
 		if (pfs_can_become_normal())

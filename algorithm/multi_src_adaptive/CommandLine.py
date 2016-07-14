@@ -24,7 +24,7 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["low-asymmetry"]
 
-    sizes = [11, 15] #, 21, 25]
+    sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
@@ -112,6 +112,8 @@ class CLI(CommandLineCommon.CLI):
             'tfs': ('Number of TFS Created', 'left top'),
             'pfs': ('Number of PFS Created', 'left top'),
             'attacker distance': ('Meters', 'left top'),
+            'good move ratio': ('Good Move Ratio (%)', 'right top'),
+            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
         adaptive_results = results.Results(
@@ -119,7 +121,12 @@ class CLI(CommandLineCommon.CLI):
             parameters=self.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
-        for (vary, vary_prefix) in [("source period", " seconds"), ("communication model", "~")]:
+        varying = [
+            ("source period", " seconds"),
+            ("communication model", "~")
+        ]
+
+        for (vary, vary_prefix) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
 
@@ -134,6 +141,8 @@ class CLI(CommandLineCommon.CLI):
                 g.yaxis_label = yaxis_label
                 g.vary_label = vary.title()
                 g.vary_prefix = vary_prefix
+
+                #g.nokey = True
                 g.key_position = key_position
 
                 g.create(adaptive_results)
