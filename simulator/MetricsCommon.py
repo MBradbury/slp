@@ -49,7 +49,7 @@ class MetricsCommon(object):
         self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
 
         # BCAST / RCV / DELIVER events
-        self.register('Metric-COMMUNICATE', self.process_COMMUNICATE)
+        self.register('Metric-COMM', self.process_COMMUNICATE)
 
     def register(self, name, function):
         catcher = OutputCatcher(function)
