@@ -177,7 +177,7 @@ class Random(Topology):
 
 class DCSWarwick(Topology):
     """The layout of the nodes in DCS Warwick."""
-    def __init__(self, size=None, distance, initial_position=10.0):
+    def __init__(self, size, distance, initial_position=10.0):
         super(DCSWarwick, self).__init__()
 
         self.distance = distance

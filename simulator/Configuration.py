@@ -468,7 +468,7 @@ class RandomConnected(Configuration):
 
 class DCSWarwickSrc201Sink208(Configuration):
     def __init__(self, network_size, distance):
-        dcs_warwick = DCSWarwick(distance=distance)
+        dcs_warwick = DCSWarwick(None, distance)
 
         super(DCSWarwickSrc201Sink208, self).__init__(
             dcs_warwick,
