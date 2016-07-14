@@ -26,7 +26,7 @@
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
 //Distance search messages travel from sink
-#define PR_DIST 1
+#define PR_DIST 4
 
 //Length of phantom route
 #define PR_LENGTH 10
@@ -369,6 +369,27 @@ implementation
                     {
                         simdbg("stdout", "Detected collision between %u and %u\n", n_info.info[i].id, n_info.info[j].id);
                         break;
+                    }
+                }
+            }
+
+            //Check to see if DAS has been broken
+            for(i=0; i < neighbour_info.count; i++)
+            {
+                if(neighbour_info.info[i].hop > hop) {
+                    if(neighbour_info.info[i].slot > slot) {
+                        simdbg("DAS-State", "DAS is 0\n");
+                    }
+                    else {
+                        simdbg("DAS-State", "DAS is 1\n");
+                    }
+                }
+                else if(neighbour_info.info[i].hop < hop) {
+                    if(neighbour_info.info[i].slot < slot) {
+                        simdbg("DAS-State", "DAS is 0\n");
+                    }
+                    else {
+                        simdbg("DAS-State", "DAS is 1\n");
                     }
                 }
             }
@@ -765,6 +786,7 @@ implementation
             NeighbourList_select(&n_info, &neighbours, &onehop);
             slot = rcvd->n_slot - get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            dissem_sending = get_dissem_timeout();
             msg.a_node = choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = rcvd->len_d - 1;
@@ -776,6 +798,7 @@ implementation
             normal = FALSE;
             slot = rcvd->n_slot - 1; //get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            dissem_sending = get_dissem_timeout();
         }
     }
 
