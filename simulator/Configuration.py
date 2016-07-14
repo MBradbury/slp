@@ -5,7 +5,7 @@ from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
 from data.memoize import memoize
-from simulator.Topology import SimpleTree, Line, Ring, Grid, Random
+from simulator.Topology import *
 
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_id, space_behind_sink):
@@ -463,6 +463,17 @@ class RandomConnected(Configuration):
             random,
             source_ids={len(random.nodes) - 1},
             sink_id=0,
+            space_behind_sink=True
+        )
+
+class DCSWarwickSrc201Sink208(Configuration):
+    def __init__(self, network_size, distance):
+        dcs_warwick = DCSWarwick(distance=distance)
+
+        super(DCSWarwickSrc201Sink208, self).__init__(
+            dcs_warwick,
+            source_ids={1},
+            sink_id=2,
             space_behind_sink=True
         )
 
