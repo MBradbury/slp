@@ -35,6 +35,9 @@ class Grapher(GrapherBase):
         self.yaxis_font = None
         self.xaxis_font = None
 
+        self.ylabel_font = None
+        self.xlabel_font = None
+
         self.nokey = False
         self.key_position = 'right top'
         self.key_font = None
@@ -137,6 +140,12 @@ class Grapher(GrapherBase):
             graph_p.write('#!/usr/bin/gnuplot\n')
 
             graph_p.write('set terminal pdf enhanced\n')
+
+            if self.ylabel_font is not None:
+                graph_p.write('set ylabel font "{}"\n'.format(self.ylabel_font))
+
+            if self.xlabel_font is not None:
+                graph_p.write('set xlabel font "{}"\n'.format(self.xlabel_font))
 
             graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
             graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
