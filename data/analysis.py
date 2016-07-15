@@ -445,7 +445,7 @@ class AnalysisResults:
 
         skip = ["Seed"]
 
-        expected_fail = ['Collisions', "NodeWasSource"]
+        expected_fail = ['Collisions', "NodeWasSource", "AttackerMovesInResponseTo", "SentOverTime"]
 
         for heading in analysis.headings:
             if heading in skip:
@@ -571,8 +571,8 @@ class AnalyzerCommon(object):
 
                     outqueue.put((path, line, None))
 
-                except Exception as e:
-                    outqueue.put((path, None, e))
+                except Exception as ex:
+                    outqueue.put((path, None, (ex, traceback.format_exc())))
 
 
         nprocs = multiprocessing.cpu_count()
@@ -615,7 +615,9 @@ class AnalyzerCommon(object):
                 if error is None:
                     print(line, file=out)
                 else:
-                    print("Error processing {} with {}".format(path, error))
+                    (ex, tb) = error
+                    print("Error processing {} with {}".format(path, ex))
+                    print(tb)
 
                 current_time_taken = timeit.default_timer() - start_time
                 time_per_job = current_time_taken / (num + 1)
