@@ -218,11 +218,16 @@ class CLI(object):
     def _run_detect_missing(self, args):
         # TODO: Extend this to also handle missing results files
 
+        print("Loading {} to check for missing runs".format(self.algorithm_module.result_file_path))
+        print("Warning: This will not check for missing parameter combinations")
+
         result = results.Results(self.algorithm_module.result_file_path,
                                  parameters=self.local_parameter_names,
                                  results=('repeats',))
 
         repeats = result.parameter_set()
+
+        parameter_names = self.global_parameter_names + result.parameter_names
 
         for (parameter_values, repeats_performed) in repeats.items():
 
@@ -232,8 +237,6 @@ class CLI(object):
             if repeats_missing > 0:
 
                 print("performed={} missing={} ".format(repeats_performed, repeats_missing), end="")
-
-                parameter_names = self.global_parameter_names + result.parameter_names
 
                 print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, parameter_values)]))
                 print()
