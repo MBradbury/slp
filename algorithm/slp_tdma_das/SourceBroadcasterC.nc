@@ -376,20 +376,10 @@ implementation
             //Check to see if DAS has been broken
             for(i=0; i < neighbour_info.count; i++)
             {
-                if(neighbour_info.info[i].hop > hop) {
-                    if(neighbour_info.info[i].slot > slot) {
-                        simdbg("DAS-State", "DAS is 0\n");
-                    }
-                    else {
-                        simdbg("DAS-State", "DAS is 1\n");
-                    }
-                }
-                else if(neighbour_info.info[i].hop < hop) {
+                if(neighbour_info.info[i].id == parent) {
                     if(neighbour_info.info[i].slot < slot) {
                         simdbg("DAS-State", "DAS is 0\n");
-                    }
-                    else {
-                        simdbg("DAS-State", "DAS is 1\n");
+                        break;
                     }
                 }
             }
@@ -779,8 +769,8 @@ implementation
         {
             ChangeMessage msg;
             OnehopList onehop;
-            /*IDList npar = IDList_minus_parent(&potential_parents, parent); //XXX Problem is this is often empty*/
-            IDList npar = IDList_minus_parent(&neighbours, TOS_NODE_ID);
+            IDList npar = IDList_minus_parent(&potential_parents, parent); //XXX Problem is this is often empty
+            /*IDList npar = IDList_minus_parent(&neighbours, TOS_NODE_ID);*/
             npar = IDList_minus_parent(&npar, parent);
             simdbg("stdout", "Received change\n");
             NeighbourList_select(&n_info, &neighbours, &onehop);
