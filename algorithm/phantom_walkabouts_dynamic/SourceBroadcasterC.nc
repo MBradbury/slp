@@ -737,7 +737,7 @@ implementation
 		LONG_RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + landmark_sink_distance + 2;
 		
 		
-		simdbg("stdout","(ssd:%d,random walk length:%d)short random walk hop=%d, long random walk hop=%d\n", landmark_sink_distance, random_walk_length, RANDOM_WALK_HOPS, LONG_RANDOM_WALK_HOPS);
+		//simdbg("stdout","(ssd:%d,random walk length:%d)short random walk hop=%d, long random walk hop=%d\n", landmark_sink_distance, random_walk_length, RANDOM_WALK_HOPS, LONG_RANDOM_WALK_HOPS);
 
 		#ifdef SHORT_LONG_SEQUENCE
 		{
