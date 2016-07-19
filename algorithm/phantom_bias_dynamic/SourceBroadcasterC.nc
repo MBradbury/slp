@@ -133,6 +133,9 @@ implementation
 	int16_t srw_count = 0;	//short random walk count.
 	int16_t lrw_count = 0;	//long random walk count.
 
+	uint16_t RANDOM_WALK_HOPS = BOTTOM;
+	uint16_t LONG_RANDOM_WALK_HOPS = BOTTOM;
+
 	distance_neighbours_t neighbours;
 
 	bool busy = FALSE;
@@ -505,6 +508,7 @@ implementation
 	{
 		NormalMessage message;
 		am_addr_t target;
+		uint16_t random_walk_length;
 
 		const uint32_t source_period = get_source_period();
 
@@ -519,6 +523,12 @@ implementation
 			srw_count = SHORT_COUNT;
 			lrw_count = LONG_COUNT;
 		}
+
+		random_walk_length = landmark_distance/2 -1;
+		RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + 2;
+		LONG_RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + landmark_distance + 2;
+		simdbgverbose("stdout", "(landmark_distance:%d) %d, %d\n", landmark_distance, RANDOM_WALK_HOPS, LONG_RANDOM_WALK_HOPS);
+		
 
 		#if defined(SHORT_LONG_SEQUENCE)
 		{

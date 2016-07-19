@@ -20,14 +20,14 @@ class CLI(CommandLineCommon.CLI):
 
     noise_models = ["meyer-heavy", "casino-lab"]
 
-    communication_models = ["low-asymmetry"] 
+    communication_models = ["low-asymmetry"]
 
     sizes = [11, 15, 21, 25]
 
     source_periods = [1.0, 0.5, 0.25, 0.125]
 
-
     configurations = [
+
         'SourceCorner',
         'SinkCorner',
         'FurtherSinkCorner',
@@ -48,14 +48,13 @@ class CLI(CommandLineCommon.CLI):
         'Source2Corner',
         'SourceEdgeCorner',
 
-        # 3 sources
+       # 3 sources
         'Source3Corner',
 
         # 4 sources
         'Source4Corners',
         'Source4Edges',        
         'Source2Corner2OppositeCorner'
-
     ]
 
     repeats = 2000
@@ -101,14 +100,12 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            #'safety period': ('Safety Period (seconds)', 'left top'),
-            #'time taken': ('Time Taken (seconds)', 'left top'),
+            'safety period': ('Safety Period (seconds)', 'left top'),
+            'time taken': ('Time Taken (seconds)', 'left top'),
             #'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'left top'),
+            #'captured': ('Capture Ratio (%)', 'left top'),
             #'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'good move ratio': ('Good Move Ratio (%)', 'right top'),
-            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
+            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
         }
 
         protectionless_results = results.Results(
@@ -117,41 +114,32 @@ class CLI(CommandLineCommon.CLI):
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources")
 
-        varying = [
-            ("source period", " seconds"),
-            ("communication model", "~")
-        ]
+        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+            name = '{}-v-configuration'.format(yaxis.replace(" ", "_"))
 
-        error_bars = set() # {'received ratio', 'good move ratio', 'norm(norm(sent,time taken),num_nodes)'}
+            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
 
-        for (vary, vary_prefix) in varying:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "_"))
+            g = versus.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis='network size', yaxis=yaxis, vary='configuration',
+                yextractor=yextractor)
 
-                yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
+            g.generate_legend_graph = True
 
-                g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=yextractor)
+            g.xaxis_label = 'Network Size'
+            g.yaxis_label = yaxis_label
+            g.vary_label = ''
+            g.vary_prefix = ''
 
-                #g.generate_legend_graph = True
+            g.nokey = True
+            g.key_position = key_position
 
-                g.xaxis_label = 'Network Size'
-                g.vary_label = vary.title()
-                g.vary_prefix = vary_prefix
+            g.create(protectionless_results)
 
-                g.error_bars = yaxis in error_bars
-
-                #g.nokey = True
-                g.key_position = key_position
-
-                g.create(protectionless_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    '{}-{}'.format(self.algorithm_module.name, name)
-                ).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name)
+            ).run()
 
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults
