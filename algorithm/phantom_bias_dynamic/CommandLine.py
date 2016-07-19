@@ -73,7 +73,7 @@ class CLI(CommandLineCommon.CLI):
     short_counts = [1]
     long_counts = [1]
 
-    repeats = 250
+    repeats = 300
 
     local_parameter_names = ('order', 'short count', 'long count', 'wait before short')
 
