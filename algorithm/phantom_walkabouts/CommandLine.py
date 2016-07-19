@@ -43,18 +43,18 @@ class CLI(CommandLineCommon.CLI):
 
     communication_models = ["ideal"]
 
-    sizes = [11]
+    sizes = [11, 15, 21, 25]
 
-    source_periods = [1.0]
+    source_periods = [0.25, 0.5, 1.0, 2.0]
 
     configurations = [
         'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
+        'Source2CornerTop',
+        'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -82,7 +82,7 @@ class CLI(CommandLineCommon.CLI):
     short_counts = [1]
     long_counts = [1]
 
-    repeats = 1000
+    repeats = 300
 
 
     local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
