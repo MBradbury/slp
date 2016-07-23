@@ -480,7 +480,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(3 * 1000); // 3 seconds
+			call BroadcastNormalTimer.startOneShot(2 * 1000); // 3 seconds
 		}
 	}
 

@@ -1054,7 +1054,7 @@ implementation
 			if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location == SINK)
 			{
 				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(1.5 * 1000);
+				call DelayBRSenderTimer.startOneShot(2 * 1000);
 			}
 		}
 		else
@@ -1062,14 +1062,14 @@ implementation
 			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 			{
 				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(2 * 1000);
+				call DelayBRSenderTimer.startOneShot(3 * 1000);
 			}
 		}
 
 		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 		{
 			sink_tr_dist = rcvd->landmark_distance;
-			call DelayTRSenderTimer.startOneShot(2.5 * 1000);
+			call DelayTRSenderTimer.startOneShot(4 * 1000);
 		}
 
 
