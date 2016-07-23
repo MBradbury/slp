@@ -31,7 +31,7 @@ class RunSimulations(RunSimulationsCommon):
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
 
-        return 1.3 * time_taken
+        return 1.3 * time_taken + 3
 
 class CLI(CommandLineCommon.CLI):
 
