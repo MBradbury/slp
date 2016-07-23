@@ -81,6 +81,7 @@ implementation
 
     uint16_t hop = BOT;
     am_addr_t parent = AM_BROADCAST_ADDR;
+    IDList children;
     uint16_t slot = BOT;
 
     bool start = TRUE;
@@ -189,6 +190,7 @@ implementation
         potential_parents = IDList_new();
         others = OtherList_new();
         n_info = NeighbourList_new();
+        children = IDList_new();
 
 		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
@@ -404,6 +406,7 @@ implementation
         {
             DissemMessage msg;
             msg.normal = normal;
+            msg.parent = parent;
             NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
             simdbg("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");
@@ -418,10 +421,25 @@ implementation
     {
         if(type == SinkNode)
         {
+            int i;
             SearchMessage msg;
-            msg.dist = get_pr_dist() - 1;
             msg.pr = get_pr_length();
+            msg.dist = get_pr_dist() - 1;
+            msg.a_node = BOT;
+            assert(children.count != 0);
+            for(i=0; i<children.count; i++) {
+                if(rank(&children, children.ids[i]) == children.count)
+                {
+                    msg.a_node = children.ids[i];
+                    break;
+                }
+            }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
+            simdbg("stdout", "Sent search message to %u\n", msg.a_node);
+            /*SearchMessage msg;*/
+            /*msg.dist = get_pr_dist() - 1;*/
+            /*msg.pr = get_pr_length();*/
+            /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
         }
     }
 
@@ -644,6 +662,12 @@ implementation
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
 
+        if(rcvd->parent == TOS_NODE_ID)
+        {
+            IDList_add(&children, source_addr);
+            simdbg("stdout", "Added child to list: "); IDList_print(&children); simdbg_clear("stdout", "\n");
+        }
+
         // Record that the sender is in our 1-hop neighbourhood
         IDList_add(&neighbours, source_addr);
         if(NeighbourList_get(&n_info, source_addr) == NULL)
@@ -714,10 +738,17 @@ implementation
 
         IDList_add(&neighbours, source_addr);
 
+        if(rcvd->parent == TOS_NODE_ID)
+        {
+            IDList_add(&children, source_addr);
+            simdbg("stdout", "Added child to list: "); IDList_print(&children); simdbg_clear("stdout", "\n");
+        }
+
         for(i = 0; i<rcvd->N.count; i++)
         {
             NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
         }
+
     }
 
 
@@ -730,37 +761,70 @@ implementation
     bool received_search = FALSE;
     void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)
     {
-        OtherInfo* other_info = OtherList_get(&others, parent);
-        if(received_search) return;
-        simdbg("stdout", "Received search\n");
+        if(rcvd->a_node != TOS_NODE_ID) return;
+        simdbg("stdout", "Received search");
         METRIC_RCV_SEARCH(rcvd);
-        if(other_info == NULL)
-        {
-            simdbg("stdout", "Received search message but other_info was NULL\n");
-            return;
-        }
-        /*else if(rcvd->dist == 0)*/
-        else if((rcvd->dist == 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count))
+
+        if(rcvd->dist == 0 || children.count == 0)
         {
             start_node = TRUE;
             redir_length = rcvd->pr;
             simdbg("stdout", "Search messages ended\n");
             simdbg("Node-Change-Notification", "The node has become a PFS\n");
         }
-        else if((rcvd->dist > 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count)) //|| rank(&(other_info->N), TOS_NODE_ID) == 1))
+        else
         {
+            int i;
             SearchMessage msg;
             msg.pr = rcvd->pr;
             msg.dist = rcvd->dist - 1;
+            msg.a_node = BOT;
+            for(i=0; i<children.count; i++) {
+                if(rank(&children, children.ids[i]) == children.count)
+                {
+                    msg.a_node = children.ids[i];
+                    break;
+                }
+            }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent search message again\n");
-            received_search = TRUE;
+            simdbg("stdout", "Sent search message again to %u\n", msg.a_node);
             simdbg("Node-Change-Notification", "The node has become a PFS\n");
         }
-
-        simdbg("stdout", "rcvd->dist=%u, (parent==source_addr)=%u, rank=%u, rank_count=%u\n",
-                rcvd->dist, (parent == source_addr), rank(&(other_info->N), TOS_NODE_ID), other_info->N.count);
     }
+
+    /*void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)*/
+    /*{*/
+        /*OtherInfo* other_info = OtherList_get(&others, parent);*/
+        /*if(received_search) return;*/
+        /*simdbg("stdout", "Received search\n");*/
+        /*METRIC_RCV_SEARCH(rcvd);*/
+        /*if(other_info == NULL)*/
+        /*{*/
+            /*simdbg("stdout", "Received search message but other_info was NULL\n");*/
+            /*return;*/
+        /*}*/
+        /*[>else if(rcvd->dist == 0)<]*/
+        /*else if((rcvd->dist == 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count))*/
+        /*{*/
+            /*start_node = TRUE;*/
+            /*redir_length = rcvd->pr;*/
+            /*simdbg("stdout", "Search messages ended\n");*/
+            /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
+        /*}*/
+        /*else if((rcvd->dist > 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count)) //|| rank(&(other_info->N), TOS_NODE_ID) == 1))*/
+        /*{*/
+            /*SearchMessage msg;*/
+            /*msg.pr = rcvd->pr;*/
+            /*msg.dist = rcvd->dist - 1;*/
+            /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
+            /*simdbg("stdout", "Sent search message again\n");*/
+            /*received_search = TRUE;*/
+            /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
+        /*}*/
+
+        /*simdbg("stdout", "rcvd->dist=%u, (parent==source_addr)=%u, rank=%u, rank_count=%u\n",*/
+                /*rcvd->dist, (parent == source_addr), rank(&(other_info->N), TOS_NODE_ID), other_info->N.count);*/
+    /*}*/
 
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
         case SourceNode: break;
