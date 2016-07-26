@@ -76,7 +76,7 @@ class CLI(CommandLineCommon.CLI):
     short_counts = [1]
     long_counts = [1]
 
-    repeats = 300
+    repeats = 200
 
 
     local_parameter_names = ('direction bias',
