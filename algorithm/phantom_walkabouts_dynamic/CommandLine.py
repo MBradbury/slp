@@ -74,7 +74,7 @@ class CLI(CommandLineCommon.CLI):
     wait_before_short = [0]
 
     short_counts = [1]
-    long_counts = [1]
+    long_counts = [2]
 
     repeats = 200
 
@@ -154,12 +154,12 @@ class CLI(CommandLineCommon.CLI):
         )
 
         parameters = [
-            ('source period', ' seconds'),
-            ('long walk length', ' hops'),
-            ('short walk length', ' hops')
+            ('source period', ' seconds')
         ]
 
         custom_yaxis_range_max = {
+            'captured': 80,
+            'sent': 30000
         }
 
         for (parameter_name, parameter_unit) in parameters:
@@ -178,8 +178,8 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
 
-                if result_name in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[result_name]
+                if yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
                 g.create(phantom_results)
 
