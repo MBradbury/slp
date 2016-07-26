@@ -52,9 +52,9 @@ class CLI(CommandLineCommon.CLI):
         'Source2CornerTop',
         'Source3CornerTop',
 
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
 
         #'FurtherSinkCorner',
         #'FurtherSinkCorner2Source',
@@ -79,7 +79,7 @@ class CLI(CommandLineCommon.CLI):
     short_counts = [1]
     long_counts = [1]
 
-    repeats = 300
+    repeats = 200
 
     local_parameter_names = ('short walk length', 'long walk length',
                              'order', 'short count', 'long count', 'wait before short')
