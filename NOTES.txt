@@ -20,3 +20,20 @@ result.
 =PrintfClient=
 
 See http://comments.gmane.org/gmane.os.tinyos.users/41337 for instructions to build the dependencies for PrintfClient.
+
+As the page is now unavailable, this is the description provided by András Bíró <andras.biro <at> unicomp.hu> at 2012-04-18 08:14:10 GMT
+Expect to make further changes depending on your Java set up
+
+-go to /tools/tinyos/java/env
+-compile getenv:
+gcc  -I$(JDK)/include/linux" "-I$(JDK)/include" -shared -fpic
+net_tinyos_util_Env.c -o libgetenv.so
+-go to /tools/tinyos/java/serial
+-compile toscomm:
+gcc -O1 -shared -fPIC "-I$(JDK)/include" "-I$(JDK)/include/linux"
+NativeSerial_linux.cpp -o libtoscomm.so
+(you could probably also use -O2 -s on both of these commands to
+reduce to size of the libs, but these are the original commands from
+the Makefile)
+-copy both .so files where your JRE can see them (e.g. on my computer
+it's /opt/java/jre/lib/amd64)
