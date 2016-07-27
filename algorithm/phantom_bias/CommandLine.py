@@ -77,7 +77,7 @@ class CLI(CommandLineCommon.CLI):
     wait_before_short = [0]
 
     short_counts = [1]
-    long_counts = [1]
+    long_counts = [2]
 
     repeats = 200
 
@@ -313,8 +313,8 @@ class CLI(CommandLineCommon.CLI):
         )
 
         custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 20000
+            'captured': 80,
+            'sent': 30000
         }
 
         combine = ["short walk length", "long walk length"]
@@ -363,8 +363,8 @@ class CLI(CommandLineCommon.CLI):
         )
 
         custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 20000
+            'captured': 80,
+            'sent': 30000
         }
 
         combine = ["short walk length", "long walk length"]
