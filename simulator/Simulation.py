@@ -134,10 +134,13 @@ class Simulation(object):
         del self.radio
         del self.tossim
 
-    def add_output_processor(self, op):
-        fd = op._read.fileno()
+    def register_output_handler(self, name, function):
+        catcher = OutputCatcher(function)
+        catcher.register(self, name)
 
-        self._out_procs[fd] = op
+        fd = catcher._read.fileno()
+
+        self._out_procs[fd] = catcher
 
         self._read_poller.register(fd, select.EPOLLIN | select.EPOLLPRI | select.EPOLLHUP | select.EPOLLERR)
 
