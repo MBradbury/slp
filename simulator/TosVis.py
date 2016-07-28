@@ -98,13 +98,11 @@ class GuiSimulation(Simulation):
         self._debug_analyzer = DebugAnalyzer()
 
         # Setup a pipe for monitoring dbg messages
-        dbg = OutputCatcher(self._process_message)
-        dbg.register(self, 'LedsC')
-        dbg.register(self, 'AM')
-        dbg.register(self, 'Fake-Notification')
-        dbg.register(self, 'Node-Change-Notification')
-        dbg.register(self, 'DAS-State')
-        self.add_output_processor(dbg)
+        self.register_output_handler('LedsC', self._process_message)
+        self.register_output_handler('AM', self._process_message)
+        self.register_output_handler('Fake-Notification', self._process_message)
+        self.register_output_handler('Node-Change-Notification', self._process_message)
+        self.register_output_handler('DAS-State', self._process_message)
         
     def _adjust_location(self, loc):
         factor = self._node_position_scale_factor
