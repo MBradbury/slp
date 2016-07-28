@@ -37,7 +37,7 @@ with OfflineSimulation("algorithm." + args.algorithm, configuration, args, args.
     attacker = copy.deepcopy(args.attacker_model)
 
     # Setup each attacker model
-    attacker.setup(sim, configuration.sink_id, 0)
+    attacker.setup(sim, configuration.sink_id, ident=0)
 
     sim.add_attacker(attacker)
 
