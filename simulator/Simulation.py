@@ -13,6 +13,11 @@ import timeit
 import simulator.CommunicationModel
 from simulator.Topology import topology_path
 
+def _secure_random():
+    """Returns a random 32 bit (4 byte) signed integer"""
+    import struct
+    return struct.unpack("<i", os.urandom(4))[0]
+
 Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
 class OutputCatcher(object):
@@ -64,7 +69,7 @@ class Simulation(object):
         self._read_poller = select.epoll()
 
         # Record the seed we are using
-        self.seed = args.seed if args.seed is not None else self._secure_random()
+        self.seed = args.seed if args.seed is not None else _secure_random()
 
         # Set tossim seed
         self.tossim.randomSeed(self.seed)
@@ -299,11 +304,6 @@ class Simulation(object):
         """Gets the names of the communication models available"""
         return simulator.CommunicationModel.MODEL_NAME_MAPPING.keys()
 
-    @staticmethod
-    def _secure_random():
-        import struct
-        return struct.unpack("<i", os.urandom(4))[0]
-
 
 
 from datetime import datetime
@@ -313,12 +313,14 @@ class OfflineSimulation(object):
     def __init__(self, module_name, configuration, args, log_filename):
 
         # Record the seed we are using
-        self.seed = args.seed if args.seed is not None else self._secure_random()
+        self.seed = args.seed if args.seed is not None else _secure_random()
 
         # It is important to seed python's random number generator
         # as well as TOSSIM's. If this is not done then the simulations
         # will differ when the seeds are the same.
         random.seed(self.seed)
+
+        self._create_nodes(configuration.topology.nodes)
 
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
@@ -366,6 +368,14 @@ class OfflineSimulation(object):
     def sim_time(self):
         """Returns the current simulation time in seconds"""
         return (self._real_end_time - self._real_start_time).total_seconds()
+
+    def _create_nodes(self, node_locations):
+        """Creates nodes and initialize their boot times"""
+
+        self.nodes = []
+        for (i, loc) in enumerate(node_locations):
+            new_node = Node(i, loc, None)
+            self.nodes.append(new_node)
 
     def _pre_run(self):
         """Called before the simulator run loop starts"""
@@ -459,8 +469,3 @@ class OfflineSimulation(object):
 
     def any_attacker_found_source(self):
         return self.attacker_found_source
-
-    @staticmethod
-    def _secure_random():
-        import struct
-        return struct.unpack("<i", os.urandom(4))[0]
