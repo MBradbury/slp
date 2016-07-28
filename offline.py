@@ -17,8 +17,10 @@ subparser.add_argument("--merged-log", type=str, required=True)
 args = parser.parse_args(sys.argv[1:])
 
 if args.action == "visualise":
+	pass
 
 elif args.action == "analyse":
+	pass
 
 else:
 	raise RuntimeError("Unknown action {}".format(args.action))
