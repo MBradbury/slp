@@ -303,3 +303,164 @@ class Simulation(object):
     def _secure_random():
         import struct
         return struct.unpack("<i", os.urandom(4))[0]
+
+
+
+from datetime import datetime
+import re
+
+class OfflineSimulation(object):
+    def __init__(self, module_name, configuration, args, log_filename):
+
+        # Record the seed we are using
+        self.seed = args.seed if args.seed is not None else self._secure_random()
+
+        # It is important to seed python's random number generator
+        # as well as TOSSIM's. If this is not done then the simulations
+        # will differ when the seeds are the same.
+        random.seed(self.seed)
+
+        if hasattr(args, "safety_period"):
+            self.safety_period = args.safety_period
+        else:
+            # To make simulations safer an upper bound on the simulation time
+            # is used when no safety period makes sense. This upper bound is the
+            # time it would have otherwise taken the attacker to scan the whole network.
+            self.safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+
+        self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
+
+        self._line_handlers = {}
+
+        self.attackers = []
+
+        metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
+
+        self.metrics = metrics_module.Metrics(self, configuration)
+
+        self.start_time = None
+        self._real_start_time = None
+        self._real_end_time = None
+
+        self.attacker_found_source = False
+
+        self._log_file = open(log_filename, 'r')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, tp, value, tb):
+        self._log_file.close()
+
+    def register_output_handler(self, name, function):
+        self._line_handlers[name] = function
+
+    def node_distance_meters(self, left, right):
+        """Get the euclidean distance between two nodes specified by their ids"""
+        return self.metrics.configuration.node_distance_meters(left, right)
+
+    def ticks_to_seconds(self, ticks):
+        """Converts simulation time ticks into seconds"""
+        return ticks / 1000000000.0
+
+    def sim_time(self):
+        """Returns the current simulation time in seconds"""
+        return (self._real_end_time - self._real_start_time).total_seconds()
+
+    def _pre_run(self):
+        """Called before the simulator run loop starts"""
+        self.start_time = timeit.default_timer()
+
+    def _post_run(self, event_count):
+        """Called after the simulator run loop finishes"""
+
+        # Set the number of seconds this simulation run took.
+        # It is possible that we will reach here without setting
+        # start_time, so we need to look out for this.
+        try:
+            self.metrics.wall_time = timeit.default_timer() - self.start_time
+        except TypeError:
+            self.metrics.wall_time = None
+
+        self.metrics.event_count = event_count
+
+    def continue_predicate(self):
+        """Specifies if the simulator run loop should continue executing."""
+        # For performance reasons do not do anything expensive in this function,
+        # that includes simple things such as iterating or calling functions.
+        return not self.attacker_found_source
+
+    LINE_RE = re.compile(r'([a-zA-Z-]+):(\d+):(DEBUG) \((\d+)\): (.+)')
+
+    def _parse_line(self, line):
+
+        # Example line:
+        #2016/07/27 14:47:34.418:Metric-COMM:22022:DEBUG (4): DELIVER:Normal,22022,4,1,1,22
+
+        date_string, rest = line[0: len("2016/07/27 15:09:53.687")], line[len("2016/07/27 15:09:53.687")+1:]
+
+        current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f")
+
+        match = self.LINE_RE.match(rest)
+        if match is not None:
+            kind = match.group(1)
+            node_local_time = int(match.group(2))
+            log_type = match.group(3)
+            node_id = int(match.group(4))
+            message_line = match.group(5)
+
+            return (current_time, kind, node_local_time, log_type, node_id, "{} ({}): ".format(log_type, node_id) + message_line)
+
+        else:
+            return None
+
+    def run(self):
+        """Run the simulator loop."""
+        event_count = 0
+        try:
+            self._pre_run()
+
+            for line in self._log_file:
+
+                result = self._parse_line(line)
+
+                if result is None:
+                    print("Warning unable to parse: '{}'. Skipping that line.".format(line), file=sys.stderr)
+                    continue
+
+                (current_time, kind, node_local_time, log_type, node_id, message_line) = result
+
+                # Record the start and stop time
+                if self._real_start_time is None:
+                    self._real_start_time = current_time
+
+                self._real_end_time = current_time
+
+                # Stop the run if the attacker has found the source
+                if not self.continue_predicate():
+                    break
+
+                # Stop if the safety period has expired
+                if (self._real_end_time - self._real_start_time).total_seconds() >= self.safety_period_value:
+                    break
+
+                # Handle the event
+                if kind in self._line_handlers:
+                    self._line_handlers[kind](message_line)
+
+                event_count += 1 
+
+        finally:
+            self._post_run(event_count)
+
+
+    def add_attacker(self, attacker):
+        self.attackers.append(attacker)
+
+    def any_attacker_found_source(self):
+        return self.attacker_found_source
+
+    @staticmethod
+    def _secure_random():
+        import struct
+        return struct.unpack("<i", os.urandom(4))[0]
