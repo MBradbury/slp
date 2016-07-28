@@ -52,9 +52,7 @@ class MetricsCommon(object):
         self.register('Metric-COMM', self.process_COMMUNICATE)
 
     def register(self, name, function):
-        catcher = OutputCatcher(function)
-        catcher.register(self.sim, name)
-        self.sim.add_output_processor(catcher)
+        self.sim.register_output_handler(name, function)
 
     def process_COMMUNICATE(self, line):
         # First get the string without "DEBUG (<NODEID>): "
