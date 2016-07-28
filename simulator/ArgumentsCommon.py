@@ -7,7 +7,7 @@ class ArgumentsCommon(object):
     def __init__(self, parser, has_safety_period=False):
         parser.add_argument("--mode", type=str, choices=["GUI", "SINGLE", "PARALLEL", "CLUSTER", "TESTBED"], required=True)
 
-        parser.add_argument("--seed", type=int)
+        parser.add_argument("--seed", type=int, required=False)
 
         parser.add_argument("-cm", "--communication-model", type=str, choices=Simulation.available_communication_models(), required=True)
         parser.add_argument("-nm", "--noise-model", type=str, choices=Simulation.available_noise_models(), required=True)
