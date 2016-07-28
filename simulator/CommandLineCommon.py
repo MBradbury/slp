@@ -216,7 +216,7 @@ class CLI(object):
 
 
     def _run_detect_missing(self, args):
-        print("Loading {} to check for missing runs".format(self.algorithm_module.result_file_path))
+        
 
         argument_product = {tuple(map(str, row)) for row in self._argument_product()}
 
@@ -228,13 +228,20 @@ class CLI(object):
 
         parameter_names = self.global_parameter_names + result.parameter_names
 
+        print("Checking runs that were asked for, but not included...")
+
         for arguments in argument_product:
             if arguments not in repeats:
                 print("missing ", end="")
                 print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, arguments)]))
                 print()
 
+        print("Loading {} to check for missing runs...".format(self.algorithm_module.result_file_path))
+
         for (parameter_values, repeats_performed) in repeats.items():
+
+            if parameter_values not in argument_product:
+                continue
 
             repeats_missing = max(self.repeats - repeats_performed, 0)
 
