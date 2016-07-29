@@ -183,6 +183,8 @@ implementation
 	MessageType messagetype = UnknownMessageType;
 	MessageType nextmessagetype = UnknownMessageType;
 
+	bool reach_borderline = FALSE;
+
 	const char* type_to_string()
 	{
 		switch (type)
@@ -451,8 +453,9 @@ implementation
 			{
 				if (biased_direction == UnknownBias)
 				{
-					neighbour = &local_neighbours.data[neighbour_index];
+					neighbour = &local_neighbours.data[neighbour_index];  //choose one neighbour
 
+					//determine the neighbour is V or H.
 					if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance)
 						biased = V;
 					else if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance)
@@ -493,8 +496,15 @@ implementation
 			}
 			else	//normal case.
 			{
-				neighbour = &local_neighbours.data[neighbour_index];
-				chosen_address = neighbour->address;
+				if(local_neighbours.size == 1 && further_or_closer_set != CloserSet)
+				{
+					reach_borderline = TRUE;
+				}
+				else
+				{
+					neighbour = &local_neighbours.data[neighbour_index];
+					chosen_address = neighbour->address;
+				}
 			}
 			//simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
 
@@ -626,7 +636,7 @@ implementation
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(5 * 1000);	//wait till beacon messages send finished.
+			call BroadcastNormalTimer.startOneShot(6 * 1000);	//wait till beacon messages send finished.
 		}
 	}
 
@@ -768,7 +778,7 @@ implementation
 		message.further_or_closer_set = random_walk_direction();
 
 		target = random_walk_target(message.further_or_closer_set, message.biased_direction, NULL, 0);
-		
+
 		message.biased_direction = biased;		//initialise biased_direction as UnknownBias. 
 
 		// If we don't know who our neighbours are, then we
@@ -889,6 +899,13 @@ implementation
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
 				
+				if (reach_borderline == TRUE && forwarding_message.further_or_closer_set != CloserSet)
+				{
+					forwarding_message.further_or_closer_set = CloserSet;
+					target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &source_addr, 1);
+				}
+				//target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
+				
 				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
 
 				// A node on the path away from, or towards the landmark node
@@ -904,7 +921,7 @@ implementation
 					return;
 				}
 
-				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
+				simdbg("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
@@ -1046,15 +1063,21 @@ implementation
 		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID && rcvd->landmark_location == SINK)
 		{
 			sink_bl_dist = rcvd->landmark_distance;
-			call DelayBLSenderTimer.startOneShot(1 * 1000);	
+			call DelayBLSenderTimer.startOneShot(2 * 1000);	
 		}
 
+		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+		{
+			sink_bl_dist = rcvd->landmark_distance;
+			call DelayBRSenderTimer.startOneShot(3 * 1000);	
+		}
+/*
 		if (BOTTOM_RIGHT_NODE_ID == SINK_NODE_ID)
 		{
 			if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location == SINK)
 			{
 				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(2 * 1000);
+				call DelayBRSenderTimer.startOneShot(3 * 1000);
 			}
 		}
 		else
@@ -1065,7 +1088,7 @@ implementation
 				call DelayBRSenderTimer.startOneShot(3 * 1000);
 			}
 		}
-
+*/
 		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 		{
 			sink_tr_dist = rcvd->landmark_distance;
