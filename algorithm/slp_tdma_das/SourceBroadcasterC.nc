@@ -361,7 +361,6 @@ implementation
                 if(n_info.info[i].slot == BOT)
                 {
                     dissem_sending = get_dissem_timeout();
-                    simdbg("stdout", "Detected node with slot=BOT, dissem_sending = TRUE\n");
                     break;
                 }
 
@@ -436,10 +435,6 @@ implementation
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbg("stdout", "Sent search message to %u\n", msg.a_node);
-            /*SearchMessage msg;*/
-            /*msg.dist = get_pr_dist() - 1;*/
-            /*msg.pr = get_pr_length();*/
-            /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
         }
     }
 
@@ -707,7 +702,6 @@ implementation
                     if(oldinfo == NULL || (rcvd->N.info[i].slot != oldinfo->slot && rcvd->N.info[i].slot < oldinfo->slot)) //XXX Stops stale data?
                     {
                         dissem_sending = get_dissem_timeout();
-                        simdbg("stdout", "### Slot information was different, dissem_sending = TRUE\n");
                         NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
                     }
                 }
@@ -758,12 +752,11 @@ implementation
         case SinkNode  : Sink_receive_Dissem(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Dissem)
 
-    bool received_search = FALSE;
     void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)
     {
-        if(rcvd->a_node != TOS_NODE_ID) return;
-        simdbg("stdout", "Received search");
         METRIC_RCV_SEARCH(rcvd);
+        if(rcvd->a_node != TOS_NODE_ID) return;
+        simdbg("stdout", "Received search\n");
 
         if(rcvd->dist == 0 || children.count == 0)
         {
@@ -792,40 +785,6 @@ implementation
         }
     }
 
-    /*void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)*/
-    /*{*/
-        /*OtherInfo* other_info = OtherList_get(&others, parent);*/
-        /*if(received_search) return;*/
-        /*simdbg("stdout", "Received search\n");*/
-        /*METRIC_RCV_SEARCH(rcvd);*/
-        /*if(other_info == NULL)*/
-        /*{*/
-            /*simdbg("stdout", "Received search message but other_info was NULL\n");*/
-            /*return;*/
-        /*}*/
-        /*[>else if(rcvd->dist == 0)<]*/
-        /*else if((rcvd->dist == 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count))*/
-        /*{*/
-            /*start_node = TRUE;*/
-            /*redir_length = rcvd->pr;*/
-            /*simdbg("stdout", "Search messages ended\n");*/
-            /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
-        /*}*/
-        /*else if((rcvd->dist > 0) && (parent == source_addr) && (rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count)) //|| rank(&(other_info->N), TOS_NODE_ID) == 1))*/
-        /*{*/
-            /*SearchMessage msg;*/
-            /*msg.pr = rcvd->pr;*/
-            /*msg.dist = rcvd->dist - 1;*/
-            /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
-            /*simdbg("stdout", "Sent search message again\n");*/
-            /*received_search = TRUE;*/
-            /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
-        /*}*/
-
-        /*simdbg("stdout", "rcvd->dist=%u, (parent==source_addr)=%u, rank=%u, rank_count=%u\n",*/
-                /*rcvd->dist, (parent == source_addr), rank(&(other_info->N), TOS_NODE_ID), other_info->N.count);*/
-    /*}*/
-
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
         case SourceNode: break;
         case NormalNode: Normal_receive_Search(rcvd, source_addr); break;
@@ -835,15 +794,16 @@ implementation
     void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)
     {
         METRIC_RCV_CHANGE(rcvd);
+        if(rcvd->a_node != TOS_NODE_ID) return;
         if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID)
         {
             ChangeMessage msg;
             OnehopList onehop;
             IDList npar = IDList_minus_parent(&potential_parents, parent); //XXX Problem is this is often empty
-            npar = IDList_minus_parent(&npar, parent);
-            simdbg("stdout", "Received change\n", rcvd->len_d);
+            npar = IDList_minus_parent(&npar, source_addr);
+            simdbg("stdout", "Received change\n");
             NeighbourList_select(&n_info, &neighbours, &onehop);
-            slot = rcvd->n_slot - 1; //get_assignment_interval(); //rcvd->n_slot - 1;
+            slot = rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
             dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
             msg.a_node = choose(&npar);
