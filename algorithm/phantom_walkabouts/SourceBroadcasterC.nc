@@ -921,7 +921,7 @@ implementation
 					return;
 				}
 
-				simdbg("stdout", "%s: Forwarding normal from %u to target = %u\n",
+				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
