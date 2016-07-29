@@ -48,9 +48,9 @@ class CLI(CommandLineCommon.CLI):
     source_periods = [0.25, 0.5, 1.0, 2.0]
 
     configurations = [
-        'SourceCorner',
-        'Source2CornerTop',
-        'Source3CornerTop',
+        #'SourceCorner',
+        #'Source2CornerTop',
+        #'Source3CornerTop',
 
         'SinkCorner',
         'SinkCorner2Source',
