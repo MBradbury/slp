@@ -74,7 +74,7 @@ class CLI(CommandLineCommon.CLI):
     wait_before_short = [0]
 
     short_counts = [1]
-    long_counts = [2]
+    long_counts = [1]
 
     repeats = 200
 
