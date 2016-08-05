@@ -63,13 +63,7 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
-
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
-
+    def _argument_product(self):
         argument_product = list(itertools.ifilter(
             lambda (size, _1, _2, _3, _4, _5, _6, walk_length, _7): walk_length in self.walk_hop_lengths[size],
             itertools.product(
@@ -84,7 +78,16 @@ class CLI(CommandLineCommon.CLI):
         # network's normal message generation rate is the same.
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        return argument_product
+
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
+        safety_periods = safety_period_table_generator.safety_periods()
+
+        runner = RunSimulations(driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
+
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), self._argument_product())
 
 
     def _run_table(self, args):

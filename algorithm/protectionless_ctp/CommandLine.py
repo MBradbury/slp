@@ -65,11 +65,8 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-                                skip_completed_simulations=skip_completed_simulations)
-
-        argument_product = itertools.product(
+    def _argument_product(self):
+         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
             [self.distance], self.source_periods
@@ -87,7 +84,13 @@ class CLI(CommandLineCommon.CLI):
             in argument_product
         ]
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
+        return argument_product
+
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        runner = RunSimulations(driver, self.algorithm_module, result_path,
+                                skip_completed_simulations=skip_completed_simulations)
+
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
