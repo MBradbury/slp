@@ -1,5 +1,12 @@
 from __future__ import print_function, division
-import os, importlib, shlex, shutil, time, timeit, datetime
+
+import datetime
+import importlib
+import os
+import shlex
+import shutil
+import time
+import timeit
 
 import data.util
 

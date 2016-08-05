@@ -44,7 +44,6 @@ class RunSimulationsCommon(object):
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
 
             opts = OrderedDict()
-            opts["--mode"] = self.driver.mode()
             opts["--job-size"] = int(math.ceil(repeats / job_repeats))
 
             if hasattr(self.driver, 'array_job_variable') and self.driver.array_job_variable is not None:
@@ -63,7 +62,7 @@ class RunSimulationsCommon(object):
 
             opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
 
-            options = 'algorithm.{} '.format(self.algorithm_module.name) + " ".join(opt_items)
+            options = 'algorithm.{} {} '.format(self.algorithm_module.name, self.driver.mode()) + " ".join(opt_items)
 
             filename = os.path.join(
                 self._result_path,
