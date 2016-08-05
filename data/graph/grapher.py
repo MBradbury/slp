@@ -90,6 +90,11 @@ class GrapherBase(object):
         @param table: The table to print. A list of lists.
         Each row must have the same number of columns."""
 
+        first_len = len(table[0])
+        for i, row in enumerate(table):
+            if len(row) != first_len:
+                raise RuntimeError("The {}th row {} does not have the same length as the first row {}".format(i, row, first_len))
+
         def get_max_width(table, index):
             """Get the maximum width of the given column index."""
             return max(len(str(row[index])) for row in table)

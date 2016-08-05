@@ -19,51 +19,21 @@ from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
-    executable_path = 'run.py'
-
-    distance = 4.5
-
-    noise_models = ["meyer-heavy", "casino-lab"]
-
-    communication_models = ["low-asymmetry"]
-
-    sizes = [11, 15, 21, 25]
-
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-
-    configurations = [
-        #'SourceCorner',
-        #'SinkCorner',
-        #'FurtherSinkCorner',
-        #'Generic1',
-        #'Generic2',
-
-        #'RingTop',
-        #'RingOpposite',
-        #'RingMiddle',
-
-        'Source2Corners',
-        #'Source4Corners',
-        'Source2Edges',
-        #'Source4Edges',
-        'Source2Corner',
-        'SourceEdgeCorner',
-
-        #'CircleEdges',
-        #'CircleSourceCentre',
-        #'CircleSinkCentre',
-    ]
-
-    attacker_models = ['SeqNosReactiveAttacker()']
-
-    approaches = ["PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"]
-
-    repeats = 300
-
     local_parameter_names = ('approach',)
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
+
+    def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
+
+        argument_product = list(itertools.product(
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.source_periods, parameters.approaches
+        ))
+
+        return argument_product
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
@@ -73,14 +43,7 @@ class CLI(CommandLineCommon.CLI):
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
-        argument_product = list(itertools.product(
-            self.sizes, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.approaches
-        ))
-
-
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
+        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
 
     def _run_table(self, args):
@@ -254,7 +217,7 @@ class CLI(CommandLineCommon.CLI):
 
         template_results = results.Results(
             template.result_file_path,
-            parameters=('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)'),
+            parameters=template.CommandLine.CLI.local_parameter_names,
             results=graph_parameters.keys())
 
         def graph_min_max_versus(result_name):
@@ -270,11 +233,13 @@ class CLI(CommandLineCommon.CLI):
 
             g.yaxis_font = g.xaxis_font = "',15'"
 
-            g.key_font = "',20'"
-            g.key_spacing = "2"
-            g.key_width = "+6"
+            g.nokey = True
+            #g.key_font = "',20'"
+            #g.key_spacing = "2"
+            #g.key_width = "-5.5"
 
             g.point_size = '2'
+            g.line_width = 2
 
             g.min_label = 'Static - Lowest'
             g.max_label = 'Static - Highest'
@@ -290,6 +255,8 @@ class CLI(CommandLineCommon.CLI):
                     'PB_ATTACKER_EST_APPROACH': 'Pull Attacker'
                 }[name]
             g.vvalue_label_converter = vvalue_converter
+
+            g.generate_legend_graph = True
 
             g.create(template_results, adaptive_results)
 

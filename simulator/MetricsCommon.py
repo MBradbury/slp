@@ -1,8 +1,5 @@
 from __future__ import print_function, division
 
-import simulator.Attacker
-from simulator.Simulation import OutputCatcher
-
 from collections import Counter, OrderedDict, defaultdict
 import sys, math
 
@@ -16,6 +13,11 @@ try:
 except ImportError:
     #Python 3
     from itertools import zip_longest as izip_longest
+
+import numpy as np
+
+import simulator.Attacker
+from simulator.Simulation import OutputCatcher
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration):
@@ -55,18 +57,19 @@ class MetricsCommon(object):
         self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
 
         # BCAST / RCV / DELIVER events
-        self.register('Metric-COMMUNICATE', self.process_COMMUNICATE)
+        self.register('Metric-COMM', self.process_COMMUNICATE)
 
         # Handle PowerTOSSIM-Z events
         self.register('ENERGY_HANDLER', self.process_ENERGY_HANDLER)
 
     def register(self, name, function):
-        catcher = OutputCatcher(function)
-        catcher.register(self.sim, name)
-        self.sim.add_output_processor(catcher)
+        self.sim.register_output_handler(name, function)
 
     def process_COMMUNICATE(self, line):
-        (comm_type, contents) = line.split(':', 1)
+        # First get the string without "DEBUG (<NODEID>): "
+        without_dbg = line.split(':', 1)[1].strip()
+
+        (comm_type, contents) = without_dbg.split(':', 1)
 
         if comm_type == 'BCAST':
             return self.process_BCAST(contents)
@@ -108,7 +111,6 @@ class MetricsCommon(object):
         (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
         
         node_id = int(node_id)
-        proximate_source_id = int(proximate_source_id)
 
         self.received[kind][node_id] += 1
 
@@ -130,6 +132,8 @@ class MetricsCommon(object):
         # node_source_distance functions as when the source is mobile this code
         # will try to get a distance that the configuration doesn't believe the be a source.
         if kind not in simulator.Attacker._messages_to_ignore:
+            proximate_source_id = int(proximate_source_id)
+
             for source_id in self.source_ids:
                 prox_distance = self.configuration.node_distance(proximate_source_id, source_id)
                 node_distance = self.configuration.node_distance(node_id, source_id)
@@ -170,7 +174,11 @@ class MetricsCommon(object):
         raise NotImplementedError()
 
     def process_SOURCE_CHANGE(self, line):
-        (state, node_id) = line.strip().split(',')
+
+        # First get the string without "DEBUG (<NODEID>): "
+        without_dbg = line.split(':', 1)[1].strip()
+
+        (state, node_id) = without_dbg.split(',')
 
         node_id = int(node_id)
         time = self.sim_time()
@@ -186,7 +194,7 @@ class MetricsCommon(object):
             self.became_normal_after_source_times[node_id].append(time)
 
         else:
-            raise RuntimeError("Unknown state {}".format(state))
+            raise RuntimeError("Unknown state '{}'".format(state))
 
     def process_ENERGY_HANDLER(self, line):
         powertossimz.handle_event(line)
@@ -262,7 +270,7 @@ class MetricsCommon(object):
 
     def attacker_source_distance(self):
         return {
-            (source_id, attacker.ident): self.sim.node_distance(source_id, attacker.position)
+            (source_id, attacker.ident): self.configuration.node_distance_meters(source_id, attacker.position)
 
             for attacker
             in self.sim.attackers
@@ -273,7 +281,7 @@ class MetricsCommon(object):
 
     def attacker_sink_distance(self):
         return {
-            (sink_id, attacker.ident): self.sim.node_distance(sink_id, attacker.position)
+            (sink_id, attacker.ident): self.configuration.node_distance_meters(sink_id, attacker.position)
 
             for attacker
             in self.sim.attackers
@@ -405,20 +413,30 @@ class MetricsCommon(object):
         d["TimeBinWidth"]                  = lambda x: x._time_bin_width
         d["SentOverTime"]                  = lambda x: MetricsCommon.smaller_dict_str(dict(x.sent_over_time))
 
-        d["ReceivedFromCloserOrSameHops"]  = lambda x: dict(x.received_from_closer_or_same_hops)
-        d["ReceivedFromFurtherHops"]       = lambda x: dict(x.received_from_further_hops)
-        d["ReceivedFromCloserOrSameMeters"]= lambda x: dict(x.received_from_closer_or_same_meters)
-        d["ReceivedFromFurtherMeters"]     = lambda x: dict(x.received_from_further_meters)
+        d["ReceivedFromCloserOrSameHops"]  = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_closer_or_same_hops))
+        d["ReceivedFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_further_hops))
+        d["ReceivedFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_closer_or_same_meters))
+        d["ReceivedFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_further_meters))
 
         return d
 
     @classmethod
-    def print_header(cls, stream=sys.stdout):
+    def print_header(cls, stream=None):
+        """Print the results header to the specified stream (defaults to sys.stdout)."""
         print("#" + "|".join(cls.items().keys()), file=stream)
 
-    def print_results(self, stream=sys.stdout):
-        results = [str(fn(self)) for fn in self.items().values()]
+    def get_results(self):
+        """Get the results in the result file format."""
+        return "|".join(str(fn(self)) for fn in self.items().values())
 
-        #powertossimz.print_summary()
-        
-        print("|".join(results), file=stream)
+    def print_results(self, stream=None):
+        """Print the results to the specified stream (defaults to sys.stdout)."""
+        try:
+            #powertossimz.print_summary()
+
+            print(self.get_results(), file=stream)
+        except Exception as ex:
+            import traceback
+            raise RuntimeError("Failed to get the result string for seed {} caused by {}\n{}".format(
+                self.seed(), ex, traceback.format_exc())
+            )

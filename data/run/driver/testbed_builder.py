@@ -1,5 +1,12 @@
 from __future__ import print_function, division
-import os, importlib, shlex, shutil, time, timeit, datetime
+
+import datetime
+import importlib
+import os
+import shlex
+import shutil
+import time
+import timeit
 
 import data.util
 
@@ -7,12 +14,14 @@ from simulator import Builder
 from simulator import Configuration
 
 class Runner:
-    def __init__(self):
+    def __init__(self, testbed):
         self._start_time = timeit.default_timer()
         self.total_job_size = None
         self._jobs_executed = 0
 
-    def add_job(self, executable, options, name, estimated_time):
+        self.testbed = testbed
+
+    def add_job(self, options, name, estimated_time):
         print(name)
 
         # Create the target directory
@@ -28,13 +37,15 @@ class Runner:
         a = self.parse_arguments(module, argv)
 
         # Build the binary
-        build_args = self.build_arguments(a)
 
+        # These are the arguments that will be passed to the compiler
+        build_args = self.build_arguments(a)
+        build_args["TESTBED"] = self.testbed.name()
         build_args["USE_SERIAL_PRINTF"] = 1
 
         print("Building for {}".format(build_args))
 
-        build_result = Builder.build_actual(module_path, **build_args)
+        build_result = Builder.build_actual(module_path, self.testbed.platform(), **build_args)
 
         print("Build finished with result {}, waiting for a bit...".format(build_result))
 
@@ -54,7 +65,10 @@ class Runner:
             "wiring-check.xml",
         ]
         for name in files_to_move:
-            shutil.copy(os.path.join(module_path, "build", "micaz", name), target_directory)
+            try:
+                shutil.copy(os.path.join(module_path, "build", self.testbed.platform(), name), target_directory)
+            except IOError as ex:
+                print("Not copying {} due to {}".format(name, ex))
 
         print("All Done!")
 

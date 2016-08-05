@@ -15,10 +15,12 @@ implementation
     components MainC;
     components LedsC;
     components RandomC;
+    components LocalTimeMilliC;
     
     App.Boot -> MainC;
     App.Leds -> LedsC;
     App.Random -> RandomC;
+    App.LocalTime -> LocalTimeMilliC;
 
 
     // Radio Control
@@ -39,7 +41,7 @@ implementation
     /*App.BroadcastTimer -> BroadcastTimer;*/
     App.DissemTimer -> DissemTimer;
     App.DissemTimerSender -> DissemTimerSender;
-    App.EnqueueNormalTimer -> EnqueueNormalTimer;
+    /*App.EnqueueNormalTimer -> EnqueueNormalTimer;*/
     App.PreSlotTimer -> PreSlotTimer;
     App.SlotTimer -> SlotTimer;
     App.PostSlotTimer -> PostSlotTimer;
@@ -69,12 +71,12 @@ implementation
     App.DissemSend -> DissemSender;
     App.DissemReceive ->DissemReceiver;
 
-    components
-        new AMSenderC(COLLISION_CHANNEL) as CollisionSender,
-        new AMReceiverC(COLLISION_CHANNEL) as CollisionReceiver;
+    /*components*/
+        /*new AMSenderC(COLLISION_CHANNEL) as CollisionSender,*/
+        /*new AMReceiverC(COLLISION_CHANNEL) as CollisionReceiver;*/
 
-    App.CollisionSend -> CollisionSender;
-    App.CollisionReceive ->CollisionReceiver;
+    /*App.CollisionSend -> CollisionSender;*/
+    /*App.CollisionReceive ->CollisionReceiver;*/
 
     // Message Queue
     components

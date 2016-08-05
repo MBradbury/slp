@@ -29,10 +29,6 @@ implementation
 	App.AMPacket -> ActiveMessageC;
 
 	// Timers
-	components new TimerMilliC() as BroadcastNormalTimer;
-
-	App.BroadcastNormalTimer -> BroadcastNormalTimer;
-
 
 	// Object Detector - For Source movement
 	components ObjectDetectorP;

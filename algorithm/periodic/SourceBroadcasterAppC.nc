@@ -27,11 +27,9 @@ implementation
 
     // Timers
     components
-        new TimerMilliC() as BroadcastTimer,
-        new TimerMilliC() as EnqueueNormalTimer;
+        new TimerMilliC() as BroadcastTimer;
 
     App.BroadcastTimer -> BroadcastTimer;
-    App.EnqueueNormalTimer -> EnqueueNormalTimer;
 
 
     // Networking

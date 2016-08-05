@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-
 from __future__ import print_function
 
-import sys, importlib
+import importlib
+import sys
+
+import numpy as np
 
 from data.util import create_dirtree
-
-import numpy
 
 if __name__ == "__main__":
     from simulator import dependency
@@ -25,12 +25,13 @@ if __name__ == "__main__":
     args = args[1:]
 
     algorithm = importlib.import_module("algorithm.{}".format(algorithm_name))
+    CommandLine = importlib.import_module("algorithm.{}.CommandLine".format(algorithm_name))
 
     # Raise all numpy errors
-    numpy.seterr(all='raise')
+    np.seterr(all='raise')
 
     create_dirtree(algorithm.results_path)
     create_dirtree(algorithm.graphs_path)
 
-    cli = algorithm.CommandLine.CLI()
+    cli = CommandLine.CLI()
     cli.run(args)

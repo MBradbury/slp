@@ -2,6 +2,8 @@ from __future__ import print_function, division
 
 import os, itertools, math, collections
 
+import numpy as np
+
 import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
@@ -32,6 +34,9 @@ class Grapher(GrapherBase):
 
         self.yaxis_font = None
         self.xaxis_font = None
+
+        self.ylabel_font = None
+        self.xlabel_font = None
 
         self.nokey = False
         self.key_position = 'right top'
@@ -112,11 +117,16 @@ class Grapher(GrapherBase):
             for xvalue in sorted(xvalues):
                 row = [ xvalue ]
                 for vvalue in vvalues:
-                    yvalue = values.get((xvalue, vvalue), '?')
-                    if self.error_bars and yvalue != '?':
-                        row.extend(yvalue)
+                    yvalue = values.get((xvalue, vvalue), None)
+
+                    if self.error_bars:
+
+                        if yvalue is not None and not isinstance(yvalue, np.ndarray):
+                            raise RuntimeError("Cannot display error bars for {} as no stddev is included in the results".format(dir_name))
+
+                        row.extend(yvalue if yvalue is not None else ['?', '?'])
                     else:
-                        row.append(yvalue)
+                        row.append(yvalue if yvalue is not None else '?')
 
                 table.append(row)
 
@@ -130,6 +140,12 @@ class Grapher(GrapherBase):
             graph_p.write('#!/usr/bin/gnuplot\n')
 
             graph_p.write('set terminal pdf enhanced\n')
+
+            if self.ylabel_font is not None:
+                graph_p.write('set ylabel font "{}"\n'.format(self.ylabel_font))
+
+            if self.xlabel_font is not None:
+                graph_p.write('set xlabel font "{}"\n'.format(self.xlabel_font))
 
             graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
             graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
@@ -154,7 +170,7 @@ class Grapher(GrapherBase):
 
             if self.xaxis == "network size":
                 xvalues_as_num = map(int, xvalues)
-                xvalues_padding = 1
+                xvalues_padding = int(min(xvalues_as_num) / 10)
             else:
                 xvalues_as_num = map(float, xvalues)
                 xvalues_padding = 0.1

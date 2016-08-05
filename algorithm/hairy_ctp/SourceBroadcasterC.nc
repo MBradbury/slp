@@ -28,7 +28,6 @@ module SourceBroadcasterC
 	uses interface Leds;
 	uses interface Random;
 
-	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as BroadcastBeaconTimer;
 	uses interface Timer<TMilli> as FakeWalkTimer;
 	uses interface Timer<TMilli> as FakeSendTimer;
@@ -104,16 +103,7 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	// This function is to be used by the source node to get the
-	// period it should use at the current time.
-	// DO NOT use this for nodes other than the source!
-	uint32_t get_source_period(void)
-	{
-		assert(type == SourceNode);
-		return call SourcePeriodModel.get();
-	}
-
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -178,13 +168,13 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 			min_source_distance = 0;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call SourcePeriodModel.startPeriodic();
 
 			call BroadcastBeaconTimer.startOneShot(send_wait());
 		}
@@ -194,11 +184,11 @@ implementation
 	{
 		if (type == SourceNode)
 		{
-			call BroadcastNormalTimer.stop();
+			call SourcePeriodModel.stop();
 
 			type = NormalNode;
 
-			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -317,11 +307,11 @@ implementation
 	}
 
 
-	event void BroadcastNormalTimer.fired()
+	event void SourcePeriodModel.fired()
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -334,8 +324,6 @@ implementation
 
 		simdbgverbose("stdout", "%s: Generated Normal seqno=%u at %u.\n",
 			sim_time_string(), message.sequence_number, message.source_id);
-
-		call BroadcastNormalTimer.startOneShot(get_source_period());
 	}
 
 	event void BroadcastBeaconTimer.fired()

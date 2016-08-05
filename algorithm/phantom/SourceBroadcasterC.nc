@@ -10,8 +10,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
@@ -26,7 +24,7 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 	find->distance = minbot(find->distance, given->distance);
 }
 
-void distance_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
 		i, address, contents->distance);
@@ -36,7 +34,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 
 #define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
 { \
-	const distance_container_t dist = { rcvd->name }; \
+	const distance_container_t dist = {rcvd->name}; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
@@ -53,7 +51,6 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
 
@@ -113,13 +110,7 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
-	uint32_t extra_to_send = 0;
-
-	uint32_t get_source_period()
-	{
-		assert(type == SourceNode);
-		return call SourcePeriodModel.get();
-	}
+	unsigned int extra_to_send = 0;
 
 	// Produces a random float between 0 and 1
 	float random_float()
@@ -321,12 +312,12 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call SourcePeriodModel.startPeriodic();
 		}
 	}
 
@@ -334,24 +325,22 @@ implementation
 	{
 		if (type == SourceNode)
 		{
-			call BroadcastNormalTimer.stop();
+			call SourcePeriodModel.stop();
 
 			type = NormalNode;
 
-			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
 
-	event void BroadcastNormalTimer.fired()
+	event void SourcePeriodModel.fired()
 	{
 		NormalMessage message;
 		am_addr_t target;
 
-		const uint32_t source_period = get_source_period();
-
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
@@ -387,8 +376,6 @@ implementation
 			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
 				sim_time(), TOS_NODE_ID, message.sequence_number);
 		}
-
-		call BroadcastNormalTimer.startOneShot(source_period);
 	}
 
 	event void AwaySenderTimer.fired()

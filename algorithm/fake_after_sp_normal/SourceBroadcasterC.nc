@@ -108,7 +108,7 @@ implementation
 
 	bool first_normal_rcvd = FALSE;
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	// Produces a random float between 0 and 1
 	float random_float(void)
@@ -262,12 +262,12 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 
-			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
+			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 		}
 	}
 
@@ -279,7 +279,7 @@ implementation
 
 			type = NormalNode;
 
-			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -304,8 +304,6 @@ implementation
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
-
-		call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 	}
 
 	event void AwaySenderTimer.fired()

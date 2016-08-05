@@ -1,19 +1,24 @@
 from __future__ import print_function, division
 
-import numpy as np
-from numpy import mean, median
-from numpy import var as variance
-
-import pandas as pd
+import ast
+from collections import OrderedDict, Sequence
+import datetime
+import fnmatch
+import math
+import multiprocessing
+from numbers import Number
+import os
+import re
+import sys
+import timeit
+import traceback
 
 from  more_itertools import unique_everseen
-
-import sys, ast, re, math, os, fnmatch, timeit, datetime, collections, traceback
-from collections import OrderedDict
-from numbers import Number
+import numpy as np
+import pandas as pd
 
 from data.memoize import memoize
-
+import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
@@ -25,7 +30,7 @@ class EmptyFileError(RuntimeError):
 def _normalised_value_name(value):
     if isinstance(value, str):
         return value
-    elif isinstance(value, collections.Sequence) and len(value) == 2:
+    elif isinstance(value, Sequence) and len(value) == 2:
         return "norm({},{})".format(_normalised_value_name(value[0]), _normalised_value_name(value[1]))
     else:
         raise RuntimeError("Unknown type or length for value '{}' of type {}".format(value, type(value)))
@@ -36,7 +41,7 @@ def _dfs_names(value):
     if isinstance(value, str):
         #result.append(value)
         pass
-    elif isinstance(value, collections.Sequence) and len(value) == 2:
+    elif isinstance(value, Sequence) and len(value) == 2:
         result.extend(_dfs_names(value[0]))
         result.extend(_dfs_names(value[1]))
         result.append(_normalised_value_name(value))
@@ -56,28 +61,26 @@ def _normalised_value_names(values):
     return unique_results
 
 def _inf_handling_literal_eval(item):
-     # ast.literal_eval will not parse inf correctly.
+    # ast.literal_eval will not parse inf correctly.
     # passing 2e308 will return a float('inf') instead.
-    #
-    # The fast_eval version will parse inf when on its own correctly,
-    # so this hack is not needed there.
     item = item.replace('inf', '2e308')
 
     return ast.literal_eval(item)
 
+DICT_NODE_KEY_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
+
 def _parse_dict_node_to_value(indict):
     # Parse a dict like "{1: 10, 2: 20, 3: 40}"
 
-    if indict == "{}":
-        return {}
-
-    return {
-        int(k): int(v)
-        for (k, v) in (csplit.split(":") for csplit in indict[1:-1].split(","))
+    result = {
+        int(a): float(b)
+        for (a, b) in DICT_NODE_KEY_RE.findall(indict)
     }
 
-DICT_TUPLE_KEY_RE = re.compile(r'\((\d+), (\d+)\): (\d+\.\d+|\d+)')
-DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+): (\d+\.\d+|\d+)')
+    return result
+
+DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
+DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 
 def _parse_dict_tuple_nodes_to_value(indict):
     # Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
@@ -130,6 +133,11 @@ class Analyse(object):
         "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
         "NodeWasSource": _inf_handling_literal_eval,
+
+        "ReceivedFromCloserOrSameHops": _parse_dict_node_to_value,
+        "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
+        "ReceivedFromFurtherHops": _parse_dict_node_to_value,
+        "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile, normalised_values):
@@ -217,7 +225,7 @@ class Analyse(object):
 
             return values[index]
         except ValueError:
-            if name == "network_size":
+            if name == "num_nodes":
                 configuration = self._get_configuration()
                 return configuration.size()
 
@@ -261,22 +269,45 @@ class Analyse(object):
 
             elif name == "daily_allowance_used":
                 energy_impact = self._get_from_opts_or_values("energy_impact", values)
-                network_size = self._get_from_opts_or_values("network_size", values)
+                num_nodes = self._get_from_opts_or_values("num_nodes", values)
                 time_taken = self._get_from_opts_or_values("TimeTaken", values)
 
-                energy_impact_per_node_per_second = (energy_impact / network_size) / time_taken
+                energy_impact_per_node_per_second = (energy_impact / num_nodes) / time_taken
 
                 energy_impact_per_node_per_day = energy_impact_per_node_per_second * 60.0 * 60.0 * 24.0
 
                 daily_allowance_mah = 6.9
 
-                return (energy_impact_per_node_per_day / daily_allowance_mah) * 100.0
+                cpu_power_consumption_ma = 5
 
-            elif name == "1":
-                return 1.0
+                duty_cycle = 0.042
+
+                daily_allowance_mah -= cpu_power_consumption_ma * 24 * duty_cycle
+
+                energy_impact_per_node_per_day_when_active = energy_impact_per_node_per_day * duty_cycle
+
+                return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
+
+            elif name == "good_move_ratio":
+
+                steps_towards = self._get_from_opts_or_values("AttackerStepsTowards", values)
+                steps_away =  self._get_from_opts_or_values("AttackerStepsAway", values)
+
+                ratios = []
+
+                for node_id in steps_towards.keys():
+                    ratios.append(float(steps_towards[node_id]) / (float(steps_towards[node_id]) + float(steps_away[node_id])))
+
+                ave = np.mean(ratios)
+
+                return ave
 
             else:
-                return float(self.opts[name])
+                # Handle normalising with arbitrary numbers
+                try:
+                    return float(name)
+                except ValueError:
+                    return float(self.opts[name])
 
     def check_consistent(self, values, line_number):
         """Perform multiple sanity checks on the data generated"""
@@ -343,6 +374,7 @@ class Analyse(object):
     def detect_outlier(self, values):
         """Raise an exception in this function if an individual result should be
         excluded from the analysis"""
+        # TODO: Call this
         pass
 
     def average_of(self, header):
@@ -413,7 +445,7 @@ class AnalysisResults:
 
         skip = ["Seed"]
 
-        expected_fail = ['Collisions', "NodeWasSource"]
+        expected_fail = ['Collisions', "NodeWasSource", "AttackerMovesInResponseTo", "SentOverTime"]
 
         for heading in analysis.headings:
             if heading in skip:
@@ -449,6 +481,11 @@ class AnalysisResults:
         # Find the length of that list
         return len(self.columns[aname])
 
+    def get_configuration(self):
+        return Configuration.create_specific(self.opts['configuration'],
+                                             int(self.opts['network_size']),
+                                             float(self.opts['distance']))
+
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values, normalised_values=None):
         self.results_directory = results_directory
@@ -462,20 +499,24 @@ class AnalyzerCommon(object):
         # Include the number of simulations that were analysed
         d['repeats']            = lambda x: str(x.number_of_repeats())
 
+        # Give everyone access to the number of nodes in the simulation
+        d['num nodes']          = lambda x: str(x.get_configuration().size())
+
         # The options that all simulations must include
-        d['network size']       = lambda x: x.opts['network_size']
-        d['configuration']      = lambda x: x.opts['configuration']
-        d['attacker model']     = lambda x: x.opts['attacker_model']
-        d['noise model']        = lambda x: x.opts['noise_model']
-        d['communication model']= lambda x: x.opts['communication_model']
-        d['distance']           = lambda x: x.opts['distance']
-        d['source period']      = lambda x: x.opts['source_period']
+        # We do not loop though opts to allow algorithms to rename parameters if they wish
+        for parameter in simulator.common.global_parameter_names:
+
+            parameter_underscore = parameter.replace(" ", "_")
+
+            d[parameter]        = lambda x, name=parameter_underscore: x.opts[name]
 
         return d
 
     @staticmethod
     def common_results(d):
-        # These metrics are ones that all simulations should have
+        """These metrics are ones that all simulations should have.
+        But this function doesn't need to be used if the metrics need special treatment."""
+
         d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
         d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
         d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered', allow_missing=True)
@@ -507,6 +548,41 @@ class AnalyzerCommon(object):
         return AnalysisResults(self.analyse_path(path))
 
     def run(self, summary_file):
+        """Perform the analysis and write the output to the :summary_file:"""
+        
+        def worker(inqueue, outqueue):
+            while True:
+                item = inqueue.get()
+
+                if item is None:
+                    return
+
+                path = item
+
+                try:
+                    result = self.analyse_and_summarise_path(path)
+
+                    # Skip 0 length results
+                    if result.number_of_repeats() == 0:
+                        outqueue.put((path, None, "There are 0 repeats"))
+                        continue
+
+                    line = "|".join(fn(result) for fn in self.values.values())
+
+                    outqueue.put((path, line, None))
+
+                except Exception as ex:
+                    outqueue.put((path, None, (ex, traceback.format_exc())))
+
+
+        nprocs = multiprocessing.cpu_count()
+
+        inqueue = multiprocessing.Queue()
+        outqueue = multiprocessing.Queue()
+
+        pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue))
+
+
         summary_file_path = os.path.join(self.results_directory, summary_file)
 
         # The output files we need to process.
@@ -515,31 +591,33 @@ class AnalyzerCommon(object):
 
         total = len(files)
 
+
+        for infile in files:
+            path = os.path.join(self.results_directory, infile)
+            inqueue.put(path)
+
+        # Push the queue sentinel
+        for i in range(nprocs):
+            inqueue.put(None)
+
+
         with open(summary_file_path, 'w') as out:
 
             print("|".join(self.values.keys()), file=out)
 
             start_time = timeit.default_timer()
 
-            for (num, infile) in enumerate(files):
-                path = os.path.join(self.results_directory, infile)
+            for num in range(total):
+                (path, line, error) = outqueue.get()
 
                 print('Analysing {0}'.format(path))
-            
-                try:
-                    result = self.analyse_and_summarise_path(path)
-                    
-                    # Skip 0 length results
-                    if result.number_of_repeats() == 0:
-                        print("Skipping as there is no data.")
-                        continue
 
-                    line_data = [fn(result) for fn in self.values.values()]
-
-                    print("|".join(line_data), file=out)
-
-                except EmptyFileError as e:
-                    print(e)
+                if error is None:
+                    print(line, file=out)
+                else:
+                    (ex, tb) = error
+                    print("Error processing {} with {}".format(path, ex))
+                    print(tb)
 
                 current_time_taken = timeit.default_timer() - start_time
                 time_per_job = current_time_taken / (num + 1)
@@ -554,3 +632,12 @@ class AnalyzerCommon(object):
                 print()
 
             print('Finished writing {}'.format(summary_file))
+
+        inqueue.close()
+        inqueue.join_thread()
+
+        outqueue.close()
+        outqueue.join_thread()
+
+        pool.close()
+        pool.join()

@@ -1,6 +1,7 @@
 from __future__ import print_function
 
-import os, itertools
+import itertools
+import os
 
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
@@ -14,65 +15,18 @@ from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
-    executable_path = 'run.py'
-
-    distance = 4.5
-
-    noise_models = ["meyer-heavy", "casino-lab"]
-
-    communication_models = ["low-asymmetry"]
-
-    sizes = [11, 15, 21, 25]
-
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-
-    configurations = [
-        'SourceCorner',
-        'SinkCorner',
-        'FurtherSinkCorner',
-        #'Generic1',
-        #'Generic2',
-
-        #'RingTop',
-        #'RingOpposite',
-        #'RingMiddle',
-
-        #'CircleEdges',
-        #'CircleSourceCentre',
-        #'CircleSinkCentre',
-
-        # 2 sources
-        'Source2Corners',
-        'Source2Edges',
-        'Source2Corner',
-        'SourceEdgeCorner',
-
-        # 3 sources
-        'Source3Corner',
-
-        # 4 sources
-        'Source4Corners',
-        'Source4Edges',        
-        'Source2Corner2OppositeCorner'
-    ]
-
-    repeats = 2000
-
-    attacker_models = ['SeqNosReactiveAttacker()']
-
     local_parameter_names = tuple()
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-                                skip_completed_simulations=skip_completed_simulations)
+    def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(
-            self.sizes, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.source_periods
         )
 
         # Factor in the number of sources when selecting the source period.
@@ -80,7 +34,13 @@ class CLI(CommandLineCommon.CLI):
         # network's normal message generation rate is the same.
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
+        return argument_product        
+
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        runner = RunSimulations(driver, self.algorithm_module, result_path,
+                                skip_completed_simulations=skip_completed_simulations)
+
+        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
@@ -99,12 +59,14 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            'safety period': ('Safety Period (seconds)', 'left top'),
-            'time taken': ('Time Taken (seconds)', 'left top'),
+            #'safety period': ('Safety Period (seconds)', 'left top'),
+            #'time taken': ('Time Taken (seconds)', 'left top'),
             #'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            #'captured': ('Capture Ratio (%)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
             #'sent': ('Total Messages Sent', 'left top'),
-            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'good move ratio': ('Good Move Ratio (%)', 'right top'),
+            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
         protectionless_results = results.Results(
@@ -113,32 +75,41 @@ class CLI(CommandLineCommon.CLI):
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources")
 
-        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-            name = '{}-v-configuration'.format(yaxis.replace(" ", "_"))
+        varying = [
+            ("source period", " seconds"),
+            ("communication model", "~")
+        ]
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
+        error_bars = set() # {'received ratio', 'good move ratio', 'norm(norm(sent,time taken),num_nodes)'}
 
-            g = versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yaxis, vary='configuration',
-                yextractor=yextractor)
+        for (vary, vary_prefix) in varying:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "_"))
 
-            g.generate_legend_graph = True
+                yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
 
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = yaxis_label
-            g.vary_label = ''
-            g.vary_prefix = ''
+                g = versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis='network size', yaxis=yaxis, vary=vary,
+                    yextractor=yextractor)
 
-            g.nokey = True
-            g.key_position = key_position
+                #g.generate_legend_graph = True
 
-            g.create(protectionless_results)
+                g.xaxis_label = 'Network Size'
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_prefix
 
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name)
-            ).run()
+                g.error_bars = yaxis in error_bars
+
+                #g.nokey = True
+                g.key_position = key_position
+
+                g.create(protectionless_results)
+
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    '{}-{}'.format(self.algorithm_module.name, name)
+                ).run()
 
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults

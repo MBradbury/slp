@@ -1,11 +1,11 @@
+from __future__ import print_function, division
 
-import itertools
-
-from simulator.Topology import SimpleTree, Line, Ring, Grid, Random
-
-from scipy.spatial.distance import euclidean
+import numpy as np
+from scipy.sparse.csgraph import shortest_path
+from scipy.spatial.distance import cdist
 
 from data.memoize import memoize
+from simulator.Topology import *
 
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_id, space_behind_sink):
@@ -33,6 +33,8 @@ class Configuration(object):
         self._dist_matrix = None
         self._predecessors = None
 
+        self._build_connectivity_matrix()
+
     def build_arguments(self):
         build_arguments = {
             "SINK_NODE_ID": self.sink_id
@@ -52,39 +54,25 @@ class Configuration(object):
             self.sink_id, self.source_ids, self.space_behind_sink, self.topology
         )
 
-    def build_connectivity_matrix(self, return_predecessors=False):
-        if self._dist_matrix is None or (self._predecessors is None and return_predecessors):
-            import numpy
-            from scipy.sparse import csr_matrix
-            from scipy.sparse.csgraph import shortest_path
+    def _build_connectivity_matrix(self):
+        self._dist_matrix_meters = cdist(self.topology.nodes, self.topology.nodes, 'euclidean')
 
-            connectivity_matrix = numpy.zeros((self.size(), self.size()))
+        connectivity_matrix = self._dist_matrix_meters <= self.topology.distance
 
-            for (y, x) in itertools.product(xrange(self.size()), xrange(self.size())):
-                connectivity_matrix[x][y] = 1 if self.is_connected(x, y) else 0
-            connectivity_matrix = csr_matrix(connectivity_matrix)
-
-            ret = shortest_path(connectivity_matrix, return_predecessors=return_predecessors)
-
-            if return_predecessors:
-                self._dist_matrix, self._predecessors = ret
-            else:
-                self._dist_matrix = ret
+        self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, directed=True, return_predecessors=True)
 
     def size(self):
         return len(self.topology.nodes)
 
     def is_connected(self, i, j):
-        nodes = self.topology.nodes
-        return euclidean(nodes[i], nodes[j]) <= self.topology.distance
+        return self._dist_matrix_meters[i,j] <= self.topology.distance
 
     def one_hop_neighbours(self, node):
-        for i in xrange(len(self.topology.nodes)):
+        for i in range(len(self.topology.nodes)):
             if i != node and self.is_connected(node, i):
                 yield i
 
     def node_distance(self, node1, node2):
-        self.build_connectivity_matrix()
         return self._dist_matrix[node1, node2]
 
     def ssd(self, source_id):
@@ -96,7 +84,6 @@ class Configuration(object):
 
     def node_sink_distance(self, node):
         """The number of hops between the sink and the specified node"""
-        self.build_connectivity_matrix()
         return self._dist_matrix[node, self.sink_id]
 
     def node_source_distance(self, node, source_id):
@@ -104,11 +91,10 @@ class Configuration(object):
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
-        self.build_connectivity_matrix()
         return self._dist_matrix[node, source_id]
 
     def node_distance_meters(self, node1, node2):
-        return euclidean(self.topology.nodes[node1], self.topology.nodes[node2])
+        return self._dist_matrix_meters[node1,node2]
 
     def ssd_meters(self, source_id):
         """The number of meters between the sink and the specified source node"""
@@ -119,20 +105,19 @@ class Configuration(object):
 
     def node_sink_distance_meters(self, node):
         """The number of meters between the sink and the specified node"""
-        return euclidean(self.topology.nodes[self.sink_id], self.topology.nodes[node])
+        return self.topology.node_distance_meters(self.sink_id, node)
 
     def node_source_distance_meters(self, node, source_id):
         """The number of meters between the specified source and the specified node"""
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
-        return euclidean(self.topology.nodes[source_id], self.topology.nodes[node])
+        return self.topology.node_distance_meters(node, source_id)
 
 
 
     def shortest_path(self, node_from, node_to):
         """Returns a list of nodes that will take you from node_from to node_to along the shortest path."""
-        self.build_connectivity_matrix(return_predecessors=True)
 
         path = []
 
@@ -353,6 +338,17 @@ class Source2Corners(Configuration):
             space_behind_sink=True
         )
 
+class Source3Corners(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(Source3Corners, self).__init__(
+            grid,
+            source_ids={network_size - 1, len(grid.nodes) - network_size, len(grid.nodes) - 1},
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=False
+        )
+
 class Source4Corners(Configuration):
     def __init__(self, network_size, distance):
         grid = Grid(network_size, distance)
@@ -407,6 +403,17 @@ class Source2Corner(Configuration):
             space_behind_sink=True
         )
 
+class FurtherSinkSource2Corner(Configuration):
+    def __init__(self, network_size, distance):
+        grid = Grid(network_size, distance)
+
+        super(FurtherSinkSource2Corner, self).__init__(
+            grid,
+            source_ids={3, network_size * 3},
+            sink_id=len(grid.nodes) - 1,
+            space_behind_sink=True
+        )
+
 class Source3Corner(Configuration):
     def __init__(self, network_size, distance):
         grid = Grid(network_size, distance)
@@ -449,13 +456,35 @@ class SourceEdgeCorner(Configuration):
         )
 
 class RandomConnected(Configuration):
-    def __init__(self, network_size, distance):
-        random = Random(network_size, distance)
+    def __init__(self, network_size, distance, seed):
+        random = Random(network_size, distance, seed=seed)
 
         super(RandomConnected, self).__init__(
             random,
             source_ids={len(random.nodes) - 1},
             sink_id=0,
+            space_behind_sink=True
+        )
+
+class DCSWarwickSrc201Sink208(Configuration):
+    def __init__(self, network_size, distance):
+        dcs_warwick = DCSWarwick(None, distance)
+
+        super(DCSWarwickSrc201Sink208, self).__init__(
+            dcs_warwick,
+            source_ids={1},
+            sink_id=2,
+            space_behind_sink=True
+        )
+
+class IndriyaSrc31Sink60(Configuration):
+    def __init__(self, network_size, distance):
+        indriya = Indriya(None, distance)
+
+        super(IndriyaSrc31Sink60, self).__init__(
+            indriya,
+            source_ids={31},
+            sink_id=60,
             space_behind_sink=True
         )
 
@@ -488,7 +517,15 @@ def names():
 # Memoize this call to eliminate the overhead of creating many identical configurations.
 @memoize
 def create_specific(name, network_size, distance):
-    return [cls for cls in configurations() if cls.__name__ == name][0](network_size, distance)
+    confs = [cls for cls in configurations() if cls.__name__ == name]
+
+    if len(confs) == 0:
+        raise RuntimeError("No configurations were found using the name {}, size {} and distance {}".format(name, network_size, distance))
+
+    if len(confs) > 1:
+        raise RuntimeError("There are multiple configurations that have the name {}, not sure which one to choose".format(name))
+
+    return confs[0](network_size, distance)
 
 def create(name, args):
     return create_specific(name, args.network_size, args.distance)

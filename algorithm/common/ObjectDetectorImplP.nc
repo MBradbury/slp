@@ -5,6 +5,10 @@ module ObjectDetectorImplP
 
 	uses interface Timer<TMilli> as DetectionTimer;
 	uses interface Timer<TMilli> as ExpireTimer;
+
+#ifdef USE_SERIAL_PRINTF
+	uses interface LocalTime<TMilli>;
+#endif
 }
 implementation
 {
@@ -64,7 +68,7 @@ implementation
 
 		if (get_periods_active(TOS_NODE_ID, &period, &length) && current_index < length)
 		{
-			simdbgverbose("stdout", "Starting a detection timer for %u.\n", period[current_index].from);
+			simdbgverbose("stdout", "Starting a detection timer for %" PRIu32 ".\n", period[current_index].from);
 
 			call DetectionTimer.startOneShotAt(0, start_delay + period[current_index].from);
 		}
@@ -116,7 +120,8 @@ implementation
 
 				const uint32_t timer_length = to - from;
 
-				simdbgverbose("stdout", "Starting an expiration timer from %u to %u for %u.\n", from, to, timer_length);
+				simdbgverbose("stdout", "Starting an expiration timer from %" PRIu32 " to %" PRIu32 " for %" PRIu32 ".\n",
+					from, to, timer_length);
 
 				call ExpireTimer.startOneShot(timer_length);
 			}

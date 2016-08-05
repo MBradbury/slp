@@ -37,9 +37,7 @@ class Attacker(object):
         self._sim = sim
         self.ident = ident
 
-        out = OutputCatcher(self.process)
-        out.register(self._sim, 'Attacker-RCV')
-        self._sim.add_output_processor(out)
+        self._sim.register_output_handler('Attacker-RCV', self.process)
 
         self.position = start_node_id
         self._has_found_source = self.found_source_slow()
@@ -47,7 +45,7 @@ class Attacker(object):
 
         self.moves_in_response_to = Counter()
 
-        self.min_source_distance = {source: self._sim.node_distance(start_node_id, source) for source in self._source_ids()}
+        self.min_source_distance = {source: self._sim.node_distance_meters(start_node_id, source) for source in self._source_ids()}
 
         self.setup_event_callbacks()
 
@@ -68,7 +66,10 @@ class Attacker(object):
         if self._has_found_source:
             return
 
-        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = line.split(',')
+        # First get the string without "DEBUG (<NODEID>): "
+        without_dbg = line.split(':', 1)[1].strip()
+
+        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = without_dbg.split(',')
 
         node_id = int(node_id)
 
@@ -117,8 +118,8 @@ class Attacker(object):
             self.moves_in_response_to[msg_type] += 1
 
         for source in self._source_ids():
-            new_distance = self._sim.node_distance(source, node_id)
-            old_distance = self._sim.node_distance(source, self.position)
+            new_distance = self._sim.node_distance_meters(source, node_id)
+            old_distance = self._sim.node_distance_meters(source, self.position)
 
             if new_distance > old_distance:
                 self.steps_away[source] += 1

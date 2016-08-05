@@ -31,13 +31,11 @@ implementation
 	App.AMPacket -> ActiveMessageC;
 
 	// Timers
-	components new TimerMilliC() as BroadcastNormalTimer;
 	components new TimerMilliC() as BroadcastBeaconTimer;
 	components new TimerMilliC() as FakeWalkTimer;
 	components new TimerMilliC() as FakeSendTimer;
 	components new TimerMilliC() as EtxTimer;
 
-	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.BroadcastBeaconTimer -> BroadcastBeaconTimer;
 	App.FakeWalkTimer -> FakeWalkTimer;
 	App.FakeSendTimer -> FakeSendTimer;

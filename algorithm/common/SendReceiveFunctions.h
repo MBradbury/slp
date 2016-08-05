@@ -3,39 +3,62 @@
 
 #include "pp.h"
 
+#include <inttypes.h>
+
 #define MSG_TYPE_SPEC "%s"
-#define SIM_TIME_SPEC "%" PRIu64
 #define TOS_NODE_ID_SPEC "%u"
+
+// Time is a uint32_t when deploying on real hardware is it comes from LocalTime.
+// In a simulator time is sim_time_t which is a long long int.
+#ifdef USE_SERIAL_PRINTF
+#	define SIM_TIME_SPEC "%" PRIu32
+#else
+// For some reason PRIi64 doesn't reliably work, so use the manual lli
+//#	define SIM_TIME_SPEC "%" PRIi64
+#	define SIM_TIME_SPEC "%lli"
+#endif
 
 #define PROXIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
 #define ULTIMATE_SOURCE_SPEC "%d"
+#define ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "%" PRIi32
+#define NXSEQUENCE_NUMBER_SPEC "%" PRIu32
 #define SEQUENCE_NUMBER_SPEC "%" PRIi64
 #define DISTANCE_SPEC "%d"
 
 // The SEQUENCE_NUMBER parameter will typically be of type NXSequenceNumber or have the value BOTTOM,
 // this is why it needs to be cast to an int64_t first.
 #define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
-	simdbg_clear("Metric-COMMUNICATE", \
+	simdbg("Metric-COMM", \
 		"RCV:" MSG_TYPE_SPEC "," SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," \
 		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n", \
 		#TYPE, sim_time(), TOS_NODE_ID, \
 		PROXIMATE_SOURCE, ULTIMATE_SOURCE, (int64_t)SEQUENCE_NUMBER, DISTANCE)
 
 #define METRIC_BCAST(TYPE, STATUS, SEQUENCE_NUMBER) \
-	simdbg_clear("Metric-COMMUNICATE", \
+	simdbg("Metric-COMM", \
 		"BCAST:" MSG_TYPE_SPEC "," SIM_TIME_SPEC "," TOS_NODE_ID_SPEC ",%s," SEQUENCE_NUMBER_SPEC "\n", \
 		#TYPE, sim_time(), TOS_NODE_ID, \
-		STATUS, SEQUENCE_NUMBER)
+		STATUS, (int64_t)SEQUENCE_NUMBER)
 
 #define METRIC_DELIVER(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
-	simdbg_clear("Metric-COMMUNICATE", \
+	simdbg("Metric-COMM", \
 		"DELIVER:" MSG_TYPE_SPEC "," SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," \
-		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
+		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		#TYPE, sim_time(), TOS_NODE_ID, \
 		PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
 
 #define MSG_GET_NAME(TYPE, NAME) PPCAT(PPCAT(TYPE, _get_), NAME)
 #define MSG_GET(TYPE, NAME, MSG) MSG_GET_NAME(TYPE, NAME)(MSG)
+
+// Don't flash mote leds when sending a message on the testbed
+// We aren't there to see it and it reduces the log output size
+#ifdef TESTBED
+#	define SEND_LED_ON
+#	define SEND_LED_OFF
+#else
+#	define SEND_LED_ON call Leds.led0On()
+#	define SEND_LED_OFF call Leds.led0Off()
+#endif
 
 #define SEND_MESSAGE(NAME) \
 error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) \
@@ -65,7 +88,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 		status = call NAME##Send.send(target, &packet, sizeof(NAME##Message)); \
 		if (status == SUCCESS) \
 		{ \
-			call Leds.led0On(); \
+			SEND_LED_ON; \
 			busy = TRUE; \
  \
 			METRIC_BCAST(NAME, "success", MSG_GET(NAME, sequence_number, tosend)); \
@@ -118,7 +141,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 		status = call NAME##Send.send(&packet, sizeof(NAME##Message)); \
 		if (status == SUCCESS) \
 		{ \
-			call Leds.led0On(); \
+			SEND_LED_ON; \
 			busy = TRUE; \
  \
 			METRIC_BCAST(NAME, "success", MSG_GET(NAME, sequence_number, tosend)); \
@@ -160,13 +183,13 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 			} \
 			else \
 			{ \
-				call Leds.led0Off(); \
+				SEND_LED_OFF; \
 				busy = FALSE; \
 			} \
 		} \
 		else \
 		{ \
-			call Leds.led0Off(); \
+			SEND_LED_OFF; \
 			busy = FALSE; \
 		} \
 	} \
@@ -190,13 +213,13 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 			} \
 			else \
 			{ \
-				call Leds.led0Off(); \
+				SEND_LED_OFF; \
 				busy = FALSE; \
 			} \
 		} \
 		else \
 		{ \
-			call Leds.led0Off(); \
+			SEND_LED_OFF; \
 			busy = FALSE; \
 		} \
 	} \
@@ -211,8 +234,8 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
-	simdbg_clear("Attacker-RCV", \
-		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
+	simdbg("Attacker-RCV", \
+		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		sim_time(), #NAME, TOS_NODE_ID, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
 	if (len != sizeof(NAME##Message)) \
@@ -246,8 +269,8 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
-	simdbg_clear("Attacker-RCV", \
-		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
+	simdbg("Attacker-RCV", \
+		SIM_TIME_SPEC ",%s," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
 		sim_time(), #NAME, TOS_NODE_ID, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
 	if (len != sizeof(NAME##Message)) \

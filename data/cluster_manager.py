@@ -8,6 +8,10 @@ def load(args):
     import pkgutil
     import data.cluster as clusters
 
+    # Allow a single name to be provided as a parameter
+    if isinstance(args, str):
+        args = (args,)
+
     cluster_modules = {modname: importer for (importer, modname, ispkg) in pkgutil.iter_modules(clusters.__path__)}
     cluster_names = list(set(args).intersection(cluster_modules.keys()))
 

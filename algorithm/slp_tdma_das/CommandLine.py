@@ -4,58 +4,28 @@ import itertools
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
-
 from data.table import safety_period
 
 from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
-    executable_path = 'run.py'
-
-    distance = 4.5
-
-    noise_models = ["meyer-heavy", "casino-lab"]
-
-    communication_models = ["low-asymmetry"]
-
-    sizes = [11, 15, 21, 25]
-
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-
-    configurations = [
-        'SourceCorner',
-        #'SinkCorner',
-        #'FurtherSinkCorner',
-        #'Generic1',
-        #'Generic2',
-        
-        #'RingTop',
-        #'RingOpposite',
-        #'RingMiddle',
-
-        #'CircleEdges',
-        #'CircleSourceCentre',
-        #'CircleSinkCentre',
-
-        #'Source2Corners',
-    ]
-
-    attacker_models = ['SeqNosReactiveAttacker()']
-
-    slot_period = [0.1]
-    dissem_period = [0.5]
-    tdma_num_slots = [120]
-    slot_assignment_interval = [4]
-
-    repeats = 300
-
-    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval')
-
+    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval', 'minimum setup periods', 'pre beacon periods', "dissem timeout")
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
+
+    def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
+
+        argument_product = list(itertools.product(
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.source_periods, parameters.slot_period, parameters.dissem_period,
+            parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods, parameters.dissem_timeout
+        ))
+
+        return argument_product
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         runner = RunSimulations(
@@ -63,14 +33,7 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations
         )
 
-        argument_product = itertools.product(
-            self.sizes, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.slot_period, self.dissem_period,
-            self.tdma_num_slots, self.slot_assignment_interval
-        )
-
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), list(argument_product))
+        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product())
 
     def run(self, args):
         super(CLI, self).run(args)
