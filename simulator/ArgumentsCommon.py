@@ -55,7 +55,7 @@ class ArgumentsCommon(object):
 
         parser_parallel = subparsers.add_parser("PARALLEL", add_help=False, parents=[parser_single])
 
-        parser_parallel.add_argument("--job-size", type=int, default=1)
+        parser_parallel.add_argument("--job-size", type=int, required=True)
         parser_parallel.add_argument("--thread-count", type=int, default=None)
 
         ###
