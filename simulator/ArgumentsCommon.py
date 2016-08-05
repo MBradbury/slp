@@ -1,39 +1,75 @@
+
+import argparse
+
 from simulator.Simulation import Simulation
 import simulator.Attacker as Attacker
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
+# Inheritance diagram for different modes:
+# TESTBED < SINGLE < PARALLEL < CLUSTER
+#                  < GUI
+
 class ArgumentsCommon(object):
-    def __init__(self, parser, has_safety_period=False):
-        parser.add_argument("--mode", type=str, choices=["GUI", "SINGLE", "PARALLEL", "CLUSTER", "TESTBED"], required=True)
+    def __init__(self, description, has_safety_period=False):
+        parser = argparse.ArgumentParser(description=description, add_help=False)
 
-        parser.add_argument("--seed", type=int, required=False)
+        subparsers = parser.add_subparsers(title="mode", dest="mode")
 
-        parser.add_argument("-cm", "--communication-model", type=str, choices=Simulation.available_communication_models(), required=True)
-        parser.add_argument("-nm", "--noise-model", type=str, choices=Simulation.available_noise_models(), required=True)
+        ###
 
-        parser.add_argument("-ns", "--network-size", type=int, required=True)
-        parser.add_argument("-d", "--distance", type=float, default=4.5)
-        parser.add_argument("-c", "--configuration", type=str, required=True, choices=Configuration.names())
+        parser_testbed = subparsers.add_parser("TESTBED", add_help=True)
 
-        parser.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
+        parser_testbed.add_argument("-c", "--configuration", type=str, required=True, choices=Configuration.names())
 
-        parser.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0, help="Used to specify the latest possible start time. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
+        parser_testbed.add_argument("-v", "--verbose", action="store_true")
+
+        ###
+
+        parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=[parser_testbed])
+
+        parser_single.add_argument("--seed", type=int, required=False)
+
+        parser_single.add_argument("-cm", "--communication-model", type=str, choices=Simulation.available_communication_models(), required=True)
+        parser_single.add_argument("-nm", "--noise-model", type=str, choices=Simulation.available_noise_models(), required=True)
+
+        parser_single.add_argument("-ns", "--network-size", type=int, required=True)
+        parser_single.add_argument("-d", "--distance", type=float, default=4.5)
+
+        parser_single.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
+
+        parser_single.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0,
+                                   help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
 
         if has_safety_period:
-            parser.add_argument("-safety", "--safety-period", type=float, required=True)
+            parser_single.add_argument("-safety", "--safety-period", type=float, required=True)
 
-        parser.add_argument("--job-size", type=int, default=1)
-        parser.add_argument("--thread-count", type=int, default=None)
+        ###
 
-        parser.add_argument("--job-id", type=int, default=None, help="Used to pass the array id when this job has been submitted as a job array to the cluster.")
+        parser_gui = subparsers.add_parser("GUI", add_help=False, parents=[parser_single])
 
-        parser.add_argument("-v", "--verbose", action="store_true")
+        parser_gui.add_argument("--gui-node-label", type=str, required=False, default=None)
+        parser_gui.add_argument("--gui-scale", type=int, required=False, default=6)
 
-        parser.add_argument("--gui-node-label", type=str, required=False, default=None)
-        parser.add_argument("--gui-scale", type=int, required=False, default=6)
+        ###
 
-        self.parser = parser
+        parser_parallel = subparsers.add_parser("PARALLEL", add_help=False, parents=[parser_single])
+
+        parser_parallel.add_argument("--job-size", type=int, default=1)
+        parser_parallel.add_argument("--thread-count", type=int, default=None)
+
+        ###
+
+        parser_cluster = subparsers.add_parser("CLUSTER", add_help=False, parents=[parser_parallel])
+
+        parser_cluster.add_argument("--job-id", type=int, default=None,
+                                    help="Used to pass the array id when this job has been submitted as a job array to the cluster.")
+
+        ###
+
+        # Store any of the parsers that we need
+        self._parser = parser
+        self._subparsers = (parser_testbed, parser_single, parser_gui, parser_parallel, parser_cluster)
 
         # Haven't parsed anything yet
         self.args = None
@@ -41,8 +77,16 @@ class ArgumentsCommon(object):
         # Don't show these arguments when printing the argument values before showing the results
         self.arguments_to_hide = {"job_id", "verbose", "gui_node_label", "gui_scale"}
 
+    def add_argument(self, *args, **kwargs):
+
+        # TODO: Work out a way to just add this to a single subparser and let the argument
+        # trickle down to the other subparsers.
+
+        for parser in self._subparsers:
+            parser.add_argument(*args, **kwargs)
+
     def parse(self, argv):
-        self.args = self.parser.parse_args(argv)
+        self.args = self._parser.parse_args(argv)
 
         if hasattr(self.args, 'source_mobility'):
             configuration = Configuration.create(self.args.configuration, self.args)

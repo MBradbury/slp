@@ -1,4 +1,6 @@
-import argparse, math
+import argparse
+import math
+
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
@@ -14,28 +16,27 @@ order_choices = ["LongShort", "ShortLong"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Phantom_Walkabouts", add_help=True)
-        super(Arguments, self).__init__(parser, has_safety_period=True)
+        super(Arguments, self).__init__("SLP Phantom_Walkabouts", has_safety_period=True)
 
-        parser.add_argument("--source-period",
-            type=simulator.SourcePeriodModel.eval_input, required=True)
-        parser.add_argument("--source-mobility",
-            type=simulator.MobilityModel.eval_input,
-            default=simulator.MobilityModel.StationaryMobilityModel())
+        self.add_argument("--source-period",
+                          type=simulator.SourcePeriodModel.eval_input, required=True)
+        self.add_argument("--source-mobility",
+                          type=simulator.MobilityModel.eval_input,
+                          default=simulator.MobilityModel.StationaryMobilityModel())
 
-        parser.add_argument("--short-walk-length", type=int, required=True)
-        parser.add_argument("--long-walk-length", type=int, required=True)
+        self.add_argument("--short-walk-length", type=int, required=True)
+        self.add_argument("--long-walk-length", type=int, required=True)
 
-        parser.add_argument("--wait-before-short", type=int, required=True)
+        self.add_argument("--wait-before-short", type=int, required=True)
 
-        parser.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
+        self.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
 
-        parser.add_argument("--order", type=str, choices=order_choices, required=True)
+        self.add_argument("--order", type=str, choices=order_choices, required=True)
 
-        parser.add_argument("--short-count", type=int, required=True)
-        parser.add_argument("--long-count", type=int, required=True)
+        self.add_argument("--short-count", type=int, required=True)
+        self.add_argument("--long-count", type=int, required=True)
 
-        parser.add_argument("--landmark-node", default="sink_id")
+        self.add_argument("--landmark-node", default="sink_id")
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
