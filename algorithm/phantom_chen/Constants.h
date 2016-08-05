@@ -23,11 +23,5 @@ enum Channels
 #define SHORT_RANDOM_WALK 0
 #define LONG_RANDOM_WALK 1
 
-//define the global vaiable.
-//make it work for multiple sources.
-uint16_t message_no = 1;
-uint16_t current_message = 0;
-uint16_t next_message = 0;
-
 #endif // SLP_CONSTANTS_H
 

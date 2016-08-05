@@ -119,7 +119,7 @@ implementation
 
 	int16_t first_source_distance = BOTTOM;
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	typedef enum
 	{
@@ -328,13 +328,13 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 			//source_distance = 0;
 
-			call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
+			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 		}
 	}
 
@@ -347,7 +347,7 @@ implementation
 			type = NormalNode;
 			//source_distance = BOTTOM;
 
-			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -427,8 +427,6 @@ implementation
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
-
-		call BroadcastNormalTimer.startOneShot(SOURCE_PERIOD_MS);
 	}
 
 	event void AwaySenderTimer.fired()

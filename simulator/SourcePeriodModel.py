@@ -1,10 +1,11 @@
+from __future__ import print_function, division
+
 from collections import OrderedDict
-
-import math, numbers
-
-from data.restricted_eval import restricted_eval
+import math
+import numbers
 
 from data.memoize import memoize
+from data.restricted_eval import restricted_eval
 
 class PeriodModel(object):
     def __init__(self, times):
@@ -28,6 +29,7 @@ class PeriodModel(object):
         build_arguments = {}
 
         def to_tinyos_format(time):
+            """Return the time in milliseconds"""
             return int(time * 1000)
 
         periods = [
@@ -54,6 +56,8 @@ class PeriodModel(object):
         return repr(self)
 
 class FixedPeriodModel(PeriodModel):
+    """The sources broadcast at a fixed rate forever"""
+    
     def __init__(self, period):
 
         self.period = float(period)
@@ -123,7 +127,8 @@ def models():
     return [cls for cls in PeriodModel.__subclasses__()]
 
 @memoize
-def eval_input(source):
+def create_specific(source):
+    """Creates a source period model from the :source: string"""
     result = restricted_eval(source, models())
 
     if isinstance(result, numbers.Number):
@@ -132,3 +137,8 @@ def eval_input(source):
         return result
     else:
         raise RuntimeError("The source ({}) is not valid.".format(source))
+
+# eval_input must be a function so it can be used as a type parameter for the arguments
+def eval_input(source):
+    """Creates a source period model from the :source: string"""
+    return create_specific(source)

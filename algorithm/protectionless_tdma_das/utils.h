@@ -65,10 +65,21 @@ NeighbourInfo* NeighbourList_info_for_min_hop(NeighbourList* list, const IDList*
 void NeighbourList_select(NeighbourList* list, const IDList* onehop, OnehopList* newList);
 void NeighbourList_to_OnehopList(const NeighbourList* list, OnehopList *newList);
 void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList);
+uint16_t OnehopList_min_slot(OnehopList* list);
 
 void NeighbourInfo_print(const NeighbourInfo* info);
 void OnehopList_print(const OnehopList* list);
 void NeighbourList_print(const NeighbourList* list);
+uint16_t OnehopList_min_slot(OnehopList* list)
+{
+    uint16_t min_slot = list->info[0].slot;
+    int i;
+    for(i = 0; i < list->count; i++)
+    {
+        min_slot = (min_slot > list->info[i].slot) ? list->info[i].slot : min_slot;
+    }
+    return min_slot;
+}
 
 OtherInfo OtherInfo_new(am_addr_t id);
 OtherList OtherList_new();

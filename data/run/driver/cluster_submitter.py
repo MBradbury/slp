@@ -3,6 +3,8 @@ from __future__ import print_function
 import os, subprocess
 
 class Runner(object):
+    executable = 'python -OO run.py'
+
     def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None):
         self.cluster_command = cluster_command
         self.prepare_command = prepare_command
@@ -10,7 +12,7 @@ class Runner(object):
         self.array_job_variable = array_job_variable
         self.job_repeats = job_repeats
 
-    def add_job(self, executable, options, name, estimated_time):
+    def add_job(self, options, name, estimated_time):
         target_directory = name[:-len(".txt")]
 
         if not os.path.exists(target_directory):
@@ -33,7 +35,7 @@ class Runner(object):
 
         cluster_command = self.cluster_command.format(estimated_time_str, module)
 
-        script_command = '{} {} {} >> "{}"'.format(executable, module, options, name)
+        script_command = '{} {} {} >> "{}"'.format(self.executable, module, options, name)
 
         # Print out any useful information that could aid in debugging
         debug_commands = [

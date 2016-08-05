@@ -34,25 +34,30 @@ inline double rad2deg(double r)
 	return r * (180.0 / M_PI);
 }
 
+#ifndef USE_SERIAL_PRINTF
+#	include <assert.h>
+#else
+#	define assert(...)
+#endif
+
 // Compiling for testbeds, so need to route the simdbg to the printf library
 #ifdef USE_SERIAL_PRINTF
+#	include "printf.h"
 
-#define NEW_PRINTF_SEMANTICS
-#include "printf.h"
+#	define sim_time_string() "<sim_time>"
+#	define sim_time() (call LocalTime.get())
+#endif
 
-#define simdbg(name, ...) printf(name ":" __VA_ARGS__); printfflush()
-#define simdbg_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
-#define simdbgerror(name, ...) printf(name ":" __VA_ARGS__); printfflush()
-#define simdbgerror_clear(name, ...) printf(name ":" __VA_ARGS__); printfflush()
+#ifndef PRIu8
+#	define PRIu8 "u"
+#endif
 
-#define PRIu8 "u"
-#define PRIu64 "llu"
-#define PRIi64 "lld"
+#ifndef PRIu64
+#	define PRIu64 "llu"
+#endif
 
-// TODO: Implement these time strings
-#define sim_time_string() "<TODO implement sim_time_string>"
-#define sim_time() 0ULL
-
+#ifndef PRIi64
+#	define PRIi64 "lld"
 #endif
 
 #ifdef SLP_VERBOSE_DEBUG

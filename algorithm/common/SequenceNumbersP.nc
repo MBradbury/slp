@@ -1,5 +1,7 @@
 #include "SequenceNumber.h"
 
+#include "Common.h"
+
 generic module SequenceNumbersP(uint16_t MAX_SIZE)
 {
   provides interface SequenceNumbers;

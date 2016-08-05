@@ -18,7 +18,6 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-	uses interface Timer<TMilli> as EnqueueNormalTimer;
 	uses interface Timer<TMilli> as BroadcastTimer;
 
 	uses interface Pool<NormalMessage> as MessagePool;
@@ -61,21 +60,12 @@ implementation
 		}
 	}
 
-	// This function is to be used by the source node to get the
-	// period it should use at the current time.
-	// DO NOT use this for nodes other than the source!
-	uint32_t get_source_period()
-	{
-		assert(type == SourceNode);
-		return call SourcePeriodModel.get();
-	}
-
 	uint32_t get_broadcast_period()
 	{
 		return BROADCAST_PERIOD_MS;
 	}
 
-	uint32_t extra_to_send = 0;
+	unsigned int extra_to_send = 0;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -120,12 +110,12 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg_clear("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
 
-			call EnqueueNormalTimer.startOneShot(get_source_period());
+			call SourcePeriodModel.startPeriodic();
 		}
 	}
 
@@ -133,11 +123,11 @@ implementation
 	{
 		if (type == SourceNode)
 		{
-			call EnqueueNormalTimer.stop();
+			call SourcePeriodModel.stop();
 
 			type = NormalNode;
 
-			simdbg_clear("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -145,11 +135,11 @@ implementation
 	USE_MESSAGE(Normal);
 	USE_MESSAGE(DummyNormal);
 
-	event void EnqueueNormalTimer.fired()
+	event void SourcePeriodModel.fired()
 	{
 		NormalMessage* message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: EnqueueNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
 
 		message = call MessagePool.get();
 		if (message != NULL)
@@ -171,13 +161,13 @@ implementation
 		{
 			simdbgerror("stdout", "No pool space available for another Normal message.\n");
 		}
-
-		call EnqueueNormalTimer.startOneShot(get_source_period());
 	}
 
 	event void BroadcastTimer.fired()
 	{
 		NormalMessage* message;
+
+		call BroadcastTimer.startOneShot(get_broadcast_period());
 
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
 
@@ -200,8 +190,6 @@ implementation
 
 			send_DummyNormal_message(&dummy_message, AM_BROADCAST_ADDR);
 		}
-
-		call BroadcastTimer.startOneShot(get_broadcast_period());
 	}
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)

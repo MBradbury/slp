@@ -1,5 +1,9 @@
-from __future__ import print_function
-import os, sys, datetime
+from __future__ import print_function, division
+
+import datetime
+import importlib
+import os
+import sys
 
 import simulator.common
 
@@ -29,7 +33,13 @@ class CLI(object):
     def __init__(self, package):
         super(CLI, self).__init__()
 
-        self.algorithm_module = __import__(package, globals(), locals(), ['object'], -1)
+        self.algorithm_module = importlib.import_module(package)
+        self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
+
+        try:
+            self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
+        except ImportError:
+            print("Failed to import Parameters, have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
     def parameter_names(self):
         return tuple(list(self.global_parameter_names) + list(self.local_parameter_names))
@@ -59,6 +69,9 @@ class CLI(object):
             latex.print_footer(result_file)
 
         latex.compile_document(filename)
+
+    def _argument_product(self):
+        raise NotImplementedError()
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations):
         raise NotImplementedError()
@@ -91,9 +104,9 @@ class CLI(object):
         if size == 11:
             return datetime.timedelta(hours=9)
         elif size == 15:
-            return datetime.timedelta(hours=18)
+            return datetime.timedelta(hours=21)
         elif size == 21:
-            return datetime.timedelta(hours=36)
+            return datetime.timedelta(hours=42)
         elif size == 25:
             return datetime.timedelta(hours=72)
         else:
@@ -171,15 +184,19 @@ class CLI(object):
 
     def _run_testbed(self, args):
 
-        from data.run.driver.testbed_builder import Runner as Builder
+        from data import testbed_manager
+
+        testbed = testbed_manager.load(args)
 
         testbed_directory = os.path.join("testbed", self.algorithm_module.name)
 
         if 'build' in args:
+            from data.run.driver.testbed_builder import Runner as Builder
+
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            self._execute_runner(Builder(), testbed_directory, skip_completed_simulations=False)
+            self._execute_runner(Builder(testbed), testbed_directory, skip_completed_simulations=False)
 
         sys.exit(0)
 
@@ -207,7 +224,9 @@ class CLI(object):
 
 
     def _run_detect_missing(self, args):
-        # TODO: Extend this to also handle missing results files
+        
+
+        argument_product = {tuple(map(str, row)) for row in self._argument_product()}
 
         result = results.Results(self.algorithm_module.result_file_path,
                                  parameters=self.local_parameter_names,
@@ -215,7 +234,22 @@ class CLI(object):
 
         repeats = result.parameter_set()
 
+        parameter_names = self.global_parameter_names + result.parameter_names
+
+        print("Checking runs that were asked for, but not included...")
+
+        for arguments in argument_product:
+            if arguments not in repeats:
+                print("missing ", end="")
+                print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, arguments)]))
+                print()
+
+        print("Loading {} to check for missing runs...".format(self.algorithm_module.result_file_path))
+
         for (parameter_values, repeats_performed) in repeats.items():
+
+            if parameter_values not in argument_product:
+                continue
 
             repeats_missing = max(self.repeats - repeats_performed, 0)
 
@@ -223,8 +257,6 @@ class CLI(object):
             if repeats_missing > 0:
 
                 print("performed={} missing={} ".format(repeats_performed, repeats_missing), end="")
-
-                parameter_names = self.global_parameter_names + result.parameter_names
 
                 print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, parameter_values)]))
                 print()

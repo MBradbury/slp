@@ -12,8 +12,8 @@ class Analyzer(AnalyzerCommon):
             ('NormalSent', 'TimeTaken'),
             ('TimeTaken', 'source_period'),
 
-            ('energy_impact', 'network_size'),
-            (('energy_impact', 'network_size'), 'TimeTaken'),
+            ('energy_impact', 'num_nodes'),
+            (('energy_impact', 'num_nodes'), 'TimeTaken'),
             ('daily_allowance_used', '1'),
         )
 
@@ -43,8 +43,8 @@ class Analyzer(AnalyzerCommon):
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
         d['norm(time taken,source period)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(TimeTaken,source_period)')
 
-        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,network_size)')
-        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,network_size),TimeTaken)')
+        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,num_nodes)')
+        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
         d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
 
         return d

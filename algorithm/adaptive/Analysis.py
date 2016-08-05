@@ -9,12 +9,13 @@ class Analyzer(AnalyzerCommon):
     def normalised_parameters():
         return (
             ('Sent', 'TimeTaken'),
+            (('Sent', 'TimeTaken'), 'num_nodes'),
             ('FakeSent', 'TimeTaken'),
             (('FakeSent', 'TimeTaken'), 'source_rate'),
             ('NormalSent', 'TimeTaken'),
 
-            ('energy_impact', 'network_size'),
-            (('energy_impact', 'network_size'), 'TimeTaken'),
+            ('energy_impact', 'num_nodes'),
+            (('energy_impact', 'num_nodes'), 'TimeTaken'),
             ('daily_allowance_used', '1'),
         )
 
@@ -44,14 +45,15 @@ class Analyzer(AnalyzerCommon):
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(norm(sent,time taken),num_nodes)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
        
         d['norm(fake,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(FakeSent,TimeTaken)')
         d['norm(norm(fake,time taken),source rate)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(FakeSent,TimeTaken),source_rate)')
 
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
 
-        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,network_size)')
-        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,network_size),TimeTaken)')
+        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,num_nodes)')
+        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
         d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
 
         return d

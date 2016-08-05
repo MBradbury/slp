@@ -1,6 +1,6 @@
 import re
 
-from simulator.Simulation import OutputCatcher, Simulation
+from simulator.Simulation import OutputCatcher, Simulation, OfflineSimulation
 
 ###############################################
 class DebugAnalyzer:
@@ -8,12 +8,15 @@ class DebugAnalyzer:
     AM_SEND = 1
     AM_RECV = 2
     CHANGE  = 3
+    DAS     = 4
 
     WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
     LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
     CHANGE_RE = re.compile(r'The node has become a ([a-zA-Z]+)')
+
+    DAS_RE    = re.compile(r'DAS is (\d)')
 
     ####################
     def __init__(self):
@@ -60,48 +63,57 @@ class DebugAnalyzer:
             kind = match.group(1)
             return (node_id, self.CHANGE, (kind,))
 
+        # Check whether DAS is broken
+        match = self.DAS_RE.match(detail)
+        if match is not None:
+            state = int(match.group(1))
+            return (node_id, self.DAS, (state,))
+
         return None
 
-###############################################
-class GuiSimulation(Simulation):
-    ####################
-    def __init__(self, module_name, configuration, args):
+class Gui:
+    def __init__(self, sim, node_position_scale_factor=None, node_label=None):
 
-        super(GuiSimulation, self).__init__(
-            module_name=module_name,
-            configuration=configuration,
-            args=args,
-            load_nesc_variables=True)
+        from simulator.topovis.TopoVis import Scene
+        from simulator.topovis.TkPlotter import Plotter
 
-        self.scene = None
+        # Setup an animating canvas
+        self.scene = Scene(timescale=1)
+        self.scene.addPlotter(Plotter())
+
+
+        self._sim = sim
 
         # Default factor to scale the node positions by
-        self._node_position_scale_factor = args.gui_scale
+        self._node_position_scale_factor = node_position_scale_factor
 
         # e.g. "SourceBroadcasterC.min_source_distance"
-        self._node_label = args.gui_node_label
+        self._node_label = node_label
 
-        if self._node_label is not None:
-            variables = self.nesc_app.variables.variables()[0::3]
-            if self._node_label not in variables:
-                raise RuntimeError("The variable {} was not present in the list known to python".format(self._node_label))
+
+        # set line style used for neighbour relationship
+        self.scene.execute(0, 'linestyle(1,color=(.7,.7,.7))')
+
+        # draw nodes on animating canvas
+        for node in sim.nodes:
+            self.scene.execute(0, 'node({},{},{})'.format(node.nid, *self._adjust_location(node.location)))
+        
 
         self._debug_analyzer = DebugAnalyzer()
 
         # Setup a pipe for monitoring dbg messages
-        dbg = OutputCatcher(self._process_message)
-        dbg.register(self, 'LedsC')
-        dbg.register(self, 'AM')
-        dbg.register(self, 'Fake-Notification')
-        dbg.register(self, 'Node-Change-Notification')
-        self.add_output_processor(dbg)
-        
+        self._sim.register_output_handler('LedsC', self._process_message)
+        self._sim.register_output_handler('AM', self._process_message)
+        self._sim.register_output_handler('Fake-Notification', self._process_message)
+        self._sim.register_output_handler('Node-Change-Notification', self._process_message)
+        self._sim.register_output_handler('DAS-State', self._process_message)
+
     def _adjust_location(self, loc):
         factor = self._node_position_scale_factor
         return (loc[0] * factor, loc[1] * factor)
 
     def node_location(self, node_id):
-        return self._adjust_location(self.nodes[node_id].location)
+        return self._adjust_location(self._sim.nodes[node_id].location)
 
     ####################
     def _animate_leds(self, time, node_id, detail):
@@ -172,6 +184,14 @@ class GuiSimulation(Simulation):
 
         self.scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
 
+    def _animate_das_state(self, time, node, detail):
+        (state,) = detail
+        (x,y) = self.node_location(node)
+        if state == 0:
+            self.scene.execute(time,
+                    'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),width=5),delay=.8)'
+                    % (x, y, 10))
+
     ####################
     def _process_message(self, dbg):
         result = self._debug_analyzer.analyze(dbg)
@@ -184,44 +204,52 @@ class GuiSimulation(Simulation):
             DebugAnalyzer.LED: self._animate_leds,
             DebugAnalyzer.AM_SEND: self._animate_am_send,
             DebugAnalyzer.AM_RECV: self._animate_am_receive,
-            DebugAnalyzer.CHANGE: self._animate_change_state
+            DebugAnalyzer.CHANGE: self._animate_change_state,
+            DebugAnalyzer.DAS: self._animate_das_state
 
-        }[event_type](self.sim_time(), node_id, detail)
+        }[event_type](self._sim.sim_time(), node_id, detail)
 
-    ####################
-    def _pre_run(self):
-        super(GuiSimulation, self)._pre_run()
+###############################################
+class GuiSimulation(Simulation):
+    def __init__(self, module_name, configuration, args):
 
-        from simulator.topovis.TopoVis import Scene
-        from simulator.topovis.TkPlotter import Plotter
+        super(GuiSimulation, self).__init__(
+            module_name=module_name,
+            configuration=configuration,
+            args=args,
+            load_nesc_variables=True)
 
-        time = self.sim_time()
+        self._gui = Gui(self, node_position_scale_factor=args.gui_scale, node_label=args.gui_node_label)
 
-        # Setup an animating canvas
-        self.scene = Scene(timescale=1)
-        self.scene.addPlotter(Plotter())
+        if self._gui._node_label is not None:
+            variables = self.nesc_app.variables.variables()[0::3]
+            if self._gui._node_label not in variables:
+                raise RuntimeError("The variable {} was not present in the list known to python".format(self._gui._node_label))
 
-        # set line style used for neighbour relationship
-        self.scene.execute(time, 'linestyle(1,color=(.7,.7,.7))')
-
-        # draw nodes on animating canvas
-        for node in self.nodes:
-            self.scene.execute(time,
-                'node({},{},{})'.format(node.nid, *self._adjust_location(node.location)))
 
     def _during_run(self, event_count):
         super(GuiSimulation, self)._during_run(event_count)
 
-        if event_count % 10 == 0 and self._node_label is not None and self.nesc_app is not None:
+        if event_count % 10 == 0 and self._gui._node_label is not None and self.nesc_app is not None:
             time = self.sim_time()
 
             for node in self.nodes:
-                var = node.tossim_node.getVariable(self._node_label)
+                var = node.tossim_node.getVariable(self._gui._node_label)
                 value = var.getData()
 
                 if value == "<no such variable>":
-                    raise RuntimeError("No variable called '{}' exists.".format(self._node_label))
+                    raise RuntimeError("No variable called '{}' exists.".format(self._gui._node_label))
 
-                self.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
+                self._gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 
 ###############################################
+
+class GuiOfflineSimulation(OfflineSimulation):
+    def __init__(self, module_name, configuration, args, log_filename):
+        super(GuiOfflineSimulation, self).__init__(
+            module_name=module_name,
+            configuration=configuration,
+            args=args,
+            log_filename=log_filename)
+        
+        self._gui = Gui(self, node_position_scale_factor=args.gui_scale)

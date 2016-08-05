@@ -1,17 +1,24 @@
 from __future__ import print_function, division
-import os, timeit, struct, importlib, sys, glob, select, random
 
+from collections import namedtuple
+import glob
+import importlib
 from itertools import islice
+import os
+import random
+import select
+import sys
+import timeit
 
+import simulator.CommunicationModel
 from simulator.Topology import topology_path
 
-from scipy.spatial.distance import euclidean
+def _secure_random():
+    """Returns a random 32 bit (4 byte) signed integer"""
+    import struct
+    return struct.unpack("<i", os.urandom(4))[0]
 
-class Node(object):
-    def __init__(self, node_id, location, tossim_node):
-        self.nid = node_id
-        self.location = location
-        self.tossim_node = tossim_node
+Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
 class OutputCatcher(object):
     def __init__(self, linefn):
@@ -59,13 +66,16 @@ class Simulation(object):
         self.radio = self.tossim.radio()
 
         self._out_procs = {}
-        self._read_poller = select.poll()
+        self._read_poller = select.epoll()
 
         # Record the seed we are using
-        self.seed = args.seed if args.seed is not None else self._secure_random()
+        self.seed = args.seed if args.seed is not None else _secure_random()
 
         # Set tossim seed
         self.tossim.randomSeed(self.seed)
+
+        # Make sure the time starts at 0
+        self.tossim.setTime(0)
 
         # It is important to seed python's random number generator
         # as well as TOSSIM's. If this is not done then the simulations
@@ -115,6 +125,11 @@ class Simulation(object):
         return self
 
     def __exit__(self, tp, value, tb):
+
+        # Turn off to allow subsequent simulations
+        for node in self.nodes:
+            node.tossim_node.turnOff()
+
         del self._read_poller
 
         for op in self._out_procs.values():
@@ -124,16 +139,19 @@ class Simulation(object):
         del self.radio
         del self.tossim
 
-    def add_output_processor(self, op):
-        fd = op._read.fileno()
+    def register_output_handler(self, name, function):
+        catcher = OutputCatcher(function)
+        catcher.register(self, name)
 
-        self._out_procs[fd] = op
+        fd = catcher._read.fileno()
 
-        self._read_poller.register(fd, select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR)
+        self._out_procs[fd] = catcher
 
-    def node_distance(self, left, right):
+        self._read_poller.register(fd, select.EPOLLIN | select.EPOLLPRI | select.EPOLLHUP | select.EPOLLERR)
+
+    def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
-        return euclidean(self.nodes[left].location, self.nodes[right].location)
+        return self.metrics.configuration.node_distance_meters(left, right)
 
     def ticks_to_seconds(self, ticks):
         """Converts simulation time ticks into seconds"""
@@ -216,49 +234,14 @@ class Simulation(object):
     @staticmethod
     def write_topology_file(node_locations, location="."):
         with open(os.path.join(location, "topology.txt"), "w") as of:
-            for (nid, loc) in enumerate(node_locations):
-                print("{}\t{}\t{}".format(nid, loc[0], loc[1]), file=of)
+            for (nid, (x, y)) in enumerate(node_locations):
+                print("{}\t{}\t{}".format(nid, x, y), file=of)    
 
-    def _setup_radio_link_layer_model(self):
-        use_java = True
-        if use_java:
-            self._setup_radio_link_layer_model_java()
-        else:
-            self._setup_radio_link_layer_model_python()
-
-    def _setup_radio_link_layer_model_java(self):
-        import subprocess
-        output = subprocess.check_output(
-            "java -Xms256m -Xmx512m -cp ./tinyos/support/sdk/java/net/tinyos/sim LinkLayerModel {} {} {}".format(
-                self.communications_model_path(), self.topology_path, self.seed),
-            shell=True)
-
-        #f = open("java.out", "w")
-
-        for line in output.splitlines():
-            #print(line.strip(), file=f)
-            parts = line.strip().split("\t")
-
-            if parts[0] == "gain":
-                (g, from_node_id, to_node_id, gain) = parts
-
-                self.radio.add(int(from_node_id), int(to_node_id), float(gain))
-
-            elif parts[0] == "noise":
-                (n, node_id, noise_floor, awgn) = parts
-
-                self.radio.setNoise(int(node_id), float(noise_floor), float(awgn))
-
-        #f.close()
-    
-    def _setup_radio_link_layer_model_python(self):
-        """The python port of the java LinkLayerModel"""
-        import CommunicationModel
+    def setup_radio(self):
+        """Creates radio links for node pairs that are in range."""
         import numpy as np
 
-        model = CommunicationModel.eval_input(self.communication_model)
-
-        #f = open("python.out", "w")
+        model = simulator.CommunicationModel.eval_input(self.communication_model)
 
         cm = model()
         cm.setup(self)
@@ -268,21 +251,11 @@ class Simulation(object):
                 continue
             if np.isnan(gain):
                 continue
-            #print("gain\t{}\t{}\t{:.2f}".format(i, j, gain), file=f)
+
             self.radio.add(i, j, gain)
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
-            #print("noise\t{}\t{:.2f}\t{:.2f}".format(i, noise_floor, cm.white_gausian_noise), file=f)
             self.radio.setNoise(i, noise_floor, cm.white_gausian_noise)
-
-        #f.close()
-
-    def setup_radio(self):
-        """Creates radio links for node pairs that are in range."""
-        if self.communication_model == "ideal":
-            self._setup_radio_link_layer_model_python()
-        else:
-            self._setup_radio_link_layer_model()
 
     def setup_noise_models(self):
         """Create the noise model for each of the nodes in the network."""
@@ -295,16 +268,16 @@ class Simulation(object):
         noises = list(islice(self._read_noise_from_file(path), count))
 
         for node in self.nodes:
+            tnode = node.tossim_node
             for noise in noises:
-                node.tossim_node.addNoiseTraceReading(noise)
-            node.tossim_node.createNoiseModel()
+                tnode.addNoiseTraceReading(noise)
+            tnode.createNoiseModel()
 
     @staticmethod
     def _read_noise_from_file(path):
         with open(path, "r") as f:
             for line in f:
-                line = line.strip()
-                if len(line) != 0:
+                if len(line) > 0 and not line.isspace():
                     yield int(line)
 
     def add_attacker(self, attacker):
@@ -312,10 +285,6 @@ class Simulation(object):
 
     def any_attacker_found_source(self):
         return self.attacker_found_source
-
-    def communications_model_path(self):
-        """The path to the communications model, specified in the algorithm arguments."""
-        return os.path.join('models', 'communication', self.communication_model + '.txt')
 
     def noise_model_path(self):
         """The path to the noise model, specified in the algorithm arguments."""
@@ -332,13 +301,171 @@ class Simulation(object):
 
     @staticmethod
     def available_communication_models():
-        """Gets the names of the communication models available in the models directory"""
-        return [
-            os.path.splitext(os.path.basename(model_file))[0]
-            for model_file
-            in glob.glob('models/communication/*.txt')
-        ] + ["ideal"]
+        """Gets the names of the communication models available"""
+        return simulator.CommunicationModel.MODEL_NAME_MAPPING.keys()
 
-    @staticmethod
-    def _secure_random():
-        return struct.unpack("<i", os.urandom(4))[0]
+
+
+from datetime import datetime
+import re
+
+class OfflineSimulation(object):
+    def __init__(self, module_name, configuration, args, log_filename):
+
+        # Record the seed we are using
+        self.seed = args.seed if args.seed is not None else _secure_random()
+
+        # It is important to seed python's random number generator
+        # as well as TOSSIM's. If this is not done then the simulations
+        # will differ when the seeds are the same.
+        random.seed(self.seed)
+
+        self._create_nodes(configuration.topology.nodes)
+
+        if hasattr(args, "safety_period"):
+            self.safety_period = args.safety_period
+        else:
+            # To make simulations safer an upper bound on the simulation time
+            # is used when no safety period makes sense. This upper bound is the
+            # time it would have otherwise taken the attacker to scan the whole network.
+            self.safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+
+        self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
+
+        self._line_handlers = {}
+
+        self.attackers = []
+
+        metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
+
+        self.metrics = metrics_module.Metrics(self, configuration)
+
+        self.start_time = None
+        self._real_start_time = None
+        self._real_end_time = None
+
+        self.attacker_found_source = False
+
+        self._log_file = open(log_filename, 'r')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, tp, value, tb):
+        self._log_file.close()
+
+    def register_output_handler(self, name, function):
+        self._line_handlers[name] = function
+
+    def node_distance_meters(self, left, right):
+        """Get the euclidean distance between two nodes specified by their ids"""
+        return self.metrics.configuration.node_distance_meters(left, right)
+
+    def ticks_to_seconds(self, ticks):
+        """Converts simulation time ticks into seconds"""
+        return ticks / 1000000000.0
+
+    def sim_time(self):
+        """Returns the current simulation time in seconds"""
+        return (self._real_end_time - self._real_start_time).total_seconds()
+
+    def _create_nodes(self, node_locations):
+        """Creates nodes and initialize their boot times"""
+
+        self.nodes = []
+        for (i, loc) in enumerate(node_locations):
+            new_node = Node(i, loc, None)
+            self.nodes.append(new_node)
+
+    def _pre_run(self):
+        """Called before the simulator run loop starts"""
+        self.start_time = timeit.default_timer()
+
+    def _post_run(self, event_count):
+        """Called after the simulator run loop finishes"""
+
+        # Set the number of seconds this simulation run took.
+        # It is possible that we will reach here without setting
+        # start_time, so we need to look out for this.
+        try:
+            self.metrics.wall_time = timeit.default_timer() - self.start_time
+        except TypeError:
+            self.metrics.wall_time = None
+
+        self.metrics.event_count = event_count
+
+    def continue_predicate(self):
+        """Specifies if the simulator run loop should continue executing."""
+        # For performance reasons do not do anything expensive in this function,
+        # that includes simple things such as iterating or calling functions.
+        return not self.attacker_found_source
+
+    LINE_RE = re.compile(r'([a-zA-Z-]+):(\d+):(DEBUG) \((\d+)\): (.+)')
+
+    def _parse_line(self, line):
+
+        # Example line:
+        #2016/07/27 14:47:34.418:Metric-COMM:22022:DEBUG (4): DELIVER:Normal,22022,4,1,1,22
+
+        date_string, rest = line[0: len("2016/07/27 15:09:53.687")], line[len("2016/07/27 15:09:53.687")+1:]
+
+        current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f")
+
+        match = self.LINE_RE.match(rest)
+        if match is not None:
+            kind = match.group(1)
+            node_local_time = int(match.group(2))
+            log_type = match.group(3)
+            node_id = int(match.group(4))
+            message_line = match.group(5)
+
+            return (current_time, kind, node_local_time, log_type, node_id, "{} ({}): ".format(log_type, node_id) + message_line)
+
+        else:
+            return None
+
+    def run(self):
+        """Run the simulator loop."""
+        event_count = 0
+        try:
+            self._pre_run()
+
+            for line in self._log_file:
+
+                result = self._parse_line(line)
+
+                if result is None:
+                    print("Warning unable to parse: '{}'. Skipping that line.".format(line), file=sys.stderr)
+                    continue
+
+                (current_time, kind, node_local_time, log_type, node_id, message_line) = result
+
+                # Record the start and stop time
+                if self._real_start_time is None:
+                    self._real_start_time = current_time
+
+                self._real_end_time = current_time
+
+                # Stop the run if the attacker has found the source
+                if not self.continue_predicate():
+                    break
+
+                # Stop if the safety period has expired
+                if (self._real_end_time - self._real_start_time).total_seconds() >= self.safety_period_value:
+                    break
+
+                # Handle the event
+                if kind in self._line_handlers:
+                    self._line_handlers[kind](message_line)
+
+                event_count += 1 
+
+        finally:
+            self._post_run(event_count)
+
+
+    def add_attacker(self, attacker):
+        self.attackers.append(attacker)
+
+    def any_attacker_found_source(self):
+        return self.attacker_found_source

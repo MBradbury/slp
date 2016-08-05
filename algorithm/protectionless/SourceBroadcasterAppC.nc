@@ -19,7 +19,12 @@ implementation
 	App.Leds -> LedsC;
 
 #ifdef USE_SERIAL_PRINTF
-	components SerialPrintfC;
+	components PrintfC;
+	components SerialStartC;
+
+	components LocalTimeMilliC;
+	
+	App.LocalTime -> LocalTimeMilliC;
 #endif
 
 	// Radio Control
@@ -27,11 +32,7 @@ implementation
 
 	App.RadioControl -> ActiveMessageC;
 
-
 	// Timers
-	components new TimerMilliC() as BroadcastNormalTimer;
-
-	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 
 
 	// Networking
