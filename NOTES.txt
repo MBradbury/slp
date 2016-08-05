@@ -35,3 +35,13 @@ reduce to size of the libs, but these are the original commands from
 the Makefile)
 -copy both .so files where your JRE can see them (e.g. on my computer
 it's /opt/java/jre/lib/amd64)
+
+=Testbeds=
+
+==DCSWarwick==
+
+==Indriya==
+
+Stores
+
+==IoT-Lab==
