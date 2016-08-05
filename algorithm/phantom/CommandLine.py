@@ -62,6 +62,8 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
     def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
+
         argument_product = list(itertools.ifilter(
             lambda (size, _1, _2, _3, _4, _5, _6, walk_length, _7): walk_length in self.walk_hop_lengths[size],
             itertools.product(
