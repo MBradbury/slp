@@ -10,8 +10,6 @@ from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
-    executable_path = 'run.py'
-
     distance = 4.5
 
     noise_models = ["meyer-heavy", "casino-lab"]
@@ -74,7 +72,7 @@ class CLI(CommandLineCommon.CLI):
             skip_completed_simulations=skip_completed_simulations
         )
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), self._argument_product())
+        runner.run(self.repeats, self.parameter_names(), self._argument_product())
 
     def run(self, args):
         super(CLI, self).run(args)

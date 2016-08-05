@@ -16,8 +16,6 @@ from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
-    executable_path = 'run.py'
-
     distance = 4.5
 
     noise_models = ["casino-lab", "meyer-heavy"]
@@ -89,7 +87,7 @@ class CLI(CommandLineCommon.CLI):
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), aself._argument_product(), self._time_estimater)
+        runner.run(self.repeats, self.parameter_names(), aself._argument_product(), self._time_estimater)
 
 
     def _run_table(self, args):

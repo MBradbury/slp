@@ -14,7 +14,7 @@ class Runner:
 
         self.testbed = testbed
 
-    def add_job(self, executable, options, name, estimated_time):
+    def add_job(self, options, name, estimated_time):
         print(name)
 
         # Create the target directory
