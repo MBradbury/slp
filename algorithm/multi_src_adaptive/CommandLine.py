@@ -69,7 +69,6 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-
     def _argument_product(self):
         argument_product = list(itertools.product(
             self.sizes, self.configurations,

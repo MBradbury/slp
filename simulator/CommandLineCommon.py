@@ -65,6 +65,9 @@ class CLI(object):
 
         latex.compile_document(filename)
 
+    def _argument_product(self, driver, result_path, skip_completed_simulations):
+        raise NotImplementedError()
+
     def _execute_runner(self, driver, result_path, skip_completed_simulations):
         raise NotImplementedError()
 

@@ -54,16 +54,7 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
-
-        runner = RunSimulations(
-            driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations,
-            safety_periods=safety_periods
-        )
-
+    def _argument_product(self):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
@@ -76,7 +67,19 @@ class CLI(CommandLineCommon.CLI):
             in argument_product
         ]
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product)
+        return argument_product
+
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
+        safety_periods = safety_period_table_generator.safety_periods()
+
+        runner = RunSimulations(
+            driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations,
+            safety_periods=safety_periods
+        )
+
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), self._argument_product())
 
     def run(self, args):
         super(CLI, self).run(args)
