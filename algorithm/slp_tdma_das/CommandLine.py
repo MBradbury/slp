@@ -58,20 +58,23 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
+    def _argument_product(self):
+        argument_product = list(itertools.product(
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.source_periods, self.slot_period, self.dissem_period,
+            self.tdma_num_slots, self.slot_assignment_interval, self.minimum_setup_periods, self.dissem_timeout
+        ))
+
+        return argument_product
+
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         runner = RunSimulations(
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations
         )
 
-        argument_product = itertools.product(
-            self.sizes, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.slot_period, self.dissem_period,
-            self.tdma_num_slots, self.slot_assignment_interval, self.minimum_setup_periods, self.dissem_timeout
-        )
-
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), list(argument_product))
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), self._argument_product())
 
     def run(self, args):
         super(CLI, self).run(args)
