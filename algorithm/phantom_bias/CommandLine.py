@@ -165,6 +165,8 @@ class CLI(CommandLineCommon.CLI):
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
     def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
+
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,

@@ -20,55 +20,18 @@ from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
-    distance = 4.5
-
-    noise_models = ["casino-lab", "meyer-heavy"]
-
-    communication_models = ["low-asymmetry"]
-
-    sizes = [11, 15, 21, 25]
-
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-
-    configurations = [
-        #'SourceCorner',
-        #'SinkCorner',
-        #'FurtherSinkCorner',
-        #'Generic1',
-        #'Generic2',
-
-        #'RingTop',
-        #'RingOpposite',
-        #'RingMiddle',
-
-        'Source2Corners',
-        #'Source4Corners',
-        'Source2Edges',
-        #'Source4Edges',
-        'Source2Corner',
-        'SourceEdgeCorner',
-
-        #'CircleEdges',
-        #'CircleSourceCentre',
-        #'CircleSinkCentre',
-    ]
-
-    attacker_models = ['SeqNosReactiveAttacker()']
-
-    approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
-
-    repeats = 500
-
     local_parameter_names = ('approach',)
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
     def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
+
         argument_product = list(itertools.product(
-            self.sizes, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.approaches
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.source_periods, parameters.approaches
         ))
 
         return argument_product
@@ -81,7 +44,7 @@ class CLI(CommandLineCommon.CLI):
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
         
-        runner.run(self.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
+        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
 
     def _run_table(self, args):

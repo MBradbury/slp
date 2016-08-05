@@ -52,6 +52,8 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
     def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
+
         argument_product = list(itertools.product(
             self.sizes, self.protectionless_configurations,
             self.attacker_models, self.noise_models, self.communication_models,
