@@ -235,13 +235,7 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        time_taken = safety_period_table_generator.time_taken()
-
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
-
+    def _argument_product(self):
         argument_product = itertools.product(
             self.sizes, self.configurations,
             self.attacker_models, self.noise_models, self.communication_models,
@@ -259,7 +253,16 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
+        return argument_product
+
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
+        time_taken = safety_period_table_generator.time_taken()
+
+        runner = RunSimulations(driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
+
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
     def _run_table(self, args):
         phantom_results = results.Results(

@@ -7,12 +7,12 @@ from simulator import Builder
 from simulator import Configuration
 
 class Runner:
-    def __init__(self, kind):
+    def __init__(self, testbed):
         self._start_time = timeit.default_timer()
         self.total_job_size = None
         self._jobs_executed = 0
 
-        self.kind = kind
+        self.testbed = testbed
 
     def add_job(self, executable, options, name, estimated_time):
         print(name)
@@ -30,13 +30,15 @@ class Runner:
         a = self.parse_arguments(module, argv)
 
         # Build the binary
-        build_args = self.build_arguments(a)
 
+        # These are the arguments that will be passed to the compiler
+        build_args = self.build_arguments(a)
+        build_args["TESTBED"] = self.testbed.name()
         build_args["USE_SERIAL_PRINTF"] = 1
 
         print("Building for {}".format(build_args))
 
-        build_result = Builder.build_actual(module_path, self.kind, **build_args)
+        build_result = Builder.build_actual(module_path, self.testbed.platform(), **build_args)
 
         print("Build finished with result {}, waiting for a bit...".format(build_result))
 
@@ -57,7 +59,7 @@ class Runner:
         ]
         for name in files_to_move:
             try:
-                shutil.copy(os.path.join(module_path, "build", self.kind, name), target_directory)
+                shutil.copy(os.path.join(module_path, "build", self.testbed.platform(), name), target_directory)
             except IOError as ex:
                 print("Not copying {} due to {}".format(name, ex))
 

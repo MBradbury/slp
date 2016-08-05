@@ -65,6 +65,9 @@ class CLI(object):
 
         latex.compile_document(filename)
 
+    def _argument_product(self, driver, result_path, skip_completed_simulations):
+        raise NotImplementedError()
+
     def _execute_runner(self, driver, result_path, skip_completed_simulations):
         raise NotImplementedError()
 
@@ -188,7 +191,7 @@ class CLI(object):
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            self._execute_runner(Builder(testbed.platform()), testbed_directory, skip_completed_simulations=False)
+            self._execute_runner(Builder(testbed), testbed_directory, skip_completed_simulations=False)
 
         sys.exit(0)
 
