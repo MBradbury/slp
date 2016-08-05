@@ -210,6 +210,29 @@ class DCSWarwick(Topology):
     def __str__(self):
         return "DCSWarwick<>"
 
+class Indriya(Topology):
+    """The layout of nodes on the Indriya testbed, see: https://indriya.comp.nus.edu.sg/motelab/html/motes-info.php"""
+    def __init__(self, size, distance, initial_position=10.0):
+        super(Indriya, self).__init__()
+
+        # Distance acts a bit like a range
+        self.distance = distance
+
+        floor_distance = 20.0
+
+        self.nodes = [
+            np.array((-100, -100), dtype=np.float64), # Padding Node - There is no node 0 in this network
+        ]
+
+        self.nodes += [ np.array((-100, -100), dtype=np.float64) ] * (39 + 86)
+
+        # Apply the initial position
+        for node in self.nodes:
+            node += initial_position
+
+    def __str__(self):
+        return "Indriya<>"
+
 def topology_path(module, args):
     if args.mode == "CLUSTER":
         return os.path.join(module.replace(".", "/"), "topology.txt")

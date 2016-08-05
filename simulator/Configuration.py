@@ -477,6 +477,17 @@ class DCSWarwickSrc201Sink208(Configuration):
             space_behind_sink=True
         )
 
+class IndriyaSrc31Sink60(Configuration):
+    def __init__(self, network_size, distance):
+        indriya = Indriya(None, distance)
+
+        super(IndriyaSrc31Sink60, self).__init__(
+            indriya,
+            source_ids={31},
+            sink_id=60,
+            space_behind_sink=True
+        )
+
 def configurations():
     """A list of the available configuration classes."""
     return [cls for cls in Configuration.__subclasses__()]
