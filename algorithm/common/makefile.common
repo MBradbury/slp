@@ -1,0 +1,36 @@
+
+# Additional warnings
+CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat  -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable
+
+ifdef USE_SERIAL_PRINTF
+
+CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS -DUSE_SERIAL_PRINTF=1 -DPRINTF_BUFFER_SIZE=512
+
+CFLAGS += -Wsign-compare -Wpointer-sign
+
+else
+
+CFLAGS += -Werror=pointer-sign -Werror=format
+
+endif
+
+
+# The Indriya testbed needs printf_msg java class files
+ifdef TESTBED
+ifeq ($(TESTBED), indriya)
+
+BUILD_EXTRA_DEPS += printf_msg.class
+
+# Indriya testbed only support Java 1.4, see: https://indriya.comp.nus.edu.sg/motelab/html/faq.php
+
+printf_msg.class: $(wildcard *.java) printf_msg.java
+	javac -source 1.4 -target 1.4 *.java
+
+printf_msg.java:
+	mig java -target=null -java-classname=printf_msg $(TOSDIR)/lib/printf/printf.h printf_msg -o $@
+
+endif
+endif
+
+# Specify the extra clean for all make files
+CLEAN_EXTRA = *.class printf_msg.java
