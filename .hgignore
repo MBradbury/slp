@@ -21,4 +21,4 @@ results/
 *.aux
 *.log
 *.tex
-testbed/*
+/testbed/*
