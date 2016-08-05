@@ -188,7 +188,7 @@ class CLI(object):
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            self._execute_runner(Builder(testbed.platform()), testbed_directory, skip_completed_simulations=False)
+            self._execute_runner(Builder(testbed), testbed_directory, skip_completed_simulations=False)
 
         sys.exit(0)
 
