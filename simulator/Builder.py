@@ -1,7 +1,15 @@
+from __future__ import print_function
+
+#import os
 import subprocess
 import sys
 
-ALLOWED_PLATFORMS = ("micaz", "telosb")
+ALLOWED_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14")
+#ALLOWED_PLATFORMS = [
+#    name
+#    for name in os.listdir(os.path.join(os.environ["TOSDIR"], "platforms"))
+#    if os.path.isdir(os.path.join(os.environ["TOSDIR"], "platforms", name))
+#]
 
 def build_sim(directory, platform="micaz", **kwargs):
 
