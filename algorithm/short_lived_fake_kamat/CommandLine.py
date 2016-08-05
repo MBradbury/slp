@@ -12,41 +12,7 @@ from data.run.common import RunSimulationsCommon as RunSimulations
 
 class CLI(CommandLineCommon.CLI):
 
-    distance = 4.5
-
-    noise_models = ["casino-lab", "meyer-heavy"]
-
-    communication_models = ["low-asymmetry"]
-
-    sizes = [11, 15, 21, 25]
-
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-
-    configurations = [
-        ('SourceCorner', 'CHOOSE'),
-        #('SinkCorner', 'CHOOSE'),
-        #('FurtherSinkCorner', 'CHOOSE'),
-        #('Generic1', 'CHOOSE'),
-        #('Generic2', 'CHOOSE'),
-
-        #('RingTop', 'CHOOSE'),
-        #('RingOpposite', 'CHOOSE'),
-        #('RingMiddle', 'CHOOSE'),
-
-        #('CircleEdges', 'CHOOSE'),
-        #('CircleSourceCentre', 'CHOOSE'),
-        #('CircleSinkCentre', 'CHOOSE'),
-    ]
-
-    attacker_models = ['SeqNoReactiveAttacker()']
-
-    pr_fake = lambda size: 1 / size
-
-    repeats = 300
-
     local_parameter_names = ('pr fake',)
-
-    protectionless_configurations = [name for (name, build) in configurations]
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
@@ -55,13 +21,13 @@ class CLI(CommandLineCommon.CLI):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.product(
-            self.sizes, self.protectionless_configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.source_periods
         ))
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, self.pr_fake(s))
+            (s, c, am, nm, cm, d, sp, parameters.pr_fake(s))
             for (s, c, am, nm, cm, d, sp)
             in argument_product
         ]
@@ -76,7 +42,7 @@ class CLI(CommandLineCommon.CLI):
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
-        runner.run(self.repeats, self.parameter_names(), self._argument_product())
+        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product())
 
 
     def _run_table(self, args):
