@@ -98,6 +98,7 @@ class Runner:
 
         a = arguments_module.Arguments()
         a.parse(argv)
+
         return a
 
     @staticmethod

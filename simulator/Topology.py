@@ -177,11 +177,8 @@ class Random(Topology):
 
 class DCSWarwick(Topology):
     """The layout of the nodes in DCS Warwick."""
-    def __init__(self, size, distance, initial_position=10.0):
+    def __init__(self, initial_position=10.0):
         super(DCSWarwick, self).__init__()
-
-        # Distance acts a bit like a range
-        self.distance = distance
 
         floor_distance = 20.0
 
@@ -212,11 +209,8 @@ class DCSWarwick(Topology):
 
 class Indriya(Topology):
     """The layout of nodes on the Indriya testbed, see: https://indriya.comp.nus.edu.sg/motelab/html/motes-info.php"""
-    def __init__(self, size, distance, initial_position=10.0):
+    def __init__(self, initial_position=10.0):
         super(Indriya, self).__init__()
-
-        # Distance acts a bit like a range
-        self.distance = distance
 
         floor_distance = 20.0
 

@@ -1,7 +1,9 @@
 from __future__ import print_function, division
 
-import os, sys, math
 from collections import OrderedDict
+import math
+import os.path
+import sys
 
 from more_itertools import unique_everseen
 
@@ -9,6 +11,14 @@ import numpy as np
 
 from data import results
 import simulator.common
+
+def _argument_name_to_parameter(argument_name):
+    argument_name = argument_name.replace(" ", "-")
+
+    return "--" + argument_name
+
+#def _argument_name_to_stored(argument_name):
+#    return _argument_name_to_parameter(argument_name)[2:].replace("-", " ")
 
 class RunSimulationsCommon(object):
     def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=True, safety_periods=None):
@@ -22,16 +32,6 @@ class RunSimulationsCommon(object):
             raise RuntimeError("{} is not a directory".format(self._result_path))
 
         self._existing_results = {}
-
-    @staticmethod
-    def _argument_name_to_parameter(argument_name):
-        argument_name = argument_name.replace(" ", "-")
-
-        return "--" + argument_name
-
-    @classmethod
-    def _argument_name_to_stored(cls, argument_name):
-        return cls._argument_name_to_parameter(argument_name)[2:].replace("-", " ")
 
     def run(self, repeats, argument_names, argument_product, time_estimater=None):
         if self._skip_completed_simulations:
@@ -60,7 +60,7 @@ class RunSimulationsCommon(object):
                 opts["--thread-count"] = self.driver.job_thread_count
 
             for (name, value) in zip(argument_names, arguments):
-                flag = self._argument_name_to_parameter(name)
+                flag = _argument_name_to_parameter(name)
                 opts[flag] = value
 
             if self._safety_periods is not None:
