@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import datetime
+import glob
 import importlib
 import os
 import shlex
@@ -55,7 +56,7 @@ class Runner:
 
         print("Copying files to {}...".format(target_directory))
 
-        files_to_move = [
+        files_to_copy = [
             "app.c",
             "ident_flags.txt",
             "main.exe",
@@ -64,11 +65,17 @@ class Runner:
             "tos_image.xml",
             "wiring-check.xml",
         ]
-        for name in files_to_move:
+        for name in files_to_copy:
             try:
                 shutil.copy(os.path.join(module_path, "build", self.testbed.platform(), name), target_directory)
             except IOError as ex:
-                print("Not copying {} due to {}".format(name, ex))
+                # Ignore expected fails
+                if name not in {"main.srec", "wiring-check.xml"}:
+                    print("Not copying {} due to {}".format(name, ex))
+
+        # Copy any generated class files
+        for file in glob.glob(os.path.join(module_path, "*.class")):
+            shutil.copy(file, target_directory)
 
         print("All Done!")
 
