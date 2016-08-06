@@ -27,7 +27,7 @@ printf_msg.class: $(wildcard *.java) printf_msg.java
 	javac -source 1.4 -target 1.4 *.java
 
 printf_msg.java:
-	mig java -target=null -java-classname=printf_msg $(TOSDIR)/lib/printf/printf.h printf_msg -o $@
+	mig java -target=telosb -java-classname=printf_msg $(TOSDIR)/lib/printf/printf.h printf_msg -o $@
 
 endif
 endif

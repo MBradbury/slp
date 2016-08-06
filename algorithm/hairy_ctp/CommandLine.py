@@ -10,8 +10,6 @@ from data.table import safety_period, direct_comparison
 from data.graph import summary, versus
 from data.util import scalar_extractor
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 class CLI(CommandLineCommon.CLI):
 
     local_parameter_names = tuple()
@@ -44,6 +42,11 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            from data.run.common import RunSimulationsCommon as RunSimulations
+
         runner = RunSimulations(driver, self.algorithm_module, result_path,
                                 skip_completed_simulations=skip_completed_simulations)
 
