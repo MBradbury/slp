@@ -57,7 +57,7 @@ def build_actual(directory, platform, **kwargs):
 
     make_options_string = " ".join('{}={}'.format(k, repr(v)) for (k, v) in make_options.items())
 
-    command = 'make {} {}'.format(platform, make_options_string)
+    command = 'make {} fastserial {}'.format(platform, make_options_string)
 
     print(command)
 
