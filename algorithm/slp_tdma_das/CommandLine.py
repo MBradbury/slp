@@ -6,8 +6,6 @@ from simulator import CommandLineCommon
 
 from data.table import safety_period
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 class CLI(CommandLineCommon.CLI):
 
     local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval', 'minimum setup periods', 'pre beacon periods', "dissem timeout")
@@ -28,6 +26,11 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            from data.run.common import RunSimulationsCommon as RunSimulations
+
         runner = RunSimulations(
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations

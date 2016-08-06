@@ -211,6 +211,11 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            from data.run.common import RunSimulationsCommon as RunSimulations
+
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
         time_taken = safety_period_table_generator.time_taken()
 

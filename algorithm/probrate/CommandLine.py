@@ -8,8 +8,6 @@ import algorithm.protectionless as protectionless
 
 from data.table import safety_period
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 class CLI(CommandLineCommon.CLI):
 
     local_parameter_names = ('broadcast period',)
@@ -35,6 +33,11 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            from data.run.common import RunSimulationsCommon as RunSimulations
+
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 

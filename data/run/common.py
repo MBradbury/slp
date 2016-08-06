@@ -1,6 +1,11 @@
 from __future__ import print_function, division
+
 import os, sys, math
 from collections import OrderedDict
+
+from more_itertools import unique_everseen
+
+import numpy as np
 
 from data import results
 import simulator.common
@@ -44,7 +49,9 @@ class RunSimulationsCommon(object):
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
 
             opts = OrderedDict()
-            opts["--job-size"] = int(math.ceil(repeats / job_repeats))
+
+            if repeats is not None:
+                opts["--job-size"] = int(math.ceil(repeats / job_repeats))
 
             if hasattr(self.driver, 'array_job_variable') and self.driver.array_job_variable is not None:
                 opts["--job-id"] = self.driver.array_job_variable
@@ -141,3 +148,29 @@ class RunSimulationsCommon(object):
             name = name.replace(char, "_")
 
         return name
+
+class RunTestbedCommon(RunSimulationsCommon):
+    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False, safety_periods=None):
+        # Do all testbed tasks
+        # Testbed has no notion of safety period
+        super(RunTestbedCommon, self).__init__(driver, algorithm_module, result_path, False, None)
+
+    def run(self, repeats, argument_names, argument_product, time_estimater=None):
+
+        # Filter out invalid parameters to pass onwards
+        to_filter = ['network size', 
+                     'attacker model', 'noise model',
+                     'communication model', 'distance']
+
+        # Remove indexes
+        indexes = [argument_names.index(name) for name in to_filter]
+
+        filtered_argument_names = tuple(np.delete(argument_names, indexes))
+        filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
+
+        # Remove duplicates
+        filtered_argument_product = list(unique_everseen(filtered_argument_product))
+
+        # Testbed has no notion of repeats
+        # Also no need to estimate time
+        super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)

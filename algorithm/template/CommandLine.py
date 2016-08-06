@@ -18,8 +18,6 @@ from data.table import safety_period, fake_result, direct_comparison
 from data.graph import summary, bar
 from data.util import useful_log10
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 import numpy
 
 class CLI(CommandLineCommon.CLI):
@@ -48,6 +46,11 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            from data.run.common import RunSimulationsCommon as RunSimulations
+
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 
