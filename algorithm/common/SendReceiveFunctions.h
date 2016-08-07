@@ -186,7 +186,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
  \
- 	ATTACKER_RCV(#NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
+ 	ATTACKER_RCV(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
