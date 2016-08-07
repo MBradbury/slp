@@ -344,7 +344,11 @@ class OfflineSimulation(object):
 
         self.metrics = metrics_module.Metrics(self, configuration)
 
+        # Record the current user's time this script started executing at
         self.start_time = None
+
+        # The times that the actual execution started and ended.
+        # They are used to emulate sim_time and calculate the execution length.
         self._real_start_time = None
         self._real_end_time = None
 
@@ -423,10 +427,7 @@ class OfflineSimulation(object):
             node_local_time = int(match.group(4))
             message_line = match.group(5)
 
-            # TODO: Implement this
-            time_in_seconds = 0
-
-            return (current_time, kind, node_local_time, log_type, node_id, "{}:{}:{}:".format(log_type, node_id, 0) + message_line)
+            return (current_time, kind, node_local_time, log_type, node_id, message_line)
 
         else:
             return None
@@ -463,7 +464,9 @@ class OfflineSimulation(object):
 
                 # Handle the event
                 if kind in self._line_handlers:
-                    self._line_handlers[kind](message_line)
+                    message_line_header = "{}:{}:{}:".format(log_type, node_id, self.sim_time())
+
+                    self._line_handlers[kind](message_line_header + message_line)
 
                 event_count += 1 
 
