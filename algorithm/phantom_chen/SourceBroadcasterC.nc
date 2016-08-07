@@ -7,7 +7,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
 #include <stdlib.h>
 
 module SourceBroadcasterC
