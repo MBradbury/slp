@@ -141,10 +141,10 @@ class Attacker(object):
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
-        if not hasattr(self._sim, "scene"):
+        if not hasattr(self._sim, "_gui"):
             return
 
-        (x, y) = self._sim.node_location(node_id)
+        (x, y) = self._sim._gui.node_location(node_id)
 
         shape_id = "attacker{}".format(self.ident)
 
@@ -152,8 +152,8 @@ class Attacker(object):
 
         options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
 
-        self._sim.scene.execute(time, 'delshape("{}")'.format(shape_id))
-        self._sim.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
+        self._sim._gui.scene.execute(time, 'delshape("{}")'.format(shape_id))
+        self._sim._gui.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
 
     def __str__(self):
         return type(self).__name__ + "()"
