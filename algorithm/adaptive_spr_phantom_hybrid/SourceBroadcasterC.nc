@@ -12,8 +12,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sender_distance + 1)
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sender_distance + 1)
@@ -420,7 +418,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
@@ -442,7 +440,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 
@@ -453,7 +451,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -461,7 +459,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
@@ -469,7 +467,7 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			METRIC_SOURCE_CHANGE("set");
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
@@ -488,7 +486,7 @@ implementation
 			type = NormalNode;
 			//source_distance = BOTTOM;
 
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			METRIC_SOURCE_CHANGE("unset");
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -555,7 +553,7 @@ implementation
 		NormalMessage message;
 		am_addr_t target;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -621,7 +619,7 @@ implementation
 	{
 		BeaconMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
 		message.source_distance_of_sender = first_source_distance;
 		message.landmark_distance_of_sender = landmark_distance;

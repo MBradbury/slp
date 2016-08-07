@@ -1,13 +1,26 @@
 from __future__ import print_function, division
-import os, sys, math
+
 from collections import OrderedDict
+import math
+import os.path
+import sys
+
+from more_itertools import unique_everseen
+
+import numpy as np
 
 from data import results
 import simulator.common
 
-class RunSimulationsCommon(object):
-    optimisations = '-OO'
+def _argument_name_to_parameter(argument_name):
+    argument_name = argument_name.replace(" ", "-")
 
+    return "--" + argument_name
+
+#def _argument_name_to_stored(argument_name):
+#    return _argument_name_to_parameter(argument_name)[2:].replace("-", " ")
+
+class RunSimulationsCommon(object):
     def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=True, safety_periods=None):
         self.driver = driver
         self.algorithm_module = algorithm_module
@@ -20,23 +33,10 @@ class RunSimulationsCommon(object):
 
         self._existing_results = {}
 
-    @staticmethod
-    def _argument_name_to_parameter(argument_name):
-        argument_name = argument_name.replace(" ", "-")
-
-        return "--" + argument_name
-
-    @classmethod
-    def _argument_name_to_stored(cls, argument_name):
-        return cls._argument_name_to_parameter(argument_name)[2:].replace("-", " ")
-
-    def run(self, exe_path, repeats, argument_names, argument_product, time_estimater=None):
+    def run(self, repeats, argument_names, argument_product, time_estimater=None):
         if self._skip_completed_simulations:
             self._load_existing_results(argument_names)
         
-        if not os.path.exists(exe_path):
-            raise RuntimeError("The file {} doesn't exist".format(exe_path))
-
         self.driver.total_job_size = len(argument_product)
 
         for arguments in argument_product:
@@ -45,16 +45,13 @@ class RunSimulationsCommon(object):
                 self.driver.total_job_size -= 1
                 continue
 
-            executable = 'python {} {}'.format(
-                self.optimisations,
-                exe_path)
-
             # Not all drivers will supply job_repeats
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
 
             opts = OrderedDict()
-            opts["--mode"] = self.driver.mode()
-            opts["--job-size"] = int(math.ceil(repeats / job_repeats))
+
+            if repeats is not None:
+                opts["--job-size"] = int(math.ceil(repeats / job_repeats))
 
             if hasattr(self.driver, 'array_job_variable') and self.driver.array_job_variable is not None:
                 opts["--job-id"] = self.driver.array_job_variable
@@ -63,7 +60,7 @@ class RunSimulationsCommon(object):
                 opts["--thread-count"] = self.driver.job_thread_count
 
             for (name, value) in zip(argument_names, arguments):
-                flag = self._argument_name_to_parameter(name)
+                flag = _argument_name_to_parameter(name)
                 opts[flag] = value
 
             if self._safety_periods is not None:
@@ -72,7 +69,7 @@ class RunSimulationsCommon(object):
 
             opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
 
-            options = 'algorithm.{} '.format(self.algorithm_module.name) + " ".join(opt_items)
+            options = 'algorithm.{} {} '.format(self.algorithm_module.name, self.driver.mode()) + " ".join(opt_items)
 
             filename = os.path.join(
                 self._result_path,
@@ -83,7 +80,7 @@ class RunSimulationsCommon(object):
             if time_estimater is not None:
                 estimated_time = time_estimater(*arguments)
 
-            self.driver.add_job(executable, options, filename, estimated_time)
+            self.driver.add_job(options, filename, estimated_time)
 
 
     def _get_safety_period(self, argument_names, arguments):
@@ -151,3 +148,29 @@ class RunSimulationsCommon(object):
             name = name.replace(char, "_")
 
         return name
+
+class RunTestbedCommon(RunSimulationsCommon):
+    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False, safety_periods=None):
+        # Do all testbed tasks
+        # Testbed has no notion of safety period
+        super(RunTestbedCommon, self).__init__(driver, algorithm_module, result_path, False, None)
+
+    def run(self, repeats, argument_names, argument_product, time_estimater=None):
+
+        # Filter out invalid parameters to pass onwards
+        to_filter = ['network size', 
+                     'attacker model', 'noise model',
+                     'communication model', 'distance']
+
+        # Remove indexes
+        indexes = [argument_names.index(name) for name in to_filter]
+
+        filtered_argument_names = tuple(np.delete(argument_names, indexes))
+        filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
+
+        # Remove duplicates
+        filtered_argument_product = list(unique_everseen(filtered_argument_product))
+
+        # Testbed has no notion of repeats
+        # Also no need to estimate time
+        super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)

@@ -12,58 +12,7 @@ from data.table import safety_period, fake_result, comparison
 from data.graph import summary, versus, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 class CLI(CommandLineCommon.CLI):
-
-    executable_path = 'run.py'
-
-    distance = 4.5
-
-    noise_models = ["casino-lab", "meyer-heavy"]
-
-    communication_models = ["low-asymmetry"]
-
-    sizes = [11, 15]#, 21, 25]
-
-    source_periods = [1.0, 0.5, 0.25, 0.125]
-
-    configurations = [
-        'SourceCorner',
-        #'SinkCorner',
-        #'FurtherSinkCorner',
-        #'Generic1',
-        #'Generic2',
-
-        #'RingTop',
-        #'RingOpposite',
-        #'RingMiddle',
-
-        #'CircleEdges',
-        #'CircleSourceCentre',
-        #'CircleSinkCentre',
-
-        # 2 sources
-        'Source2Corners',
-        'Source2Edges',
-        'Source2Corner',
-        'SourceEdgeCorner',
-
-        # 3 sources
-        'Source3Corner',
-
-        # 4 sources
-        'Source4Corners',
-        'Source4Edges',        
-        'Source2Corner2OppositeCorner'
-
-        #'LineSinkCentre',
-        #'SimpleTreeSinkEnd'
-    ]
-
-    attacker_models = ['SeqNosReactiveAttacker()']
-
-    repeats = 500
 
     local_parameter_names = tuple()
 
@@ -71,10 +20,12 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
     def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
+
         argument_product = list(itertools.product(
-            self.sizes, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.source_periods
         ))
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
@@ -82,6 +33,11 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            from data.run.common import RunSimulationsCommon as RunSimulations
+
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
         safety_periods = safety_period_table_generator.safety_periods()
 
@@ -89,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), aself._argument_product(), self._time_estimater)
+        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), aself._argument_product(), self._time_estimater)
 
 
     def _run_table(self, args):

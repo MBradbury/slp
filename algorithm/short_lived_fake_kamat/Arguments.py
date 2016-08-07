@@ -1,4 +1,5 @@
 import argparse
+
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.MobilityModel
 
@@ -10,16 +11,15 @@ def restricted_float(x):
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Short Lived Fake Source (Kamat)", add_help=True)
-        super(Arguments, self).__init__(parser, has_safety_period=True)
+        super(Arguments, self).__init__("SLP Short Lived Fake Source (Kamat)", has_safety_period=True)
 
-        parser.add_argument("--source-period", type=float, required=True)
-        parser.add_argument("--source-mobility",
-            type=simulator.MobilityModel.eval_input,
-            default=simulator.MobilityModel.StationaryMobilityModel())
+        self.add_argument("--source-period", type=float, required=True)
+        self.add_argument("--source-mobility",
+                          type=simulator.MobilityModel.eval_input,
+                          default=simulator.MobilityModel.StationaryMobilityModel())
 
-        parser.add_argument("--pr-fake", type=restricted_float, required=True)
-        parser.add_argument("--fake-send-delay", type=float, default=50)
+        self.add_argument("--pr-fake", type=restricted_float, required=True)
+        self.add_argument("--fake-send-delay", type=float, default=50)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()

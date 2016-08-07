@@ -10,7 +10,6 @@ class DebugAnalyzer:
     CHANGE  = 3
     DAS     = 4
 
-    WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
     LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
@@ -23,14 +22,7 @@ class DebugAnalyzer:
         pass
 
     ####################
-    def analyze(self, dbg):
-        match = self.WHOLE_RE.match(dbg)
-        if match is None:
-            return None
-
-        node_id = int(match.group(1))
-        detail = match.group(2)
-
+    def analyze(self, detail):
         # LED message
         match = self.LED_RE.match(detail)
         if match is not None:
@@ -40,7 +32,7 @@ class DebugAnalyzer:
                 state = 0
             else:
                 state = 1
-            return (node_id, self.LED, (ledno,state))
+            return (self.LED, (ledno,state))
 
         # AM Send message
         match = self.AMSEND_RE.match(detail)
@@ -48,26 +40,26 @@ class DebugAnalyzer:
             amtype = int(match.group(1))
             amlen  = int(match.group(2))
             amdst  = int(match.group(3))
-            return (node_id, self.AM_SEND, (amtype, amlen, amdst))
+            return (self.AM_SEND, (amtype, amlen, amdst))
 
         # AM Receive message
         match = self.AMRECV_RE.match(detail)
         if match is not None:
             amtype = int(match.group(1))
             amlen  = int(match.group(2))
-            return (node_id, self.AM_RECV, (amtype, amlen))
+            return (self.AM_RECV, (amtype, amlen))
 
         # Node becoming TFS, PFS or Normal
         match = self.CHANGE_RE.match(detail)
         if match is not None:
             kind = match.group(1)
-            return (node_id, self.CHANGE, (kind,))
+            return (self.CHANGE, (kind,))
 
         # Check whether DAS is broken
         match = self.DAS_RE.match(detail)
         if match is not None:
             state = int(match.group(1))
-            return (node_id, self.DAS, (state,))
+            return (self.DAS, (state,))
 
         return None
 
@@ -193,12 +185,27 @@ class Gui:
                     % (x, y, 10))
 
     ####################
-    def _process_message(self, dbg):
-        result = self._debug_analyzer.analyze(dbg)
+    def _process_message(self, d_or_e, node_id, time, without_dbg):
+        result = self._debug_analyzer.analyze(without_dbg)
         if result is None:
             return
 
-        (node_id, event_type, detail) = result
+        (event_type, detail) = result
+
+        node_id = int(node_id)
+
+        # WARNING:
+        # Here we override the time given to us by the event!
+        # This is because we can get earlier events from different nodes, eg:
+        #
+        # Node 1, time 5
+        # Node 1, time 6
+        # Node 2, time 5
+        # Node 1, time 7
+        #
+        # Overriding the time forces the time that is used to be
+        # the time at the end of the events.
+        time = self._sim.sim_time()
 
         return {
             DebugAnalyzer.LED: self._animate_leds,
@@ -207,7 +214,7 @@ class Gui:
             DebugAnalyzer.CHANGE: self._animate_change_state,
             DebugAnalyzer.DAS: self._animate_das_state
 
-        }[event_type](self._sim.sim_time(), node_id, detail)
+        }[event_type](time, node_id, detail)
 
 ###############################################
 class GuiSimulation(Simulation):

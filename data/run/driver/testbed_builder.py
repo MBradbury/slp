@@ -1,5 +1,13 @@
 from __future__ import print_function, division
-import os, importlib, shlex, shutil, time, timeit, datetime
+
+import datetime
+import glob
+import importlib
+import os
+import shlex
+import shutil
+import time
+import timeit
 
 import data.util
 
@@ -14,7 +22,7 @@ class Runner:
 
         self.testbed = testbed
 
-    def add_job(self, executable, options, name, estimated_time):
+    def add_job(self, options, name, estimated_time):
         print(name)
 
         # Create the target directory
@@ -34,6 +42,7 @@ class Runner:
         # These are the arguments that will be passed to the compiler
         build_args = self.build_arguments(a)
         build_args["TESTBED"] = self.testbed.name()
+        build_args["TESTBED_" + self.testbed.name().upper()] = 1
         build_args["USE_SERIAL_PRINTF"] = 1
 
         print("Building for {}".format(build_args))
@@ -48,7 +57,7 @@ class Runner:
 
         print("Copying files to {}...".format(target_directory))
 
-        files_to_move = [
+        files_to_copy = [
             "app.c",
             "ident_flags.txt",
             "main.exe",
@@ -57,11 +66,17 @@ class Runner:
             "tos_image.xml",
             "wiring-check.xml",
         ]
-        for name in files_to_move:
+        for name in files_to_copy:
             try:
                 shutil.copy(os.path.join(module_path, "build", self.testbed.platform(), name), target_directory)
             except IOError as ex:
-                print("Not copying {} due to {}".format(name, ex))
+                # Ignore expected fails
+                if name not in {"main.srec", "wiring-check.xml"}:
+                    print("Not copying {} due to {}".format(name, ex))
+
+        # Copy any generated class files
+        for file in glob.glob(os.path.join(module_path, "*.class")):
+            shutil.copy(file, target_directory)
 
         print("All Done!")
 
@@ -91,6 +106,7 @@ class Runner:
 
         a = arguments_module.Arguments()
         a.parse(argv)
+
         return a
 
     @staticmethod
