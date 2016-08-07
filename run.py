@@ -13,7 +13,9 @@ a.parse(sys.argv[2:])
 
 # For cluster runs, the binary has already been built and the
 # topology file has been written. So do not attempt to do so again.
-if a.args.mode != "CLUSTER":
+#
+# Also do not build for offline analysis runs
+if a.args.mode not in {"CLUSTER", "OFFLINE", "OFFLINE_GUI"}:
     import simulator.Builder as Builder
     from simulator.Simulation import Simulation
     import simulator.Configuration as Configuration
@@ -64,7 +66,7 @@ if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
 
 # Because of the way TOSSIM is architectured each individual simulation
 # needs to be run in a separate process.
-if a.args.mode in {"GUI", "SINGLE"}:
+if a.args.mode in {"GUI", "SINGLE", "OFFLINE", "OFFLINE_GUI"}:
     from simulator.DoRun import run_simulation
     run_simulation(module, a)
 

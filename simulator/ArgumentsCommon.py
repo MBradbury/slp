@@ -10,6 +10,8 @@ import simulator.SourcePeriodModel as SourcePeriodModel
 # TESTBED < SINGLE < PARALLEL < CLUSTER
 #                  < GUI
 
+# OFFLINE < OFFLINE_GUI
+
 class ArgumentsCommon(object):
     def __init__(self, description, has_safety_period=False):
         parser = argparse.ArgumentParser(description=description, add_help=False)
@@ -66,10 +68,33 @@ class ArgumentsCommon(object):
                                     help="Used to pass the array id when this job has been submitted as a job array to the cluster.")
 
         ###
+        ###
+
+        parser_offline = subparsers.add_parser("OFFLINE", add_help=False)
+
+        parser_offline.add_argument("--merged-log", type=str, required=True)
+
+        parser_offline.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
+        parser_offline.add_argument("-c", "--configuration", type=str, required=True, choices=Configuration.names())
+        
+        if has_safety_period:
+            parser_offline.add_argument("-safety", "--safety-period", type=float, required=True)
+
+        parser_offline.add_argument("--seed", type=int, required=False)
+
+        ###
+
+        parser_offline_gui = subparsers.add_parser("OFFLINE_GUI", add_help=False, parents=[parser_offline])
+
+        parser_offline_gui.add_argument("--gui-scale", type=int, required=False, default=6)
+
+        ###
+        ###
 
         # Store any of the parsers that we need
         self._parser = parser
-        self._subparsers = (parser_testbed, parser_single, parser_gui, parser_parallel, parser_cluster)
+        self._online_subparsers = (parser_testbed, parser_single, parser_gui, parser_parallel, parser_cluster)
+        self._offline_subparsers = (parser_offline, parser_offline_gui)
 
         # Haven't parsed anything yet
         self.args = None
@@ -82,7 +107,7 @@ class ArgumentsCommon(object):
         # TODO: Work out a way to just add this to a single subparser and let the argument
         # trickle down to the other subparsers.
 
-        for parser in self._subparsers:
+        for parser in self._online_subparsers:
             parser.add_argument(*args, **kwargs)
 
     def parse(self, argv):
