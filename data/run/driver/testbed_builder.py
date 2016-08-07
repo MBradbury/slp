@@ -42,6 +42,7 @@ class Runner:
         # These are the arguments that will be passed to the compiler
         build_args = self.build_arguments(a)
         build_args["TESTBED"] = self.testbed.name()
+        build_args["TESTBED_" + self.testbed.name().upper()] = 1
         build_args["USE_SERIAL_PRINTF"] = 1
 
         print("Building for {}".format(build_args))
