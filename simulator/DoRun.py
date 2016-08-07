@@ -17,11 +17,11 @@ def run_simulation(module, a, count=1):
 
     elif a.args.mode == "OFFLINE":
         from simulator.Simulation import OfflineSimulation
-        Simulation = functools.partial(OfflineSimulation, log_filename=args.merged_log)
+        Simulation = functools.partial(OfflineSimulation, log_filename=a.args.merged_log)
 
     elif a.args.mode == "OFFLINE_GUI":
         from simulator.TosVis import GuiOfflineSimulation as OfflineSimulation
-        Simulation = functools.partial(OfflineSimulation, log_filename=args.merged_log)
+        Simulation = functools.partial(OfflineSimulation, log_filename=a.args.merged_log)
 
     else:
         from simulator.Simulation import Simulation
