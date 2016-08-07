@@ -328,11 +328,15 @@ class OfflineSimulation(object):
 
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
-        else:
+            
+        elif hasattr(args, "source_period"):
             # To make simulations safer an upper bound on the simulation time
             # is used when no safety period makes sense. This upper bound is the
             # time it would have otherwise taken the attacker to scan the whole network.
             self.safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+
+        else:
+            self.safety_period = None
 
         self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
 
