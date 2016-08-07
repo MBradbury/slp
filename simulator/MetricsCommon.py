@@ -46,10 +46,10 @@ class MetricsCommon(object):
         self.became_normal_after_source_times = defaultdict(list)
 
         # Normal nodes becoming the source, or source nodes becoming normal
-        self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
+        self.register('M-SC', self.process_SOURCE_CHANGE)
 
         # BCAST / RCV / DELIVER events
-        self.register('Metric-COMM', self.process_COMMUNICATE)
+        self.register('M-C', self.process_COMMUNICATE)
 
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
@@ -61,7 +61,7 @@ class MetricsCommon(object):
             return self.process_BCAST(node_id, time, contents)
         elif comm_type == 'RCV':
             return self.process_RCV(node_id, time, contents)
-        elif comm_type == 'DELIVER':
+        elif comm_type == 'DELIV':
             return self.process_DELIVER(node_id, time, contents)
         else:
             raise RuntimeError("Unknown communication type of {}".format(comm_type))
@@ -72,7 +72,8 @@ class MetricsCommon(object):
     def process_BCAST(self, node_id, time, line):
         (kind, status, sequence_number) = line.split(',')
 
-        if status == "success":
+        # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
+        if status == "0":
             node_id = int(node_id)
             time = float(time)
 

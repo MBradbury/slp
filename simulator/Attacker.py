@@ -37,7 +37,7 @@ class Attacker(object):
         self._sim = sim
         self.ident = ident
 
-        self._sim.register_output_handler('Attacker-RCV', self.process_ATTACKER_RCV)
+        self._sim.register_output_handler('A-R', self.process_ATTACKER_RCV)
 
         self.position = start_node_id
         self._has_found_source = self.found_source_slow()

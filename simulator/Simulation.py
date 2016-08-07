@@ -33,6 +33,7 @@ class OutputCatcher(object):
 
     def process_one_line(self):
         line = self._read.readline()
+
         (d_or_e, node_id, time, detail) = line.split(':', 3)
         
         self._linefn(d_or_e, node_id, time, detail[:-1])
