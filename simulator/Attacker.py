@@ -37,7 +37,7 @@ class Attacker(object):
         self._sim = sim
         self.ident = ident
 
-        self._sim.register_output_handler('Attacker-RCV', self.process)
+        self._sim.register_output_handler('Attacker-RCV', self.process_ATTACKER_RCV)
 
         self.position = start_node_id
         self._has_found_source = self.found_source_slow()
@@ -61,15 +61,12 @@ class Attacker(object):
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         pass
 
-    def process(self, line):
+    def process_ATTACKER_RCV(self, d_or_e, node_id, time, detail):
         # Don't want to move if the source has been found
         if self._has_found_source:
             return
 
-        # First get the string without "D:<NODEID>:"
-        (d_or_e, node_id, time, without_dbg) = line.split(':', 3)
-
-        (msg_type, prox_from_id, ult_from_id, sequence_number) = without_dbg.split(',')
+        (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
 
         node_id = int(node_id)
 

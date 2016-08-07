@@ -1,5 +1,5 @@
+from __future__ import print_function
 
-from simulator.Simulation import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
 from collections import Counter
@@ -12,23 +12,21 @@ class Metrics(MetricsCommon):
 
         self.pool_full = Counter()
 
-    def process_POOL_FULL(self, line):
-    	(node_id,) = line.split(",")
+    def process_POOL_FULL(self, d_or_e, node_id, time, detail):
+        node_id = int(node_id)
 
-    	node_id = int(node_id)
-
-    	self.pool_full[node_id] += 1
+        self.pool_full[node_id] += 1
 
     def first_normal_send_times(self):
-    	result = {}
+        result = {}
 
-    	for ((node_id, seq_no), time) in self.normal_sent_time.items():
-    		if node_id not in result:
-    			result[node_id] = time
-    		else:
-    			result[node_id] = min(result[node_id], time)
+        for ((node_id, seq_no), time) in self.normal_sent_time.items():
+            if node_id not in result:
+                result[node_id] = time
+            else:
+                result[node_id] = min(result[node_id], time)
 
-    	return result
+        return result
 
     @staticmethod
     def items():

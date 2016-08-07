@@ -32,7 +32,10 @@ class OutputCatcher(object):
         sim.tossim.addChannel(name, self._write)
 
     def process_one_line(self):
-        self._linefn(self._read.readline())
+        line = self._read.readline()
+        (d_or_e, node_id, time, detail) = line.split(':', 3)
+        
+        self._linefn(d_or_e, node_id, time, detail[:-1])
 
     def close(self):
         """Closes the file handles opened."""
