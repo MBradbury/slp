@@ -17,7 +17,7 @@ class Metrics(MetricsCommon):
         self._path_dropped = []
 
     def _process_PATH_END(self, d_or_e, node_id, time, detail):
-        (proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
+        (proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
 
         ultimate_source_id = int(ultimate_source_id)
         sequence_number = int(sequence_number)
@@ -25,14 +25,14 @@ class Metrics(MetricsCommon):
         self._paths_reached_end.append((ultimate_source_id, sequence_number))
 
     def _process_SOURCE_DROPPED(self, d_or_e, node_id, time, detail):
-        (sequence_number,) = line.split(',')
+        (sequence_number,) = detail.split(',')
 
         time = int(time)
 
         self._source_dropped.append(time)
 
     def _process_PATH_DROPPED(self, d_or_e, node_id, time, detail):
-        (sequence_number, source_distance) = line.split(',')
+        (sequence_number, source_distance) = detail.split(',')
 
         source_distance = int(source_distance)
 
