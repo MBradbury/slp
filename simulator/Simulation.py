@@ -404,12 +404,12 @@ class OfflineSimulation(object):
         # that includes simple things such as iterating or calling functions.
         return not self.attacker_found_source
 
-    LINE_RE = re.compile(r'([a-zA-Z-]+):(\d+):(DEBUG) \((\d+)\): (.+)')
+    LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+):(\d+):(.+)')
 
     def _parse_line(self, line):
 
         # Example line:
-        #2016/07/27 14:47:34.418:Metric-COMM:22022:DEBUG (4): DELIVER:Normal,22022,4,1,1,22
+        #2016/07/27 14:47:34.418:Metric-COMM:22022:D:4:DELIVER:Normal,22022,4,1,1,22
 
         date_string, rest = line[0: len("2016/07/27 15:09:53.687")], line[len("2016/07/27 15:09:53.687")+1:]
 
@@ -418,12 +418,15 @@ class OfflineSimulation(object):
         match = self.LINE_RE.match(rest)
         if match is not None:
             kind = match.group(1)
-            node_local_time = int(match.group(2))
-            log_type = match.group(3)
-            node_id = int(match.group(4))
+            log_type = match.group(2)
+            node_id = int(match.group(3))
+            node_local_time = int(match.group(4))
             message_line = match.group(5)
 
-            return (current_time, kind, node_local_time, log_type, node_id, "{} ({}): ".format(log_type, node_id) + message_line)
+            # TODO: Implement this
+            time_in_seconds = 0
+
+            return (current_time, kind, node_local_time, log_type, node_id, "{}:{}:{}:".format(log_type, node_id, 0) + message_line)
 
         else:
             return None

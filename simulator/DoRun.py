@@ -2,6 +2,7 @@
 from __future__ import print_function, division
 
 import copy
+import functools
 import sys
 
 import simulator.Configuration as Configuration
@@ -10,8 +11,18 @@ def run_simulation(module, a, count=1):
     
     configuration = Configuration.create(a.args.configuration, a.args)
 
+    # Get the correct Simulation constructor
     if a.args.mode == "GUI":
         from simulator.TosVis import GuiSimulation as Simulation
+
+    elif a.args.mode == "OFFLINE":
+        from simulator.Simulation import OfflineSimulation
+        Simulation = functools.partial(OfflineSimulation, log_filename=args.merged_log)
+
+    elif a.args.mode == "OFFLINE_GUI":
+        from simulator.TosVis import GuiOfflineSimulation as OfflineSimulation
+        Simulation = functools.partial(OfflineSimulation, log_filename=args.merged_log)
+
     else:
         from simulator.Simulation import Simulation
 
