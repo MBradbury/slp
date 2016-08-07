@@ -10,8 +10,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
@@ -431,7 +429,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		init_distance_neighbours(&neighbours);
 
@@ -448,7 +446,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 
@@ -459,7 +457,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -467,7 +465,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
@@ -475,7 +473,7 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			METRIC_SOURCE_CHANGE("set");
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
@@ -492,7 +490,7 @@ implementation
 
 			type = NormalNode;
 
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			METRIC_SOURCE_CHANGE("unset");
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -508,7 +506,7 @@ implementation
 
 		const uint32_t source_period = get_source_period();
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
 
 #ifdef SLP_VERBOSE_DEBUG
 		//print_distance_neighbours("stdout", &neighbours);
@@ -565,8 +563,8 @@ implementation
 		}
 		else
 		{
-			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
-				sim_time(), TOS_NODE_ID, message.sequence_number);
+			simdbg("Metric-SOURCE_DROPPED", SEQUENCE_NUMBER_SPEC "\n",
+				message.sequence_number);
 		}
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
@@ -585,7 +583,7 @@ implementation
 
 		landmark_distance = 0;
 
-		simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "AwaySenderTimer fired.\n");
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -609,7 +607,7 @@ implementation
 	{
 		BeaconMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
 		message.landmark_distance_of_sender = landmark_distance;
 
@@ -707,8 +705,8 @@ implementation
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					simdbg_clear("Metric-PATH_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, rcvd->sequence_number, rcvd->source_distance);
+					simdbg("Metric-PATH_DROPPED", SEQUENCE_NUMBER_SPEC ",%u\n",
+						rcvd->sequence_number, rcvd->source_distance);
 
 					return;
 				}
@@ -724,9 +722,8 @@ implementation
 			{
 				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || TOS_NODE_ID == LANDMARK_NODE_ID))
 				{
-					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, source_addr,
-						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+					simdbg("Metric-PATH-END", "%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
 				// We want other nodes to continue broadcasting

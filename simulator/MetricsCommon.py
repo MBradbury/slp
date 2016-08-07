@@ -46,38 +46,36 @@ class MetricsCommon(object):
         self.became_normal_after_source_times = defaultdict(list)
 
         # Normal nodes becoming the source, or source nodes becoming normal
-        self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
+        self.register('M-SC', self.process_SOURCE_CHANGE)
 
         # BCAST / RCV / DELIVER events
-        self.register('Metric-COMM', self.process_COMMUNICATE)
+        self.register('M-C', self.process_COMMUNICATE)
 
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
 
-    def process_COMMUNICATE(self, line):
-        # First get the string without "DEBUG (<NODEID>): "
-        without_dbg = line.split(':', 1)[1].strip()
-
-        (comm_type, contents) = without_dbg.split(':', 1)
+    def process_COMMUNICATE(self, d_or_e, node_id, time, detail):
+        (comm_type, contents) = detail.split(':', 1)
 
         if comm_type == 'BCAST':
-            return self.process_BCAST(contents)
+            return self.process_BCAST(node_id, time, contents)
         elif comm_type == 'RCV':
-            return self.process_RCV(contents)
-        elif comm_type == 'DELIVER':
-            return self.process_DELIVER(contents)
+            return self.process_RCV(node_id, time, contents)
+        elif comm_type == 'DELIV':
+            return self.process_DELIVER(node_id, time, contents)
         else:
             raise RuntimeError("Unknown communication type of {}".format(comm_type))
 
     def _time_to_bin(self, time):
         return int(math.floor(time / self._time_bin_width))
 
-    def process_BCAST(self, line):
-        (kind, time, node_id, status, sequence_number) = line.split(',')
+    def process_BCAST(self, node_id, time, line):
+        (kind, status, sequence_number) = line.split(',')
 
-        if status == "success":
+        # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
+        if status == "0":
             node_id = int(node_id)
-            time = self.sim.ticks_to_seconds(float(time))
+            time = float(time)
 
             self.sent[kind][node_id] += 1
 
@@ -96,15 +94,15 @@ class MetricsCommon(object):
                 if sequence_number != -1:
                     self.normal_sent_time[(node_id, sequence_number)] = time
 
-    def process_RCV(self, line):
-        (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
+    def process_RCV(self, node_id, time, line):
+        (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
         
         node_id = int(node_id)
 
         self.received[kind][node_id] += 1
 
         if node_id in self.sink_ids and kind == "Normal":
-            time = self.sim.ticks_to_seconds(float(time))
+            time = float(time)
             ultimate_source_id = int(ultimate_source_id)
             sequence_number = int(sequence_number)
             hop_count = int(hop_count)
@@ -140,8 +138,8 @@ class MetricsCommon(object):
                 else:
                     self.received_from_closer_or_same_meters[source_id] += 1
 
-    def process_DELIVER(self, line):
-        (kind, time, node_id, proximate_source_id, ultimate_source_id, sequence_number) = line.split(',')
+    def process_DELIVER(self, node_id, time, line):
+        (kind, proximate_source_id, ultimate_source_id, sequence_number) = line.split(',')
 
         node_id = int(node_id)
 
@@ -162,15 +160,11 @@ class MetricsCommon(object):
 
         raise NotImplementedError()
 
-    def process_SOURCE_CHANGE(self, line):
-
-        # First get the string without "DEBUG (<NODEID>): "
-        without_dbg = line.split(':', 1)[1].strip()
-
-        (state, node_id) = without_dbg.split(',')
+    def process_SOURCE_CHANGE(self, d_or_e, node_id, time, detail):
+        (state,) = detail.split(',')
 
         node_id = int(node_id)
-        time = self.sim_time()
+        time = float(time)
 
         if state == "set":
             self.source_ids.add(node_id)

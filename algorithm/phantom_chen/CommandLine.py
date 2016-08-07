@@ -1,14 +1,16 @@
 from __future__ import print_function
 
-import os, itertools, math, datetime
+import datetime
+import itertools
+import math
+import os
 
 import numpy as np
 
 from simulator import CommandLineCommon
+from simulator import Configuration
 
 import algorithm.protectionless as protectionless
-
-from simulator import Configuration
 
 from data import results
 
@@ -99,64 +101,15 @@ class RunSimulations(RunSimulationsCommon):
 
 class CLI(CommandLineCommon.CLI):
 
-    executable_path = 'run.py'
-
-    distance = 4.5
-
-    noise_models = ["meyer-heavy"]
-
-    communication_models = ["ideal"]
-
-    #sizes = [11, 15, 21, 25]
-    sizes = [11]
-
-    #source_periods = [1.0, 0.5, 0.25, 0.125]
-    source_periods = [1.0]
-
-    configurations = [
-        'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
-
-        #'SinkCorner',
-        #'SinkCorner2Source',
-        #'SinkCorner3Source',
-
-        #'FurtherSinkCorner',
-        #'FurtherSinkCorner2Source',
-        #'FurtherSinkCorner3Source'
-    ]
-
-    random_walk_types = [
-        #'only_short_random_walk',
-        #'only_long_random_walk',
-        'phantom_walkabouts'
-    ]
-
-    attacker_models = ['SeqNosReactiveAttacker()']
-
-    direction_biases = [0.9]
-
-    orders = [
-    #"LongShort", 
-    "ShortLong"
-    ]
-
-    wait_before_short = [0]
-
-    short_counts = [1]
-    long_counts = [1]
-
-    repeats = 500
-
     local_parameter_names = ('short walk length', 'long walk length', 'direction bias',
                              'order', 'short count', 'long count', 'wait before short')
-
 
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
+        parameters = self.algorithm_module.Parameters
+
         half_ssd = int(math.floor(s/2)) + 1
         half_ssd_further = s
         ssd_further = 2*s
@@ -166,12 +119,12 @@ class CLI(CommandLineCommon.CLI):
         random_walk_short_for_further = list(range(2, half_ssd_further))
         random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
 
-        non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in self.configurations)
+        non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in parameters.configurations)
 
-        further = any(topo for topo in ['FurtherSinkCorner','FurtherSinkCorner2Source','FurtherSinkCorner3Source'] if topo in self.configurations)
+        further = any(topo for topo in ['FurtherSinkCorner','FurtherSinkCorner2Source','FurtherSinkCorner3Source'] if topo in parameters.configurations)
 
         #check the random-walk_tye.
-        if len(self.random_walk_types) == 1:
+        if len(parameters.random_walk_types) == 1:
             pass
         else:
             raise RuntimeError("only support ONE random_walk_type!")
@@ -181,15 +134,15 @@ class CLI(CommandLineCommon.CLI):
             raise RuntimeError("Build other configurations with Further* configurations!")
 
         if non_further:
-            if 'only_short_random_walk' in self.random_walk_types:
+            if 'only_short_random_walk' in parameters.random_walk_types:
                 walk_short = random_walk_short
                 walk_long = random_walk_short
 
-            elif 'only_long_random_walk' in self.random_walk_types:
+            elif 'only_long_random_walk' in parameters.random_walk_types:
                 walk_short = random_walk_long
                 walk_long = random_walk_long
         
-            elif 'phantom_walkabouts' in self.random_walk_types:
+            elif 'phantom_walkabouts' in parameters.random_walk_types:
                 walk_short = random_walk_short
                 walk_long = random_walk_long
 
@@ -197,15 +150,15 @@ class CLI(CommandLineCommon.CLI):
                 raise RuntimeError("error in the function: _short_long_walk_lengths")
 
         elif further:
-            if 'only_short_random_walk' in self.random_walk_types:
+            if 'only_short_random_walk' in parameters.random_walk_types:
                 walk_short = random_walk_short_for_further
                 walk_long = random_walk_short_for_further
 
-            elif 'only_long_random_walk' in self.random_walk_types:
+            elif 'only_long_random_walk' in parameters.random_walk_types:
                 walk_short = random_walk_long_for_further
                 walk_long = random_walk_long_for_further
         
-            elif 'phantom_walkabouts' in self.random_walk_types:
+            elif 'phantom_walkabouts' in parameters.random_walk_types:
                 walk_short = random_walk_short_for_further
                 walk_long = random_walk_long_for_further
 
@@ -236,11 +189,13 @@ class CLI(CommandLineCommon.CLI):
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
     def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
+
         argument_product = itertools.product(
-            self.sizes, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.direction_biases, self.orders,
-            self.short_counts, self.long_counts, self.wait_before_short
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.source_periods, parameters.direction_biases, parameters.orders,
+            parameters.short_counts, parameters.long_counts, parameters.wait_before_short
         )
 
         argument_product = [
@@ -256,13 +211,18 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            from data.run.common import RunSimulationsCommon as RunSimulations
+
         safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
         time_taken = safety_period_table_generator.time_taken()
 
         runner = RunSimulations(driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
+        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
     def _run_table(self, args):
         phantom_results = results.Results(

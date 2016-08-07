@@ -55,6 +55,9 @@ class Configuration(object):
         )
 
     def _build_connectivity_matrix(self):
+        if not hasattr(self.topology, "distance"):
+            return
+
         self._dist_matrix_meters = cdist(self.topology.nodes, self.topology.nodes, 'euclidean')
 
         connectivity_matrix = self._dist_matrix_meters <= self.topology.distance
@@ -65,6 +68,9 @@ class Configuration(object):
         return len(self.topology.nodes)
 
     def is_connected(self, i, j):
+        if not hasattr(self.topology, "distance"):
+            raise RuntimeError("Cannot know connectivity as topology does not have distance")
+
         return self._dist_matrix_meters[i,j] <= self.topology.distance
 
     def one_hop_neighbours(self, node):
@@ -467,8 +473,8 @@ class RandomConnected(Configuration):
         )
 
 class DCSWarwickSrc201Sink208(Configuration):
-    def __init__(self, network_size, distance):
-        dcs_warwick = DCSWarwick(None, distance)
+    def __init__(self, *args, **kwargs):
+        dcs_warwick = DCSWarwick()
 
         super(DCSWarwickSrc201Sink208, self).__init__(
             dcs_warwick,
@@ -478,8 +484,8 @@ class DCSWarwickSrc201Sink208(Configuration):
         )
 
 class IndriyaSrc31Sink60(Configuration):
-    def __init__(self, network_size, distance):
-        indriya = Indriya(None, distance)
+    def __init__(self, *args, **kwargs):
+        indriya = Indriya()
 
         super(IndriyaSrc31Sink60, self).__init__(
             indriya,
@@ -516,16 +522,23 @@ def names():
 
 # Memoize this call to eliminate the overhead of creating many identical configurations.
 @memoize
-def create_specific(name, network_size, distance):
+def create_specific(name, *args, **kwargs):
     confs = [cls for cls in configurations() if cls.__name__ == name]
 
     if len(confs) == 0:
-        raise RuntimeError("No configurations were found using the name {}, size {} and distance {}".format(name, network_size, distance))
+        raise RuntimeError("No configurations were found using the name {}, args {}".format(name, args))
 
     if len(confs) > 1:
         raise RuntimeError("There are multiple configurations that have the name {}, not sure which one to choose".format(name))
 
-    return confs[0](network_size, distance)
+    return confs[0](*args, **kwargs)
 
 def create(name, args):
-    return create_specific(name, args.network_size, args.distance)
+    if hasattr(args, "network_size") and hasattr(args, "distance"):
+        pos_args = (args.network_size, args.distance)
+    else:
+        pos_args = tuple()
+
+    kwargs = {}
+
+    return create_specific(name, *pos_args, **kwargs)

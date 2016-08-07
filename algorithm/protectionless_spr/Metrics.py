@@ -1,5 +1,5 @@
+from __future__ import print_function, division
 
-from simulator.Simulation import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):

@@ -105,7 +105,7 @@ implementation
 		const slp_period_t* period;
 		uint32_t length;
 
-		simdbgverbose("stdout", "Detected an object at %s.\n", sim_time_string());
+		simdbgverbose("stdout", "Detected an object.\n");
 
 		detected = TRUE;
 
@@ -132,7 +132,7 @@ implementation
 
 	event void ExpireTimer.fired()
 	{
-		simdbgverbose("stdout", "Stopped detecting an object as %s.\n", sim_time_string());
+		simdbgverbose("stdout", "Stopped detecting an object.\n");
 
 		detected = FALSE;
 		signal ObjectDetector.stoppedDetecting();

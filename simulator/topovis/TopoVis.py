@@ -271,12 +271,14 @@ class Scene:
         """
         if time < self.time:
             raise RuntimeError(
-                    'Time cannot flow backward: current = %.3f, new = %.3f'
+                    'Time cannot flow backward: current = %.5f, new = %.5f'
                     % (self.time, time)
                     )
+
         if not self.realtime:
             sleep((time-self.time) * self.timescale)
             self.time = time
+
         for plotter in self.plotters:
             plotter.setTime(time)
 

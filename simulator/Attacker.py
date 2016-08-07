@@ -37,7 +37,7 @@ class Attacker(object):
         self._sim = sim
         self.ident = ident
 
-        self._sim.register_output_handler('Attacker-RCV', self.process)
+        self._sim.register_output_handler('A-R', self.process_ATTACKER_RCV)
 
         self.position = start_node_id
         self._has_found_source = self.found_source_slow()
@@ -61,15 +61,12 @@ class Attacker(object):
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         pass
 
-    def process(self, line):
+    def process_ATTACKER_RCV(self, d_or_e, node_id, time, detail):
         # Don't want to move if the source has been found
         if self._has_found_source:
             return
 
-        # First get the string without "DEBUG (<NODEID>): "
-        without_dbg = line.split(':', 1)[1].strip()
-
-        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = without_dbg.split(',')
+        (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
 
         node_id = int(node_id)
 
@@ -78,7 +75,7 @@ class Attacker(object):
         if self.position != node_id or msg_type in _messages_to_ignore:
             return
 
-        time = self._sim.ticks_to_seconds(float(time))
+        time = float(time)
         prox_from_id = int(prox_from_id)
         ult_from_id = int(ult_from_id)
         sequence_number = int(sequence_number)
@@ -141,10 +138,10 @@ class Attacker(object):
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
-        if not hasattr(self._sim, "scene"):
+        if not hasattr(self._sim, "_gui"):
             return
 
-        (x, y) = self._sim.node_location(node_id)
+        (x, y) = self._sim._gui.node_location(node_id)
 
         shape_id = "attacker{}".format(self.ident)
 
@@ -152,8 +149,10 @@ class Attacker(object):
 
         options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
 
-        self._sim.scene.execute(time, 'delshape("{}")'.format(shape_id))
-        self._sim.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
+        time = self._sim.sim_time()
+
+        self._sim._gui.scene.execute(time, 'delshape("{}")'.format(shape_id))
+        self._sim._gui.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
 
     def __str__(self):
         return type(self).__name__ + "()"

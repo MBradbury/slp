@@ -36,6 +36,11 @@ class CLI(object):
         self.algorithm_module = importlib.import_module(package)
         self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
 
+        try:
+            self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
+        except ImportError:
+            print("Failed to import Parameters, have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
+
     def parameter_names(self):
         return tuple(list(self.global_parameter_names) + list(self.local_parameter_names))
 
@@ -65,7 +70,7 @@ class CLI(object):
 
         latex.compile_document(filename)
 
-    def _argument_product(self, driver, result_path, skip_completed_simulations):
+    def _argument_product(self):
         raise NotImplementedError()
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations):

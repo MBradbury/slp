@@ -1,25 +1,24 @@
-import argparse
+
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="Protectionless TDMA DAS", add_help=True)
-        super(Arguments, self).__init__(parser, has_safety_period=False)
+        super(Arguments, self).__init__("Protectionless TDMA DAS", has_safety_period=False)
 
-        parser.add_argument("--source-period",
-            type=simulator.SourcePeriodModel.eval_input, required=True)
-        parser.add_argument("-sp", "--slot-period", type=float, required=True, help="Time of a single slot")
-        parser.add_argument("-dp", "--dissem-period", type=float, required=True, help="Time of the beaconing period")
-        parser.add_argument("-ts", "--tdma-num-slots", type=int, required=True, help="Total number of slots available")
-        parser.add_argument("-ai", "--slot-assignment-interval", type=int, required=True, help="The interval at which slot values are assigned")
-        parser.add_argument("-msp", "--minimum-setup-periods", type=int, required=False, default=0, help="Minimum number of periods required for setup")
-        parser.add_argument("-pbp", "--pre-beaconing-periods", type=int, required=False, default=3, help="Number of periods of neighbour discovery")
-        parser.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
-        parser.add_argument("--source-mobility",
-            type=simulator.MobilityModel.eval_input,
-            default=simulator.MobilityModel.StationaryMobilityModel())
+        self.add_argument("--source-period",
+                          type=simulator.SourcePeriodModel.eval_input, required=True)
+        self.add_argument("-sp", "--slot-period", type=float, required=True, help="Time of a single slot")
+        self.add_argument("-dp", "--dissem-period", type=float, required=True, help="Time of the beaconing period")
+        self.add_argument("-ts", "--tdma-num-slots", type=int, required=True, help="Total number of slots available")
+        self.add_argument("-ai", "--slot-assignment-interval", type=int, required=True, help="The interval at which slot values are assigned")
+        self.add_argument("-msp", "--minimum-setup-periods", type=int, required=False, default=0, help="Minimum number of periods required for setup")
+        self.add_argument("-pbp", "--pre-beaconing-periods", type=int, required=False, default=3, help="Number of periods of neighbour discovery")
+        self.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
+        self.add_argument("--source-mobility",
+                          type=simulator.MobilityModel.eval_input,
+                          default=simulator.MobilityModel.StationaryMobilityModel())
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()

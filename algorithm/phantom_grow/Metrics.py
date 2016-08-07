@@ -1,6 +1,5 @@
-from __future__ import division
+from __future__ import print_function, division
 
-from simulator.Simulation import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
@@ -11,8 +10,8 @@ class Metrics(MetricsCommon):
 
         self._paths_reached_end = []
 
-    def process_PATH_END(self, line):
-        (time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
+    def process_PATH_END(self, d_or_e, node_id, time, detail):
+        (proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
 
         self._paths_reached_end.append((ultimate_source_id, sequence_number))
 

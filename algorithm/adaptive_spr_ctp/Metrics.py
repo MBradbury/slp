@@ -3,13 +3,11 @@ from __future__ import print_function, division
 import re
 from collections import defaultdict
 
-from simulator.Simulation import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
 
-    WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
-    FAKE_RE   = re.compile(r'The node has become a ([a-zA-Z]+) was ([a-zA-Z]+)')
+    FAKE_RE = re.compile(r'The node has become a ([a-zA-Z]+) was ([a-zA-Z]+)')
 
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
@@ -22,14 +20,7 @@ class Metrics(MetricsCommon):
         self.fake_to_normal = 0
         self.fake_to_fake = 0
 
-    def process_FAKE_NOTIFICATION(self, line):
-        match = self.WHOLE_RE.match(line)
-        if match is None:
-            return None
-
-        node_id = int(match.group(1))
-        detail = match.group(2)
-
+    def process_FAKE_NOTIFICATION(self, d_or_e, node_id, time, detail):
         match = self.FAKE_RE.match(detail)
         if match is not None:
             new_kind = match.group(1)

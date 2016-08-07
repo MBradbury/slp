@@ -10,8 +10,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, msg->source_distance)
 
@@ -77,7 +75,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		sequence_number_init(&fake_sequence_counter);
 
@@ -95,7 +93,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call RoutingControl.start();
 
@@ -103,7 +101,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -111,7 +109,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
@@ -119,7 +117,7 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			METRIC_SOURCE_CHANGE("set");
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
@@ -136,7 +134,7 @@ implementation
 
 			type = NormalNode;
 
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			METRIC_SOURCE_CHANGE("unset");
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -148,7 +146,7 @@ implementation
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "SourcePeriodModel fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;

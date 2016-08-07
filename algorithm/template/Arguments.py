@@ -1,4 +1,5 @@
 import argparse
+
 from simulator.ArgumentsCommon import ArgumentsCommon
 
 def restricted_float(x):
@@ -9,15 +10,14 @@ def restricted_float(x):
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        parser = argparse.ArgumentParser(description="SLP Template", add_help=True)
-        super(Arguments, self).__init__(parser, has_safety_period=True)
+        super(Arguments, self).__init__("SLP Template", has_safety_period=True)
 
-        parser.add_argument("--source-period", type=float, required=True)
-        parser.add_argument("--fake-period", type=float, required=True)
-        parser.add_argument("--temp-fake-duration", type=float, required=True)
+        self.add_argument("--source-period", type=float, required=True)
+        self.add_argument("--fake-period", type=float, required=True)
+        self.add_argument("--temp-fake-duration", type=float, required=True)
 
-        parser.add_argument("--pr-tfs", type=restricted_float, required=True)
-        parser.add_argument("--pr-pfs", type=restricted_float, required=True)
+        self.add_argument("--pr-tfs", type=restricted_float, required=True)
+        self.add_argument("--pr-pfs", type=restricted_float, required=True)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()

@@ -21,4 +21,5 @@ results/
 *.aux
 *.log
 *.tex
-/testbed/*
+./testbed/*
+Parameters.py
