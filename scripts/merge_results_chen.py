@@ -6,11 +6,6 @@ import sys
 #define the maximum lines of results(configuration header not include) 
 max_line = 500
 
-maximum_result_lines = 0
-parameters = []
-parameter_check = False
-config_finish = False
-
 if len(sys.argv) != 2:
 	print "error!"
 	sys.exit()
@@ -24,7 +19,13 @@ if not os.path.exists(merge_dir):
 os.chdir(results_dir)
 
 for filename in glob.glob('*.txt'):
+
+	parameter_check = False
+	config_finish = False
+	maximum_result_lines = 0
+	parameters = []
 	file_dir = os.path.join(merge_dir, filename)
+
 	#gather all parameters from the header of result files.
 	with open (filename) as currentfile:
 		for line in currentfile:
