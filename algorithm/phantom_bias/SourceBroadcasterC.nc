@@ -475,7 +475,7 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "set\n");
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
@@ -492,7 +492,7 @@ implementation
 
 			type = NormalNode;
 
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "unset\n");
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -565,8 +565,8 @@ implementation
 		}
 		else
 		{
-			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
-				sim_time(), TOS_NODE_ID, message.sequence_number);
+			simdbg("Metric-SOURCE_DROPPED", SEQUENCE_NUMBER_SPEC "\n",
+				message.sequence_number);
 		}
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
@@ -707,8 +707,8 @@ implementation
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					simdbg_clear("Metric-PATH_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, rcvd->sequence_number, rcvd->source_distance);
+					simdbg("Metric-PATH_DROPPED", SEQUENCE_NUMBER_SPEC ",%u\n",
+						rcvd->sequence_number, rcvd->source_distance);
 
 					return;
 				}
@@ -724,9 +724,8 @@ implementation
 			{
 				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || TOS_NODE_ID == LANDMARK_NODE_ID))
 				{
-					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, source_addr,
-						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+					simdbg("Metric-PATH-END", "%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
 				// We want other nodes to continue broadcasting

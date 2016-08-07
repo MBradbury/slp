@@ -54,8 +54,8 @@ class MetricsCommon(object):
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
 
-    def process_COMMUNICATE(self, line):
-        (d_or_e, node_id, time, comm_type, contents) = line.split(':', 4)
+    def process_COMMUNICATE(self, d_or_e, node_id, time, detail):
+        (comm_type, contents) = detail.split(':', 1)
 
         if comm_type == 'BCAST':
             return self.process_BCAST(node_id, time, contents)
@@ -159,11 +159,8 @@ class MetricsCommon(object):
 
         raise NotImplementedError()
 
-    def process_SOURCE_CHANGE(self, line):
-        # First get the string without "D:<NODEID>:<time>:"
-        (d_or_e, node_id, time, without_dbg) = line.split(':', 3)
-
-        (state, node_id) = without_dbg.split(',')
+    def process_SOURCE_CHANGE(self, d_or_e, node_id, time, detail):
+        (state,) = detail.split(',')
 
         node_id = int(node_id)
         time = float(time)

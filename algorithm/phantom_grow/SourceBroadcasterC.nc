@@ -250,7 +250,7 @@ implementation
 		// The sink node cannot become a source node
 		if (type != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "set\n");
 			simdbg("Node-Change-Notification", "The node has become a Source\n");
 
 			type = SourceNode;
@@ -267,7 +267,7 @@ implementation
 
 			type = NormalNode;
 
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Metric-SOURCE_CHANGE", "unset\n");
 			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
@@ -402,9 +402,8 @@ implementation
 			{
 				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
 				{
-					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, source_addr,
-						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+					simdbg("Metric-PATH-END", "%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
 				simdbgverbose("stdout", "%s: Broadcasting normal from %u (forced bcast = %d)\n",

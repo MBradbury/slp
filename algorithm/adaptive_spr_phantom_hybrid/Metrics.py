@@ -1,8 +1,7 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 import re
 
-from simulator.Simulation import OutputCatcher
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
@@ -20,9 +19,7 @@ class Metrics(MetricsCommon):
         self.fake_to_normal = 0
         self.fake_to_fake = 0
 
-    def process_FAKE_NOTIFICATION(self, line):
-        (d_or_e, node_id, time, detail) = line.split(':', 3)
-
+    def process_FAKE_NOTIFICATION(self, d_or_e, node_id, time, detail):
         match = self.FAKE_RE.match(detail)
         if match is not None:
             new_kind = match.group(1)
