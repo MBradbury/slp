@@ -14,7 +14,7 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-#ifdef USE_SERIAL_PRINTF
+#if defined(USE_SERIAL_PRINTF) || defined(USE_SERIAL_MESSAGES)
 	uses interface LocalTime<TMilli>;
 #endif
 
