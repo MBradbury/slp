@@ -31,7 +31,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
-			simdbgerror("stdout", "%s: Packet for " #NAME "Message has no payload.\n", sim_time_string()); \
+			simdbgerror("stdout", "acket for " #NAME "Message has no payload.\n"); \
 			return EINVAL; \
 		} \
  \
@@ -58,7 +58,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 	} \
 	else \
 	{ \
-		simdbgverbose("stdout", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
+		simdbgverbose("stdout", "Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n"); \
  \
 		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
  \
@@ -81,7 +81,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
-			simdbgerror("stdout", "%s: Packet for " #NAME "Message has no payload.\n", sim_time_string()); \
+			simdbgerror("stdout", "Packet for " #NAME "Message has no payload.\n"); \
 			return EINVAL; \
 		} \
  \
@@ -108,7 +108,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 	} \
 	else \
 	{ \
-		simdbgverbose("stdout", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
+		simdbgverbose("stdout", "Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n"); \
  \
 		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
  \
@@ -124,8 +124,7 @@ inline bool send_##NAME##_message(const NAME##Message* tosend) \
 #define SEND_DONE(NAME, CALLBACK) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
 { \
-	simdbgverbose("stdout", "%s: " #NAME "Send sendDone with status %i.\n", \
-		sim_time_string(), error); \
+	simdbgverbose("stdout", #NAME " Send sendDone with status %i.\n", error); \
  \
 	if (&packet == msg) \
 	{ \
@@ -154,8 +153,7 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 #define SEND_DONE_NO_TARGET(NAME, CALLBACK) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
 { \
-	simdbgverbose("stdout", "%s: " #NAME "Send sendDone with status %i.\n", \
-		sim_time_string(), error); \
+	simdbgverbose("stdout", #NAME " Send sendDone with status %i.\n", error); \
  \
 	if (&packet == msg) \
 	{ \
@@ -192,11 +190,11 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
-		simdbgerror("stderr", "%s: " #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", sim_time_string(), len); \
+		simdbgerror("stderr", #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", len); \
 		return msg; \
 	} \
  \
-	simdbgverbose("SourceBroadcasterC", "%s: " #KIND "ed valid " #NAME ".\n", sim_time_string()); \
+	simdbgverbose("SourceBroadcasterC", #KIND "ed valid " #NAME ".\n"); \
  \
 	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
@@ -206,8 +204,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 #define RECEIVE_MESSAGE_END(NAME) \
 		default: \
 		{ \
-			simdbgerror("stderr", "%s: Unknown node type %s. Cannot process " #NAME " message\n", \
-				sim_time_string(), type_to_string()); \
+			simdbgerror("stderr", "Unknown node type %s. Cannot process " #NAME " message\n", type_to_string()); \
 		} break; \
 	} \
  \
@@ -225,11 +222,11 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
-		simdbgerror("stderr", "%s: " #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", sim_time_string(), len); \
+		simdbgerror("stderr", #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", len); \
 		return FALSE; \
 	} \
  \
-	simdbgverbose("stderr", "%s: " #KIND "ed valid " #NAME ".\n", sim_time_string()); \
+	simdbgverbose("stderr", #KIND "ed valid " #NAME ".\n"); \
  \
 	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
@@ -239,8 +236,8 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 #define INTERCEPT_MESSAGE_END(NAME) \
 		default: \
 		{ \
-			simdbgerror("stderr", "%s: Unknown node type %s. Cannot process " #NAME " message\n", \
-				sim_time_string(), type_to_string()); \
+			simdbgerror("stderr", "Unknown node type %s. Cannot process " #NAME " message\n", \
+				type_to_string()); \
 		} break; \
 	} \
  \
