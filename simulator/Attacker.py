@@ -66,10 +66,10 @@ class Attacker(object):
         if self._has_found_source:
             return
 
-        # First get the string without "DEBUG (<NODEID>): "
-        without_dbg = line.split(':', 1)[1].strip()
+        # First get the string without "D:<NODEID>:"
+        (d_or_e, node_id, time, without_dbg) = line.split(':', 3)
 
-        (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = without_dbg.split(',')
+        (msg_type, prox_from_id, ult_from_id, sequence_number) = without_dbg.split(',')
 
         node_id = int(node_id)
 
@@ -78,7 +78,7 @@ class Attacker(object):
         if self.position != node_id or msg_type in _messages_to_ignore:
             return
 
-        time = self._sim.ticks_to_seconds(float(time))
+        time = float(time)
         prox_from_id = int(prox_from_id)
         ult_from_id = int(ult_from_id)
         sequence_number = int(sequence_number)
@@ -151,6 +151,8 @@ class Attacker(object):
         color = '1,0,0'
 
         options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
+
+        time = self._sim.sim_time()
 
         self._sim._gui.scene.execute(time, 'delshape("{}")'.format(shape_id))
         self._sim._gui.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))

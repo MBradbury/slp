@@ -10,7 +10,6 @@ class DebugAnalyzer:
     CHANGE  = 3
     DAS     = 4
 
-    WHOLE_RE  = re.compile(r'DEBUG \((\d+)\): (.*)')
     LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
@@ -24,12 +23,10 @@ class DebugAnalyzer:
 
     ####################
     def analyze(self, dbg):
-        match = self.WHOLE_RE.match(dbg)
-        if match is None:
-            return None
+        (d_or_e, node_id, time, detail) = dbg.split(':', 3)
 
-        node_id = int(match.group(1))
-        detail = match.group(2)
+        node_id = int(node_id)
+        time = float(time)
 
         # LED message
         match = self.LED_RE.match(detail)
@@ -40,7 +37,7 @@ class DebugAnalyzer:
                 state = 0
             else:
                 state = 1
-            return (node_id, self.LED, (ledno,state))
+            return (node_id, time, self.LED, (ledno,state))
 
         # AM Send message
         match = self.AMSEND_RE.match(detail)
@@ -48,26 +45,26 @@ class DebugAnalyzer:
             amtype = int(match.group(1))
             amlen  = int(match.group(2))
             amdst  = int(match.group(3))
-            return (node_id, self.AM_SEND, (amtype, amlen, amdst))
+            return (node_id, time, self.AM_SEND, (amtype, amlen, amdst))
 
         # AM Receive message
         match = self.AMRECV_RE.match(detail)
         if match is not None:
             amtype = int(match.group(1))
             amlen  = int(match.group(2))
-            return (node_id, self.AM_RECV, (amtype, amlen))
+            return (node_id, time, self.AM_RECV, (amtype, amlen))
 
         # Node becoming TFS, PFS or Normal
         match = self.CHANGE_RE.match(detail)
         if match is not None:
             kind = match.group(1)
-            return (node_id, self.CHANGE, (kind,))
+            return (node_id, time, self.CHANGE, (kind,))
 
         # Check whether DAS is broken
         match = self.DAS_RE.match(detail)
         if match is not None:
             state = int(match.group(1))
-            return (node_id, self.DAS, (state,))
+            return (node_id, time, self.DAS, (state,))
 
         return None
 
@@ -198,7 +195,9 @@ class Gui:
         if result is None:
             return
 
-        (node_id, event_type, detail) = result
+        (node_id, time, event_type, detail) = result
+
+        time = self._sim.sim_time()
 
         return {
             DebugAnalyzer.LED: self._animate_leds,
@@ -207,7 +206,7 @@ class Gui:
             DebugAnalyzer.CHANGE: self._animate_change_state,
             DebugAnalyzer.DAS: self._animate_das_state
 
-        }[event_type](self._sim.sim_time(), node_id, detail)
+        }[event_type](time, node_id, detail)
 
 ###############################################
 class GuiSimulation(Simulation):

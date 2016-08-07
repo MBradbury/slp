@@ -164,7 +164,7 @@ implementation
         others = OtherList_new();
         n_info = NeighbourList_new();
 
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
@@ -180,7 +180,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
             init();
             call ObjectDetector.start();
@@ -188,7 +188,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -196,7 +196,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 
@@ -388,7 +388,7 @@ implementation
             return;
         }
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
 
 		message = call MessageQueue.dequeue();
 
@@ -477,7 +477,7 @@ implementation
 
     event void SourcePeriodModel.fired()
     {
-        /*simdbg("stdout", "%s: SourcePeriodModel fired.\n", sim_time_string());*/
+        /*simdbg("stdout", "SourcePeriodModel fired.\n");*/
         if(slot != BOT && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
