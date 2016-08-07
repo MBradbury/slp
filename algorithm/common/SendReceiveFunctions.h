@@ -1,56 +1,11 @@
 #ifndef SLP_SENDRECEIVEFUNCTIONS_H
 #define SLP_SENDRECEIVEFUNCTIONS_H
 
+#include "MetricLogging.h"
+
 #include "pp.h"
 
 #include <inttypes.h>
-
-#define MSG_TYPE_SPEC "%s"
-#define TOS_NODE_ID_SPEC "%u"
-
-// Time is a uint32_t when deploying on real hardware is it comes from LocalTime.
-// In a simulator time is sim_time_t which is a long long int.
-#ifdef USE_SERIAL_PRINTF
-#	define SIM_TIME_SPEC "%" PRIu32
-#else
-// For some reason PRIi64 doesn't reliably work, so use the manual lli
-//#	define SIM_TIME_SPEC "%" PRIi64
-#	define SIM_TIME_SPEC "%lli"
-#endif
-
-#define PROXIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
-#define ULTIMATE_SOURCE_SPEC "%d"
-#define ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "%" PRIi32
-#define NXSEQUENCE_NUMBER_SPEC "%" PRIu32
-#define SEQUENCE_NUMBER_SPEC "%" PRIi64
-#define DISTANCE_SPEC "%d"
-
-// The SEQUENCE_NUMBER parameter will typically be of type NXSequenceNumber or have the value BOTTOM,
-// this is why it needs to be cast to an int64_t first.
-#define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
-	simdbg("Metric-COMM", \
-		"RCV:" MSG_TYPE_SPEC "," \
-		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n", \
-		#TYPE, \
-		PROXIMATE_SOURCE, ULTIMATE_SOURCE, (int64_t)SEQUENCE_NUMBER, DISTANCE)
-
-#define METRIC_BCAST(TYPE, STATUS, SEQUENCE_NUMBER) \
-	simdbg("Metric-COMM", \
-		"BCAST:" MSG_TYPE_SPEC ",%s," SEQUENCE_NUMBER_SPEC "\n", \
-		#TYPE, \
-		STATUS, (int64_t)SEQUENCE_NUMBER)
-
-#define METRIC_DELIVER(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
-	simdbg("Metric-COMM", \
-		"DELIVER:" MSG_TYPE_SPEC "," \
-		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
-		#TYPE, \
-		PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
-
-#define ATTACKER_RCV(NAME, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
-	simdbg("Attacker-RCV", \
-		"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
-		NAME, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
 
 #define MSG_GET_NAME(TYPE, NAME) PPCAT(PPCAT(TYPE, _get_), NAME)
 #define MSG_GET(TYPE, NAME, MSG) MSG_GET_NAME(TYPE, NAME)(MSG)
@@ -95,20 +50,17 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 		{ \
 			SEND_LED_ON; \
 			busy = TRUE; \
+		} \
  \
-			METRIC_BCAST(NAME, "success", MSG_GET(NAME, sequence_number, tosend)); \
-		} \
-		else \
-		{ \
-			METRIC_BCAST(NAME, "failed", MSG_GET(NAME, sequence_number, tosend)); \
-		} \
+		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend)); \
+ \
 		return status; \
 	} \
 	else \
 	{ \
 		simdbgverbose("stdout", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
  \
-		METRIC_BCAST(NAME, "busy", MSG_GET(NAME, sequence_number, tosend)); \
+		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
  \
 		return EBUSY; \
 	} \
@@ -148,20 +100,17 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 		{ \
 			SEND_LED_ON; \
 			busy = TRUE; \
+		} \
  \
-			METRIC_BCAST(NAME, "success", MSG_GET(NAME, sequence_number, tosend)); \
-		} \
-		else \
-		{ \
-			METRIC_BCAST(NAME, "failed", MSG_GET(NAME, sequence_number, tosend)); \
-		} \
+		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend)); \
+ \
 		return status; \
 	} \
 	else \
 	{ \
 		simdbgverbose("stdout", "%s: Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n", sim_time_string()); \
  \
-		METRIC_BCAST(NAME, "busy", MSG_GET(NAME, sequence_number, tosend)); \
+		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
  \
 		return EBUSY; \
 	} \
