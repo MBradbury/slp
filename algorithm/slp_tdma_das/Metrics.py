@@ -8,7 +8,7 @@ class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
 
-        self.register('Metric-Pool-Full', self.process_POOL_FULL)
+        self.register('M-PF', self.process_POOL_FULL)
 
         self.pool_full = Counter()
 

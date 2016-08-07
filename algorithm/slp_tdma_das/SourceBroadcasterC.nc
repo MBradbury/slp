@@ -592,7 +592,7 @@ implementation
             else
             {
                 simdbgerror("stdout", "No pool space available for another Normal message.\n");
-                simdbg("Metric-Pool-Full", "full\n");
+                simdbg("M-PF", "full\n");
             }
         }
     }
