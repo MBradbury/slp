@@ -12,8 +12,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 // Notes:
 /*
  * Important to remember that the algorithm cannot rely on the first flood to get the minimum distance,

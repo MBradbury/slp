@@ -34,7 +34,8 @@ inline double rad2deg(double r)
 	return r * (180.0 / M_PI);
 }
 
-#ifndef USE_SERIAL_PRINTF
+// Disable using assert when running on real hardware 
+#ifndef TESTBED
 #	include <assert.h>
 #else
 #	define assert(...)
