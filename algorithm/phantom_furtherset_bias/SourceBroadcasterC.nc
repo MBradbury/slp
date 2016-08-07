@@ -188,7 +188,7 @@ implementation
 
 		if (possible_sets == (FurtherSet | CloserSet) || (possible_sets & FurtherSet) != 0)
 		{
-			// Both directions or only FurtherSet possible, so  pick one FurtherSet
+			// Both directions or only FurtherSet possible, pick one FurtherSet
 			return FurtherSet;
 		}
 		else if ((possible_sets & CloserSet) != 0)
@@ -245,9 +245,11 @@ implementation
 				}
 			}
 		}
+		//when message reachs 5, 6 belongs to the further set, and 16 belongs to close set.
+		//we want it continue to walk along the borderline.
 		if (further_or_closer_set == CloserSet && local_neighbours.size == 1)
 		{
-			simdbgverbose("stdout","need change to further!\n");
+			simdbgverbose("stdout","need change to further!, set:%d\n", further_or_closer_set);
 			return FurtherSet;
 		}
 		else if (local_neighbours.size == 0)
