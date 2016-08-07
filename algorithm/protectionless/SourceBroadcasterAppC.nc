@@ -21,7 +21,9 @@ implementation
 #ifdef USE_SERIAL_PRINTF
 	components PrintfC;
 	components SerialStartC;
+#endif
 
+#if defined(USE_SERIAL_PRINTF) || defined(USE_SERIAL_MESSAGES)
 	components LocalTimeMilliC;
 	
 	App.LocalTime -> LocalTimeMilliC;
