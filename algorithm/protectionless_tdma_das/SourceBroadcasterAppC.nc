@@ -22,6 +22,19 @@ implementation
     App.Random -> RandomC;
     App.LocalTime -> LocalTimeMilliC;
 
+#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+    components PrintfMetricLoggingP;
+
+    App.MetricLogging -> PrintfMetricLoggingP;
+
+#elif defined(USE_SERIAL_MESSAGES)
+    components SerialMetricLoggingP;
+
+    App.MetricLogging -> SerialMetricLoggingP;
+
+#else
+#   error "No known combination to wire up metric logging"
+#endif
 
     // Radio Control
     components ActiveMessageC;

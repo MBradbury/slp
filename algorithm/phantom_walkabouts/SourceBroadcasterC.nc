@@ -140,6 +140,12 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
+	uses interface MetricLogging;
+
+#ifndef TOSSIM
+	uses interface LocalTime<TMilli>;
+#endif
+
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -581,7 +587,7 @@ implementation
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			METRIC_NODE_CHANGE(SinkNode);
 		}
 
 		call RadioControl.start();
@@ -603,7 +609,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -620,7 +626,7 @@ implementation
 		if (type != SinkNode)
 		{
 			METRIC_SOURCE_CHANGE("set");
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
+			METRIC_NODE_CHANGE(SourceNode);
 
 			type = SourceNode;
 
@@ -637,7 +643,7 @@ implementation
 			type = NormalNode;
 
 			METRIC_SOURCE_CHANGE("unset");
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			METRIC_NODE_CHANGE(NormalNode);
 		}
 	}
 

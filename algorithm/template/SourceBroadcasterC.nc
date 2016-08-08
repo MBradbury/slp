@@ -40,6 +40,12 @@ module SourceBroadcasterC
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
 
+	uses interface MetricLogging;
+
+#ifndef TOSSIM
+	uses interface LocalTime<TMilli>;
+#endif
+
 	uses interface FakeMessageGenerator;
 }
 
@@ -164,12 +170,12 @@ implementation
 		if (TOS_NODE_ID == SOURCE_NODE_ID)
 		{
 			type = SourceNode;
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
+			METRIC_NODE_CHANGE(SourceNode);
 		}
 		else if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			METRIC_NODE_CHANGE(SinkNode);
 		}
 
 		call RadioControl.start();
@@ -188,7 +194,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -644,18 +650,9 @@ implementation
 
 	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)
 	{
-		const char* result;
-
 		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
-		switch (error)
-		{
-		case SUCCESS: result = "success"; break;
-		case EBUSY: result = "busy"; break;
-		default: result = "failed"; break;
-		}
-
-		METRIC_BCAST(Fake, result, (tosend != NULL) ? tosend->sequence_number : BOTTOM);
+		METRIC_BCAST(Fake, error, (tosend != NULL) ? tosend->sequence_number : BOTTOM);
 
 		if (pfs_can_become_normal())
 		{

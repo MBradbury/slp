@@ -8,11 +8,15 @@ module FakeMessageGeneratorImplP
 	}
 	uses
 	{
+		interface LocalTime<TMilli>;
+
 		interface Timer<TMilli> as SendFakeTimer;
 		interface Timer<TMilli> as DurationTimer;
 
 		interface Packet;
 		interface AMSend as FakeSend;
+
+		interface MetricLogging;
 	}
 }
 implementation
@@ -74,7 +78,7 @@ implementation
 			FakeMessage* const tosend = (FakeMessage*)void_tosend;
 			if (tosend == NULL)
 			{
-				simdbgerror("FakeMessageGeneratorImplP", "Packet has no payload, or payload is too large.\n");
+				ERROR_OCCURRED(ERROR_PACKET_HAS_NO_PAYLOAD, "Packet for FakeMessage has no payload.\n"); \
 				return FALSE;
 			}
 

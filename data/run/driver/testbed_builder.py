@@ -43,7 +43,14 @@ class Runner:
         build_args = self.build_arguments(a)
         build_args["TESTBED"] = self.testbed.name()
         build_args["TESTBED_" + self.testbed.name().upper()] = 1
-        build_args["USE_SERIAL_PRINTF"] = 1
+
+        log_mode = self.testbed.log_mode()
+        if log_mode == "printf":
+            build_args["USE_SERIAL_PRINTF"] = 1
+        elif log_mode == "serial":
+            build_args["USE_SERIAL_MESSAGES"] = 1
+        else:
+            raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
 
         print("Building for {}".format(build_args))
 

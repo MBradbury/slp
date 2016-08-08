@@ -3,94 +3,13 @@
 
 #if defined(USE_SERIAL_MESSAGES)
 
-// The common start that all messages should have is:
-// nx_uint8_t type; // This is the type of debug/metric message
-// nx_am_addr_t node_id;
-// nx_uint32_t local_time;
+#include "SerialMetricLoggingTypes.h"
 
-// These constants are used to set the message type
-#define UNKNOWN_TYPE 0
-
-#define METRIC_RCV_TYPE 1
-#define METRIC_BCAST_TYPE 2
-#define METRIC_DELIVER_TYPE 3
-#define ATTACKER_RCV_TYPE 4
-#define METRIC_SOURCE_CHANGE_TYPE 5
-
-nx_struct metric_rcv_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
-
-	nx_uint8_t message_type;
-
-	nx_am_addr_t proximate_source;
-	nx_int16_t ultimate_source;
-
-	nx_int64_t sequence_number;
-
-	nx_int16_t distance;
-};
-
-#define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
-	do { \
-		metric_rcv_msg message; \
-		message.type = METRIC_RCV_TYPE; \
-		message.node_id = TOS_NODE_ID; \
-		message.local_time = call LocalTime.get(); \
-		message.message_type = TYPE; \
-		message.proximate_source = PROXIMATE_SOURCE; \
-		message.ultimate_source = ULTIMATE_SOURCE; \
-		message.sequence_number = SEQUENCE_NUMBER; \
-		message.distance = DISTANCE; 
- \
-		/* TODO: Send message*/ \
- \
-	} while (FALSE)
-
-nx_struct metric_bcast_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
-
-	nx_uint8_t message_type;
-
-	nx_int16_t status;
-
-	nx_int64_t sequence_number;
-};
-
-nx_struct metric_deliver_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
-
-	nx_uint8_t message_type;
-
-	nx_am_addr_t proximate_source;
-	nx_int32_t ultimate_source_poss_bottom;
-	nx_int64_t sequence_number;
-};
-
-nx_struct attacker_rcv_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
-
-	nx_uint8_t message_type;
-
-	nx_am_addr_t proximate_source;
-	nx_int32_t ultimate_source_poss_bottom;
-	nx_int64_t sequence_number;
-};
-
-nx_struct metric_source_change_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
-
-	nx_uint8_t change_kind; // 0 if set, 1 if unset
-};
+// These are no-ops, as we cannot just put them across the line in a serial packet
+#define simdbg(name, fmtstr, ...)
+#define simdbg_clear(name, fmtstr, ...)
+#define simdbgerror(name, fmtstr, ...)
+#define simdbgerror_clear(name, fmtstr, ...)
 
 #elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
 
@@ -103,36 +22,46 @@ nx_struct metric_source_change_msg {
 #define SEQUENCE_NUMBER_SPEC "%" PRIi64
 #define DISTANCE_SPEC "%d"
 
-// The SEQUENCE_NUMBER parameter will typically be of type NXSequenceNumber or have the value BOTTOM,
-// this is why it needs to be cast to an int64_t first.
-#define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
-	simdbg("M-C", \
-		"RCV:" #TYPE "," \
-		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n", \
-		PROXIMATE_SOURCE, ULTIMATE_SOURCE, (int64_t)SEQUENCE_NUMBER, DISTANCE)
-
-#define METRIC_BCAST(TYPE, STATUS, SEQUENCE_NUMBER) \
-	simdbg("M-C", \
-		"BCAST:" #TYPE ",%u," SEQUENCE_NUMBER_SPEC "\n", \
-		STATUS, (int64_t)SEQUENCE_NUMBER)
-
-#define METRIC_DELIVER(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
-	simdbg("M-C", \
-		"DELIV:" #TYPE "," \
-		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
-		PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
-
-#define ATTACKER_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
-	simdbg("A-R", \
-		#TYPE "," \
-		PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n", \
-		PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
-
-#define METRIC_SOURCE_CHANGE(TYPE) \
-	simdbg("M-SC", TYPE "\n")
-
 #else
 #	error "Unknown configuration"
 #endif
+
+#define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
+	call MetricLogging.log_metric_receive(#TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE)
+
+#define METRIC_BCAST(TYPE, STATUS, SEQUENCE_NUMBER) \
+	call MetricLogging.log_metric_bcast(#TYPE, STATUS, SEQUENCE_NUMBER)
+
+#define METRIC_DELIVER(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
+	call MetricLogging.log_metric_deliver(#TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
+
+#define ATTACKER_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
+	call MetricLogging.log_attacker_receive(#TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
+
+#define METRIC_SOURCE_CHANGE(TYPE) \
+	call MetricLogging.log_metric_source_change(TYPE)
+
+#define METRIC_NODE_CHANGE(OLD_TYPE, OLD_TYPE_STR, NEW_TYPE, NEW_TYPE_STR) \
+	call MetricLogging.log_metric_node_change(OLD_TYPE, OLD_TYPE_STR, NEW_TYPE, NEW_TYPE_STR)
+
+// nesc commands do not support va args, so skip the abstraction when needed.
+#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+#define ERROR_OCCURRED(CODE, MESSAGE, ...) \
+	simdbgerror("stderr", MESSAGE, ##__VA_ARGS__)
+#else
+#define ERROR_OCCURRED(CODE, MESSAGE, ...) \
+	call MetricLogging.log_error_occurred(CODE, MESSAGE)
+#endif
+
+// Error codes for events that need to be passed on over a serial connection
+enum SLPErrorCodes {
+	ERROR_UNKNOWN = 0,
+	ERROR_RADIO_CONTROL_START_FAIL = 1,
+	ERROR_PACKET_HAS_NO_PAYLOAD = 2,
+	ERROR_UNKNOWN_NODE_TYPE = 3,
+	ERROR_PACKET_HAS_INVALID_LENGTH = 4,
+
+	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 5,
+};
 
 #endif // SLP_METRIC_LOGGING_H
