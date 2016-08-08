@@ -1,6 +1,8 @@
 #ifndef SLP_COMMON_H
 #define SLP_COMMON_H
 
+#include "pp.h"
+
 #define BOTTOM (-1)
 
 #define UNKNOWN_SEQNO (-1LL)
@@ -44,9 +46,11 @@ inline double rad2deg(double r)
 // Compiling for testbeds, so need to route the simdbg to the printf library
 #ifdef USE_SERIAL_PRINTF
 #	include "printf.h"
+#endif
 
-#	define sim_time_string() _Static_assert(0, "sim_time_string is forbidden to be used with USE_SERIAL_PRINTF")
-#	define sim_time() (call LocalTime.get())
+#if defined(USE_SERIAL_PRINTF) || defined(USE_SERIAL_MESSAGES)
+#	define sim_time_string() STATIC_ASSERT_MSG(FALSE, "sim_time_string is forbidden to be used with USE_SERIAL_PRINTF or USE_SERIAL_MESSAGES")
+#	define sim_time() STATIC_ASSERT_MSG(FALSE, "sim_time is forbidden to be used with USE_SERIAL_PRINTF or USE_SERIAL_MESSAGES")
 #endif
 
 #ifndef PRIu8

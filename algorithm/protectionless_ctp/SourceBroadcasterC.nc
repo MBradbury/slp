@@ -28,6 +28,12 @@ module SourceBroadcasterC
 	uses interface Receive as NormalSnoop;
 	uses interface Intercept as NormalIntercept;
 
+	uses interface MetricLogging;
+
+#ifndef TOSSIM
+	uses interface LocalTime<TMilli>;
+#endif
+
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -71,7 +77,7 @@ implementation
 		{
 			type = SinkNode;
 			call RootControl.setRoot();
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			METRIC_NODE_CHANGE(SinkNode);
 		}
 
 		call RadioControl.start();
@@ -89,7 +95,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -106,7 +112,7 @@ implementation
 		if (type != SinkNode)
 		{
 			METRIC_SOURCE_CHANGE("set");
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
+			METRIC_NODE_CHANGE(SourceNode);
 
 			type = SourceNode;
 
@@ -123,7 +129,7 @@ implementation
 			type = NormalNode;
 
 			METRIC_SOURCE_CHANGE("unset");
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			METRIC_NODE_CHANGE(NormalNode);
 		}
 	}
 
@@ -238,7 +244,7 @@ implementation
 		{
 			// TODO: FIXME
 			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
-			METRIC_BCAST(Normal, "success", UNKNOWN_SEQNO);
+			METRIC_BCAST(Normal, SUCCESS, UNKNOWN_SEQNO);
 		}
 
 		return SUCCESS;
@@ -248,7 +254,7 @@ implementation
 
 		if (event_type == NET_C_TREE_SENT_BEACON)
 		{
-			METRIC_BCAST(CTPBeacon, "success", UNKNOWN_SEQNO);
+			METRIC_BCAST(CTPBeacon, SUCCESS, UNKNOWN_SEQNO);
 		}
 
 		else if (event_type == NET_C_TREE_RCV_BEACON)

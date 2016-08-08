@@ -1,6 +1,9 @@
 #ifndef SLP_SENDRECEIVEFUNCTIONS_H
 #define SLP_SENDRECEIVEFUNCTIONS_H
 
+// Include tos/types/message.h to get TOSH_DATA_LENGTH defined
+#include "message.h"
+
 #include "MetricLogging.h"
 
 #include "pp.h"
@@ -31,7 +34,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
-			simdbgerror("stdout", "acket for " #NAME "Message has no payload.\n"); \
+			ERROR_OCCURRED(ERROR_PACKET_HAS_NO_PAYLOAD, "Packet for " #NAME "Message has no payload.\n"); \
 			return EINVAL; \
 		} \
  \
@@ -81,7 +84,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
-			simdbgerror("stdout", "Packet for " #NAME "Message has no payload.\n"); \
+			ERROR_OCCURRED(ERROR_PACKET_HAS_NO_PAYLOAD, "Packet for " #NAME "Message has no payload.\n"); \
 			return EINVAL; \
 		} \
  \
@@ -190,7 +193,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
-		simdbgerror("stderr", #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", len); \
+		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", len); \
 		return msg; \
 	} \
  \
@@ -198,13 +201,13 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
-	switch (type) \
+	switch (call NodeType.get()) \
 	{
 
 #define RECEIVE_MESSAGE_END(NAME) \
 		default: \
 		{ \
-			simdbgerror("stderr", "Unknown node type %s. Cannot process " #NAME " message\n", type_to_string()); \
+			ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unknown node type %s. Cannot process " #NAME " message\n", call NodeType.current_to_string()); \
 		} break; \
 	} \
  \
@@ -222,7 +225,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
-		simdbgerror("stderr", #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", len); \
+		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", len); \
 		return FALSE; \
 	} \
  \
@@ -230,14 +233,13 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
-	switch (type) \
+	switch (call NodeType.get()) \
 	{
 
 #define INTERCEPT_MESSAGE_END(NAME) \
 		default: \
 		{ \
-			simdbgerror("stderr", "Unknown node type %s. Cannot process " #NAME " message\n", \
-				type_to_string()); \
+			ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unknown node type %s. Cannot process " #NAME " message\n", type_to_string()); \
 		} break; \
 	} \
  \

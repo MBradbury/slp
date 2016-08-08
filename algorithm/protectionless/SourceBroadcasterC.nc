@@ -14,10 +14,6 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-#if defined(USE_SERIAL_PRINTF) || defined(USE_SERIAL_MESSAGES)
-	uses interface LocalTime<TMilli>;
-#endif
-
 	uses interface Packet;
 	uses interface AMPacket;
 
@@ -26,6 +22,13 @@ module SourceBroadcasterC
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
 
+	uses interface MetricLogging;
+
+#ifndef TOSSIM
+	uses interface LocalTime<TMilli>;
+#endif
+
+	uses interface NodeType;
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -34,23 +37,10 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode  ";
-		case NormalNode:			return "NormalNode";
-		default:					return "<unknown> ";
-		}
-	}
+	};
 
 	unsigned int extra_to_send = 0;
 
@@ -61,14 +51,17 @@ implementation
 	{
 		simdbgverbose("Boot", "Application booted.\n");
 
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
-			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			call NodeType.init(SinkNode);
 		}
 		else
 		{
-			type = NormalNode;
+			call NodeType.init(NormalNode);
 		}
 
 		busy = FALSE;
@@ -87,7 +80,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -100,13 +93,10 @@ implementation
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			METRIC_SOURCE_CHANGE("set");
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
-
-			type = SourceNode;
+			call NodeType.set(SourceNode);
 
 			call SourcePeriodModel.startPeriodic();
 		}
@@ -114,14 +104,11 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call SourcePeriodModel.stop();
 
-			type = NormalNode;
-
-			METRIC_SOURCE_CHANGE("unset");
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 

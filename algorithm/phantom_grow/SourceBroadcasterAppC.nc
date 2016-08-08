@@ -18,6 +18,25 @@ implementation
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 
+#ifndef TOSSIM
+	components LocalTimeMilliC;
+	
+	App.LocalTime -> LocalTimeMilliC;
+#endif
+
+#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+	components PrintfMetricLoggingP;
+
+	App.MetricLogging -> PrintfMetricLoggingP;
+
+#elif defined(USE_SERIAL_MESSAGES)
+	components SerialMetricLoggingP;
+
+	App.MetricLogging -> SerialMetricLoggingP;
+
+#else
+#	error "No known combination to wire up metric logging"
+#endif
 
 	// Radio Control
 	components ActiveMessageC;

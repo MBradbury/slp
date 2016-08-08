@@ -13,7 +13,7 @@ class DebugAnalyzer:
     LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
-    CHANGE_RE = re.compile(r'The node has become a ([a-zA-Z]+)')
+    CHANGE_RE = re.compile(r'([a-zA-Z]+Node|<unknown>),([a-zA-Z]+Node)')
 
     DAS_RE    = re.compile(r'DAS is (\d)')
 
@@ -32,7 +32,7 @@ class DebugAnalyzer:
                 state = 0
             else:
                 state = 1
-            return (self.LED, (ledno,state))
+            return (self.LED, (ledno, state))
 
         # AM Send message
         match = self.AMSEND_RE.match(detail)
@@ -49,11 +49,12 @@ class DebugAnalyzer:
             amlen  = int(match.group(2))
             return (self.AM_RECV, (amtype, amlen))
 
-        # Node becoming TFS, PFS or Normal
+        # Node becoming TFS, PFS, Normal, or any of the other types
         match = self.CHANGE_RE.match(detail)
         if match is not None:
-            kind = match.group(1)
-            return (self.CHANGE, (kind,))
+            old_kind = match.group(1)
+            new_kind = match.group(2)
+            return (self.CHANGE, (old_kind, new_kind))
 
         # Check whether DAS is broken
         match = self.DAS_RE.match(detail)
@@ -97,7 +98,7 @@ class Gui:
         self._sim.register_output_handler('LedsC', self._process_message)
         self._sim.register_output_handler('AM', self._process_message)
         self._sim.register_output_handler('Fake-Notification', self._process_message)
-        self._sim.register_output_handler('Node-Change-Notification', self._process_message)
+        self._sim.register_output_handler('G-NC', self._process_message)
         self._sim.register_output_handler('DAS-State', self._process_message)
 
     def _adjust_location(self, loc):
@@ -150,7 +151,7 @@ class Gui:
             % (x, y, 10))
 
     def _animate_change_state(self, time, node, detail):
-        (kind,) = detail
+        (old_kind, new_kind) = detail
 
         pfs_colour = [x / 255.0 for x in (225, 41, 41)]
         tfs_colour = [x / 255.0 for x in (196, 196, 37)]
@@ -159,20 +160,20 @@ class Gui:
         sink_colour = [x / 255.0 for x in (36, 160, 201)]
         normal_colour = [0, 0, 0]
 
-        if kind in {"TFS", "TempFakeNode"}:
+        if new_kind == "TempFakeNode":
             colour = tfs_colour
-        elif kind in {"PFS", "PermFakeNode"}:
+        elif new_kind == "PermFakeNode":
             colour = pfs_colour
-        elif kind in {"TailFS", "TailFakeNode"}:
+        elif new_kind == "TailFakeNode":
             colour = tailfs_colour
-        elif kind in {"Normal", "NormalNode"}:
+        elif new_kind == "NormalNode":
             colour = normal_colour
-        elif kind in {"Source", "SourceNode"}:
+        elif new_kind == "SourceNode":
             colour = source_colour
-        elif kind in {"Sink", "SinkNode"}:
+        elif new_kind == "SinkNode":
             colour = sink_colour
         else:
-            raise RuntimeError("Unknown kind '{}'".format(kind))
+            raise RuntimeError("Unknown kind '{}'".format(new_kind))
 
         self.scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
 

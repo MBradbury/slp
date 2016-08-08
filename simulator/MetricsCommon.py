@@ -45,8 +45,9 @@ class MetricsCommon(object):
         self.became_source_times = defaultdict(list)
         self.became_normal_after_source_times = defaultdict(list)
 
-        # Normal nodes becoming the source, or source nodes becoming normal
-        self.register('M-SC', self.process_SOURCE_CHANGE)
+        self.node_transitions = defaultdict(int)
+
+        self.register('M-NC', self.process_NODE_CHANGE)
 
         # BCAST / RCV / DELIVER events
         self.register('M-C', self.process_COMMUNICATE)
@@ -160,24 +161,23 @@ class MetricsCommon(object):
 
         raise NotImplementedError()
 
-    def process_SOURCE_CHANGE(self, d_or_e, node_id, time, detail):
-        (state,) = detail.split(',')
+    def process_NODE_CHANGE(self, d_or_e, node_id, time, detail):
+        (old_name, new_name) = detail.split(',')
 
         node_id = int(node_id)
         time = float(time)
 
-        if state == "set":
+        if new_name == "SourceNode":
             self.source_ids.add(node_id)
 
             self.became_source_times[node_id].append(time)
 
-        elif state == "unset":
+        elif old_name == "SourceNode":
             self.source_ids.remove(node_id)
 
             self.became_normal_after_source_times[node_id].append(time)
 
-        else:
-            raise RuntimeError("Unknown state '{}'".format(state))
+        self.node_transitions[(old_name, new_name)] += 1
 
     def seed(self):
         return self.sim.seed
@@ -373,6 +373,7 @@ class MetricsCommon(object):
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["NodeWasSource"]                 = lambda x: x.node_was_source()
+        d["NodeTransitions"]               = lambda x: MetricsCommon.smaller_dict_str(dict(x.node_transitions))
         d["SentHeatMap"]                   = lambda x: MetricsCommon.smaller_dict_str(x.sent_heat_map())
         d["ReceivedHeatMap"]               = lambda x: MetricsCommon.smaller_dict_str(x.received_heat_map())
 

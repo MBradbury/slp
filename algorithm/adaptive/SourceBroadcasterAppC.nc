@@ -20,6 +20,11 @@ implementation
 	App.Leds -> LedsC;
 	App.Random -> RandomC;
 
+#ifndef TOSSIM
+	components LocalTimeMilliC;
+	
+	App.LocalTime -> LocalTimeMilliC;
+#endif
 
 	// Radio Control
 	components ActiveMessageC;
@@ -69,6 +74,8 @@ implementation
 
 	components FakeMessageGeneratorP;
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
+	FakeMessageGeneratorP.Packet -> FakeSender;
+	FakeMessageGeneratorP.FakeSender -> FakeSender;
 
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
@@ -76,4 +83,21 @@ implementation
 	components
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
+
+
+#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+	components PrintfMetricLoggingP;
+
+	App.MetricLogging -> PrintfMetricLoggingP;
+	FakeMessageGeneratorP.MetricLogging -> PrintfMetricLoggingP;
+
+#elif defined(USE_SERIAL_MESSAGES)
+	components SerialMetricLoggingP;
+
+	App.MetricLogging -> SerialMetricLoggingP;
+	FakeMessageGeneratorP.MetricLogging -> SerialMetricLoggingP;
+
+#else
+#	error "No known combination to wire up metric logging"
+#endif
 }

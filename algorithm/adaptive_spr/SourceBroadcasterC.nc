@@ -71,6 +71,12 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
+	uses interface MetricLogging;
+
+#ifndef TOSSIM
+	uses interface LocalTime<TMilli>;
+#endif
+
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
 
@@ -294,7 +300,7 @@ implementation
 		{
 			type = SinkNode;
 			sink_distance = 0;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			METRIC_NODE_CHANGE(SinkNode);
 		}
 
 		call RadioControl.start();
@@ -310,7 +316,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "RadioControl failed to start, retrying.\n");
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -327,7 +333,7 @@ implementation
 		if (type != SinkNode)
 		{
 			METRIC_SOURCE_CHANGE("set");
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
+			METRIC_NODE_CHANGE(SourceNode);
 
 			type = SourceNode;
 			//source_distance = 0;
@@ -346,7 +352,7 @@ implementation
 			//source_distance = BOTTOM;
 
 			METRIC_SOURCE_CHANGE("unset");
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			METRIC_NODE_CHANGE(NormalNode);
 		}
 	}
 
@@ -828,7 +834,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("stdout", "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
+			ERROR_OCCURRED(ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE, "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
 			return 0;
 		}
 	}
@@ -874,8 +880,6 @@ implementation
 
 	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)
 	{
-		const char* result;
-
 		// Only if the message was successfully broadcasted, should the seqno be incremented.
 		if (error == SUCCESS)
 		{
@@ -884,20 +888,13 @@ implementation
 
 		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
 
-		switch (error)
-		{
-		case SUCCESS: result = "success"; break;
-		case EBUSY: result = "busy"; break;
-		default: result = "failed"; break;
-		}
-
 		if (tosend != NULL)
 		{
-			METRIC_BCAST(Fake, result, tosend->sequence_number);
+			METRIC_BCAST(Fake, error, tosend->sequence_number);
 		}
 		else
 		{
-			METRIC_BCAST(Fake, result, BOTTOM);
+			METRIC_BCAST(Fake, error, BOTTOM);
 		}
 	}
 }

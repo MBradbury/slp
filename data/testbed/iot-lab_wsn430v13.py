@@ -11,6 +11,9 @@ def platform():
     return "wsn430v13"
     #return ("wsn430v13", "wsn430v14")
 
+def log_mode():
+	return None
+
 def url():
 	return "https://www.iot-lab.info"
 

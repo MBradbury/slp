@@ -47,8 +47,10 @@ def build_actual(directory, platform, **kwargs):
 
     make_options = {
         "SLP_PARAMETER_CFLAGS": flags,
-        "USE_SERIAL_PRINTF": 1
     }
+
+    if "USE_SERIAL_PRINTF" in kwargs:
+        make_options["USE_SERIAL_PRINTF"] = 1
 
     # If this is a build for a testbed, make sure to pass that information
     # on to the makefile, which may need to do additional things to support that testbed.
