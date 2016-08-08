@@ -75,6 +75,7 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 #endif
 
+	uses interface NodeType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -86,28 +87,15 @@ module SourceBroadcasterC
 
 implementation 
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
+	};
 
 	typedef enum
 	{
 		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
 	} SetType;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode:      return "SourceNode";
-		case SinkNode:        return "SinkNode  ";
-		case NormalNode:      return "NormalNode";
-		default:              return "<unknown> ";
-		}
-	}
 
 	int16_t landmark_distance = BOTTOM;
 
@@ -276,12 +264,18 @@ implementation
 
 		init_distance_neighbours(&neighbours);
 
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
-			type = SinkNode;
-			METRIC_NODE_CHANGE(SinkNode);
-
+			call NodeType.init(SinkNode);
 			//sink_distance = 0;
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -315,13 +309,10 @@ implementation
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			METRIC_SOURCE_CHANGE("set");
-			METRIC_NODE_CHANGE(SourceNode);
-
-			type = SourceNode;
+			call NodeType.set(SourceNode);
 
 			call SourcePeriodModel.startPeriodic();
 		}
@@ -329,17 +320,13 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call SourcePeriodModel.stop();
 
-			type = NormalNode;
-
-			METRIC_SOURCE_CHANGE("unset");
-			METRIC_NODE_CHANGE(NormalNode);
+			call NodeType.set(NormalNode);
 		}
 	}
-
 
 	event void SourcePeriodModel.fired()
 	{

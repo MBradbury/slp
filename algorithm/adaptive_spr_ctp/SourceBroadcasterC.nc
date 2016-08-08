@@ -93,6 +93,7 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 #endif
 
+	uses interface NodeType;
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
 
@@ -108,26 +109,10 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode, TempFakeNode, TailFakeNode, PermFakeNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode";
-		case NormalNode:			return "NormalNode";
-		case TempFakeNode:			return "TempFakeNode";
-		case TailFakeNode:			return "TailFakeNode";
-		case PermFakeNode:			return "PermFakeNode";
-		default:					return "<unknown>";
-		}
-	}
+	};
 
 	am_addr_t sink_id = AM_BROADCAST_ADDR;
 
@@ -378,12 +363,22 @@ implementation
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
 
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+		call NodeType.register_pair(TempFakeNode, "TempFakeNode");
+		call NodeType.register_pair(PermFakeNode, "PermFakeNode");
+		call NodeType.register_pair(TailFakeNode, "TailFakeNode");
+
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
-			type = SinkNode;
+			call NodeType.init(SinkNode);
 			sink_distance = 0;
 			call RootControl.setRoot();
-			METRIC_NODE_CHANGE(SinkNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -419,13 +414,11 @@ implementation
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			METRIC_SOURCE_CHANGE("set");
-			METRIC_NODE_CHANGE(SourceNode);
+			call NodeType.set(SourceNode);
 
-			type = SourceNode;
 			call SourceDistances.put(TOS_NODE_ID, 0);
 
 			call InformSenderTimer.startOneShot((int)ceil((SOURCE_PERIOD_MS / 4) * random_float()));
@@ -436,15 +429,13 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
 			call SourceDistances.remove(TOS_NODE_ID);
 
-			METRIC_SOURCE_CHANGE("unset");
-			METRIC_NODE_CHANGE(NormalNode);
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -457,19 +448,13 @@ implementation
 
 	void become_Normal(void)
 	{
-		const char* const old_type = type_to_string();
-
-		type = NormalNode;
+		call NodeType.set(NormalNode);
 
 		call FakeMessageGenerator.stop();
-
-		simdbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
 	}
 
-	void become_Fake(const AwayChooseMessage* message, NodeType fake_type)
+	void become_Fake(const AwayChooseMessage* message, uint8_t fake_type)
 	{
-		const char* const old_type = type_to_string();
-
 		if (fake_type != PermFakeNode && fake_type != TempFakeNode && fake_type != TailFakeNode)
 		{
 			assert("The perm type is not correct");
@@ -479,19 +464,17 @@ implementation
 		// This is necessary when transitioning from TempFS to TailFS.
 		call FakeMessageGenerator.stop();
 
-		type = fake_type;
+		call NodeType.set(fake_type);
 
-		simdbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
-
-		if (type == PermFakeNode)
+		if (fake_type == PermFakeNode)
 		{
 			call FakeMessageGenerator.start(message);
 		}
-		else if (type == TailFakeNode)
+		else if (fake_type == TailFakeNode)
 		{
 			call FakeMessageGenerator.startRepeated(message, get_tfs_duration() / estimated_number_of_sources());
 		}
-		else if (type == TempFakeNode)
+		else if (fake_type == TempFakeNode)
 		{
 			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
 		}
@@ -855,6 +838,8 @@ implementation
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		const uint8_t type = call NodeType.get();
+		
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
@@ -947,16 +932,16 @@ implementation
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
 	{
-		if (type == PermFakeNode || type == TailFakeNode)
+		switch (call NodeType.get())
 		{
+		case PermFakeNode:
+		case TailFakeNode:
 			return get_pfs_period();
-		}
-		else if (type == TempFakeNode)
-		{
+
+		case TempFakeNode:
 			return get_tfs_period();
-		}
-		else
-		{
+
+		default:
 			ERROR_OCCURRED(ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE, "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
 			return 0;
 		}
@@ -966,7 +951,7 @@ implementation
 	{
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
 		message->sender_sink_distance = sink_distance;
-		message->message_type = type;
+		message->message_type = call NodeType.get();
 		message->source_id = TOS_NODE_ID;
 		message->sender_min_source_distance = min_source_distance;
 	}
@@ -985,11 +970,11 @@ implementation
 		extra_to_send = 2;
 		send_Choose_message(&message, target);
 
-		if (type == PermFakeNode)
+		if (call NodeType.get() == PermFakeNode)
 		{
 			become_Normal();
 		}
-		else if (type == TempFakeNode)
+		else if (call NodeType.get() == TempFakeNode)
 		{
 			become_Fake(original_message, TailFakeNode);
 		}
@@ -1041,7 +1026,7 @@ implementation
 		{
 			// TODO: FIXME
 			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
-			METRIC_BCAST(Normal, "success", UNKNOWN_SEQNO);
+			METRIC_BCAST(Normal, SUCCESS, UNKNOWN_SEQNO);
 		}
 
 		return SUCCESS;
@@ -1051,7 +1036,7 @@ implementation
 
 		if (event_type == NET_C_TREE_SENT_BEACON)
 		{
-			METRIC_BCAST(CTPBeacon, "success", UNKNOWN_SEQNO);
+			METRIC_BCAST(CTPBeacon, SUCCESS, UNKNOWN_SEQNO);
 		}
 
 		else if (event_type == NET_C_TREE_RCV_BEACON)

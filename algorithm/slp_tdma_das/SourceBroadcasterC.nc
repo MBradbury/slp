@@ -66,6 +66,7 @@ module SourceBroadcasterC
 
     uses interface MetricLogging;
 
+    uses interface NodeType;
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -94,23 +95,10 @@ implementation
     bool start_node = FALSE;
     uint32_t redir_length = 0;
 
-    typedef enum
+    enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode  ";
-		case NormalNode:			return "NormalNode";
-		default:					return "<unknown> ";
-		}
-	}
+	};
 
     // Produces a random float between 0 and 1
     float random_float(void)
@@ -195,11 +183,18 @@ implementation
 
 		simdbgverbose("Boot", "Application booted.\n");
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
-		{
-			type = SinkNode;
-			METRIC_NODE_CHANGE(SinkNode);
-		}
+        call NodeType.register_pair(SourceNode, "SourceNode");
+        call NodeType.register_pair(SinkNode, "SinkNode");
+        call NodeType.register_pair(NormalNode, "NormalNode");
+
+        if (TOS_NODE_ID == SINK_NODE_ID)
+        {
+            call NodeType.init(SinkNode);
+        }
+        else
+        {
+            call NodeType.init(NormalNode);
+        }
 
 		call RadioControl.start();
 	}
@@ -228,33 +223,26 @@ implementation
 		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
-
-	event void ObjectDetector.detect()
-	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
-		{
-			METRIC_SOURCE_CHANGE("set");
-			METRIC_NODE_CHANGE(SourceNode);
-
-			type = SourceNode;
+    event void ObjectDetector.detect()
+    {
+        // A sink node cannot become a source node
+        if (call NodeType.get() != SinkNode)
+        {
+            call NodeType.set(SourceNode);
 
             call SourcePeriodModel.startPeriodic();
-		}
-	}
+        }
+    }
 
-	event void ObjectDetector.stoppedDetecting()
-	{
-		if (type == SourceNode)
-		{
+    event void ObjectDetector.stoppedDetecting()
+    {
+        if (call NodeType.get() == SourceNode)
+        {
             call SourcePeriodModel.stop();
 
-			type = NormalNode;
-
-			METRIC_SOURCE_CHANGE("unset");
-			METRIC_NODE_CHANGE(NormalNode);
-		}
-	}
+            call NodeType.set(NormalNode);
+        }
+    }
 
     //Startup Events}}}
 

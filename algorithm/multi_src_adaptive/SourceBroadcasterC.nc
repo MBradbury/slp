@@ -46,6 +46,7 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 #endif
 
+	uses interface NodeType;
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
 
@@ -60,25 +61,10 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode, TempFakeNode, PermFakeNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string(void)
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode  ";
-		case NormalNode:			return "NormalNode";
-		case TempFakeNode:			return "TempFakeNode";
-		case PermFakeNode:			return "PermFakeNode";
-		default:					return "<unknown> ";
-		}
-	}
+	};
 
 	SequenceNumber away_sequence_counter;
 	SequenceNumber choose_sequence_counter;
@@ -333,7 +319,7 @@ implementation
 		if (is_pfs_candidate && (!first_source_distance_set || (max_hop != UINT16_MAX && max_hop > first_source_distance + 1)))
 		{
 			//simdbg("stdout", "%s is no longer a PFS candidate as !first_source_distance_set=%d || %u > %u\n",
-			//	type_to_string(), !first_source_distance_set, max_hop, first_source_distance + 1);
+			//	call NodeType.current_to_string(), !first_source_distance_set, max_hop, first_source_distance + 1);
 
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -354,10 +340,19 @@ implementation
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
 
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+		call NodeType.register_pair(TempFakeNode, "TempFakeNode");
+		call NodeType.register_pair(PermFakeNode, "PermFakeNode");
+
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
-			type = SinkNode;
-			METRIC_NODE_CHANGE(SinkNode);
+			call NodeType.init(SinkNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -386,13 +381,10 @@ implementation
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			METRIC_SOURCE_CHANGE("set");
-			METRIC_NODE_CHANGE(SourceNode);
-
-			type = SourceNode;
+			call NodeType.set(SourceNode);
 
 			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 		}
@@ -400,14 +392,11 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
-
-			METRIC_SOURCE_CHANGE("unset");
-			METRIC_NODE_CHANGE(NormalNode);
+			call NodeType.set(NormalNode);
 		}
 	}
 
