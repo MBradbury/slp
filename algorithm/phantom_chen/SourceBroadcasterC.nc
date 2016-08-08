@@ -31,6 +31,7 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 #endif
 
+	uses interface NodeType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -41,23 +42,10 @@ module SourceBroadcasterC
 
 implementation 
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-			case SourceNode:      return "SourceNode";
-			case SinkNode:        return "SinkNode  ";
-			case NormalNode:      return "NormalNode";
-			default:              return "<unknown> ";
-		}
-	}
+	};
 
 	bool busy = FALSE;
 
@@ -220,10 +208,18 @@ implementation
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
-			type = SinkNode;
-			METRIC_NODE_CHANGE(SinkNode);
+			call NodeType.init(SinkNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -252,28 +248,22 @@ implementation
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			METRIC_SOURCE_CHANGE("set");
-			METRIC_NODE_CHANGE(SourceNode);
+			call NodeType.set(SourceNode);
 
-			type = SourceNode;
-
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call BroadcastNormalTimer.startPeriodic(get_source_period());
 		}
 	}
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
-
-			METRIC_SOURCE_CHANGE("unset");
-			METRIC_NODE_CHANGE(NormalNode);
+			call NodeType.set(NormalNode);
 		}
 	}
 

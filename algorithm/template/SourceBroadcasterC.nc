@@ -46,30 +46,16 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 #endif
 
+	uses interface NodeType;
 	uses interface FakeMessageGenerator;
 }
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode, TempFakeNode, PermFakeNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode  ";
-		case NormalNode:			return "NormalNode";
-		case TempFakeNode:			return "TempFakeNode";
-		case PermFakeNode:			return "PermFakeNode";
-		default:					return "<unknown> ";
-		}
-	}
+	};
 
 	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
@@ -167,15 +153,23 @@ implementation
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
 
-		if (TOS_NODE_ID == SOURCE_NODE_ID)
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+		call NodeType.register_pair(TempFakeNode, "TempFakeNode");
+		call NodeType.register_pair(PermFakeNode, "PermFakeNode");
+
+		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
-			type = SourceNode;
-			METRIC_NODE_CHANGE(SourceNode);
+			call NodeType.init(SinkNode);
 		}
-		else if (TOS_NODE_ID == SINK_NODE_ID)
+		else if (TOS_NODE_ID == SOURCE_NODE_ID)
 		{
-			type = SinkNode;
-			METRIC_NODE_CHANGE(SinkNode);
+			call NodeType.init(SourceNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();

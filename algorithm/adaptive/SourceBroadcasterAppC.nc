@@ -36,7 +36,7 @@ implementation
 
 	App.MetricLogging -> MetricLogging;
 
-	components new NodeTypeP(5);
+	components new NodeTypeP(6);
 	App.NodeType -> NodeTypeP;
 	NodeTypeP.MetricLogging -> MetricLogging;
 

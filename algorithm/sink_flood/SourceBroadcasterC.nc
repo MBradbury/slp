@@ -81,6 +81,7 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 #endif
 
+	uses interface NodeType;
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
 
@@ -95,23 +96,10 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode";
-		case NormalNode:			return "NormalNode";
-		default:					return "<unknown>";
-		}
-	}
+	};
 
 	am_addr_t sink_id = AM_BROADCAST_ADDR;
 
@@ -384,14 +372,21 @@ implementation
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
 
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
 		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			AwayMessage message;
 			call FakeMessageGenerator.start(&message);
 
-			type = SinkNode;
+			call NodeType.init(SinkNode);
 			sink_distance = 0;
-			METRIC_NODE_CHANGE(SinkNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -420,13 +415,11 @@ implementation
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			METRIC_SOURCE_CHANGE("set");
-			METRIC_NODE_CHANGE(SourceNode);
+			call NodeType.set(SourceNode);
 
-			type = SourceNode;
 			call SourceDistances.put(TOS_NODE_ID, 0);
 
 			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
@@ -435,15 +428,13 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
 			call SourceDistances.remove(TOS_NODE_ID);
 
-			METRIC_SOURCE_CHANGE("unset");
-			METRIC_NODE_CHANGE(NormalNode);
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -787,7 +778,7 @@ implementation
 	{
 		message->sequence_number = sequence_number_next(&fake_sequence_counter);
 		message->sender_sink_distance = sink_distance;
-		message->message_type = type;
+		message->message_type = call NodeType.get();
 		message->source_id = TOS_NODE_ID;
 		message->sender_min_source_distance = min_source_distance;
 	}
