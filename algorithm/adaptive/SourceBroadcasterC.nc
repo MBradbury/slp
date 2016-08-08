@@ -46,6 +46,7 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 #endif
 
+	uses interface NodeType;
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
 
@@ -327,7 +328,7 @@ implementation
 	{
 		if (call NodeType.get() == SourceNode)
 		{
-			call SourcePeriodModel.stop();
+			call BroadcastNormalTimer.stop();
 
 			call NodeType.set(NormalNode);
 		}
@@ -340,33 +341,31 @@ implementation
 
 	void become_Normal()
 	{
-		type = NormalNode;
+		call NodeType.set(NormalNode);
 
 		call FakeMessageGenerator.stop();
-
-		METRIC_NODE_CHANGE(NormalNode);
 	}
 
-	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
+	void become_Fake(const AwayChooseMessage* message, uint8_t perm_type)
 	{
 		if (perm_type != PermFakeNode && perm_type != TempFakeNode)
 		{
 			assert("The perm type is not correct");
 		}
 
-		type = perm_type;
+		call NodeType.set(perm_type);
 
-		if (type == PermFakeNode)
+		if (perm_type == PermFakeNode)
 		{
-			METRIC_NODE_CHANGE(PermFakeNode);
-
 			call FakeMessageGenerator.start(message);
+		}
+		else if (perm_type == TempFakeNode)
+		{
+			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
 		}
 		else
 		{
-			METRIC_NODE_CHANGE(TempFakeNode);
-
-			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
+			assert(FALSE);
 		}
 	}
 
@@ -713,7 +712,7 @@ implementation
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			if (pfs_can_become_normal() &&
-				type == PermFakeNode &&
+				call NodeType.get() == PermFakeNode &&
 				rcvd->from_pfs &&
 				(
 					(rcvd->source_distance > source_distance) ||
@@ -737,16 +736,11 @@ implementation
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
 	{
-		if (type == PermFakeNode)
+		switch (call NodeType.get())
 		{
-			return get_pfs_period();
-		}
-		else if (type == TempFakeNode)
-		{
-			return get_tfs_period();
-		}
-		else
-		{
+		case PermFakeNode: return get_pfs_period();
+		case TempFakeNode: return get_tfs_period();
+		default:
 			ERROR_OCCURRED(ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE, "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
 			return 0;
 		}
@@ -759,7 +753,7 @@ implementation
 		message->source_distance = source_distance;
 		message->max_hop = first_source_distance;
 		message->sink_distance = sink_distance;
-		message->from_pfs = (type == PermFakeNode);
+		message->from_pfs = (call NodeType.get() == PermFakeNode);
 		message->source_id = TOS_NODE_ID;
 	}
 
@@ -802,7 +796,7 @@ implementation
 
 		if (pfs_can_become_normal())
 		{
-			if (type == PermFakeNode && !is_pfs_candidate)
+			if (call NodeType.get() == PermFakeNode && !is_pfs_candidate)
 			{
 				call FakeMessageGenerator.expireDuration();
 			}
