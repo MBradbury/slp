@@ -345,6 +345,21 @@ class MetricsCommon(object):
 
         return result
 
+    def times_node_changed_to(self, node_type, from_types=None):
+        total_count = 0
+
+        for ((old_type, new_type), count) in self.node_transitions.items():
+
+            # Ignore some source types
+            if from_types is not None:
+                if old_type not in from_types:
+                    continue
+
+            if new_type == node_type:
+                total_count += count
+
+        return total_count
+
     @staticmethod
     def smaller_dict_str(d):
         return str(d).replace(": ", ":").replace(", ", ",")
