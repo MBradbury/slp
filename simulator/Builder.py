@@ -26,7 +26,7 @@ def build_sim(directory, platform="micaz", **kwargs):
 
     command = 'make {} sim {}'.format(platform, make_options_string)
 
-    print(command)
+    print(command, file=sys.stderr)
 
     result = subprocess.check_call(
         command,
@@ -61,7 +61,7 @@ def build_actual(directory, platform, **kwargs):
 
     command = 'make {} fastserial {}'.format(platform, make_options_string)
 
-    print(command)
+    print(command, file=sys.stderr)
 
     result = subprocess.check_call(
         command,
