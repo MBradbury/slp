@@ -7,6 +7,16 @@ class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
 
+    def times_fake_node_changed_to_fake(self):
+        total_count = 0
+
+        for ((old_type, new_type), count) in self.node_transitions.items():
+
+            if "FakeNode" in old_type and "FakeNode" in new_type:
+                total_count += count
+
+        return total_count
+
     @staticmethod
     def items():
         d = MetricsCommon.items()
