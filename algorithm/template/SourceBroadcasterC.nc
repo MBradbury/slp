@@ -181,7 +181,7 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
-			if (type == SourceNode)
+			if (call NodeType.get() == SourceNode)
 			{
 				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 			}
@@ -206,14 +206,12 @@ implementation
 
 	void become_Normal()
 	{
-		type = NormalNode;
+		call NodeType.set(NormalNode);
 
 		call FakeMessageGenerator.stop();
-
-		simdbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
-	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
+	void become_Fake(const AwayChooseMessage* message, uint8_t perm_type)
 	{
 		float rndFloat;
 
@@ -222,15 +220,13 @@ implementation
 			assert("The perm type is not correct");
 		}
 
-		type = perm_type;
-
 		rndFloat = random_float();
 
-		if (type == PermFakeNode)
+		if (perm_type == PermFakeNode)
 		{
 			if (rndFloat <= PR_PFS)
 			{
-				simdbg("Fake-Notification", "The node has become a PFS\n");
+				call NodeType.set(perm_type);
 
 				simdbgverbose("Fake-Probability-Decision",
  					"The node %u has become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
@@ -247,7 +243,7 @@ implementation
 		{
 			if (rndFloat <= PR_TFS)
 			{
-				simdbg("Fake-Notification", "The node has become a TFS\n");
+				call NodeType.set(perm_type);
 
 				simdbgverbose("Fake-Probability-Decision",
 					"The node %u has become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
@@ -588,7 +584,7 @@ implementation
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			if (pfs_can_become_normal() &&
-				type == PermFakeNode &&
+				call NodeType.get() == PermFakeNode &&
 				rcvd->from_pfs &&
 				(
 					(rcvd->source_distance > source_distance) ||
@@ -618,7 +614,7 @@ implementation
 		message->source_distance = source_distance;
 		message->max_hop = first_source_distance;
 		message->sink_distance = sink_distance;
-		message->from_pfs = (type == PermFakeNode);
+		message->from_pfs = (call NodeType.get() == PermFakeNode);
 		message->source_id = TOS_NODE_ID;
 
 		sequence_number_increment(&fake_sequence_counter);
@@ -650,7 +646,7 @@ implementation
 
 		if (pfs_can_become_normal())
 		{
-			if (type == PermFakeNode && !is_pfs_candidate)
+			if (call NodeType.get() == PermFakeNode && !is_pfs_candidate)
 			{
 				call FakeMessageGenerator.expireDuration();
 			}
