@@ -77,9 +77,9 @@ class TestBackwardsCompatibility(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        tests = {}
+        tests = OrderedDict()
 
-        for filename in glob.glob("tests/historical/*.txt"):
+        for filename in sorted(glob.glob("tests/historical/*.txt")):
             algorithm_name = os.path.splitext(os.path.basename(filename))[0]
 
             params = {}
