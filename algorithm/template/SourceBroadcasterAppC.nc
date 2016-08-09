@@ -40,6 +40,10 @@ implementation
 	App.NodeType -> NodeTypeP;
 	NodeTypeP.MetricLogging -> MetricLogging;
 
+#if defined(USE_SERIAL_MESSAGES)
+	MetricLogging.NodeType -> NodeTypeP;
+#endif
+
 
 	// Radio Control
 	components ActiveMessageC;

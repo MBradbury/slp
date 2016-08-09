@@ -11,6 +11,8 @@
 configuration SerialMetricLoggingP
 {
 	provides interface MetricLogging;
+
+	uses interface NodeType;
 }
 implementation
 {
@@ -18,10 +20,11 @@ implementation
 
 	MetricLogging = App;
 
-	components SerialStartC;
+	App.NodeType = NodeType;
 
+	components SerialStartC;
 	components LocalTimeMilliC;
-	
+
 	App.LocalTime -> LocalTimeMilliC;
 
 	// Message Queue
@@ -37,17 +40,5 @@ implementation
 
 	App.Packet -> SerialActiveMessageC;
 	App.AMPacket -> SerialActiveMessageC;
-
-	components
-		new SerialAMSenderC(AM_METRIC_RECEIVE_MSG) as MetricReceiveSender,
-		new SerialAMSenderC(AM_METRIC_BCAST_MSG) as MetricBcastSender,
-		new SerialAMSenderC(AM_METRIC_DELIVER_MSG) as MetricDeliverSender,
-		new SerialAMSenderC(AM_ATTACKER_RECEIVE_MSG) as AttackerReceiveSender,
-		new SerialAMSenderC(AM_METRIC_NODE_CHANGE_MSG) as MetricNodeChangeSender;
-
-	App.MetricReceiveSend -> MetricReceiveSender;
-	App.MetricBcastSend -> MetricBcastSender;
-	App.MetricDeliverSend -> MetricDeliverSender;
-	App.AttackerReceiveSend -> AttackerReceiveSender;
-	App.MetricNodeChangeSend -> MetricNodeChangeSender;
+	App.SerialSend -> SerialActiveMessageC;
 }
