@@ -121,11 +121,13 @@ class TestBackwardsCompatibility(ParametrizedTestCase):
     def test_backwards_compatibility(self):
         (revision, algorithm_name, params, expected_value) = self.param
 
-        print("Running test for {} on {} -> {}".format(algorithm_name, revision, " ".join("{}={}".format(k, v) for (k, v) in params.items())))
+        ident = "{} on {} -> {}".format(algorithm_name, revision, " ".join("{}={}".format(k, v) for (k, v) in params.items()))
+
+        print("Running test for {}".format(ident))
 
         output, err_output = run_simulation(algorithm_name, params)
 
-        self.assertFalse(len(output) == 0, err_output)
+        self.assertFalse(len(output) == 0, ident + "\n" + err_output)
 
         (rev, run_params, run_value) = parse_result_output(output.splitlines())[0]
 
