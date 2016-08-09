@@ -8,12 +8,15 @@ module FakeMessageGeneratorImplP
 	}
 	uses
 	{
+		interface LocalTime<TMilli>;
+		
 		interface Timer<TMilli> as SendFakeTimer;
-
 		interface Timer<TMilli> as DurationTimer;
 
 		interface Packet;
 		interface AMSend as FakeSend;
+
+		interface MetricLogging;
 	}
 }
 implementation

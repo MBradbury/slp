@@ -1,44 +1,11 @@
 from __future__ import print_function, division
 
-import re
-from collections import defaultdict
-
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
 
-    FAKE_RE = re.compile(r'The node has become a ([a-zA-Z]+) was ([a-zA-Z]+)')
-
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
-
-        self.register('Fake-Notification', self.process_FAKE_NOTIFICATION)
-
-        self.tfs_created = 0
-        self.pfs_created = 0
-        self.tailfs_created = 0
-        self.fake_to_normal = 0
-        self.fake_to_fake = 0
-
-    def process_FAKE_NOTIFICATION(self, d_or_e, node_id, time, detail):
-        match = self.FAKE_RE.match(detail)
-        if match is not None:
-            new_kind = match.group(1)
-            old_kind = match.group(2)
-
-            if "FakeNode" in new_kind and "FakeNode" in old_kind:
-                self.fake_to_fake += 1
-            
-            if new_kind == "TempFakeNode":
-                self.tfs_created += 1
-            elif new_kind == "PermFakeNode":
-                self.pfs_created += 1
-            elif new_kind == "TailFakeNode":
-                self.tailfs_created += 1
-            elif new_kind == "NormalNode":
-                self.fake_to_normal += 1
-            else:
-                raise RuntimeError("Unknown kind {}".format(new_kind))
 
     @staticmethod
     def items():
@@ -47,10 +14,10 @@ class Metrics(MetricsCommon):
         d["ChooseSent"]             = lambda x: x.number_sent("Choose")
         d["AwaySent"]               = lambda x: x.number_sent("Away")
         d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
-        d["TFS"]                    = lambda x: x.tfs_created
-        d["PFS"]                    = lambda x: x.pfs_created
-        d["TailFS"]                 = lambda x: x.tailfs_created
-        d["FakeToNormal"]           = lambda x: x.fake_to_normal
-        d["FakeToFake"]             = lambda x: x.fake_to_fake
+        d["TFS"]                    = lambda x: x.times_node_changed_to("TempFakeNode")
+        d["PFS"]                    = lambda x: x.times_node_changed_to("PermFakeNode")
+        d["TailFS"]                 = lambda x: x.times_node_changed_to("TailFakeNode")
+        d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=("TempFakeNode", "PermFakeNode", "TailFakeNode"))
+        d["FakeToFake"]             = lambda x: x.times_fake_node_changed_to_fake()
 
         return d
