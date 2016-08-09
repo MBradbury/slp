@@ -11,10 +11,11 @@ enum {
 	AM_METRIC_DELIVER_MSG = 52,
 	AM_ATTACKER_RECEIVE_MSG = 53,
 	AM_METRIC_NODE_CHANGE_MSG = 54,
+	AM_ERROR_OCCURRED_MSG = 54,
 };
 
 #define METRIC_LOGGING_HEADER \
-	nx_uint8_t type; /* This is the type of debug/metric message*/ \
+	nx_am_id_t type; /* This is the type of debug/metric message*/ \
 	nx_am_addr_t node_id; \
 	nx_uint32_t local_time;
 
@@ -72,5 +73,11 @@ typedef nx_struct metric_node_change_msg {
 	nx_uint8_t old_message_type;
 	nx_uint8_t new_message_type;
 } metric_node_change_msg_t;
+
+typedef nx_struct error_occurred_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_uint16_t error_code;
+} error_occurred_msg_t;
 
 #endif // SLP_SERIAL_METRIC_LOGGING_H
