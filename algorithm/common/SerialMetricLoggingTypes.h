@@ -3,11 +3,6 @@
 
 #include "AM.h"
 
-// The common start that all messages should have is:
-// nx_uint8_t type; // This is the type of debug/metric message
-// nx_am_addr_t node_id;
-// nx_uint32_t local_time;
-
 // These constants are used to set the message channel and type
 // The format of the name is required by the mig tool
 enum {
@@ -18,10 +13,13 @@ enum {
 	AM_METRIC_NODE_CHANGE_MSG = 54,
 };
 
-typedef nx_struct metric_receive_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
+#define METRIC_LOGGING_HEADER \
+	nx_uint8_t type; /* This is the type of debug/metric message*/ \
+	nx_am_addr_t node_id; \
 	nx_uint32_t local_time;
+
+typedef nx_struct metric_receive_msg {
+	METRIC_LOGGING_HEADER
 
 	nx_uint8_t message_type;
 
@@ -34,9 +32,7 @@ typedef nx_struct metric_receive_msg {
 } metric_receive_msg_t;
 
 typedef nx_struct metric_bcast_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
+	METRIC_LOGGING_HEADER
 
 	nx_uint8_t message_type;
 
@@ -46,9 +42,7 @@ typedef nx_struct metric_bcast_msg {
 } metric_bcast_msg_t;
 
 typedef nx_struct metric_deliver_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
+	METRIC_LOGGING_HEADER
 
 	nx_uint8_t message_type;
 
@@ -58,10 +52,7 @@ typedef nx_struct metric_deliver_msg {
 } metric_deliver_msg_t;
 
 typedef nx_struct attacker_receive_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
-
+	METRIC_LOGGING_HEADER
 	nx_uint8_t message_type;
 
 	nx_am_addr_t proximate_source;
@@ -70,17 +61,13 @@ typedef nx_struct attacker_receive_msg {
 } attacker_receive_msg_t;
 
 typedef nx_struct metric_source_change_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
+	METRIC_LOGGING_HEADER
 
 	nx_uint8_t change_kind; // 1 if set, 2 if unset, 0 if unknown
 } metric_source_change_msg_t;
 
 typedef nx_struct metric_node_change_msg {
-	nx_uint8_t type;
-	nx_am_addr_t node_id;
-	nx_uint32_t local_time;
+	METRIC_LOGGING_HEADER
 
 	nx_uint8_t old_message_type;
 	nx_uint8_t new_message_type;
