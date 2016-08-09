@@ -255,7 +255,7 @@ implementation
 
     void init(void)
     {
-        if (type == SinkNode)
+        if (call NodeType.get() == SinkNode)
         {
             hop = 0;
             parent = AM_BROADCAST_ADDR;
@@ -407,7 +407,7 @@ implementation
 
     void send_search_init()
     {
-        if(type == SinkNode)
+        if(call NodeType.get() == SinkNode)
         {
             int i;
             SearchMessage msg;
@@ -500,7 +500,7 @@ implementation
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         period_counter++;
-        if(type != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
+        if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(period_counter == SEARCH_PERIOD_COUNT)
         {
             send_search_init();

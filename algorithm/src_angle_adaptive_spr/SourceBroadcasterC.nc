@@ -1073,6 +1073,8 @@ implementation
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		const uint8_t type = call NodeType.get();
+		
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;

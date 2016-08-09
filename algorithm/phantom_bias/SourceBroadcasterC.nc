@@ -134,7 +134,7 @@ implementation
 
 	uint32_t get_source_period()
 	{
-		assert(type == SourceNode);
+		assert(call NodeType.get() == SourceNode);
 		return call SourcePeriodModel.get();
 	}
 

@@ -105,7 +105,7 @@ implementation
 	// DO NOT use this for nodes other than the source!
 	uint32_t get_source_period(void)
 	{
-		assert(type == SourceNode);
+		assert(call NodeType.get() == SourceNode);
 		return call SourcePeriodModel.get();
 	}
 
@@ -225,7 +225,7 @@ implementation
 
     void init(void)
     {
-        if (type == SinkNode)
+        if (call NodeType.get() == SinkNode)
         {
             hop = 0;
             parent = AM_BROADCAST_ADDR;
@@ -420,7 +420,7 @@ implementation
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         period_counter++;
-        if(type != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
+        if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(slot != BOT || period_counter < get_pre_beacon_periods())
         {
             call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_slot_period() * random_float()));

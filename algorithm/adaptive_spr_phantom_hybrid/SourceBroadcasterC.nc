@@ -1058,7 +1058,7 @@ implementation
 		{
 			become_Fake(original_message, TailFakeNode);
 		}
-		else //if (type == TailFakeNode)
+		else //if (call NodeType.get() == TailFakeNode)
 		{
 		}
 	}
