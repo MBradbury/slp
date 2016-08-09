@@ -42,8 +42,12 @@ def parse_result_output(lines):
         # Remove newline at end of line
         line = line.strip()
 
+        # Skip comments
+        if line.startswith('//'):
+            continue
+
         # Header line
-        if line.startswith('#'):
+        elif line.startswith('#'):
             header = line[1:].split('|')
 
         # Parameter lines
