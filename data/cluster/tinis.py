@@ -5,8 +5,6 @@ def name():
 
 def kind():
     return "pbs"
-    # Also MOAB
-    # Also SLURM
 
 def url():
     return "tinis.csc.warwick.ac.uk"
