@@ -12,6 +12,10 @@ def result_parameter_to_input_parameter(param_name):
 
 def run_simulation(name, parameters):
 
+    # Get rid of mode if it is present
+    # The mode option was removed recently, so many old results still generate it.
+    parameters.pop("mode", None)
+
     parameters_string = " ".join("{}={}".format(result_parameter_to_input_parameter(name), repr(value)) for (name, value) in parameters.items())
 
     command = "./run.py algorithm.{} SINGLE {}".format(name, parameters_string)
