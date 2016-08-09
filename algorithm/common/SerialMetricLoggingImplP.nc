@@ -6,7 +6,7 @@
 
 #define MAX_SERIAL_PACKET_SIZE 255
 
-#define START_SEND(SENDER_NAME, MESSAGE_NAME) \
+#define SERIAL_START_SEND(SENDER_NAME, MESSAGE_NAME) \
 	MESSAGE_NAME* msg = (MESSAGE_NAME*)call Packet.getPayload(&packet, sizeof(MESSAGE_NAME)); \
  \
 	STATIC_ASSERT_MSG(sizeof(MESSAGE_NAME) <= MAX_SERIAL_PACKET_SIZE, Need_to_increase_the_MAX_SERIAL_PACKET_SIZE_for_##MESSAGE_NAME); \
@@ -14,18 +14,52 @@
  	msg->node_id = TOS_NODE_ID; \
 	msg->local_time = call LocalTime.get(); \
 
-#define END_SEND(SENDER_NAME, MESSAGE_NAME) \
-	if (call SENDER_NAME.send(AM_BROADCAST_ADDR, &packet, sizeof(MESSAGE_NAME)) == SUCCESS) \
+#define SERIAL_END_SEND(SENDER_NAME, MESSAGE_NAME) \
+	if (locked) \
 	{ \
-		locked = TRUE; \
+		/* If locked then just add this message to the queue */ \
+		message_t* pool_packet = call MessagePool.get(); \
+		memcpy(pool_packet, &packet, sizeof(*pool_packet)); \
+		if (call MessageQueue.enqueue(pool_packet) != SUCCESS) \
+		{ \
+		} \
+	} \
+	else \
+	{ \
+		/* Try to send the message */ \
+		if (call SENDER_NAME.send(AM_BROADCAST_ADDR, &packet, sizeof(MESSAGE_NAME)) == SUCCESS) \
+		{ \
+			locked = TRUE; \
+		} \
+		else \
+		{ \
+			/* Add the message to the queue on failure */ \
+			message_t* pool_packet = call MessagePool.get(); \
+			memcpy(pool_packet, &packet, sizeof(*pool_packet)); \
+			if (call MessageQueue.enqueue(pool_packet) != SUCCESS) \
+			{ \
+			} \
+		} \
 	}
+	
 
-#define SEND_DONE(SENDER_NAME) \
+#define SERIAL_SEND_DONE(SENDER_NAME) \
 	event void SENDER_NAME.sendDone(message_t* msg, error_t error) \
 	{ \
 		if (msg == &packet) \
 		{ \
 			locked = FALSE; \
+		} \
+		else \
+		{ \
+			locked = FALSE; \
+			/* Return message to pool, if memory originated from pool */ \
+			call MessagePool.put(msg); \
+		} \
+ \
+		if (error != SUCCESS) \
+		{ \
+			/* TODO */ \
 		} \
 	}
 
@@ -38,12 +72,16 @@ module SerialMetricLoggingImplP
 
 	uses interface SplitControl as SerialControl;
 	uses interface Packet;
+	uses interface AMPacket;
 
 	uses interface AMSend as MetricReceiveSend;
 	uses interface AMSend as MetricBcastSend;
 	uses interface AMSend as MetricDeliverSend;
 	uses interface AMSend as AttackerReceiveSend;
 	uses interface AMSend as MetricNodeChangeSend;
+
+	uses interface Pool<message_t> as MessagePool;
+	uses interface Queue<message_t*> as MessageQueue;
 }
 implementation
 {
@@ -73,11 +111,11 @@ implementation
 		
 	}
 
-	SEND_DONE(MetricReceiveSend)
-	SEND_DONE(MetricBcastSend)
-	SEND_DONE(MetricDeliverSend)
-	SEND_DONE(AttackerReceiveSend)
-	SEND_DONE(MetricNodeChangeSend)
+	SERIAL_SEND_DONE(MetricReceiveSend)
+	SERIAL_SEND_DONE(MetricBcastSend)
+	SERIAL_SEND_DONE(MetricDeliverSend)
+	SERIAL_SEND_DONE(AttackerReceiveSend)
+	SERIAL_SEND_DONE(MetricNodeChangeSend)
 
 	command void MetricLogging.log_metric_receive(
 		const char* message_type,
@@ -87,7 +125,7 @@ implementation
 		int16_t distance
 		)
 	{
-		START_SEND(MetricReceiveSend, metric_receive_msg_t)
+		SERIAL_START_SEND(MetricReceiveSend, metric_receive_msg_t)
 
 		msg->type = AM_METRIC_RECEIVE_MSG;
 
@@ -97,7 +135,7 @@ implementation
 		msg->sequence_number = sequence_number;
 		msg->distance = distance;
 
-		END_SEND(MetricReceiveSend, metric_receive_msg_t)
+		SERIAL_END_SEND(MetricReceiveSend, metric_receive_msg_t)
 	}
 
 	command void MetricLogging.log_metric_bcast(
@@ -106,7 +144,7 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		START_SEND(MetricBcastSend, metric_bcast_msg_t)
+		SERIAL_START_SEND(MetricBcastSend, metric_bcast_msg_t)
 
 		msg->type = AM_METRIC_BCAST_MSG;
 
@@ -114,7 +152,7 @@ implementation
 		msg->status = status;
 		msg->sequence_number = sequence_number;
 
-		END_SEND(MetricBcastSend, metric_bcast_msg_t)
+		SERIAL_END_SEND(MetricBcastSend, metric_bcast_msg_t)
 	}
 
 	command void MetricLogging.log_metric_deliver(
@@ -124,7 +162,7 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		START_SEND(MetricDeliverSend, metric_deliver_msg_t)
+		SERIAL_START_SEND(MetricDeliverSend, metric_deliver_msg_t)
 
 		msg->type = AM_METRIC_DELIVER_MSG;
 
@@ -133,7 +171,7 @@ implementation
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
 
-		END_SEND(MetricDeliverSend, metric_deliver_msg_t)
+		SERIAL_END_SEND(MetricDeliverSend, metric_deliver_msg_t)
 	}
 
 	command void MetricLogging.log_attacker_receive(
@@ -143,7 +181,7 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		START_SEND(AttackerReceiveSend, attacker_receive_msg_t)
+		SERIAL_START_SEND(AttackerReceiveSend, attacker_receive_msg_t)
 
 		msg->type = AM_ATTACKER_RECEIVE_MSG;
 
@@ -152,7 +190,7 @@ implementation
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
 
-		END_SEND(AttackerReceiveSend, attacker_receive_msg_t)
+		SERIAL_END_SEND(AttackerReceiveSend, attacker_receive_msg_t)
 	}
 
 	command void MetricLogging.log_metric_node_change(
@@ -162,14 +200,14 @@ implementation
 		const char* new_type_str
 		)
 	{
-		START_SEND(MetricNodeChangeSend, metric_node_change_msg_t)
+		SERIAL_START_SEND(MetricNodeChangeSend, metric_node_change_msg_t)
 
 		msg->type = AM_METRIC_NODE_CHANGE_MSG;
 
 		msg->old_message_type = old_type;
 		msg->new_message_type = new_type;
 
-		END_SEND(MetricNodeChangeSend, metric_node_change_msg_t)
+		SERIAL_END_SEND(MetricNodeChangeSend, metric_node_change_msg_t)
 	}
 
 	command void MetricLogging.log_error_occurred(
