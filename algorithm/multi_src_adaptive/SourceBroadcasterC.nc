@@ -407,11 +407,9 @@ implementation
 
 	void become_Normal(void)
 	{
-		type = NormalNode;
+		call NodeType.set(NormalNode);
 
 		call FakeMessageGenerator.stop();
-
-		simdbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
 	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
@@ -421,18 +419,14 @@ implementation
 			assert("The perm type is not correct");
 		}
 
-		type = perm_type;
+		call NodeType.set(perm_type);
 
-		if (type == PermFakeNode)
+		if (perm_type == PermFakeNode)
 		{
-			simdbg("Fake-Notification", "The node has become a PFS\n");
-
 			call FakeMessageGenerator.start(message);
 		}
 		else
 		{
-			simdbg("Fake-Notification", "The node has become a TFS\n");
-
 			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
 		}
 	}
@@ -773,7 +767,7 @@ implementation
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			if (pfs_can_become_normal() &&
-				type == PermFakeNode &&
+				call NodeType.get() == PermFakeNode &&
 				rcvd->from_pfs &&
 				(
 					(rcvd->source_distance > min_source_distance) ||
@@ -797,11 +791,11 @@ implementation
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
 	{
-		if (type == PermFakeNode)
+		if (call NodeType.get() == PermFakeNode)
 		{
 			return get_pfs_period();
 		}
-		else if (type == TempFakeNode)
+		else if (call NodeType.get() == TempFakeNode)
 		{
 			return get_tfs_period();
 		}
@@ -819,7 +813,7 @@ implementation
 		message->source_distance = min_source_distance;
 		message->max_hop = first_source_distance;
 		message->sink_distance = sink_distance;
-		message->from_pfs = (type == PermFakeNode);
+		message->from_pfs = (call NodeType.get() == PermFakeNode);
 		message->source_id = TOS_NODE_ID;
 	}
 
@@ -862,7 +856,7 @@ implementation
 
 		if (pfs_can_become_normal())
 		{
-			if (type == PermFakeNode && !is_pfs_candidate)
+			if (call NodeType.get() == PermFakeNode && !is_pfs_candidate)
 			{
 				call FakeMessageGenerator.expireDuration();
 			}

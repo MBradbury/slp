@@ -826,6 +826,8 @@ implementation
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		const uint8_t type = call NodeType.get();
+		
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
@@ -924,15 +926,15 @@ implementation
 		extra_to_send = 2;
 		send_Choose_message(&message, target);
 
-		if (type == PermFakeNode)
+		if (call NodeType.get() == PermFakeNode)
 		{
 			become_Normal();
 		}
-		else if (type == TempFakeNode)
+		else if (call NodeType.get() == TempFakeNode)
 		{
 			become_Fake(original_message, TailFakeNode);
 		}
-		else //if (type == TailFakeNode)
+		else //if (call NodeType.get() == TailFakeNode)
 		{
 		}
 	}
