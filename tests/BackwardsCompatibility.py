@@ -35,6 +35,7 @@ def parse_result_output(lines):
     params = OrderedDict()
     values = {}
     header = None
+    revision = None
 
     result = []
 
@@ -45,6 +46,10 @@ def parse_result_output(lines):
         # Skip comments
         if line.startswith('//'):
             continue
+
+        # Read revision
+        elif line.startswith('@'):
+            revision = line[1:]
 
         # Header line
         elif line.startswith('#'):
@@ -61,10 +66,11 @@ def parse_result_output(lines):
                 if name not in results_to_skip:
                     values[name] = value
 
-            result.append((params, values))
+            result.append((revision, params, values))
             params = OrderedDict()
             values = {}
             header = None
+            revision = None
 
         # Blank line
         else:
@@ -72,45 +78,74 @@ def parse_result_output(lines):
 
     return result
 
-class TestBackwardsCompatibility(unittest.TestCase):
+def find_tests():
 
-    @classmethod
-    def setUpClass(cls):
+    tests = OrderedDict()
 
-        tests = OrderedDict()
+    for filename in sorted(glob.glob("tests/historical/*.txt")):
+        algorithm_name = os.path.splitext(os.path.basename(filename))[0]
 
-        for filename in sorted(glob.glob("tests/historical/*.txt")):
-            algorithm_name = os.path.splitext(os.path.basename(filename))[0]
+        params = {}
+        values = {}
 
-            params = {}
-            values = {}
+        header = None
 
-            header = None
+        with open(filename, 'r') as infile:
+            tests[algorithm_name] = parse_result_output(infile)
 
-            with open(filename, 'r') as infile:
-                tests[algorithm_name] = parse_result_output(infile)
+    return tests
 
-        cls.tests = tests
+# From: http://eli.thegreenplace.net/2011/08/02/python-unit-testing-parametrized-test-cases
+class ParametrizedTestCase(unittest.TestCase):
+    """ TestCase classes that want to be parametrized should
+        inherit from this class.
+    """
+    def __init__(self, methodName='runTest', param=None):
+        super(ParametrizedTestCase, self).__init__(methodName)
+        self.param = param
+
+    @staticmethod
+    def parametrize(testcase_klass, param=None):
+        """ Create a suite containing all tests taken from the given
+            subclass, passing them the parameter 'param'.
+        """
+        testloader = unittest.TestLoader()
+        testnames = testloader.getTestCaseNames(testcase_klass)
+        suite = unittest.TestSuite()
+        for name in testnames:
+            suite.addTest(testcase_klass(name, param=param))
+        return suite
+
+class TestBackwardsCompatibility(ParametrizedTestCase):
 
     def test_backwards_compatibility(self):
-        for (algorithm_name, algorithm_tests) in self.tests.items():
+        (revision, algorithm_name, params, expected_value) = self.param
 
-            print("Starting to test {}...".format(algorithm_name))
+        print("Running test for {} on {} -> {}".format(algorithm_name, revision, " ".join("{}={}".format(k, v) for (k, v) in params.items())))
 
-            for (params, expected_value) in algorithm_tests:
+        output, err_output = run_simulation(algorithm_name, params)
 
-                print("Running test for {}".format(" ".join("{}={}".format(k, v) for (k, v) in params.items())))
+        self.assertFalse(len(output) == 0, err_output)
 
-                output, err_output = run_simulation(algorithm_name, params)
+        (rev, run_params, run_value) = parse_result_output(output.splitlines())[0]
 
-                self.assertFalse(len(output) == 0, err_output)
+        self.assertDictContainsSubset(params, run_params)
+        self.assertDictContainsSubset(expected_value, run_value)
 
-                (run_params, run_value) = parse_result_output(output.splitlines())[0]
+def suite():
+    suite = unittest.TestSuite()
 
-                self.assertDictContainsSubset(params, run_params)
-                self.assertDictContainsSubset(expected_value, run_value)
+    tests = find_tests()
 
-            print()
+    for (algorithm_name, algorithm_tests) in tests.items():
+
+        for (revision, params, expected_value) in algorithm_tests:
+
+            param = (revision, algorithm_name, params, expected_value)
+
+            suite.addTest(ParametrizedTestCase.parametrize(TestBackwardsCompatibility, param=param))
+
+    return suite
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.TextTestRunner(verbosity=2).run(suite())
