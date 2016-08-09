@@ -27,18 +27,18 @@ implementation
 #endif
 
 #if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
-    components PrintfMetricLoggingP;
-
-    App.MetricLogging -> PrintfMetricLoggingP;
-
+    components PrintfMetricLoggingP as MetricLogging;
 #elif defined(USE_SERIAL_MESSAGES)
-    components SerialMetricLoggingP;
-
-    App.MetricLogging -> SerialMetricLoggingP;
-
+    components SerialMetricLoggingP as MetricLogging;
 #else
 #   error "No known combination to wire up metric logging"
 #endif
+
+    App.MetricLogging -> MetricLogging;
+
+    components new NodeTypeP(6);
+    App.NodeType -> NodeTypeP;
+    NodeTypeP.MetricLogging -> MetricLogging;
 
     // Radio Control
     components ActiveMessageC;
@@ -47,12 +47,9 @@ implementation
 
 
     // Timers
-    components
-        new TimerMilliC() as BroadcastTimer,
-        new TimerMilliC() as EnqueueNormalTimer;
-
+    components new TimerMilliC() as BroadcastTimer;
+    
     App.BroadcastTimer -> BroadcastTimer;
-    App.EnqueueNormalTimer -> EnqueueNormalTimer;
 
 
     // Networking
