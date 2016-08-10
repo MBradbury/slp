@@ -100,6 +100,11 @@ implementation
 		SourceNode, SinkNode, NormalNode
 	};
 
+    enum
+    {
+        SearchNode = 10, ChangeNode = 11
+    };
+
     // Produces a random float between 0 and 1
     float random_float(void)
     {
@@ -186,6 +191,9 @@ implementation
         call NodeType.register_pair(SourceNode, "SourceNode");
         call NodeType.register_pair(SinkNode, "SinkNode");
         call NodeType.register_pair(NormalNode, "NormalNode");
+
+        call NodeType.register_pair(SearchNode, "TempFakeNode");
+        call NodeType.register_pair(ChangeNode, "PermFakeNode");
 
         if (TOS_NODE_ID == SINK_NODE_ID)
         {
@@ -441,7 +449,8 @@ implementation
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = redir_length - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("Node-Change-Notification", "The node has become a TFS\n");
+            /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
+            call NodeType.init(ChangeNode);
         }
     }
 
@@ -631,6 +640,8 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
         case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
+        case SearchNode:
+        case ChangeNode:
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
@@ -736,6 +747,8 @@ implementation
 
     RECEIVE_MESSAGE_BEGIN(Dissem, Receive)
         case SourceNode:
+        case SearchNode:
+        case ChangeNode:
         case NormalNode: x_receive_Dissem(rcvd, source_addr); break;
         case SinkNode  : Sink_receive_Dissem(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Dissem)
@@ -751,7 +764,7 @@ implementation
             start_node = TRUE;
             redir_length = rcvd->pr;
             simdbg("stdout", "Search messages ended\n");
-            simdbg("Node-Change-Notification", "The node has become a PFS\n");
+            /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
         }
         else
         {
@@ -769,12 +782,15 @@ implementation
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbg("stdout", "Sent search message again to %u\n", msg.a_node);
-            simdbg("Node-Change-Notification", "The node has become a PFS\n");
+            /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
+            call NodeType.init(SearchNode);
         }
     }
 
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
         case SourceNode: break;
+        case SearchNode:
+        case ChangeNode:
         case NormalNode: Normal_receive_Search(rcvd, source_addr); break;
         case SinkNode:   break;
     RECEIVE_MESSAGE_END(Search)
@@ -798,7 +814,8 @@ implementation
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = rcvd->len_d - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("Node-Change-Notification", "The node has become a TFS\n");
+            /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
+            call NodeType.init(ChangeNode);
             simdbg("stdout", "Next a_node is %u\n", msg.a_node);
         }
         else if(rcvd->len_d == 0 && rcvd->a_node == TOS_NODE_ID)
@@ -808,7 +825,8 @@ implementation
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
             dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
             simdbg("stdout", "Change messages ended\n");
-            simdbg("Node-Change-Notification", "The node has become a TFS\n");
+            /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
+            call NodeType.init(ChangeNode);
         }
         simdbg("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
 
@@ -816,6 +834,8 @@ implementation
 
     RECEIVE_MESSAGE_BEGIN(Change, Receive)
         case SourceNode: break;
+        case SearchNode:
+        case ChangeNode:
         case NormalNode: Normal_receive_Change(rcvd, source_addr); break;
         case SinkNode:   break;
     RECEIVE_MESSAGE_END(Change)
