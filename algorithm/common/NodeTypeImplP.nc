@@ -29,6 +29,7 @@ implementation
 		}
 		else
 		{
+			ERROR_OCCURRED(ERROR_TOO_MANY_NODE_TYPES, "Not enough room for %s, Please increase the size of NodeTypeP.\n", name);
 			return FALSE;
 		}
 	}
