@@ -209,6 +209,9 @@ class Analyse(object):
         num_value = self._get_from_opts_or_values(num, row)
         den_value = self._get_from_opts_or_values(den, row)
 
+        if num_value is None or den_value is None:
+            return None
+
         return np.float_(num_value / den_value)
 
 
@@ -290,8 +293,12 @@ class Analyse(object):
 
             elif name == "good_move_ratio":
 
-                steps_towards = self._get_from_opts_or_values("AttackerStepsTowards", values)
-                steps_away =  self._get_from_opts_or_values("AttackerStepsAway", values)
+                try:
+                    steps_towards = self._get_from_opts_or_values("AttackerStepsTowards", values)
+                    steps_away =  self._get_from_opts_or_values("AttackerStepsAway", values)
+                except KeyError as ex:
+                    #print("Unable to calculate good_move_ratio due to the KeyError {}".format(ex))
+                    return None
 
                 ratios = []
 
