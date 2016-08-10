@@ -111,6 +111,7 @@ implementation
 			{
 				call MessagePool.put(msg);
 
+				// If there are more messages to send then send them
 				if (!call MessageQueue.empty())
 				{
 					post serial_sender();

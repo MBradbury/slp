@@ -61,12 +61,6 @@ typedef nx_struct attacker_receive_msg {
 	nx_int64_t sequence_number;
 } attacker_receive_msg_t;
 
-typedef nx_struct metric_source_change_msg {
-	METRIC_LOGGING_HEADER
-
-	nx_uint8_t change_kind; // 1 if set, 2 if unset, 0 if unknown
-} metric_source_change_msg_t;
-
 typedef nx_struct metric_node_change_msg {
 	METRIC_LOGGING_HEADER
 
