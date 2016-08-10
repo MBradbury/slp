@@ -2,20 +2,9 @@ from __future__ import print_function
 
 from simulator.MetricsCommon import MetricsCommon
 
-from collections import Counter
-
 class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
-
-        self.register('M-PF', self.process_POOL_FULL)
-
-        self.pool_full = Counter()
-
-    def process_POOL_FULL(self, d_or_e, node_id, time, detail):
-        node_id = int(node_id)
-
-        self.pool_full[node_id] += 1
 
     def first_normal_send_times(self):
         result = {}
@@ -33,7 +22,6 @@ class Metrics(MetricsCommon):
         d = MetricsCommon.items()
         d["DissemSent"]               = lambda x: x.number_sent("Dissem")
 
-        d["PoolFull"]                 = lambda x: dict(x.pool_full)
         d["FirstSendTime"]            = lambda x: x.first_normal_send_times()
 
         return d

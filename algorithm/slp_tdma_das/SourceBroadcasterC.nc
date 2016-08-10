@@ -581,8 +581,7 @@ implementation
             }
             else
             {
-                simdbgerror("stdout", "No pool space available for another Normal message.\n");
-                simdbg("M-PF", "full\n");
+                ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another Normal message.\n");
             }
         }
     }
@@ -613,7 +612,7 @@ implementation
 			}
 			else
 			{
-				simdbgerror("stdout", "No pool space available for another Normal message.\n");
+				ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another Normal message.\n");
 			}
 		}
 	}
