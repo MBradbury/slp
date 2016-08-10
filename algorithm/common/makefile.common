@@ -13,22 +13,26 @@ CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS -DUSE_SERIAL_PRINTF=1
 endif
 
 
-# The Indriya testbed needs printf_msg java class files
-ifdef TESTBED
-ifeq ($(TESTBED), indriya)
+SERIAL_JAVA_TARGETS = metric_receive_msg.java metric_bcast_msg.java metric_deliver_msg.java attacker_receive_msg.java metric_node_change_msg.java error_occurred_msg.java
+SERIAL_CLASS_TARGETS = $(JAVA_TARGETS:.java=.class)
 
-BUILD_EXTRA_DEPS += printf_msg.class
+# The Indriya testbed needs printf_msg java class files
+ifdef USE_SERIAL_MESSAGES
+
+BUILD_EXTRA_DEPS += $(SERIAL_CLASS_TARGETS) printf_msg.class
 
 # Indriya testbed only support Java 1.4, see: https://indriya.comp.nus.edu.sg/motelab/html/faq.php
 
-printf_msg.class: $(wildcard *.java) printf_msg.java
+$(SERIAL_CLASS_TARGETS) printf_msg.class: $(wildcard *.java) $(SERIAL_JAVA_TARGETS) printf_msg.java
 	javac -source 1.4 -target 1.4 *.java
 
 printf_msg.java:
 	mig java -target=null -java-classname=printf_msg $(TOSDIR)/lib/printf/printf.h printf_msg -o $@
 
-endif
+$(SERIAL_JAVA_TARGETS):
+	mig java -target=null -java-classname=$(@:.java=) ../common/SerialMetricLoggingTypes.h $(@:.java=) -o $@
+
 endif
 
 # Specify the extra clean for all make files
-CLEAN_EXTRA = *.class printf_msg.java
+CLEAN_EXTRA = *.class printf_msg.java $(SERIAL_JAVA_TARGETS)
