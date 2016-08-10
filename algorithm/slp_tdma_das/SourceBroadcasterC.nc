@@ -434,6 +434,18 @@ implementation
             simdbg("stdout", "Sent search message to %u\n", msg.a_node);
         }
     }
+    /*void send_search_init()*/
+    /*{*/
+        /*if(call NodeType.get() == SinkNode)*/
+        /*{*/
+            /*int i;*/
+            /*SearchMessage msg;*/
+            /*msg.pr = get_pr_length();*/
+            /*msg.dist = get_pr_dist() - 1;*/
+            /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
+            /*simdbg("stdout", "Sent search message\n");*/
+        /*}*/
+    /*}*/
 
     void send_change_init()
     {
@@ -755,23 +767,24 @@ implementation
 
     void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)
     {
+        IDList npar = IDList_minus_parent(&potential_parents, parent);
         METRIC_RCV_SEARCH(rcvd);
         if(rcvd->a_node != TOS_NODE_ID) return;
         simdbg("stdout", "Received search\n");
 
-        if(rcvd->dist == 0 || children.count == 0)
+        if((rcvd->dist == 0 && npar.count != 0) || children.count == 0)
         {
             start_node = TRUE;
             redir_length = rcvd->pr;
             simdbg("stdout", "Search messages ended\n");
             /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
         }
-        else
+        else if(rcvd->dist > 0 || npar.count == 0)
         {
             int i;
             SearchMessage msg;
             msg.pr = rcvd->pr;
-            msg.dist = rcvd->dist - 1;
+            msg.dist = (rcvd->dist-1<0) ? 0 : rcvd->dist - 1;
             msg.a_node = BOT;
             for(i=0; i<children.count; i++) {
                 if(rank(&children, children.ids[i]) == children.count)
@@ -786,6 +799,32 @@ implementation
             call NodeType.init(SearchNode);
         }
     }
+    /*void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)*/
+    /*{*/
+        /*METRIC_RCV_SEARCH(rcvd);*/
+        /*if(parent == source_addr)*/
+        /*{*/
+            /*OtherInfo* other_info = OtherList_get(&others, parent);*/
+            /*if(rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count)*/
+            /*{*/
+                /*IDList npar = IDList_minus_parent(&potential_parents, parent);*/
+                /*simdbg("stdout", "Received search\n");*/
+                /*if((rcvd->dist == 0) && (npar.count != 0))*/
+                /*{*/
+                    /*start_node = TRUE;*/
+                    /*redir_length = rcvd->pr;*/
+                /*}*/
+                /*else if ((rcvd->dist > 0) || (npar.count == 0))*/
+                /*{*/
+                    /*SearchMessage msg;*/
+                    /*msg.dist = ((rcvd->dist-1) < 0) ? 0 : rcvd->dist-1;*/
+                    /*msg.pr = rcvd->pr;*/
+                    /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
+                    /*call NodeType.init(SearchNode);*/
+                /*}*/
+            /*}*/
+        /*}*/
+    /*}*/
 
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
         case SourceNode: break;
