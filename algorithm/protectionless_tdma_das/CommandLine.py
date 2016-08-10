@@ -39,4 +39,4 @@ class CLI(CommandLineCommon.CLI):
         runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product())
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
