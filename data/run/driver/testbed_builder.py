@@ -14,13 +14,27 @@ import data.util
 from simulator import Builder
 from simulator import Configuration
 
+def choose_platform(provided, available):
+    if provided is None:
+        if isinstance(available, str):
+            return available
+        else:
+            raise RuntimeError("Unable to choose between the available platforms {}".format(available))
+    else:
+        if provided in available:
+            return provided
+        else:
+            raise RuntimeError("The provided platform {} is not in the available platforms {}".format(provided, available))
+
+
 class Runner:
-    def __init__(self, testbed):
+    def __init__(self, testbed, platform=None):
         self._start_time = timeit.default_timer()
         self.total_job_size = None
         self._jobs_executed = 0
 
         self.testbed = testbed
+        self.platform = choose_platform(platform, self.testbed.platform())
 
     def add_job(self, options, name, estimated_time):
         print(name)
@@ -54,7 +68,7 @@ class Runner:
 
         print("Building for {}".format(build_args))
 
-        build_result = Builder.build_actual(module_path, self.testbed.platform(), **build_args)
+        build_result = Builder.build_actual(module_path, self.platform, **build_args)
 
         print("Build finished with result {}, waiting for a bit...".format(build_result))
 

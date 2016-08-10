@@ -1,18 +1,16 @@
 
 def name():
-    return "iot-lab"
+    return __name__
 
 def platform():
     """The hardware platform of the testbed"""
 
     # 1.3b has an 868MHz radio
     # 1.4 has a 2.4GHz radio
-
-    return "wsn430v14"
-    #return ("wsn430v13", "wsn430v14")
+    return ("wsn430v13", "wsn430v14")
 
 def log_mode():
-	return None
+	return "printf"
 
 def url():
 	return "https://www.iot-lab.info"

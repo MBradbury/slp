@@ -15,6 +15,8 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
+        subparser = self._subparsers.add_parser("table")
+
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
 
@@ -59,7 +61,7 @@ class CLI(CommandLineCommon.CLI):
         self._create_table(self.algorithm_module.name + "-results", result_table)
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
+        if 'table' == args.mode:
             self._run_table(args)

@@ -1,5 +1,5 @@
 
-def load(args):
+def load(name):
     """
     Used to load the correct cluster module, from a list of arguments which
     may have the cluster name in it.
@@ -8,16 +8,9 @@ def load(args):
     import pkgutil
     import data.cluster as clusters
 
-    # Allow a single name to be provided as a parameter
-    if isinstance(args, str):
-        args = (args,)
+    cluster_modules = {modname: importer for (importer, modname, ispkg) in pkgutil.iter_modules(clusters.__path__) if modname == name}
 
-    cluster_modules = {modname: importer for (importer, modname, ispkg) in pkgutil.iter_modules(clusters.__path__)}
-    cluster_names = list(set(args).intersection(cluster_modules.keys()))
+    if name not in cluster_modules:
+        raise RuntimeError("{} is not a valid name in {}".format(name, cluster_modules.keys()))
 
-    if len(cluster_names) != 1:
-        raise RuntimeError("There is not one and only one cluster name specified ({})".format(cluster_names))
-
-    cluster_name = cluster_names[0]
-
-    return cluster_modules[cluster_name].find_module(cluster_name).load_module(cluster_name)
+    return cluster_modules[name].find_module(name).load_module(name)

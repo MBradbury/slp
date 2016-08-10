@@ -22,6 +22,12 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
+        subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("comparison-table")
+        subparser = self._subparsers.add_parser("comparison-graph")
+        subparser = self._subparsers.add_parser("min-max-versus")
+
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
 
@@ -272,19 +278,19 @@ class CLI(CommandLineCommon.CLI):
             graph_min_max_versus(result_name)
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
+        if 'table' == args.mode:
             self._run_table(args)
 
-        if 'graph' in args:
+        if 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'comparison-table' in args:
+        if 'comparison-table' == args.mode:
             self._run_comparison_table(args)
 
-        if 'comparison-graph' in args:
+        if 'comparison-graph' == args.mode:
             self._run_comparison_graph(args)
 
-        if 'min-max-versus' in args:
+        if 'min-max-versus' == args.mode:
             self._run_min_max_versus(args)

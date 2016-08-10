@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import argparse
 import datetime
 import importlib
 import os
@@ -13,14 +14,6 @@ from data import results, latex
 from data.table import fake_result
 from data.graph import heatmap, summary
 from data.util import recreate_dirtree, touch
-
-class NoArgumentsFound(RuntimeError):
-    def __init__(self, name):
-        super(NoArgumentsFound, self).__init__("No arguments were found for {}".format(name))
-
-class TooManyArgumentsFound(RuntimeError):
-    def __init__(self, name):
-        super(TooManyArgumentsFound, self).__init__("Only one value is expected for {}".format(name))
 
 class CLI(object):
 
@@ -41,23 +34,60 @@ class CLI(object):
         except ImportError:
             print("Failed to import Parameters, have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
+        parser = argparse.ArgumentParser(add_help=True)
+        subparsers = parser.add_subparsers(title="mode", dest="mode")
+
+        ###
+
+        subparser = subparsers.add_parser("cluster")
+        subparser.add_argument("name", type=str)
+
+        cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
+
+        subparser = cluster_subparsers.add_parser("build")
+        subparser.add_argument("--no-skip-complete", action="store_true")
+
+        subparser = cluster_subparsers.add_parser("copy")
+        subparser = cluster_subparsers.add_parser("copy-result-summary")
+        subparser = cluster_subparsers.add_parser("submit")
+        subparser.add_argument("--array", action="store_true")
+        subparser.add_argument("--notify", nargs="*")
+        subparser.add_argument("--no-skip-complete", action="store_true")
+
+        subparser = cluster_subparsers.add_parser("copy-back")
+
+        ###
+
+        subparser = subparsers.add_parser("testbed")
+        subparser.add_argument("name", type=str)
+
+        testbed_subparsers = subparser.add_subparsers(title="testbed mode", dest="testbed_mode")
+
+        subparser = testbed_subparsers.add_parser("build")
+        subparser.add_argument("--platform", type=str, default=None)
+
+        ###
+
+        subparser = subparsers.add_parser("run")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        subparser.add_argument("--no-skip-complete", action="store_true")
+
+        ###
+
+        subparser = subparsers.add_parser("analyse")
+        subparser = subparsers.add_parser("time-taken-table")
+        subparser = subparsers.add_parser("time-taken-boxplot")
+        subparser = subparsers.add_parser("detect-missing")
+        subparser = subparsers.add_parser("graph-heatmap")
+
+        ###
+
+        # Store any of the parsers that we need
+        self._parser = parser
+        self._subparsers = subparsers
+
     def parameter_names(self):
         return tuple(list(self.global_parameter_names) + list(self.local_parameter_names))
-
-    @staticmethod
-    def _get_args_for(args, name):
-        name += "="
-        return [arg[len(name):] for arg in args if arg.startswith(name)]
-
-    @staticmethod
-    def _get_arg_for(args, name):
-        found_args = CLI._get_args_for(args, name)
-        if len(found_args) == 1:
-            return found_args[0]
-        elif len(found_args) == 0:
-            raise NoArgumentsFound(name)
-        else:
-            raise TooManyArgumentsFound(name)
 
     @staticmethod
     def _create_table(name, result_table, param_filter=lambda x: True):
@@ -117,13 +147,12 @@ class CLI(object):
         driver = LocalDriver.Runner()
 
         try:
-            thread_count = self._get_arg_for(args, 'thread_count')
-            driver.job_thread_count = int(thread_count)
-        except NoArgumentsFound:
-            # Use default
+            driver.job_thread_count = int(args.thread_count)
+        except TypeError:
+            # None tells the runner to use the default
             driver.job_thread_count = None
 
-        skip_complete = 'no-skip-complete' not in args
+        skip_complete = not args.no_skip_complete
 
         self._execute_runner(driver, self.algorithm_module.results_path, skip_completed_simulations=skip_complete)
 
@@ -136,7 +165,7 @@ class CLI(object):
         This can be specified by using the "notify" parameter when submitting,
         or by setting the SLP_NOTIFY_EMAILS environment variable."""
         
-        emails_to_notify = self._get_args_for(args, 'notify')
+        emails_to_notify = args.notify
 
         emails_to_notify_env = os.getenv("SLP_NOTIFY_EMAILS")
         if emails_to_notify_env:
@@ -149,35 +178,37 @@ class CLI(object):
 
         from data import cluster_manager
 
-        cluster = cluster_manager.load(args)
+        cluster = cluster_manager.load(args.name)
 
-        skip_complete = 'no-skip-complete' not in args
-
-        if 'build' in args:
+        if 'build' == args.cluster_mode:
             print("Removing existing cluster directory and creating a new one")
             recreate_dirtree(cluster_directory)
             touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
             touch("{}/__init__.py".format(cluster_directory))
 
+            skip_complete = not args.no_skip_complete
+
             self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
 
-        if 'copy' in args:
+        elif 'copy' == args.cluster_mode:
             cluster.copy_to()
 
-        if 'copy-result-summary' in args:
+        elif 'copy-result-summary' == args.cluster_mode:
             cluster.copy_result_summary(self.algorithm_module.results_path, self.algorithm_module.result_file)
 
-        if 'submit' in args:
+        elif 'submit' == args.cluster_mode:
             emails_to_notify = self._get_emails_to_notify(args)
 
-            if 'array' not in args:
-                submitter = cluster.submitter(emails_to_notify)
-            else:
+            if args.array:
                 submitter = cluster.array_submitter(emails_to_notify)
+            else:
+                submitter = cluster.submitter(emails_to_notify)
+
+            skip_complete = not args.no_skip_complete
 
             self._execute_runner(submitter, cluster_directory, skip_completed_simulations=skip_complete)
 
-        if 'copy-back' in args:
+        elif 'copy-back' == args.cluster_mode:
             cluster.copy_back(self.algorithm_module.name)
 
         sys.exit(0)
@@ -186,17 +217,17 @@ class CLI(object):
 
         from data import testbed_manager
 
-        testbed = testbed_manager.load(args)
+        testbed = testbed_manager.load(args.name)
 
         testbed_directory = os.path.join("testbed", self.algorithm_module.name)
 
-        if 'build' in args:
+        if 'build' == args.testbed_mode:
             from data.run.driver.testbed_builder import Runner as Builder
 
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            self._execute_runner(Builder(testbed), testbed_directory, skip_completed_simulations=False)
+            self._execute_runner(Builder(testbed, platform=args.platform), testbed_directory, skip_completed_simulations=False)
 
         sys.exit(0)
 
@@ -278,27 +309,30 @@ class CLI(object):
 
 
     def run(self, args):
+        args = self._parser.parse_args(args)
 
-        if 'cluster' in args:
+        if 'cluster' == args.mode:
             self._run_cluster(args)
 
-        if 'testbed' in args:
+        elif 'testbed' == args.mode:
             self._run_testbed(args)
 
-        if 'run' in args:
+        elif 'run' == args.mode:
             self._run_run(args)
 
-        if 'analyse' in args:
+        elif 'analyse' == args.mode:
             self._run_analyse(args)
 
-        if 'time-taken-table' in args:
+        elif 'time-taken-table' == args.mode:
             self._run_time_taken_table(args)
 
-        if 'time-taken-boxplot' in args:
+        elif 'time-taken-boxplot' == args.mode:
             self._run_time_taken_boxplot(args)
 
-        if 'detect-missing' in args:
+        elif 'detect-missing' == args.mode:
             self._run_detect_missing(args)
 
-        if 'graph-heatmap' in args:
+        elif 'graph-heatmap' == args.mode:
             self._run_graph_heatmap(args)
+
+        return args

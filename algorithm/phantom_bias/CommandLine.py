@@ -40,6 +40,12 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
+        subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("average-graph")
+        subparser = self._subparsers.add_parser("scatter-graph")
+        subparser = self._subparsers.add_parser("best-worst-average-graph")
+
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
         parameters = self.algorithm_module.Parameters
         
@@ -371,19 +377,19 @@ class CLI(CommandLineCommon.CLI):
                 ).run()
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
+        if 'table' == args.mode:
             self._run_table(args)
 
-        if 'graph' in args:
+        if 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'average-graph' in args:
+        if 'average-graph' == args.mode:
             self._run_average_graph(args)
 
-        if 'scatter-graph' in args:
+        if 'scatter-graph' == args.mode:
             self._run_scatter_graph(args)
 
-        if 'best-worst-average-graph' in args:
+        if 'best-worst-average-graph' == args.mode:
             self._run_best_worst_average_graph(args)
