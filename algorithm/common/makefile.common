@@ -21,10 +21,16 @@ ifdef USE_SERIAL_MESSAGES
 
 BUILD_EXTRA_DEPS += $(SERIAL_CLASS_TARGETS) printf_msg.class
 
+ifeq ($(TESTBED), indriya)
 # Indriya testbed only support Java 1.4, see: https://indriya.comp.nus.edu.sg/motelab/html/faq.php
+SERIAL_JAVA_VERSION = 1.4
+else
+# A sensible modern Java version that should be widely available
+SERIAL_JAVA_VERSION = 1.7
+endif
 
 $(SERIAL_CLASS_TARGETS) printf_msg.class: $(wildcard *.java) $(SERIAL_JAVA_TARGETS) printf_msg.java
-	javac -source 1.4 -target 1.4 *.java
+	javac -source $(SERIAL_JAVA_VERSION) -target $(SERIAL_JAVA_VERSION) *.java
 
 printf_msg.java:
 	mig java -target=null -java-classname=printf_msg $(TOSDIR)/lib/printf/printf.h printf_msg -o $@
