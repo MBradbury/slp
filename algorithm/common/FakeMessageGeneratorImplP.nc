@@ -16,8 +16,6 @@ module FakeMessageGeneratorImplP
 		interface Timer<TMilli> as DurationTimer;
 
 		interface MetricLogging;
-
-
 	}
 }
 implementation
