@@ -62,7 +62,6 @@ def run_simulation(module, a, count=1):
 
 if __name__ == "__main__":
     import importlib
-    import math
 
     module = sys.argv[1]
 

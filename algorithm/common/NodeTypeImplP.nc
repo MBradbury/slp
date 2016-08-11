@@ -6,6 +6,10 @@ generic module NodeTypeImplP(uint8_t maximum_node_types)
 	provides interface NodeType;
 
 	uses interface MetricLogging;
+
+#ifdef USE_SERIAL_PRINTF
+	uses interface LocalTime<TMilli>;
+#endif
 }
 implementation
 {
