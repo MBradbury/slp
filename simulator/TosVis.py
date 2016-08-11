@@ -1,6 +1,8 @@
+from __future__ import print_function
+
 import re
 
-from simulator.Simulation import OutputCatcher, Simulation, OfflineSimulation
+from simulator.Simulation import Simulation, OfflineSimulation
 
 ###############################################
 class DebugAnalyzer:

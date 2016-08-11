@@ -1,11 +1,9 @@
-from __future__ import division
+from __future__ import print_function, division
 
 import random
 from collections import Counter, deque
 
 import numpy as np
-
-from simulator.Simulation import OutputCatcher
 
 from data.restricted_eval import restricted_eval
 
@@ -352,7 +350,7 @@ class TimedBacktrackingAttacker(Attacker):
 
 class HMAttacker(Attacker):
     def __init__(self, clear_period, history_window_size, moves_per_period):
-        super(ABDAttacker, self).__init__()
+        super(HMAttacker, self).__init__()
 
         self._clear_period = clear_period
         self._moves_per_period = moves_per_period
@@ -380,26 +378,26 @@ class HMAttacker(Attacker):
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
-        self.messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
+        self._messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
 
         can_move = self._num_moves < self._moves_per_period
-        choose_move = len(self.messages) == self._next_message_count_wait
+        choose_move = len(self._messages) == self._next_message_count_wait
 
         if can_move and choose_move:
             filtered_message = [
                 (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
                 for (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
-                in self.messages
+                in self._messages
 
                 if node_id not in self._history
             ]
 
-            (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = random.choice(self.filtered_message)
+            (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = random.choice(filtered_message)
 
             self._move(time, prox_from_id, msg_type=msg_type)
 
             self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
-        
+
         return False
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -415,7 +413,7 @@ class HMAttacker(Attacker):
 
 def models():
     """A list of the the available attacker models."""
-    return Attacker.__subclasses__()
+    return Attacker.__subclasses__() # pylint: disable=no-member
 
 def eval_input(source):
     result = restricted_eval(source, models())
