@@ -97,13 +97,8 @@ implementation
 
     enum
 	{
-		SourceNode, SinkNode, NormalNode
+		SourceNode, SinkNode, NormalNode, SearchNode, ChangeNode
 	};
-
-    enum
-    {
-        SearchNode = 10, ChangeNode = 11
-    };
 
     // Produces a random float between 0 and 1
     float random_float(void)
@@ -192,8 +187,8 @@ implementation
         call NodeType.register_pair(SinkNode, "SinkNode");
         call NodeType.register_pair(NormalNode, "NormalNode");
 
-        call NodeType.register_pair(SearchNode, "TempFakeNode");
-        call NodeType.register_pair(ChangeNode, "PermFakeNode");
+        call NodeType.register_pair(SearchNode, "SearchNode");
+        call NodeType.register_pair(ChangeNode, "ChangeNode");
 
         if (TOS_NODE_ID == SINK_NODE_ID)
         {
@@ -462,7 +457,7 @@ implementation
             msg.len_d = redir_length - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
-            call NodeType.init(ChangeNode);
+            call NodeType.set(ChangeNode);
         }
     }
 
@@ -796,7 +791,7 @@ implementation
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbg("stdout", "Sent search message again to %u\n", msg.a_node);
             /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
-            call NodeType.init(SearchNode);
+            call NodeType.set(SearchNode);
         }
     }
     /*void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)*/
@@ -820,7 +815,7 @@ implementation
                     /*msg.dist = ((rcvd->dist-1) < 0) ? 0 : rcvd->dist-1;*/
                     /*msg.pr = rcvd->pr;*/
                     /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
-                    /*call NodeType.init(SearchNode);*/
+                    /*call NodeType.set(SearchNode);*/
                 /*}*/
             /*}*/
         /*}*/
@@ -854,7 +849,7 @@ implementation
             msg.len_d = rcvd->len_d - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
-            call NodeType.init(ChangeNode);
+            call NodeType.set(ChangeNode);
             simdbg("stdout", "Next a_node is %u\n", msg.a_node);
         }
         else if(rcvd->len_d == 0 && rcvd->a_node == TOS_NODE_ID)
@@ -865,7 +860,7 @@ implementation
             dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
             simdbg("stdout", "Change messages ended\n");
             /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
-            call NodeType.init(ChangeNode);
+            call NodeType.set(ChangeNode);
         }
         simdbg("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
 

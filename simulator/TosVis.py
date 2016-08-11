@@ -156,6 +156,8 @@ class Gui:
         pfs_colour = [x / 255.0 for x in (225, 41, 41)]
         tfs_colour = [x / 255.0 for x in (196, 196, 37)]
         tailfs_colour = [x / 255.0 for x in (196, 146, 37)]
+        search_colour = [x / 255.0 for x in (196, 196, 37)]
+        change_colour = [x / 255.0 for x in (225, 41, 41)]
         source_colour = [x / 255.0 for x in (64, 168, 73)]
         sink_colour = [x / 255.0 for x in (36, 160, 201)]
         normal_colour = [0, 0, 0]
@@ -166,6 +168,10 @@ class Gui:
             colour = pfs_colour
         elif new_kind == "TailFakeNode":
             colour = tailfs_colour
+        elif new_kind == "SearchNode":
+            colour = search_colour
+        elif new_kind == "ChangeNode":
+            colour = change_colour
         elif new_kind == "NormalNode":
             colour = normal_colour
         elif new_kind == "SourceNode":
