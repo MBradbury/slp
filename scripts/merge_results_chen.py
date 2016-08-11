@@ -42,7 +42,7 @@ for filename in glob.glob('*.txt'):
 
 	with open (filename) as oldfile, open(file_dir, 'w') as newfile:
 		for line in oldfile:
-			if maximum_result_lines < 500 + len(parameters):
+			if maximum_result_lines < max_line + len(parameters):
 				if any(word in line for word in parameters) and config_finish == True:
 					pass
 				elif '#Seed' in line:

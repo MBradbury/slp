@@ -108,7 +108,7 @@ implementation
 		int16_t address;
 		int16_t neighbour_size;
 	}bias_neighbour;
-	bias_neighbour bias_neighbours[2]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
+	bias_neighbour bias_neighbours[SLP_MAX_BIAS_NEIGHBOURS]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
 
 	typedef enum
 	{
@@ -341,7 +341,7 @@ implementation
 
 			for (m=0; m!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ++m)
 			{
-				for(j=0; j!= 2; ++j)
+				for(j=0; j!= SLP_MAX_BIAS_NEIGHBOURS; ++j)
 				{
 					if (node_neighbours[m].address == local_neighbours.data[j].address)
 					{
