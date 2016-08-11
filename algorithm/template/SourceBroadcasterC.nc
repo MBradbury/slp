@@ -624,7 +624,12 @@ implementation
 
 	event uint32_t FakeMessageGenerator.initialStartDelay()
 	{
-		return FAKE_PERIOD_MS;
+		// Note: This causes problem if the period is a factor of the duration.
+		// As the node will have busy==TRUE due to sending a FakeMessage when
+		// attempting to send a ChooseMessage.
+		// So it has been changed to the technique used by other fake source SLP algorithms.
+		//return FAKE_PERIOD_MS;
+		return FAKE_PERIOD_MS / 2;
 	}
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()

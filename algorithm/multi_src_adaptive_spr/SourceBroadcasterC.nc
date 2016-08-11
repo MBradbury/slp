@@ -489,15 +489,15 @@ implementation
 
 		if (fake_type == PermFakeNode)
 		{
-			call FakeMessageGenerator.start(message);
+			call FakeMessageGenerator.start(message, sizeof(*message));
 		}
 		else if (fake_type == TailFakeNode)
 		{
-			call FakeMessageGenerator.startRepeated(message, get_tfs_duration() / estimated_number_of_sources());
+			call FakeMessageGenerator.startRepeated(message, sizeof(*message), get_tfs_duration() / estimated_number_of_sources());
 		}
 		else if (fake_type == TempFakeNode)
 		{
-			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
+			call FakeMessageGenerator.startLimited(message, sizeof(*message), get_tfs_duration());
 		}
 		else
 		{
@@ -885,6 +885,10 @@ implementation
 		case PermFakeNode: x_receive_Beacon(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
 
+	event uint32_t FakeMessageGenerator.initialStartDelay()
+	{
+		return signal FakeMessageGenerator.calculatePeriod() / 2;
+	}
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
 	{
@@ -903,19 +907,28 @@ implementation
 		}
 	}
 
-	event void FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
+	event void FakeMessageGenerator.sendFakeMessage()
 	{
-		message->sequence_number = sequence_number_next(&fake_sequence_counter);
-		message->sender_sink_distance = sink_distance;
-		message->message_type = call NodeType.get();
-		message->source_id = TOS_NODE_ID;
-		message->sender_min_source_distance = min_source_distance;
+		FakeMessage message;
+
+		message.sequence_number = sequence_number_next(&fake_sequence_counter);
+		message.sender_sink_distance = sink_distance;
+		message.message_type = call NodeType.get();
+		message.source_id = TOS_NODE_ID;
+		message.sender_min_source_distance = min_source_distance;
+
+		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
+		{
+			sequence_number_increment(&fake_sequence_counter);
+		}
 	}
 
-	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
+	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size)
 	{
-		ChooseMessage message = *original_message;
+		ChooseMessage message;
 		const am_addr_t target = fake_walk_target();
+
+		memcpy(&message, original, sizeof(message));
 
 		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
 
@@ -932,30 +945,10 @@ implementation
 		}
 		else if (call NodeType.get() == TempFakeNode)
 		{
-			become_Fake(original_message, TailFakeNode);
+			become_Fake(&message, TailFakeNode);
 		}
 		else //if (call NodeType.get() == TailFakeNode)
 		{
-		}
-	}
-
-	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)
-	{
-		// Only if the message was successfully broadcasted, should the seqno be incremented.
-		if (error == SUCCESS)
-		{
-			sequence_number_increment(&fake_sequence_counter);
-		}
-
-		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
-
-		if (tosend != NULL)
-		{
-			METRIC_BCAST(Fake, error, tosend->sequence_number);
-		}
-		else
-		{
-			METRIC_BCAST(Fake, error, BOTTOM);
 		}
 	}
 }
