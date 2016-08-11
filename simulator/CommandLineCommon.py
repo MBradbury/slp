@@ -282,7 +282,7 @@ class CLI(object):
             if parameter_values not in argument_product:
                 continue
 
-            repeats_missing = max(self.repeats - repeats_performed, 0)
+            repeats_missing = max(self.algorithm_module.Parameters.repeats - repeats_performed, 0)
 
             # Number of repeats is below the target
             if repeats_missing > 0:

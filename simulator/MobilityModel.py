@@ -130,7 +130,7 @@ class TowardsSinkMobilityModel(MobilityModel):
 
 def models():
     """A list of the names of the available models."""
-    return [cls for cls in MobilityModel.__subclasses__()]
+    return [cls for cls in MobilityModel.__subclasses__()] # pylint: disable=no-member
 
 def eval_input(source):
     result = restricted_eval(source, models())

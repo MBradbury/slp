@@ -1,13 +1,12 @@
 from __future__ import print_function, division
 
-import numpy as np
 from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
 from data.memoize import memoize
 from data.testbed.dcswarwick import DCSWarwick
 from data.testbed.indriya import Indriya
-from simulator.Topology import *
+from simulator.Topology import Line, Grid, Circle, Random, SimpleTree, Ring
 
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_id, space_behind_sink):
@@ -498,7 +497,7 @@ class IndriyaSrc31Sink60(Configuration):
 
 def configurations():
     """A list of the available configuration classes."""
-    return [cls for cls in Configuration.__subclasses__()]
+    return [cls for cls in Configuration.__subclasses__()] # pylint: disable=no-member
 
 CONFIGURATION_RANK = {
     'SourceCorner': 1,
