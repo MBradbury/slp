@@ -101,6 +101,7 @@ implementation
 		int16_t address;
 		int16_t neighbour_size;
 	}neighbour_info;
+
 	neighbour_info node_neighbours[SLP_MAX_1_HOP_NEIGHBOURHOOD]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
 
 	typedef struct
@@ -108,12 +109,14 @@ implementation
 		int16_t address;
 		int16_t neighbour_size;
 	}bias_neighbour;
-	bias_neighbour bias_neighbours[2]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
+
+	bias_neighbour bias_neighbours[SLP_MAX_BIAS_NEIGHBOURS]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
 
 	typedef enum
 	{
 		UnknownMessageType, ShortRandomWalk, LongRandomWalk
 	}MessageType;
+
 	MessageType messagetype = UnknownMessageType;
 	MessageType nextmessagetype = UnknownMessageType;
 
@@ -259,9 +262,10 @@ implementation
 		}
 		//when message reachs 5, 6 belongs to the further set, and 16 belongs to close set.
 		//we want it continue to walk along the borderline.
+		//if you are confusing, ask author for help.
 		if (further_or_closer_set == CloserSet && local_neighbours.size == 1)
 		{
-			simdbgverbose("stdout","need change to further!\n");
+			simdbgverbose("stdout","need change to further set!\n");
 			return FurtherSet;
 		}
 		else if (local_neighbours.size == 0)
@@ -338,9 +342,9 @@ implementation
 		{
 			int16_t m,j;
 
-			for (m=0; m!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ++m)
+			for (m=0; m != SLP_MAX_1_HOP_NEIGHBOURHOOD; ++m)
 			{
-				for(j=0; j!= 2; ++j)
+				for(j=0; j!= SLP_MAX_BIAS_NEIGHBOURS; ++j)
 				{
 					if (node_neighbours[m].address == local_neighbours.data[j].address)
 					{
@@ -661,13 +665,7 @@ implementation
 			else
 				continue;
 		}
-/*
-		for (j=0;j!=SLP_MAX_1_HOP_NEIGHBOURHOOD;j++)
-		{
-			if(node_neighbours[j].address!=BOTTOM)
-				simdbg("stdout","<After>neighbour address:%d, neighbour size:%d\n", node_neighbours[j].address, node_neighbours[j].neighbour_size);
-		}
-*/
+
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
@@ -687,29 +685,8 @@ implementation
 			{
 				am_addr_t target;
 
-				// The previous node(s) were unable to choose a direction,
-				// so lets try to work out the direction the message should go in.
-/*
-				if (forwarding_message.further_or_closer_set == UnknownSet)
-				{
-					const distance_neighbour_detail_t* neighbour_detail = find_distance_neighbour(&neighbours, source_addr);
-					if (neighbour_detail != NULL)
-					{
-						forwarding_message.further_or_closer_set =
-							neighbour_detail->contents.distance < landmark_distance ? FurtherSet : CloserSet;
-					}
-					else
-					{
-						forwarding_message.further_or_closer_set = random_walk_direction();
-					}
-
-					simdbgverbose("stdout", "%s: Unknown direction, setting to %d\n",
-						sim_time_string(), forwarding_message.further_or_closer_set);
-				}
-*/
-				// Get a target, ignoring the node that sent us this message
-
-				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);//if chosen size is 0, choose the other set.
+				//if chosen size is 0, choose the other set.
+				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);
 				
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 				simdbgverbose("stdout", "After target function, target is %d\n", target);
@@ -822,29 +799,9 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		//int16_t ii;
-
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
-/*
-		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
-		{
-			if(node_neighbours[ii].address == rcvd->node_id)
-			{
-				node_neighbours[ii].neighbour_size = (node_neighbours[ii].neighbour_size <= rcvd->neighbour_size)? 
-				rcvd->neighbour_size: node_neighbours[ii].neighbour_size;
-				break;
-			}
-			else if (node_neighbours[ii].address == BOTTOM)
-			{
-				node_neighbours[ii].address = rcvd->node_id;
-				node_neighbours[ii].neighbour_size = rcvd->neighbour_size;
-				break;
-			}
-			else
-				continue;
-		}
-*/
+
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
