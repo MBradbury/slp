@@ -103,8 +103,7 @@ implementation
 
 	components FakeMessageGeneratorP;
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
-	FakeMessageGeneratorP.Packet -> FakeSender;
-	FakeMessageGeneratorP.FakeSender -> FakeSender;
+	FakeMessageGeneratorP.Packet -> ActiveMessageC;
 	FakeMessageGeneratorP.MetricLogging -> MetricLogging;
 
 	components ObjectDetectorP;

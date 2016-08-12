@@ -11,4 +11,11 @@ implementation
 
 	App.NodeType = NodeType;
 	App.MetricLogging = MetricLogging;
+
+#ifdef USE_SERIAL_PRINTF
+	// Time
+	components LocalTimeMilliC;
+	
+	App.LocalTime -> LocalTimeMilliC;
+#endif
 }

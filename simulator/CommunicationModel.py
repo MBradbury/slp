@@ -12,6 +12,8 @@ try:
 except ImportError:
     from scipy.spatial.distance import euclidean as euclidean2_2d
 
+from data.restricted_eval import restricted_eval
+
 class CommunicationModel(object):
     def __init__(self):
         self.noise_floor = None
@@ -215,8 +217,8 @@ MODEL_NAME_MAPPING = {
 def models():
     """A list of the names of the available communication models."""
     return [subsubcls
-            for subcls in CommunicationModel.__subclasses__()
-            for subsubcls in subcls.__subclasses__()]
+            for subcls in CommunicationModel.__subclasses__() # pylint: disable=no-member
+            for subsubcls in subcls.__subclasses__()] # pylint: disable=no-member
 
 def eval_input(source):
     if source in MODEL_NAME_MAPPING:
