@@ -7,10 +7,10 @@ def platform():
     return ("eyesIFX", "telosa", "telosb")
 
 def log_mode():
-	return "printf"
+    return "printf"
 
 def url():
-	return "https://www.twist.tu-berlin.de"
+    return "https://www.twist.tu-berlin.de"
 
 # Resources:
 # - https://www.twist.tu-berlin.de/tutorials/twist-getting-started.html#prerequisites
