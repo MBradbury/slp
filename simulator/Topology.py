@@ -11,7 +11,7 @@ except ImportError:
 
 class Topology(object):
     def __init__(self):
-        self.nodes = None
+        self.nodes = []
 
     def node_distance_meters(self, node1, node2):
         return euclidean2_2d(self.nodes[node1], self.nodes[node2])
@@ -70,7 +70,7 @@ class Circle(Topology):
         self.distance = distance
 
         self.nodes = [
-            np.array(f(loat(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
+            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
             for y in range(diameter)
             for x in range(diameter)
         ]

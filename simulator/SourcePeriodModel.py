@@ -124,7 +124,7 @@ class FactoringPeriodModel(PeriodModel):
 
 def models():
     """A list of the names of the available period models."""
-    return [cls for cls in PeriodModel.__subclasses__()]
+    return [cls for cls in PeriodModel.__subclasses__()] # pylint: disable=no-member
 
 @memoize
 def create_specific(source):

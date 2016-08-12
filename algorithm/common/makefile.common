@@ -1,6 +1,6 @@
 
 # Additional warnings
-CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat  -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable 
+CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable 
 
 CFLAGS += -Wsign-compare -Werror=pointer-sign -Werror=format
 
