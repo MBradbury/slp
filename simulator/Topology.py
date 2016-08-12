@@ -98,7 +98,7 @@ class Ring(Topology):
             np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
             for y in range(diameter)
             for x in range(diameter)
-            if (x == 0 or x == diameter -1) or (y == 0 or y == diameter - 1)
+            if (x == 0 or x == diameter - 1) or (y == 0 or y == diameter - 1)
         ]
 
     def __str__(self):
@@ -143,6 +143,7 @@ class Random(Topology):
         self.area = ((min_x_pos, max_x_pos), (min_y_pos, max_y_pos))
 
         def random_coordinate():
+            """Get a random 2D coordinate within the min and max, x and y coords"""
             return np.array((
                 rnd.uniform(min_x_pos, max_x_pos),
                 rnd.uniform(min_y_pos, max_y_pos)

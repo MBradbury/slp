@@ -10,10 +10,10 @@ def platform():
     return ("wsn430v13", "wsn430v14")
 
 def log_mode():
-	return "unbuffered_printf"
+    return "unbuffered_printf"
 
 def url():
-	return "https://www.iot-lab.info"
+    return "https://www.iot-lab.info"
 
 # Resources:
 # - https://github.com/iot-lab/wsn430/tree/master/OS/TinyOS
