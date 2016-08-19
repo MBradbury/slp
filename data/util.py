@@ -16,6 +16,7 @@ def recreate_dirtree(path):
     os.makedirs(path)
 
 def touch(fname, times=None):
+    # From: https://stackoverflow.com/questions/1158076/implement-touch-using-python
     with open(fname, 'a'):
         os.utime(fname, times)
 
