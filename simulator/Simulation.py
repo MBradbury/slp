@@ -36,6 +36,7 @@ class OutputCatcher(object):
 
         (d_or_e, node_id, time, detail) = line.split(':', 3)
         
+        # Do not pass newline in detail onwards
         self._linefn(d_or_e, node_id, time, detail[:-1])
 
     def close(self):
