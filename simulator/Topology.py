@@ -25,12 +25,12 @@ class Line(Topology):
         super(Line, self).__init__()
 
         self.size = size
-        self.distance = distance
+        self.distance = float(distance)
 
         y = 0
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
+            np.array((x * distance + initial_position, y * distance + initial_position), dtype=np.float64)
             for x in range(size)
         ]
 
@@ -44,10 +44,10 @@ class Grid(Topology):
         super(Grid, self).__init__()
 
         self.size = size
-        self.distance = distance
+        self.distance = float(distance)
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
+            np.array((x * distance + initial_position, y * distance + initial_position), dtype=np.float64)
             for y in range(size)
             for x in range(size)
         ]
@@ -67,10 +67,10 @@ class Circle(Topology):
 
         self.diameter_in_hops = diameter
         self.diameter = self.diameter_in_hops * distance
-        self.distance = distance
+        self.distance = float(distance)
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
+            np.array((x * distance + initial_position, y * distance + initial_position), dtype=np.float64)
             for y in range(diameter)
             for x in range(diameter)
         ]
@@ -92,10 +92,10 @@ class Ring(Topology):
         super(Ring, self).__init__()
 
         self.diameter = diameter
-        self.distance = distance
+        self.distance = float(distance)
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
+            np.array((x * distance + initial_position, y * distance + initial_position), dtype=np.float64)
             for y in range(diameter)
             for x in range(diameter)
             if (x == 0 or x == diameter - 1) or (y == 0 or y == diameter - 1)
@@ -110,10 +110,10 @@ class SimpleTree(Topology):
         super(SimpleTree, self).__init__()
 
         self.size = size
-        self.distance = distance
+        self.distance = float(distance)
 
         self.nodes = [
-            np.array((float(x * distance + initial_position), float(y * distance + initial_position)), dtype=np.float64)
+            np.array((x * distance + initial_position, y * distance + initial_position), dtype=np.float64)
             for y in range(size)
             for x in range(size)
             if (y == 0 or x == (size - 1) / 2)
@@ -130,7 +130,7 @@ class Random(Topology):
 
         self.seed = seed
         self.size = network_size
-        self.distance = distance
+        self.distance = float(distance)
 
         rnd = random.Random()
         rnd.seed(self.seed)

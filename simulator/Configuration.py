@@ -56,6 +56,8 @@ class Configuration(object):
         )
 
     def _build_connectivity_matrix(self):
+        # If there is not a uniform distance between nodes,
+        # then we cannot build the connectivity matrix this way
         if not hasattr(self.topology, "distance"):
             return
 

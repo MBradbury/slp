@@ -16,6 +16,8 @@ a.parse(sys.argv[2:])
 #
 # Also do not build for offline analysis runs
 if a.args.mode not in {"CLUSTER", "OFFLINE", "OFFLINE_GUI"}:
+    import os.path
+
     import simulator.Builder as Builder
     from simulator.Simulation import Simulation
     import simulator.Configuration as Configuration
@@ -32,7 +34,7 @@ if a.args.mode not in {"CLUSTER", "OFFLINE", "OFFLINE_GUI"}:
     build_arguments.update(configuration.build_arguments())
 
     # Now build the simulation with the specified arguments
-    Builder.build_sim(module.replace(".", "/"), **build_arguments)
+    Builder.build_sim(module.replace(".", os.path.sep), **build_arguments)
 
     # Need to build the topology.txt file once.
     # Do it now as if done later it will be created

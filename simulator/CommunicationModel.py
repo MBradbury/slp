@@ -21,6 +21,7 @@ class CommunicationModel(object):
         self.white_gausian_noise = None
 
     def setup(self, sim):
+        """Set up the communication model, using parameters from the provided simulation."""
         raise NotImplementedError()
 
 class LinkLayerCommunicationModel(CommunicationModel):
@@ -51,9 +52,12 @@ class LinkLayerCommunicationModel(CommunicationModel):
     def setup(self, sim):
         topology = sim.metrics.configuration.topology
         seed = sim.seed
+
         self._setup(topology, seed)
 
     def _setup(self, topology, seed):
+        """Provide a second setup function to help test this model against the Java version"""
+
         # Need to use the same java prng to maintain backwards compatibility
         # with existing results
         # TODO: When creating results from scratch, switch to python's rng as it is much better
@@ -101,10 +105,11 @@ class LinkLayerCommunicationModel(CommunicationModel):
             t[1,0] = 0.0
             t[1,1] = sqrt((s[0,0] * s[1,1] - s[0,1] * s[0,1]) / s[0,0])
 
+        rng = rnd.nextGaussian
         
         for (i, ni) in enumerate(topology.nodes):
-            rnd1 = rnd.nextGaussian()
-            rnd2 = rnd.nextGaussian()
+            rnd1 = rng()
+            rnd2 = rng()
 
             # The results here need to be rounded to 2 d.p. to make sure
             # that the results of the simulation match the java results.
@@ -113,18 +118,26 @@ class LinkLayerCommunicationModel(CommunicationModel):
             self.output_power_var[i] = t[0,1] * rnd1 + t[1,1] * rnd2
 
     def _obtain_link_gain(self, rnd, topology):
+        rng = rnd.nextGaussian
+        ple10 = self.path_loss_exponent * 10.0
+        ssd = self.shadowing_stddev
+        npld0 = -self.pl_d0
+        d0 = self.d0
+        opv = self.output_power_var
+        lg = self.link_gain
+
         for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
-            rnd1 = rnd.nextGaussian()
+            rnd1 = rng()
 
             distance = euclidean2_2d(ni, nj)
 
-            pathloss = -self.pl_d0 - 10.0 * self.path_loss_exponent * log10(distance / self.d0) + rnd1 * self.shadowing_stddev
+            pathloss = npld0 - ple10 * log10(distance / d0) + rnd1 * ssd
 
             # The results here need to be rounded to 2 d.p. to make sure
             # that the results of the simulation match the java results.
 
-            self.link_gain[i,j] = round(self.output_power_var[i] + pathloss, 2)
-            self.link_gain[j,i] = round(self.output_power_var[j] + pathloss, 2)
+            lg[i,j] = round(opv[i] + pathloss, 2)
+            lg[j,i] = round(opv[j] + pathloss, 2)
 
 
 
@@ -149,14 +162,16 @@ class IdealCommunicationModel(CommunicationModel):
         self._obtain_link_gain(topology, sim.wireless_range)
 
     def _obtain_link_gain(self, topology, wireless_range):
+        lg = self.link_gain
+
         for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
             if euclidean2_2d(ni, nj) <= wireless_range:
-                self.link_gain[i,j] = self.connection_strength
-                self.link_gain[j,i] = self.connection_strength
+                lg[i,j] = self.connection_strength
+                lg[j,i] = self.connection_strength
             else:
                 # Use NaNs to signal that there is no link between these two nodes
-                self.link_gain[i,j] = float('NaN')
-                self.link_gain[j,i] = float('NaN')
+                lg[i,j] = float('NaN')
+                lg[j,i] = float('NaN')
 
 
 
@@ -168,7 +183,7 @@ class LowAsymmetry(LinkLayerCommunicationModel):
             d0=1.0,
             pl_d0=55.4,
             noise_floor=-105.0,
-            s=np.matrix([[0.9, -0.7],[-0.7, 1.2]]),
+            s=np.matrix(((0.9, -0.7),(-0.7, 1.2)), dtype=np.float64),
             white_gausian_noise=4.0
         )
 
@@ -180,7 +195,7 @@ class HighAsymmetry(LinkLayerCommunicationModel):
             d0=1.0,
             pl_d0=55.4,
             noise_floor=-105.0,
-            s=np.matrix([[3.7, -3.3],[-3.3, 6.0]]),
+            s=np.matrix(((3.7, -3.3),(-3.3, 6.0)), dtype=np.float64),
             white_gausian_noise=4.0
         )
 
@@ -192,7 +207,7 @@ class NoAsymmetry(LinkLayerCommunicationModel):
             d0=1.0,
             pl_d0=55.4,
             noise_floor=-105.0,
-            s=np.matrix([[0.0, 0.0],[0.0, 0.0]]),
+            s=np.zeros((2, 2), dtype=np.float64),
             white_gausian_noise=4.0
         )
 
@@ -217,8 +232,8 @@ MODEL_NAME_MAPPING = {
 def models():
     """A list of the names of the available communication models."""
     return [subsubcls
-            for subcls in CommunicationModel.__subclasses__() # pylint: disable=no-member
-            for subsubcls in subcls.__subclasses__()] # pylint: disable=no-member
+            for subcls in CommunicationModel.__subclasses__()  # pylint: disable=no-member
+            for subsubcls in subcls.__subclasses__()]  # pylint: disable=no-member
 
 def eval_input(source):
     if source in MODEL_NAME_MAPPING:
