@@ -30,7 +30,7 @@ source ~/tinyos.env
 
 4. Install python libraries
 
-pip install scipy numpy pandas more_itertools pip --upgrade
+pip install scipy numpy pandas more_itertools shutilwhich pip --upgrade
 pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
 pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
 

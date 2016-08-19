@@ -6,11 +6,15 @@
 # Author: Matthew Bradbury
 from __future__ import print_function
 
-import os, re
-import subprocess
 import multiprocessing
+import os
+import re
+import subprocess
 
-from data.which import which
+try:
+    from shutil import which
+except ImportError:
+    from shutilwhich import which
 
 class GrapherBase(object):
     def __init__(self, output_directory):
