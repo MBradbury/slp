@@ -5,6 +5,7 @@ import base64
 from collections import OrderedDict, Sequence
 import datetime
 import fnmatch
+from functools import partial
 import math
 import multiprocessing
 from numbers import Number
@@ -71,8 +72,11 @@ def _inf_handling_literal_eval(item):
 
 DICT_NODE_KEY_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 
-def _parse_dict_node_to_value(indict):
+def _parse_dict_node_to_value(indict, decompress=False):
     # Parse a dict like "{1: 10, 2: 20, 3: 40}"
+
+    if decompress:
+        indict = zlib.decompress(base64.b64decode(indict))
 
     result = {
         int(a): float(b)
@@ -80,11 +84,6 @@ def _parse_dict_node_to_value(indict):
     }
 
     return result
-
-def _parse_compressed_dict_node_to_value(indict):
-    indict = zlib.decompress(base64.b64decode(indict))
-
-    return _parse_dict_node_to_value(indict)
 
 DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
@@ -131,8 +130,8 @@ class Analyse(object):
 
     HEADING_CONVERTERS = {
         #"Collisions": ast.literal_eval,
-        "SentHeatMap": _parse_compressed_dict_node_to_value,
-        "ReceivedHeatMap": _parse_compressed_dict_node_to_value,
+        "SentHeatMap": partial(_parse_dict_node_to_value, decompress=True),
+        "ReceivedHeatMap": partial(_parse_dict_node_to_value, decompress=True),
         "AttackerDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMoves": _parse_dict_node_to_value,
         "AttackerStepsAway": _parse_dict_tuple_nodes_to_value,
