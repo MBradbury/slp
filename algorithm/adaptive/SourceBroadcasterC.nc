@@ -337,7 +337,7 @@ implementation
 	USE_MESSAGE(Normal);
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Choose);
-	USE_MESSAGE(Fake);
+	USE_MESSAGE_WITH_CALLBACK(Fake);
 
 	void become_Normal()
 	{
@@ -357,11 +357,11 @@ implementation
 
 		if (perm_type == PermFakeNode)
 		{
-			call FakeMessageGenerator.start(message);
+			call FakeMessageGenerator.start(message, sizeof(*message));
 		}
 		else if (perm_type == TempFakeNode)
 		{
-			call FakeMessageGenerator.startLimited(message, get_tfs_duration());
+			call FakeMessageGenerator.startLimited(message, sizeof(*message), get_tfs_duration());
 		}
 		else
 		{
@@ -734,6 +734,29 @@ implementation
 		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
+	void send_Fake_done(message_t* msg, error_t error)
+	{
+		if (error == SUCCESS)
+		{
+			if (pfs_can_become_normal())
+			{
+				if (call NodeType.get() == PermFakeNode && !is_pfs_candidate)
+				{
+					call FakeMessageGenerator.expireDuration();
+				}
+			}
+		}
+	}
+
+	event uint32_t FakeMessageGenerator.initialStartDelay()
+	{
+		// The first fake message is to be sent half way through the period.
+		// After this message is sent, all other messages are sent with an interval
+		// of the period given. The aim here is to reduce the traffic at the start and
+		// end of the TFS duration.
+		return signal FakeMessageGenerator.calculatePeriod() / 2;
+	}
+
 	event uint32_t FakeMessageGenerator.calculatePeriod()
 	{
 		switch (call NodeType.get())
@@ -746,20 +769,28 @@ implementation
 		}
 	}
 
-	event void FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
+	event void FakeMessageGenerator.sendFakeMessage()
 	{
-		message->sequence_number = sequence_number_next(&fake_sequence_counter);
-		message->sink_source_distance = sink_source_distance;
-		message->source_distance = source_distance;
-		message->max_hop = first_source_distance;
-		message->sink_distance = sink_distance;
-		message->from_pfs = (call NodeType.get() == PermFakeNode);
-		message->source_id = TOS_NODE_ID;
+		FakeMessage message;
+
+		message.sequence_number = sequence_number_next(&fake_sequence_counter);
+		message.sink_source_distance = sink_source_distance;
+		message.source_distance = source_distance;
+		message.max_hop = first_source_distance;
+		message.sink_distance = sink_distance;
+		message.from_pfs = (call NodeType.get() == PermFakeNode);
+		message.source_id = TOS_NODE_ID;
+
+		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
+		{
+			sequence_number_increment(&fake_sequence_counter);
+		}
 	}
 
-	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
+	event void FakeMessageGenerator.durationExpired(const void* original_message, uint8_t original_size)
 	{
-		ChooseMessage message = *original_message;
+		ChooseMessage message;
+		memcpy(&message, original_message, sizeof(message));
 
 		simdbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
@@ -773,33 +804,5 @@ implementation
 		send_Choose_message(&message, AM_BROADCAST_ADDR);
 
 		become_Normal();
-	}
-
-	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)
-	{
-		// Only if the message was successfully broadcasted, should the seqno be incremented.
-		if (error == SUCCESS)
-		{
-			sequence_number_increment(&fake_sequence_counter);
-		}
-
-		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
-
-		if (tosend != NULL)
-		{
-			METRIC_BCAST(Fake, error, tosend->sequence_number);
-		}
-		else
-		{
-			METRIC_BCAST(Fake, error, BOTTOM);
-		}
-
-		if (pfs_can_become_normal())
-		{
-			if (call NodeType.get() == PermFakeNode && !is_pfs_candidate)
-			{
-				call FakeMessageGenerator.expireDuration();
-			}
-		}
 	}
 }

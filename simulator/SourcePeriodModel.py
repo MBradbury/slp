@@ -7,6 +7,7 @@ import numbers
 from data.memoize import memoize
 from data.restricted_eval import restricted_eval
 
+
 class PeriodModel(object):
     def __init__(self, times):
         self.period_times = times
@@ -54,6 +55,7 @@ class PeriodModel(object):
     def simple_str(self):
         """Return the simplest representation of this model."""
         return repr(self)
+
 
 class FixedPeriodModel(PeriodModel):
     """The sources broadcast at a fixed rate forever"""
@@ -122,9 +124,11 @@ class FactoringPeriodModel(PeriodModel):
         return "FactoringPeriodModel(starting_period={}, max_period={}, duration={}, factor={})".format(
             self.starting_period, self.max_period, self.duration, self.factor)
 
+
 def models():
     """A list of the names of the available period models."""
-    return [cls for cls in PeriodModel.__subclasses__()]
+    return [cls for cls in PeriodModel.__subclasses__()]  # pylint: disable=no-member
+
 
 @memoize
 def create_specific(source):
@@ -137,6 +141,7 @@ def create_specific(source):
         return result
     else:
         raise RuntimeError("The source ({}) is not valid.".format(source))
+
 
 # eval_input must be a function so it can be used as a type parameter for the arguments
 def eval_input(source):

@@ -13,7 +13,6 @@ except ImportError:
 import numpy as np
 
 import simulator.Attacker
-from simulator.Simulation import OutputCatcher
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration):
@@ -122,17 +121,20 @@ class MetricsCommon(object):
         if kind not in simulator.Attacker._messages_to_ignore:
             proximate_source_id = int(proximate_source_id)
 
+            nd = self.configuration.node_distance
+            ndm = self.configuration.node_distance_meters
+
             for source_id in self.source_ids:
-                prox_distance = self.configuration.node_distance(proximate_source_id, source_id)
-                node_distance = self.configuration.node_distance(node_id, source_id)
+                prox_distance = nd(proximate_source_id, source_id)
+                node_distance = nd(node_id, source_id)
                 
                 if node_distance < prox_distance:
                     self.received_from_further_hops[source_id] += 1
                 else:
                     self.received_from_closer_or_same_hops[source_id] += 1
                 
-                prox_distance_m = self.configuration.node_distance_meters(proximate_source_id, source_id)
-                node_distance_m = self.configuration.node_distance_meters(node_id, source_id)
+                prox_distance_m = ndm(proximate_source_id, source_id)
+                node_distance_m = ndm(node_id, source_id)
                 
                 if node_distance_m < prox_distance_m:
                     self.received_from_further_meters[source_id] += 1

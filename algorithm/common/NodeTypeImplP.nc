@@ -6,6 +6,10 @@ generic module NodeTypeImplP(uint8_t maximum_node_types)
 	provides interface NodeType;
 
 	uses interface MetricLogging;
+
+#ifdef USE_SERIAL_PRINTF
+	uses interface LocalTime<TMilli>;
+#endif
 }
 implementation
 {
@@ -29,6 +33,7 @@ implementation
 		}
 		else
 		{
+			ERROR_OCCURRED(ERROR_TOO_MANY_NODE_TYPES, "Not enough room for %s, Please increase the size of NodeTypeP.\n", name);
 			return FALSE;
 		}
 	}

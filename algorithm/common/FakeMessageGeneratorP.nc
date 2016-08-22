@@ -3,10 +3,9 @@ configuration FakeMessageGeneratorP
 {
 	provides interface FakeMessageGenerator;
 
-	uses interface MetricLogging;
-
-	uses interface AMSend as FakeSender;
 	uses interface Packet;
+
+	uses interface MetricLogging;
 }
 implementation
 {
@@ -14,14 +13,12 @@ implementation
 
 	FakeMessageGenerator = App;
 
+	App.Packet = Packet;
+	App.MetricLogging = MetricLogging;
 
-#ifndef TOSSIM
 	components LocalTimeMilliC;
 	
 	App.LocalTime -> LocalTimeMilliC;
-#endif
-
-	App.MetricLogging = MetricLogging;
 
 	components
 		new TimerMilliC() as SendFakeTimer,
@@ -29,7 +26,4 @@ implementation
 
 	App.SendFakeTimer -> SendFakeTimer;
 	App.DurationTimer -> DurationTimer;
-
-	App.Packet = Packet;
-	App.FakeSend = FakeSender;
 }
