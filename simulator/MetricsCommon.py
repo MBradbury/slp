@@ -1,7 +1,9 @@
 from __future__ import print_function, division
 
 from collections import Counter, OrderedDict, defaultdict
+import base64
 import math
+import zlib
 
 try:
     # Python 2
@@ -367,6 +369,11 @@ class MetricsCommon(object):
         return str(d).replace(": ", ":").replace(", ", ",")
 
     @staticmethod
+    def compressed_dict_str(d):
+        d = MetricsCommon.smaller_dict_str(d)
+        return base64.b64encode(zlib.compress(d, 9))
+
+    @staticmethod
     def items():
         d = OrderedDict()
         d["Seed"]                          = lambda x: x.seed()
@@ -391,8 +398,8 @@ class MetricsCommon(object):
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["NodeWasSource"]                 = lambda x: x.node_was_source()
         d["NodeTransitions"]               = lambda x: MetricsCommon.smaller_dict_str(dict(x.node_transitions))
-        d["SentHeatMap"]                   = lambda x: MetricsCommon.smaller_dict_str(x.sent_heat_map())
-        d["ReceivedHeatMap"]               = lambda x: MetricsCommon.smaller_dict_str(x.received_heat_map())
+        d["SentHeatMap"]                   = lambda x: MetricsCommon.compressed_dict_str(x.sent_heat_map())
+        d["ReceivedHeatMap"]               = lambda x: MetricsCommon.compressed_dict_str(x.received_heat_map())
 
         d["TimeBinWidth"]                  = lambda x: x._time_bin_width
         d["SentOverTime"]                  = lambda x: MetricsCommon.smaller_dict_str(dict(x.sent_over_time))

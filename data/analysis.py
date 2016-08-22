@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import ast
+import base64
 from collections import OrderedDict, Sequence
 import datetime
 import fnmatch
@@ -12,6 +13,7 @@ import re
 import sys
 import timeit
 import traceback
+import zlib
 
 from more_itertools import unique_everseen
 import numpy as np
@@ -79,6 +81,11 @@ def _parse_dict_node_to_value(indict):
 
     return result
 
+def _parse_compressed_dict_node_to_value(indict):
+    indict = zlib.decompress(base64.b64decode(indict))
+
+    return _parse_dict_node_to_value(indict)
+
 DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 
@@ -124,8 +131,8 @@ class Analyse(object):
 
     HEADING_CONVERTERS = {
         #"Collisions": ast.literal_eval,
-        "SentHeatMap": _parse_dict_node_to_value,
-        "ReceivedHeatMap": _parse_dict_node_to_value,
+        "SentHeatMap": _parse_compressed_dict_node_to_value,
+        "ReceivedHeatMap": _parse_compressed_dict_node_to_value,
         "AttackerDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMoves": _parse_dict_node_to_value,
         "AttackerStepsAway": _parse_dict_tuple_nodes_to_value,
