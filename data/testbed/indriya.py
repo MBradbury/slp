@@ -21,22 +21,13 @@ def url():
 
 class Indriya(Topology):
     """The layout of nodes on the Indriya testbed, see: https://indriya.comp.nus.edu.sg/motelab/html/motes-info.php"""
-    def __init__(self, initial_position=10.0):
+    def __init__(self):
         super(Indriya, self).__init__()
 
         floor_distance = 20.0
 
-        self.nodes = [
-            np.array((-100, -100), dtype=np.float64),  # Padding Node - There is no node 0 in this network
-        ]
-
-        self.nodes += [
-            np.array((-100, -100), dtype=np.float64)
-        ] * (39 + 86)
-
-        # Apply the initial position
-        for node in self.nodes:
-            node += initial_position
+        for nid in xrange(39 + 86):
+            self.nodes[nid] = np.array((-100, -100), dtype=np.float64)
 
     def __str__(self):
         return "Indriya<>"

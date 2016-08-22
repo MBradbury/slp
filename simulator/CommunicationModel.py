@@ -50,12 +50,12 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.output_power_var = None
 
     def setup(self, sim):
-        topology = sim.metrics.configuration.topology
+        nodes = sim.metrics.configuration.topology.nodes.values()
         seed = sim.seed
 
-        self._setup(topology, seed)
+        self._setup(nodes, seed)
 
-    def _setup(self, topology, seed):
+    def _setup(self, nodes, seed):
         """Provide a second setup function to help test this model against the Java version"""
 
         # Need to use the same java prng to maintain backwards compatibility
@@ -66,30 +66,30 @@ class LinkLayerCommunicationModel(CommunicationModel):
         rnd = Random(seed)
 
         if __debug__:
-            self._check_topology(topology)
+            self._check_nodes(nodes)
 
-        num_nodes = len(topology.nodes)
+        num_nodes = len(nodes)
 
         self.noise_floor = np.zeros(num_nodes, dtype=np.float64)
         self.output_power_var = np.zeros(num_nodes, dtype=np.float64)
         self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
-        self._obtain_radio_pt_pn(rnd, topology)
+        self._obtain_radio_pt_pn(rnd, nodes)
 
-        self._obtain_link_gain(rnd, topology)
+        self._obtain_link_gain(rnd, nodes)
 
-    def _check_topology(self, topology):
+    def _check_nodes(self, nodes):
         """Check that all nodes are at least d0 distance away from each other.
         This model does not work correctly when nodes are closer than d0."""
 
-        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
+        for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
 
                 distance = euclidean2_2d(ni, nj)
                 if distance < self.d0:
                     raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
                         distance, i, ni, j, nj, self.d0))
 
-    def _obtain_radio_pt_pn(self, rnd, topology):
+    def _obtain_radio_pt_pn(self, rnd, nodes):
 
         s = self.s
         t = np.zeros((2, 2), dtype=np.float64)
@@ -107,7 +107,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         rng = rnd.nextGaussian
         
-        for (i, ni) in enumerate(topology.nodes):
+        for (i, ni) in enumerate(nodes):
             rnd1 = rng()
             rnd2 = rng()
 
@@ -117,7 +117,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
             self.noise_floor[i] = round(self.noise_floor_pn + t[0,0] * rnd1, 2)
             self.output_power_var[i] = t[0,1] * rnd1 + t[1,1] * rnd2
 
-    def _obtain_link_gain(self, rnd, topology):
+    def _obtain_link_gain(self, rnd, nodes):
         rng = rnd.nextGaussian
         ple10 = self.path_loss_exponent * 10.0
         ssd = self.shadowing_stddev
@@ -126,7 +126,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         opv = self.output_power_var
         lg = self.link_gain
 
-        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
+        for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
             rnd1 = rng()
 
             distance = euclidean2_2d(ni, nj)
@@ -150,21 +150,21 @@ class IdealCommunicationModel(CommunicationModel):
         self.white_gausian_noise = white_gausian_noise
 
     def setup(self, sim):
-        topology = sim.metrics.configuration.topology
+        nodes = sim.metrics.configuration.topology.nodes.values()
 
-        num_nodes = len(topology.nodes)
+        num_nodes = len(nodes)
 
         # All nodes have the same noise floor
         self.noise_floor = np.full(num_nodes, self.noise_floor_pn, dtype=np.float64)
 
         self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
-        self._obtain_link_gain(topology, sim.wireless_range)
+        self._obtain_link_gain(nodes, sim.wireless_range)
 
-    def _obtain_link_gain(self, topology, wireless_range):
+    def _obtain_link_gain(self, nodes, wireless_range):
         lg = self.link_gain
 
-        for ((i, ni), (j, nj)) in combinations(enumerate(topology.nodes), 2):
+        for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
             if euclidean2_2d(ni, nj) <= wireless_range:
                 lg[i,j] = self.connection_strength
                 lg[j,i] = self.connection_strength

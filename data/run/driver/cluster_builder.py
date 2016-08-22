@@ -38,13 +38,6 @@ class Runner:
 
         # Previously there have been problems with the built files not
         # properly having been flushed to the disk before attempting to move them.
-        # Write the topology here to give the files some time to flush to disk.
-
-        # Create the topology of this configuration
-        print("Creating topology file...")
-        configuration = Configuration.create(a.args.configuration, a.args)
-        Simulation.Simulation.write_topology_file(configuration.topology.nodes, target_directory)
-
 
         print("Copying files from {} to {}...".format(module_path, target_directory))
 

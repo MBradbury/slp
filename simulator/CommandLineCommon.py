@@ -117,7 +117,7 @@ class CLI(object):
         source_period_index = names.index('source period')
 
         def process(*args):
-            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index])
+            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index], "topology")
             num_sources = len(configuration.source_ids)
             source_period = args[source_period_index] * num_sources
             return args[:source_period_index] + (source_period,) + args[source_period_index+1:]
