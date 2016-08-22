@@ -1,6 +1,8 @@
+from __future__ import print_function, division
+
 import re
 
-from simulator.Simulation import OutputCatcher, Simulation, OfflineSimulation
+from simulator.Simulation import Simulation, OfflineSimulation
 
 ###############################################
 class DebugAnalyzer:
@@ -102,11 +104,12 @@ class Gui:
         self._sim.register_output_handler('DAS-State', self._process_message)
 
     def _adjust_location(self, loc):
+        initial_position = 60.0
         factor = self._node_position_scale_factor
-        return (loc[0] * factor, loc[1] * factor)
+        return (initial_position + loc[0] * factor, initial_position + loc[1] * factor)
 
-    def node_location(self, node_id):
-        return self._adjust_location(self._sim.nodes[node_id].location)
+    def node_location(self, ordered_nid):
+        return self._adjust_location(self._sim.node_from_ordered_nid(ordered_nid).location)
 
     ####################
     def _animate_leds(self, time, node_id, detail):

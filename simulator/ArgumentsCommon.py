@@ -12,6 +12,11 @@ import simulator.SourcePeriodModel as SourcePeriodModel
 
 # OFFLINE < OFFLINE_GUI
 
+def _secure_random():
+    """Returns a random 32 bit (4 byte) signed integer"""
+    import struct, os
+    return struct.unpack("<i", os.urandom(4))[0]
+
 class ArgumentsCommon(object):
     def __init__(self, description, has_safety_period=False):
         parser = argparse.ArgumentParser(description=description, add_help=False)
@@ -42,6 +47,8 @@ class ArgumentsCommon(object):
 
         parser_single.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0,
                                    help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
+
+        parser_single.add_argument("--node-id-order", choices=["topology", "randomised"], default="randomised")
 
         if has_safety_period:
             parser_single.add_argument("-safety", "--safety-period", type=float, required=True)
@@ -100,7 +107,7 @@ class ArgumentsCommon(object):
         self.args = None
 
         # Don't show these arguments when printing the argument values before showing the results
-        self.arguments_to_hide = {"job_id", "verbose", "gui_node_label", "gui_scale", "mode"}
+        self.arguments_to_hide = {"job_id", "verbose", "gui_node_label", "gui_scale", "mode", "seed"}
 
     def add_argument(self, *args, **kwargs):
 
@@ -112,6 +119,10 @@ class ArgumentsCommon(object):
 
     def parse(self, argv):
         self.args = self._parser.parse_args(argv)
+
+        if hasattr(self.args, 'seed'):
+            if self.args.seed is None:
+                self.args.seed = _secure_random()
 
         if hasattr(self.args, 'source_mobility'):
             configuration = Configuration.create(self.args.configuration, self.args)

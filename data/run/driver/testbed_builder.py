@@ -61,6 +61,10 @@ class Runner:
         log_mode = self.testbed.log_mode()
         if log_mode == "printf":
             build_args["USE_SERIAL_PRINTF"] = 1
+            build_args["SERIAL_PRINTF_BUFFERED"] = 1
+        elif log_mode == "unbuffered_printf":
+            build_args["USE_SERIAL_PRINTF"] = 1
+            build_args["SERIAL_PRINTF_UNBUFFERED"] = 1
         elif log_mode == "serial":
             build_args["USE_SERIAL_MESSAGES"] = 1
         else:
@@ -89,7 +93,7 @@ class Runner:
         ]
         for name in files_to_copy:
             try:
-                shutil.copy(os.path.join(module_path, "build", self.testbed.platform(), name), target_directory)
+                shutil.copy(os.path.join(module_path, "build", self.platform, name), target_directory)
             except IOError as ex:
                 # Ignore expected fails
                 if name not in {"main.srec", "wiring-check.xml"}:

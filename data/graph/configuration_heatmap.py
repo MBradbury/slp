@@ -169,7 +169,7 @@ class Grapher(GrapherBase):
 
         coords = {}
 
-        for (nid, (x, y)) in enumerate(configuration.topology.nodes):
+        for (nid, (x, y)) in configuration.topology.nodes.items():
             
             coords[(x, y)] = self.zextractor(configuration, nid)
 

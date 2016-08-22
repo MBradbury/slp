@@ -10,13 +10,9 @@ import select
 import sys
 import timeit
 
-import simulator.CommunicationModel
-from simulator.Topology import topology_path
+import numpy as np
 
-def _secure_random():
-    """Returns a random 32 bit (4 byte) signed integer"""
-    import struct
-    return struct.unpack("<i", os.urandom(4))[0]
+import simulator.CommunicationModel
 
 Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
@@ -36,6 +32,7 @@ class OutputCatcher(object):
 
         (d_or_e, node_id, time, detail) = line.split(':', 3)
         
+        # Do not pass newline in detail onwards
         self._linefn(d_or_e, node_id, time, detail[:-1])
 
     def close(self):
@@ -73,7 +70,7 @@ class Simulation(object):
         self._read_poller = select.epoll()
 
         # Record the seed we are using
-        self.seed = args.seed if args.seed is not None else _secure_random()
+        self.seed = args.seed
 
         # Set tossim seed
         self.tossim.randomSeed(self.seed)
@@ -94,6 +91,8 @@ class Simulation(object):
         # Cache the number of ticks per second.
         # This value should not change throughout the simulation's execution
         self._ticks_per_second = self.tossim.ticksPerSecond()
+
+        self.nodes = []
 
         self._create_nodes(configuration.topology.nodes)
 
@@ -118,8 +117,6 @@ class Simulation(object):
         metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
 
         self.metrics = metrics_module.Metrics(self, configuration)
-
-        self.topology_path = topology_path(module_name, args)
 
         self.start_time = None
 
@@ -157,24 +154,35 @@ class Simulation(object):
         """Get the euclidean distance between two nodes specified by their ids"""
         return self.metrics.configuration.node_distance_meters(left, right)
 
-    def ticks_to_seconds(self, ticks):
-        """Converts simulation time ticks into seconds"""
-        return ticks / self._ticks_per_second
-
     def sim_time(self):
         """Returns the current simulation time in seconds"""
         return self.tossim.timeInSeconds()
 
     def _create_nodes(self, node_locations):
         """Creates nodes and initialize their boot times"""
+        for (ordered_nid, loc) in node_locations.items():
+            tossim_node = self.tossim.getNode(ordered_nid)
 
-        self.nodes = []
-        for (i, loc) in enumerate(node_locations):
-            tossim_node = self.tossim.getNode(i)
-            new_node = Node(i, loc, tossim_node)
-            self.nodes.append(new_node)
+            self.nodes.append(Node(ordered_nid, loc, tossim_node))
 
-            self.set_boot_time(new_node)
+            self.set_boot_time(tossim_node)
+
+    def node_from_ordered_nid(self, ordered_nid):
+        for node in self.nodes:
+            if node.nid == ordered_nid:
+                return node
+
+        raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
+
+    def node_from_topology_nid(self, topology_nid):
+
+        ordered_nid = self.metrics.configuration.topology.to_ordered_nid(topology_nid)
+
+        for node in self.nodes:
+            if node.nid == ordered_nid:
+                return node
+
+        raise RuntimeError("Unable to find a node with topology_nid of {}".format(topology_nid))
 
     def _pre_run(self):
         """Called before the simulator run loop starts"""
@@ -227,28 +235,22 @@ class Simulation(object):
         finally:
             self._post_run(event_count)
 
-    def set_boot_time(self, node):
+    def set_boot_time(self, tossim_node):
         """
         Sets the boot time of the given node to be at a
         random time between 0 and self.latest_node_start_time seconds.
         """
         start_time = int(random.uniform(0, self.latest_node_start_time) * self._ticks_per_second)
-        node.tossim_node.bootAtTime(start_time)
-
-    @staticmethod
-    def write_topology_file(node_locations, location="."):
-        with open(os.path.join(location, "topology.txt"), "w") as of:
-            for (nid, (x, y)) in enumerate(node_locations):
-                print("{}\t{}\t{}".format(nid, x, y), file=of)    
+        tossim_node.bootAtTime(start_time)
 
     def setup_radio(self):
         """Creates radio links for node pairs that are in range."""
-        import numpy as np
-
         model = simulator.CommunicationModel.eval_input(self.communication_model)
 
         cm = model()
         cm.setup(self)
+
+        index_to_ordered = self.metrics.configuration.topology.index_to_ordered
 
         for ((i, j), gain) in np.ndenumerate(cm.link_gain):
             if i == j:
@@ -256,10 +258,16 @@ class Simulation(object):
             if np.isnan(gain):
                 continue
 
-            self.radio.add(i, j, gain)
+            # Convert from the indexes to the ordered node ids
+            nidi = index_to_ordered(i)
+            nidj = index_to_ordered(j)
+
+            self.radio.add(nidi, nidj, gain)
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
-            self.radio.setNoise(i, noise_floor, cm.white_gausian_noise)
+            nidi = index_to_ordered(i)
+
+            self.radio.setNoise(nidi, noise_floor, cm.white_gausian_noise)
 
     def setup_noise_models(self):
         """Create the noise model for each of the nodes in the network."""
@@ -317,12 +325,14 @@ class OfflineSimulation(object):
     def __init__(self, module_name, configuration, args, log_filename):
 
         # Record the seed we are using
-        self.seed = args.seed if args.seed is not None else _secure_random()
+        self.seed = args.seed
 
         # It is important to seed python's random number generator
         # as well as TOSSIM's. If this is not done then the simulations
         # will differ when the seeds are the same.
         random.seed(self.seed)
+
+        self.nodes = []
 
         self._create_nodes(configuration.topology.nodes)
 
@@ -373,21 +383,15 @@ class OfflineSimulation(object):
         """Get the euclidean distance between two nodes specified by their ids"""
         return self.metrics.configuration.node_distance_meters(left, right)
 
-    def ticks_to_seconds(self, ticks):
-        """Converts simulation time ticks into seconds"""
-        return ticks / 1000000000.0
-
     def sim_time(self):
         """Returns the current simulation time in seconds"""
         return (self._real_end_time - self._real_start_time).total_seconds()
 
     def _create_nodes(self, node_locations):
-        """Creates nodes and initialize their boot times"""
+        """Creates nodes"""
 
-        self.nodes = []
-        for (i, loc) in enumerate(node_locations):
-            new_node = Node(i, loc, None)
-            self.nodes.append(new_node)
+        for (nid, loc) in node_locations.items():
+            self.nodes.append(Node(nid, nid, loc, None))
 
     def _pre_run(self):
         """Called before the simulator run loop starts"""

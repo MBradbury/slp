@@ -11,14 +11,8 @@ class Metrics(MetricsCommon):
     def items():
         d = MetricsCommon.items()
         d["FakeSent"]               = lambda x: x.number_sent("Fake")
-        d["ChooseSent"]             = lambda x: x.number_sent("Choose")
         d["AwaySent"]               = lambda x: x.number_sent("Away")
         d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
         d["DummyNormalSent"]        = lambda x: x.number_sent("DummyNormal")
-        d["TFS"]                    = lambda x: x.times_node_changed_to("TempFakeNode")
-        d["PFS"]                    = lambda x: x.times_node_changed_to("PermFakeNode")
-        d["TailFS"]                 = lambda x: x.times_node_changed_to("TailFakeNode")
-        d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=("TempFakeNode", "PermFakeNode", "TailFakeNode"))
-        d["FakeToFake"]             = lambda x: x.times_fake_node_changed_to_fake()
 
         return d

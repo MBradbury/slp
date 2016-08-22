@@ -13,7 +13,7 @@ import sys
 import timeit
 import traceback
 
-from  more_itertools import unique_everseen
+from more_itertools import unique_everseen
 import numpy as np
 import pandas as pd
 
@@ -89,22 +89,22 @@ def _parse_dict_tuple_nodes_to_value(indict):
     # Handle two sorts of attacker distance dicts
     # 1. {attacker_id: distance}
     # 2. {(source_id, attacker_id): distance}}
-    
+
     # New style
-    d1 = {
+    dict1 = {
         (int(a), int(b)): float(c)
         for (a, b, c) in DICT_TUPLE_KEY_RE.findall(indict)
     }
 
     # Old style - assume the source is 0
-    d2 = {
+    dict2 = {
         (0, int(b)): float(c)
         for (b, c) in DICT_TUPLE_KEY_OLD_RE.findall(indict)
     }
 
-    d1.update(d2)
+    dict1.update(dict2)
 
-    return d1
+    return dict1
 
 class Analyse(object):
 
@@ -140,17 +140,17 @@ class Analyse(object):
         "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
     }
 
-    def __init__(self, infile, normalised_values):
+    def __init__(self, infile_path, normalised_values):
 
         self.opts = {}
 
         self.unnormalised_headings = []
         self.columns = {}
 
-        with open(infile, 'r') as f:
+        with open(infile_path, 'r') as infile:
             line_number = 0
 
-            for line in f:
+            for line in infile:
 
                 line_number += 1
 
@@ -171,7 +171,7 @@ class Analyse(object):
                     break
 
         if line_number == 0:
-            raise EmptyFileError(infile)
+            raise EmptyFileError(infile_path)
 
         self._unnormalised_headings_count = len(self.unnormalised_headings)
 
@@ -180,7 +180,7 @@ class Analyse(object):
         self.headings = list(self.unnormalised_headings)
         self.headings.extend(self.additional_normalised_headings)
 
-        self.columns = pd.read_csv(infile,
+        self.columns = pd.read_csv(infile_path,
             names=self.unnormalised_headings, header=None,
             sep='|',
             skiprows=line_number,
@@ -209,13 +209,17 @@ class Analyse(object):
         num_value = self._get_from_opts_or_values(num, row)
         den_value = self._get_from_opts_or_values(den, row)
 
+        if num_value is None or den_value is None:
+            return None
+
         return np.float_(num_value / den_value)
 
 
     def _get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
                                              int(self.opts['network_size']),
-                                             float(self.opts['distance']))
+                                             float(self.opts['distance']),
+                                             self.opts['node_id_order'])
 
     def _get_from_opts_or_values(self, name, values):
         try:
@@ -290,13 +294,19 @@ class Analyse(object):
 
             elif name == "good_move_ratio":
 
-                steps_towards = self._get_from_opts_or_values("AttackerStepsTowards", values)
-                steps_away =  self._get_from_opts_or_values("AttackerStepsAway", values)
+                try:
+                    steps_towards = self._get_from_opts_or_values("AttackerStepsTowards", values)
+                    steps_away = self._get_from_opts_or_values("AttackerStepsAway", values)
+                except KeyError as ex:
+                    #print("Unable to calculate good_move_ratio due to the KeyError {}".format(ex))
+                    return None
 
                 ratios = []
 
                 for node_id in steps_towards.keys():
-                    ratios.append(float(steps_towards[node_id]) / (float(steps_towards[node_id]) + float(steps_away[node_id])))
+                    steps_towards_node = float(steps_towards[node_id])
+
+                    ratios.append(steps_towards_node / (steps_towards_node + float(steps_away[node_id])))
 
                 ave = np.mean(ratios)
 
@@ -337,7 +347,7 @@ class Analyse(object):
         #for k in heatmap.keys():
         #    if k < 0 or k >= number_nodes:
         #        raise RuntimeError("The key {} is invalid for this map it is not between {} and {}".format(k, 0, number_nodes))
-    
+
     def _check_captured_consistent(self, values, line_number):
         """If captured is set to true, there should be an attacker at the source location"""
         captured_index = self.headings.index("Captured")
@@ -484,7 +494,8 @@ class AnalysisResults:
     def get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
                                              int(self.opts['network_size']),
-                                             float(self.opts['distance']))
+                                             float(self.opts['distance']),
+                                             self.opts['node_id_order'])
 
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values, normalised_values=None):
@@ -574,14 +585,12 @@ class AnalyzerCommon(object):
                 except Exception as ex:
                     outqueue.put((path, None, (ex, traceback.format_exc())))
 
-
         nprocs = multiprocessing.cpu_count()
 
         inqueue = multiprocessing.Queue()
         outqueue = multiprocessing.Queue()
 
         pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue))
-
 
         summary_file_path = os.path.join(self.results_directory, summary_file)
 
@@ -591,7 +600,6 @@ class AnalyzerCommon(object):
 
         total = len(files)
 
-
         for infile in files:
             path = os.path.join(self.results_directory, infile)
             inqueue.put(path)
@@ -599,7 +607,6 @@ class AnalyzerCommon(object):
         # Push the queue sentinel
         for i in range(nprocs):
             inqueue.put(None)
-
 
         with open(summary_file_path, 'w') as out:
 

@@ -24,7 +24,7 @@ args = parser.parse_args(sys.argv[1:])
 
 if args.min_source_distance_heatmap:
 	configuration_names = Configuration.names()
-	configurations = [Configuration.create_specific(name, 11, 4.5) for name in Configuration.names()]
+	configurations = [Configuration.create_specific(name, 11, 4.5, "topology") for name in Configuration.names()]
 
 	#Get rid of configurations that aren't grids
 	configurations = filter(lambda c: isinstance(c.topology, Grid), configurations)
@@ -56,7 +56,7 @@ if args.min_source_distance_heatmap:
 
 def angle_heapmaps(description, zextractor):
 	configuration_names = Configuration.names()
-	configurations = [Configuration.create_specific(name, 11, 4.5) for name in Configuration.names()]
+	configurations = [Configuration.create_specific(name, 11, 4.5, "topology") for name in Configuration.names()]
 
 	#Get rid of configurations that aren't grids
 	configurations = filter(lambda c: isinstance(c.topology, Grid), configurations)

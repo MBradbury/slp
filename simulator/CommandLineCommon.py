@@ -117,7 +117,7 @@ class CLI(object):
         source_period_index = names.index('source period')
 
         def process(*args):
-            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index])
+            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index], "topology")
             num_sources = len(configuration.source_ids)
             source_period = args[source_period_index] * num_sources
             return args[:source_period_index] + (source_period,) + args[source_period_index+1:]
@@ -176,9 +176,10 @@ class CLI(object):
     def _run_cluster(self, args):
         cluster_directory = os.path.join("cluster", self.algorithm_module.name)
 
-        from data import cluster_manager
+        import data.cluster
+        from data import submodule_loader
 
-        cluster = cluster_manager.load(args.name)
+        cluster = submodule_loader.load(data.cluster, args.name)
 
         if 'build' == args.cluster_mode:
             print("Removing existing cluster directory and creating a new one")
@@ -214,12 +215,12 @@ class CLI(object):
         sys.exit(0)
 
     def _run_testbed(self, args):
-
-        from data import testbed_manager
-
-        testbed = testbed_manager.load(args.name)
-
         testbed_directory = os.path.join("testbed", self.algorithm_module.name)
+
+        import data.testbed
+        from data import submodule_loader
+
+        testbed = submodule_loader.load(data.testbed, args.name)
 
         if 'build' == args.testbed_mode:
             from data.run.driver.testbed_builder import Runner as Builder
@@ -282,7 +283,7 @@ class CLI(object):
             if parameter_values not in argument_product:
                 continue
 
-            repeats_missing = max(self.repeats - repeats_performed, 0)
+            repeats_missing = max(self.algorithm_module.Parameters.repeats - repeats_performed, 0)
 
             # Number of repeats is below the target
             if repeats_missing > 0:
