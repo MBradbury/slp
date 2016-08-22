@@ -218,7 +218,8 @@ class Analyse(object):
     def _get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
                                              int(self.opts['network_size']),
-                                             float(self.opts['distance']))
+                                             float(self.opts['distance']),
+                                             self.opts['node_id_order'])
 
     def _get_from_opts_or_values(self, name, values):
         try:
@@ -493,7 +494,8 @@ class AnalysisResults:
     def get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
                                              int(self.opts['network_size']),
-                                             float(self.opts['distance']))
+                                             float(self.opts['distance']),
+                                             self.opts['node_id_order'])
 
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values, normalised_values=None):

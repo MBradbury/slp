@@ -15,32 +15,21 @@ def log_mode():
 
 class DCSWarwick(Topology):
     """The layout of the nodes in DCS Warwick."""
-    def __init__(self, initial_position=10.0):
+    def __init__(self):
         super(DCSWarwick, self).__init__()
 
         floor_distance = 20.0
 
-        self.nodes = [
-            np.array((-100, -100), dtype=np.float64),  # Padding Node - There is no node 0 in this network
-
-            np.array((floor_distance * 2 + 0, 0),   dtype=np.float64),  # CS2.01
-            np.array((floor_distance * 2 + 5, 7),   dtype=np.float64),  # CS2.08 (window)
-            np.array((floor_distance * 2 + 5, 10),  dtype=np.float64),  # CS2.08 (shelf)
-            np.array((floor_distance * 2 + 5, 5),   dtype=np.float64),  # CS2.06
-
-            np.array((-100, -100), dtype=np.float64),  # Padding Node - There is no node 5 in this network
-
-            np.array((floor_distance * 1 + 5, 5), dtype=np.float64),  # CS1.02 (far end)
-            np.array((floor_distance * 1 + 5, 10), dtype=np.float64),  # CS1.02 (door)
-            np.array((floor_distance * 2 + 5, 0),   dtype=np.float64),  # CS2.02
-
-            #np.array((-1, -1), dtype=np.float64),  # Padding Node
-            #np.array((-1, -1), dtype=np.float64),  # Padding Node
-        ]
-
-        # Apply the initial position
-        for node in self.nodes:
-            node += initial_position
+        self.nodes[1] = np.array((floor_distance * 2 + 0, 0),   dtype=np.float64),  # CS2.01
+        self.nodes[2] = np.array((floor_distance * 2 + 5, 7),   dtype=np.float64),  # CS2.08 (window)
+        self.nodes[3] = np.array((floor_distance * 2 + 5, 10),  dtype=np.float64),  # CS2.08 (shelf)
+        self.nodes[4] = np.array((floor_distance * 2 + 5, 5),   dtype=np.float64),  # CS2.06
+        #self.nodes[5] = np.array((-100, -100), dtype=np.float64),
+        self.nodes[6] = np.array((floor_distance * 1 + 5, 5), dtype=np.float64),  # CS1.02 (far end)
+        self.nodes[7] = np.array((floor_distance * 1 + 5, 10), dtype=np.float64),  # CS1.02 (door)
+        self.nodes[8] = np.array((floor_distance * 2 + 5, 0),   dtype=np.float64),  # CS2.02
+        #self.nodes[9] = np.array((-1, -1), dtype=np.float64),  # Padding Node
+        #self.nodes[10] = np.array((-1, -1), dtype=np.float64),  # Padding Node
 
     def __str__(self):
         return "DCSWarwick<>"
