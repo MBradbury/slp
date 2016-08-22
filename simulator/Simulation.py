@@ -275,7 +275,7 @@ class Simulation(object):
 
         # Instead of reading in all the noise data, a limited amount
         # is used. If we were to use it all it leads to large slowdowns.
-        count = 1000
+        count = 10000
 
         noises = list(islice(self._read_noise_from_file(path), count))
 
