@@ -282,11 +282,7 @@ class Simulation(object):
         for node in self.nodes:
             tnode = node.tossim_node
 
-            # Provide a hint as to the number of noise traces
-            tnode.reserveNoiseTraces(len(noises))
-
-            for noise in noises:
-                tnode.addNoiseTraceReading(noise)
+            tnode.addNoiseTraces(noises)
 
             tnode.createNoiseModel()
 
