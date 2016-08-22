@@ -154,10 +154,6 @@ class Simulation(object):
         """Get the euclidean distance between two nodes specified by their ids"""
         return self.metrics.configuration.node_distance_meters(left, right)
 
-    def ticks_to_seconds(self, ticks):
-        """Converts simulation time ticks into seconds"""
-        return ticks / self._ticks_per_second
-
     def sim_time(self):
         """Returns the current simulation time in seconds"""
         return self.tossim.timeInSeconds()
@@ -386,10 +382,6 @@ class OfflineSimulation(object):
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
         return self.metrics.configuration.node_distance_meters(left, right)
-
-    def ticks_to_seconds(self, ticks):
-        """Converts simulation time ticks into seconds"""
-        return ticks / 1000000000.0
 
     def sim_time(self):
         """Returns the current simulation time in seconds"""
