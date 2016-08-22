@@ -107,10 +107,15 @@ else:
 
     subprocess_args = ["python", "-OO", "-m", "simulator.DoRun"] + sys.argv[1:]
 
-    if a.args.job_id is not None:
-        print("Starting cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+    if a.args.mode == "CLUSTER":
+        if a.args.job_id is not None:
+            print("Starting cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+        else:
+            print("Starting cluster job at {}".format(datetime.now()), file=sys.stderr)
+    elif a.args.mode == "PARALLEL":
+        print("Starting parallel job at {}".format(datetime.now()), file=sys.stderr)
     else:
-        print("Starting cluster job at {}".format(datetime.now()), file=sys.stderr)
+        raise RuntimeError("Unknown job type of {}".format(a.args.mode))
 
     print("Creating a process pool with {} processes.".format(a.args.thread_count), file=sys.stderr)
 
@@ -146,9 +151,14 @@ else:
     finally:
         job_pool.join()
 
-        if a.args.job_id is not None:
-            print("Finished cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+        if a.args.mode == "CLUSTER":
+            if a.args.job_id is not None:
+                print("Finished cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+            else:
+                print("Finished cluster job at {}".format(datetime.now()), file=sys.stderr)
+        elif a.args.mode == "PARALLEL":
+            print("Finished parallel job at {}".format(datetime.now()), file=sys.stderr)
         else:
-            print("Finished cluster job at {}".format(datetime.now()), file=sys.stderr)
+            raise RuntimeError("Unknown job type of {}".format(a.args.mode))
 
         sys.stderr.flush()
