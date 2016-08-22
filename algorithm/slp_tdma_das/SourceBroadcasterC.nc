@@ -28,7 +28,7 @@
 #define PR_DIST 8
 
 //Length of phantom route
-#define PR_LENGTH 10
+#define PR_LENGTH 10 //Half sink-source distance/safety period (which is 5 for 11x11)
 #define SEARCH_PERIOD_COUNT 24
 
 module SourceBroadcasterC
@@ -831,21 +831,32 @@ implementation
 
     void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)
     {
+        IDList npar;
         METRIC_RCV_CHANGE(rcvd);
         if(rcvd->a_node != TOS_NODE_ID) return;
-        if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID)
+        npar = IDList_minus_parent(&potential_parents, parent);
+        npar = IDList_minus_parent(&npar, source_addr);
+        if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID && npar.count != 0)
         {
             ChangeMessage msg;
             OnehopList onehop;
-            IDList npar = IDList_minus_parent(&potential_parents, parent); //XXX Problem is this is often empty
-            npar = IDList_minus_parent(&npar, source_addr);
             simdbg("stdout", "Received change\n");
-            NeighbourList_select(&n_info, &neighbours, &onehop);
             slot = rcvd->n_slot - 1;
-            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
+            NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
+            NeighbourList_select(&n_info, &neighbours, &onehop);
             dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
-            msg.a_node = choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
+            msg.a_node = choose(&npar);
+            /*if(npar.count != 0)*/
+            /*{*/
+                /*msg.a_node = choose(&npar);*/
+            /*}*/
+            /*else*/
+            /*{*/
+                /*IDList potential_receivers = IDList_minus_parent(&neighbours, source_addr);*/
+                /*msg.a_node = choose(&potential_receivers);*/
+            /*}*/
             msg.len_d = rcvd->len_d - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
