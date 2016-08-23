@@ -366,8 +366,9 @@ implementation
 		}
 		else
 		{
-			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n",
-				message.sequence_number);
+			// Broadcasting under this circumstance would be akin to flooding.
+			// Which provides no protection.
+			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
 		}
 	}
 
