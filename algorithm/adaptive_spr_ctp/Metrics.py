@@ -25,6 +25,8 @@ class Metrics(MetricsCommon):
         d["AwaySent"]               = lambda x: x.number_sent("Away")
         d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
         d["InformSent"]             = lambda x: x.number_sent("Inform")
+        d["CTPBeaconSent"]          = lambda x: x.number_sent("CTPBeacon")
+
         d["TFS"]                    = lambda x: x.times_node_changed_to("TempFakeNode")
         d["PFS"]                    = lambda x: x.times_node_changed_to("PermFakeNode")
         d["TailFS"]                 = lambda x: x.times_node_changed_to("TailFakeNode")
