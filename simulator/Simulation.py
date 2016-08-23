@@ -6,7 +6,6 @@ import importlib
 from itertools import islice
 import os
 import random
-import select
 import sys
 import timeit
 
@@ -18,34 +17,17 @@ Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
 class OutputCatcher(object):
     def __init__(self, linefn):
-        (read, write) = os.pipe()
-        self._read = os.fdopen(read, 'r')
-        self._write = os.fdopen(write, 'w')
         self._linefn = linefn
 
     def register(self, sim, name):
         """Registers this class to catch the output from the simulation on the given channel."""
-        sim.tossim.addChannel(name, self._write)
+        sim.tossim.addCallback(name, self.process_one_line)
 
-    def process_one_line(self):
-        line = self._read.readline()
-
+    def process_one_line(self, line):
         (d_or_e, node_id, time, detail) = line.split(':', 3)
         
         # Do not pass newline in detail onwards
         self._linefn(d_or_e, node_id, time, detail[:-1])
-
-    def close(self):
-        """Closes the file handles opened."""
-
-        if self._read is not None:
-            self._read.close()
-
-        if self._write is not None:
-            self._write.close()
-
-        self._read = None
-        self._write = None
 
 class Simulation(object):
     def __init__(self, module_name, configuration, args, load_nesc_variables=False):
@@ -67,7 +49,6 @@ class Simulation(object):
         self.radio = self.tossim.radio()
 
         self._out_procs = {}
-        self._read_poller = select.epoll()
 
         # Record the seed we are using
         self.seed = args.seed
@@ -131,11 +112,6 @@ class Simulation(object):
         for node in self.nodes:
             node.tossim_node.turnOff()
 
-        del self._read_poller
-
-        for op in self._out_procs.values():
-            op.close()
-
         del self.nodes
         del self.radio
         del self.tossim
@@ -144,11 +120,7 @@ class Simulation(object):
         catcher = OutputCatcher(function)
         catcher.register(self, name)
 
-        fd = catcher._read.fileno()
-
-        self._out_procs[fd] = catcher
-
-        self._read_poller.register(fd, select.EPOLLIN | select.EPOLLPRI | select.EPOLLHUP | select.EPOLLERR)
+        self._out_procs[name] = catcher
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
@@ -191,20 +163,6 @@ class Simulation(object):
 
         self.start_time = timeit.default_timer()
 
-    def _during_run(self, event_count):
-        """Called after every simulation event is executed, if some log output has been written."""
-
-        # Query to see if there is any debug output we need to catch.
-        # If there is then make the relevant OutputProcessor handle it.
-        while True:
-            result = self._read_poller.poll(0)
-
-            if len(result) >= 1:
-                for (fd, event) in result:
-                    self._out_procs[fd].process_one_line()
-            else:
-                break
-
     def _post_run(self, event_count):
         """Called after the simulator run loop finishes"""
 
@@ -231,7 +189,7 @@ class Simulation(object):
             self._pre_run()
 
             event_count = self.tossim.runAllEventsWithMaxTime(
-                self.safety_period_value, self.continue_predicate, self._during_run)
+                self.safety_period_value, self.continue_predicate)
         finally:
             self._post_run(event_count)
 
