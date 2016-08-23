@@ -6,6 +6,7 @@
 #include "DissemMessage.h"
 #include "SearchMessage.h"
 #include "ChangeMessage.h"
+#include "EmptyNormalMessage.h"
 
 #include "utils.h"
 
@@ -63,6 +64,9 @@ module SourceBroadcasterC
 
     uses interface AMSend as ChangeSend;
     uses interface Receive as ChangeReceive;
+
+    uses interface AMSend as EmptyNormalSend;
+    uses interface Receive as EmptyNormalReceive;
 
     uses interface MetricLogging;
 
@@ -255,6 +259,7 @@ implementation
     USE_MESSAGE(Dissem);
     USE_MESSAGE(Search);
     USE_MESSAGE(Change);
+    USE_MESSAGE(EmptyNormal);
 
     void init(void)
     {
@@ -494,6 +499,15 @@ implementation
                 post send_normal();
             }
 		}
+        else
+        {
+            EmptyNormalMessage msg;
+            msg.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+            msg.source_distance = 0;
+            msg.source_id = TOS_NODE_ID;
+            send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
+            call NormalSeqNos.increment(TOS_NODE_ID);
+        }
 	}
 
     void MessageQueue_clear()
@@ -556,7 +570,7 @@ implementation
         /*PRINTF0("%s: SlotTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         slot_active = TRUE;
-        if(slot != BOT)
+        if(slot != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
         {
             post send_normal();
         }
@@ -884,4 +898,13 @@ implementation
         case NormalNode: Normal_receive_Change(rcvd, source_addr); break;
         case SinkNode:   break;
     RECEIVE_MESSAGE_END(Change)
+
+    RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
+        case SourceNode:
+        case SearchNode:
+        case ChangeNode:
+        case NormalNode:
+        /*case SinkNode:   x_receive_EmptyNormal(rcvd, source_addr); break;*/
+        case SinkNode:  break;
+    RECEIVE_MESSAGE_END(EmptyNormal)
 }
