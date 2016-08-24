@@ -13,12 +13,12 @@ except ImportError:
     from scipy.spatial.distance import euclidean as euclidean2_2d
 
 class Topology(object):
-    def __init__(self):
+    def __init__(self, seed=None):
         self.nodes = OrderedDict()
         self.topology_nid_to_ordered_nid = {}
         self.ordered_nid_to_topology_nid = {}
         self.keys = []
-        self.seed = None
+        self.seed = seed
 
     def node_distance_meters(self, node1, node2):
         """Gets the node distance in meters using ordered node ids"""
@@ -80,9 +80,8 @@ class Topology(object):
 
 class Line(Topology):
     def __init__(self, size, distance, node_id_order, seed=None):
-        super(Line, self).__init__()
+        super(Line, self).__init__(seed)
 
-        self.seed = seed
         self.size = size
         self.distance = float(distance)
 
@@ -100,9 +99,8 @@ class Line(Topology):
 
 class Grid(Topology):
     def __init__(self, size, distance, node_id_order, seed=None):
-        super(Grid, self).__init__()
+        super(Grid, self).__init__(seed)
 
-        self.seed = seed
         self.size = size
         self.distance = float(distance)
 
@@ -124,9 +122,8 @@ class Grid(Topology):
 
 class Circle(Topology):
     def __init__(self, diameter, distance, node_id_order, seed=None):
-        super(Circle, self).__init__()
+        super(Circle, self).__init__(seed)
 
-        self.seed = seed
         self.diameter_in_hops = diameter
         self.diameter = self.diameter_in_hops * distance
         self.distance = float(distance)
@@ -155,9 +152,8 @@ class Circle(Topology):
 
 class Ring(Topology):
     def __init__(self, diameter, distance, node_id_order, seed=None):
-        super(Ring, self).__init__()
+        super(Ring, self).__init__(seed)
 
-        self.seed = seed
         self.diameter = diameter
         self.distance = float(distance)
 
@@ -175,9 +171,8 @@ class Ring(Topology):
 class SimpleTree(Topology):
     """Creates a tree with a single branch."""
     def __init__(self, size, distance, node_id_order, seed=None):
-        super(SimpleTree, self).__init__()
+        super(SimpleTree, self).__init__(seed)
 
-        self.seed = seed
         self.size = size
         self.distance = float(distance)
 
@@ -194,9 +189,8 @@ class SimpleTree(Topology):
 
 class Random(Topology):
     def __init__(self, network_size, distance, node_id_order, seed=None):
-        super(Random, self).__init__()
+        super(Random, self).__init__(seed)
 
-        self.seed = seed
         self.size = network_size
         self.distance = float(distance)
 
