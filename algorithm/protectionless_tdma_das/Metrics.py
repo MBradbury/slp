@@ -21,6 +21,7 @@ class Metrics(MetricsCommon):
     def items():
         d = MetricsCommon.items()
         d["DissemSent"]               = lambda x: x.number_sent("Dissem")
+        d["EmptyNormalSent"]          = lambda x: x.number_sent("EmptyNormal")
 
         d["FirstSendTime"]            = lambda x: x.first_normal_send_times()
 
