@@ -5,6 +5,8 @@ import os, itertools, datetime
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
+import algorithm.protectionless_ctp as protectionless_ctp
+
 from data import results, latex
 from data.table import safety_period, direct_comparison
 from data.graph import summary, versus
@@ -15,7 +17,7 @@ class CLI(CommandLineCommon.CLI):
     local_parameter_names = tuple()
 
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
@@ -43,18 +45,6 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        if driver.mode() == "TESTBED":
-            from data.run.common import RunTestbedCommon as RunSimulations
-        else:
-            from data.run.common import RunSimulationsCommon as RunSimulations
-
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-                                skip_completed_simulations=skip_completed_simulations)
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
-
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
@@ -72,6 +62,7 @@ class CLI(CommandLineCommon.CLI):
             return datetime.timedelta(hours=24)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+
 
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)

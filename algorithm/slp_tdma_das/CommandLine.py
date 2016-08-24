@@ -4,6 +4,8 @@ import itertools
 
 from simulator import CommandLineCommon
 
+import algorithm.protectionless_tdma_das as protectionless_tdma_das
+
 from data.table import safety_period
 
 class CLI(CommandLineCommon.CLI):
@@ -11,7 +13,7 @@ class CLI(CommandLineCommon.CLI):
     local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval', 'minimum setup periods', 'pre beacon periods', "dissem timeout")
 
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -25,18 +27,6 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        if driver.mode() == "TESTBED":
-            from data.run.common import RunTestbedCommon as RunSimulations
-        else:
-            from data.run.common import RunSimulationsCommon as RunSimulations
-
-        runner = RunSimulations(
-            driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations
-        )
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product())
 
     def run(self, args):
         args = super(CLI, self).run(args)
