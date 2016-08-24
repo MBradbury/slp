@@ -40,6 +40,7 @@ class MetricsCommon(object):
         self.normal_latency = {}
         self.normal_hop_count = []
 
+        self.total_wall_time = 0
         self.wall_time = 0
         self.event_count = 0
 
@@ -385,6 +386,7 @@ class MetricsCommon(object):
         d["ReceiveRatio"]                  = lambda x: x.receive_ratio()
         d["TimeTaken"]                     = lambda x: x.sim_time()
         d["WallTime"]                      = lambda x: x.wall_time
+        d["TotalWallTime"]                 = lambda x: x.total_wall_time
         d["EventCount"]                    = lambda x: x.event_count
         d["AttackerDistance"]              = lambda x: x.attacker_source_distance()
         d["AttackerSinkDistance"]          = lambda x: x.attacker_sink_distance()
@@ -426,6 +428,6 @@ class MetricsCommon(object):
             print(self.get_results(), file=stream)
         except Exception as ex:
             import traceback
-            raise RuntimeError("Failed to get the result string for seed {} caused by {}\n{}".format(
-                self.seed(), ex, traceback.format_exc())
+            raise RuntimeError("Failed to get the result string for seed {} (events={}, sim_time={}) caused by {}".format(
+                self.seed(), self.event_count, self.sim_time(), traceback.format_exc())
             )

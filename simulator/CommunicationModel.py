@@ -1,7 +1,8 @@
 from __future__ import division
 
-from math import log10, sqrt
 from itertools import combinations
+from math import log10, sqrt
+import random
 
 import numpy as np
 
@@ -45,7 +46,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.pl_d0 = pl_d0
         self.noise_floor_pn = noise_floor
         self.s = s
-        self.white_gausian_noise = round(white_gausian_noise, 2)
+        self.white_gausian_noise = white_gausian_noise
 
         self.output_power_var = None
 
@@ -57,14 +58,6 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
     def _setup(self, nodes, seed):
         """Provide a second setup function to help test this model against the Java version"""
-
-        # Need to use the same java prng to maintain backwards compatibility
-        # with existing results
-        # TODO: When creating results from scratch, switch to python's rng as it is much better
-        from java_random import JavaRandom as Random
-
-        rnd = Random(seed)
-
         if __debug__:
             self._check_nodes(nodes)
 
@@ -74,9 +67,9 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.output_power_var = np.zeros(num_nodes, dtype=np.float64)
         self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
-        self._obtain_radio_pt_pn(rnd, nodes)
+        self._obtain_radio_pt_pn(nodes)
 
-        self._obtain_link_gain(rnd, nodes)
+        self._obtain_link_gain(nodes)
 
     def _check_nodes(self, nodes):
         """Check that all nodes are at least d0 distance away from each other.
@@ -89,7 +82,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
                     raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
                         distance, i, ni, j, nj, self.d0))
 
-    def _obtain_radio_pt_pn(self, rnd, nodes):
+    def _obtain_radio_pt_pn(self, nodes):
 
         s = self.s
         t = np.zeros((2, 2), dtype=np.float64)
@@ -105,20 +98,17 @@ class LinkLayerCommunicationModel(CommunicationModel):
             t[1,0] = 0.0
             t[1,1] = sqrt((s[0,0] * s[1,1] - s[0,1] * s[0,1]) / s[0,0])
 
-        rng = rnd.nextGaussian
-        
+        rg = random.gauss
+
         for (i, ni) in enumerate(nodes):
-            rnd1 = rng()
-            rnd2 = rng()
+            rnd1 = rg(0, 1)
+            rnd2 = rg(0, 1)
 
-            # The results here need to be rounded to 2 d.p. to make sure
-            # that the results of the simulation match the java results.
-
-            self.noise_floor[i] = round(self.noise_floor_pn + t[0,0] * rnd1, 2)
+            self.noise_floor[i] = self.noise_floor_pn + t[0,0] * rnd1
             self.output_power_var[i] = t[0,1] * rnd1 + t[1,1] * rnd2
 
-    def _obtain_link_gain(self, rnd, nodes):
-        rng = rnd.nextGaussian
+    def _obtain_link_gain(self, nodes):
+        rg = random.gauss
         ple10 = self.path_loss_exponent * 10.0
         ssd = self.shadowing_stddev
         npld0 = -self.pl_d0
@@ -127,17 +117,14 @@ class LinkLayerCommunicationModel(CommunicationModel):
         lg = self.link_gain
 
         for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
-            rnd1 = rng()
+            rnd1 = rg(0, 1)
 
             distance = euclidean2_2d(ni, nj)
 
             pathloss = npld0 - ple10 * log10(distance / d0) + rnd1 * ssd
 
-            # The results here need to be rounded to 2 d.p. to make sure
-            # that the results of the simulation match the java results.
-
-            lg[i,j] = round(opv[i] + pathloss, 2)
-            lg[j,i] = round(opv[j] + pathloss, 2)
+            lg[i,j] = opv[i] + pathloss
+            lg[j,i] = opv[j] + pathloss
 
 
 
