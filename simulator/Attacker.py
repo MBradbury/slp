@@ -363,7 +363,7 @@ class HMAttacker(Attacker):
 
         self._next_message_count_wait = None
 
-    def setup(*args, **kwargs):
+    def setup(self, *args, **kwargs):
         super(HMAttacker, self).setup(*args, **kwargs)
 
         self._next_message_count_wait = self._sim.randint(1, self._moves_per_period - self._num_moves)

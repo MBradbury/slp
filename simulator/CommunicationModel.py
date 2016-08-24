@@ -75,11 +75,10 @@ class LinkLayerCommunicationModel(CommunicationModel):
         This model does not work correctly when nodes are closer than d0."""
 
         for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
-
-                distance = euclidean2_2d(ni, nj)
-                if distance < self.d0:
-                    raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
-                        distance, i, ni, j, nj, self.d0))
+            distance = euclidean2_2d(ni, nj)
+            if distance < self.d0:
+                raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
+                    distance, i, ni, j, nj, self.d0))
 
     def _obtain_radio_pt_pn(self, nodes, rng):
 
