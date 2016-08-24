@@ -4,6 +4,7 @@
 
 #include "NormalMessage.h"
 #include "DissemMessage.h"
+#include "EmptyNormalMessage.h"
 
 #include "utils.h"
 
@@ -46,6 +47,9 @@ module SourceBroadcasterC
 
     uses interface AMSend as DissemSend;
     uses interface Receive as DissemReceive;
+
+    uses interface AMSend as EmptyNormalSend;
+    uses interface Receive as EmptyNormalReceive;
 
     uses interface MetricLogging;
 
@@ -222,6 +226,7 @@ implementation
 
 	USE_MESSAGE(Normal);
     USE_MESSAGE(Dissem);
+    USE_MESSAGE(EmptyNormal);
 
     void init(void)
     {
@@ -398,7 +403,51 @@ implementation
                 post send_normal();
             }
 		}
+        else
+        {
+            EmptyNormalMessage msg;
+            msg.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+            msg.source_distance = 0;
+            msg.source_id = TOS_NODE_ID;
+            send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
+            call NormalSeqNos.increment(TOS_NODE_ID);
+        }
 	}
+
+	/*task void send_normal(void)*/
+	/*{*/
+		/*NormalMessage* message;*/
+
+        /*// This task may be delayed, such that it is scheduled when the slot is active,*/
+        /*// but called after the slot is no longer active.*/
+        /*// So it is important to check here if the slot is still active before sending.*/
+        /*if (!slot_active)*/
+        /*{*/
+            /*return;*/
+        /*}*/
+
+		/*simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");*/
+
+		/*message = call MessageQueue.dequeue();*/
+
+		/*if (message != NULL)*/
+		/*{*/
+            /*error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);*/
+			/*if (send_result == SUCCESS)*/
+			/*{*/
+				/*call MessagePool.put(message);*/
+			/*}*/
+			/*else*/
+			/*{*/
+				/*simdbgerror("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);*/
+			/*}*/
+
+            /*if (slot_active && !(call MessageQueue.empty()))*/
+            /*{*/
+                /*post send_normal();*/
+            /*}*/
+		/*}*/
+	/*}*/
 
     void MessageQueue_clear()
     {
@@ -442,18 +491,29 @@ implementation
         call SlotTimer.startOneShotAt(now, s*get_slot_period());
     }
 
-
     event void SlotTimer.fired()
     {
         /*PRINTF0("%s: SlotTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         slot_active = TRUE;
-        if(slot != BOT)
+        if(slot != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
         {
             post send_normal();
         }
         call PostSlotTimer.startOneShotAt(now, get_slot_period());
     }
+
+    /*event void SlotTimer.fired()*/
+    /*{*/
+        /*[>PRINTF0("%s: SlotTimer fired.\n", sim_time_string());<]*/
+        /*uint32_t now = call LocalTime.get();*/
+        /*slot_active = TRUE;*/
+        /*if(slot != BOT)*/
+        /*{*/
+            /*post send_normal();*/
+        /*}*/
+        /*call PostSlotTimer.startOneShotAt(now, get_slot_period());*/
+    /*}*/
 
     event void PostSlotTimer.fired()
     {
@@ -530,7 +590,7 @@ implementation
         simdbg("stdout", "SINK RECEIVED NORMAL.\n");
 		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
-			call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
+			/*call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);*/
 
 			METRIC_RCV_NORMAL(rcvd);
 		}
@@ -635,4 +695,10 @@ implementation
         case NormalNode: x_receive_Dissem(rcvd, source_addr); break;
         case SinkNode  : Sink_receive_Dissem(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Dissem)
+
+    RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
+        case SourceNode:
+        case NormalNode:
+        case SinkNode:  break;
+    RECEIVE_MESSAGE_END(EmptyNormal)
 }
