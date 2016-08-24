@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-import numpy as np
 from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
@@ -71,18 +70,21 @@ class Configuration(object):
         self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, directed=True, return_predecessors=True)
 
     def size(self):
+        """The number of nodes in this configuration's topology."""
         return len(self.topology.nodes)
 
     def is_connected(self, ordered_nidi, ordered_nidj):
+        """Check if the two ordered node ids are connected according to the wireless range."""
         if not hasattr(self.topology, "distance"):
             raise RuntimeError("Cannot know connectivity as topology does not have distance")
 
         return self.node_distance_meters(ordered_nidi, ordered_nidj) <= self.topology.distance
 
     def one_hop_neighbours(self, ordered_nid):
+        """Get the one hop neighbours (within the wireless range) of the ordered node id."""
         for nid in self.topology.nodes.keys():
             if nid != ordered_nid and self.is_connected(ordered_nid, nid):
-                yield i
+                yield nid
 
     def node_distance(self, ordered_nidi, ordered_nidj):
         """Get the distance between two ordered nodes in hops."""

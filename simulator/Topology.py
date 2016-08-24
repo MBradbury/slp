@@ -18,6 +18,7 @@ class Topology(object):
         self.topology_nid_to_ordered_nid = {}
         self.ordered_nid_to_topology_nid = {}
         self.keys = []
+        self.ordered_ids = []
         self.seed = seed
 
     def node_distance_meters(self, node1, node2):
@@ -46,7 +47,7 @@ class Topology(object):
 
     def _process_node_id_order(self, node_id_order):
         if node_id_order == "topology":
-            
+
             self.topology_nid_to_ordered_nid = {nid: nid for nid in self.nodes.keys()}
             self.ordered_nid_to_topology_nid = {nid: nid for nid in self.nodes.keys()}
 
@@ -176,10 +177,10 @@ class SimpleTree(Topology):
         self.size = size
         self.distance = float(distance)
 
-        line = list(range(diameter))
+        line = list(range(size))
 
         for (nid, (y, x)) in enumerate(itertools.product(line, line)):
-            if (y == 0 or x == (size - 1) / 2):
+            if y == 0 or x == (size - 1) / 2:
                 self.nodes[nid] = np.array((x * distance, y * distance), dtype=np.float64)
 
         self._process_node_id_order(node_id_order)

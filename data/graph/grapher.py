@@ -32,7 +32,7 @@ class GrapherBase(object):
         def test_gnuplot_version(name):
             result = subprocess.check_output([name, "--version"]).strip()
 
-            match = re.match("gnuplot (\d+\.?\d*) patchlevel (.*)", result)
+            match = re.match(r"gnuplot (\d+\.?\d*) patchlevel (.*)", result)
             
             version = float(match.group(1))
             patchlevel = match.group(2)
