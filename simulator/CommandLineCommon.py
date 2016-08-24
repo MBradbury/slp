@@ -11,7 +11,7 @@ import simulator.common
 import simulator.Configuration as Configuration
 
 from data import results, latex
-from data.table import fake_result
+from data.table import safety_period, fake_result
 from data.graph import heatmap, summary
 from data.util import recreate_dirtree, touch
 
@@ -23,11 +23,13 @@ class CLI(object):
     # Classes that derive from this should assign this variable
     local_parameter_names = None
 
-    def __init__(self, package):
+    def __init__(self, package, safety_period_result_path=None):
         super(CLI, self).__init__()
 
         self.algorithm_module = importlib.import_module(package)
         self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
+
+        self.safety_period_result_path = safety_period_result_path
 
         try:
             self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
@@ -103,8 +105,25 @@ class CLI(object):
     def _argument_product(self):
         raise NotImplementedError()
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations):
-        raise NotImplementedError()
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            from data.run.common import RunSimulationsCommon as RunSimulations
+
+        if self.safety_period_result_path is not None:
+            safety_period_table_generator = safety_period.TableGenerator(self.safety_period_result_path)
+            safety_periods = safety_period_table_generator.safety_periods()
+        else:
+            safety_periods = None
+
+        runner = RunSimulations(
+            driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations,
+            safety_periods=safety_periods
+        )
+
+        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
     def adjust_source_period_for_multi_source(self, argument_product):
         """For configurations with multiple sources, so that the network has the
