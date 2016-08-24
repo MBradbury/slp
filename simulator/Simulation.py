@@ -15,20 +15,6 @@ import simulator.CommunicationModel
 
 Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
-class OutputCatcher(object):
-    def __init__(self, linefn):
-        self._linefn = linefn
-
-    def register(self, sim, name):
-        """Registers this class to catch the output from the simulation on the given channel."""
-        sim.tossim.addCallback(name, self.process_one_line)
-
-    def process_one_line(self, line):
-        (d_or_e, node_id, time, detail) = line.split(':', 3)
-        
-        # Do not pass newline in detail onwards
-        self._linefn(d_or_e, node_id, time, detail[:-1])
-
 class Simulation(object):
     def __init__(self, module_name, configuration, args, load_nesc_variables=False):
 
@@ -47,8 +33,6 @@ class Simulation(object):
             self.tossim = tossim_module.Tossim([])
 
         self.radio = self.tossim.radio()
-
-        self._out_procs = {}
 
         # Record the seed we are using
         self.seed = args.seed
@@ -100,10 +84,14 @@ class Simulation(object):
         self.metrics = metrics_module.Metrics(self, configuration)
 
         self.start_time = None
+        self.enter_start_time = None
 
         self.attacker_found_source = False
 
     def __enter__(self):
+
+        self.enter_start_time = timeit.default_timer()
+
         return self
 
     def __exit__(self, tp, value, tb):
@@ -117,10 +105,15 @@ class Simulation(object):
         del self.tossim
 
     def register_output_handler(self, name, function):
-        catcher = OutputCatcher(function)
-        catcher.register(self, name)
+        """Registers this class to catch the output from the simulation on the given channel."""
 
-        self._out_procs[name] = catcher
+        def process_one_line(line):
+            (d_or_e, node_id, time, detail) = line.split(':', 3)
+            
+            # Do not pass newline in detail onwards
+            function(d_or_e, node_id, time, detail[:-1])
+
+        self.tossim.addCallback(name, process_one_line)
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
@@ -166,9 +159,17 @@ class Simulation(object):
     def _post_run(self, event_count):
         """Called after the simulator run loop finishes"""
 
+        current_time = timeit.default_timer()
+
         # Set the number of seconds this simulation run took.
         # It is possible that we will reach here without setting
         # start_time, so we need to look out for this.
+
+        try:
+            self.metrics.total_wall_time = timeit.default_timer() - self.enter_start_time
+        except TypeError:
+            self.metrics.total_wall_time = None
+
         try:
             self.metrics.wall_time = timeit.default_timer() - self.start_time
         except TypeError:

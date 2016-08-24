@@ -40,6 +40,7 @@ class MetricsCommon(object):
         self.normal_latency = {}
         self.normal_hop_count = []
 
+        self.total_wall_time = 0
         self.wall_time = 0
         self.event_count = 0
 
@@ -385,6 +386,7 @@ class MetricsCommon(object):
         d["ReceiveRatio"]                  = lambda x: x.receive_ratio()
         d["TimeTaken"]                     = lambda x: x.sim_time()
         d["WallTime"]                      = lambda x: x.wall_time
+        d["TotalWallTime"]                 = lambda x: x.total_wall_time
         d["EventCount"]                    = lambda x: x.event_count
         d["AttackerDistance"]              = lambda x: x.attacker_source_distance()
         d["AttackerSinkDistance"]          = lambda x: x.attacker_sink_distance()
