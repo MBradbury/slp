@@ -166,12 +166,12 @@ class Simulation(object):
         # start_time, so we need to look out for this.
 
         try:
-            self.metrics.total_wall_time = timeit.default_timer() - self.enter_start_time
+            self.metrics.total_wall_time = current_time - self.enter_start_time
         except TypeError:
             self.metrics.total_wall_time = None
 
         try:
-            self.metrics.wall_time = timeit.default_timer() - self.start_time
+            self.metrics.wall_time = current_time - self.start_time
         except TypeError:
             self.metrics.wall_time = None
 
