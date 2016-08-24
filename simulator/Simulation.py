@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 
 from collections import namedtuple
-import glob
 import importlib
 from itertools import islice
 import os
@@ -199,7 +198,7 @@ class Simulation(object):
         Sets the boot time of the given node to be at a
         random time between 0 and self.latest_node_start_time seconds.
         """
-        start_time = int(random.uniform(0, self.latest_node_start_time) * self._ticks_per_second)
+        start_time = int(random.uniform(0.0, self.latest_node_start_time) * self._ticks_per_second)
         tossim_node.bootAtTime(start_time)
 
     def setup_radio(self):
@@ -265,11 +264,15 @@ class Simulation(object):
     @staticmethod
     def available_noise_models():
         """Gets the names of the noise models available in the noise directory"""
-        return [
-            os.path.splitext(os.path.basename(noise_file))[0]
-            for noise_file
-            in glob.glob('models/noise/*.txt')
-        ]
+        return ("casino-lab", "meyer-heavy", "ttx4-demo")
+
+        # Querying the files is the best approach. But it is expensive, so lets disable it.
+        #import glob
+        #return [
+        #    os.path.splitext(os.path.basename(noise_file))[0]
+        #    for noise_file
+        #    in glob.glob('models/noise/*.txt')
+        #]
 
     @staticmethod
     def available_communication_models():
