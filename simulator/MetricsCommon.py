@@ -428,6 +428,6 @@ class MetricsCommon(object):
             print(self.get_results(), file=stream)
         except Exception as ex:
             import traceback
-            raise RuntimeError("Failed to get the result string for seed {} (events={}) caused by {}".format(
-                self.seed(), self.event_count, traceback.format_exc())
+            raise RuntimeError("Failed to get the result string for seed {} (events={}, sim_time={}) caused by {}".format(
+                self.seed(), self.event_count, self.sim_time(), traceback.format_exc())
             )
