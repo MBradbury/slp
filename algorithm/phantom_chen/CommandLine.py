@@ -105,7 +105,7 @@ class CLI(CommandLineCommon.CLI):
                              'order', 'short count', 'long count', 'wait before short')
 
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
@@ -216,19 +216,6 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        if driver.mode() == "TESTBED":
-            from data.run.common import RunTestbedCommon as RunSimulations
-        else:
-            from data.run.common import RunSimulationsCommon as RunSimulations
-
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        time_taken = safety_period_table_generator.time_taken()
-
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
     def _run_table(self, args):
         phantom_results = results.Results(

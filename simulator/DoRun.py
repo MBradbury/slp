@@ -55,7 +55,7 @@ def run_simulation(module, a, count=1):
                     print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
                     print(traceback.format_exc(), file=sys.stderr)
                     print("For parameters:", file=sys.stderr)
-                    print(all_args)
+                    print(all_args, file=sys.stderr)
                     return 2
 
     return 0

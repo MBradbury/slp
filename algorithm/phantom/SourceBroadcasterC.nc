@@ -366,8 +366,9 @@ implementation
 		}
 		else
 		{
-			simdbg("Metric-SOURCE_DROPPED", NXSEQUENCE_NUMBER_SPEC "\n",
-				message.sequence_number);
+			// Broadcasting under this circumstance would be akin to flooding.
+			// Which provides no protection.
+			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
 		}
 	}
 
@@ -458,7 +459,7 @@ implementation
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					simdbg("Metric-PATH_DROPPED", NXSEQUENCE_NUMBER_SPEC ",%u\n",
+					simdbg("M-PD", NXSEQUENCE_NUMBER_SPEC ",%u\n",
 						rcvd->sequence_number, rcvd->source_distance);
 
 					return;
@@ -475,7 +476,7 @@ implementation
 			{
 				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == LANDMARK_NODE_ID))
 				{
-					simdbg("Metric-PATH-END", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
+					simdbg("M-PE", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
 						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 

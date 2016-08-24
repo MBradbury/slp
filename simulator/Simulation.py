@@ -1,12 +1,10 @@
 from __future__ import print_function, division
 
 from collections import namedtuple
-import glob
 import importlib
 from itertools import islice
 import os
 import random
-import select
 import sys
 import timeit
 
@@ -15,37 +13,6 @@ import numpy as np
 import simulator.CommunicationModel
 
 Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
-
-class OutputCatcher(object):
-    def __init__(self, linefn):
-        (read, write) = os.pipe()
-        self._read = os.fdopen(read, 'r')
-        self._write = os.fdopen(write, 'w')
-        self._linefn = linefn
-
-    def register(self, sim, name):
-        """Registers this class to catch the output from the simulation on the given channel."""
-        sim.tossim.addChannel(name, self._write)
-
-    def process_one_line(self):
-        line = self._read.readline()
-
-        (d_or_e, node_id, time, detail) = line.split(':', 3)
-        
-        # Do not pass newline in detail onwards
-        self._linefn(d_or_e, node_id, time, detail[:-1])
-
-    def close(self):
-        """Closes the file handles opened."""
-
-        if self._read is not None:
-            self._read.close()
-
-        if self._write is not None:
-            self._write.close()
-
-        self._read = None
-        self._write = None
 
 class Simulation(object):
     def __init__(self, module_name, configuration, args, load_nesc_variables=False):
@@ -65,9 +32,6 @@ class Simulation(object):
             self.tossim = tossim_module.Tossim([])
 
         self.radio = self.tossim.radio()
-
-        self._out_procs = {}
-        self._read_poller = select.epoll()
 
         # Record the seed we are using
         self.seed = args.seed
@@ -119,10 +83,14 @@ class Simulation(object):
         self.metrics = metrics_module.Metrics(self, configuration)
 
         self.start_time = None
+        self.enter_start_time = None
 
         self.attacker_found_source = False
 
     def __enter__(self):
+
+        self.enter_start_time = timeit.default_timer()
+
         return self
 
     def __exit__(self, tp, value, tb):
@@ -131,24 +99,20 @@ class Simulation(object):
         for node in self.nodes:
             node.tossim_node.turnOff()
 
-        del self._read_poller
-
-        for op in self._out_procs.values():
-            op.close()
-
         del self.nodes
         del self.radio
         del self.tossim
 
     def register_output_handler(self, name, function):
-        catcher = OutputCatcher(function)
-        catcher.register(self, name)
+        """Registers this class to catch the output from the simulation on the given channel."""
 
-        fd = catcher._read.fileno()
+        def process_one_line(line):
+            (d_or_e, node_id, time, detail) = line.split(':', 3)
+            
+            # Do not pass newline in detail onwards
+            function(d_or_e, node_id, time, detail[:-1])
 
-        self._out_procs[fd] = catcher
-
-        self._read_poller.register(fd, select.EPOLLIN | select.EPOLLPRI | select.EPOLLHUP | select.EPOLLERR)
+        self.tossim.addCallback(name, process_one_line)
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
@@ -191,28 +155,22 @@ class Simulation(object):
 
         self.start_time = timeit.default_timer()
 
-    def _during_run(self, event_count):
-        """Called after every simulation event is executed, if some log output has been written."""
-
-        # Query to see if there is any debug output we need to catch.
-        # If there is then make the relevant OutputProcessor handle it.
-        while True:
-            result = self._read_poller.poll(0)
-
-            if len(result) >= 1:
-                for (fd, event) in result:
-                    self._out_procs[fd].process_one_line()
-            else:
-                break
-
     def _post_run(self, event_count):
         """Called after the simulator run loop finishes"""
+
+        current_time = timeit.default_timer()
 
         # Set the number of seconds this simulation run took.
         # It is possible that we will reach here without setting
         # start_time, so we need to look out for this.
+
         try:
-            self.metrics.wall_time = timeit.default_timer() - self.start_time
+            self.metrics.total_wall_time = current_time - self.enter_start_time
+        except TypeError:
+            self.metrics.total_wall_time = None
+
+        try:
+            self.metrics.wall_time = current_time - self.start_time
         except TypeError:
             self.metrics.wall_time = None
 
@@ -231,7 +189,7 @@ class Simulation(object):
             self._pre_run()
 
             event_count = self.tossim.runAllEventsWithMaxTime(
-                self.safety_period_value, self.continue_predicate, self._during_run)
+                self.safety_period_value, self.continue_predicate)
         finally:
             self._post_run(event_count)
 
@@ -240,7 +198,7 @@ class Simulation(object):
         Sets the boot time of the given node to be at a
         random time between 0 and self.latest_node_start_time seconds.
         """
-        start_time = int(random.uniform(0, self.latest_node_start_time) * self._ticks_per_second)
+        start_time = int(random.uniform(0.0, self.latest_node_start_time) * self._ticks_per_second)
         tossim_node.bootAtTime(start_time)
 
     def setup_radio(self):
@@ -281,8 +239,9 @@ class Simulation(object):
 
         for node in self.nodes:
             tnode = node.tossim_node
-            for noise in noises:
-                tnode.addNoiseTraceReading(noise)
+
+            tnode.addNoiseTraces(noises)
+
             tnode.createNoiseModel()
 
     @staticmethod
@@ -305,11 +264,15 @@ class Simulation(object):
     @staticmethod
     def available_noise_models():
         """Gets the names of the noise models available in the noise directory"""
-        return [
-            os.path.splitext(os.path.basename(noise_file))[0]
-            for noise_file
-            in glob.glob('models/noise/*.txt')
-        ]
+        return ("casino-lab", "meyer-heavy", "ttx4-demo")
+
+        # Querying the files is the best approach. But it is expensive, so lets disable it.
+        #import glob
+        #return [
+        #    os.path.splitext(os.path.basename(noise_file))[0]
+        #    for noise_file
+        #    in glob.glob('models/noise/*.txt')
+        #]
 
     @staticmethod
     def available_communication_models():

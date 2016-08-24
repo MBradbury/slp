@@ -29,5 +29,7 @@ class Indriya(Topology):
         for nid in xrange(39 + 86):
             self.nodes[nid] = np.array((-100, -100), dtype=np.float64)
 
+        self._process_node_id_order("topology")
+
     def __str__(self):
         return "Indriya<>"

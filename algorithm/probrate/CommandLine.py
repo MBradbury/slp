@@ -13,7 +13,7 @@ class CLI(CommandLineCommon.CLI):
     local_parameter_names = ('broadcast period',)
 
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -32,22 +32,6 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        if driver.mode() == "TESTBED":
-            from data.run.common import RunTestbedCommon as RunSimulations
-        else:
-            from data.run.common import RunSimulationsCommon as RunSimulations
-
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
-
-        runner = RunSimulations(
-            driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations,
-            safety_periods=safety_periods
-        )
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product())
 
     def run(self, args):
         args = super(CLI, self).run(args)
