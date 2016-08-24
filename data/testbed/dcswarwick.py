@@ -31,5 +31,7 @@ class DCSWarwick(Topology):
         #self.nodes[9] = np.array((-1, -1), dtype=np.float64),  # Padding Node
         #self.nodes[10] = np.array((-1, -1), dtype=np.float64),  # Padding Node
 
+        self._process_node_id_order("topology")
+
     def __str__(self):
         return "DCSWarwick<>"
