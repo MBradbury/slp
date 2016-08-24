@@ -4,6 +4,6 @@
 global_parameter_names = ['network size', 'configuration',
                           'attacker model', 'noise model',
                           'communication model', 'distance',
-                          #'node id order', # TODO: add this
-                          #'latest node start time', # TODO: add this
+                          'node id order',
+                          'latest node start time',
                           'source period']
