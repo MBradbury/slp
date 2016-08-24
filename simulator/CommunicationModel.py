@@ -2,7 +2,6 @@ from __future__ import division
 
 from itertools import combinations
 from math import log10, sqrt
-import random
 
 import numpy as np
 
@@ -52,11 +51,11 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
     def setup(self, sim):
         nodes = sim.metrics.configuration.topology.nodes.values()
-        seed = sim.seed
+        rng = sim.rng
 
-        self._setup(nodes, seed)
+        self._setup(nodes, rng)
 
-    def _setup(self, nodes, seed):
+    def _setup(self, nodes, rng):
         """Provide a second setup function to help test this model against the Java version"""
         if __debug__:
             self._check_nodes(nodes)
@@ -67,9 +66,9 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.output_power_var = np.zeros(num_nodes, dtype=np.float64)
         self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
-        self._obtain_radio_pt_pn(nodes)
+        self._obtain_radio_pt_pn(nodes, rng)
 
-        self._obtain_link_gain(nodes)
+        self._obtain_link_gain(nodes, rng)
 
     def _check_nodes(self, nodes):
         """Check that all nodes are at least d0 distance away from each other.
@@ -82,7 +81,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
                     raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
                         distance, i, ni, j, nj, self.d0))
 
-    def _obtain_radio_pt_pn(self, nodes):
+    def _obtain_radio_pt_pn(self, nodes, rng):
 
         s = self.s
         t = np.zeros((2, 2), dtype=np.float64)
@@ -98,7 +97,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
             t[1,0] = 0.0
             t[1,1] = sqrt((s[0,0] * s[1,1] - s[0,1] * s[0,1]) / s[0,0])
 
-        rg = random.gauss
+        rg = rng.gauss
 
         for (i, ni) in enumerate(nodes):
             rnd1 = rg(0, 1)
@@ -107,8 +106,8 @@ class LinkLayerCommunicationModel(CommunicationModel):
             self.noise_floor[i] = self.noise_floor_pn + t[0,0] * rnd1
             self.output_power_var[i] = t[0,1] * rnd1 + t[1,1] * rnd2
 
-    def _obtain_link_gain(self, nodes):
-        rg = random.gauss
+    def _obtain_link_gain(self, nodes, rng):
+        rg = rng.gauss
         ple10 = self.path_loss_exponent * 10.0
         ssd = self.shadowing_stddev
         npld0 = -self.pl_d0

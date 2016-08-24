@@ -48,7 +48,7 @@ class Arguments(ArgumentsCommon):
         if not isinstance(configuration.topology, Topology.Grid):
             raise RuntimeError("Topology must be a grid")
 
-        result["TOPOLOGY_SIZE"] = int(math.sqrt(len(configuration.topology.nodes)))
+        result["TOPOLOGY_SIZE"] = int(math.sqrt(configuration.size()))
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
 
