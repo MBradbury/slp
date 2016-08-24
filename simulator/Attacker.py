@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-import random
 from collections import Counter, deque
 
 import numpy as np
@@ -362,7 +361,12 @@ class HMAttacker(Attacker):
         self._messages = []
         self._num_moves = 0
 
-        self._next_message_count_wait = random.randint(1, self._moves_per_period - self._num_moves)
+        self._next_message_count_wait = None
+
+    def setup(*args, **kwargs):
+        super(HMAttacker, self).setup(*args, **kwargs)
+
+        self._next_message_count_wait = self._sim.randint(1, self._moves_per_period - self._num_moves)
 
     def setup_event_callbacks(self):
         self._sim.tossim.register_event_callback(self._clear_messages, self._clear_period)
@@ -370,7 +374,7 @@ class HMAttacker(Attacker):
     def _clear_messages(self, current_time):
         self._messages = []
         self._num_moves = 0
-        self._next_message_count_wait = random.randint(1, self._moves_per_period - self._num_moves)
+        self._next_message_count_wait = self._sim.rng.randint(1, self._moves_per_period - self._num_moves)
 
         print("Cleared messages at {}".format(current_time))
 
@@ -392,7 +396,7 @@ class HMAttacker(Attacker):
                 if node_id not in self._history
             ]
 
-            (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = random.choice(filtered_message)
+            (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._sim.rng.choice(filtered_message)
 
             self._move(time, prox_from_id, msg_type=msg_type)
 
@@ -405,7 +409,7 @@ class HMAttacker(Attacker):
         self._history_index = (self._history_index + 1) % self._history_window_size
 
         self._num_moves += 1
-        self._next_message_count_wait = random.randint(1, self._moves_per_period - self._num_moves)
+        self._next_message_count_wait = self._sim.rng.randint(1, self._moves_per_period - self._num_moves)
 
     def __str__(self):
         return type(self).__name__ + "(clear_period={},history_window_size={},moves_per_period={})".format(

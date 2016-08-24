@@ -134,10 +134,12 @@ class CLI(object):
         size_index = names.index('network size')
         distance_index = names.index('distance')
         source_period_index = names.index('source period')
+        node_id_order_index = names.index('node id order')
 
         def process(*args):
-            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index], "topology")
+            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index], args[node_id_order_index], self.seed)
             num_sources = len(configuration.source_ids)
+
             source_period = args[source_period_index] * num_sources
             return args[:source_period_index] + (source_period,) + args[source_period_index+1:]
 
