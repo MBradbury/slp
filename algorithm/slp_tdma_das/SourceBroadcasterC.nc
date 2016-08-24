@@ -19,6 +19,7 @@
 #define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, msg->source_id, msg->sequence_number, 1)
 
 #define BOT UINT16_MAX
 
@@ -503,7 +504,6 @@ implementation
         {
             EmptyNormalMessage msg;
             msg.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
-            msg.source_distance = 0;
             msg.source_id = TOS_NODE_ID;
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
             call NormalSeqNos.increment(TOS_NODE_ID);
@@ -899,12 +899,16 @@ implementation
         case SinkNode:   break;
     RECEIVE_MESSAGE_END(Change)
 
+    void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
+    {
+        METRIC_RCV_EMPTYNORMAL(rcvd);
+    }
+
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
         case SourceNode:
         case SearchNode:
         case ChangeNode:
         case NormalNode:
-        /*case SinkNode:   x_receive_EmptyNormal(rcvd, source_addr); break;*/
-        case SinkNode:  break;
+        case SinkNode:   x_receive_EmptyNormal(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(EmptyNormal)
 }
