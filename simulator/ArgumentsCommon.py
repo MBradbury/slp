@@ -1,5 +1,6 @@
 
 import argparse
+from random import SystemRandom
 
 from simulator.Simulation import Simulation
 import simulator.Attacker as Attacker
@@ -14,8 +15,13 @@ import simulator.SourcePeriodModel as SourcePeriodModel
 
 def _secure_random():
     """Returns a random 32 bit (4 byte) signed integer"""
-    import struct, os
-    return struct.unpack("<i", os.urandom(4))[0]
+    # From: https://stackoverflow.com/questions/9216344/read-32-bit-signed-value-from-an-unsigned-bytestream
+    rno = SystemRandom().getrandbits(32)
+
+    if rno >> 31: # is the sign bit set?
+        return -0x80000000 + (rno & 0x7fffffff) # "cast" it to signed
+
+    return rno
 
 class ArgumentsCommon(object):
     def __init__(self, description, has_safety_period=False):

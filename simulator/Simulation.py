@@ -42,10 +42,7 @@ class Simulation(object):
         # Make sure the time starts at 0
         self.tossim.setTime(0)
 
-        # It is important to seed python's random number generator
-        # as well as TOSSIM's. If this is not done then the simulations
-        # will differ when the seeds are the same.
-        random.seed(self.seed)
+        self.rng = random.Random(self.seed)
 
         self.communication_model = args.communication_model
         self.noise_model = args.noise_model
@@ -198,7 +195,7 @@ class Simulation(object):
         Sets the boot time of the given node to be at a
         random time between 0 and self.latest_node_start_time seconds.
         """
-        start_time = int(random.uniform(0.0, self.latest_node_start_time) * self._ticks_per_second)
+        start_time = int(self.rng.uniform(0.0, self.latest_node_start_time) * self._ticks_per_second)
         tossim_node.bootAtTime(start_time)
 
     def setup_radio(self):
@@ -290,10 +287,7 @@ class OfflineSimulation(object):
         # Record the seed we are using
         self.seed = args.seed
 
-        # It is important to seed python's random number generator
-        # as well as TOSSIM's. If this is not done then the simulations
-        # will differ when the seeds are the same.
-        random.seed(self.seed)
+        self.rng = random.Random(self.seed)
 
         self.nodes = []
 
