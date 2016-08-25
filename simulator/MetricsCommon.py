@@ -21,8 +21,8 @@ class MetricsCommon(object):
         self.sim = sim
         self.configuration = configuration
 
-        self.source_ids = set(configuration.source_ids)
-        self.sink_ids = {configuration.sink_id}
+        self.source_ids = set() # set(configuration.source_ids)
+        self.sink_ids = set() # {configuration.sink_id}
 
         self.sent = defaultdict(Counter)
         self.received = defaultdict(Counter)
@@ -172,6 +172,12 @@ class MetricsCommon(object):
             self.source_ids.remove(ord_node_id)
 
             self.became_normal_after_source_times[top_node_id].append(time)
+
+        if new_name == "SinkNode":
+            if old_name != "<unknown>":
+                raise RuntimeError("SinkNodes MUST be created from no initial node type but was instead from {}".format(old_name))
+
+            self.sink_ids.add(ord_node_id)
 
         self.node_transitions[(old_name, new_name)] += 1
 
