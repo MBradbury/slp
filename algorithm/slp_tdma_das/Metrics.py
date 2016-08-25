@@ -8,11 +8,11 @@ class Metrics(MetricsCommon):
     def first_normal_send_times(self):
         result = {}
 
-        for ((node_id, seq_no), time) in self.normal_sent_time.items():
-            if node_id not in result:
-                result[node_id] = time
+        for ((top_node_id, seq_no), time) in self.normal_sent_time.items():
+            if top_node_id not in result:
+                result[top_node_id] = time
             else:
-                result[node_id] = min(result[node_id], time)
+                result[top_node_id] = min(result[top_node_id], time)
 
         return result
 
