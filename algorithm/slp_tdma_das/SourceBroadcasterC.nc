@@ -6,6 +6,7 @@
 #include "DissemMessage.h"
 #include "SearchMessage.h"
 #include "ChangeMessage.h"
+#include "EmptyNormalMessage.h"
 
 #include "utils.h"
 
@@ -18,6 +19,7 @@
 #define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, msg->source_id, msg->sequence_number, 1)
 
 #define BOT UINT16_MAX
 
@@ -28,7 +30,7 @@
 #define PR_DIST 8
 
 //Length of phantom route
-#define PR_LENGTH 10
+#define PR_LENGTH 10 //Half sink-source distance/safety period (which is 5 for 11x11)
 #define SEARCH_PERIOD_COUNT 24
 
 module SourceBroadcasterC
@@ -63,6 +65,9 @@ module SourceBroadcasterC
 
     uses interface AMSend as ChangeSend;
     uses interface Receive as ChangeReceive;
+
+    uses interface AMSend as EmptyNormalSend;
+    uses interface Receive as EmptyNormalReceive;
 
     uses interface MetricLogging;
 
@@ -255,6 +260,7 @@ implementation
     USE_MESSAGE(Dissem);
     USE_MESSAGE(Search);
     USE_MESSAGE(Change);
+    USE_MESSAGE(EmptyNormal);
 
     void init(void)
     {
@@ -479,7 +485,10 @@ implementation
 
 		if (message != NULL)
 		{
-            error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
+            error_t send_result;
+            /*message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
+            message->sequence_number = period_counter;
+            send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
 			if (send_result == SUCCESS)
 			{
 				call MessagePool.put(message);
@@ -489,11 +498,20 @@ implementation
 				simdbgerror("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
 			}
 
-            if (slot_active && !(call MessageQueue.empty()))
-            {
-                post send_normal();
-            }
+            /*if (slot_active && !(call MessageQueue.empty()))*/
+            /*{*/
+                /*post send_normal();*/
+            /*}*/
 		}
+        else
+        {
+            EmptyNormalMessage msg;
+            /*msg.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
+            msg.sequence_number = period_counter;
+            msg.source_id = TOS_NODE_ID;
+            send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
+            /*call NormalSeqNos.increment(TOS_NODE_ID);*/
+        }
 	}
 
     void MessageQueue_clear()
@@ -516,6 +534,7 @@ implementation
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         period_counter++;
+        call NormalSeqNos.increment(TOS_NODE_ID);
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(period_counter == SEARCH_PERIOD_COUNT)
         {
@@ -556,7 +575,7 @@ implementation
         /*PRINTF0("%s: SlotTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         slot_active = TRUE;
-        if(slot != BOT)
+        if(slot != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
         {
             post send_normal();
         }
@@ -582,7 +601,7 @@ implementation
             message = call MessagePool.get();
             if (message != NULL)
             {
-                message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+                /*message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
                 message->source_distance = 0;
                 message->source_id = TOS_NODE_ID;
 
@@ -592,7 +611,7 @@ implementation
                 }
                 else
                 {
-                    call NormalSeqNos.increment(TOS_NODE_ID);
+                    /*call NormalSeqNos.increment(TOS_NODE_ID);*/
                 }
             }
             else
@@ -611,7 +630,7 @@ implementation
 		{
 			NormalMessage* forwarding_message;
 
-			call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
+			/*call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);*/
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -638,7 +657,7 @@ implementation
         simdbg("stdout", "SINK RECEIVED NORMAL.\n");
 		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
-			call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
+			/*call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);*/
 
 			METRIC_RCV_NORMAL(rcvd);
 		}
@@ -831,21 +850,32 @@ implementation
 
     void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)
     {
+        IDList npar;
         METRIC_RCV_CHANGE(rcvd);
         if(rcvd->a_node != TOS_NODE_ID) return;
-        if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID)
+        npar = IDList_minus_parent(&potential_parents, parent);
+        npar = IDList_minus_parent(&npar, source_addr);
+        if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID && npar.count != 0)
         {
             ChangeMessage msg;
             OnehopList onehop;
-            IDList npar = IDList_minus_parent(&potential_parents, parent); //XXX Problem is this is often empty
-            npar = IDList_minus_parent(&npar, source_addr);
             simdbg("stdout", "Received change\n");
-            NeighbourList_select(&n_info, &neighbours, &onehop);
             slot = rcvd->n_slot - 1;
-            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
+            NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
+            NeighbourList_select(&n_info, &neighbours, &onehop);
             dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
-            msg.a_node = choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
+            msg.a_node = choose(&npar);
+            /*if(npar.count != 0)*/
+            /*{*/
+                /*msg.a_node = choose(&npar);*/
+            /*}*/
+            /*else*/
+            /*{*/
+                /*IDList potential_receivers = IDList_minus_parent(&neighbours, source_addr);*/
+                /*msg.a_node = choose(&potential_receivers);*/
+            /*}*/
             msg.len_d = rcvd->len_d - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
@@ -873,4 +903,17 @@ implementation
         case NormalNode: Normal_receive_Change(rcvd, source_addr); break;
         case SinkNode:   break;
     RECEIVE_MESSAGE_END(Change)
+
+    void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
+    {
+        METRIC_RCV_EMPTYNORMAL(rcvd);
+    }
+
+    RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
+        case SourceNode:
+        case SearchNode:
+        case ChangeNode:
+        case NormalNode:
+        case SinkNode:   x_receive_EmptyNormal(rcvd, source_addr); break;
+    RECEIVE_MESSAGE_END(EmptyNormal)
 }
