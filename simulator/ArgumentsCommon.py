@@ -169,6 +169,6 @@ class ArgumentsCommon(object):
 
             (source_id,) = configuration.source_ids
 
-            result["SOURCE_NODE_ID"] = source_id
+            result["SOURCE_NODE_ID"] = configuration.topology.to_topo_nid(source_id)
 
         return result

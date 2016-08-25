@@ -2,12 +2,16 @@
 configuration ObjectDetectorP
 {
 	provides interface ObjectDetector;
+
+	uses interface NodeType;
 }
 implementation
 {
 	components ObjectDetectorImplP as App;
 
 	ObjectDetector = App;
+
+	App.NodeType = NodeType;
 
 	// Timers
 	components new TimerMilliC() as DetectionTimer;

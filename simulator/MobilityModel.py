@@ -44,7 +44,7 @@ class MobilityModel(object):
 
         for (node_id, intervals) in self.active_times.items():
 
-            indexes.append("{}U".format(node_id))
+            indexes.append("{}U".format(self.configuration.topology.to_topo_nid(node_id)))
 
             period = [
                 "{{{}, {}}}".format(to_tinyos_format(begin), to_tinyos_format(end))

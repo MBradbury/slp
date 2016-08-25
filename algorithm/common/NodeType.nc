@@ -10,4 +10,8 @@ interface NodeType
 	command void init(uint8_t ident);
 	command void set(uint8_t ident);
 	command uint8_t get();
+
+	async command am_addr_t get_topology_node_id();
+
+	command bool is_node_sink();
 }

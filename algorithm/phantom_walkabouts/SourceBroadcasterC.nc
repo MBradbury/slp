@@ -577,7 +577,7 @@ implementation
 		call NodeType.register_pair(SinkNode, "SinkNode");
 		call NodeType.register_pair(NormalNode, "NormalNode");
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
 		}
@@ -597,7 +597,7 @@ implementation
 
 			call ObjectDetector.start();
 
-			if (TOS_NODE_ID == SINK_NODE_ID)
+			if (call NodeType.get() == SinkNode)
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
@@ -801,7 +801,7 @@ implementation
 	{
 		AwayMessage message;
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		if (call NodeType.get() == SinkNode)
 		{
 			landmark_sink_distance = 0;
 			message.landmark_location = SINK;
@@ -893,7 +893,7 @@ implementation
 					//return;
 				//}
 				// if the message reach the sink, do not need flood.
-				if (TOS_NODE_ID == SINK_NODE_ID)
+				if (call NodeType.get() == SinkNode)
 				{
 					return;
 				}
