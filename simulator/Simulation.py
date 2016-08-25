@@ -55,7 +55,7 @@ class Simulation(object):
 
         self.nodes = []
 
-        self._create_nodes(configuration.topology.nodes)
+        self._create_nodes(configuration.topology)
 
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
@@ -119,10 +119,14 @@ class Simulation(object):
         """Returns the current simulation time in seconds"""
         return self.tossim.timeInSeconds()
 
-    def _create_nodes(self, node_locations):
+    def _create_nodes(self, topology):
         """Creates nodes and initialize their boot times"""
-        for (ordered_nid, loc) in node_locations.items():
+        for (ordered_nid, loc) in topology.nodes.items():
             tossim_node = self.tossim.getNode(ordered_nid)
+
+            # Store the topology node ID, so when constants (like SINK_ID)
+            # are provided they can be understood.
+            tossim_node.setTag(topology.to_topo_nid(ordered_nid))
 
             self.nodes.append(Node(ordered_nid, loc, tossim_node))
 

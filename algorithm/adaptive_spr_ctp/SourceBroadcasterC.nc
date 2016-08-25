@@ -370,7 +370,7 @@ implementation
 		call NodeType.register_pair(PermFakeNode, "PermFakeNode");
 		call NodeType.register_pair(TailFakeNode, "TailFakeNode");
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
 			sink_distance = 0;
@@ -392,7 +392,7 @@ implementation
 
 			call RoutingControl.start();
 
-			if (TOS_NODE_ID == SINK_NODE_ID)
+			if (call NodeType.get() == SinkNode)
 			{
 				call AwaySenderTimer.startOneShot(4 * 1000);
 			}

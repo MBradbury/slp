@@ -71,6 +71,7 @@ implementation
 	// Object Detector - For Source movement
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
+	ObjectDetectorP.NodeType -> NodeTypeP;
 
 	// SourcePeriodModel - for source periods
 	components SourcePeriodModelP;

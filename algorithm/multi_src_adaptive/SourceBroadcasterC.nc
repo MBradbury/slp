@@ -346,7 +346,7 @@ implementation
 		call NodeType.register_pair(TempFakeNode, "TempFakeNode");
 		call NodeType.register_pair(PermFakeNode, "PermFakeNode");
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
 		}

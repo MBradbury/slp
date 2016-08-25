@@ -92,4 +92,19 @@ implementation
 	{
 		return current_type;
 	}
+
+
+	async command am_addr_t NodeType.get_topology_node_id()
+	{
+#ifdef TOSSIM
+		return sim_mote_tag(sim_node());
+#else
+		return TOS_NODE_ID;
+#endif
+	}
+
+	command bool NodeType.is_node_sink()
+	{
+		return call NodeType.get_topology_node_id() == SINK_NODE_ID;
+	}
 }

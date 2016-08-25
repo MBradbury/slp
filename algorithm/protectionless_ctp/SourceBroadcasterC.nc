@@ -65,7 +65,7 @@ implementation
 		call NodeType.register_pair(SinkNode, "SinkNode");
 		call NodeType.register_pair(NormalNode, "NormalNode");
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
 			call RootControl.setRoot();

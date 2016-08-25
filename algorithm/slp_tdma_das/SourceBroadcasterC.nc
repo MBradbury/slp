@@ -190,7 +190,7 @@ implementation
         call NodeType.register_pair(SearchNode, "SearchNode");
         call NodeType.register_pair(ChangeNode, "ChangeNode");
 
-        if (TOS_NODE_ID == SINK_NODE_ID)
+        if (call NodeType.is_node_sink())
         {
             call NodeType.init(SinkNode);
         }

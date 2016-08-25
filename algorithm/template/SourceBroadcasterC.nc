@@ -159,11 +159,11 @@ implementation
 		call NodeType.register_pair(TempFakeNode, "TempFakeNode");
 		call NodeType.register_pair(PermFakeNode, "PermFakeNode");
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
 		}
-		else if (TOS_NODE_ID == SOURCE_NODE_ID)
+		else if (call NodeType.get_topology_node_id() == SOURCE_NODE_ID)
 		{
 			call NodeType.init(SourceNode);
 		}
