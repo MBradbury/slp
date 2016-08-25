@@ -17,21 +17,21 @@ class Metrics(MetricsCommon):
     def process_ANGLE(self, d_or_e, node_id, time, detail):
         (source1, source2, angle) = detail.split(",")
 
-        node_id = int(node_id)
-        source1 = int(source1)
-        source2 = int(source2)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        ord_source1, top_source1 = self._process_node_id(source1)
+        ord_source2, top_source2 = self._process_node_id(source2)
         angle = float(angle)
 
-        key = tuple(sorted((source1, source2)))
+        key = tuple(sorted((top_source1, top_source2)))
 
         kd = self.angles[key]
 
         if node_id not in kd:
-            self.angles_count[key][node_id] = 1
-            kd[node_id] = angle
+            self.angles_count[key][top_node_id] = 1
+            kd[top_node_id] = angle
         else:
-            self.angles_count[key][node_id] += 1
-            kd[node_id] = kd[node_id] + (angle - kd[node_id]) / self.angles_count[key][node_id]
+            self.angles_count[key][top_node_id] += 1
+            kd[top_node_id] = kd[top_node_id] + (angle - kd[top_node_id]) / self.angles_count[key][top_node_id]
 
     @staticmethod
     def items():

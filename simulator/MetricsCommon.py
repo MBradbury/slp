@@ -54,6 +54,10 @@ class MetricsCommon(object):
         # BCAST / RCV / DELIVER events
         self.register('M-C', self.process_COMMUNICATE)
 
+    def _process_node_id(self, ordered_node_id):
+        ordered_node_id = int(ordered_node_id)
+        return ordered_node_id, self.configuration.topology.to_topo_nid(ordered_node_id)
+
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
 
@@ -77,10 +81,10 @@ class MetricsCommon(object):
 
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
         if status == "0":
-            node_id = int(node_id)
+            ord_node_id, top_node_id = self._process_node_id(node_id)
             time = float(time)
 
-            self.sent[kind][node_id] += 1
+            self.sent[kind][top_node_id] += 1
 
             hist = self.sent_over_time[kind]
             bin_no = self._time_to_bin(time)
@@ -88,29 +92,29 @@ class MetricsCommon(object):
                 hist.extend([0] * (bin_no - len(hist) + 1))
             hist[bin_no] += 1
 
-            if node_id in self.source_ids and kind == "Normal":
+            if ord_node_id in self.source_ids and kind == "Normal":
                 sequence_number = int(sequence_number)
 
                 # There are some times when we do not know the sequence number of the normal message
                 # (See protectionless_ctp). As a -1 means a previous message is being rebroadcasted,
                 # we can simply ignore adding this message
                 if sequence_number != -1:
-                    self.normal_sent_time[(node_id, sequence_number)] = time
+                    self.normal_sent_time[(top_node_id, sequence_number)] = time
 
     def process_RCV(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
         
-        node_id = int(node_id)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
 
-        self.received[kind][node_id] += 1
+        self.received[kind][top_node_id] += 1
 
-        if node_id in self.sink_ids and kind == "Normal":
+        if ord_node_id in self.sink_ids and kind == "Normal":
             time = float(time)
-            ultimate_source_id = int(ultimate_source_id)
+            ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
             sequence_number = int(sequence_number)
             hop_count = int(hop_count)
 
-            key = (ultimate_source_id, sequence_number)
+            key = (top_ultimate_source_id, sequence_number)
             self.normal_latency[key] = time - self.normal_sent_time[key]
             self.normal_hop_count.append(hop_count)
 
@@ -122,65 +126,52 @@ class MetricsCommon(object):
         # node_source_distance functions as when the source is mobile this code
         # will try to get a distance that the configuration doesn't believe the be a source.
         if kind not in simulator.Attacker._messages_to_ignore:
-            proximate_source_id = int(proximate_source_id)
+            ord_proximate_source_id, top_proximate_source_id = self._process_node_id(proximate_source_id)
 
             nd = self.configuration.node_distance
             ndm = self.configuration.node_distance_meters
 
-            for source_id in self.source_ids:
-                prox_distance = nd(proximate_source_id, source_id)
-                node_distance = nd(node_id, source_id)
+            for ord_source_id in self.source_ids:
+                prox_distance = nd(ord_proximate_source_id, ord_source_id)
+                node_distance = nd(ord_node_id, ord_source_id)
+
+                top_source_id = self.configuration.topology.to_topo_nid(ord_source_id)
                 
                 if node_distance < prox_distance:
-                    self.received_from_further_hops[source_id] += 1
+                    self.received_from_further_hops[top_source_id] += 1
                 else:
-                    self.received_from_closer_or_same_hops[source_id] += 1
+                    self.received_from_closer_or_same_hops[top_source_id] += 1
                 
-                prox_distance_m = ndm(proximate_source_id, source_id)
-                node_distance_m = ndm(node_id, source_id)
+                prox_distance_m = ndm(ord_proximate_source_id, ord_source_id)
+                node_distance_m = ndm(ord_node_id, ord_source_id)
                 
                 if node_distance_m < prox_distance_m:
-                    self.received_from_further_meters[source_id] += 1
+                    self.received_from_further_meters[top_source_id] += 1
                 else:
-                    self.received_from_closer_or_same_meters[source_id] += 1
+                    self.received_from_closer_or_same_meters[top_source_id] += 1
 
     def process_DELIVER(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number) = line.split(',')
 
-        node_id = int(node_id)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
 
-        self.delivered[kind][node_id] += 1
-
-    #COLLSIONS_RE = re.compile(r'DEBUG\s*\((\d+)\): Lost packet from (\d+) to (\d+) due to (.*)')
-
-    def process_COLLISIONS(self, line):
-        # TODO:
-        """match = self.COLLSIONS_RE.match(line)
-        if match is None:
-            return None
-
-        node_id = int(match.group(1))
-        node_from = int(match.group(2))
-        node_to = int(match.group(3))
-        reason = match.group(4)"""
-
-        raise NotImplementedError()
+        self.delivered[kind][top_node_id] += 1
 
     def process_NODE_CHANGE(self, d_or_e, node_id, time, detail):
         (old_name, new_name) = detail.split(',')
 
-        node_id = int(node_id)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
         time = float(time)
 
         if new_name == "SourceNode":
-            self.source_ids.add(node_id)
+            self.source_ids.add(ord_node_id)
 
-            self.became_source_times[node_id].append(time)
+            self.became_source_times[top_node_id].append(time)
 
         elif old_name == "SourceNode":
-            self.source_ids.remove(node_id)
+            self.source_ids.remove(ord_node_id)
 
-            self.became_normal_after_source_times[node_id].append(time)
+            self.became_normal_after_source_times[top_node_id].append(time)
 
         self.node_transitions[(old_name, new_name)] += 1
 
@@ -254,24 +245,30 @@ class MetricsCommon(object):
         return self.sim.any_attacker_found_source()
 
     def attacker_source_distance(self):
+        ttn = self.configuration.topology.to_topo_nid
+        ndm = self.configuration.node_distance_meters
+
         return {
-            (source_id, attacker.ident): self.configuration.node_distance_meters(source_id, attacker.position)
+            (ttn(ord_source_id), attacker.ident): ndm(ord_source_id, attacker.position)
 
             for attacker
             in self.sim.attackers
 
-            for source_id
+            for ord_source_id
             in self.source_ids
         }
 
     def attacker_sink_distance(self):
+        ttn = self.configuration.topology.to_topo_nid
+        ndm = self.configuration.node_distance_meters
+
         return {
-            (sink_id, attacker.ident): self.configuration.node_distance_meters(sink_id, attacker.position)
+            (ttn(ord_sink_id), attacker.ident): ndm(ord_sink_id, attacker.position)
 
             for attacker
             in self.sim.attackers
 
-            for sink_id
+            for ord_sink_id
             in self.sink_ids
         }
 
@@ -290,35 +287,41 @@ class MetricsCommon(object):
         }
 
     def attacker_steps_towards(self):
+        ttn = self.configuration.topology.to_topo_nid
+
         return {
-            (source_id, attacker.ident): attacker.steps_towards[source_id]
+            (ttn(ord_source_id), attacker.ident): attacker.steps_towards[ord_source_id]
 
             for attacker
             in self.sim.attackers
 
-            for source_id
+            for ord_source_id
             in self.source_ids
         }
 
     def attacker_steps_away(self):
+        ttn = self.configuration.topology.to_topo_nid
+
         return {
-            (source_id, attacker.ident): attacker.steps_away[source_id]
+            (ttn(ord_source_id), attacker.ident): attacker.steps_away[ord_source_id]
 
             for attacker
             in self.sim.attackers
 
-            for source_id
+            for ord_source_id
             in self.source_ids
         }
 
     def attacker_min_source_distance(self):
+        ttn = self.configuration.topology.to_topo_nid
+
         return {
-            (source_id, attacker.ident): attacker.min_source_distance[source_id]
+            (ttn(ord_source_id), attacker.ident): attacker.min_source_distance[ord_source_id]
 
             for attacker
             in self.sim.attackers
 
-            for source_id
+            for ord_source_id
             in self.source_ids
         }
 
@@ -334,9 +337,9 @@ class MetricsCommon(object):
         nodes = set(self.became_source_times.keys())
         nodes.update(self.became_normal_after_source_times.keys())
 
-        for node_id in nodes:
-            started_times = self.became_source_times.get(node_id, [])
-            stopped_times = self.became_normal_after_source_times.get(node_id, [])
+        for top_node_id in nodes:
+            started_times = self.became_source_times.get(top_node_id, [])
+            stopped_times = self.became_normal_after_source_times.get(top_node_id, [])
 
             res_lst = []
 
@@ -346,7 +349,7 @@ class MetricsCommon(object):
 
                 res_lst.append((start, stop))
 
-            result[node_id] = res_lst
+            result[top_node_id] = res_lst
 
         return result
 

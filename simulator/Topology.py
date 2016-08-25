@@ -30,11 +30,11 @@ class Topology(object):
         return euclidean2_2d(coord1, coord2)
 
     def to_topo_nid(self, ordered_nid):
-        """Converts a topology node id to an ordered node id"""
+        """Converts a ordered node id to a topology node id"""
         return self.ordered_nid_to_topology_nid[ordered_nid]
 
     def to_ordered_nid(self, topology_nid):
-        """Converts an ordered node id to a topology node id"""
+        """Converts an topology node id to an ordered node id"""
         return self.topology_nid_to_ordered_nid[topology_nid]
 
     def ordered_index(self, ordered_nid):
