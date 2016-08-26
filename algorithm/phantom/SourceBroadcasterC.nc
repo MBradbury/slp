@@ -289,7 +289,7 @@ implementation
 
 			call ObjectDetector.start();
 
-			if (TOS_NODE_ID == LANDMARK_NODE_ID)
+			if (call NodeType.is_topology_node_id(LANDMARK_NODE_ID))
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
@@ -426,7 +426,7 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->broadcast && !(call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 			{
 				am_addr_t target;
 
@@ -474,7 +474,7 @@ implementation
 			}
 			else
 			{
-				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || TOS_NODE_ID == LANDMARK_NODE_ID))
+				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 				{
 					simdbg("M-PE", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
 						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
