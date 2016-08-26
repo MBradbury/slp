@@ -19,18 +19,18 @@ typedef struct
 	int16_t distance;
 } distance_container_t;
 
-void distance_update(distance_container_t* find, distance_container_t const* given)
+void distance_container_update(distance_container_t* find, distance_container_t const* given)
 {
 	find->distance = minbot(find->distance, given->distance);
 }
 
-void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_container_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
 		i, address, contents->distance);
 }
 
-DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
+DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_container_update, distance_container_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
 #define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
 { \
