@@ -189,6 +189,9 @@ class CLI(object):
         
         emails_to_notify = args.notify
 
+        if emails_to_notify is None:
+            emails_to_notify = []
+
         emails_to_notify_env = os.getenv("SLP_NOTIFY_EMAILS")
         if emails_to_notify_env:
             emails_to_notify.extend(emails_to_notify_env.split(","))
