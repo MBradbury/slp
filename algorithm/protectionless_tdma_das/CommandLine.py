@@ -19,11 +19,15 @@ class CLI(CommandLineCommon.CLI):
         argument_product = list(itertools.product(
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-            [parameters.distance], parameters.source_periods, parameters.slot_period, parameters.dissem_period,
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.source_periods, parameters.slot_period, parameters.dissem_period,
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods, parameters.dissem_timeout
         ))
 
+        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+
         return argument_product
+
 
     def run(self, args):
         args = super(CLI, self).run(args)

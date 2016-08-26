@@ -115,7 +115,7 @@ class RunSimulationsCommon(object):
         except IOError as e:
             message = str(e)
             if 'No such file or directory' in message:
-                raise RuntimeError("The results file {} is not present. Perhaps rerun the command with 'no-skip-complete'?".format(
+                raise RuntimeError("The results file {} is not present. Perhaps rerun the command with '--no-skip-complete'?".format(
                     self.algorithm_module.result_file_path))
             else:
                 raise
