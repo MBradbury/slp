@@ -51,6 +51,7 @@ class CLI(object):
 
         subparser = cluster_subparsers.add_parser("copy")
         subparser = cluster_subparsers.add_parser("copy-result-summary")
+        subparser = cluster_subparsers.add_parser("copy-parameters")
         subparser = cluster_subparsers.add_parser("submit")
         subparser.add_argument("--array", action="store_true")
         subparser.add_argument("--notify", nargs="*")
@@ -216,7 +217,10 @@ class CLI(object):
             cluster.copy_to()
 
         elif 'copy-result-summary' == args.cluster_mode:
-            cluster.copy_result_summary(self.algorithm_module.results_path, self.algorithm_module.result_file)
+            cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file)
+
+        elif 'copy-parameters' == args.cluster_mode:
+            cluster.copy_file(os.path.join('algorithm', self.algorithm_module.name), 'Parameters.py')
 
         elif 'submit' == args.cluster_mode:
             emails_to_notify = self._get_emails_to_notify(args)
