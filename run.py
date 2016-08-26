@@ -2,6 +2,8 @@
 from __future__ import print_function
 
 import importlib
+import os
+import subprocess
 import sys
 
 module = sys.argv[1]
@@ -46,6 +48,13 @@ if a.args.mode in {"CLUSTER", "PARALLEL"}:
 if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
 
     Metrics = importlib.import_module("{}.Metrics".format(module))
+
+    # Print out the versions of slp-algorithms-tinyos and tinyos being used
+    slp_algorithms_version = subprocess.check_output("hg id -n -i -b -t", shell=True)
+    tinyos_version = subprocess.check_output("git rev-parse HEAD", shell=True, cwd=os.environ["TOSROOT"])
+
+    print("@version:slp-algorithms={}".format(slp_algorithms_version.strip()))
+    print("@version:tinyos={}".format(tinyos_version.strip()))
 
     # Print out the argument settings
     for (k, v) in vars(a.args).items():
