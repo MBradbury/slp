@@ -27,6 +27,10 @@ configurations = [
 
 attacker_models = ['SeqNoReactiveAttacker()']
 
+latest_node_start_time = 1 # in seconds
+
+node_id_orders = ['randomised']
+
 pr_fake = lambda size: 1 / size
 
 repeats = 300
