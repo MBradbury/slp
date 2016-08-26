@@ -163,7 +163,11 @@ class Analyse(object):
                 # We need to remove the new line at the end of the line
                 line = line.strip()
 
-                if len(self.unnormalised_headings) == 0 and '=' in line:
+                if line.startswith('@'):
+                    # Skip the attributes that contain some extra info
+                    continue
+
+                elif len(self.unnormalised_headings) == 0 and '=' in line:
                     # We are reading the options so record them.
                     # Some option values will have an '=' in them so only split once.
                     opt = line.split('=', 1)
