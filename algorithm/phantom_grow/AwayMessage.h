@@ -9,7 +9,7 @@ typedef nx_struct AwayMessage
 
   nx_am_addr_t source_id;
 
-  nx_uint16_t source_distance;
+  nx_uint16_t landmark_distance;
 
 } AwayMessage;
 
