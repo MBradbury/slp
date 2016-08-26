@@ -172,3 +172,29 @@ class ArgumentsCommon(object):
             result["SOURCE_NODE_ID"] = configuration.topology.to_topo_nid(source_id)
 
         return result
+
+    def _get_node_id(self, topo_node_id_str):
+        """Gets the topology node id from a node id string.
+        This value could either be the topology node id as an integer,
+        or it could be an attribute of the topology or configuration (e.g., 'sink_id')."""
+        configuration = Configuration.create(self.args.configuration, self.args)
+
+        try:
+            topo_node_id = int(topo_node_id_str)
+
+            ord_node_id = configuration.topology.to_ordered_nid(topo_node_id)
+
+            if ord_node_id not in configuration.topology.nodes:
+                raise RuntimeError("The node id {} is not a valid node id".format(topo_node_id))
+
+            return topo_node_id
+
+        except ValueError:
+            attr_sources = (configuration, configuration.topology)
+            for attr_source in attr_sources:
+                if hasattr(attr_source, topo_node_id_str):
+                    ord_node_id = int(getattr(attr_source, topo_node_id_str))
+
+                    return configuration.topology.to_topo_nid(ord_node_id)
+            else:
+                raise RuntimeError("No way to work out node from {}.".format(topo_node_id_str))
