@@ -189,8 +189,13 @@ class Simulation(object):
         try:
             self._pre_run()
 
-            event_count = self.tossim.runAllEventsWithMaxTime(
-                self.safety_period_value, self.continue_predicate)
+            if hasattr(self, "_during_run"):
+                event_count = self.tossim.runAllEventsWithMaxTimeAndCallback(
+                    self.safety_period_value, self.continue_predicate, self._during_run)
+            else:
+                event_count = self.tossim.runAllEventsWithMaxTime(
+                    self.safety_period_value, self.continue_predicate)
+
         finally:
             self._post_run(event_count)
 
