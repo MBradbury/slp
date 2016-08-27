@@ -229,7 +229,6 @@ class Gui:
 ###############################################
 class GuiSimulation(Simulation):
     def __init__(self, module_name, configuration, args):
-
         super(GuiSimulation, self).__init__(
             module_name=module_name,
             configuration=configuration,

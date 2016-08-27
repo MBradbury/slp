@@ -79,9 +79,14 @@ class CLI(object):
 
         subparser = subparsers.add_parser("analyse")
         subparser = subparsers.add_parser("time-taken-table")
-        subparser = subparsers.add_parser("time-taken-boxplot")
         subparser = subparsers.add_parser("detect-missing")
         subparser = subparsers.add_parser("graph-heatmap")
+
+        ###
+
+        subparser = subparsers.add_parser("per-parameter-grapher")
+        subparser.add_argument("--grapher", required=True)
+        subparser.add_argument("--metric-name", required=True)
 
         ###
 
@@ -269,20 +274,6 @@ class CLI(object):
 
         self._create_table(self.algorithm_module.name + "-time-taken", result_table)
 
-    def _run_time_taken_boxplot(self, args):
-        from data.graph import boxplot
-
-        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-
-        grapher = boxplot.Grapher(os.path.join(self.algorithm_module.graphs_path, "boxplot"), "TimeTaken", self.parameter_names())
-        grapher.create(analyzer)
-
-        summary.GraphSummary(
-            os.path.join(self.algorithm_module.graphs_path, "boxplot"),
-            '{}-{}'.format(self.algorithm_module.name, "boxplot")
-        ).run()
-
-
     def _run_detect_missing(self, args):
         
 
@@ -336,6 +327,25 @@ class CLI(object):
                 '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_"))
             ).run()
 
+    def _run_per_parameter_grapher(self, args):
+        import data.graph
+        from data import submodule_loader
+
+        graph_type = submodule_loader.load(data.graph, args.grapher)
+
+        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
+
+        grapher = graph_type.Grapher(os.path.join(self.algorithm_module.graphs_path, args.grapher), args.metric_name, self.parameter_names())
+
+        grapher.xaxis_label = args.metric_name
+
+        grapher.create(analyzer)
+
+        summary.GraphSummary(
+            os.path.join(self.algorithm_module.graphs_path, args.grapher),
+            '{}-{}'.format(self.algorithm_module.name, args.grapher)
+        ).run()
+
 
     def run(self, args):
         args = self._parser.parse_args(args)
@@ -355,13 +365,13 @@ class CLI(object):
         elif 'time-taken-table' == args.mode:
             self._run_time_taken_table(args)
 
-        elif 'time-taken-boxplot' == args.mode:
-            self._run_time_taken_boxplot(args)
-
         elif 'detect-missing' == args.mode:
             self._run_detect_missing(args)
 
         elif 'graph-heatmap' == args.mode:
             self._run_graph_heatmap(args)
+
+        elif 'per-parameter-grapher' == args.mode:
+            self._run_per_parameter_grapher(args)
 
         return args
