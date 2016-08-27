@@ -311,12 +311,21 @@ class Analyse(object):
                     #print("Unable to calculate good_move_ratio due to the KeyError {}".format(ex))
                     return None
 
+                attacker_moves = self._get_from_opts_or_values("AttackerMoves", values)
+
+                # We can't calculate the good move ratio if the attacker hasn't moved
+                for (attacker_id, num_moves) in attacker_moves.items():
+                    if num_moves == 0:
+                        print("Unable to calculate good_move_ratio due to the attacker {} not having moved.".format(attacker_id))
+                        return None
+
                 ratios = []
 
-                for node_id in steps_towards.keys():
-                    steps_towards_node = float(steps_towards[node_id])
+                for key in steps_towards.keys():
+                    steps_towards_node = float(steps_towards[key])
+                    steps_away_from_node = float(steps_away[key])
 
-                    ratios.append(steps_towards_node / (steps_towards_node + float(steps_away[node_id])))
+                    ratios.append(steps_towards_node / (steps_towards_node + steps_away_from_node))
 
                 ave = np.mean(ratios)
 
@@ -563,7 +572,10 @@ class AnalyzerCommon(object):
                     return "None"
 
     def analyse_path(self, path):
+        #try:
         return Analyse(path, self.normalised_values)
+        #except Exception as ex:
+        #    raise RuntimeError("Error analysing {}".format(path), ex)
 
     def analyse_and_summarise_path(self, path):
         return AnalysisResults(self.analyse_path(path))
