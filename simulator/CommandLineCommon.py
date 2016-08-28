@@ -78,6 +78,10 @@ class CLI(object):
         ###
 
         subparser = subparsers.add_parser("analyse")
+        subparser.add_argument("--thread-count", type=int, default=None)
+
+        ###
+
         subparser = subparsers.add_parser("time-taken-table")
         subparser = subparsers.add_parser("detect-missing")
         subparser = subparsers.add_parser("graph-heatmap")
@@ -185,7 +189,7 @@ class CLI(object):
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-        analyzer.run(self.algorithm_module.result_file)
+        analyzer.run(self.algorithm_module.result_file, args.thread_count)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
