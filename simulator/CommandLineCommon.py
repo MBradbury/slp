@@ -51,6 +51,7 @@ class CLI(object):
 
         subparser = cluster_subparsers.add_parser("copy")
         subparser = cluster_subparsers.add_parser("copy-result-summary")
+        subparser = cluster_subparsers.add_parser("copy-parameters")
         subparser = cluster_subparsers.add_parser("submit")
         subparser.add_argument("--array", action="store_true")
         subparser.add_argument("--notify", nargs="*")
@@ -77,10 +78,19 @@ class CLI(object):
         ###
 
         subparser = subparsers.add_parser("analyse")
+        subparser.add_argument("--thread-count", type=int, default=None)
+
+        ###
+
         subparser = subparsers.add_parser("time-taken-table")
-        subparser = subparsers.add_parser("time-taken-boxplot")
         subparser = subparsers.add_parser("detect-missing")
         subparser = subparsers.add_parser("graph-heatmap")
+
+        ###
+
+        subparser = subparsers.add_parser("per-parameter-grapher")
+        subparser.add_argument("--grapher", required=True)
+        subparser.add_argument("--metric-name", required=True)
 
         ###
 
@@ -134,10 +144,10 @@ class CLI(object):
         size_index = names.index('network size')
         distance_index = names.index('distance')
         source_period_index = names.index('source period')
-        node_id_order_index = names.index('node id order')
 
         def process(*args):
-            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index], args[node_id_order_index], self.seed)
+            # Getting the configuration here with "topology" is fine, as we are only finding the number of sources.
+            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index], "topology", None)
             num_sources = len(configuration.source_ids)
 
             source_period = args[source_period_index] * num_sources
@@ -179,7 +189,7 @@ class CLI(object):
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-        analyzer.run(self.algorithm_module.result_file)
+        analyzer.run(self.algorithm_module.result_file, args.thread_count)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
@@ -187,6 +197,9 @@ class CLI(object):
         or by setting the SLP_NOTIFY_EMAILS environment variable."""
         
         emails_to_notify = args.notify
+
+        if emails_to_notify is None:
+            emails_to_notify = []
 
         emails_to_notify_env = os.getenv("SLP_NOTIFY_EMAILS")
         if emails_to_notify_env:
@@ -216,7 +229,10 @@ class CLI(object):
             cluster.copy_to()
 
         elif 'copy-result-summary' == args.cluster_mode:
-            cluster.copy_result_summary(self.algorithm_module.results_path, self.algorithm_module.result_file)
+            cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file)
+
+        elif 'copy-parameters' == args.cluster_mode:
+            cluster.copy_file(os.path.join('algorithm', self.algorithm_module.name), 'Parameters.py')
 
         elif 'submit' == args.cluster_mode:
             emails_to_notify = self._get_emails_to_notify(args)
@@ -261,20 +277,6 @@ class CLI(object):
         result_table = fake_result.ResultTable(result)
 
         self._create_table(self.algorithm_module.name + "-time-taken", result_table)
-
-    def _run_time_taken_boxplot(self, args):
-        from data.graph import boxplot
-
-        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-
-        grapher = boxplot.Grapher(os.path.join(self.algorithm_module.graphs_path, "boxplot"), "TimeTaken", self.parameter_names())
-        grapher.create(analyzer)
-
-        summary.GraphSummary(
-            os.path.join(self.algorithm_module.graphs_path, "boxplot"),
-            '{}-{}'.format(self.algorithm_module.name, "boxplot")
-        ).run()
-
 
     def _run_detect_missing(self, args):
         
@@ -329,6 +331,25 @@ class CLI(object):
                 '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_"))
             ).run()
 
+    def _run_per_parameter_grapher(self, args):
+        import data.graph
+        from data import submodule_loader
+
+        graph_type = submodule_loader.load(data.graph, args.grapher)
+
+        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
+
+        grapher = graph_type.Grapher(os.path.join(self.algorithm_module.graphs_path, args.grapher), args.metric_name, self.parameter_names())
+
+        grapher.xaxis_label = args.metric_name
+
+        grapher.create(analyzer)
+
+        summary.GraphSummary(
+            os.path.join(self.algorithm_module.graphs_path, args.grapher),
+            '{}-{}'.format(self.algorithm_module.name, args.grapher)
+        ).run()
+
 
     def run(self, args):
         args = self._parser.parse_args(args)
@@ -348,13 +369,13 @@ class CLI(object):
         elif 'time-taken-table' == args.mode:
             self._run_time_taken_table(args)
 
-        elif 'time-taken-boxplot' == args.mode:
-            self._run_time_taken_boxplot(args)
-
         elif 'detect-missing' == args.mode:
             self._run_detect_missing(args)
 
         elif 'graph-heatmap' == args.mode:
             self._run_graph_heatmap(args)
+
+        elif 'per-parameter-grapher' == args.mode:
+            self._run_per_parameter_grapher(args)
 
         return args

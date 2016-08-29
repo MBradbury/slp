@@ -1,8 +1,8 @@
 from __future__ import print_function, division
 
-from simulator.MetricsCommon import MetricsCommon
+import numpy as np
 
-from numpy import mean
+from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
@@ -48,7 +48,7 @@ class Metrics(MetricsCommon):
         return len(self._path_dropped) / len(self.normal_sent_time)
 
     def path_dropped_average_length(self):
-        return 0 if len(self._path_dropped) == 0 else mean(self._path_dropped)
+        return 0 if len(self._path_dropped) == 0 else np.mean(self._path_dropped)
 
     @staticmethod
     def items():

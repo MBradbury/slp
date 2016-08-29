@@ -94,7 +94,7 @@ implementation
 	}
 
 
-	async command am_addr_t NodeType.get_topology_node_id()
+	command am_addr_t NodeType.get_topology_node_id()
 	{
 #ifdef TOSSIM
 		return sim_mote_tag(sim_node());
@@ -105,6 +105,11 @@ implementation
 
 	command bool NodeType.is_node_sink()
 	{
-		return call NodeType.get_topology_node_id() == SINK_NODE_ID;
+		return call NodeType.is_topology_node_id(SINK_NODE_ID);
+	}
+
+	command bool NodeType.is_topology_node_id(uint16_t topo_nid)
+	{
+		return call NodeType.get_topology_node_id() == topo_nid;
 	}
 }

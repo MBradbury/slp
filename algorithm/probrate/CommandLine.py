@@ -21,12 +21,13 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-            [parameters.distance], parameters.periods
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.periods
         )
 
         argument_product = [
-            (size, config, attacker, noise, communication_model, distance, src_period, broadcast_period)
-            for (size, config, attacker, noise, communication_model, distance, (src_period, broadcast_period))
+            (size, config, attacker, noise, communication_model, distance, nido, lnst, src_period, broadcast_period)
+            for (size, config, attacker, noise, communication_model, distance, nido, lnst, (src_period, broadcast_period))
             in argument_product
         ]
 
