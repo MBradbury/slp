@@ -20,7 +20,6 @@ from more_itertools import unique_everseen
 import numpy as np
 import pandas as pd
 
-from data.memoize import memoize
 import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
@@ -86,7 +85,7 @@ def _parse_dict_node_to_value(indict, decompress=False):
     return result
 
 DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
-DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
+#DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 
 def _parse_dict_tuple_nodes_to_value(indict):
     # Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
@@ -103,14 +102,34 @@ def _parse_dict_tuple_nodes_to_value(indict):
     }
 
     # Old style - assume the source is 0
-    dict2 = {
-        (0, int(b)): float(c)
-        for (b, c) in DICT_TUPLE_KEY_OLD_RE.findall(indict)
-    }
+    #dict2 = {
+    #    (0, int(b)): float(c)
+    #    for (b, c) in DICT_TUPLE_KEY_OLD_RE.findall(indict)
+    #}
 
-    dict1.update(dict2)
+    #dict1.update(dict2)
 
     return dict1
+
+def dict_sum(dict_list):
+    result = {}
+    for d in dict_list:
+        for (key, value) in d.items():
+            if key not in result:
+                result[key] = value
+            else:
+                result[key] += value
+    return result
+
+def dict_mean(dict_list):
+
+    result = {
+        k: float(v) / len(dict_list)
+        for (k, v)
+        in dict_sum(dict_list).items()
+    }
+
+    return result
 
 class Analyse(object):
 
@@ -163,7 +182,11 @@ class Analyse(object):
                 # We need to remove the new line at the end of the line
                 line = line.strip()
 
-                if len(self.unnormalised_headings) == 0 and '=' in line:
+                if line.startswith('@'):
+                    # Skip the attributes that contain some extra info
+                    continue
+
+                elif len(self.unnormalised_headings) == 0 and '=' in line:
                     # We are reading the options so record them.
                     # Some option values will have an '=' in them so only split once.
                     opt = line.split('=', 1)
@@ -199,19 +222,18 @@ class Analyse(object):
         self.columns = self.columns.replace([np.inf, -np.inf], np.nan)
         self.columns.dropna(subset=["NormalLatency"], how="all")
 
-        for (norm_head, (num, den)) in zip(self.additional_normalised_headings, normalised_values):
+        normalised_values_names = [(_normalised_value_name(num), _normalised_value_name(den)) for num, den in normalised_values]
 
-            num = _normalised_value_name(num)
-            den = _normalised_value_name(den)
+        for (norm_head, args) in zip(self.additional_normalised_headings, normalised_values_names):
 
-            self.columns[norm_head] = self.columns.apply(lambda row: self._get_norm_value(num, den, row),
-                axis=1, raw=True, reduce=True)
+            #axis=1 means to apply per row
+            self.columns[norm_head] = self.columns.apply(self._get_norm_value,
+                                                         axis=1, raw=True, reduce=True, args=args)
 
-    @memoize
     def headings_index(self, name):
         return self.headings.index(name)
 
-    def _get_norm_value(self, num, den, row):
+    def _get_norm_value(self, row, num, den):
         num_value = self._get_from_opts_or_values(num, row)
         den_value = self._get_from_opts_or_values(den, row)
 
@@ -263,7 +285,7 @@ class Analyse(object):
                 return source_rate / num_sources
 
             elif name == "energy_impact":
-                # From Great Duck Island paper, in nanoamp hours
+                # Magic constants are from Great Duck Island paper, in nanoamp hours
                 cost_per_bcast_nah = 20.0
                 cost_per_deliver_nah = 8.0
 
@@ -278,6 +300,7 @@ class Analyse(object):
                 return cost_mah
 
             elif name == "daily_allowance_used":
+                # Magic constants are from Great Duck Island paper, in nanoamp hours
                 energy_impact = self._get_from_opts_or_values("energy_impact", values)
                 num_nodes = self._get_from_opts_or_values("num_nodes", values)
                 time_taken = self._get_from_opts_or_values("TimeTaken", values)
@@ -300,6 +323,14 @@ class Analyse(object):
 
             elif name == "good_move_ratio":
 
+                attacker_moves = self._get_from_opts_or_values("AttackerMoves", values)
+
+                # We can't calculate the good move ratio if the attacker hasn't moved
+                for (attacker_id, num_moves) in attacker_moves.items():
+                    if num_moves == 0:
+                        print("Unable to calculate good_move_ratio due to the attacker {} not having moved.".format(attacker_id))
+                        return None
+
                 try:
                     steps_towards = self._get_from_opts_or_values("AttackerStepsTowards", values)
                     steps_away = self._get_from_opts_or_values("AttackerStepsAway", values)
@@ -309,10 +340,11 @@ class Analyse(object):
 
                 ratios = []
 
-                for node_id in steps_towards.keys():
-                    steps_towards_node = float(steps_towards[node_id])
+                for key in steps_towards.keys():
+                    steps_towards_node = float(steps_towards[key])
+                    steps_away_from_node = float(steps_away[key])
 
-                    ratios.append(steps_towards_node / (steps_towards_node + float(steps_away[node_id])))
+                    ratios.append(steps_towards_node / (steps_towards_node + steps_away_from_node))
 
                 ave = np.mean(ratios)
 
@@ -399,7 +431,7 @@ class Analyse(object):
         first = values[0]
 
         if isinstance(first, dict):
-            return self.dict_mean(values)
+            return dict_mean(values)
         elif isinstance(first, str):
             raise TypeError("Cannot find the average of a string for {}".format(header))
         else:
@@ -428,29 +460,6 @@ class Analyse(object):
             raise TypeError("Cannot find the median of a string for {}".format(header))
         else:
             return values.median()
-
-
-    @staticmethod
-    def dict_sum(dics):
-        result = {}
-        for d in dics:
-            for (key, value) in d.items():
-                if key not in result:
-                    result[key] = value
-                else:
-                    result[key] += value
-        return result
-
-    @classmethod
-    def dict_mean(cls, dict_list):
-
-        result = {
-            k: float(v) / len(dict_list)
-            for (k, v)
-            in cls.dict_sum(dict_list).items()
-        }
-
-        return result
 
 
 class AnalysisResults:
@@ -559,14 +568,17 @@ class AnalyzerCommon(object):
                     return "None"
 
     def analyse_path(self, path):
+        #try:
         return Analyse(path, self.normalised_values)
+        #except Exception as ex:
+        #    raise RuntimeError("Error analysing {}".format(path), ex)
 
     def analyse_and_summarise_path(self, path):
         return AnalysisResults(self.analyse_path(path))
 
-    def run(self, summary_file):
+    def run(self, summary_file, nprocs=None):
         """Perform the analysis and write the output to the :summary_file:"""
-        
+
         def worker(inqueue, outqueue):
             while True:
                 item = inqueue.get()
@@ -591,7 +603,8 @@ class AnalyzerCommon(object):
                 except Exception as ex:
                     outqueue.put((path, None, (ex, traceback.format_exc())))
 
-        nprocs = multiprocessing.cpu_count()
+        if nprocs is None:
+            nprocs = multiprocessing.cpu_count()
 
         inqueue = multiprocessing.Queue()
         outqueue = multiprocessing.Queue()
@@ -654,3 +667,54 @@ class AnalyzerCommon(object):
 
         pool.close()
         pool.join()
+
+    def run_single(self, summary_file):
+        """Perform the analysis and write the output to the :summary_file:"""
+        
+        def worker(ipath):
+            result = self.analyse_and_summarise_path(path)
+
+            # Skip 0 length results
+            if result.number_of_repeats() == 0:
+                raise RuntimeError("There are 0 repeats")
+
+            line = "|".join(fn(result) for fn in self.values.values())
+
+            return line
+
+        summary_file_path = os.path.join(self.results_directory, summary_file)
+
+        # The output files we need to process.
+        # These are sorted to give anyone watching the output a sense of progress.
+        files = sorted(fnmatch.filter(os.listdir(self.results_directory), '*.txt'))
+
+        total = len(files)
+
+        with open(summary_file_path, 'w') as out:
+
+            print("|".join(self.values.keys()), file=out)
+
+            start_time = timeit.default_timer()
+
+            for num, infile in enumerate(files):
+                path = os.path.join(self.results_directory, infile)
+
+                print('Analysing {0}'.format(path))
+
+                line = worker(path)
+
+                print(line, file=out)
+
+                current_time_taken = timeit.default_timer() - start_time
+                time_per_job = current_time_taken / (num + 1)
+                estimated_total = time_per_job * total
+                estimated_remaining = estimated_total - current_time_taken
+
+                current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
+                estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
+
+                print("Finished analysing file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
+                    num + 1, total, ((num + 1) / total) * 100.0, current_time_taken_str, estimated_remaining_str))
+                print()
+
+            print('Finished writing {}'.format(summary_file))

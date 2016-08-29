@@ -42,8 +42,6 @@ class Attacker(object):
 
         self.moves_in_response_to = Counter()
 
-        self.min_source_distance = {source: self._sim.node_distance_meters(start_node_id, source) for source in self._source_ids()}
-
         self.setup_event_callbacks()
 
     def _source_ids(self):
@@ -103,6 +101,15 @@ class Attacker(object):
         """Checks if the source has been found, using a cached variable."""
         return self._has_found_source
 
+    def handle_metrics_new_source(self, ord_source):
+        self._update_min_source_distance(ord_source, self._sim.node_distance_meters(self.position, ord_source))
+
+    def _update_min_source_distance(self, ord_source, new_distance):
+        if ord_source in self.min_source_distance:
+            self.min_source_distance[ord_source] = min(self.min_source_distance[ord_source], new_distance)
+        else:
+            self.min_source_distance[ord_source] = new_distance
+
     def _move(self, time, node_id, msg_type=None):
         """Moved the source to a new location."""
 
@@ -111,19 +118,16 @@ class Attacker(object):
         if msg_type is not None:
             self.moves_in_response_to[msg_type] += 1
 
-        for source in self._source_ids():
-            new_distance = self._sim.node_distance_meters(source, node_id)
-            old_distance = self._sim.node_distance_meters(source, self.position)
+        for ord_source in self._source_ids():
+            new_distance = self._sim.node_distance_meters(ord_source, node_id)
+            old_distance = self._sim.node_distance_meters(ord_source, self.position)
 
             if new_distance > old_distance:
-                self.steps_away[source] += 1
+                self.steps_away[ord_source] += 1
             elif new_distance < old_distance:
-                self.steps_towards[source] += 1
+                self.steps_towards[ord_source] += 1
 
-            if source in self.min_source_distance:
-                self.min_source_distance[source] = min(self.min_source_distance[source], new_distance)
-            else:
-                self.min_source_distance[source] = new_distance
+            self._update_min_source_distance(ord_source, new_distance)
 
         self.position = node_id
         self._has_found_source = self.found_source_slow()

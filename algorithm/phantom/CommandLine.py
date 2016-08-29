@@ -32,12 +32,14 @@ class CLI(CommandLineCommon.CLI):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.ifilter(
-            lambda (size, _1, _2, _3, _4, _5, _6, walk_length, _7): walk_length in parameters.walk_hop_lengths[size],
+            lambda (size, c, am, nm, cm, d, nido, lnst, sp, walk_length, lm): walk_length in parameters.walk_hop_lengths[size],
             itertools.product(
                 parameters.sizes, parameters.configurations,
                 parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-                [parameters.distance], parameters.source_periods,
-                set(itertools.chain(*parameters.walk_hop_lengths.values())), parameters.landmark_nodes)
+                [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+                parameters.source_periods,
+                set(itertools.chain(*parameters.walk_hop_lengths.values())), parameters.landmark_nodes
+            )
         ))
 
         # Factor in the number of sources when selecting the source period.

@@ -168,6 +168,9 @@ class MetricsCommon(object):
 
             self.became_source_times[top_node_id].append(time)
 
+            for attacker in self.sim.attackers:
+                attacker.handle_metrics_new_source(ord_node_id)
+
         elif old_name == "SourceNode":
             self.source_ids.remove(ord_node_id)
 
@@ -180,6 +183,8 @@ class MetricsCommon(object):
             self.sink_ids.add(ord_node_id)
 
         self.node_transitions[(old_name, new_name)] += 1
+
+
 
     def seed(self):
         return self.sim.seed

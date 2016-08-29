@@ -229,7 +229,6 @@ class Gui:
 ###############################################
 class GuiSimulation(Simulation):
     def __init__(self, module_name, configuration, args):
-
         super(GuiSimulation, self).__init__(
             module_name=module_name,
             configuration=configuration,
@@ -245,8 +244,6 @@ class GuiSimulation(Simulation):
 
 
     def _during_run(self, event_count):
-        super(GuiSimulation, self)._during_run(event_count)
-
         if event_count % 10 == 0 and self._gui._node_label is not None and self.nesc_app is not None:
             time = self.sim_time()
 

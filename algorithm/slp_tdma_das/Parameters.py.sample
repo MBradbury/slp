@@ -29,6 +29,10 @@ configurations = [
 
 attacker_models = ['SeqNosReactiveAttacker()']
 
+latest_node_start_time = 0 # in seconds
+
+node_id_orders = ['randomised']
+
 slot_period = [0.1]
 dissem_period = [0.5]
 tdma_num_slots = [200]

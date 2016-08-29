@@ -29,6 +29,10 @@ configurations = [
 
 attacker_models = ['SeqNoReactiveAttacker()']
 
+latest_node_start_time = 1 # in seconds
+
+node_id_orders = ['randomised']
+
 walk_hop_lengths = {11: [6, 10, 14], 15: [10, 14, 18], 21: [16, 20, 24], 25: [20, 24, 28]}
 
 landmark_nodes = ['sink_id', 'bottom_right']
