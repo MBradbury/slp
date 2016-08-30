@@ -92,7 +92,14 @@ implementation
         new AMReceiverC(CHANGE_CHANNEL) as ChangeReceiver;
 
     App.ChangeSend -> ChangeSender;
-    App.ChangeReceive ->ChangeReceiver;
+    App.ChangeReceive -> ChangeReceiver;
+
+    components
+        new AMSenderC(EMPTYNORMAL_CHANNEL) as EmptyNormalSender,
+        new AMReceiverC(EMPTYNORMAL_CHANNEL) as EmptyNormalReceiver;
+
+    App.EmptyNormalSend -> EmptyNormalSender;
+    App.EmptyNormalReceive -> EmptyNormalReceiver;
 
     // Message Queue
     components
