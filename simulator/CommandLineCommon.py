@@ -132,7 +132,7 @@ class CLI(object):
             # the arguments to the simulation.
             #
             # So this custom RunSimulationsCommon class gets overridden and provided.
-            if self.custom_run_simulation_class is not None:
+            if self.custom_run_simulation_class is None:
                 from data.run.common import RunSimulationsCommon as RunSimulations
             else:
                 RunSimulations = self.custom_run_simulation_class
