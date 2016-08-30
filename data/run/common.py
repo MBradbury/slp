@@ -160,7 +160,8 @@ class RunTestbedCommon(RunSimulationsCommon):
         # Filter out invalid parameters to pass onwards
         to_filter = ['network size', 
                      'attacker model', 'noise model',
-                     'communication model', 'distance']
+                     'communication model', 'distance',
+                     'node id order', 'latest node start time']
 
         # Remove indexes
         indexes = [argument_names.index(name) for name in to_filter]
