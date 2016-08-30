@@ -163,7 +163,11 @@ class CLI(object):
 
         def process(*args):
             # Getting the configuration here with "topology" is fine, as we are only finding the number of sources.
-            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index], "topology", None)
+            configuration = Configuration.create_specific(args[configuration_index],
+                                                          args[size_index],
+                                                          args[distance_index],
+                                                          "topology",
+                                                          None)
             num_sources = len(configuration.source_ids)
 
             source_period = args[source_period_index] * num_sources
@@ -296,7 +300,6 @@ class CLI(object):
 
     def _run_detect_missing(self, args):
         
-
         argument_product = {tuple(map(str, row)) for row in self._argument_product()}
 
         result = results.Results(self.algorithm_module.result_file_path,

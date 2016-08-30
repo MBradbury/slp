@@ -119,6 +119,9 @@ class Simulation(object):
         """Returns the current simulation time in seconds"""
         return self.tossim.timeInSeconds()
 
+    def register_event_callback(self, callback, call_at_time):
+        self.tossim.register_event_callback(callback, call_at_time)
+
     def _create_nodes(self, topology):
         """Creates nodes and initialize their boot times"""
         for (ordered_nid, loc) in topology.nodes.items():
@@ -288,6 +291,7 @@ class Simulation(object):
 
 
 from datetime import datetime
+import heapq
 import re
 
 class OfflineSimulation(object):
@@ -317,6 +321,8 @@ class OfflineSimulation(object):
         self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
 
         self._line_handlers = {}
+
+        self._callbacks = []
 
         self.attackers = []
 
@@ -352,6 +358,9 @@ class OfflineSimulation(object):
     def sim_time(self):
         """Returns the current simulation time in seconds"""
         return (self._real_end_time - self._real_start_time).total_seconds()
+
+    def register_event_callback(self, callback, call_at_time):
+        heapq.heappush(self._callbacks, (call_at_time, callback))
 
     def _create_nodes(self, node_locations):
         """Creates nodes"""
@@ -427,6 +436,20 @@ class OfflineSimulation(object):
                     self._real_start_time = current_time
 
                 self._real_end_time = current_time
+
+                # Run any callbacks that happened before now
+                while True:
+                    if len(self._callbacks) == 0:
+                        break
+
+                    (call_at_time, callback) = self._callbacks[0]
+
+                    if call_at_time >= current_time:
+                        break
+
+                    heapq.heappop(self._callbacks)
+
+                    callback(call_at_time)
 
                 # Stop the run if the attacker has found the source
                 if not self.continue_predicate():
