@@ -473,7 +473,6 @@ implementation
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         period_counter++;
-        call NormalSeqNos.increment(TOS_NODE_ID);
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(slot != BOT || period_counter < get_pre_beacon_periods())
         {
@@ -568,7 +567,7 @@ implementation
 		{
 			NormalMessage* forwarding_message;
 
-			/*call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);*/
+            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -595,7 +594,7 @@ implementation
         simdbg("stdout", "SINK RECEIVED NORMAL.\n");
 		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
-			/*call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);*/
+            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 		}
@@ -703,7 +702,11 @@ implementation
 
     void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
     {
-        METRIC_RCV_EMPTYNORMAL(rcvd);
+        if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+        {
+            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
+            METRIC_RCV_EMPTYNORMAL(rcvd);
+        }
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
