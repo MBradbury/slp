@@ -351,9 +351,9 @@ class TimedBacktrackingAttacker(Attacker):
     def __str__(self):
         return type(self).__name__ + "(wait_time_secs={})".format(self._wait_time_secs)
 
-class HMAttacker(Attacker):
+class RHMAttacker(Attacker):
     def __init__(self, clear_period, history_window_size, moves_per_period):
-        super(HMAttacker, self).__init__()
+        super(RHMAttacker, self).__init__()
 
         self._clear_period = clear_period
         self._moves_per_period = moves_per_period
@@ -368,9 +368,9 @@ class HMAttacker(Attacker):
         self._next_message_count_wait = None
 
     def setup(self, *args, **kwargs):
-        super(HMAttacker, self).setup(*args, **kwargs)
+        super(RHMAttacker, self).setup(*args, **kwargs)
 
-        self._next_message_count_wait = self._sim.randint(1, self._moves_per_period - self._num_moves)
+        self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
 
     def setup_event_callbacks(self):
         self._sim.tossim.register_event_callback(self._clear_messages, self._clear_period)
@@ -378,7 +378,7 @@ class HMAttacker(Attacker):
     def _clear_messages(self, current_time):
         self._messages = []
         self._num_moves = 0
-        self._next_message_count_wait = self._sim.rng.randint(1, self._moves_per_period - self._num_moves)
+        self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
 
         print("Cleared messages at {}".format(current_time))
 
@@ -388,7 +388,10 @@ class HMAttacker(Attacker):
 
         self._messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
 
+        # Have made fewer moves than allowed
         can_move = self._num_moves < self._moves_per_period
+
+        # Have we waited for enough messages
         choose_move = len(self._messages) == self._next_message_count_wait
 
         if can_move and choose_move:
@@ -409,11 +412,12 @@ class HMAttacker(Attacker):
         return False
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
-        self._history[self._history_index] = node_id
-        self._history_index = (self._history_index + 1) % self._history_window_size
+        if len(self._history) > 0:
+            self._history[self._history_index] = node_id
+            self._history_index = (self._history_index + 1) % self._history_window_size
 
         self._num_moves += 1
-        self._next_message_count_wait = self._sim.rng.randint(1, self._moves_per_period - self._num_moves)
+        self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
 
     def __str__(self):
         return type(self).__name__ + "(clear_period={},history_window_size={},moves_per_period={})".format(
