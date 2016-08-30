@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 import datetime
 import itertools
@@ -105,7 +105,7 @@ class CLI(CommandLineCommon.CLI):
                              'order', 'short count', 'long count', 'wait before short')
 
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path, RunSimulations)
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")

@@ -20,7 +20,6 @@ class Analyzer(AnalyzerCommon):
         d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
         d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
-        d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['dissem']             = lambda x: AnalyzerCommon._format_results(x, 'DissemSent')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
