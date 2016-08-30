@@ -141,7 +141,7 @@ class Analyse(object):
         "ReceiveRatio": np.float_,
         "TimeTaken": np.float_,
         "WallTime": np.float_,
-        "EventCount": np.uint64,
+        "EventCount": np.int64,
         "NormalLatency": np.float_,
         "NormalSinkSourceHops": np.float_,
         "NormalSent": np.uint32,
@@ -165,7 +165,7 @@ class Analyse(object):
         "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
     }
 
-    def __init__(self, infile_path, normalised_values):
+    def __init__(self, infile_path, normalised_values, with_converters=True, with_normalised=True):
 
         self.opts = {}
 
@@ -204,31 +204,35 @@ class Analyse(object):
 
         self._unnormalised_headings_count = len(self.unnormalised_headings)
 
-        self.additional_normalised_headings = _normalised_value_names(normalised_values)
+        self.additional_normalised_headings = _normalised_value_names(normalised_values) if with_normalised else []
 
         self.headings = list(self.unnormalised_headings)
         self.headings.extend(self.additional_normalised_headings)
+
+        converters = self.HEADING_CONVERTERS if with_converters else None
 
         self.columns = pd.read_csv(infile_path,
             names=self.unnormalised_headings, header=None,
             sep='|',
             skiprows=line_number,
-            dtype=self.HEADING_DTYPES, converters=self.HEADING_CONVERTERS,
+            dtype=self.HEADING_DTYPES, converters=converters,
             compression=None,
             #verbose=True
         )
 
         # Removes rows with infs in certain columns
+        # If NormalLatency is inf then no Normal messages were ever received by a sink
         self.columns = self.columns.replace([np.inf, -np.inf], np.nan)
         self.columns.dropna(subset=["NormalLatency"], how="all")
 
-        normalised_values_names = [(_normalised_value_name(num), _normalised_value_name(den)) for num, den in normalised_values]
+        if with_normalised:
+            normalised_values_names = [(_normalised_value_name(num), _normalised_value_name(den)) for num, den in normalised_values]
 
-        for (norm_head, args) in zip(self.additional_normalised_headings, normalised_values_names):
+            for (norm_head, args) in zip(self.additional_normalised_headings, normalised_values_names):
 
-            #axis=1 means to apply per row
-            self.columns[norm_head] = self.columns.apply(self._get_norm_value,
-                                                         axis=1, raw=True, reduce=True, args=args)
+                #axis=1 means to apply per row
+                self.columns[norm_head] = self.columns.apply(self._get_norm_value,
+                                                             axis=1, raw=True, reduce=True, args=args)
 
     def headings_index(self, name):
         return self.headings.index(name)
@@ -567,14 +571,14 @@ class AnalyzerCommon(object):
                 else:
                     return "None"
 
-    def analyse_path(self, path):
+    def analyse_path(self, path, **kwargs):
         #try:
-        return Analyse(path, self.normalised_values)
+        return Analyse(path, self.normalised_values, **kwargs)
         #except Exception as ex:
         #    raise RuntimeError("Error analysing {}".format(path), ex)
 
-    def analyse_and_summarise_path(self, path):
-        return AnalysisResults(self.analyse_path(path))
+    def analyse_and_summarise_path(self, path, **kwargs):
+        return AnalysisResults(self.analyse_path(path, **kwargs))
 
     def run(self, summary_file, nprocs=None):
         """Perform the analysis and write the output to the :summary_file:"""

@@ -92,6 +92,9 @@ class CLI(object):
         subparser.add_argument("--grapher", required=True)
         subparser.add_argument("--metric-name", required=True)
 
+        subparser.add_argument("--without-converters", action="store_true", default=False)
+        subparser.add_argument("--without-normalised", action="store_true", default=False)
+
         ###
 
         # Store any of the parsers that we need
@@ -169,7 +172,7 @@ class CLI(object):
         elif size == 21:
             return datetime.timedelta(hours=42)
         elif size == 25:
-            return datetime.timedelta(hours=72)
+            return datetime.timedelta(hours=71)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
@@ -339,11 +342,18 @@ class CLI(object):
 
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
 
-        grapher = graph_type.Grapher(os.path.join(self.algorithm_module.graphs_path, args.grapher), args.metric_name, self.parameter_names())
+        grapher = graph_type.Grapher(
+            os.path.join(self.algorithm_module.graphs_path, args.grapher),
+            args.metric_name,
+            self.parameter_names()
+        )
 
         grapher.xaxis_label = args.metric_name
 
-        grapher.create(analyzer)
+        grapher.create(analyzer,
+                       with_converters=not args.without_converters,
+                       with_normalised=not args.without_normalised
+        )
 
         summary.GraphSummary(
             os.path.join(self.algorithm_module.graphs_path, args.grapher),

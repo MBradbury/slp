@@ -25,7 +25,7 @@ class Grapher(GrapherBase):
 
         self.binwidth = 5
 
-    def create(self, analyzer):
+    def create(self, analyzer, **kwargs):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
@@ -38,7 +38,7 @@ class Grapher(GrapherBase):
         for infile in files:
             path = os.path.join(analyzer.results_directory, infile)
 
-            analysis = analyzer.analyse_path(path)
+            analysis = analyzer.analyse_path(path, **kwargs)
 
             self._create_plot(analysis)
 
