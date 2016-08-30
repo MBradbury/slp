@@ -346,7 +346,7 @@ class TimedBacktrackingAttacker(Attacker):
         self._last_move_time = time
         self._previous_locations.append(node_id)
 
-        self._sim.tossim.register_event_callback(self._move_to_previous_location_on_timeout, self._last_move_time + self._wait_time_secs)
+        self._sim.register_event_callback(self._move_to_previous_location_on_timeout, self._last_move_time + self._wait_time_secs)
 
     def __str__(self):
         return type(self).__name__ + "(wait_time_secs={})".format(self._wait_time_secs)
@@ -373,7 +373,7 @@ class RHMAttacker(Attacker):
         self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
 
     def setup_event_callbacks(self):
-        self._sim.tossim.register_event_callback(self._clear_messages, self._clear_period)
+        self._sim.register_event_callback(self._clear_messages, self._clear_period)
 
     def _clear_messages(self, current_time):
         self._messages = []
@@ -382,7 +382,7 @@ class RHMAttacker(Attacker):
 
         print("Cleared messages at {}".format(current_time))
 
-        self._sim.tossim.register_event_callback(self._clear_messages, current_time + self._clear_period)
+        self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
