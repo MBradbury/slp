@@ -28,6 +28,17 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
+    def _run_table(self, args):
+        time_taken_to_safety_period = lambda time_taken: time_taken * 2.0
+
+        safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path, time_taken_to_safety_period)
+
+        filename = '{}-results'.format(self.algorithm_module.name)
+
+        self._create_table(filename, safety_period_table)
 
     def run(self, args):
         args = super(CLI, self).run(args)
+
+        if 'table' == args.mode:
+            self._run_table(args)
