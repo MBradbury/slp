@@ -82,7 +82,14 @@ implementation
         new AMReceiverC(DISSEM_CHANNEL) as DissemReceiver;
 
     App.DissemSend -> DissemSender;
-    App.DissemReceive ->DissemReceiver;
+    App.DissemReceive -> DissemReceiver;
+
+    components
+        new AMSenderC(EMPTYNORMAL_CHANNEL) as EmptyNormalSender,
+        new AMReceiverC(EMPTYNORMAL_CHANNEL) as EmptyNormalReceiver;
+
+    App.EmptyNormalSend -> EmptyNormalSender;
+    App.EmptyNormalReceive -> EmptyNormalReceiver;
 
     /*components*/
         /*new AMSenderC(COLLISION_CHANNEL) as CollisionSender,*/
