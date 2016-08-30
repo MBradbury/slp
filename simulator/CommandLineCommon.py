@@ -23,13 +23,15 @@ class CLI(object):
     # Classes that derive from this should assign this variable
     local_parameter_names = None
 
-    def __init__(self, package, safety_period_result_path=None):
+    def __init__(self, package, safety_period_result_path=None, custom_run_simulation_class=None):
         super(CLI, self).__init__()
 
         self.algorithm_module = importlib.import_module(package)
         self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
 
         self.safety_period_result_path = safety_period_result_path
+
+        self.custom_run_simulation_class = custom_run_simulation_class
 
         try:
             self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
@@ -118,14 +120,25 @@ class CLI(object):
     def _argument_product(self):
         raise NotImplementedError()
 
+    def time_taken_to_safety_period(self, time_taken):
+        return time_taken
+
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
         else:
-            from data.run.common import RunSimulationsCommon as RunSimulations
+            # Time for something very crazy...
+            # Some simulations require a safety period that varies depending on
+            # the arguments to the simulation.
+            #
+            # So this custom RunSimulationsCommon class gets overridden and provided.
+            if self.custom_run_simulation_class is not None:
+                from data.run.common import RunSimulationsCommon as RunSimulations
+            else:
+                RunSimulations = self.custom_run_simulation_class
 
         if self.safety_period_result_path is not None:
-            safety_period_table_generator = safety_period.TableGenerator(self.safety_period_result_path)
+            safety_period_table_generator = safety_period.TableGenerator(self.safety_period_result_path, self.time_taken_to_safety_period)
             safety_periods = safety_period_table_generator.safety_periods()
         else:
             safety_periods = None

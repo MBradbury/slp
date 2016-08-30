@@ -10,7 +10,7 @@ from data import results
 
 class TableGenerator:
 
-    def __init__(self, result_file):
+    def __init__(self, result_file, time_taken_to_safety_period):
         self._result_names = ('time taken', 'received ratio', 'safety period',
                               'normal latency', 'ssd', 'captured')
 
@@ -19,6 +19,8 @@ class TableGenerator:
             parameters=tuple(),
             results=self._result_names
         )
+
+        self.time_taken_to_safety_period = time_taken_to_safety_period
 
     def write_tables(self, stream, param_filter=lambda x: True):
 
@@ -76,7 +78,7 @@ class TableGenerator:
                     ssd = _get_value('ssd')
                     latency = _get_value('normal latency')
                     time_taken = _get_value('time taken')
-                    safety_period = _get_value('safety period')
+                    safety_period = self.time_taken_to_safety_period(time_taken[0])
                     captured = _get_value('captured')
                 
                     print('{} & {} & {:0.0f} $\\pm$ {:0.2f} & {:.1f} $\\pm$ {:.2f}'
@@ -118,7 +120,7 @@ class TableGenerator:
 
     def safety_periods(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
-        return self._get_result_mapping('safety period')
+        return self._get_result_mapping('time taken', lambda x: self.time_taken_to_safety_period(x[0]))
 
     def time_taken(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> time taken

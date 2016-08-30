@@ -47,24 +47,18 @@ class Analyzer(AnalyzerCommon):
     def results_header():
         d = AnalyzerCommon.common_results_header()
 
-        d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
-        d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
+        AnalyzerCommon.common_results(d)
+
         d['captured']           = lambda x: str(x.average_of['Captured'])
         d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance', average_corrector=Analyzer._correct_attacker_distance)
+        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
         d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
-        d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
-        d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
-        d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
 
-        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
+        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
 
-        d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime', allow_missing=True)
-        d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount', allow_missing=True)
-        
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
 
@@ -76,10 +70,3 @@ class Analyzer(AnalyzerCommon):
 
     #def analyse_path(self, path):
     #    return AnalyseWithOutlierDetection(path)
-
-    @staticmethod
-    def _correct_attacker_distance(x):
-        if isinstance(x, dict) and 0 in x:
-            return {(0, 0): x[0]}
-        else:
-            return x

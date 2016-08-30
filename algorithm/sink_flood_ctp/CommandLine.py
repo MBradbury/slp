@@ -44,6 +44,9 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
+    def time_taken_to_safety_period(self, time_taken):
+        return time_taken * 2.0
+
 
     def _run_table(self, args):
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)

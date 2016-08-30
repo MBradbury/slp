@@ -46,6 +46,9 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
+    def time_taken_to_safety_period(self, time_taken):
+        return time_taken * 2.0
+
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
