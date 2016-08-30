@@ -13,6 +13,8 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
+        subparser = self._subparsers.add_parser("table")
+
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
 
