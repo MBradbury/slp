@@ -56,7 +56,7 @@ class CLI(CommandLineCommon.CLI):
             filename = '{}-{}-{}-results'.format(self.algorithm_module.name, noise_model, comm_model)
 
             self._create_table(filename, safety_period_table,
-                               param_filter=lambda (cm, nm, am, c, d): nm == noise_model and cm == comm_model)
+                               param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
 
     def _run_graph(self, args):
         graph_parameters = {
