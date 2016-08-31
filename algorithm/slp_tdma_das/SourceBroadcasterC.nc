@@ -19,7 +19,7 @@
 #define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, BOTTOM, 1)
-#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, msg->source_id, msg->sequence_number, 1)
+#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -498,19 +498,15 @@ implementation
 				simdbgerror("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
 			}
 
-            /*if (slot_active && !(call MessageQueue.empty()))*/
-            /*{*/
-                /*post send_normal();*/
-            /*}*/
+            if (slot_active && !(call MessageQueue.empty()))
+            {
+                post send_normal();
+            }
 		}
         else
         {
             EmptyNormalMessage msg;
-            /*msg.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
-            msg.sequence_number = period_counter;
-            msg.source_id = TOS_NODE_ID;
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
-            /*call NormalSeqNos.increment(TOS_NODE_ID);*/
         }
 	}
 
@@ -534,7 +530,6 @@ implementation
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         period_counter++;
-        call NormalSeqNos.increment(TOS_NODE_ID);
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(period_counter == SEARCH_PERIOD_COUNT)
         {
@@ -630,7 +625,7 @@ implementation
 		{
 			NormalMessage* forwarding_message;
 
-			/*call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);*/
+            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -657,7 +652,7 @@ implementation
         simdbg("stdout", "SINK RECEIVED NORMAL.\n");
 		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
-			/*call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);*/
+            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 		}
