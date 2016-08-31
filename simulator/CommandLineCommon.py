@@ -48,13 +48,13 @@ class CLI(object):
 
         cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
 
-        subparser = cluster_subparsers.add_parser("build")
+        subparser = cluster_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cluster. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--no-skip-complete", action="store_true")
 
-        subparser = cluster_subparsers.add_parser("copy")
-        subparser = cluster_subparsers.add_parser("copy-result-summary")
-        subparser = cluster_subparsers.add_parser("copy-parameters")
-        subparser = cluster_subparsers.add_parser("submit")
+        subparser = cluster_subparsers.add_parser("copy", help="Copy the built binaries for this algorithm to the cluster.")
+        subparser = cluster_subparsers.add_parser("copy-result-summary", help="Copy the result summary for this algorithm obtained by using the 'analyse' command to the cluster.")
+        subparser = cluster_subparsers.add_parser("copy-parameters", help="Copy this algorithm's Parameters.py file to the cluster.")
+        subparser = cluster_subparsers.add_parser("submit", help="Use this command to submit the cluster jobs. Run this on the cluster.")
         subparser.add_argument("--array", action="store_true")
         subparser.add_argument("--notify", nargs="*")
         subparser.add_argument("--no-skip-complete", action="store_true")
