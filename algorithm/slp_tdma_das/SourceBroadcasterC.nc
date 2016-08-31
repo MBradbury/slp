@@ -23,7 +23,7 @@
 
 #define BOT UINT16_MAX
 
-#define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbg("stdout", __VA_ARGS__);
+#define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbgverbose("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
 //Distance search messages travel from sink
@@ -286,22 +286,22 @@ implementation
     void process_dissem(void)
     {
         int i;
-        //simdbg("stdout", "Processing DISSEM...\n");
+        //simdbgverbose("stdout", "Processing DISSEM...\n");
         if(slot == BOT)
         {
             const NeighbourInfo* parent_info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
             OtherInfo* other_info;
 
             if (parent_info == NULL) {
-                /*simdbg("stdout", "Info was NULL.\n");*/
+                /*simdbgverbose("stdout", "Info was NULL.\n");*/
                 return;
             }
-            simdbg("stdout", "Info for n-info with min hop was: ID=%u, hop=%u, slot=%u.\n",
+            simdbgverbose("stdout", "Info for n-info with min hop was: ID=%u, hop=%u, slot=%u.\n",
                 parent_info->id, parent_info->hop, parent_info->slot);
 
             other_info = OtherList_get(&others, parent_info->id);
             if(other_info == NULL) {
-                simdbgerror("stdout", "Other info was NULL.\n");
+                simdbgerrorverbose("stdout", "Other info was NULL.\n");
                 return;
             }
 
@@ -309,9 +309,9 @@ implementation
             parent = parent_info->id;
             slot = parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
 
-            simdbg("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbg_clear("stdout", "\n");
+            simdbgverbose("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbgverbose_clear("stdout", "\n");
 
-            simdbg("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, slot, hop);
+            simdbgverbose("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, slot, hop);
 
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
         }
@@ -325,7 +325,7 @@ implementation
             OnehopList neighbour_info;
             int i,j;
             NeighbourList_select(&n_info, &neighbours, &neighbour_info);
-            simdbg("stdout", "Checking Neighbours for slot collisions (our slot %u / hop %u): ", slot, hop); NeighbourList_print(&n_info); simdbg_clear("stdout", "\n");
+            simdbgverbose("stdout", "Checking Neighbours for slot collisions (our slot %u / hop %u): ", slot, hop); NeighbourList_print(&n_info); simdbgverbose_clear("stdout", "\n");
 
             for(i=0; i<n_info.count; i++)
             {
@@ -335,7 +335,7 @@ implementation
                 if(n_info_i->slot == slot && n_info_i->id != TOS_NODE_ID)
                 {
 
-                    simdbg("stdout", "Found colliding slot from node %u, will evaluate if (%u || (%u && %u))\n",
+                    simdbgverbose("stdout", "Found colliding slot from node %u, will evaluate if (%u || (%u && %u))\n",
                         n_info_i->id, (hop > n_info_i->hop), (hop == n_info_i->hop), (TOS_NODE_ID > n_info_i->id));
 
                     // To make sure only one node resolves the slot (rather than both)
@@ -346,14 +346,14 @@ implementation
                         slot = slot - 1;
                         NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
 
-                        simdbg("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
+                        simdbgverbose("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
                             slot, n_info_i->id, n_info_i->slot);
                         dissem_sending = get_dissem_timeout();
                     }
                 }
             }
 
-            simdbg("stdout", "Checking for collisions between neighbours.\n");
+            simdbgverbose("stdout", "Checking for collisions between neighbours.\n");
             for(i=0; i < n_info.count; i++)
             {
                 if(n_info.info[i].slot == BOT)
@@ -366,7 +366,7 @@ implementation
                 {
                     if(n_info.info[i].slot == n_info.info[j].slot)
                     {
-                        simdbg("stdout", "Detected collision between %u and %u\n", n_info.info[i].id, n_info.info[j].id);
+                        simdbgverbose("stdout", "Detected collision between %u and %u\n", n_info.info[i].id, n_info.info[j].id);
                         break;
                     }
                 }
@@ -377,13 +377,13 @@ implementation
             {
                 if(neighbour_info.info[i].id == parent) {
                     if(neighbour_info.info[i].slot < slot) {
-                        simdbg("DAS-State", "DAS is 0\n");
+                        simdbgverbose("DAS-State", "DAS is 0\n");
                         break;
                     }
                 }
             }
             /*
-             *simdbg("stdout", "Checking for collisions between neighbours.\n");
+             *simdbgverbose("stdout", "Checking for collisions between neighbours.\n");
              *for(i=0; i < neighbour_info.count; i++)
              *{
              *    for(j=i+1; j < neighbour_info.count; j++)
@@ -406,7 +406,7 @@ implementation
             msg.parent = parent;
             NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
-            simdbg("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");
+            simdbgverbose("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbgverbose_clear("stdout", "\n");
 
             send_Dissem_message(&msg, AM_BROADCAST_ADDR);
             dissem_sending--;
@@ -432,7 +432,7 @@ implementation
                 }
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent search message to %u\n", msg.a_node);
+            simdbgverbose("stdout", "Sent search message to %u\n", msg.a_node);
         }
     }
     /*void send_search_init()*/
@@ -444,7 +444,7 @@ implementation
             /*msg.pr = get_pr_length();*/
             /*msg.dist = get_pr_dist() - 1;*/
             /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
-            /*simdbg("stdout", "Sent search message\n");*/
+            /*simdbgverbose("stdout", "Sent search message\n");*/
         /*}*/
     /*}*/
 
@@ -455,14 +455,14 @@ implementation
             ChangeMessage msg;
             IDList npar = IDList_minus_parent(&potential_parents, parent);
             OnehopList onehop;
-            simdbg("stdout", "CHANGE HAS BEGUN\n");
+            simdbgverbose("stdout", "CHANGE HAS BEGUN\n");
             start_node = FALSE;
             NeighbourList_select(&n_info, &neighbours, &onehop);
             msg.a_node = choose(&npar); //choose(&potential_parents); //choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = redir_length - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
-            /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
+            /*simdbgverbose("Node-Change-Notification", "The node has become a TFS\n");*/
             call NodeType.set(ChangeNode);
         }
     }
@@ -495,7 +495,7 @@ implementation
 			}
 			else
 			{
-				simdbgerror("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
+				simdbgerrorverbose("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
 			}
 
             if (slot_active && !(call MessageQueue.empty()))
@@ -588,7 +588,7 @@ implementation
 
     event void SourcePeriodModel.fired()
     {
-        /*simdbg("stdout", "SourcePeriodModel fired.\n");*/
+        /*simdbgverbose("stdout", "SourcePeriodModel fired.\n");*/
         if(slot != BOT && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
@@ -602,7 +602,7 @@ implementation
 
                 if (call MessageQueue.enqueue(message) != SUCCESS)
                 {
-                    simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+                    simdbgerrorverbose("stdout", "Failed to enqueue, should not happen!\n");
                 }
                 else
                 {
@@ -620,7 +620,7 @@ implementation
     //Receivers{{{
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-        /*simdbg("stdout", "Received normal.\n");*/
+        /*simdbgverbose("stdout", "Received normal.\n");*/
 		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
 			NormalMessage* forwarding_message;
@@ -637,7 +637,7 @@ implementation
 
 				if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
 				{
-					simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+					simdbgerrorverbose("stdout", "Failed to enqueue, should not happen!\n");
 				}
 			}
 			else
@@ -649,7 +649,7 @@ implementation
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-        simdbg("stdout", "SINK RECEIVED NORMAL.\n");
+        simdbgverbose("stdout", "SINK RECEIVED NORMAL.\n");
 		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
 		{
             call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
@@ -680,7 +680,7 @@ implementation
         if(rcvd->parent == TOS_NODE_ID)
         {
             IDList_add(&children, source_addr);
-            simdbg("stdout", "Added child to list: "); IDList_print(&children); simdbg_clear("stdout", "\n");
+            simdbgverbose("stdout", "Added child to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");
         }
 
         // Record that the sender is in our 1-hop neighbourhood
@@ -755,7 +755,7 @@ implementation
         if(rcvd->parent == TOS_NODE_ID)
         {
             IDList_add(&children, source_addr);
-            simdbg("stdout", "Added child to list: "); IDList_print(&children); simdbg_clear("stdout", "\n");
+            simdbgverbose("stdout", "Added child to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");
         }
 
         for(i = 0; i<rcvd->N.count; i++)
@@ -779,14 +779,14 @@ implementation
         IDList npar = IDList_minus_parent(&potential_parents, parent);
         METRIC_RCV_SEARCH(rcvd);
         if(rcvd->a_node != TOS_NODE_ID) return;
-        simdbg("stdout", "Received search\n");
+        simdbgverbose("stdout", "Received search\n");
 
         if((rcvd->dist == 0 && npar.count != 0) || children.count == 0)
         {
             start_node = TRUE;
             redir_length = rcvd->pr;
-            simdbg("stdout", "Search messages ended\n");
-            /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
+            simdbgverbose("stdout", "Search messages ended\n");
+            /*simdbgverbose("Node-Change-Notification", "The node has become a PFS\n");*/
         }
         else if(rcvd->dist > 0 || npar.count == 0)
         {
@@ -803,8 +803,8 @@ implementation
                 }
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent search message again to %u\n", msg.a_node);
-            /*simdbg("Node-Change-Notification", "The node has become a PFS\n");*/
+            simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
+            /*simdbgverbose("Node-Change-Notification", "The node has become a PFS\n");*/
             call NodeType.set(SearchNode);
         }
     }
@@ -817,7 +817,7 @@ implementation
             /*if(rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count)*/
             /*{*/
                 /*IDList npar = IDList_minus_parent(&potential_parents, parent);*/
-                /*simdbg("stdout", "Received search\n");*/
+                /*simdbgverbose("stdout", "Received search\n");*/
                 /*if((rcvd->dist == 0) && (npar.count != 0))*/
                 /*{*/
                     /*start_node = TRUE;*/
@@ -854,7 +854,7 @@ implementation
         {
             ChangeMessage msg;
             OnehopList onehop;
-            simdbg("stdout", "Received change\n");
+            simdbgverbose("stdout", "Received change\n");
             slot = rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
             NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
@@ -873,9 +873,9 @@ implementation
             /*}*/
             msg.len_d = rcvd->len_d - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
-            /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
+            /*simdbgverbose("Node-Change-Notification", "The node has become a TFS\n");*/
             call NodeType.set(ChangeNode);
-            simdbg("stdout", "Next a_node is %u\n", msg.a_node);
+            simdbgverbose("stdout", "Next a_node is %u\n", msg.a_node);
         }
         else if(rcvd->len_d == 0 && rcvd->a_node == TOS_NODE_ID)
         {
@@ -883,11 +883,11 @@ implementation
             slot = rcvd->n_slot - 1; //get_assignment_interval(); //rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
             dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
-            simdbg("stdout", "Change messages ended\n");
-            /*simdbg("Node-Change-Notification", "The node has become a TFS\n");*/
+            simdbgverbose("stdout", "Change messages ended\n");
+            /*simdbgverbose("Node-Change-Notification", "The node has become a TFS\n");*/
             call NodeType.set(ChangeNode);
         }
-        simdbg("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
+        simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
 
     }
 
