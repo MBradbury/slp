@@ -127,8 +127,6 @@ class Simulation(object):
         for (ordered_nid, loc) in topology.nodes.items():
             tossim_node = self.tossim.getNode(ordered_nid)
 
-            # Store the topology node ID, so when constants (like SINK_ID)
-            # are provided they can be understood.
             tossim_node.setTag(topology.to_topo_nid(ordered_nid))
 
             self.nodes.append(Node(ordered_nid, loc, tossim_node))
@@ -444,7 +442,7 @@ class OfflineSimulation(object):
 
                     (call_at_time, callback) = self._callbacks[0]
 
-                    if call_at_time >= current_time:
+                    if call_at_time >= self.sim_time():
                         break
 
                     heapq.heappop(self._callbacks)
@@ -461,9 +459,7 @@ class OfflineSimulation(object):
 
                 # Handle the event
                 if kind in self._line_handlers:
-                    message_line_header = "{}:{}:{}:".format(log_type, node_id, self.sim_time())
-
-                    self._line_handlers[kind](message_line_header + message_line)
+                    self._line_handlers[kind](log_type, node_id, self.sim_time(), message_line)
 
                 event_count += 1 
 
