@@ -6,8 +6,8 @@ import os
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
-from data import results, latex
-from data.table import safety_period, direct_comparison
+from data import results
+from data.table import safety_period, direct_comparison, fake_result
 from data.graph import summary, versus
 from data.util import scalar_extractor
 
@@ -19,6 +19,7 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
         subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("safety-table")
         subparser = self._subparsers.add_parser("graph")
         subparser = self._subparsers.add_parser("ccpe-comparison-table")
         subparser = self._subparsers.add_parser("ccpe-comparison-graph")
@@ -40,8 +41,17 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product        
 
-
     def _run_table(self, args):
+        protectionless_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.local_parameter_names,
+            results=('sent', 'norm(norm(sent,time taken),num_nodes)', 'normal latency', 'ssd', 'attacker distance'))
+
+        result_table = fake_result.ResultTable(protectionless_results)
+
+        self._create_table(self.algorithm_module.name + "-results", result_table)
+
+    def _run_safety_table(self, args):
         time_taken_to_safety_period = lambda time_taken: time_taken * 2.0
 
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path, time_taken_to_safety_period)
@@ -174,11 +184,14 @@ class CLI(CommandLineCommon.CLI):
         if 'table' == args.mode:
             self._run_table(args)
 
-        if 'graph' == args.mode:
+        elif 'safety-table' == args.mode:
+            self._run_safety_table(args)
+
+        elif 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'ccpe-comparison-table' == args.mode:
+        elif 'ccpe-comparison-table' == args.mode:
             self._run_ccpe_comparison_table(args)
 
-        if 'ccpe-comparison-graph' == args.mode:
+        elif 'ccpe-comparison-graph' == args.mode:
             self._run_ccpe_comparison_graphs(args)
