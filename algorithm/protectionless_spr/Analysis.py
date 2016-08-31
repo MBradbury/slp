@@ -54,7 +54,7 @@ class Analyzer(AnalyzerCommon):
         d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
 
-        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
+        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
 
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
