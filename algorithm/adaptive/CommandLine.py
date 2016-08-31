@@ -10,7 +10,6 @@ import algorithm.protectionless as protectionless
 template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
 
 from data import results
-
 from data.table import fake_result, comparison
 from data.graph import summary, versus, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor

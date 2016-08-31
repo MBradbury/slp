@@ -60,8 +60,8 @@ class ResultTable(object):
                 "paths reached end": ("Paths Ended", "(\\%)"),
 
                 "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
-                "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
-                "norm(norm(norm(sent,time taken),network size),source rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
+                "norm(norm(sent,time taken),num_nodes)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
+                "norm(norm(norm(sent,time taken),num_nodes),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
             }[name][row]
         except KeyError as ex:
             print("Failed to find the name '{}' for row {}. Using default. : {}".format(name, row, ex), file=sys.stderr)
@@ -90,7 +90,7 @@ class ResultTable(object):
             return "${:.1f}$".format(value[0])
         elif name == "approach":
             return latex.escape(value.replace("_APPROACH", ""))
-        elif name in{"landmark node"}:
+        elif name in {"landmark node"}:
             return latex.escape(value)
         elif isinstance(value, dict):
             return latex.escape(str(value))

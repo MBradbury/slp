@@ -65,7 +65,7 @@ class Results(object):
                         distance = float(get_value('distance'))
 
                         # Get the source period normalised wrt the number of sources
-                        configuration = Configuration.create_specific(config, size, distance)
+                        configuration = Configuration.create_specific(config, size, distance, "topology")
                         source_period = str(float(src_period) / len(configuration.source_ids))
                     else:
                         raise RuntimeError("Unknown source period normalisation strategy '{}'".format(source_period_normalisation))
