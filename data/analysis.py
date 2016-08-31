@@ -226,6 +226,11 @@ class Analyse(object):
         self.columns = self.columns.replace([np.inf, -np.inf], np.nan)
         self.columns.dropna(subset=["NormalLatency"], how="all", inplace=True)
 
+        # Remove any duplicated seeds. Their result will be the same so shouldn't be counted.
+        print("Removing the following duplicated seeds: ")
+        print(self.columns["Seed"][self.columns.duplicated(subset="Seed", keep=False)])
+        self.columns.drop_duplicates(subset="Seed", keep="first", inplace=True)
+
         if with_normalised:
             # Calculate any constants that do not change (e.g. from simulation options)
             constants = self._get_constants_from_opts()
@@ -621,6 +626,9 @@ class AnalyzerCommon(object):
 
                     line = "|".join(fn(result) for fn in self.values.values())
 
+                    # Try to force a cleanup of the memory
+                    result = None
+
                     outqueue.put((path, line, None))
 
                 except Exception as ex:
@@ -702,6 +710,9 @@ class AnalyzerCommon(object):
                 raise RuntimeError("There are 0 repeats.")
 
             line = "|".join(fn(result) for fn in self.values.values())
+
+            # Try to force a cleanup of the memory
+            result = None
 
             return line
 
