@@ -138,6 +138,7 @@ class Analyse(object):
         "Sent": np.uint32,
         "Captured": np.bool_,
         "Received": np.uint32,
+        "Delivered": np.uint32,
         "ReceiveRatio": np.float_,
         "TimeTaken": np.float_,
         "WallTime": np.float_,
@@ -217,29 +218,45 @@ class Analyse(object):
             skiprows=line_number,
             dtype=self.HEADING_DTYPES, converters=converters,
             compression=None,
-            #verbose=True
+            verbose=True
         )
 
         # Removes rows with infs in certain columns
         # If NormalLatency is inf then no Normal messages were ever received by a sink
         self.columns = self.columns.replace([np.inf, -np.inf], np.nan)
-        self.columns.dropna(subset=["NormalLatency"], how="all")
+        self.columns.dropna(subset=["NormalLatency"], how="all", inplace=True)
 
         if with_normalised:
+            # Calculate any constants that do not change (e.g. from simulation options)
+            constants = self._get_constants_from_opts()
+
             normalised_values_names = [(_normalised_value_name(num), _normalised_value_name(den)) for num, den in normalised_values]
 
-            for (norm_head, args) in zip(self.additional_normalised_headings, normalised_values_names):
+            for (norm_head, (num, den)) in zip(self.additional_normalised_headings, normalised_values_names):
 
-                #axis=1 means to apply per row
-                self.columns[norm_head] = self.columns.apply(self._get_norm_value,
-                                                             axis=1, raw=True, reduce=True, args=args)
+                if num in self.headings and den in self.headings:
+                    #print("Creating {} using ({},{}) on the fast path 1".format(norm_head, num, den))
+
+                    self.columns[norm_head] = self.columns[num] / self.columns[den]
+
+                elif num in self.headings and den in constants:
+                    #print("Creating {} using ({},{}) on the fast path 2".format(norm_head, num, den))
+
+                    self.columns[norm_head] = self.columns[num] / constants[den]
+
+                else:
+                    #print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))
+
+                    #axis=1 means to apply per row
+                    self.columns[norm_head] = self.columns.apply(self._get_norm_value,
+                                                                 axis=1, raw=True, reduce=True, args=(num, den, constants))
 
     def headings_index(self, name):
         return self.headings.index(name)
 
-    def _get_norm_value(self, row, num, den):
-        num_value = self._get_from_opts_or_values(num, row)
-        den_value = self._get_from_opts_or_values(den, row)
+    def _get_norm_value(self, row, num, den, constants):
+        num_value = self._get_from_opts_or_values(num, row, constants)
+        den_value = self._get_from_opts_or_values(den, row, constants)
 
         if num_value is None or den_value is None:
             return None
@@ -253,7 +270,26 @@ class Analyse(object):
                                              float(self.opts['distance']),
                                              self.opts['node_id_order'])
 
-    def _get_from_opts_or_values(self, name, values):
+    def _get_constants_from_opts(self):
+        """Get values that do not depend on the contents of the row."""
+        constants = {}
+
+        configuration = self._get_configuration()
+
+        constants["num_nodes"] = configuration.size()
+        constants["num_sources"] = len(configuration.source_ids)
+
+        # Warning: This will only work for the FixedPeriodModel
+        # All other models have variable source periods, so we cannot calculate this
+        constants["source_period"] = float(SourcePeriodModel.eval_input(self.opts["source_period"]))
+        constants["source_rate"] = 1.0 / constants["source_period"]
+        constants["source_period_per_num_sources"] = constants["source_period"] / constants["num_sources"]
+        constants["source_rate_per_num_sources"] = constants["source_rate"] / constants["num_sources"]
+
+        return constants
+
+    def _get_from_opts_or_values(self, name, values, constants):
+        """Get either the row value for :name:, the constant of that name, or calculate the additional metric for that name."""
         try:
             index = self.headings.index(name)
 
@@ -261,42 +297,19 @@ class Analyse(object):
 
             return values[index]
         except ValueError:
-            if name == "num_nodes":
-                configuration = self._get_configuration()
-                return configuration.size()
 
-            elif name == "num_sources":
-                configuration = self._get_configuration()
-                return len(configuration.source_ids)
+            if name in constants:
+                return constants[name]
 
-            elif name == "source_period":
-                # Warning: This will only work for the FixedPeriodModel
-                # All other models have variable source periods, so we cannot calculate this
-                return float(SourcePeriodModel.eval_input(self.opts["source_period"]))
-
-            elif name == "source_rate":
-                source_period = self._get_from_opts_or_values("source_period", values)
-                return 1.0 / source_period
-
-            elif name == "source_period_per_num_sources":
-                source_period = self._get_from_opts_or_values("source_period", values)
-                num_sources = self._get_from_opts_or_values("num_sources", values)
-                return source_period / num_sources
-
-            elif name == "source_rate_per_num_sources":
-                source_rate = self._get_from_opts_or_values("source_rate", values)
-                num_sources = self._get_from_opts_or_values("num_sources", values)
-                return source_rate / num_sources
-
-            elif name == "energy_impact":
+            if name == "energy_impact":
                 # Magic constants are from Great Duck Island paper, in nanoamp hours
                 cost_per_bcast_nah = 20.0
                 cost_per_deliver_nah = 8.0
 
-                sent = self._get_from_opts_or_values("Sent", values)
-                received = self._get_from_opts_or_values("Received", values)
+                sent = values[self.headings.index("Sent")]
+                received = values[self.headings.index("Received")]
 
-                num_sources = self._get_from_opts_or_values("num_sources", values)
+                num_sources = constants["num_sources"]
 
                 # The energy cost in milliamp hours
                 cost_mah = (sent * cost_per_bcast_nah + received * cost_per_deliver_nah) / 1000000.0
@@ -305,9 +318,9 @@ class Analyse(object):
 
             elif name == "daily_allowance_used":
                 # Magic constants are from Great Duck Island paper, in nanoamp hours
-                energy_impact = self._get_from_opts_or_values("energy_impact", values)
-                num_nodes = self._get_from_opts_or_values("num_nodes", values)
-                time_taken = self._get_from_opts_or_values("TimeTaken", values)
+                energy_impact = self._get_from_opts_or_values("energy_impact", values, constants)
+                num_nodes = constants["num_nodes"]
+                time_taken = values[self.headings.index("TimeTaken")]
 
                 energy_impact_per_node_per_second = (energy_impact / num_nodes) / time_taken
 
@@ -327,18 +340,18 @@ class Analyse(object):
 
             elif name == "good_move_ratio":
 
-                attacker_moves = self._get_from_opts_or_values("AttackerMoves", values)
+                attacker_moves = values[self.headings.index("AttackerMoves")]
 
                 # We can't calculate the good move ratio if the attacker hasn't moved
                 for (attacker_id, num_moves) in attacker_moves.items():
                     if num_moves == 0:
-                        print("Unable to calculate good_move_ratio due to the attacker {} not having moved.".format(attacker_id))
+                        print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
                         return None
 
                 try:
-                    steps_towards = self._get_from_opts_or_values("AttackerStepsTowards", values)
-                    steps_away = self._get_from_opts_or_values("AttackerStepsAway", values)
-                except KeyError as ex:
+                    steps_towards = values[self.headings.index("AttackerStepsTowards")]
+                    steps_away = values[self.headings.index("AttackerStepsAway")]
+                except ValueError as ex:
                     #print("Unable to calculate good_move_ratio due to the KeyError {}".format(ex))
                     return None
 
@@ -549,7 +562,7 @@ class AnalyzerCommon(object):
 
         d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
         d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
-        d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered', allow_missing=True)
+        d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered')
 
         d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
         d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
@@ -583,6 +596,11 @@ class AnalyzerCommon(object):
 
     def run(self, summary_file, nprocs=None):
         """Perform the analysis and write the output to the :summary_file:"""
+
+        # Skip the overhead of the queue with 1 process.
+        # This also allows easy profiling
+        if nprocs is not None and nprocs == 1:
+            return self.run_single(summary_file)
 
         def worker(inqueue, outqueue):
             while True:
@@ -681,7 +699,7 @@ class AnalyzerCommon(object):
 
             # Skip 0 length results
             if result.number_of_repeats() == 0:
-                raise RuntimeError("There are 0 repeats")
+                raise RuntimeError("There are 0 repeats.")
 
             line = "|".join(fn(result) for fn in self.values.values())
 
@@ -706,9 +724,13 @@ class AnalyzerCommon(object):
 
                 print('Analysing {0}'.format(path))
 
-                line = worker(path)
+                try:
+                    line = worker(path)
 
-                print(line, file=out)
+                    print(line, file=out)
+                except Exception as ex:
+                    print("Error processing {} with {}".format(path, ex))
+                    print(traceback.format_exc())
 
                 current_time_taken = timeit.default_timer() - start_time
                 time_per_job = current_time_taken / (num + 1)
