@@ -15,7 +15,7 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
-#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, msg->source_id, msg->sequence_number, 1)
+#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -389,10 +389,7 @@ implementation
 
 		if (message != NULL)
 		{
-            error_t send_result;
-            /*message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
-            message->sequence_number = period_counter;
-            send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
+            error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
 			if (send_result == SUCCESS)
 			{
 				call MessagePool.put(message);
@@ -402,56 +399,17 @@ implementation
 				simdbgerror("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
 			}
 
-            /*if (slot_active && !(call MessageQueue.empty()))*/
-            /*{*/
-                /*post send_normal();*/
-            /*}*/
+            if (slot_active && !(call MessageQueue.empty()))
+            {
+                post send_normal();
+            }
 		}
         else
         {
             EmptyNormalMessage msg;
-            /*msg.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
-            msg.sequence_number = period_counter;
-            msg.source_id = TOS_NODE_ID;
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
-            /*call NormalSeqNos.increment(TOS_NODE_ID);*/
         }
 	}
-
-	/*task void send_normal(void)*/
-	/*{*/
-		/*NormalMessage* message;*/
-
-        /*// This task may be delayed, such that it is scheduled when the slot is active,*/
-        /*// but called after the slot is no longer active.*/
-        /*// So it is important to check here if the slot is still active before sending.*/
-        /*if (!slot_active)*/
-        /*{*/
-            /*return;*/
-        /*}*/
-
-		/*simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");*/
-
-		/*message = call MessageQueue.dequeue();*/
-
-		/*if (message != NULL)*/
-		/*{*/
-            /*error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);*/
-			/*if (send_result == SUCCESS)*/
-			/*{*/
-				/*call MessagePool.put(message);*/
-			/*}*/
-			/*else*/
-			/*{*/
-				/*simdbgerror("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);*/
-			/*}*/
-
-            /*if (slot_active && !(call MessageQueue.empty()))*/
-            /*{*/
-                /*post send_normal();*/
-            /*}*/
-		/*}*/
-	/*}*/
 
     void MessageQueue_clear()
     {
@@ -538,7 +496,7 @@ implementation
             message = call MessagePool.get();
             if (message != NULL)
             {
-                /*message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
+                message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
                 message->source_distance = 0;
                 message->source_id = TOS_NODE_ID;
 
@@ -548,7 +506,7 @@ implementation
                 }
                 else
                 {
-                    /*call NormalSeqNos.increment(TOS_NODE_ID);*/
+                    call NormalSeqNos.increment(TOS_NODE_ID);
                 }
             }
             else
@@ -702,11 +660,7 @@ implementation
 
     void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
     {
-        if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
-        {
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
-            METRIC_RCV_EMPTYNORMAL(rcvd);
-        }
+        METRIC_RCV_EMPTYNORMAL(rcvd);
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
