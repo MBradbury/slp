@@ -131,6 +131,33 @@ def dict_mean(dict_list):
 
     return result
 
+def _energy_impact(columns, cached_cols, constants):
+    # Magic constants are from Great Duck Island paper, in nanoamp hours
+    cost_per_bcast_nah = 20.0
+    cost_per_deliver_nah = 8.0
+
+    return (columns["Sent"] * cost_per_bcast_nah + columns["Received"] * cost_per_deliver_nah) / 1000000.0
+
+def _daily_allowance_used(columns, cached_cols, constants):
+    # Magic constants are from Great Duck Island paper, in nanoamp hours
+    daily_allowance_mah = 6.9
+
+    cpu_power_consumption_ma = 5
+
+    duty_cycle = 0.042
+
+    daily_allowance_mah -= cpu_power_consumption_ma * 24 * duty_cycle
+
+    energy_impact = cached_cols["energy_impact"]
+    num_nodes = constants["num_nodes"]
+    time_taken = columns["TimeTaken"]
+
+    energy_impact_per_node_per_second = (energy_impact / num_nodes) / time_taken
+
+    energy_impact_per_node_per_day_when_active = energy_impact_per_node_per_second * (60.0 * 60.0 * 24.0 * duty_cycle)
+
+    return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
+
 class Analyse(object):
 
     HEADING_DTYPES = {
@@ -158,7 +185,7 @@ class Analyse(object):
         "AttackerStepsTowards": _parse_dict_tuple_nodes_to_value,
         "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
-        "NodeWasSource": _inf_handling_literal_eval,
+        #"NodeWasSource": _inf_handling_literal_eval,
 
         "ReceivedFromCloserOrSameHops": _parse_dict_node_to_value,
         "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
@@ -235,22 +262,38 @@ class Analyse(object):
             # Calculate any constants that do not change (e.g. from simulation options)
             constants = self._get_constants_from_opts()
 
+            calc_cols = self._get_calculation_columns()
+            cached_cols = {}
+
+            def get_cached_cal_cols(name):
+                if name in cached_cols:
+                    return cached_cols[name]
+
+                cached_cols[name] = calc_cols[num](self.columns, cached_cols, constants)
+
+                return cached_cols[name]
+
             normalised_values_names = [(_normalised_value_name(num), _normalised_value_name(den)) for num, den in normalised_values]
 
             for (norm_head, (num, den)) in zip(self.additional_normalised_headings, normalised_values_names):
 
                 if num in self.headings and den in self.headings:
-                    #print("Creating {} using ({},{}) on the fast path 1".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the fast path 1".format(norm_head, num, den))
 
                     self.columns[norm_head] = self.columns[num] / self.columns[den]
 
                 elif num in self.headings and den in constants:
-                    #print("Creating {} using ({},{}) on the fast path 2".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the fast path 2".format(norm_head, num, den))
 
                     self.columns[norm_head] = self.columns[num] / constants[den]
 
+                elif num in calc_cols and den in constants:
+                    print("Creating {} using ({},{}) on the fast path 3".format(norm_head, num, den))
+
+                    self.columns[norm_head] = get_cached_cal_cols(num) / constants[den]
+
                 else:
-                    #print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))
 
                     #axis=1 means to apply per row
                     self.columns[norm_head] = self.columns.apply(self._get_norm_value,
@@ -279,6 +322,9 @@ class Analyse(object):
         """Get values that do not depend on the contents of the row."""
         constants = {}
 
+        constants["1"] = 1
+        constants["1.0"] = 1.0
+
         configuration = self._get_configuration()
 
         constants["num_nodes"] = configuration.size()
@@ -293,6 +339,14 @@ class Analyse(object):
 
         return constants
 
+    def _get_calculation_columns(self):
+        cols = {}
+
+        cols["energy_impact"] = _energy_impact
+        cols["daily_allowance_used"] = _daily_allowance_used
+
+        return cols
+
     def _get_from_opts_or_values(self, name, values, constants):
         """Get either the row value for :name:, the constant of that name, or calculate the additional metric for that name."""
         try:
@@ -306,44 +360,7 @@ class Analyse(object):
             if name in constants:
                 return constants[name]
 
-            if name == "energy_impact":
-                # Magic constants are from Great Duck Island paper, in nanoamp hours
-                cost_per_bcast_nah = 20.0
-                cost_per_deliver_nah = 8.0
-
-                sent = values[self.headings.index("Sent")]
-                received = values[self.headings.index("Received")]
-
-                num_sources = constants["num_sources"]
-
-                # The energy cost in milliamp hours
-                cost_mah = (sent * cost_per_bcast_nah + received * cost_per_deliver_nah) / 1000000.0
-
-                return cost_mah
-
-            elif name == "daily_allowance_used":
-                # Magic constants are from Great Duck Island paper, in nanoamp hours
-                energy_impact = self._get_from_opts_or_values("energy_impact", values, constants)
-                num_nodes = constants["num_nodes"]
-                time_taken = values[self.headings.index("TimeTaken")]
-
-                energy_impact_per_node_per_second = (energy_impact / num_nodes) / time_taken
-
-                energy_impact_per_node_per_day = energy_impact_per_node_per_second * 60.0 * 60.0 * 24.0
-
-                daily_allowance_mah = 6.9
-
-                cpu_power_consumption_ma = 5
-
-                duty_cycle = 0.042
-
-                daily_allowance_mah -= cpu_power_consumption_ma * 24 * duty_cycle
-
-                energy_impact_per_node_per_day_when_active = energy_impact_per_node_per_day * duty_cycle
-
-                return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
-
-            elif name == "good_move_ratio":
+            if name == "good_move_ratio":
 
                 attacker_moves = values[self.headings.index("AttackerMoves")]
 
