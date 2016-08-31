@@ -67,8 +67,14 @@ inline double rad2deg(double r)
 
 #ifdef SLP_VERBOSE_DEBUG
 #	define simdbgverbose(...) simdbg(__VA_ARGS__)
+#	define simdbgverbose_clear(...) simdbg_clear(__VA_ARGS__)
+#	define simdbgerrorverbose(...) simdbgerror(__VA_ARGS__)
+#	define simdbgerrorverbose_clear(...) simdbgerror_clear(__VA_ARGS__)
 #else
 #	define simdbgverbose(...)
+#	define simdbgverbose_clear(...)
+#	define simdbgerrorverbose(...)
+#	define simdbgerrorverbose_clear(...)
 #endif
 
 #endif // SLP_COMMON_H
