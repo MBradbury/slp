@@ -89,7 +89,7 @@ implementation
 
 			locked = TRUE;
 
-			packet = call MessageQueue.dequeue();
+			packet = call MessageQueue.element(0);
 		}
 
 		result = call SerialSend.send[call AMPacket.type(packet)](AM_BROADCAST_ADDR, packet, call Packet.payloadLength(packet));
@@ -109,6 +109,10 @@ implementation
 			locked = FALSE;
 			if (error == SUCCESS)
 			{
+				// Remove the sent message from the queue
+				call MessageQueue.dequeue();
+
+				// Return message to pool
 				call MessagePool.put(msg);
 
 				// If there are more messages to send then send them
@@ -119,7 +123,7 @@ implementation
 			}
 			else
 			{
-				call MessageQueue.enqueue(msg);
+				// Retry sending the message
 				post serial_sender();
 			}
 		}
