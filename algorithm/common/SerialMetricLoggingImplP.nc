@@ -229,7 +229,7 @@ implementation
 	{
 		SERIAL_START_SEND(metric_node_type_add_msg_t)
 
-		msg->type = AM_METRIC_NODE_TYPE_ID_MSG;
+		msg->type = AM_METRIC_NODE_TYPE_ADD_MSG;
 
 		msg->node_type_id = node_type_id;
 
