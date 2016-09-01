@@ -37,6 +37,11 @@ interface MetricLogging
 		const char* new_type_str
 		);
 
+	command void log_metric_node_type_add(
+		uint8_t node_type_id,
+		const char* node_type_name
+		);
+
 	command void log_error_occurred(
 		uint16_t code,
 		const char* message
