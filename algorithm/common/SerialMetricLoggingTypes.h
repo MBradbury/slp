@@ -6,13 +6,13 @@
 // These constants are used to set the message channel and type
 // The format of the name is required by the mig tool
 enum {
+	AM_ERROR_OCCURRED_MSG = 49,
 	AM_METRIC_RECEIVE_MSG = 50,
 	AM_METRIC_BCAST_MSG = 51,
 	AM_METRIC_DELIVER_MSG = 52,
 	AM_ATTACKER_RECEIVE_MSG = 53,
 	AM_METRIC_NODE_CHANGE_MSG = 54,
 	AM_METRIC_NODE_TYPE_ID_MSG = 55,
-	AM_ERROR_OCCURRED_MSG = 56,
 };
 
 #define METRIC_LOGGING_HEADER \

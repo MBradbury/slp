@@ -8,12 +8,13 @@ import os
 import pandas
 
 # The node types. See algorithm/common/SerialMetricLoggingTypes.h for the definition
+AM_ERROR_OCCURRED_MSG = 49
 AM_METRIC_RECEIVE_MSG = 50
 AM_METRIC_BCAST_MSG = 51
 AM_METRIC_DELIVER_MSG = 52
 AM_ATTACKER_RECEIVE_MSG = 53
 AM_METRIC_NODE_CHANGE_MSG = 54
-AM_ERROR_OCCURRED_MSG = 54
+AM_METRIC_NODE_TYPE_ID_MSG = 55
 
 def catter_header(row, d_or_e, channel):
     # For the local time, we could use "local_time" which is the node local time.
@@ -46,6 +47,11 @@ def catter_metric_node_change_msg(row, channel):
         row["old_message_type"], row["new_message_type"]
     )
 
+def catter_metric_node_type_id_msg(row, channel):
+    return catter_header(row, "D", channel) + "{},{}".format(
+        row["node_type_id"], row["node_type_name"]
+    )
+
 def catter_error_occurred_msg(row, channel):
     return catter_header(row, "E", channel) + "{}".format(
         row["error_code"]
@@ -61,6 +67,7 @@ message_types_to_channels = {
     AM_ATTACKER_RECEIVE_MSG: ("A-R", catter_attacker_receive_msg),
     AM_METRIC_NODE_CHANGE_MSG: ("M-NC", catter_metric_node_change_msg),
     AM_ERROR_OCCURRED_MSG: ("stderr", catter_error_occurred_msg),
+    AM_METRIC_NODE_TYPE_ID_MSG: ("M-NTA", catter_metric_node_type_id_msg)
 }
 
 def _read_dat_file(path):
