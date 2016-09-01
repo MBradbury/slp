@@ -5,7 +5,6 @@
 
 typedef nx_struct SearchMessage {
     nx_int32_t dist;
-    nx_int32_t pr;
     nx_am_addr_t a_node;
 } SearchMessage;
 
