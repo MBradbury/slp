@@ -314,8 +314,20 @@ implementation
             simdbgverbose("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, slot, hop);
 
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-        }
 
+            {
+                OnehopList onehop;
+                NeighbourList_select(&n_info, &neighbours, &onehop);
+                for(i = 0; i < onehop.count; i++)
+                {
+                    if(onehop.info[i].hop == BOT)
+                    {
+                        IDList_add(&children, onehop.info[i].id);
+                    }
+                }
+                simdbgverbose("stdout", "Added children to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");
+            }
+        }
     }
 
     void process_collision(void)
@@ -373,15 +385,21 @@ implementation
             }
 
             //Check to see if DAS has been broken
-            for(i=0; i < neighbour_info.count; i++)
-            {
-                if(neighbour_info.info[i].id == parent) {
-                    if(neighbour_info.info[i].slot < slot) {
-                        simdbgverbose("DAS-State", "DAS is 0\n");
-                        break;
+            if(NodeType.get() != SinkNode){
+                bool das = FALSE;
+                for(i=0; i < potential_parents.count; i++)
+                {
+                    for(j=i+1; j < neighbour_info.count; j++)
+                    {
+                        if(potential_parents.ids[i] == neighbour_info.info[j].id)
+                        {
+                            if(neighbour_info.info[j].slot > slot) das = TRUE;
+                        }
                     }
                 }
+                if(!das) simdbgverbose("DAS-State", "DAS is 0\n");
             }
+
             /*
              *simdbgverbose("stdout", "Checking for collisions between neighbours.\n");
              *for(i=0; i < neighbour_info.count; i++)
@@ -677,11 +695,11 @@ implementation
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
 
-        if(rcvd->parent == TOS_NODE_ID)
-        {
-            IDList_add(&children, source_addr);
-            simdbgverbose("stdout", "Added child to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");
-        }
+        /*if(period_counter >= get_pre_beacon_periods() && source->hop == BOT)*/
+        /*{*/
+            /*IDList_add(&children, source_addr);*/
+            /*simdbgverbose("stdout", "Added child to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");*/
+        /*}*/
 
         // Record that the sender is in our 1-hop neighbourhood
         IDList_add(&neighbours, source_addr);
@@ -731,14 +749,11 @@ implementation
         {
             if(parent == source_addr)
             {
-                /*if(slot >= NeighbourList_get(&(rcvd->N), source_addr)->slot)*/
                 if(slot >= source->slot)
                 {
-                    /*slot = NeighbourList_get(&(rcvd->N), source_addr)->slot - (NeighbourList_get(&n_info, parent)->slot - NeighbourList_get(&(rcvd->N), parent)->slot);*/
                     slot = source->slot - (NeighbourList_get(&n_info, parent)->slot - source->slot);
                     normal = FALSE;
                 }
-                /*NeighbourList_add_info(&n_info, *NeighbourList_get(&(rcvd->N), source_addr));*/
                 NeighbourList_add_info(&n_info, source);
             }
         }
