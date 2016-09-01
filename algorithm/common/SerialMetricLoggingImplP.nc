@@ -222,6 +222,22 @@ implementation
 		SERIAL_END_SEND(metric_node_change_msg_t)
 	}
 
+	command void MetricLogging.log_metric_node_type_add(
+		uint8_t node_type_id,
+		const char* node_type_name
+		)
+	{
+		SERIAL_START_SEND(metric_node_type_add_msg_t)
+
+		msg->type = AM_METRIC_NODE_TYPE_ID_MSG;
+
+		msg->node_type_id = node_type_id;
+
+		strncpy((char*)msg->node_type_name, node_type_name, ARRAY_SIZE(msg->node_type_name));
+
+		SERIAL_END_SEND(metric_node_type_add_msg_t)
+	}
+
 	command void MetricLogging.log_error_occurred(
 		uint16_t code,
 		const char* message

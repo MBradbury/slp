@@ -44,6 +44,9 @@
 #define METRIC_NODE_CHANGE(OLD_TYPE, OLD_TYPE_STR, NEW_TYPE, NEW_TYPE_STR) \
 	call MetricLogging.log_metric_node_change(OLD_TYPE, OLD_TYPE_STR, NEW_TYPE, NEW_TYPE_STR)
 
+#define METRIC_NODE_TYPE_ADD(NODE_TYPE_ID, NODE_TYPE_NAME) \
+	call MetricLogging.log_metric_node_type_add(NODE_TYPE_ID, NODE_TYPE_NAME)
+
 // nesc commands do not support va args, so skip the abstraction when needed.
 #if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \

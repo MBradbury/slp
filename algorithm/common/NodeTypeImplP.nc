@@ -18,7 +18,7 @@ implementation
 
 	uint8_t size = 0;
 
-	uint8_t current_type;
+	uint8_t current_type = -1;
 
 	command bool NodeType.register_pair(uint8_t ident, const char* name)
 	{
@@ -28,6 +28,8 @@ implementation
 			names[size] = name;
 
 			++size;
+
+			METRIC_NODE_TYPE_ADD(ident, name);
 
 			return TRUE;
 		}

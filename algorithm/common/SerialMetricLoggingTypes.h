@@ -11,7 +11,8 @@ enum {
 	AM_METRIC_DELIVER_MSG = 52,
 	AM_ATTACKER_RECEIVE_MSG = 53,
 	AM_METRIC_NODE_CHANGE_MSG = 54,
-	AM_ERROR_OCCURRED_MSG = 54,
+	AM_METRIC_NODE_TYPE_ID_MSG = 55,
+	AM_ERROR_OCCURRED_MSG = 56,
 };
 
 #define METRIC_LOGGING_HEADER \
@@ -67,6 +68,14 @@ typedef nx_struct metric_node_change_msg {
 	nx_uint8_t old_message_type;
 	nx_uint8_t new_message_type;
 } metric_node_change_msg_t;
+
+typedef nx_struct metric_node_type_add_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_uint8_t node_type_id;
+	nx_uint8_t node_type_name[20];
+
+} metric_node_type_add_msg_t;
 
 typedef nx_struct error_occurred_msg {
 	METRIC_LOGGING_HEADER
