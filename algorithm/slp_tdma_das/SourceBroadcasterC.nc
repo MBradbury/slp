@@ -33,6 +33,8 @@
 #define PR_LENGTH 10 //Half sink-source distance/safety period (which is 5 for 11x11)
 #define SEARCH_PERIOD_COUNT 24
 
+#define SAFETY_PERIOD 15
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -174,6 +176,11 @@ implementation
     uint32_t get_pr_length()
     {
         return PR_LENGTH;
+    }
+
+    uint32_t get_safety_period()
+    {
+        return SAFETY_PERIOD;
     }
     //###################}}}
 
@@ -438,7 +445,6 @@ implementation
         {
             int i;
             SearchMessage msg;
-            msg.pr = get_pr_length();
             msg.dist = get_pr_dist() - 1;
             msg.a_node = BOT;
             assert(children.count != 0);
@@ -796,59 +802,51 @@ implementation
         if(rcvd->a_node != TOS_NODE_ID) return;
         simdbgverbose("stdout", "Received search\n");
 
-        if((rcvd->dist == 0 && npar.count != 0) || children.count == 0)
+        if((rcvd->dist == 0 && npar.count != 0))
         {
             start_node = TRUE;
-            redir_length = rcvd->pr;
+            redir_length = get_safety_period()/3;
             simdbgverbose("stdout", "Search messages ended\n");
-            /*simdbgverbose("Node-Change-Notification", "The node has become a PFS\n");*/
         }
-        else if(rcvd->dist > 0 || npar.count == 0)
+        else if(rcvd->dist == 0 && npar.count == 0)
+        {
+            SearchMessage msg;
+            msg.dist = rcvd->dist; //TODO: Should this be -1?
+            if(children.count != 0)
+            {
+                msg.a_node = choose(&children);
+            }
+            else
+            {
+                IDList n = IDList_minus_parent(&neighbours, parent);
+                msg.a_node = choose(&n);
+            }
+            send_Search_message(&msg, AM_BROADCAST_ADDR);
+            simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
+            call NodeType.set(SearchNode);
+        }
+        else if(rcvd->dist > 0)
         {
             int i;
             SearchMessage msg;
-            msg.pr = rcvd->pr;
+            OnehopList child_list;
+            uint16_t min_slot = BOT;
+            NeighbourList_select(&n_info, &children, &child_list);
+            min_slot = OnehopList_min_slot(&child_list);
             msg.dist = (rcvd->dist-1<0) ? 0 : rcvd->dist - 1;
             msg.a_node = BOT;
             for(i=0; i<children.count; i++) {
-                if(rank(&children, children.ids[i]) == children.count)
+                NeighbourInfo* child = NeighbourList_get(&n_info, children.ids[i]);
+                if(child->slot == min_slot)
                 {
-                    msg.a_node = children.ids[i];
-                    break;
+                    msg.a_node = child->id;
                 }
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
-            /*simdbgverbose("Node-Change-Notification", "The node has become a PFS\n");*/
             call NodeType.set(SearchNode);
         }
     }
-    /*void Normal_receive_Search(const SearchMessage* const rcvd, am_addr_t source_addr)*/
-    /*{*/
-        /*METRIC_RCV_SEARCH(rcvd);*/
-        /*if(parent == source_addr)*/
-        /*{*/
-            /*OtherInfo* other_info = OtherList_get(&others, parent);*/
-            /*if(rank(&(other_info->N), TOS_NODE_ID) == other_info->N.count)*/
-            /*{*/
-                /*IDList npar = IDList_minus_parent(&potential_parents, parent);*/
-                /*simdbgverbose("stdout", "Received search\n");*/
-                /*if((rcvd->dist == 0) && (npar.count != 0))*/
-                /*{*/
-                    /*start_node = TRUE;*/
-                    /*redir_length = rcvd->pr;*/
-                /*}*/
-                /*else if ((rcvd->dist > 0) || (npar.count == 0))*/
-                /*{*/
-                    /*SearchMessage msg;*/
-                    /*msg.dist = ((rcvd->dist-1) < 0) ? 0 : rcvd->dist-1;*/
-                    /*msg.pr = rcvd->pr;*/
-                    /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
-                    /*call NodeType.set(SearchNode);*/
-                /*}*/
-            /*}*/
-        /*}*/
-    /*}*/
 
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
         case SourceNode: break;
