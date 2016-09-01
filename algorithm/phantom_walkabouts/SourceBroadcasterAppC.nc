@@ -18,12 +18,6 @@ implementation
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 
-#ifndef TOSSIM
-	components LocalTimeMilliC;
-	
-	App.LocalTime -> LocalTimeMilliC;
-#endif
-
 #if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
 	components PrintfMetricLoggingP as MetricLogging;
 #elif defined(USE_SERIAL_MESSAGES)

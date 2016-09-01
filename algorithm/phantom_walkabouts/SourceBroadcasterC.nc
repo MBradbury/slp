@@ -142,10 +142,6 @@ module SourceBroadcasterC
 
 	uses interface MetricLogging;
 
-#ifndef TOSSIM
-	uses interface LocalTime<TMilli>;
-#endif
-
 	uses interface NodeType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
