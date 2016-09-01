@@ -385,7 +385,7 @@ implementation
             }
 
             //Check to see if DAS has been broken
-            if(NodeType.get() != SinkNode){
+            if(call NodeType.get() != SinkNode){
                 bool das = FALSE;
                 for(i=0; i < potential_parents.count; i++)
                 {
