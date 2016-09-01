@@ -47,18 +47,24 @@
 #define METRIC_NODE_TYPE_ADD(NODE_TYPE_ID, NODE_TYPE_NAME) \
 	call MetricLogging.log_metric_node_type_add(NODE_TYPE_ID, NODE_TYPE_NAME)
 
-// nesc commands do not support va args, so skip the abstraction when needed.
-#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
-#define ERROR_OCCURRED(CODE, MESSAGE, ...) \
-	simdbgerror("stderr", MESSAGE, ##__VA_ARGS__)
-#else
+// No need to format messages when using serial message as the string will not be used.
+#ifdef USE_SERIAL_MESSAGES
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \
 	call MetricLogging.log_error_occurred(CODE, MESSAGE)
+#else
+#define ERROR_OCCURRED(CODE, MESSAGE, ...) \
+	do { \
+		char error_message[256]; \
+		snprintf(error_message, ARRAY_SIZE(error_message), MESSAGE, ##__VA_ARGS__); \
+		call MetricLogging.log_error_occurred(CODE, MESSAGE); \
+	} while (FALSE)
 #endif
 
 // Error codes for events that need to be passed on over a serial connection
 enum SLPErrorCodes {
 	ERROR_UNKNOWN = 0,
+
+	// General error codes
 	ERROR_RADIO_CONTROL_START_FAIL = 1,
 	ERROR_PACKET_HAS_NO_PAYLOAD = 2,
 	ERROR_UNKNOWN_NODE_TYPE = 3,
@@ -66,6 +72,7 @@ enum SLPErrorCodes {
 	ERROR_POOL_FULL = 5,
 	ERROR_TOO_MANY_NODE_TYPES = 6,
 
+	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,
 	ERROR_SEND_FAKE_PERIOD_ZERO = 102,
 };
