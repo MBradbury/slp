@@ -98,9 +98,10 @@ def convert_indriya_log(directory, output_file_path):
     for (message_type, dat_file) in dat_files.items():
         channel, fn = message_types_to_channels[message_type]
 
-        df = pandas.DataFrame({"line": dat_file.apply(fn, axis=1, args=(channel,)), "time": dat_file["milli_time"]})
-
-        #print(df)
+        df = pandas.DataFrame({
+            "line": dat_file.apply(fn, axis=1, args=(channel,)),
+            "time": dat_file["milli_time"]
+        })
 
         dfs.append(df)
 
