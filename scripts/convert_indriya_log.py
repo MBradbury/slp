@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 
-import csv
 import glob
 import os
 
@@ -18,10 +17,7 @@ AM_METRIC_NODE_TYPE_ADD_MSG = 55
 AM_METRIC_MESSAGE_TYPE_ADD_MSG = 56
 
 def catter_header(row, d_or_e, channel):
-    # For the local time, we could use "local_time" which is the node local time.
-    # However, using "milli_time" is easier
-
-    return "{}:{}:{}:{}:".format(channel, d_or_e, row["node_id"], row["milli_time"])
+    return "{}:{}:{}:{}:{}:".format(row["date_time"], channel, d_or_e, row["node_id"], row["local_time"])
 
 def catter_metric_receive_msg(row, channel):
     return catter_header(row, "D", channel) + "RCV:{},{},{},{},{}".format(
@@ -89,6 +85,8 @@ def _read_dat_file(path):
 
         # Don't need the type column any more
         del reader["type"]
+
+        reader["date_time"] = reader["insert_time"].apply(lambda x: x.replace("-", "/")) + "." + reader["milli_time"].apply(lambda x: str(x % 1000).ljust(3, '0'))
 
         reader["milli_time"] -= reader["milli_time"][0]
 
