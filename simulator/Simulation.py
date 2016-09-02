@@ -127,8 +127,6 @@ class Simulation(object):
         for (ordered_nid, loc) in topology.nodes.items():
             tossim_node = self.tossim.getNode(ordered_nid)
 
-            # Store the topology node ID, so when constants (like SINK_ID)
-            # are provided they can be understood.
             tossim_node.setTag(topology.to_topo_nid(ordered_nid))
 
             self.nodes.append(Node(ordered_nid, loc, tossim_node))
@@ -366,7 +364,24 @@ class OfflineSimulation(object):
         """Creates nodes"""
 
         for (nid, loc) in node_locations.items():
-            self.nodes.append(Node(nid, nid, loc, None))
+            self.nodes.append(Node(nid, loc, None))
+
+    def node_from_ordered_nid(self, ordered_nid):
+        for node in self.nodes:
+            if node.nid == ordered_nid:
+                return node
+
+        raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
+
+    def node_from_topology_nid(self, topology_nid):
+
+        ordered_nid = self.metrics.configuration.topology.to_ordered_nid(topology_nid)
+
+        for node in self.nodes:
+            if node.nid == ordered_nid:
+                return node
+
+        raise RuntimeError("Unable to find a node with topology_nid of {}".format(topology_nid))
 
     def _pre_run(self):
         """Called before the simulator run loop starts"""
@@ -396,7 +411,7 @@ class OfflineSimulation(object):
     def _parse_line(self, line):
 
         # Example line:
-        #2016/07/27 14:47:34.418:Metric-COMM:22022:D:4:DELIVER:Normal,22022,4,1,1,22
+        #2016/07/27 14:47:34.418:Metric-COMM:2:D:42202:DELIVER:Normal,4,1,1,22
 
         date_string, rest = line[0: len("2016/07/27 15:09:53.687")], line[len("2016/07/27 15:09:53.687")+1:]
 
@@ -438,13 +453,11 @@ class OfflineSimulation(object):
                 self._real_end_time = current_time
 
                 # Run any callbacks that happened before now
-                while True:
-                    if len(self._callbacks) == 0:
-                        break
+                while len(self._callbacks) > 0:
 
                     (call_at_time, callback) = self._callbacks[0]
 
-                    if call_at_time >= current_time:
+                    if call_at_time >= self.sim_time():
                         break
 
                     heapq.heappop(self._callbacks)
@@ -461,11 +474,12 @@ class OfflineSimulation(object):
 
                 # Handle the event
                 if kind in self._line_handlers:
-                    message_line_header = "{}:{}:{}:".format(log_type, node_id, self.sim_time())
+                    self._line_handlers[kind](log_type, node_id, self.sim_time(), message_line)
 
-                    self._line_handlers[kind](message_line_header + message_line)
+                if log_type == "E":
+                    print("An error occurred: '{}'.".format(message_line))
 
-                event_count += 1 
+                event_count += 1
 
         finally:
             self._post_run(event_count)

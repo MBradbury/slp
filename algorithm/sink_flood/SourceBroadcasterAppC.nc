@@ -12,19 +12,13 @@ implementation
 	components SourceBroadcasterC as App;
 
 	// Low levels events such as boot and LED control
-	components MainC;
+	components DelayedBootEventMainP as MainC;
 	components LedsC;
 	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 	App.Random -> RandomC;
-
-#ifndef TOSSIM
-	components LocalTimeMilliC;
-	
-	App.LocalTime -> LocalTimeMilliC;
-#endif
 
 #if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
 	components PrintfMetricLoggingP as MetricLogging;
@@ -40,8 +34,12 @@ implementation
 	App.NodeType -> NodeTypeP;
 	NodeTypeP.MetricLogging -> MetricLogging;
 
+	components new MessageTypeP(6);
+	App.MessageType -> MessageTypeP;
+	MessageTypeP.MetricLogging -> MetricLogging;
+
 #if defined(USE_SERIAL_MESSAGES)
-	MetricLogging.NodeType -> NodeTypeP;
+	MetricLogging.MessageType -> MessageTypeP;
 #endif
 
 	// Radio Control

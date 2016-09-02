@@ -72,11 +72,8 @@ module SourceBroadcasterC
 
 	uses interface MetricLogging;
 
-#ifndef TOSSIM
-	uses interface LocalTime<TMilli>;
-#endif
-
 	uses interface NodeType;
+	uses interface MessageType;
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
@@ -217,6 +214,11 @@ implementation
 		simdbgverbose("Boot", "Application booted.\n");
 
 		sequence_number_init(&away_sequence_counter);
+
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+		call MessageType.register_pair(AWAY_CHANNEL, "Away");
+		call MessageType.register_pair(DUMMY_NORMAL_CHANNEL, "DummyNormal");
+		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
