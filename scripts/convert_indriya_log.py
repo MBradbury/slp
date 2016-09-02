@@ -14,7 +14,8 @@ AM_METRIC_BCAST_MSG = 51
 AM_METRIC_DELIVER_MSG = 52
 AM_ATTACKER_RECEIVE_MSG = 53
 AM_METRIC_NODE_CHANGE_MSG = 54
-AM_METRIC_NODE_TYPE_ID_MSG = 55
+AM_METRIC_NODE_TYPE_ADD_MSG = 55
+AM_METRIC_MESSAGE_TYPE_ADD_MSG = 56
 
 def catter_header(row, d_or_e, channel):
     # For the local time, we could use "local_time" which is the node local time.
@@ -47,9 +48,14 @@ def catter_metric_node_change_msg(row, channel):
         row["old_message_type"], row["new_message_type"]
     )
 
-def catter_metric_node_type_id_msg(row, channel):
+def catter_metric_node_type_add_msg(row, channel):
     return catter_header(row, "D", channel) + "{},{}".format(
-        row["node_type_id"], row["node_type_name"].replace("\\0", "")
+        row["node_type_id"], row["node_type_name"]
+    )
+
+def catter_metric_message_type_add_msg(row, channel):
+    return catter_header(row, "D", channel) + "{},{}".format(
+        row["message_type_id"], row["message_type_name"]
     )
 
 def catter_error_occurred_msg(row, channel):
@@ -67,7 +73,8 @@ message_types_to_channels = {
     AM_ATTACKER_RECEIVE_MSG: ("A-R", catter_attacker_receive_msg),
     AM_METRIC_NODE_CHANGE_MSG: ("M-NC", catter_metric_node_change_msg),
     AM_ERROR_OCCURRED_MSG: ("stderr", catter_error_occurred_msg),
-    AM_METRIC_NODE_TYPE_ID_MSG: ("M-NTA", catter_metric_node_type_id_msg)
+    AM_METRIC_NODE_TYPE_ADD_MSG: ("M-NTA", catter_metric_node_type_add_msg),
+    AM_METRIC_MESSAGE_TYPE_ADD_MSG: ("M-MTA", catter_metric_message_type_add_msg),
 }
 
 def _read_dat_file(path):
@@ -100,11 +107,30 @@ def convert_indriya_log(directory, output_file_path):
                  if message_type is not None
     }
 
+    # Remove "\0" from any fields that are strings
+    to_remove_nul_char = [(AM_METRIC_NODE_TYPE_ADD_MSG, "node_type_name"), (AM_METRIC_MESSAGE_TYPE_ADD_MSG, "message_type_name")]
+
+    for (ident, name) in to_remove_nul_char:
+        dat_files[ident][name] = dat_files[ident][name].apply(lambda x: x.replace("\\0", ""))
+
+    # Find out the numeric to name mappings for message types
+    message_types = (
+        dat_files[AM_METRIC_MESSAGE_TYPE_ADD_MSG][["message_type_id", "message_type_name"]]
+            .drop_duplicates()
+            .set_index("message_type_id")
+            .to_dict()["message_type_name"]
+    )
+
     dfs = []
 
     for (message_type, dat_file) in dat_files.items():
         channel, fn = message_types_to_channels[message_type]
 
+        # Convert numeric message type to string
+        if "message_type" in dat_file:
+            dat_file["message_type"] = dat_file["message_type"].apply(lambda x: message_types[x])
+
+        # Get the df we want to output
         df = pandas.DataFrame({
             "line": dat_file.apply(fn, axis=1, args=(channel,)),
             "time": dat_file["milli_time"]
