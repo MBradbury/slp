@@ -66,8 +66,8 @@ typedef nx_struct attacker_receive_msg {
 typedef nx_struct metric_node_change_msg {
 	METRIC_LOGGING_HEADER
 
-	nx_uint8_t old_message_type;
-	nx_uint8_t new_message_type;
+	nx_uint8_t old_node_type;
+	nx_uint8_t new_node_type;
 } metric_node_change_msg_t;
 
 typedef nx_struct metric_node_type_add_msg {

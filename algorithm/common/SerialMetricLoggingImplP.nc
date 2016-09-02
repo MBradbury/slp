@@ -216,8 +216,8 @@ implementation
 
 		msg->type = AM_METRIC_NODE_CHANGE_MSG;
 
-		msg->old_message_type = old_type;
-		msg->new_message_type = new_type;
+		msg->old_node_type = old_type;
+		msg->new_node_type = new_type;
 
 		SERIAL_END_SEND(metric_node_change_msg_t)
 	}
