@@ -35,6 +35,7 @@ module SourceBroadcasterC
 	uses interface MetricLogging;
 
 	uses interface NodeType;
+	uses interface MessageType;
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -61,6 +62,9 @@ implementation
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+		call MessageType.register_pair(DUMMY_NORMAL_CHANNEL, "DummyNormal");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");

@@ -32,8 +32,12 @@ implementation
 	App.NodeType -> NodeTypeP;
 	NodeTypeP.MetricLogging -> MetricLogging;
 
+	components new MessageTypeP(1);
+	App.MessageType -> MessageTypeP;
+	MessageTypeP.MetricLogging -> MetricLogging;
+
 #if defined(USE_SERIAL_MESSAGES)
-	MetricLogging.NodeType -> NodeTypeP;
+	MetricLogging.MessageType -> MessageTypeP;
 #endif
 
 	// Radio Control

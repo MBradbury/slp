@@ -205,6 +205,8 @@ implementation
 	{
 		simdbgverbose("Boot", "Application booted.\n");
 
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
 		call NodeType.register_pair(NormalNode, "NormalNode");

@@ -12,7 +12,7 @@ configuration SerialMetricLoggingP
 {
 	provides interface MetricLogging;
 
-	uses interface NodeType;
+	uses interface MessageType;
 }
 implementation
 {
@@ -20,7 +20,7 @@ implementation
 
 	MetricLogging = App;
 
-	App.NodeType = NodeType;
+	App.MessageType = MessageType;
 
 	components SerialStartC;
 	components LocalTimeMilliC;
