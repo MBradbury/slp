@@ -459,22 +459,10 @@ implementation
             simdbgverbose("stdout", "Sent search message to %u\n", msg.a_node);
         }
     }
-    /*void send_search_init()*/
-    /*{*/
-        /*if(call NodeType.get() == SinkNode)*/
-        /*{*/
-            /*int i;*/
-            /*SearchMessage msg;*/
-            /*msg.pr = get_pr_length();*/
-            /*msg.dist = get_pr_dist() - 1;*/
-            /*send_Search_message(&msg, AM_BROADCAST_ADDR);*/
-            /*simdbgverbose("stdout", "Sent search message\n");*/
-        /*}*/
-    /*}*/
 
     void send_change_init()
     {
-        if(start_node && redir_length > 0)
+        if(start_node)// && redir_length > 0)
         {
             ChangeMessage msg;
             IDList npar = IDList_minus_parent(&potential_parents, parent);
@@ -482,11 +470,10 @@ implementation
             simdbgverbose("stdout", "CHANGE HAS BEGUN\n");
             start_node = FALSE;
             NeighbourList_select(&n_info, &neighbours, &onehop);
-            msg.a_node = choose(&npar); //choose(&potential_parents); //choose(&npar);
+            msg.a_node = choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = redir_length - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
-            /*simdbgverbose("Node-Change-Notification", "The node has become a TFS\n");*/
             call NodeType.set(ChangeNode);
         }
     }
@@ -758,6 +745,7 @@ implementation
                 if(slot >= source->slot)
                 {
                     slot = source->slot - (NeighbourList_get(&n_info, parent)->slot - source->slot);
+                    NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
                     normal = FALSE;
                 }
                 NeighbourList_add_info(&n_info, source);
@@ -862,8 +850,8 @@ implementation
         METRIC_RCV_CHANGE(rcvd);
         if(rcvd->a_node != TOS_NODE_ID) return;
         npar = IDList_minus_parent(&potential_parents, parent);
-        npar = IDList_minus_parent(&npar, source_addr);
-        if(rcvd->len_d > 0 && rcvd->a_node == TOS_NODE_ID && npar.count != 0)
+        /*npar = IDList_minus_parent(&npar, source_addr);*/
+        if(rcvd->len_d > 0)// && rcvd->a_node == TOS_NODE_ID && npar.count != 0)
         {
             ChangeMessage msg;
             OnehopList onehop;
@@ -875,29 +863,39 @@ implementation
             dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.a_node = choose(&npar);
-            /*if(npar.count != 0)*/
-            /*{*/
-                /*msg.a_node = choose(&npar);*/
-            /*}*/
-            /*else*/
-            /*{*/
-                /*IDList potential_receivers = IDList_minus_parent(&neighbours, source_addr);*/
-                /*msg.a_node = choose(&potential_receivers);*/
-            /*}*/
+            if(npar.count != 0)
+            {
+                msg.a_node = choose(&npar);
+            }
+            else
+            {
+                int i;
+                OnehopList potential_receivers_list;
+                IDList potential_receivers = IDList_minus_parent(&neighbours, source_addr);
+                potential_receivers = IDList_minus_parent(&potential_receivers, parent);
+                NeighbourList_select(&n_info, &potential_receivers, &potential_receivers_list);
+                for(i = 0; i < potential_receivers_list.count; i++)
+                {
+                    if(potential_receivers_list.info[i].hop < hop)
+                    {
+                        IDList_minus_parent(&potential_receivers, potential_receivers_list.info[i].id);
+                    }
+                }
+                assert(potential_receivers.count != 0);
+                msg.a_node = choose(&potential_receivers);
+            }
             msg.len_d = rcvd->len_d - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
-            /*simdbgverbose("Node-Change-Notification", "The node has become a TFS\n");*/
             call NodeType.set(ChangeNode);
             simdbgverbose("stdout", "Next a_node is %u\n", msg.a_node);
         }
-        else if(rcvd->len_d == 0 && rcvd->a_node == TOS_NODE_ID)
+        else if(rcvd->len_d == 0)// && rcvd->a_node == TOS_NODE_ID)
         {
             normal = FALSE;
-            slot = rcvd->n_slot - 1; //get_assignment_interval(); //rcvd->n_slot - 1;
+            slot = rcvd->n_slot - 1;
             NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
             dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
             simdbgverbose("stdout", "Change messages ended\n");
-            /*simdbgverbose("Node-Change-Notification", "The node has become a TFS\n");*/
             call NodeType.set(ChangeNode);
         }
         simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
