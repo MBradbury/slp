@@ -55,6 +55,7 @@ module SourceBroadcasterC
     uses interface MetricLogging;
 
     uses interface NodeType;
+	uses interface MessageType;
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -159,6 +160,10 @@ implementation
         n_info = NeighbourList_new();
 
 		simdbgverbose("Boot", "Application booted.\n");
+
+        call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+        call MessageType.register_pair(DISSEM_CHANNEL, "Dissem");
+        call MessageType.register_pair(EMPTYNORMAL_CHANNEL, "EmptyNormal");
 
         call NodeType.register_pair(SourceNode, "SourceNode");
         call NodeType.register_pair(SinkNode, "SinkNode");

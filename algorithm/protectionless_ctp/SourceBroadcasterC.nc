@@ -30,11 +30,8 @@ module SourceBroadcasterC
 
 	uses interface MetricLogging;
 
-#ifndef TOSSIM
-	uses interface LocalTime<TMilli>;
-#endif
-
 	uses interface NodeType;
+	uses interface MessageType;
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -60,6 +57,8 @@ implementation
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");

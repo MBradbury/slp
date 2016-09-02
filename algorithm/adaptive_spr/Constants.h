@@ -7,7 +7,7 @@ enum Channels
 	AWAY_CHANNEL = 2,
 	CHOOSE_CHANNEL = 3,
 	FAKE_CHANNEL = 4,
-	BEACON_CHANNEL =5,
+	BEACON_CHANNEL = 5,
 };
 
 #define BOTTOM (-1)

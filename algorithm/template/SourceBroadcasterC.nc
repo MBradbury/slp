@@ -42,11 +42,8 @@ module SourceBroadcasterC
 
 	uses interface MetricLogging;
 
-#ifndef TOSSIM
-	uses interface LocalTime<TMilli>;
-#endif
-
 	uses interface NodeType;
+	uses interface MessageType;
 	uses interface FakeMessageGenerator;
 }
 
@@ -152,6 +149,11 @@ implementation
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
+
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+        call MessageType.register_pair(AWAY_CHANNEL, "Away");
+        call MessageType.register_pair(CHOOSE_CHANNEL, "Choose");
+        call MessageType.register_pair(FAKE_CHANNEL, "Fake");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");

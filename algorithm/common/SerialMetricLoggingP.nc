@@ -1,7 +1,7 @@
 #include "MetricLogging.h"
 
 #ifndef MESSAGE_QUEUE_SIZE
-#	define MESSAGE_QUEUE_SIZE 24
+#	define MESSAGE_QUEUE_SIZE 64
 #endif
 
 #ifndef USE_SERIAL_MESSAGES
@@ -12,7 +12,7 @@ configuration SerialMetricLoggingP
 {
 	provides interface MetricLogging;
 
-	uses interface NodeType;
+	uses interface MessageType;
 }
 implementation
 {
@@ -20,7 +20,7 @@ implementation
 
 	MetricLogging = App;
 
-	App.NodeType = NodeType;
+	App.MessageType = MessageType;
 
 	components SerialStartC;
 	components LocalTimeMilliC;
