@@ -1,5 +1,9 @@
 #include <stdint.h>
 
+#ifndef DELAYED_BOOT_TIME_MIN
+#define DELAYED_BOOT_TIME_MIN 6
+#endif
+
 module DelayedBootEventMainImplP
 {
 	provides interface Boot;
@@ -14,7 +18,7 @@ implementation
 #if defined(TOSSIM)
 		signal Boot.booted();
 #elif defined(TESTBED)
-		call DelayTimer.startOneShot(UINT32_C(6) * UINT32_C(60) * UINT32_C(1000));
+		call DelayTimer.startOneShot(UINT32_C(DELAYED_BOOT_TIME_MIN) * UINT32_C(60) * UINT32_C(1000));
 #else
 #	error "Unknown situation, should we delay the boot event or not?"
 #endif
