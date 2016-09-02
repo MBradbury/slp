@@ -41,7 +41,7 @@ def catter_attacker_receive_msg(row, channel):
 
 def catter_metric_node_change_msg(row, channel):
     return catter_header(row, "D", channel) + "{},{}".format(
-        row["old_message_type"], row["new_message_type"]
+        row["old_node_type"], row["new_node_type"]
     )
 
 def catter_metric_node_type_add_msg(row, channel):
@@ -112,12 +112,26 @@ def convert_indriya_log(directory, output_file_path):
         dat_files[ident][name] = dat_files[ident][name].apply(lambda x: x.replace("\\0", ""))
 
     # Find out the numeric to name mappings for message types
+    node_types = (
+        dat_files[AM_METRIC_NODE_TYPE_ADD_MSG][["node_type_id", "node_type_name"]]
+            .drop_duplicates()
+            .set_index("node_type_id")
+            .to_dict()["node_type_name"]
+    )
+
+    # Find out the numeric to name mappings for message types
     message_types = (
         dat_files[AM_METRIC_MESSAGE_TYPE_ADD_MSG][["message_type_id", "message_type_name"]]
             .drop_duplicates()
             .set_index("message_type_id")
             .to_dict()["message_type_name"]
     )
+
+    # Convert any node type ids to node type names
+    to_convert_node_type = [(AM_METRIC_NODE_CHANGE_MSG, "old_node_type"), (AM_METRIC_NODE_CHANGE_MSG, "new_node_type")]
+
+    for (ident, name) in to_convert_node_type:
+        dat_files[ident][name] = dat_files[ident][name].apply(lambda x: node_types.get(x, "<unknown>"))
 
     dfs = []
 
