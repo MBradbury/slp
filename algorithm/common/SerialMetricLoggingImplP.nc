@@ -42,7 +42,7 @@ module SerialMetricLoggingImplP
 {
 	provides interface MetricLogging;
 
-	uses interface NodeType;
+	uses interface MessageType;
 
 	uses interface LocalTime<TMilli>;
 
@@ -141,7 +141,7 @@ implementation
 
 		msg->type = AM_METRIC_RECEIVE_MSG;
 
-		msg->message_type = call NodeType.from_string(message_type);
+		msg->message_type = call MessageType.from_string(message_type);
 		msg->proximate_source = proximate_source;
 		msg->ultimate_source = ultimate_source;
 		msg->sequence_number = sequence_number;
@@ -160,7 +160,7 @@ implementation
 
 		msg->type = AM_METRIC_BCAST_MSG;
 
-		msg->message_type = call NodeType.from_string(message_type);
+		msg->message_type = call MessageType.from_string(message_type);
 		msg->status = status;
 		msg->sequence_number = sequence_number;
 
@@ -178,7 +178,7 @@ implementation
 
 		msg->type = AM_METRIC_DELIVER_MSG;
 
-		msg->message_type = call NodeType.from_string(message_type);
+		msg->message_type = call MessageType.from_string(message_type);
 		msg->proximate_source = proximate_source;
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
@@ -197,7 +197,7 @@ implementation
 
 		msg->type = AM_ATTACKER_RECEIVE_MSG;
 
-		msg->message_type = call NodeType.from_string(message_type);
+		msg->message_type = call MessageType.from_string(message_type);
 		msg->proximate_source = proximate_source;
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
@@ -236,6 +236,22 @@ implementation
 		strncpy((char*)msg->node_type_name, node_type_name, ARRAY_SIZE(msg->node_type_name));
 
 		SERIAL_END_SEND(metric_node_type_add_msg_t)
+	}
+
+	command void MetricLogging.log_metric_message_type_add(
+		uint8_t message_type_id,
+		const char* message_type_name
+		)
+	{
+		SERIAL_START_SEND(metric_message_type_add_msg_t)
+
+		msg->type = AM_METRIC_MESSAGE_TYPE_ADD_MSG;
+
+		msg->message_type_id = message_type_id;
+
+		strncpy((char*)msg->message_type_name, message_type_name, ARRAY_SIZE(msg->message_type_name));
+
+		SERIAL_END_SEND(metric_message_type_add_msg_t)
 	}
 
 	command void MetricLogging.log_error_occurred(

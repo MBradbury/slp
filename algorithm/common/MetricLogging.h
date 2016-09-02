@@ -38,14 +38,14 @@
 #define ATTACKER_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER) \
 	call MetricLogging.log_attacker_receive(#TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER)
 
-#define METRIC_SOURCE_CHANGE(TYPE) \
-	call MetricLogging.log_metric_source_change(TYPE)
-
 #define METRIC_NODE_CHANGE(OLD_TYPE, OLD_TYPE_STR, NEW_TYPE, NEW_TYPE_STR) \
 	call MetricLogging.log_metric_node_change(OLD_TYPE, OLD_TYPE_STR, NEW_TYPE, NEW_TYPE_STR)
 
 #define METRIC_NODE_TYPE_ADD(NODE_TYPE_ID, NODE_TYPE_NAME) \
 	call MetricLogging.log_metric_node_type_add(NODE_TYPE_ID, NODE_TYPE_NAME)
+
+#define METRIC_MESSAGE_TYPE_ADD(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME) \
+	call MetricLogging.log_metric_message_type_add(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME)
 
 // No need to format messages when using serial message as the string will not be used.
 #ifdef USE_SERIAL_MESSAGES
@@ -71,6 +71,7 @@ enum SLPErrorCodes {
 	ERROR_PACKET_HAS_INVALID_LENGTH = 4,
 	ERROR_POOL_FULL = 5,
 	ERROR_TOO_MANY_NODE_TYPES = 6,
+	ERROR_TOO_MANY_MESSAGE_TYPES = 7,
 
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,
