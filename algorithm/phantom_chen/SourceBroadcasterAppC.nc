@@ -12,7 +12,7 @@ implementation
 	components SourceBroadcasterC as App;
 
 	// Low levels events such as boot and LED control
-	components MainC;
+	components DelayedBootEventMainP as MainC;
 	components LedsC;
 	
 	App.Boot -> MainC;
