@@ -49,7 +49,7 @@ def catter_metric_node_change_msg(row, channel):
 
 def catter_metric_node_type_id_msg(row, channel):
     return catter_header(row, "D", channel) + "{},{}".format(
-        row["node_type_id"], row["node_type_name"]
+        row["node_type_id"], row["node_type_name"].replace("\\0", "")
     )
 
 def catter_error_occurred_msg(row, channel):
