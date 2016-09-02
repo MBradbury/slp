@@ -114,8 +114,11 @@ class MetricsCommon(object):
             sequence_number = int(sequence_number)
             hop_count = int(hop_count)
 
+            # If there is a KeyError on the line with self.normal_sent_time
+            # then that means that a message was received, but not recorded as sent.
             key = (top_ultimate_source_id, sequence_number)
-            self.normal_latency[key] = time - self.normal_sent_time[key]
+            sent_time = self.normal_sent_time[key]
+            self.normal_latency[key] = time - sent_time
             self.normal_hop_count.append(hop_count)
 
 
