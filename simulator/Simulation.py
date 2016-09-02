@@ -411,7 +411,7 @@ class OfflineSimulation(object):
     def _parse_line(self, line):
 
         # Example line:
-        #2016/07/27 14:47:34.418:Metric-COMM:22022:D:4:DELIVER:Normal,22022,4,1,1,22
+        #2016/07/27 14:47:34.418:Metric-COMM:2:D:42202:DELIVER:Normal,4,1,1,22
 
         date_string, rest = line[0: len("2016/07/27 15:09:53.687")], line[len("2016/07/27 15:09:53.687")+1:]
 
@@ -453,9 +453,7 @@ class OfflineSimulation(object):
                 self._real_end_time = current_time
 
                 # Run any callbacks that happened before now
-                while True:
-                    if len(self._callbacks) == 0:
-                        break
+                while len(self._callbacks) > 0:
 
                     (call_at_time, callback) = self._callbacks[0]
 
@@ -478,7 +476,10 @@ class OfflineSimulation(object):
                 if kind in self._line_handlers:
                     self._line_handlers[kind](log_type, node_id, self.sim_time(), message_line)
 
-                event_count += 1 
+                if log_type == "E":
+                    print("An error occurred: '{}'.".format(message_line))
+
+                event_count += 1
 
         finally:
             self._post_run(event_count)
