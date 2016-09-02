@@ -364,7 +364,24 @@ class OfflineSimulation(object):
         """Creates nodes"""
 
         for (nid, loc) in node_locations.items():
-            self.nodes.append(Node(nid, nid, loc, None))
+            self.nodes.append(Node(nid, loc, None))
+
+    def node_from_ordered_nid(self, ordered_nid):
+        for node in self.nodes:
+            if node.nid == ordered_nid:
+                return node
+
+        raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
+
+    def node_from_topology_nid(self, topology_nid):
+
+        ordered_nid = self.metrics.configuration.topology.to_ordered_nid(topology_nid)
+
+        for node in self.nodes:
+            if node.nid == ordered_nid:
+                return node
+
+        raise RuntimeError("Unable to find a node with topology_nid of {}".format(topology_nid))
 
     def _pre_run(self):
         """Called before the simulator run loop starts"""
