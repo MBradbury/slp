@@ -14,6 +14,8 @@ enum {
 	AM_METRIC_NODE_CHANGE_MSG = 54,
 	AM_METRIC_NODE_TYPE_ADD_MSG = 55,
 	AM_METRIC_MESSAGE_TYPE_ADD_MSG = 56,
+	//SLP TDMA DAS
+	AM_METRIC_NODE_SLOT_CHANGE_MSG = 57,
 };
 
 #define METRIC_LOGGING_HEADER \
@@ -91,5 +93,13 @@ typedef nx_struct error_occurred_msg {
 
 	nx_uint16_t error_code;
 } error_occurred_msg_t;
+
+\\##########SLP TDMA DAS##########
+typedef nx_struct metric_node_change_slot_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_uint16_t old_slot;
+	nx_uint16_t new_slot;
+} metric_node_change_slot_msg_t;
 
 #endif // SLP_SERIAL_METRIC_LOGGING_H

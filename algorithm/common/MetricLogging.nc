@@ -51,4 +51,10 @@ interface MetricLogging
 		uint16_t code,
 		const char* message
 		);
+
+	//##########SLP TDMA DAS##########
+	command void log_metric_node_slot_change(
+		uint16_t old_slot,
+		uint16_t new_slot
+		);
 }
