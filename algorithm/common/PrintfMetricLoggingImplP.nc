@@ -94,4 +94,13 @@ implementation
 		// No newline here, message needs to provide it!
 		simdbgerror("stderr", "%s", message);
 	}
+
+	//##########SLP TDMA DAS##########
+	command void MetricLogging.log_metric_node_slot_change(
+		uint16_t old_slot,
+		uint16_t new_slot
+		)
+	{
+		simdbg("M-NSC", "%u,%u\n", old_slot, new_slot);
+	}
 }

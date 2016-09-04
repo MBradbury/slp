@@ -267,4 +267,19 @@ implementation
 
 		SERIAL_END_SEND(error_occurred_msg_t)
 	}
+
+	//##########SLP TDMA DAS##########
+	command void MetricLogging.log_metric_node_slot_change(
+		uint16_t old_slot,
+		uint16_t new_slot
+		)
+	{
+		SERIAL_START_SEND(metric_node_slot_change_t)
+
+		msg->type = AM_METRIC_NODE_SLOT_CHANGE_MSG;
+		msg->old_slot = old_slot;
+		msg->new_slot = new_slot;
+
+		SERIAL_END_SEND(metric_node_slot_change_t)
+	}
 }
