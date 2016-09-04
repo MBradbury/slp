@@ -185,6 +185,27 @@ implementation
     }
     //###################}}}
 
+    //Setter Functions{{{
+    void set_slot(uint16_t new_slot)
+    {
+        uint16_t old_slot = slot;
+        slot = new_slot;
+        NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+        call MetricLogging.log_metric_node_slot_change(old_slot, new_slot);
+    }
+
+    void set_hop(uint16_t new_hop)
+    {
+        hop = new_hop;
+        NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+    }
+
+    void set_dissem_timer()
+    {
+        dissem_sending = get_dissem_timeout();
+    }
+    //###################}}}
+
     //Startup Events{{{
 	event void Boot.booted()
 	{
@@ -279,34 +300,35 @@ implementation
     {
         if (call NodeType.get() == SinkNode)
         {
-            hop = 0;
             parent = AM_BROADCAST_ADDR;
-            slot = get_tdma_num_slots(); //Delta
+            set_hop(0);
+            set_slot(get_tdma_num_slots());
 
             start = FALSE;
 
-            NeighbourList_add(&n_info, TOS_NODE_ID, 0, slot);
+            //NeighbourList_add(&n_info, TOS_NODE_ID, 0, slot); //Already done by set_hop and set_slot
         }
         else
         {
-            NeighbourList_add(&n_info, TOS_NODE_ID, BOT, BOT); // TODO: Should this be added to the algorithm
+            set_hop(BOT);
+            set_slot(BOT);
+            //NeighbourList_add(&n_info, TOS_NODE_ID, BOT, BOT); //Done by set_hop and set_slot
         }
 
-        IDList_add(&neighbours, TOS_NODE_ID); // TODO: Should this be added to the algorithm
-        dissem_sending = get_dissem_timeout();
+        IDList_add(&neighbours, TOS_NODE_ID);
+        set_dissem_timer();
+        //dissem_sending = get_dissem_timeout(); //Done by set_dissem
     }
 
     void process_dissem(void)
     {
         int i;
-        //simdbgverbose("stdout", "Processing DISSEM...\n");
         if(slot == BOT)
         {
             const NeighbourInfo* parent_info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
             OtherInfo* other_info;
 
             if (parent_info == NULL) {
-                /*simdbgverbose("stdout", "Info was NULL.\n");*/
                 return;
             }
             simdbgverbose("stdout", "Info for n-info with min hop was: ID=%u, hop=%u, slot=%u.\n",
@@ -318,15 +340,15 @@ implementation
                 return;
             }
 
-            hop = parent_info->hop + 1;
             parent = parent_info->id;
-            slot = parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1;
+            set_hop(parent_info->hop + 1);
+            set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
 
             simdbgverbose("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbgverbose_clear("stdout", "\n");
 
             simdbgverbose("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, slot, hop);
 
-            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Done by set_hop and set_slot
 
             {
                 OnehopList onehop;
@@ -368,12 +390,12 @@ implementation
                     // If nodes have the same distance use the node id as a tie breaker.
                     if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
                     {
-                        slot = slot - 1;
-                        NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+                        set_slot(slot - 1);
+                        //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
 
                         simdbgverbose("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
                             slot, n_info_i->id, n_info_i->slot);
-                        dissem_sending = get_dissem_timeout();
+                        set_dissem_timer();
                     }
                 }
             }
@@ -383,7 +405,7 @@ implementation
             {
                 if(n_info.info[i].slot == BOT)
                 {
-                    dissem_sending = get_dissem_timeout();
+                    set_dissem_timer();
                     break;
                 }
 
@@ -442,7 +464,7 @@ implementation
             send_Dissem_message(&msg, AM_BROADCAST_ADDR);
             dissem_sending--;
         }
-        if(period_counter < get_pre_beacon_periods()) dissem_sending = get_dissem_timeout();
+        if(period_counter < get_pre_beacon_periods()) set_dissem_timer();
     }
 
     void send_search_init()
@@ -577,14 +599,12 @@ implementation
     {
         uint32_t now = call LocalTime.get();
         const uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
-        /*PRINTF0("%s: PreSlotTimer fired.\n", sim_time_string());*/
         call SlotTimer.startOneShotAt(now, s*get_slot_period());
     }
 
 
     event void SlotTimer.fired()
     {
-        /*PRINTF0("%s: SlotTimer fired.\n", sim_time_string());*/
         uint32_t now = call LocalTime.get();
         slot_active = TRUE;
         if(slot != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
@@ -598,14 +618,12 @@ implementation
     {
         uint32_t now = call LocalTime.get();
         const uint16_t s = (slot == BOT) ? get_tdma_num_slots() : slot;
-        /*PRINTF0("%s: PostSlotTimer fired.\n", sim_time_string());*/
         slot_active = FALSE;
         call DissemTimer.startOneShotAt(now, (get_tdma_num_slots() - (s-1)) * get_slot_period());
     }
 
     event void SourcePeriodModel.fired()
     {
-        /*simdbgverbose("stdout", "SourcePeriodModel fired.\n");*/
         if(slot != BOT && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
@@ -613,7 +631,7 @@ implementation
             message = call MessagePool.get();
             if (message != NULL)
             {
-                /*message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
+                message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
                 message->source_distance = 0;
                 message->source_id = TOS_NODE_ID;
 
@@ -623,7 +641,7 @@ implementation
                 }
                 else
                 {
-                    /*call NormalSeqNos.increment(TOS_NODE_ID);*/
+                    call NormalSeqNos.increment(TOS_NODE_ID);
                 }
             }
             else
@@ -738,7 +756,7 @@ implementation
                     NeighbourInfo* oldinfo = NeighbourList_get(&n_info, rcvd->N.info[i].id);
                     if(oldinfo == NULL || (rcvd->N.info[i].slot != oldinfo->slot && rcvd->N.info[i].slot < oldinfo->slot)) //XXX Stops stale data?
                     {
-                        dissem_sending = get_dissem_timeout();
+                        set_dissem_timer();
                         NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
                     }
                 }
@@ -750,8 +768,8 @@ implementation
             {
                 if(slot >= source->slot)
                 {
-                    slot = source->slot - (NeighbourList_get(&n_info, parent)->slot - source->slot);
-                    NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+                    set_slot(source->slot - (NeighbourList_get(&n_info, parent)->slot - source->slot));
+                    //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
                     normal = FALSE;
                 }
                 NeighbourList_add_info(&n_info, source);
@@ -862,11 +880,11 @@ implementation
             ChangeMessage msg;
             OnehopList onehop;
             simdbgverbose("stdout", "Received change\n");
-            slot = rcvd->n_slot - 1;
-            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
+            set_slot(rcvd->n_slot - 1);
+            //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
             NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
             NeighbourList_select(&n_info, &neighbours, &onehop);
-            dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
+            set_dissem_timer(); //Restart sending dissem messages
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.a_node = choose(&npar);
             if(npar.count != 0)
@@ -898,9 +916,9 @@ implementation
         else if(rcvd->len_d == 0)// && rcvd->a_node == TOS_NODE_ID)
         {
             normal = FALSE;
-            slot = rcvd->n_slot - 1;
-            NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-            dissem_sending = get_dissem_timeout(); //Restart sending dissem messages
+            set_slot(rcvd->n_slot - 1);
+            //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
+            set_dissem_timer(); //Restart sending dissem messages
             simdbgverbose("stdout", "Change messages ended\n");
             call NodeType.set(ChangeNode);
         }
