@@ -27,11 +27,11 @@
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
 //Distance search messages travel from sink
-#define PR_DIST 8
+#define SEARCH_DIST 8
 
 //Length of phantom route
-#define PR_LENGTH 10 //Half sink-source distance/safety period (which is 5 for 11x11)
-#define SEARCH_PERIOD_COUNT 24
+/*#define PR_LENGTH 10 //Half sink-source distance/safety period (which is 5 for 11x11)*/
+/*#define SEARCH_PERIOD_COUNT 24*/
 
 #define SAFETY_PERIOD 15
 
@@ -169,14 +169,24 @@ implementation
         return TDMA_DISSEM_TIMEOUT;
     }
 
-    uint32_t get_pr_dist()
+    uint32_t get_search_dist()
     {
-        return PR_DIST;
+        return SEARCH_DIST;
     }
 
-    uint32_t get_pr_length()
+    /*uint32_t get_pr_length()*/
+    /*{*/
+        /*return PR_LENGTH;*/
+    /*}*/
+
+    uint32_t get_search_period_count()
     {
-        return PR_LENGTH;
+        return get_minimum_setup_periods() - 2;
+    }
+
+    uint32_t get_change_period_count()
+    {
+        return get_minimum_setup_periods() - 1;
     }
 
     uint32_t get_safety_period()
@@ -473,16 +483,27 @@ implementation
         {
             int i;
             SearchMessage msg;
-            msg.dist = get_pr_dist() - 1;
+            OnehopList child_list;
+            uint16_t min_slot = BOT;
+            msg.dist = get_search_dist() - 1;
             msg.a_node = BOT;
             assert(children.count != 0);
+            NeighbourList_select(&n_info, &children, &child_list);
+            min_slot = OnehopList_min_slot(&child_list);
             for(i=0; i<children.count; i++) {
-                if(rank(&children, children.ids[i]) == children.count)
+                NeighbourInfo* child = NeighbourList_get(&n_info, children.ids[i]);
+                if(child->slot == min_slot)
                 {
-                    msg.a_node = children.ids[i];
-                    break;
+                    msg.a_node = child->id;
                 }
             }
+            /*for(i=0; i<children.count; i++) {*/
+                /*if(rank(&children, children.ids[i]) == children.count) //TODO: Should this be the same conditional as in x_receive_Search?*/
+                /*{*/
+                    /*msg.a_node = children.ids[i];*/
+                    /*break;*/
+                /*}*/
+            /*}*/
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbgverbose("stdout", "Sent search message to %u\n", msg.a_node);
         }
@@ -570,13 +591,13 @@ implementation
         uint32_t now = call LocalTime.get();
         period_counter++;
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
-        if(period_counter == SEARCH_PERIOD_COUNT)
+        if(period_counter == get_search_period_count())
         {
             send_search_init();
             call DissemTimer.startOneShotAt(now, get_dissem_period());
             return;
         }
-        else if(period_counter == SEARCH_PERIOD_COUNT+1)
+        else if(period_counter == get_change_period_count())
         {
             send_change_init();
             call DissemTimer.startOneShotAt(now, 2*get_dissem_period());
@@ -773,6 +794,7 @@ implementation
                     normal = FALSE;
                 }
                 NeighbourList_add_info(&n_info, source);
+                set_dissem_timer();
             }
         }
     }
@@ -874,7 +896,7 @@ implementation
         METRIC_RCV_CHANGE(rcvd);
         if(rcvd->a_node != TOS_NODE_ID) return;
         npar = IDList_minus_parent(&potential_parents, parent);
-        /*npar = IDList_minus_parent(&npar, source_addr);*/
+        npar = IDList_minus_parent(&npar, source_addr); //TODO: Check if this is necessary
         if(rcvd->len_d > 0)// && rcvd->a_node == TOS_NODE_ID && npar.count != 0)
         {
             ChangeMessage msg;
@@ -905,7 +927,7 @@ implementation
                         IDList_minus_parent(&potential_receivers, potential_receivers_list.info[i].id);
                     }
                 }
-                assert(potential_receivers.count != 0);
+                /*assert(potential_receivers.count != 0);*/
                 msg.a_node = choose(&potential_receivers);
             }
             msg.len_d = rcvd->len_d - 1;
