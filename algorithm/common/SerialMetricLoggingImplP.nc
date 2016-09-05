@@ -274,12 +274,13 @@ implementation
 		uint16_t new_slot
 		)
 	{
-		SERIAL_START_SEND(metric_node_slot_change_t)
+		SERIAL_START_SEND(metric_node_slot_change_msg_t)
 
 		msg->type = AM_METRIC_NODE_SLOT_CHANGE_MSG;
+		
 		msg->old_slot = old_slot;
 		msg->new_slot = new_slot;
 
-		SERIAL_END_SEND(metric_node_slot_change_t)
+		SERIAL_END_SEND(metric_node_slot_change_msg_t)
 	}
 }
