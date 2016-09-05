@@ -216,6 +216,9 @@ class MetricsCommon(object):
     def received_heat_map(self):
         return dict(sum(self.received.values(), Counter()))
 
+    def first_normal_sent_time(self):
+        return min(normal_sent_time.values())
+
     def average_normal_latency(self):
         # It is possible that the sink has received no Normal messages
         if len(self.normal_latency) != 0:
@@ -401,6 +404,7 @@ class MetricsCommon(object):
         d["Collisions"]                    = lambda x: None
         d["Captured"]                      = lambda x: x.captured()
         d["ReceiveRatio"]                  = lambda x: x.receive_ratio()
+        d["FirstNormalSentTime"]           = lambda x: x.first_normal_sent_time()
         d["TimeTaken"]                     = lambda x: x.sim_time()
         d["WallTime"]                      = lambda x: x.wall_time
         d["TotalWallTime"]                 = lambda x: x.total_wall_time
