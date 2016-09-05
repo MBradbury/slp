@@ -94,12 +94,12 @@ typedef nx_struct error_occurred_msg {
 	nx_uint16_t error_code;
 } error_occurred_msg_t;
 
-\\##########SLP TDMA DAS##########
-typedef nx_struct metric_node_change_slot_msg {
+//##########SLP TDMA DAS##########
+typedef nx_struct metric_node_slot_change_msg {
 	METRIC_LOGGING_HEADER
 
 	nx_uint16_t old_slot;
 	nx_uint16_t new_slot;
-} metric_node_change_slot_msg_t;
+} metric_node_slot_change_msg_t;
 
 #endif // SLP_SERIAL_METRIC_LOGGING_H
