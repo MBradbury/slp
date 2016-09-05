@@ -154,11 +154,11 @@ else:
             print("The map_async was not successful", file=sys.stderr)
 
     except (KeyboardInterrupt, SystemExit) as ex:
-        print("Killing thread pool due to {}".format(ex), file=sys.stderr)
+        print("Killing thread pool due to {} at {}".format(ex, datetime.now()), file=sys.stderr)
         job_pool.terminate()
         raise
     except Exception as ex:
-        print("Encountered: {}".format(ex), file=sys.stderr)
+        print("Encountered: {} at {}".format(ex, datetime.now()), file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
         job_pool.terminate()
         raise
