@@ -380,8 +380,6 @@ class RHMAttacker(Attacker):
         self._num_moves = 0
         self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
 
-        print("Cleared messages at {}".format(current_time))
-
         self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
