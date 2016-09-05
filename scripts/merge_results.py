@@ -6,14 +6,15 @@ import fnmatch
 import os
 
 class MergeResults:
+
+    _arguments_to_ignore = {'job_size', 'thread_count', 'verbose', 'job_id'}
+
     def __init__(self, results_dir, merge_dir):
         self.results_dir = results_dir
         self.merge_dir = merge_dir
 
-    _arguments_to_ignore = {'job_size', 'thread_count', 'verbose', 'job_id'}
-
-    @staticmethod
-    def _read_arguments(f):
+    @classmethod
+    def _read_arguments(cls, f):
         arguments = {}
 
         for line in f:
@@ -26,7 +27,7 @@ class MergeResults:
             elif '=' in line:
                 opt = line.split('=', 1)
 
-                if opt[0] not in MergeResults._arguments_to_ignore:
+                if opt[0] not in cls._arguments_to_ignore:
                     arguments[opt[0]] = opt[1]
 
             elif line.startswith('#'):
