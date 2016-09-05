@@ -17,8 +17,13 @@ class MergeResults:
         arguments = {}
 
         for line in f:
-            if '=' in line:
-                # We are reading the options so record them
+
+            # Skip meta data
+            if line[0] == '@':
+                continue
+
+            # We are reading the options so record them
+            elif '=' in line:
                 opt = line.split('=', 1)
 
                 if opt[0] not in MergeResults._arguments_to_ignore:
@@ -66,39 +71,12 @@ class MergeResults:
                     raise RuntimeError("The result names do not match {} / {}".format(hash_line1, hash_line2))
 
             else:
-                if hash_line2 is not None:
+                if hash_line2 is not None or line[0] == '@':
                     out.write(line)
-
-
-    def _check_other_path(self, other_path, result_file):
-        """Sadly the name format changed, so the results will not
-        have consistent names. This attempts to swizzle the parameters
-        to be in the right position.
-
-        This IS a horrible hack. TODO: Really the summary should be read and
-        merging should happen based on that."""
-        if not os.path.exists(other_path):
-            components = result_file[:-4].split("-")
-
-            psrc = components.pop(1)
-
-            try:
-                distance_index = components.index("4_5")
-
-                components.insert(distance_index + 1, psrc)
-
-                return os.path.join(self.merge_dir, "-".join(components)) + ".txt"
-
-            except ValueError:
-                return other_path
-
-        return other_path
 
     def merge_files(self, result_file):
         result_path = os.path.join(self.results_dir, result_file)
         other_path = os.path.join(self.merge_dir, result_file)
-
-        other_path = self._check_other_path(other_path, result_file)
 
         merge_path = os.path.join(self.results_dir, result_file + ".merge")
         backup_path = os.path.join(self.results_dir, result_file + ".backup")
