@@ -44,6 +44,7 @@ class Simulation(object):
 
         self.rng = random.Random(self.seed)
 
+        self.configuration = configuration
         self.communication_model = args.communication_model
         self.noise_model = args.noise_model
         self.wireless_range = args.distance
@@ -113,7 +114,7 @@ class Simulation(object):
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
-        return self.metrics.configuration.node_distance_meters(left, right)
+        return self.configuration.node_distance_meters(left, right)
 
     def sim_time(self):
         """Returns the current simulation time in seconds"""
@@ -142,7 +143,7 @@ class Simulation(object):
 
     def node_from_topology_nid(self, topology_nid):
 
-        ordered_nid = self.metrics.configuration.topology.to_ordered_nid(topology_nid)
+        ordered_nid = self.configuration.topology.to_ordered_nid(topology_nid)
 
         for node in self.nodes:
             if node.nid == ordered_nid:
@@ -215,7 +216,7 @@ class Simulation(object):
         cm = model()
         cm.setup(self)
 
-        index_to_ordered = self.metrics.configuration.topology.index_to_ordered
+        index_to_ordered = self.configuration.topology.index_to_ordered
 
         for ((i, j), gain) in np.ndenumerate(cm.link_gain):
             if i == j:
@@ -324,6 +325,8 @@ class OfflineSimulation(object):
 
         self.attackers = []
 
+        self.configuration = configuration
+
         metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
 
         self.metrics = metrics_module.Metrics(self, configuration)
@@ -351,7 +354,7 @@ class OfflineSimulation(object):
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
-        return self.metrics.configuration.node_distance_meters(left, right)
+        return self.configuration.node_distance_meters(left, right)
 
     def sim_time(self):
         """Returns the current simulation time in seconds"""
@@ -375,7 +378,7 @@ class OfflineSimulation(object):
 
     def node_from_topology_nid(self, topology_nid):
 
-        ordered_nid = self.metrics.configuration.topology.to_ordered_nid(topology_nid)
+        ordered_nid = self.configuration.topology.to_ordered_nid(topology_nid)
 
         for node in self.nodes:
             if node.nid == ordered_nid:
