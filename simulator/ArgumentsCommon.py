@@ -8,10 +8,9 @@ import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
 # Inheritance diagram for different modes:
-# TESTBED < SINGLE < PARALLEL < CLUSTER
-#                  < GUI
-
-# OFFLINE < OFFLINE_GUI
+# TESTBED < SINGLE  < PARALLEL    < CLUSTER
+#                   < GUI
+#         < OFFLINE < OFFLINE_GUI
 
 def _secure_random():
     """Returns a random 32 bit (4 byte) signed integer"""
@@ -83,12 +82,11 @@ class ArgumentsCommon(object):
         ###
         ###
 
-        parser_offline = subparsers.add_parser("OFFLINE", add_help=False)
+        parser_offline = subparsers.add_parser("OFFLINE", add_help=False, parents=[parser_testbed])
 
         parser_offline.add_argument("--merged-log", type=str, required=True)
 
         parser_offline.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
-        parser_offline.add_argument("-c", "--configuration", type=str, required=True, choices=Configuration.names())
         
         if has_safety_period:
             parser_offline.add_argument("-safety", "--safety-period", type=float, required=True)
