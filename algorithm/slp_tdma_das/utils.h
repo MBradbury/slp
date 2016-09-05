@@ -1,12 +1,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "Common.h"
 #include "Constants.h"
 
 #include <string.h>
 #include <stdlib.h>
-
-#include <assert.h>
 
 #define MAX_ONEHOP SLP_MAX_1_HOP_NEIGHBOURHOOD
 #define MAX_TWOHOP SLP_MAX_2_HOP_NEIGHBOURHOOD
@@ -119,9 +118,24 @@ int IDList_compare(const void* elem1, const void* elem2)
 
 void IDList_sort(IDList* list)
 {
-    simdbgverbose("stdout", "IDList before sort: "); IDList_print(list); simdbgverbose_clear("stdout", "\n");
-    qsort(list->ids, list->count, sizeof(list->ids[0]), &IDList_compare);
-    simdbgverbose("stdout", "IDList after sort: "); IDList_print(list); simdbgverbose_clear("stdout", "\n");
+    uint16_t i,j,a;
+
+    //simdbgverbose("stdout", "IDList before sort: "); IDList_print(list); simdbgverbose_clear("stdout", "\n");
+
+    for(i = 0; i < list->count; ++i)
+    {
+        for(j = i+1; j < list->count; j++)
+        {
+            if(list->ids[i] > list->ids[j])
+            {
+                a = list->ids[i];
+                list->ids[i] = list->ids[j];
+                list->ids[j] = a;
+            }
+        }
+    }
+
+    //simdbgverbose("stdout", "IDList after sort: "); IDList_print(list); simdbgverbose_clear("stdout", "\n");
 }
 
 uint16_t IDList_indexOf(IDList* list, am_addr_t el)
