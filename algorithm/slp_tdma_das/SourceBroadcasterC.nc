@@ -34,8 +34,6 @@
 /*#define PR_LENGTH 10 //Half sink-source distance/safety period (which is 5 for 11x11)*/
 /*#define SEARCH_PERIOD_COUNT 24*/
 
-#define SAFETY_PERIOD 15
-
 module SourceBroadcasterC
 {
 	uses interface Boot;
