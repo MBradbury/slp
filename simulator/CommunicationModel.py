@@ -50,7 +50,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.output_power_var = None
 
     def setup(self, sim):
-        nodes = sim.metrics.configuration.topology.nodes.values()
+        nodes = sim.configuration.topology.nodes.values()
         rng = sim.rng
 
         self._setup(nodes, rng)
@@ -135,7 +135,7 @@ class IdealCommunicationModel(CommunicationModel):
         self.white_gausian_noise = white_gausian_noise
 
     def setup(self, sim):
-        nodes = sim.metrics.configuration.topology.nodes.values()
+        nodes = sim.configuration.topology.nodes.values()
 
         num_nodes = len(nodes)
 

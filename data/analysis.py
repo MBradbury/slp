@@ -158,6 +158,14 @@ def _daily_allowance_used(columns, cached_cols, constants):
 
     return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
 
+def _get_calculation_columns():
+    cols = {}
+
+    cols["energy_impact"] = _energy_impact
+    cols["daily_allowance_used"] = _daily_allowance_used
+
+    return cols
+
 class Analyse(object):
 
     HEADING_DTYPES = {
@@ -262,7 +270,7 @@ class Analyse(object):
             # Calculate any constants that do not change (e.g. from simulation options)
             constants = self._get_constants_from_opts()
 
-            calc_cols = self._get_calculation_columns()
+            calc_cols = _get_calculation_columns()
             cached_cols = {}
 
             def get_cached_cal_cols(name):
@@ -338,14 +346,6 @@ class Analyse(object):
         constants["source_rate_per_num_sources"] = constants["source_rate"] / constants["num_sources"]
 
         return constants
-
-    def _get_calculation_columns(self):
-        cols = {}
-
-        cols["energy_impact"] = _energy_impact
-        cols["daily_allowance_used"] = _daily_allowance_used
-
-        return cols
 
     def _get_from_opts_or_values(self, name, values, constants):
         """Get either the row value for :name:, the constant of that name, or calculate the additional metric for that name."""
@@ -501,7 +501,7 @@ class Analyse(object):
             return values.median()
 
 
-class AnalysisResults:
+class AnalysisResults(object):
     def __init__(self, analysis):
         self.average_of = {}
         self.variance_of = {}
