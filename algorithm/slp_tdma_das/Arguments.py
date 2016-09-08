@@ -31,6 +31,6 @@ class Arguments(ArgumentsCommon):
         result["TDMA_SETUP_PERIODS"] = self.args.minimum_setup_periods
         result["TDMA_PRE_BEACON_PERIODS"] = self.args.pre_beacon_periods
         result["TDMA_DISSEM_TIMEOUT"] = self.args.dissem_timeout
-        result["SAFETY_PERIOD"] = self.args.safety_period
+        result["SAFETY_PERIOD"] = self.args.tdma_safety_periods
 
         return result
