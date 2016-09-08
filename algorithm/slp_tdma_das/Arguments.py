@@ -13,9 +13,10 @@ class Arguments(ArgumentsCommon):
         self.add_argument("-dp", "--dissem-period", type=float, required=True, help="Time of the beacon period")
         self.add_argument("-ts", "--tdma-num-slots", type=int, required=True, help="Total number of slots available")
         self.add_argument("-ai", "--slot-assignment-interval", type=int, required=True, help="The interval at which slot values are assigned")
-        self.add_argument("-msp", "--minimum-setup-periods", type=int, required=False, default=0, help="Minimum number of periods required for setup")
+        self.add_argument("-msp", "--minimum-setup-periods", type=int, required=True, help="Minimum number of periods required for setup")
         self.add_argument("-pbp", "--pre-beacon-periods", type=int, required=False, default=3, help="Number of periods of neighbour discovery")
         self.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
+        self.add_argument("-sfp", "--safety-period", type=int, required=True, help="Safety period")
         self.add_argument("--source-mobility",
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
@@ -30,5 +31,6 @@ class Arguments(ArgumentsCommon):
         result["TDMA_SETUP_PERIODS"] = self.args.minimum_setup_periods
         result["TDMA_PRE_BEACON_PERIODS"] = self.args.pre_beacon_periods
         result["TDMA_DISSEM_TIMEOUT"] = self.args.dissem_timeout
+        result["SAFETY_PERIOD"] = self.args.safety_period
 
         return result
