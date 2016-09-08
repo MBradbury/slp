@@ -1,6 +1,8 @@
 from __future__ import print_function
 
-import os, re, subprocess
+import os
+import re
+import subprocess
 
 import data.util
 

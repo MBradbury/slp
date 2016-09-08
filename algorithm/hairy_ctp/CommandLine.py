@@ -69,7 +69,10 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_table(self, args):
-        safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
+        safety_period_table = safety_period.TableGenerator(
+            self.algorithm_module.result_file_path,
+            self.time_taken_to_safety_period
+        )
 
         prod = itertools.product(Simulation.available_noise_models(),
                                  Simulation.available_communication_models())

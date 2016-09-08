@@ -1,10 +1,13 @@
 from __future__ import print_function, division
 
+from datetime import datetime
 from collections import namedtuple
+import heapq
 import importlib
 from itertools import islice
 import os
 import random
+import re
 import sys
 import timeit
 
@@ -287,11 +290,6 @@ class Simulation(object):
         """Gets the names of the communication models available"""
         return simulator.CommunicationModel.MODEL_NAME_MAPPING.keys()
 
-
-
-from datetime import datetime
-import heapq
-import re
 
 class OfflineSimulation(object):
     def __init__(self, module_name, configuration, args, log_filename):
