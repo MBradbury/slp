@@ -27,7 +27,6 @@
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
 //Distance search messages travel from sink
-#define SEARCH_DIST 4
 //Search + Change < Sink-Source Distance - 2
 
 //Length of phantom route
@@ -507,7 +506,7 @@ implementation
                 /*}*/
             /*}*/
             send_Search_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent search message to %u\n", msg.a_node);
+            simdbgverbose("stdout", "Sent search message to %u\n", msg.a_node);
         }
     }
 
@@ -525,7 +524,7 @@ implementation
             {
                 npar = IDList_minus_parent(&npar, from.ids[i]);
             }
-            simdbg("stdout", "CHANGE HAS BEGUN\n");
+            simdbgverbose("stdout", "CHANGE HAS BEGUN\n");
             start_node = FALSE;
             NeighbourList_select(&n_info, &neighbours, &onehop);
             msg.a_node = choose(&npar);
@@ -533,7 +532,7 @@ implementation
             msg.len_d = redir_length - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
-            simdbg("a_node was %u\n", msg.a_node);
+            simdbgverbose("a_node was %u\n", msg.a_node);
         }
     }
 
@@ -868,13 +867,13 @@ implementation
         IDList_add(&from, source_addr); //TODO: Testing
         METRIC_RCV_SEARCH(rcvd);
         if(rcvd->a_node != TOS_NODE_ID) return;
-        simdbg("stdout", "Received search\n");
+        simdbgverbose("stdout", "Received search\n");
 
         if((rcvd->dist == 0 && npar.count != 0))
         {
             start_node = TRUE;
             redir_length = get_safety_period()/3;
-            simdbg("stdout", "Search messages ended\n");
+            simdbgverbose("stdout", "Search messages ended\n");
         }
         else if(rcvd->dist == 0 && npar.count == 0)
         {
@@ -891,7 +890,7 @@ implementation
                 msg.a_node = choose(&n);
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent search message again to %u\n", msg.a_node);
+            simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
             call NodeType.set(SearchNode);
         }
         else if(rcvd->dist > 0)
@@ -912,7 +911,7 @@ implementation
                 }
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent search message again to %u\n", msg.a_node);
+            simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
             call NodeType.set(SearchNode);
         }
     }
@@ -943,7 +942,7 @@ implementation
         {
             ChangeMessage msg;
             OnehopList onehop;
-            simdbg("stdout", "Received change\n");
+            simdbgverbose("stdout", "Received change\n");
             set_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
             NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
@@ -954,7 +953,7 @@ implementation
             msg.len_d = rcvd->len_d - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
-            simdbg("stdout", "Next a_node is %u\n", msg.a_node);
+            simdbgverbose("stdout", "Next a_node is %u\n", msg.a_node);
         }
         else if(rcvd->len_d == 0 && npar.count != 0)
         {
@@ -962,10 +961,10 @@ implementation
             set_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
             set_dissem_timer(); //Restart sending dissem messages
-            simdbg("stdout", "Change messages ended\n");
+            simdbgverbose("stdout", "Change messages ended\n");
             call NodeType.set(ChangeNode);
         }
-        simdbg("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
+        simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
     }
 
     /*void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)*/
