@@ -16,7 +16,7 @@ class Arguments(ArgumentsCommon):
         self.add_argument("-msp", "--minimum-setup-periods", type=int, required=True, help="Minimum number of periods required for setup")
         self.add_argument("-pbp", "--pre-beacon-periods", type=int, required=False, default=3, help="Number of periods of neighbour discovery")
         self.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
-        self.add_argument("-sfp", "--safety-period", type=int, required=True, help="Safety period")
+        self.add_argument("-tsp", "--tdma-safety-periods", type=int, required=True, help="Safety period (in TDMA periods)")
         self.add_argument("--source-mobility",
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
