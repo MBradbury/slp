@@ -370,7 +370,7 @@ class RHMAttacker(Attacker):
     def setup(self, *args, **kwargs):
         super(RHMAttacker, self).setup(*args, **kwargs)
 
-        self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
+        self._set_next_message_count_wait()
 
     def setup_event_callbacks(self):
         self._sim.register_event_callback(self._clear_messages, self._clear_period)
@@ -378,9 +378,13 @@ class RHMAttacker(Attacker):
     def _clear_messages(self, current_time):
         self._messages = []
         self._num_moves = 0
-        self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
+        self._set_next_message_count_wait()
 
         self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
+
+    def _set_next_message_count_wait(self):
+        """Set the number of messages to wait for until next moving."""
+        self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
@@ -415,7 +419,7 @@ class RHMAttacker(Attacker):
             self._history_index = (self._history_index + 1) % self._history_window_size
 
         self._num_moves += 1
-        self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
+        self._set_next_message_count_wait()
 
     def __str__(self):
         return type(self).__name__ + "(clear_period={},history_window_size={},moves_per_period={})".format(
