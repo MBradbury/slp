@@ -78,8 +78,15 @@ class Attacker(object):
         # to identify as protocol support messages. The attacker does not move
         # in response to these messages.
 
-        if self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        should_move = self.move_predicate(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
+        # If a tuple is returned then we are moving to a different location than the sender
+        # of the message that we just received.
+        if isinstance(should_move, tuple):
+            (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = should_move
+            should_move = True
+
+        if should_move:
             self._move(time, prox_from_id, msg_type=msg_type)
 
             self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
@@ -401,11 +408,12 @@ class RHMAttacker(Attacker):
                 if node_id not in self._history
             ]
 
-            (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = self._sim.rng.choice(filtered_message)
+            # If there are no possible moves, then do not move
+            if len(filtered_message) == 0:
+                return False
 
-            self._move(time, prox_from_id, msg_type=msg_type)
-
-            self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
+            # Randomly pick a previous message to follow
+            return self._sim.rng.choice(filtered_message)
 
         return False
 
