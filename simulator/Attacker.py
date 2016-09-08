@@ -371,12 +371,12 @@ class RHMAttacker(Attacker):
 
         self._next_message_count_wait = None
 
+        self._started_clear_event = False
+
     def setup(self, *args, **kwargs):
         super(RHMAttacker, self).setup(*args, **kwargs)
 
         self._set_next_message_count_wait()
-
-        self._sim.register_event_callback(self._clear_messages, self._clear_period)
 
     def _clear_messages(self, current_time):
         self._messages = []
@@ -390,6 +390,11 @@ class RHMAttacker(Attacker):
         self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+
+        # Start clear message event when first message is received
+        if not self._started_clear_event:
+            self._started_clear_event = True
+            self._sim.register_event_callback(self._clear_messages, time + self._clear_period)
 
         self._messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
 
