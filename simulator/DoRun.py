@@ -60,7 +60,7 @@ def run_simulation(module, a, count=1):
 
     return 0
 
-if __name__ == "__main__":
+def main():
     import importlib
 
     module = sys.argv[1]
@@ -73,3 +73,6 @@ if __name__ == "__main__":
     result = run_simulation(module, a)
 
     sys.exit(result)
+
+if __name__ == "__main__":
+    main()

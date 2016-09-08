@@ -1,8 +1,11 @@
 # Author: Matthew Bradbury
 from __future__ import division
 
-import csv, math, ast
+import ast
+import csv
 from functools import partial
+import math
+
 import numpy
 
 import simulator.common

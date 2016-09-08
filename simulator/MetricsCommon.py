@@ -103,7 +103,7 @@ class MetricsCommon(object):
 
     def process_RCV(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
-        
+
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
         self.received[kind][top_node_id] += 1
@@ -217,7 +217,7 @@ class MetricsCommon(object):
         return dict(sum(self.received.values(), Counter()))
 
     def first_normal_sent_time(self):
-        return min(normal_sent_time.values())
+        return min(self.normal_sent_time.values())
 
     def average_normal_latency(self):
         # It is possible that the sink has received no Normal messages

@@ -240,7 +240,7 @@ class GuiSimulation(Simulation):
         if self._gui._node_label is not None:
             variables = self.nesc_app.variables.variables()[0::3]
             if self._gui._node_label not in variables:
-                raise RuntimeError("The variable {} was not present in the list known to python".format(self._gui._node_label))
+                raise RuntimeError("The variable {} was not present in the list known to python {}".format(self._gui._node_label, variables))
 
 
     def _during_run(self, event_count):
@@ -252,7 +252,7 @@ class GuiSimulation(Simulation):
                 value = var.getData()
 
                 if value == "<no such variable>":
-                    raise RuntimeError("No variable called '{}' exists.".format(self._gui._node_label))
+                    raise RuntimeError("Tossim was unable to find the variable '{}'.".format(self._gui._node_label))
 
                 self._gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 
