@@ -42,13 +42,8 @@ class Attacker(object):
 
         self.moves_in_response_to = Counter()
 
-        self.setup_event_callbacks()
-
     def _source_ids(self):
         return self._sim.metrics.source_ids
-
-    def setup_event_callbacks(self):
-        pass
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         raise NotImplementedError()
@@ -170,14 +165,16 @@ class DeafAttackerWithEvent(Attacker):
         super(DeafAttackerWithEvent, self).__init__()
         self._period = period
 
-    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
-        return False
+    def setup(self, *args, **kwargs):
+        super(DeafAttackerWithEvent, self).setup(*args, **kwargs)
 
-    def setup_event_callbacks(self):
         self._sim.tossim.register_event_callback(self._callback, self._period)
 
     def _callback(self, current_time):
         self._sim.tossim.register_event_callback(self._callback, current_time + self._period)
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        return False
 
     def __str__(self):
         return type(self).__name__ + "(period={})".format(self._period)
@@ -372,7 +369,6 @@ class RHMAttacker(Attacker):
 
         self._set_next_message_count_wait()
 
-    def setup_event_callbacks(self):
         self._sim.register_event_callback(self._clear_messages, self._clear_period)
 
     def _clear_messages(self, current_time):
