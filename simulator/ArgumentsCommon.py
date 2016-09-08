@@ -194,5 +194,5 @@ class ArgumentsCommon(object):
                     ord_node_id = int(getattr(attr_source, topo_node_id_str))
 
                     return configuration.topology.to_topo_nid(ord_node_id)
-            else:
-                raise RuntimeError("No way to work out node from {}.".format(topo_node_id_str))
+
+            raise RuntimeError("No way to work out node from {}.".format(topo_node_id_str))

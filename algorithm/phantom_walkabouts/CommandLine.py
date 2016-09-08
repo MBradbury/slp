@@ -305,7 +305,6 @@ class CLI(CommandLineCommon.CLI):
             ).run()
 
     def _run_average_graph(self, args):
-        import numpy as np
         from data.graph import combine_versus
 
         graph_parameters = {
