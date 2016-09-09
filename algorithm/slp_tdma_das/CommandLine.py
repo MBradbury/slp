@@ -4,8 +4,6 @@ import itertools
 
 from simulator import CommandLineCommon
 
-#import algorithm.protectionless_tdma_das as protectionless_tdma_das
-
 from data.run.common import RunSimulationsCommon
 from data.table import safety_period
 
@@ -40,9 +38,9 @@ class CLI(CommandLineCommon.CLI):
         ))
 
         argument_product = [
-            (s, c, am, nm, cm, d, nido, lnst, src_period, sp, dp, ts, ai, msp, pbp, dt, tsp, sd)
+                (s, c, am, nm, cm, d, nido, lnst, src_period, sp, dp, ts, ai, msp, pbp, dt, sd, tsp)
             for (s, c, am, nm, cm, d, nido, lnst, src_period, sp, dp, ts, ai, msp, pbp, dt, (tsp, sd))
-            in argument_product
+            in  argument_product
         ]
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
