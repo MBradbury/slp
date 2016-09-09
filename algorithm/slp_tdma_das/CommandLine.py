@@ -4,9 +4,19 @@ import itertools
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless_tdma_das as protectionless_tdma_das
+#import algorithm.protectionless_tdma_das as protectionless_tdma_das
 
+from data.run.common import RunSimulationsCommon
 from data.table import safety_period
+
+class RunSimulations(RunSimulationsCommon):
+    def _get_safety_period(self, argument_names, arguments):
+        minimum_setup_period = arguments[argument_names.index("minimum setup periods")]
+        tdma_safety_period = arguments[argument_names.index("tdma safety periods")]
+
+        period_length_sec = 3
+
+        return (minimum_setup_period + tdma_safety_period) * period_length_sec
 
 class CLI(CommandLineCommon.CLI):
 
@@ -15,7 +25,7 @@ class CLI(CommandLineCommon.CLI):
                              'search distance', 'tdma safety periods')
 
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path)
+        super(CLI, self).__init__(__package__, True, RunSimulations)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -38,9 +48,6 @@ class CLI(CommandLineCommon.CLI):
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         return argument_product
-
-    def time_taken_to_safety_period(self, time_taken):
-        return time_taken * 2.0
 
 
     def run(self, args):
