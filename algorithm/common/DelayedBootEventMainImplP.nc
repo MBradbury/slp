@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 #ifndef DELAYED_BOOT_TIME_MINUTES
-#define DELAYED_BOOT_TIME_MINUTES 6
+#define DELAYED_BOOT_TIME_MINUTES 10
 #endif
 
 module DelayedBootEventMainImplP
