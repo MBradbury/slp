@@ -138,8 +138,11 @@ class CLI(object):
                 RunSimulations = self.custom_run_simulation_class
 
         if self.safety_period_result_path is not None:
-            safety_period_table_generator = safety_period.TableGenerator(self.safety_period_result_path, self.time_taken_to_safety_period)
-            safety_periods = safety_period_table_generator.safety_periods()
+            if self.safety_period_result_path is True:
+                safety_periods = True
+            else:
+                safety_period_table_generator = safety_period.TableGenerator(self.safety_period_result_path, self.time_taken_to_safety_period)
+                safety_periods = safety_period_table_generator.safety_periods()
         else:
             safety_periods = None
 
