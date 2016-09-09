@@ -29,7 +29,7 @@ class Analyzer(AnalyzerCommon):
         
         d['captured']           = lambda x: str(x.average_of['Captured'])
         d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance', average_corrector=Analyzer._correct_attacker_distance)
+        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
         d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
@@ -57,12 +57,3 @@ class Analyzer(AnalyzerCommon):
         d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
 
         return d
-
-    @staticmethod
-    def _correct_attacker_distance(x):
-        """The format was changed to have a pair as the key,
-        this allows for multiple attackers and multiple sources."""
-        if isinstance(x, dict) and 0 in x:
-            return {(0, 0): x[0]}
-        else:
-            return x
