@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import ast
 import base64
 from collections import OrderedDict, Sequence
+import copy
 import datetime
 import fnmatch
 from functools import partial
@@ -21,10 +22,37 @@ import zlib
 from more_itertools import unique_everseen
 import numpy as np
 import pandas as pd
+import psutil
 
 import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
+
+def bytes2human(n):
+    # From: https://github.com/giampaolo/psutil/blob/master/scripts/meminfo.py
+    # http://code.activestate.com/recipes/578019
+    # >>> bytes2human(10000)
+    # '9.8K'
+    # >>> bytes2human(100001221)
+    # '95.4M'
+    symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
+    prefix = {}
+    for i, s in enumerate(symbols):
+        prefix[s] = 1 << (i + 1) * 10
+    for s in reversed(symbols):
+        if n >= prefix[s]:
+            value = float(n) / prefix[s]
+            return '%.1f%s' % (value, s)
+    return "%sB" % n
+
+def pprint_ntuple(nt):
+    # From: https://github.com/giampaolo/psutil/blob/master/scripts/meminfo.py
+    result = {}
+    for name in nt._fields:
+        value = getattr(nt, name)
+        if name != 'percent':
+            result[name] = bytes2human(value)
+    return nt._replace(**result)
 
 def try_to_free_memory():
     """Call this function in an attempt to free any unfreed memory"""
@@ -90,6 +118,9 @@ def _parse_dict_node_to_value(indict, decompress=False):
         int(a): float(b)
         for (a, b) in DICT_NODE_KEY_RE.findall(indict)
     }
+
+    # Reduces memory usage, but increases cpu time by a factor of 5 to create this
+    #result = pd.Series(result, dtype=np.float_)
 
     return result
 
@@ -177,10 +208,12 @@ class Analyse(object):
         "ReceiveRatio": np.float_,
         "TimeTaken": np.float_,
         "WallTime": np.float_,
+        "TotalWallTime": np.float_,
         "EventCount": np.int64,
         "NormalLatency": np.float_,
         "NormalSinkSourceHops": np.float_,
-        "NormalSent": np.uint32,
+        "FirstNormalSentTime": np.float_,
+        "TimeBinWidth": np.float_,
     }
 
     HEADING_CONVERTERS = {
@@ -207,6 +240,7 @@ class Analyse(object):
 
         self.unnormalised_headings = []
         self.columns = {}
+        self.normalised_columns = None
 
         with open(infile_path, 'r') as infile:
             line_number = 0
@@ -247,6 +281,9 @@ class Analyse(object):
 
         converters = self.HEADING_CONVERTERS if with_converters else None
 
+        # Work out dtypes for other sent messages
+        self.HEADING_DTYPES.update({name: np.uint32 for name in self.unnormalised_headings if name.endswith('Sent')})
+
         self.columns = pd.read_csv(infile_path,
             names=self.unnormalised_headings, header=None,
             sep='|',
@@ -284,29 +321,44 @@ class Analyse(object):
 
             normalised_values_names = [(_normalised_value_name(num), _normalised_value_name(den)) for num, den in normalised_values]
 
+            columns_to_add = OrderedDict()
+
             for (norm_head, (num, den)) in zip(self.additional_normalised_headings, normalised_values_names):
 
                 if num in self.headings and den in self.headings:
                     print("Creating {} using ({},{}) on the fast path 1".format(norm_head, num, den))
 
-                    self.columns[norm_head] = self.columns[num] / self.columns[den]
+                    num_col = columns_to_add[num] if num in columns_to_add else self.columns[num]
+                    den_col = columns_to_add[den] if den in columns_to_add else self.columns[den]
+
+                    columns_to_add[norm_head] = num_col / den_col
 
                 elif num in self.headings and den in constants:
                     print("Creating {} using ({},{}) on the fast path 2".format(norm_head, num, den))
 
-                    self.columns[norm_head] = self.columns[num] / constants[den]
+                    num_col = columns_to_add[num] if num in columns_to_add else self.columns[num]
+
+                    columns_to_add[norm_head] = num_col / constants[den]
 
                 elif num in calc_cols and den in constants:
                     print("Creating {} using ({},{}) on the fast path 3".format(norm_head, num, den))
 
-                    self.columns[norm_head] = get_cached_cal_cols(num) / constants[den]
+                    columns_to_add[norm_head] = get_cached_cal_cols(num) / constants[den]
 
                 else:
                     print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))
 
                     #axis=1 means to apply per row
-                    self.columns[norm_head] = self.columns.apply(self._get_norm_value,
+                    columns_to_add[norm_head] = self.columns.apply(self._get_norm_value,
                                                                  axis=1, raw=True, reduce=True, args=(num, den, constants))
+
+            print("Merging normalised columns with the loaded data...")
+            self.normalised_columns = pd.concat(columns_to_add, axis=1, ignore_index=True, copy=False)
+            self.normalised_columns.columns = list(columns_to_add.iterkeys())
+
+        print("Columns:", self.columns.info(memory_usage='deep'))
+        print("Normalised Columns:", self.normalised_columns.info(memory_usage='deep'))
+
 
     def headings_index(self, name):
         return self.headings.index(name)
@@ -366,7 +418,7 @@ class Analyse(object):
                 attacker_moves = values[self.headings.index("AttackerMoves")]
 
                 # We can't calculate the good move ratio if the attacker hasn't moved
-                for (attacker_id, num_moves) in attacker_moves.items():
+                for (attacker_id, num_moves) in attacker_moves.iteritems():
                     if num_moves == 0:
                         print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
                         return None
@@ -466,7 +518,7 @@ class Analyse(object):
         pass
 
     def average_of(self, header):
-        values = self.columns[header]
+        values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
         first = values[0]
 
@@ -478,7 +530,7 @@ class Analyse(object):
             return values.mean()
 
     def variance_of(self, header):
-        values = self.columns[header]
+        values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
         first = values[0]
 
@@ -490,7 +542,7 @@ class Analyse(object):
             return values.var()
 
     def median_of(self, header):
-        values = self.columns[header]
+        values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
         first = values[0]
 
@@ -538,11 +590,7 @@ class AnalysisResults(object):
 
         self.opts = analysis.opts
         
-        # Find the number of repats
-        # Get a name of any of the columns
-        aname = next(iter(analysis.columns))
-        # Find the length of that list
-        self.number_of_repeats = len(analysis.columns[aname])
+        self.number_of_repeats = analysis.columns.shape[0]
 
     def get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
@@ -615,13 +663,30 @@ class AnalyzerCommon(object):
     def analyse_and_summarise_path(self, path, **kwargs):
         return AnalysisResults(self.analyse_path(path, **kwargs))
 
+    def analyse_and_summarise_path_wrapped(self, path, **kwargs):
+        """Calls analyse_and_summarise_path, but wrapped inside a Process.
+        This forces memory allocated during the analysis to be freed."""
+        def wrapped(queue, path, **kwargs):
+            queue.put(self.analyse_and_summarise_path(path, **kwargs))
+
+            print("Memory usage of worker:", pprint_ntuple(psutil.Process().memory_full_info()))
+
+        q = multiprocessing.Queue()
+        p = multiprocessing.Process(target=wrapped, args=(q, path), kwargs=kwargs)
+        p.start()
+        result = q.get()
+
+        p.join()
+
+        return result
+
     def run(self, summary_file, nprocs=None):
         """Perform the analysis and write the output to the :summary_file:"""
 
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling
-        #if nprocs is not None and nprocs == 1:
-        #    return self.run_single(summary_file)
+        if nprocs is not None and nprocs == 1:
+            return self.run_single(summary_file)
 
         def worker(inqueue, outqueue):
             while True:
@@ -633,7 +698,7 @@ class AnalyzerCommon(object):
                 path = item
 
                 try:
-                    result = self.analyse_and_summarise_path(path)
+                    result = self.analyse_and_summarise_path_wrapped(path)
 
                     # Skip 0 length results
                     if result.number_of_repeats == 0:
@@ -659,7 +724,7 @@ class AnalyzerCommon(object):
         inqueue = multiprocessing.Queue()
         outqueue = multiprocessing.Queue()
 
-        pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue), maxtasksperchild=1)
+        pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue))
 
         summary_file_path = os.path.join(self.results_directory, summary_file)
 
@@ -722,7 +787,7 @@ class AnalyzerCommon(object):
         """Perform the analysis and write the output to the :summary_file:"""
         
         def worker(ipath):
-            result = self.analyse_and_summarise_path(path)
+            result = self.analyse_and_summarise_path_wrapped(path)
 
             # Skip 0 length results
             if result.number_of_repeats == 0:
