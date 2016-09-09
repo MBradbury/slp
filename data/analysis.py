@@ -6,6 +6,8 @@ from collections import OrderedDict, Sequence
 import datetime
 import fnmatch
 from functools import partial
+import gc
+from itertools import islice
 import math
 import multiprocessing
 from numbers import Number
@@ -23,6 +25,13 @@ import pandas as pd
 import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
+
+def try_to_free_memory():
+    """Call this function in an attempt to free any unfreed memory"""
+    gc.collect()
+
+    # See: https://github.com/pydata/pandas/issues/2659
+    # Which discusses using malloc_trim, but was found to have little impact here.
 
 class EmptyFileError(RuntimeError):
     def __init__(self, filename):
@@ -111,23 +120,14 @@ def _parse_dict_tuple_nodes_to_value(indict):
 
     return dict1
 
-def dict_sum(dict_list):
-    result = {}
-    for d in dict_list:
-        for (key, value) in d.items():
-            if key not in result:
-                result[key] = value
-            else:
-                result[key] += value
-    return result
-
 def dict_mean(dict_list):
+    """Dict mean using incremental averaging"""
 
-    result = {
-        k: float(v) / len(dict_list)
-        for (k, v)
-        in dict_sum(dict_list).items()
-    }
+    result = dict_list[0]
+
+    for (n, dict_item) in enumerate(islice(dict_list, 1, None), start=2):
+        for (key, value) in dict_item.iteritems():
+            result[key] += (value - result[key]) / n
 
     return result
 
@@ -251,6 +251,7 @@ class Analyse(object):
             names=self.unnormalised_headings, header=None,
             sep='|',
             skiprows=line_number,
+            comment='@',
             dtype=self.HEADING_DTYPES, converters=converters,
             compression=None,
             verbose=True
@@ -536,14 +537,12 @@ class AnalysisResults(object):
         self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
 
         self.opts = analysis.opts
-        self.columns = analysis.columns
-
-    def number_of_repeats(self):
+        
+        # Find the number of repats
         # Get a name of any of the columns
-        aname = next(iter(self.columns))
-
+        aname = next(iter(analysis.columns))
         # Find the length of that list
-        return len(self.columns[aname])
+        self.number_of_repeats = len(analysis.columns[aname])
 
     def get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
@@ -562,7 +561,7 @@ class AnalyzerCommon(object):
         d = OrderedDict()
         
         # Include the number of simulations that were analysed
-        d['repeats']            = lambda x: str(x.number_of_repeats())
+        d['repeats']            = lambda x: str(x.number_of_repeats)
 
         # Give everyone access to the number of nodes in the simulation
         d['num nodes']          = lambda x: str(x.get_configuration().size())
@@ -621,8 +620,8 @@ class AnalyzerCommon(object):
 
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling
-        if nprocs is not None and nprocs == 1:
-            return self.run_single(summary_file)
+        #if nprocs is not None and nprocs == 1:
+        #    return self.run_single(summary_file)
 
         def worker(inqueue, outqueue):
             while True:
@@ -637,7 +636,7 @@ class AnalyzerCommon(object):
                     result = self.analyse_and_summarise_path(path)
 
                     # Skip 0 length results
-                    if result.number_of_repeats() == 0:
+                    if result.number_of_repeats == 0:
                         outqueue.put((path, None, "There are 0 repeats"))
                         continue
 
@@ -648,6 +647,9 @@ class AnalyzerCommon(object):
 
                     outqueue.put((path, line, None))
 
+                    # Try to recover some memory
+                    try_to_free_memory()
+
                 except Exception as ex:
                     outqueue.put((path, None, (ex, traceback.format_exc())))
 
@@ -657,7 +659,7 @@ class AnalyzerCommon(object):
         inqueue = multiprocessing.Queue()
         outqueue = multiprocessing.Queue()
 
-        pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue))
+        pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue), maxtasksperchild=1)
 
         summary_file_path = os.path.join(self.results_directory, summary_file)
 
@@ -723,13 +725,16 @@ class AnalyzerCommon(object):
             result = self.analyse_and_summarise_path(path)
 
             # Skip 0 length results
-            if result.number_of_repeats() == 0:
+            if result.number_of_repeats == 0:
                 raise RuntimeError("There are 0 repeats.")
 
             line = "|".join(fn(result) for fn in self.values.values())
 
             # Try to force a cleanup of the memory
             result = None
+
+            # Try to recover some memory
+            try_to_free_memory()
 
             return line
 
