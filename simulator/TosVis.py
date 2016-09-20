@@ -11,13 +11,14 @@ class DebugAnalyzer:
     AM_RECV = 2
     CHANGE  = 3
     DAS     = 4
+    ARROW   = 5
 
     LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
     CHANGE_RE = re.compile(r'([a-zA-Z]+Node|<unknown>),([a-zA-Z]+Node)')
-
     DAS_RE    = re.compile(r'DAS is (\d)')
+    ARROW_RE  = re.compile(r'arrow,(\+|\-),(\d+),(\d+),\(([0-9\.]+),([0-9\.]+),([0-9\.]+)\)')
 
     ####################
     def __init__(self):
@@ -57,6 +58,16 @@ class DebugAnalyzer:
             old_kind = match.group(1)
             new_kind = match.group(2)
             return (self.CHANGE, (old_kind, new_kind))
+
+        match = self.ARROW_RE.match(detail)
+        if match is not None:
+            add_remove = match.group(1)
+            from_id = int(match.group(2))
+            to_id = int(match.group(3))
+            r = float(match.group(4))
+            g = float(match.group(5))
+            b = float(match.group(6))
+            return (self.ARROW, (add_remove, from_id, to_id, (r,g,b)))
 
         # Check whether DAS is broken
         match = self.DAS_RE.match(detail)
@@ -101,6 +112,7 @@ class Gui:
         self._sim.register_output_handler('AM', self._process_message)
         self._sim.register_output_handler('Fake-Notification', self._process_message)
         self._sim.register_output_handler('G-NC', self._process_message)
+        self._sim.register_output_handler('G-A', self._process_message)
         self._sim.register_output_handler('DAS-State', self._process_message)
 
     def _adjust_location(self, loc):
@@ -140,10 +152,9 @@ class Gui:
     def _animate_am_send(self, time, sender, detail):
         (amtype, amlen, amdst) = detail
         (x, y) = self.node_location(sender)
-        self.scene.execute(time)
-        #self.scene.execute(time,
-        #           'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.3)'
-        #       % (x,y,self.wireless_range))
+        self.scene.execute(time,
+                   'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.3)'
+               % (x, y, 10))
 
     ####################
     def _animate_am_receive(self, time, receiver, detail):
@@ -186,6 +197,27 @@ class Gui:
 
         self.scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
 
+    def _animate_arrow(self, time, node, detail):
+        (add_remove, from_id, to_id, colour) = detail
+
+        ident = repr("{}->{}".format(from_id, to_id))
+
+        try:
+            (x1, y1) = self.node_location(from_id)
+            (x2, y2) = self.node_location(to_id)
+        except RuntimeError:
+            return
+
+        if add_remove == "-":
+            self.scene.execute(time, 'delshape({})'.format(ident))
+        elif add_remove == "+":
+            self.scene.execute(time,
+                'line({},{},{},{},ident={},line=LineStyle(arrow="head", color={}))'.format(
+                    x1, y1, x2, y2, ident, repr(colour))
+            )
+        else:
+            raise RuntimeError("Unknown add/remove action {}".format(add_remove))
+
     def _animate_das_state(self, time, node, detail):
         (state,) = detail
         (x,y) = self.node_location(node)
@@ -222,7 +254,8 @@ class Gui:
             DebugAnalyzer.AM_SEND: self._animate_am_send,
             DebugAnalyzer.AM_RECV: self._animate_am_receive,
             DebugAnalyzer.CHANGE: self._animate_change_state,
-            DebugAnalyzer.DAS: self._animate_das_state
+            DebugAnalyzer.DAS: self._animate_das_state,
+            DebugAnalyzer.ARROW: self._animate_arrow,
 
         }[event_type](time, node_id, detail)
 
