@@ -33,12 +33,22 @@ source ~/tinyos.env
 pip install scipy numpy pandas more_itertools shutilwhich psutil pip --upgrade
 pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
 
-==Using pyenv==
+==Using pyenv (general)==
 
 If you do not have python installed, or have an install that requires
 admin permissions to use pip install, then pyenv is a good alternative.
 
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+
+MAKE_OPTS=profile-opt pyenv install 2.7.12
+
+pyenv global 2.7.12
+
+==Using pyenv (on flux)==
+
+To install on flux there is a slightly different procedure:
+
+module load flux-installers && pyenv-install.sh && source ~/.bashrc
 
 MAKE_OPTS=profile-opt pyenv install 2.7.12
 
@@ -102,7 +112,7 @@ One you have the necessary safety period results you can create the summary file
 
 You can then copy that summary to the desired cluster like so:
 
-./create.py protectionless cluster copy-result-summary <cluster>
+./create.py protectionless cluster <cluster> copy-result-summary
 
 The cluster will now have the correct safety periods present to be able to run the simulations.
 
@@ -130,7 +140,14 @@ To copy the built binaries to the cluster you need to execute the following comm
 ==Submitting jobs to the cluster==
 
 To submit jobs to the cluster you will need to modify certain files.
-When submitting to the cluster you need to specify a time limit. It is important to specify a limit that is about
+
+
+The most important file to modify is Parameters.py, as this defined the parameters combinations
+that will be run on the cluster. DO NOT modify Parameters.py.sample unless a new parameter is added.
+Custom parameter combinations should only be specified in Parameters.py.
+
+
+When submitting to the cluster it can be helpful to specify a time limit. It is important to specify a limit that is about
 how long you expect the jobs to take, plus a bit extra for safety. If the jobs exceed the time limit they will
 be killed. If they take much less time than the time limit they will take longer to be scheduled.
 
@@ -139,25 +156,16 @@ With size 11 having a smaller time limit and size 25 having a larger time limit.
 
 To begin with ensure that your algorithm's CommandLine.py is up-to-date.
 
-You will need to modify slp-algorithms-tinyos/algorithm/<algorithm>/CommandLine.py to only submit jobs for size 11 networks.
-To do this go to line 25 and replace "sizes = [11, 15, 21, 25]" with "sizes = [11]".
-Next you will need to modify slp-algorithms-tinyos/data/cluster/<cluster> to change the requested time limit.
-To do this find the "walltime=" string and replace the time after it with the desired time string.
-
-Now submit the jobs using:
-
-./create.py <algorithm> cluster submit <cluster>
-
-Repeat these instructions for the other desired network sizes.
-The following times are rough guides for different sized networks:
-
-Size 11: "8:00:00"
-Size 15: "16:00:00"
-Size 21: "30:00:00"
-Size 25: "48:00:00"
+You will need to modify slp-algorithms-tinyos/algorithm/<algorithm>/CommandLine.py to override _time_estimater.
+Look at CommandLineCommon.py for the defaults.
 
 To keep things simple you could just use a very large request time, but it is likely it will mean your jobs are not
 run as often as they could be.
+
+
+Now submit the jobs using:
+
+./create.py <algorithm> cluster <cluster> submit
 
 ===Array Jobs===
 
@@ -166,13 +174,13 @@ one job that takes up an entire node, many smaller jobs that only require one pr
 should improve throughput of results on certain clusters. As the number of repeats performed per job will be smaller
 make sure that you divide the walltime by the number of array jobs that will be created.
 
-./create.py <algorithm> cluster submit <cluster> array
+./create.py <algorithm> cluster <cluster> submit --array
 
 ==Copy back from cluster==
 
 Once all your jobs have finished you will need to copy them back from the cluster.
 
-./create.py <algorithm> cluster copy-back <cluster>
+./create.py <algorithm> cluster <cluster> copy-back
 
 You can then analyse the results like so:
 
@@ -189,19 +197,19 @@ will be read so that jobs will only be executed if the results show that not eno
 
 You can copy these result summaries to the cluster using:
 
-./create.py <algorithm> cluster copy-result-summary <cluster>
+./create.py <algorithm> cluster <cluster> copy-result-summary
 
 If you want to ignore any existing results make sure to pass "no-skip-complete" when building or submitting cluster jobs.
 Doing so will run all parameter combinations as specified in the <algorithm>/CommandLine.py file.
 
-./create.py <algorithm> cluster build dummy no-skip-complete
-./create.py <algorithm> cluster submit <cluster> no-skip-complete
+./create.py <algorithm> cluster dummy build --no-skip-complete
+./create.py <algorithm> cluster <cluster> submit --no-skip-complete
 
 ==Job Notification==
 
 A useful feature is the ability to be notified when a job is completed or cancelled via email.
 This can be done in two ways (#2 is recommended, as I tend to forget to do #1):
 
-1) By specifying "notify=<email address>" when submitting your jobs.
+1) By specifying "--notify=<email address>" when submitting your jobs.
 
 2) By editing your ~/.bashrc to contain "export SLP_NOTIFY_EMAILS=<email address>"
