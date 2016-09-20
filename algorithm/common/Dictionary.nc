@@ -14,6 +14,6 @@ interface Dictionary<Key, Value>
 	command Value* begin();
 	command Value* end();
 
-	command Key* beginKeys();
-	command Key* endKeys();
+	command const Key* beginKeys();
+	command const Key* endKeys();
 }

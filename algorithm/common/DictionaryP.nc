@@ -25,12 +25,12 @@ implementation
 		return values + count;
 	}
 
-	command Key* Dictionary.beginKeys()
+	command const Key* Dictionary.beginKeys()
 	{
 		return keys;
 	}
 
-	command Key* Dictionary.endKeys()
+	command const Key* Dictionary.endKeys()
 	{
 		return keys + count;
 	}
