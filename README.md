@@ -3,56 +3,67 @@
 
 1. Clone the SLP simulation framework
 
-Anonymously:
+   * Anonymously:
+     ```bash
+     hg clone https://MBradbury@bitbucket.org/MBradbury/slp-algorithms-tinyos
+     ```
 
-hg clone https://MBradbury@bitbucket.org/MBradbury/slp-algorithms-tinyos
-
-With a username:
-
-hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos
-hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos
+   * With a username (one of the following):
+     ```bash
+     hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos
+     ```
+     ```bash
+     hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos
+     ```
 
 2. Clone the tinyos fork 
-
-git clone -b bradbury_2_1_2 https://github.com/MBradbury/tinyos-main.git
+   ```bash
+   git clone -b bradbury_2_1_2 https://github.com/MBradbury/tinyos-main.git
+   ```
 
 3. Create ~/tinyos.env with the following contents
 
-export TOSROOT="<fill in path to tinyos repo here>"
-export TOSDIR="$TOSROOT/tos"
-export CLASSPATH="$CLASSPATH:$TOSROOT/support/sdk/java:$TOSROOT/support/sdk/java/tinyos.jar"
-export MAKERULES="$TOSROOT/support/make/Makerules"
-export PYTHONPATH="$PYTHONPATH:$TOSROOT/support/sdk/python"
+   ```bash
+   export TOSROOT="<fill in path to tinyos repo here>"
+   export TOSDIR="$TOSROOT/tos"
+   export CLASSPATH="$CLASSPATH:$TOSROOT/support/sdk/java:$TOSROOT/support/sdk/java/tinyos.jar"
+   export MAKERULES="$TOSROOT/support/make/Makerules"
+   export PYTHONPATH="$PYTHONPATH:$TOSROOT/support/sdk/python"
+   ```
 
-Add the following to ~/.bashrc
+4. Add the following to ~/.bashrc before any interactivity check
 
-source ~/tinyos.env
+   ```bash
+   source ~/tinyos.env
+   ```
 
-4. Install python libraries
+5. Install python libraries
 
-pip install scipy numpy pandas more_itertools shutilwhich psutil pip --upgrade
-pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
+   ```bash
+   pip install scipy numpy pandas more_itertools shutilwhich psutil pip --upgrade
+   pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
+   ```
 
 ## Using pyenv (general)
 
 If you do not have python installed, or have an install that requires
 admin permissions to use pip install, then pyenv is a good alternative.
 
+```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-
 MAKE_OPTS=profile-opt pyenv install 2.7.12
-
 pyenv global 2.7.12
+```
 
 ## Using pyenv (on flux)
 
 To install on flux there is a slightly different procedure:
 
+```bash
 module load flux-installers && pyenv-install.sh && source ~/.bashrc
-
 MAKE_OPTS=profile-opt pyenv install 2.7.12
-
 pyenv global 2.7.12
+```
 
 ## Updating from upstream
 
@@ -66,16 +77,24 @@ If you are not using SSH keys, then you should use the following:
 "upstream = https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos"
 
 You can then update from the upstream fork by doing the following:
+```bash
 hg pull -u upstream
+```
 
 You may need to perform a merge:
+```bash
 hg commit -m "Merge"
+```
 
 You will need to push what you have pulled to your fork:
+```bash
 hg push
+```
 
 You can update the tinyos repository by doing the following:
+```bash
 git pull https://github.com/MBradbury/tinyos-main bradbury_2_1_2
+```
 
 
 # Getting results repositories
@@ -85,10 +104,12 @@ One repository to be of likely interest is slp-results-protectionless which stor
 
 You should checkout this repository using something like the following command:
 
+```bash
 cd slp-algorithms-tinyos
 mkdir results
 cd results
 hg clone https://MBradbury@bitbucket.org/MBradbury/slp-results-protectionless protectionless
+```
 
 The directories in the results directory should have names that match the algorithm name.
 
@@ -108,11 +129,15 @@ repository, gather the results and commit them to that repository.
 
 One you have the necessary safety period results you can create the summary file like so:
 
+```bash
 ./create.py protectionless analyse
+```
 
 You can then copy that summary to the desired cluster like so:
 
+```bash
 ./create.py protectionless cluster <cluster> copy-result-summary
+```
 
 The cluster will now have the correct safety periods present to be able to run the simulations.
 
@@ -122,20 +147,23 @@ The next step is to modify the algorithm's CommandLine.py file to contain the co
 To aid in testing there exists a dummy cluster driver which will print out the cluster command rather than execute it.
 
 Use this to test that you have set up the correct parameters in CommandLine.py like so:
-
+```bash
 ./create.py <algorithm> cluster submit dummy
+```
 
 ## Build
 
 You must now build all the combinations of arguments.
-
+```bash
 ./create.py <algorithm> cluster build dummy
+```
 
 ## Copy built binaries to cluster
 
 To copy the built binaries to the cluster you need to execute the following command:
-
+```bash
 ./create.py <algorithm> cluster copy <cluster>
+```
 
 ## Submitting jobs to the cluster
 
@@ -164,8 +192,9 @@ run as often as they could be.
 
 
 Now submit the jobs using:
-
+```bash
 ./create.py <algorithm> cluster <cluster> submit
+```
 
 ## Array Jobs
 
@@ -174,17 +203,21 @@ one job that takes up an entire node, many smaller jobs that only require one pr
 should improve throughput of results on certain clusters. As the number of repeats performed per job will be smaller
 make sure that you divide the walltime by the number of array jobs that will be created.
 
+```bash
 ./create.py <algorithm> cluster <cluster> submit --array
+```
 
 ## Copy back from cluster
 
 Once all your jobs have finished you will need to copy them back from the cluster.
-
+```bash
 ./create.py <algorithm> cluster <cluster> copy-back
+```
 
 You can then analyse the results like so:
-
+```bash
 ./create <algorithm> analyse
+```
 
 Which will generate a result summary at "slp-algorithms-tinyos/results/<algorithm>/<algorithm>-results.csv".
 
@@ -196,20 +229,22 @@ When building or submitting jobs, the results summary file (in slp-algorithms-ti
 will be read so that jobs will only be executed if the results show that not enough have been executed so far.
 
 You can copy these result summaries to the cluster using:
-
+```bash
 ./create.py <algorithm> cluster <cluster> copy-result-summary
+```
 
 If you want to ignore any existing results make sure to pass "no-skip-complete" when building or submitting cluster jobs.
 Doing so will run all parameter combinations as specified in the <algorithm>/CommandLine.py file.
-
+```bash
 ./create.py <algorithm> cluster dummy build --no-skip-complete
 ./create.py <algorithm> cluster <cluster> submit --no-skip-complete
+```
 
 ## Job Notification
 
 A useful feature is the ability to be notified when a job is completed or cancelled via email.
 This can be done in two ways (#2 is recommended, as I tend to forget to do #1):
 
-1) By specifying "--notify=<email address>" when submitting your jobs.
+1. By specifying "--notify=<email address>" when submitting your jobs.
 
-2) By editing your ~/.bashrc to contain "export SLP_NOTIFY_EMAILS=<email address>"
+2. By editing your ~/.bashrc to contain "export SLP_NOTIFY_EMAILS=<email address>"
