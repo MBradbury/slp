@@ -1,5 +1,5 @@
 
-=Setup=
+# Setup
 
 1. Clone the SLP simulation framework
 
@@ -33,7 +33,7 @@ source ~/tinyos.env
 pip install scipy numpy pandas more_itertools shutilwhich psutil pip --upgrade
 pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
 
-==Using pyenv (general)==
+## Using pyenv (general)
 
 If you do not have python installed, or have an install that requires
 admin permissions to use pip install, then pyenv is a good alternative.
@@ -44,7 +44,7 @@ MAKE_OPTS=profile-opt pyenv install 2.7.12
 
 pyenv global 2.7.12
 
-==Using pyenv (on flux)==
+## Using pyenv (on flux)
 
 To install on flux there is a slightly different procedure:
 
@@ -54,7 +54,7 @@ MAKE_OPTS=profile-opt pyenv install 2.7.12
 
 pyenv global 2.7.12
 
-==Updating from upstream==
+## Updating from upstream
 
 Ideally you will have forked the slp-algorithms-tinyos repository.
 You will want to pull updates from it by doing the following:
@@ -78,7 +78,7 @@ You can update the tinyos repository by doing the following:
 git pull https://github.com/MBradbury/tinyos-main bradbury_2_1_2
 
 
-=Getting results repositories=
+# Getting results repositories
 
 Every algorithm should have an individual repository to store its results in.
 One repository to be of likely interest is slp-results-protectionless which stores the results for the protectionless algorithm.
@@ -92,13 +92,13 @@ hg clone https://MBradbury@bitbucket.org/MBradbury/slp-results-protectionless pr
 
 The directories in the results directory should have names that match the algorithm name.
 
-=Running on the cluster=
+# Running on the cluster
 
 In order to run your code on the cluster you will first need to checkout the files as described above.
 
 The available clusters are described by individual files in slp-algorithms-tinyos/data/cluster.
 
-==Safety Periods==
+## Safety Periods
 
 The first step is to ensure that you have the correct safety period results on your computer.
 If you are using a standard configuration then it is likely the slp-results-protectionless will contain the
@@ -116,7 +116,7 @@ You can then copy that summary to the desired cluster like so:
 
 The cluster will now have the correct safety periods present to be able to run the simulations.
 
-==Arguments==
+## Arguments
 
 The next step is to modify the algorithm's CommandLine.py file to contain the correct set of arguments you wish to run.
 To aid in testing there exists a dummy cluster driver which will print out the cluster command rather than execute it.
@@ -125,19 +125,19 @@ Use this to test that you have set up the correct parameters in CommandLine.py l
 
 ./create.py <algorithm> cluster submit dummy
 
-==Build==
+## Build
 
 You must now build all the combinations of arguments.
 
 ./create.py <algorithm> cluster build dummy
 
-==Copy built binaries to cluster==
+## Copy built binaries to cluster
 
 To copy the built binaries to the cluster you need to execute the following command:
 
 ./create.py <algorithm> cluster copy <cluster>
 
-==Submitting jobs to the cluster==
+## Submitting jobs to the cluster
 
 To submit jobs to the cluster you will need to modify certain files.
 
@@ -167,7 +167,7 @@ Now submit the jobs using:
 
 ./create.py <algorithm> cluster <cluster> submit
 
-===Array Jobs===
+## Array Jobs
 
 Alternatively you could use array jobs using the following command. The difference here is that rather than submitting
 one job that takes up an entire node, many smaller jobs that only require one processor are submitted instead. This
@@ -176,7 +176,7 @@ make sure that you divide the walltime by the number of array jobs that will be 
 
 ./create.py <algorithm> cluster <cluster> submit --array
 
-==Copy back from cluster==
+## Copy back from cluster
 
 Once all your jobs have finished you will need to copy them back from the cluster.
 
@@ -188,7 +188,7 @@ You can then analyse the results like so:
 
 Which will generate a result summary at "slp-algorithms-tinyos/results/<algorithm>/<algorithm>-results.csv".
 
-==Resubmitting Jobs==
+## Resubmitting Jobs
 
 If for any reason you need to go back and submit more of the same jobs that you have run before there are a few tricks.
 
@@ -205,7 +205,7 @@ Doing so will run all parameter combinations as specified in the <algorithm>/Com
 ./create.py <algorithm> cluster dummy build --no-skip-complete
 ./create.py <algorithm> cluster <cluster> submit --no-skip-complete
 
-==Job Notification==
+## Job Notification
 
 A useful feature is the ability to be notified when a job is completed or cancelled via email.
 This can be done in two ways (#2 is recommended, as I tend to forget to do #1):
