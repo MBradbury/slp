@@ -250,7 +250,7 @@ class Scene:
         command
         """
         if delay is INF:
-            # no need to scedule any execution at time infinity
+            # no need to schedule any execution at time infinity
             return
         if self.realtime:
             def execfn():
