@@ -17,4 +17,9 @@ typedef nx_struct spanning_tree_data_header {
 
 } spanning_tree_data_header_t;
 
+typedef struct {
+	message_t* msg;
+	bool ack_requested;
+} send_queue_item_t;
+
 #endif // SLP_SPANNING_TREE_H
