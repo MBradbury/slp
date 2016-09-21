@@ -46,6 +46,7 @@ implementation {
 
   components RandomC;
   Setup.Random -> RandomC;
+  Routing.Random -> RandomC;
 
   // Setup wring
   components
@@ -89,7 +90,7 @@ implementation {
   Routing.SubSend -> RoutingSender;
   Routing.SubReceive -> RoutingReceiver;
   Routing.SubSnoop -> RoutingSnooper;
-  
+
   Routing.SubPacket -> RoutingSender;
   Routing.PacketAcknowledgements -> RoutingSender.Acks;
 
