@@ -16,6 +16,8 @@ module SpanningTreeRoutingP
 		interface SpanningTreeInfo as Info;
 		interface RootControl;
 
+		interface Random;
+
 		interface AMSend as SubSend;
 		interface Receive as SubReceive;
 		interface Receive as SubSnoop;
@@ -39,9 +41,34 @@ implementation
 
 	// Send / receive implementation
 
-	void start_retransmit_timer()
+	void signal_send_done(error_t error)
 	{
-		call RetransmitTimer.startOneShot(1 * 1000);
+		send_queue_item_t* item = call SendQueue.dequeue();
+
+		if (call MessagePool.from(item->msg))
+		{
+			call MessagePool.put(item->msg);
+		}
+		else
+		{
+			spanning_tree_data_header_t* header = get_packet_header(item->msg);
+
+			signal Send.sendDone[header->sub_id](item->msg, error);
+		}
+
+		call QueuePool.put(item);
+	}
+
+	void start_retransmit_timer(send_queue_item_t* item)
+	{
+		if (item->num_retries < SLP_SPANNING_TREE_MAX_RETRIES)
+		{
+			call RetransmitTimer.startOneShot(50 + (call Random.rand16() % 100));
+		}
+		else
+		{
+			signal_send_done(ENOACK);
+		}
 	}
 
 	task void send_message()
@@ -68,9 +95,13 @@ implementation
 			item->ack_requested = TRUE;
 		}
 
-		if (call SubSend.send(parent, item->msg, call SubPacket.payloadLength(item->msg)) != SUCCESS)
+		if (call SubSend.send(parent, item->msg, call SubPacket.payloadLength(item->msg)) == SUCCESS)
 		{
-			start_retransmit_timer();
+			item->num_retries += 1;
+		}
+		else
+		{
+			start_retransmit_timer(item);
 		}
 	}
 
@@ -80,28 +111,15 @@ implementation
 
 		if (error != SUCCESS)
 		{
-			start_retransmit_timer();
+			start_retransmit_timer(item);
 		}
 		else if (item->ack_requested && !call PacketAcknowledgements.wasAcked(msg))
 		{
-			start_retransmit_timer();
+			start_retransmit_timer(item);
 		}
 		else
 		{
-			item = call SendQueue.dequeue();
-
-			if (call MessagePool.from(msg))
-			{
-				call MessagePool.put(msg);
-			}
-			else
-			{
-				spanning_tree_data_header_t* header = get_packet_header(msg);
-
-				signal Send.sendDone[header->sub_id](msg, error);
-			}
-
-			call QueuePool.put(item);
+			signal_send_done(error);
 		}
 	}
 
@@ -125,6 +143,12 @@ implementation
 
 				if (item == NULL || new_message == NULL)
 				{
+					if (item != NULL)
+						call QueuePool.put(item);
+
+					if (msg != NULL)
+						call MessagePool.put(msg);
+
 					// TODO: report error!
 					return msg;
 				}
@@ -133,6 +157,7 @@ implementation
 
 				item->msg = msg;
 				item->ack_requested = FALSE;
+				item->num_retries = 0;
 
 				if (call SendQueue.enqueue(item) == SUCCESS)
 				{
@@ -208,6 +233,12 @@ implementation
 		if (len > call Send.maxPayloadLength[id]())
 			return ESIZE;
 
+		// If we haven't got a parent, don't allow the user
+		// to attempt to send.
+		// TODO: in the future allow this and probably post send_message tasks
+		if (call Info.get_parent() == AM_BROADCAST_ADDR)
+			return FAIL;
+
 		call Packet.setPayloadLength(msg, len);
 
 		header = get_packet_header(msg);
@@ -222,6 +253,7 @@ implementation
 
 		item->msg = msg;
 		item->ack_requested = FALSE;
+		item->num_retries = 0;
 
 		if (call SendQueue.enqueue(item) == SUCCESS)
 		{
