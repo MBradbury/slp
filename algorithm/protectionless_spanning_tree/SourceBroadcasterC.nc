@@ -18,11 +18,12 @@ module SourceBroadcasterC
 
 	uses interface SplitControl as RadioControl;
 	uses interface StdControl as RoutingControl;
+	uses interface RootControl;
 
-	/*uses interface Send as NormalSend;
+	uses interface Send as NormalSend;
 	uses interface Receive as NormalReceive;
 	uses interface Receive as NormalSnoop;
-	uses interface Intercept as NormalIntercept;*/
+	uses interface Intercept as NormalIntercept;
 
 	uses interface MetricLogging;
 
@@ -59,6 +60,7 @@ implementation
 		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
+			call RootControl.setRoot();
 		}
 		else
 		{
@@ -112,7 +114,7 @@ implementation
 		}
 	}
 
-	//USE_MESSAGE_NO_TARGET(Normal);
+	USE_MESSAGE_NO_TARGET(Normal);
 
 	event void SourcePeriodModel.fired()
 	{
@@ -124,7 +126,7 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 
-		//if (send_Normal_message(&message))
+		if (send_Normal_message(&message))
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
@@ -148,11 +150,11 @@ implementation
 		}
 	}
 
-	/*RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
 		case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
 		case NormalNode: break;
-	RECEIVE_MESSAGE_END(Normal)*/
+	RECEIVE_MESSAGE_END(Normal)
 
 
 
@@ -169,11 +171,11 @@ implementation
 		}
 	}
 
-	/*RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
+	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
 		case SourceNode: break;
 		case SinkNode: break;
 		case NormalNode: Normal_snoop_Normal(rcvd, source_addr); break;
-	RECEIVE_MESSAGE_END(Normal)*/
+	RECEIVE_MESSAGE_END(Normal)
 
 
 
@@ -194,9 +196,9 @@ implementation
 		return TRUE;
 	}
 
-	/*INTERCEPT_MESSAGE_BEGIN(Normal, Intercept)
+	INTERCEPT_MESSAGE_BEGIN(Normal, Intercept)
 		case SourceNode: break;
 		case SinkNode: break;
 		case NormalNode: return Normal_intercept_Normal(rcvd, source_addr);
-	INTERCEPT_MESSAGE_END(Normal)*/
+	INTERCEPT_MESSAGE_END(Normal)
 }

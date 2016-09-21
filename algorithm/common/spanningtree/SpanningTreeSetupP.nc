@@ -13,6 +13,8 @@ module SpanningTreeSetupP
 {
 	provides interface StdControl;
 
+	uses interface SpanningTreeInfo as Info;
+
 	uses interface Random;
 
 	uses interface AMSend as SetupSend;
@@ -21,6 +23,7 @@ module SpanningTreeSetupP
 	uses interface AMSend as ConnectSend;
 	uses interface Receive as ConnectReceive;
 
+	uses interface Timer<TMilli> as SetupTimer;
 	uses interface Timer<TMilli> as ConnectTimer;
 
 	uses interface NodeType;
@@ -37,8 +40,6 @@ implementation
 
 	uint16_t p;
 	bool p_set = FALSE;
-
-	am_addr_t selected_link = AM_BROADCAST_ADDR;
 
 	uint16_t random_interval(uint16_t minimum, uint16_t maximum)
 	{
@@ -72,6 +73,11 @@ implementation
 		}
 	}
 
+	uint32_t setup_period()
+	{
+		return (30 * 1000UL) + (call Random.rand16() % (30 * 1000));
+	}
+
 	task void send_setup()
 	{
 		error_t status;
@@ -79,7 +85,7 @@ implementation
 
 		if (busy)
 		{
-			post send_setup();
+			call SetupTimer.startOneShot(setup_period());
 			return;
 		}
 
@@ -95,7 +101,7 @@ implementation
 		}
 		else
 		{
-			post send_setup();
+			call SetupTimer.startOneShot(setup_period());
 		}
 	}
 
@@ -110,7 +116,7 @@ implementation
 			return;
 		}
 
-		if (selected_link == AM_BROADCAST_ADDR)
+		if (call Info.get_parent() == AM_BROADCAST_ADDR)
 		{
 			return;
 		}
@@ -120,7 +126,7 @@ implementation
 		message->proximate_source_id = TOS_NODE_ID;
 		message->p = p;
 
-		status = call ConnectSend.send(selected_link, &packet, sizeof(ConnectMessage));
+		status = call ConnectSend.send(call Info.get_parent(), &packet, sizeof(ConnectMessage));
 		if (status == SUCCESS)
 		{
 			busy = TRUE;
@@ -156,6 +162,7 @@ implementation
 			busy = FALSE;
 
 			call ConnectTimer.startOneShot(5 * 1000);
+			call SetupTimer.startOneShot(setup_period());
 		}
 	}
 
@@ -231,13 +238,17 @@ implementation
 		return chosen_neighbour;
 	}
 
+	event void SetupTimer.fired()
+	{
+		post send_setup();
+	}
+
 	event void ConnectTimer.fired()
 	{
 		// Select the node which an edge exists
-		selected_link = find_link();
+		call Info.set_parent(find_link());
 
-		simdbg("stdout", "Link between (%u, %u)\n", TOS_NODE_ID, selected_link);
-		simdbg("G-A", "arrow,+,%u,%u,(0,0,0)\n", TOS_NODE_ID, selected_link);
+		simdbg("G-A", "arrow,+,%u,%u,(0,0,0)\n", TOS_NODE_ID, call Info.get_parent());
 
 		post send_connect();
 
