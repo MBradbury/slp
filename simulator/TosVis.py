@@ -78,7 +78,7 @@ class DebugAnalyzer:
         return None
 
 class Gui:
-    def __init__(self, sim, node_position_scale_factor=None, node_label=None):
+    def __init__(self, sim, node_position_scale_factor=None):
 
         from simulator.topovis.TopoVis import Scene
         from simulator.topovis.TkPlotter import Plotter
@@ -92,9 +92,6 @@ class Gui:
 
         # Default factor to scale the node positions by
         self._node_position_scale_factor = node_position_scale_factor
-
-        # e.g. "SourceBroadcasterC.min_source_distance"
-        self._node_label = node_label
 
 
         # set line style used for neighbour relationship
@@ -268,24 +265,26 @@ class GuiSimulation(Simulation):
             args=args,
             load_nesc_variables=True)
 
-        self._gui = Gui(self, node_position_scale_factor=args.gui_scale, node_label=args.gui_node_label)
+        self._node_label = args.gui_node_label
 
-        if self._gui._node_label is not None:
+        self._gui = Gui(self, node_position_scale_factor=args.gui_scale)
+
+        if self._node_label is not None:
             variables = self.nesc_app.variables.variables()[0::3]
-            if self._gui._node_label not in variables:
-                raise RuntimeError("The variable {} was not present in the list known to python {}".format(self._gui._node_label, variables))
+            if self._node_label not in variables:
+                raise RuntimeError("The variable {} was not present in the list known to python {}".format(self._node_label, variables))
 
 
     def _during_run(self, event_count):
-        if event_count % 10 == 0 and self._gui._node_label is not None and self.nesc_app is not None:
+        if event_count % 10 == 0 and self._node_label is not None and self.nesc_app is not None:
             time = self.sim_time()
 
             for node in self.nodes:
-                var = node.tossim_node.getVariable(self._gui._node_label)
+                var = node.tossim_node.getVariable(self._node_label)
                 value = var.getData()
 
                 if value == "<no such variable>":
-                    raise RuntimeError("Tossim was unable to find the variable '{}'.".format(self._gui._node_label))
+                    raise RuntimeError("Tossim was unable to find the variable '{}'.".format(self._node_label))
 
                 self._gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 
