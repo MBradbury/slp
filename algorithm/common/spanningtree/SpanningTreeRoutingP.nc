@@ -25,7 +25,8 @@ module SpanningTreeRoutingP
 		interface PacketAcknowledgements;
 		interface Timer<TMilli> as RetransmitTimer;
 
-		interface Queue<message_t*> as SendQueue;
+		interface Queue<send_queue_item_t*> as SendQueue;
+		interface Pool<send_queue_item_t> as QueuePool;
 		interface Pool<message_t> as MessagePool;
 	}
 }
@@ -46,14 +47,14 @@ implementation
 	task void send_message()
 	{
 		am_addr_t parent;
-		message_t* msg;
+		send_queue_item_t* item;
 
 		if (call SendQueue.empty())
 		{
 			return;
 		}
 
-		msg = call SendQueue.element(0);
+		item = call SendQueue.element(0);
 
 		parent = call Info.get_parent();
 
@@ -62,7 +63,12 @@ implementation
 			return;
 		}
 
-		if (call SubSend.send(parent, msg, call SubPacket.payloadLength(msg)) != SUCCESS)
+		if (call PacketAcknowledgements.requestAck(item->msg) == SUCCESS)
+		{
+			item->ack_requested = TRUE;
+		}
+
+		if (call SubSend.send(parent, item->msg, call SubPacket.payloadLength(item->msg)) != SUCCESS)
 		{
 			start_retransmit_timer();
 		}
@@ -70,9 +76,19 @@ implementation
 
 	event void SubSend.sendDone(message_t* msg, error_t error)
 	{
-		if (error == SUCCESS)
+		send_queue_item_t* item = call SendQueue.element(0);
+
+		if (error != SUCCESS)
 		{
-			call SendQueue.dequeue();
+			start_retransmit_timer();
+		}
+		else if (item->ack_requested && !call PacketAcknowledgements.wasAcked(msg))
+		{
+			start_retransmit_timer();
+		}
+		else
+		{
+			item = call SendQueue.dequeue();
 
 			if (call MessagePool.from(msg))
 			{
@@ -84,10 +100,8 @@ implementation
 
 				signal Send.sendDone[header->sub_id](msg, error);
 			}
-		}
-		else
-		{
-			start_retransmit_timer();
+
+			call QueuePool.put(item);
 		}
 	}
 
@@ -106,9 +120,10 @@ implementation
 			if (signal Intercept.forward[header->sub_id](msg, sub_payload, sub_len))
 			{
 				// Forward the message onwards
+				send_queue_item_t* item = call QueuePool.get();
 				message_t* new_message = call MessagePool.get();
 
-				if (new_message == NULL)
+				if (item == NULL || new_message == NULL)
 				{
 					// TODO: report error!
 					return msg;
@@ -116,12 +131,18 @@ implementation
 
 				memcpy(new_message, msg, sizeof(message_t));
 
-				if (call SendQueue.enqueue(new_message) == SUCCESS)
+				item->msg = msg;
+				item->ack_requested = FALSE;
+
+				if (call SendQueue.enqueue(item) == SUCCESS)
 				{
 					post send_message();
 				}
 				else
 				{
+					call QueuePool.put(item);
+					call MessagePool.put(msg);
+
 					// TODO: report error!
 					return msg;
 				}
@@ -182,6 +203,7 @@ implementation
 	command error_t Send.send[uint8_t id](message_t* msg, uint8_t len)
 	{
 		spanning_tree_data_header_t* header;
+		send_queue_item_t* item;
 
 		if (len > call Send.maxPayloadLength[id]())
 			return ESIZE;
@@ -191,7 +213,17 @@ implementation
 		header = get_packet_header(msg);
 		header->sub_id = id;
 
-		if (call SendQueue.enqueue(msg) == SUCCESS)
+		item = call QueuePool.get();
+		if (item == NULL)
+		{
+			// TODO: Report error!
+			return ENOMEM;
+		}
+
+		item->msg = msg;
+		item->ack_requested = FALSE;
+
+		if (call SendQueue.enqueue(item) == SUCCESS)
 		{
 			post send_message();
 
@@ -199,6 +231,9 @@ implementation
 		}
 		else
 		{
+			call QueuePool.put(item);
+
+			// TODO: Report error!
 			return ENOMEM;
 		}
 	}

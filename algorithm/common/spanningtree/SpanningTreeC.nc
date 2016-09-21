@@ -89,7 +89,9 @@ implementation {
   Routing.SubSend -> RoutingSender;
   Routing.SubReceive -> RoutingReceiver;
   Routing.SubSnoop -> RoutingSnooper;
+  
   Routing.SubPacket -> RoutingSender;
+  Routing.PacketAcknowledgements -> RoutingSender.Acks;
 
   components
     new TimerMilliC() as RetransmitTimer;
@@ -98,8 +100,10 @@ implementation {
 
   components
     new PoolC(message_t, SLP_SEND_QUEUE_SIZE) as MessagePoolP,
-    new QueueC(message_t*, SLP_SEND_QUEUE_SIZE) as SendQueueP;
+    new PoolC(send_queue_item_t, SLP_SEND_QUEUE_SIZE) as QueuePoolP,
+    new QueueC(send_queue_item_t*, SLP_SEND_QUEUE_SIZE) as SendQueueP;
 
   Routing.MessagePool -> MessagePoolP;
+  Routing.QueuePool -> QueuePoolP;
   Routing.SendQueue -> SendQueueP;
 }
