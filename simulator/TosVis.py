@@ -18,7 +18,7 @@ class DebugAnalyzer:
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
     CHANGE_RE = re.compile(r'([a-zA-Z]+Node|<unknown>),([a-zA-Z]+Node)')
     DAS_RE    = re.compile(r'DAS is (\d)')
-    ARROW_RE  = re.compile(r'arrow,(\+|\-),(\d+),(\d+),\(([0-9\.]+),([0-9\.]+),([0-9\.]+)\)')
+    ARROW_RE  = re.compile(r'arrow,(\+|\-|!),(\d+),(\d+),\(([0-9\.]+),([0-9\.]+),([0-9\.]+)\)')
 
     ####################
     def __init__(self):
@@ -208,6 +208,12 @@ class Gui:
         if add_remove == "-":
             self.scene.execute(time, 'delshape({})'.format(ident))
         elif add_remove == "+":
+            self.scene.execute(time,
+                'line({},{},{},{},ident={},line=LineStyle(arrow="head", color={}))'.format(
+                    x1, y1, x2, y2, ident, repr(colour))
+            )
+        elif add_remove == "!":
+            self.scene.execute(time, 'delshape({})'.format(ident))
             self.scene.execute(time,
                 'line({},{},{},{},ident={},line=LineStyle(arrow="head", color={}))'.format(
                     x1, y1, x2, y2, ident, repr(colour))

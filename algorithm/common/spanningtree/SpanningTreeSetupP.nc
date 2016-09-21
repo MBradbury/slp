@@ -248,7 +248,7 @@ implementation
 		// Select the node which an edge exists
 		call Info.set_parent(find_link());
 
-		simdbg("G-A", "arrow,+,%u,%u,(0,0,0)\n", TOS_NODE_ID, call Info.get_parent());
+		simdbg("G-A", "arrow,!,%u,%u,(0,0,0)\n", TOS_NODE_ID, call Info.get_parent());
 
 		post send_connect();
 
