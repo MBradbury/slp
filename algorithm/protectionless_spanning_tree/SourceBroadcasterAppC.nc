@@ -62,17 +62,15 @@ implementation
 
 	components SpanningTreeC;
 	App.RoutingControl -> SpanningTreeC;
-	
+
 	SpanningTreeC.MetricLogging -> MetricLogging;
 	SpanningTreeC.NodeType -> NodeTypeP;
 
-	//App.RootControl -> SpanningTreeC;
-
-	/*components new CollectionSenderC(NORMAL_CHANNEL);
+	App.RootControl -> SpanningTreeC;
 
 	// Networking
-	App.NormalSend -> CollectionSenderC;
-	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
-	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
-	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];*/
+	App.NormalSend -> SpanningTreeC.Send[NORMAL_CHANNEL];
+	App.NormalReceive -> SpanningTreeC.Receive[NORMAL_CHANNEL];
+	App.NormalSnoop -> SpanningTreeC.Snoop[NORMAL_CHANNEL];
+	App.NormalIntercept -> SpanningTreeC.Intercept[NORMAL_CHANNEL];
 }

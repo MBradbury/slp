@@ -5,12 +5,12 @@ configuration SpanningTreeC {
     interface StdControl; // To stop / start the tree
     interface RootControl; // To control who is a point on the tree 
 
-    /*interface Send[uint8_t client];
-    interface Receive[collection_id_t id];
-    interface Receive as Snoop[collection_id_t];
-    interface Intercept[collection_id_t id];
+    interface Send[uint8_t client];
+    interface Receive[uint8_t id];
+    interface Receive as Snoop[uint8_t id];
+    interface Intercept[uint8_t id];
 
-    interface Packet;*/
+    interface Packet;
   }
 
   uses {
@@ -22,26 +22,32 @@ configuration SpanningTreeC {
 implementation {
   components SpanningTreeSetupP as Setup;
   components SpanningTreeRoutingP as Routing;
+  components SpanningTreeInfoP as Info;
 
   // Provides forwarding
   StdControl = Setup;
-  RootControl = Routing;
+  RootControl = Info;
+
+  Send = Routing;
+  Receive = Routing.Receive;
+  Snoop = Routing.Snoop;
+  Intercept = Routing;
+  Packet = Routing;
 
   // Uses forwarding
   Setup.NodeType = NodeType;
   Setup.MetricLogging = MetricLogging;
 
+  Setup.Info -> Info;
+  Routing.Info -> Info;
+  Routing.RootControl -> Info;
+
+  // Setup and Routing wiring
+
   components RandomC;
   Setup.Random -> RandomC;
 
-  components ActiveMessageC;
-
-  /*Send = Setup;
-  Receive = Setup.Receive;
-  Snoop = Setup.Snoop;
-  Intercept = Setup;
-  Packet = Setup;*/
-
+  // Setup wring
   components
     new AMSenderC(AM_SPANNING_TREE_SETUP) as SetupSender,
     new AMReceiverC(AM_SPANNING_TREE_SETUP) as SetupReceiver;
@@ -57,8 +63,10 @@ implementation {
   Setup.ConnectReceive -> ConnectReceiver;
 
   components
+    new TimerMilliC() as SetupTimer,
     new TimerMilliC() as ConnectTimer;
 
+  Setup.SetupTimer -> SetupTimer;
   Setup.ConnectTimer -> ConnectTimer;
 
   components
@@ -70,4 +78,28 @@ implementation {
     new SetP(am_addr_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as Connections;
 
   Setup.Connections -> Connections;
+
+  // Routing wiring
+
+  components
+    new AMSenderC(AM_SPANNING_TREE_ROUTE) as RoutingSender,
+    new AMReceiverC(AM_SPANNING_TREE_ROUTE) as RoutingReceiver,
+    new AMSnooperC(AM_SPANNING_TREE_ROUTE) as RoutingSnooper;
+
+  Routing.SubSend -> RoutingSender;
+  Routing.SubReceive -> RoutingReceiver;
+  Routing.SubSnoop -> RoutingSnooper;
+  Routing.SubPacket -> RoutingSender;
+
+  components
+    new TimerMilliC() as RetransmitTimer;
+
+  Routing.RetransmitTimer -> RetransmitTimer;
+
+  components
+    new PoolC(message_t, SLP_SEND_QUEUE_SIZE) as MessagePoolP,
+    new QueueC(message_t*, SLP_SEND_QUEUE_SIZE) as SendQueueP;
+
+  Routing.MessagePool -> MessagePoolP;
+  Routing.SendQueue -> SendQueueP;
 }
