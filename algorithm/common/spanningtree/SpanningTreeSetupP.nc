@@ -172,7 +172,9 @@ implementation
 
 		METRIC_RCV_SETUP(rcvd);
 
-		if (!p_set)
+		// NOTE: the (p < rcvd->p - 1) check is my addition to
+		// attempt to build a better route
+		if (!p_set || p < rcvd->p - 1)
 		{
 			p = random_interval(rcvd->p - 1, rcvd->p);
 			p_set = TRUE;
