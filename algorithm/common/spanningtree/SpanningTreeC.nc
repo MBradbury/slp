@@ -107,4 +107,9 @@ implementation {
   Routing.MessagePool -> MessagePoolP;
   Routing.QueuePool -> QueuePoolP;
   Routing.SendQueue -> SendQueueP;
+
+  components
+    new CircularBufferC(spanning_tree_data_header_t, SLP_SEND_QUEUE_SIZE) as SentCache;
+
+  Routing.SentCache -> SentCache;
 }
