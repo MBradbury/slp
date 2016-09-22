@@ -30,11 +30,14 @@ module SpanningTreeRoutingP
         interface Queue<send_queue_item_t*> as SendQueue;
         interface Pool<send_queue_item_t> as QueuePool;
         interface Pool<message_t> as MessagePool;
-        //interface Cache<message_t*> as SentCache;
+
+        interface Cache<spanning_tree_data_header_t> as SentCache;
     }
 }
 implementation
 {
+    uint8_t seqno = 0;
+
     inline spanning_tree_data_header_t* get_packet_header(message_t* msg)
     {
         return (spanning_tree_data_header_t*)call SubPacket.getPayload(msg, sizeof(spanning_tree_data_header_t));
@@ -45,6 +48,12 @@ implementation
     void signal_send_done(error_t error)
     {
         send_queue_item_t* item = call SendQueue.dequeue();
+        spanning_tree_data_header_t* header = get_packet_header(item->msg);
+
+        if (error == SUCCESS)
+        {
+            call SentCache.insert(*header);
+        }
 
         if (call MessagePool.from(item->msg))
         {
@@ -52,8 +61,6 @@ implementation
         }
         else
         {
-            spanning_tree_data_header_t* header = get_packet_header(item->msg);
-
             signal Send.sendDone[header->sub_id](item->msg, error);
         }
 
@@ -64,7 +71,7 @@ implementation
     {
         if (item->num_retries < SLP_SPANNING_TREE_MAX_RETRIES)
         {
-            call RetransmitTimer.startOneShot(50 + (call Random.rand16() % 100));
+            call RetransmitTimer.startOneShot(50 + (call Random.rand16() % 25));
         }
         else
         {
@@ -74,7 +81,10 @@ implementation
 
     bool match_message(const message_t* msg1, const message_t* msg2)
     {
-        return memcmp(msg1, msg2, sizeof(*msg1)) == 0;
+        const spanning_tree_data_header_t* header1 = get_packet_header((message_t*)msg1);
+        const spanning_tree_data_header_t* header2 = get_packet_header((message_t*)msg2);
+
+        return memcmp(header1, header2, sizeof(*header1)) == 0;
     }
 
     task void send_message()
@@ -136,13 +146,12 @@ implementation
         void* sub_payload = call Packet.getPayload(msg, sub_len);
 
         // Check to see if we have recently passed this message onwards
-        /*if (call SentCache.lookup(msg))
+        if (call SentCache.lookup(*header))
         {
             return msg;
-        }*/
+        }
 
         // Check to see if this message is already queued to be sent
-        if (call SendQueue.size() > 0)
         {
             uint8_t i, s = call SendQueue.size();
             for (i = 0; i != s; ++i)
@@ -268,6 +277,8 @@ implementation
         call Packet.setPayloadLength(msg, len);
 
         header = get_packet_header(msg);
+        header->ultimate_source = TOS_NODE_ID;
+        header->seqno = seqno++;
         header->sub_id = id;
 
         item = call QueuePool.get();

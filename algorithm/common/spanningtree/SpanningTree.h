@@ -15,6 +15,8 @@ enum {
 
 typedef nx_struct spanning_tree_data_header {
 
+	nx_am_addr_t ultimate_source;
+	nx_uint8_t seqno;
 	nx_uint8_t sub_id;
 
 } spanning_tree_data_header_t;
