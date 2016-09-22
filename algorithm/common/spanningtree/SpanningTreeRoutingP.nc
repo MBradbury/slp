@@ -153,9 +153,9 @@ implementation
 					return msg;
 				}
 
-				memcpy(new_message, msg, sizeof(message_t));
+				memcpy(new_message, msg, sizeof(*new_message));
 
-				item->msg = msg;
+				item->msg = new_message;
 				item->ack_requested = FALSE;
 				item->num_retries = 0;
 
@@ -166,7 +166,7 @@ implementation
 				else
 				{
 					call QueuePool.put(item);
-					call MessagePool.put(msg);
+					call MessagePool.put(new_message);
 
 					// TODO: report error!
 					return msg;
@@ -216,7 +216,7 @@ implementation
 
 	command void* Packet.getPayload(message_t* msg, uint8_t len)
 	{
-		uint8_t* payload = call SubPacket.getPayload(msg, len + sizeof(spanning_tree_data_header_t));
+		uint8_t* payload = (uint8_t*)call SubPacket.getPayload(msg, len + sizeof(spanning_tree_data_header_t));
 		if (payload != NULL) {
 			payload += sizeof(spanning_tree_data_header_t);
 		}
