@@ -30,6 +30,7 @@ module SpanningTreeRoutingP
 		interface Queue<send_queue_item_t*> as SendQueue;
 		interface Pool<send_queue_item_t> as QueuePool;
 		interface Pool<message_t> as MessagePool;
+		//interface Cache<message_t*> as SentCache;
 	}
 }
 implementation
@@ -69,6 +70,11 @@ implementation
 		{
 			signal_send_done(ENOACK);
 		}
+	}
+
+	bool match_message(const message_t* msg1, const message_t* msg2)
+	{
+		return memcmp(msg1, msg2, sizeof(*msg1)) == 0;
 	}
 
 	task void send_message()
@@ -128,6 +134,26 @@ implementation
 		spanning_tree_data_header_t* header = get_packet_header(msg);
 		uint8_t sub_len = call Packet.payloadLength(msg);
 		void* sub_payload = call Packet.getPayload(msg, sub_len);
+
+		// Check to see if we have recently passed this message onwards
+		/*if (call SentCache.lookup(msg))
+		{
+	        return msg;
+	    }*/
+
+		// Check to see if this message is already queued to be sent
+		if (call SendQueue.size() > 0)
+		{
+			uint8_t i, s = call SendQueue.size();
+			for (i = 0; i != s; ++i)
+			{
+				const send_queue_item_t* item = call SendQueue.element(i);
+				if (match_message(item->msg, msg))
+				{
+					return msg;
+				}
+			}
+		}
 
 		if (call RootControl.isRoot())
 		{

@@ -23,6 +23,7 @@ typedef struct {
 	message_t* msg;
 	bool ack_requested;
 	uint8_t num_retries;
+	
 } send_queue_item_t;
 
 #endif // SLP_SPANNING_TREE_H
