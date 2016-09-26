@@ -56,7 +56,7 @@
 	do { \
 		char error_message[256]; \
 		snprintf(error_message, ARRAY_SIZE(error_message), MESSAGE, ##__VA_ARGS__); \
-		call MetricLogging.log_error_occurred(CODE, MESSAGE); \
+		call MetricLogging.log_error_occurred(CODE, error_message); \
 	} while (FALSE)
 #endif
 
