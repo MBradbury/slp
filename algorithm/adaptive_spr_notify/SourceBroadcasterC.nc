@@ -7,6 +7,7 @@
 #include "FakeMessage.h"
 #include "NormalMessage.h"
 #include "BeaconMessage.h"
+#include "NotifyMessage.h"
 
 #include <Timer.h>
 #include <TinyError.h>
@@ -20,27 +21,29 @@
 
 typedef struct
 {
-	int16_t distance;
+	int16_t source_distance;
+	int16_t sink_distance;
 } distance_container_t;
 
 void distance_update(distance_container_t* find, distance_container_t const* given)
 {
-	find->distance = minbot(find->distance, given->distance);
+	find->source_distance = minbot(find->source_distance, given->source_distance);
+	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
 }
 
 void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
-	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
-		i, address, contents->distance);
+	simdbg_clear(name, "[%u] => addr=%u / srcd=%d sinkd=%d",
+		i, address, contents->source_distance, contents->sink_distance);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
-#define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
-{ \
-	const distance_container_t dist = { rcvd->name }; \
+#define UPDATE_NEIGHBOURS(source_addr, SOURCE_DISTANCE, SINK_DISTANCE) \
+do { \
+	const distance_container_t dist = { (SOURCE_DISTANCE), (SINK_DISTANCE) }; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
-}
+} while (FALSE)
 
 module SourceBroadcasterC
 {
@@ -97,6 +100,7 @@ implementation
 	SequenceNumber away_sequence_counter;
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
+	SequenceNumber notify_sequence_counter;
 
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
@@ -146,7 +150,7 @@ implementation
 	{
 		//assert(SOURCE_PERIOD_MS != BOTTOM);
 
-		return SOURCE_PERIOD_MS / 2;
+		return 50;
 	}
 
 	uint32_t get_dist_to_pull_back(void)
@@ -233,7 +237,7 @@ implementation
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-				if (neighbour->contents.distance >= first_source_distance)
+				if (neighbour->contents.source_distance >= first_source_distance)
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -271,13 +275,7 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
-	task void send_notify()
-	{
-		// Need to send a Notify message to the Sink so it can begin allocating FS.
-		// The Notify message must be reliable.
-		// The Notify message must not take the shortest path and should attempt to
-		// approach the Sink from a direction other than the one the source is in.
-	}
+	task void send_notify();
 
 	event void Boot.booted()
 	{
@@ -286,6 +284,7 @@ implementation
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
+		sequence_number_init(&notify_sequence_counter);
 
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
@@ -345,9 +344,9 @@ implementation
 		{
 			call NodeType.set(SourceNode);
 
-			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
-
 			post send_notify();
+
+			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 		}
 	}
 
@@ -372,6 +371,27 @@ implementation
 	USE_MESSAGE(Fake);
 	USE_MESSAGE(Beacon);
 	USE_MESSAGE(Notify);
+
+	task void send_notify()
+	{
+		// Need to send a Notify message to the Sink so it can begin allocating FS.
+		// The Notify message must be reliable.
+		// The Notify message must not take the shortest path and should attempt to
+		// approach the Sink from a direction other than the one the source is in.
+
+		NotifyMessage message;
+		message.source_id = TOS_NODE_ID;
+		message.sequence_number = sequence_number_next(&notify_sequence_counter);
+
+		if (send_Notify_message(&message, AM_BROADCAST_ADDR))
+		{
+			sequence_number_increment(&notify_sequence_counter);
+		}
+		else
+		{
+			post send_notify();
+		}
+	}
 
 	void become_Normal(void)
 	{
@@ -455,6 +475,7 @@ implementation
 		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
 		message.source_distance_of_sender = first_source_distance;
+		message.sink_distance_of_sender = sink_distance;
 
 		for (i = 0; i < sizeof(message.padding); ++i)
 		{
@@ -542,7 +563,7 @@ implementation
 			if (!sink_received_away_reponse)
 			{
 				call AwaySenderTimer.startOneShot(get_away_delay());
-			}			
+			}		
 		}
 	}
 
@@ -583,11 +604,15 @@ implementation
 
 	void Sink_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->sink_distance);
+
 		sink_received_away_reponse = TRUE;
 	}
 
 	void Source_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->sink_distance);
+
 		if (algorithm == UnknownAlgorithm)
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
@@ -617,6 +642,8 @@ implementation
 
 	void Normal_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->sink_distance);
+
 		if (algorithm == UnknownAlgorithm)
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
@@ -638,8 +665,8 @@ implementation
 			{
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
-				if (neighbour == NULL || neighbour->contents.distance == BOTTOM ||
-					first_source_distance == BOTTOM || neighbour->contents.distance <= first_source_distance)
+				if (neighbour == NULL || neighbour->contents.source_distance == BOTTOM ||
+					first_source_distance == BOTTOM || neighbour->contents.source_distance <= first_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 
@@ -659,10 +686,44 @@ implementation
 		}
 	}
 
+	void Fake_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->sink_distance);
+
+		if (algorithm == UnknownAlgorithm)
+		{
+			algorithm = (Algorithm)rcvd->algorithm;
+		}
+
+		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+
+		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
+		{
+			AwayMessage forwarding_message;
+
+			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV_AWAY(rcvd);
+
+			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+
+			forwarding_message = *rcvd;
+			//forwarding_message.sink_source_distance = sink_source_distance;
+			forwarding_message.sink_distance += 1;
+			forwarding_message.algorithm = algorithm;
+
+			extra_to_send = 1;
+			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
+		}
+	}
+
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
 		case SinkNode: Sink_receive_Away(rcvd, source_addr); break;
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
+		case TempFakeNode:
+		case TailFakeNode:
+		case PermFakeNode: Fake_receive_Away(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
@@ -706,6 +767,11 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
 		case SinkNode: Sink_receive_Choose(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
+
+		// Fake sources do nothing on receiving a choose message
+		case TempFakeNode:
+		case TailFakeNode:
+		case PermFakeNode: break;
 	RECEIVE_MESSAGE_END(Choose)
 
 
@@ -809,7 +875,7 @@ implementation
 
 	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance_of_sender);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance_of_sender, rcvd->sink_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
 	}
@@ -826,9 +892,21 @@ implementation
 
 	void x_receive_Notify(const NotifyMessage* const rcvd, am_addr_t source_addr)
 	{
-		//UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance_of_sender);
+		if (sequence_number_before(&notify_sequence_counter, rcvd->sequence_number))
+		{
+			NotifyMessage forwarding_message = *rcvd;
 
-		METRIC_RCV_NOTIFY(rcvd);
+			sequence_number_update(&notify_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV_NOTIFY(rcvd);
+
+			send_Notify_message(&forwarding_message, AM_BROADCAST_ADDR);
+
+			if (call NodeType.is_node_sink() && !sink_received_away_reponse)
+			{
+				call AwaySenderTimer.startOneShot(get_away_delay());
+			}
+		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Notify, Receive)
