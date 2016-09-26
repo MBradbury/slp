@@ -38,6 +38,8 @@ implementation {
   Setup.NodeType = NodeType;
   Setup.MetricLogging = MetricLogging;
 
+  // Info wiring
+
   Setup.Info -> Info;
   Routing.Info -> Info;
   Routing.RootControl -> Info;
