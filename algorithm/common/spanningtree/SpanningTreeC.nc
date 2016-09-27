@@ -65,6 +65,8 @@ implementation {
   Setup.ConnectSend -> ConnectSender;
   Setup.ConnectReceive -> ConnectReceiver;
 
+  Setup.PacketAcknowledgements -> ConnectSender.Acks;
+
   components
     new TimerMilliC() as SetupTimer,
     new TimerMilliC() as ConnectTimer;
