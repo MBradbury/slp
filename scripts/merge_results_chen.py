@@ -7,8 +7,7 @@ import sys
 max_line = 500
 
 if len(sys.argv) != 2:
-	print "error!"
-	sys.exit()
+	raise RuntimeError("No algorithm name provided!")
 
 results_dir = os.path.join(os.getcwd(), 'results', list(sys.argv)[-1])
 merge_dir = os.path.join(results_dir,'merged_results')
