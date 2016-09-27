@@ -23,6 +23,8 @@ module SpanningTreeSetupP
 	uses interface AMSend as ConnectSend;
 	uses interface Receive as ConnectReceive;
 
+	uses interface PacketAcknowledgements;
+
 	uses interface Timer<TMilli> as SetupTimer;
 	uses interface Timer<TMilli> as ConnectTimer;
 
@@ -37,14 +39,10 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
+	uint32_t setup_period;
 
 	uint16_t p;
 	bool p_set = FALSE;
-
-	uint16_t random_interval(uint16_t minimum, uint16_t maximum)
-	{
-		return minimum;
-	}
 
 	int rank_comp(am_addr_t addr_v, uint16_t p_v, am_addr_t addr_w, uint16_t p_w)
 	{
@@ -73,9 +71,28 @@ implementation
 		}
 	}
 
-	uint32_t setup_period()
+	uint32_t decrease_setup_period()
 	{
-		return (30 * 1000UL) + (call Random.rand16() % (30 * 1000));
+		setup_period /= 2;
+		setup_period += call Random.rand16() % (1 * 1000);
+		setup_period = max(setup_period, 1 * 1000);
+		setup_period = min(setup_period, 1 * 60 * 1000);
+
+		simdbgverbose("stdout", "Change - setup_period to %u\n", setup_period);
+
+		return setup_period;
+	}
+
+	uint32_t increase_setup_period()
+	{
+		setup_period *= 2;
+		setup_period += call Random.rand16() % (1 * 1000);
+		setup_period = max(setup_period, 1 * 1000);
+		setup_period = min(setup_period, 1 * 60 * 1000);
+
+		simdbgverbose("stdout", "Change + setup_period to %u\n", setup_period);
+
+		return setup_period;
 	}
 
 	task void send_setup()
@@ -85,7 +102,7 @@ implementation
 
 		if (busy)
 		{
-			call SetupTimer.startOneShot(setup_period());
+			call SetupTimer.startOneShot(decrease_setup_period());
 			return;
 		}
 
@@ -101,7 +118,7 @@ implementation
 		}
 		else
 		{
-			call SetupTimer.startOneShot(setup_period());
+			call SetupTimer.startOneShot(decrease_setup_period());
 		}
 	}
 
@@ -123,6 +140,8 @@ implementation
 
 		message = (ConnectMessage*)call ConnectSend.getPayload(&packet, sizeof(ConnectMessage));
 
+		message->ack_requested = (call PacketAcknowledgements.requestAck(&packet) == SUCCESS);
+
 		message->proximate_source_id = TOS_NODE_ID;
 		message->p = p;
 
@@ -139,9 +158,11 @@ implementation
 
 	command error_t StdControl.start()
 	{
+		setup_period = 2 * 1000;
+
 		if (call NodeType.is_node_sink())
 		{
-			p = call Random.rand16();
+			p = UINT16_MAX;
 			p_set = TRUE;
 
 			post send_setup();
@@ -161,8 +182,7 @@ implementation
 		{
 			busy = FALSE;
 
-			call ConnectTimer.startOneShot(5 * 1000);
-			call SetupTimer.startOneShot(setup_period());
+			call SetupTimer.startOneShot(setup_period);
 		}
 	}
 
@@ -174,15 +194,26 @@ implementation
 
 		// NOTE: the (p < rcvd->p - 1) check is my addition to
 		// attempt to build a better route
-		if (!p_set || p < rcvd->p - 1)
+		if (!p_set || p < (rcvd->p - 1))
 		{
-			p = random_interval(rcvd->p - 1, rcvd->p);
+			p = rcvd->p - 1;
 			p_set = TRUE;
+
+			decrease_setup_period();
 
 			post send_setup();
 		}
+		else
+		{
+			increase_setup_period();
+		}
 
 		call PDict.put(rcvd->proximate_source_id, rcvd->p);
+
+		if (!call ConnectTimer.isRunning())
+		{
+			call ConnectTimer.startOneShot(5 * 1000);
+		}
 
 		return msg;
 	}
@@ -190,10 +221,22 @@ implementation
 
 	event void ConnectSend.sendDone(message_t* msg, error_t error)
 	{
+		const ConnectMessage* message = (ConnectMessage*)call ConnectSend.getPayload(msg, sizeof(ConnectMessage));
+
 		if (msg == &packet)
 		{
 			busy = FALSE;
 		}
+
+		// Detect failures and retry
+		if (error != SUCCESS)
+		{
+			post send_connect();
+		}
+		/*else if (message->ack_requested && !call PacketAcknowledgements.wasAcked(msg))
+        {
+            post send_connect();
+        }*/
 	}
 
 	event message_t* ConnectReceive.receive(message_t* msg, void* payload, uint8_t len)
@@ -247,13 +290,13 @@ implementation
 
 	event void ConnectTimer.fired()
 	{
+		simdbg("G-A", "arrow,-,%u,%u,(0,0,0)\n", TOS_NODE_ID, call Info.get_parent());
+
 		// Select the node which an edge exists
 		call Info.set_parent(find_link());
 
-		simdbg("G-A", "arrow,!,%u,%u,(0,0,0)\n", TOS_NODE_ID, call Info.get_parent());
+		simdbg("G-A", "arrow,+,%u,%u,(0,0,0)\n", TOS_NODE_ID, call Info.get_parent());
 
 		post send_connect();
-
-		call ConnectTimer.startOneShot(1UL * 60UL * 1000UL);
 	}
 }
