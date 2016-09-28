@@ -25,7 +25,10 @@ module SpanningTreeRoutingP
         interface Packet as SubPacket;
 
         interface PacketAcknowledgements;
+
         interface Timer<TMilli> as RetransmitTimer;
+
+        interface MetricLogging;
 
         interface Queue<send_queue_item_t*> as SendQueue;
         interface Pool<send_queue_item_t> as QueuePool;

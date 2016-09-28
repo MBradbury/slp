@@ -14,7 +14,6 @@ configuration SpanningTreeC {
   }
 
   uses {
-    interface NodeType;
     interface MetricLogging;
   }
 }
@@ -35,12 +34,14 @@ implementation {
   Packet = Routing;
 
   // Uses forwarding
-  Setup.NodeType = NodeType;
   Setup.MetricLogging = MetricLogging;
+  Routing.MetricLogging = MetricLogging;
 
   // Info wiring
 
   Setup.Info -> Info;
+  Setup.RootControl -> Info;
+
   Routing.Info -> Info;
   Routing.RootControl -> Info;
 
@@ -60,10 +61,12 @@ implementation {
 
   components
     new AMSenderC(AM_SPANNING_TREE_CONNECT) as ConnectSender,
-    new AMReceiverC(AM_SPANNING_TREE_CONNECT) as ConnectReceiver;
+    new AMReceiverC(AM_SPANNING_TREE_CONNECT) as ConnectReceiver,
+    new AMSnooperC(AM_SPANNING_TREE_CONNECT) as ConnectSnooper;
 
   Setup.ConnectSend -> ConnectSender;
   Setup.ConnectReceive -> ConnectReceiver;
+  Setup.ConnectSnoop -> ConnectSnooper;
 
   Setup.PacketAcknowledgements -> ConnectSender.Acks;
 
@@ -75,9 +78,9 @@ implementation {
   Setup.ConnectTimer -> ConnectTimer;
 
   components
-    new DictionaryP(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighbourRanks;
+    new DictionaryP(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighbourRootDistances;
 
-  Setup.PDict -> NeighbourRanks;
+  Setup.NeighbourRootDistances -> NeighbourRootDistances;
 
   components
     new SetP(am_addr_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as Connections;
