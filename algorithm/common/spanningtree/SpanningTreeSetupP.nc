@@ -6,14 +6,15 @@
 #include "ConnectMessage.h"
 #include "SetupMessage.h"
 
-#define METRIC_RCV_CONNECT(msg) METRIC_RCV(Connect, msg->proximate_source_id, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
-#define METRIC_RCV_SETUP(msg) METRIC_RCV(Setup, msg->proximate_source_id, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
+#define METRIC_RCV_CONNECT(msg) METRIC_RCV(Connect, msg->proximate_source_id, msg->proximate_source_id, UNKNOWN_SEQNO, 1)
+#define METRIC_RCV_SETUP(msg) METRIC_RCV(Setup, msg->proximate_source_id, msg->proximate_source_id, UNKNOWN_SEQNO, 1)
 
 module SpanningTreeSetupP
 {
 	provides interface StdControl;
 
 	uses interface SpanningTreeInfo as Info;
+	uses interface RootControl;
 
 	uses interface Random;
 
@@ -22,16 +23,16 @@ module SpanningTreeSetupP
 
 	uses interface AMSend as ConnectSend;
 	uses interface Receive as ConnectReceive;
+	uses interface Receive as ConnectSnoop;
 
 	uses interface PacketAcknowledgements;
 
 	uses interface Timer<TMilli> as SetupTimer;
 	uses interface Timer<TMilli> as ConnectTimer;
 
-	uses interface NodeType;
 	uses interface MetricLogging;
 
-	uses interface Dictionary<am_addr_t, uint16_t> as PDict;
+	uses interface Dictionary<am_addr_t, uint16_t> as NeighbourRootDistances;
 	uses interface Set<am_addr_t> as Connections;
 }
 implementation
@@ -41,35 +42,8 @@ implementation
 
 	uint32_t setup_period;
 
-	uint16_t p;
-	bool p_set = FALSE;
-
-	int rank_comp(am_addr_t addr_v, uint16_t p_v, am_addr_t addr_w, uint16_t p_w)
-	{
-		if (p_v < p_w)
-		{
-			return -1;
-		}
-		else if (p_w == p_v)
-		{
-			if (addr_v < addr_w)
-			{
-				return -1;
-			}
-			else if (addr_v > addr_w)
-			{
-				return +1;
-			}
-			else
-			{
-				return 0;
-			}
-		}
-		else
-		{
-			return +1;
-		}
-	}
+	uint16_t root_distance;
+	bool root_distance_set = FALSE;
 
 	uint32_t decrease_setup_period()
 	{
@@ -109,7 +83,7 @@ implementation
 		message = (SetupMessage*)call SetupSend.getPayload(&packet, sizeof(SetupMessage));
 
 		message->proximate_source_id = TOS_NODE_ID;
-		message->p = p;
+		message->root_distance = root_distance;
 
 		status = call SetupSend.send(AM_BROADCAST_ADDR, &packet, sizeof(SetupMessage));
 		if (status == SUCCESS)
@@ -143,7 +117,7 @@ implementation
 		message->ack_requested = (call PacketAcknowledgements.requestAck(&packet) == SUCCESS);
 
 		message->proximate_source_id = TOS_NODE_ID;
-		message->p = p;
+		message->root_distance = root_distance;
 
 		status = call ConnectSend.send(call Info.get_parent(), &packet, sizeof(ConnectMessage));
 		if (status == SUCCESS)
@@ -160,12 +134,16 @@ implementation
 	{
 		setup_period = 2 * 1000;
 
-		if (call NodeType.is_node_sink())
+		if (call RootControl.isRoot())
 		{
-			p = UINT16_MAX;
-			p_set = TRUE;
+			root_distance = 0;
+			root_distance_set = TRUE;
 
 			post send_setup();
+		}
+		else
+		{
+			root_distance = UINT16_MAX;
 		}
 
 		return SUCCESS;
@@ -192,12 +170,10 @@ implementation
 
 		METRIC_RCV_SETUP(rcvd);
 
-		// NOTE: the (p < rcvd->p - 1) check is my addition to
-		// attempt to build a better route
-		if (!p_set || p < (rcvd->p - 1))
+		if (!root_distance_set || root_distance > (rcvd->root_distance + 1))
 		{
-			p = rcvd->p - 1;
-			p_set = TRUE;
+			root_distance = rcvd->root_distance + 1;
+			root_distance_set = TRUE;
 
 			decrease_setup_period();
 
@@ -208,7 +184,7 @@ implementation
 			increase_setup_period();
 		}
 
-		call PDict.put(rcvd->proximate_source_id, rcvd->p);
+		call NeighbourRootDistances.put(rcvd->proximate_source_id, rcvd->root_distance);
 
 		if (!call ConnectTimer.isRunning())
 		{
@@ -245,39 +221,59 @@ implementation
 
 		METRIC_RCV_CONNECT(rcvd);
 
+		// If we received a connect, then the sender has chosen us as its parent.
+
 		call Connections.put(rcvd->proximate_source_id);
+
+		return msg;
+	}
+
+	event message_t* ConnectSnoop.receive(message_t* msg, void* payload, uint8_t len)
+	{
+		ConnectMessage* rcvd = (ConnectMessage*)payload;
+
+		METRIC_RCV_CONNECT(rcvd);
+
+		// If we snooped a connect, then the sender has chosen a new parent.
+
+		call Connections.remove(rcvd->proximate_source_id);
 
 		return msg;
 	}
 
 	am_addr_t find_link(void)
 	{
-		am_addr_t chosen_neighbour = AM_BROADCAST_ADDR;
-		uint16_t chosen_p = UINT16_MAX;
+		am_addr_t chosen_neighbour = TOS_NODE_ID;
+		uint16_t chosen_dist = root_distance;
 
 		const am_addr_t* iter;
 		const am_addr_t* end;
 
-		if (!p_set)
+		if (!root_distance_set)
 		{
 			return AM_BROADCAST_ADDR;
 		}
 
-		for (iter = call PDict.beginKeys(), end = call PDict.endKeys(); iter != end; ++iter)
+		for (iter = call NeighbourRootDistances.beginKeys(), end = call NeighbourRootDistances.endKeys(); iter != end; ++iter)
 		{
-			const uint16_t* neighbour_p = call PDict.get_from_iter(iter);
+			const uint16_t* neighbour_root_dist = call NeighbourRootDistances.get_from_iter(iter);
 
-			if (neighbour_p == NULL)
+			if (neighbour_root_dist == NULL)
 			{
 				continue;
 			}
 
-			if (rank_comp(*iter, *neighbour_p, chosen_neighbour, chosen_p) < 0 &&
-				rank_comp(TOS_NODE_ID, p, *iter, *neighbour_p) < 0)
+			if ((*neighbour_root_dist < chosen_dist) ||
+				(*neighbour_root_dist == chosen_dist && *iter < chosen_neighbour))
 			{
 				chosen_neighbour = *iter;
-				chosen_p = *neighbour_p;
+				chosen_dist = *neighbour_root_dist;
 			}
+		}
+
+		if (chosen_neighbour == TOS_NODE_ID)
+		{
+			return AM_BROADCAST_ADDR;
 		}
 
 		return chosen_neighbour;

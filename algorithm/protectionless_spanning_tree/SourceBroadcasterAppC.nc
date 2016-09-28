@@ -62,11 +62,9 @@ implementation
 
 	components SpanningTreeC;
 	App.RoutingControl -> SpanningTreeC;
+	App.RootControl -> SpanningTreeC;
 
 	SpanningTreeC.MetricLogging -> MetricLogging;
-	SpanningTreeC.NodeType -> NodeTypeP;
-
-	App.RootControl -> SpanningTreeC;
 
 	// Networking
 	App.NormalSend -> SpanningTreeC.Send[NORMAL_CHANNEL];

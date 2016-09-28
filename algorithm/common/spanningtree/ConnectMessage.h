@@ -5,7 +5,7 @@
 
 typedef nx_struct ConnectMessage {
 
-	nx_uint16_t p;
+	nx_uint16_t root_distance;
 
 	// The id of the node that sent this message
 	nx_am_addr_t proximate_source_id;
