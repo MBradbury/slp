@@ -11,6 +11,8 @@ configuration SpanningTreeC {
     interface Intercept[uint8_t id];
 
     interface Packet;
+
+    interface LinkEstimator;
   }
 
   uses {
@@ -51,13 +53,24 @@ implementation {
   Setup.Random -> RandomC;
   Routing.Random -> RandomC;
 
-  // Setup wring
-  components
-    new AMSenderC(AM_SPANNING_TREE_SETUP) as SetupSender,
-    new AMReceiverC(AM_SPANNING_TREE_SETUP) as SetupReceiver;
+  components LinkEstimatorP;
+  Setup.LinkEstimator -> LinkEstimatorP;
+  Routing.LinkEstimator -> LinkEstimatorP;
 
-  Setup.SetupSend -> SetupSender;
-  Setup.SetupReceive -> SetupReceiver;
+  StdControl = LinkEstimatorP;
+  LinkEstimator = LinkEstimatorP;
+
+  components ActiveMessageC;
+
+  // Setup wring
+
+  //Setup.SetupSend -> SetupSender;
+  //Setup.SetupReceive -> SetupReceiver;
+
+  Setup.SetupSend -> LinkEstimatorP.Send;
+  Setup.SetupReceive -> LinkEstimatorP.Receive;
+
+  Setup.AMPacket -> ActiveMessageC;
 
   components
     new AMSenderC(AM_SPANNING_TREE_CONNECT) as ConnectSender,
@@ -99,6 +112,7 @@ implementation {
   Routing.SubSnoop -> RoutingSnooper;
 
   Routing.SubPacket -> RoutingSender;
+  Routing.SubAMPacket -> RoutingSender;
   Routing.PacketAcknowledgements -> RoutingSender.Acks;
 
   components
@@ -119,4 +133,17 @@ implementation {
     new CircularBufferC(spanning_tree_data_header_t, SLP_SEND_QUEUE_SIZE) as SentCache;
 
   Routing.SentCache -> SentCache;
+
+  // LinkEstimator wiring
+
+  LinkEstimatorP.Random -> RandomC;
+
+  components
+    new AMSenderC(AM_SPANNING_TREE_SETUP) as SetupSender,
+    new AMReceiverC(AM_SPANNING_TREE_SETUP) as SetupReceiver;
+
+  LinkEstimatorP.AMSend -> SetupSender;
+  LinkEstimatorP.SubReceive -> SetupReceiver;
+  LinkEstimatorP.SubPacket -> SetupSender;
+  LinkEstimatorP.SubAMPacket -> SetupSender;
 }

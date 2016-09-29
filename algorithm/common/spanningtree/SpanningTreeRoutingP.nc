@@ -22,9 +22,11 @@ module SpanningTreeRoutingP
         interface Receive as SubReceive;
         interface Receive as SubSnoop;
 
+        interface AMPacket as SubAMPacket;
         interface Packet as SubPacket;
 
         interface PacketAcknowledgements;
+        interface LinkEstimator;
 
         interface Timer<TMilli> as RetransmitTimer;
 
@@ -134,10 +136,14 @@ implementation
         }
         else if (item->ack_requested && !call PacketAcknowledgements.wasAcked(msg))
         {
+            call LinkEstimator.txNoAck(call SubAMPacket.destination(msg));
+
             start_retransmit_timer(item);
         }
         else
         {
+            call LinkEstimator.txAck(call SubAMPacket.destination(msg));
+
             signal_send_done(error);
         }
     }
@@ -347,5 +353,12 @@ implementation
     default event message_t* Snoop.receive[uint8_t id](message_t* msg, void* payload, uint8_t len)
     {
         return msg;
+    }
+
+    // LinkEstimator
+
+    event void LinkEstimator.evicted(am_addr_t neighbor)
+    {
+        
     }
 }
