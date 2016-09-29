@@ -31,7 +31,7 @@ class RunSimulations(RunSimulationsCommon):
 
         configuration = Configuration.create_specific(configuration_name, network_size, distance)
 
-        return 1.3 * time_taken
+        return 1.3 * time_taken + 6
 
 class CLI(CommandLineCommon.CLI):
 
@@ -323,8 +323,8 @@ class CLI(CommandLineCommon.CLI):
         )
 
         custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 20000
+            'captured': 80,
+            'sent': 30000
         }
 
         combine = ["short walk length", "long walk length"]
