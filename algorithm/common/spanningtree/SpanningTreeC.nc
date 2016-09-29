@@ -62,6 +62,13 @@ implementation {
 
   components ActiveMessageC;
 
+  // Common
+
+  components
+    new AMSenderC(AM_SPANNING_TREE_ROUTE) as RoutingSender,
+    new AMReceiverC(AM_SPANNING_TREE_ROUTE) as RoutingReceiver,
+    new AMSnooperC(AM_SPANNING_TREE_ROUTE) as RoutingSnooper;
+
   // Setup wring
 
   //Setup.SetupSend -> SetupSender;
@@ -80,6 +87,8 @@ implementation {
   Setup.ConnectSend -> ConnectSender;
   Setup.ConnectReceive -> ConnectReceiver;
   Setup.ConnectSnoop -> ConnectSnooper;
+
+  Setup.RoutingSend -> RoutingSender;
 
   Setup.PacketAcknowledgements -> ConnectSender.Acks;
 
@@ -101,11 +110,6 @@ implementation {
   Setup.Connections -> Connections;
 
   // Routing wiring
-
-  components
-    new AMSenderC(AM_SPANNING_TREE_ROUTE) as RoutingSender,
-    new AMReceiverC(AM_SPANNING_TREE_ROUTE) as RoutingReceiver,
-    new AMSnooperC(AM_SPANNING_TREE_ROUTE) as RoutingSnooper;
 
   Routing.SubSend -> RoutingSender;
   Routing.SubReceive -> RoutingReceiver;
