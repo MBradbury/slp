@@ -13,27 +13,32 @@ module SpanningTreeSetupP
 {
 	provides interface StdControl;
 
-	uses interface SpanningTreeInfo as Info;
-	uses interface RootControl;
+	uses {
+		interface SpanningTreeInfo as Info;
+		interface RootControl;
 
-	uses interface Random;
+		interface Random;
 
-	uses interface AMSend as SetupSend;
-	uses interface Receive as SetupReceive;
+		interface AMSend as SetupSend;
+		interface Receive as SetupReceive;
 
-	uses interface AMSend as ConnectSend;
-	uses interface Receive as ConnectReceive;
-	uses interface Receive as ConnectSnoop;
+		interface AMSend as ConnectSend;
+		interface Receive as ConnectReceive;
+		interface Receive as ConnectSnoop;
 
-	uses interface PacketAcknowledgements;
+		interface AMPacket;
 
-	uses interface Timer<TMilli> as SetupTimer;
-	uses interface Timer<TMilli> as ConnectTimer;
+		interface PacketAcknowledgements;
+		interface LinkEstimator;
 
-	uses interface MetricLogging;
+		interface Timer<TMilli> as SetupTimer;
+		interface Timer<TMilli> as ConnectTimer;
 
-	uses interface Dictionary<am_addr_t, uint16_t> as NeighbourRootDistances;
-	uses interface Set<am_addr_t> as Connections;
+		interface MetricLogging;
+
+		interface Dictionary<am_addr_t, uint16_t> as NeighbourRootDistances;
+		interface Set<am_addr_t> as Connections;
+	}
 }
 implementation
 {
@@ -69,6 +74,48 @@ implementation
 		return setup_period;
 	}
 
+	am_addr_t find_link(void)
+	{
+		am_addr_t chosen_neighbour = TOS_NODE_ID;
+		uint16_t chosen_dist = root_distance;
+
+		const am_addr_t* iter;
+		const am_addr_t* end;
+
+		if (!root_distance_set)
+		{
+			return AM_BROADCAST_ADDR;
+		}
+
+		for (iter = call NeighbourRootDistances.beginKeys(), end = call NeighbourRootDistances.endKeys(); iter != end; ++iter)
+		{
+			const uint16_t* neighbour_root_dist = call NeighbourRootDistances.get_from_iter(iter);
+
+			uint16_t link_quality;
+
+			if (neighbour_root_dist == NULL)
+			{
+				continue;
+			}
+
+			link_quality = call LinkEstimator.getLinkQuality(*iter);
+
+			if ((*neighbour_root_dist < chosen_dist) ||
+				(*neighbour_root_dist == chosen_dist && *iter < chosen_neighbour))
+			{
+				chosen_neighbour = *iter;
+				chosen_dist = *neighbour_root_dist;
+			}
+		}
+
+		if (chosen_neighbour == TOS_NODE_ID)
+		{
+			return AM_BROADCAST_ADDR;
+		}
+
+		return chosen_neighbour;
+	}
+
 	task void send_setup()
 	{
 		error_t status;
@@ -82,8 +129,14 @@ implementation
 
 		message = (SetupMessage*)call SetupSend.getPayload(&packet, sizeof(SetupMessage));
 
+		if (message == NULL)
+		{
+			return;
+		}
+
 		message->proximate_source_id = TOS_NODE_ID;
 		message->root_distance = root_distance;
+		message->sender_is_root = call RootControl.isRoot();
 
 		status = call SetupSend.send(AM_BROADCAST_ADDR, &packet, sizeof(SetupMessage));
 		if (status == SUCCESS)
@@ -103,7 +156,7 @@ implementation
 
 		if (busy)
 		{
-			post send_connect();
+			call ConnectTimer.startOneShot(85);
 			return;
 		}
 
@@ -113,6 +166,11 @@ implementation
 		}
 
 		message = (ConnectMessage*)call ConnectSend.getPayload(&packet, sizeof(ConnectMessage));
+
+		if (message == NULL)
+		{
+			return;
+		}
 
 		message->ack_requested = (call PacketAcknowledgements.requestAck(&packet) == SUCCESS);
 
@@ -126,6 +184,24 @@ implementation
 		}
 		else
 		{
+			call ConnectTimer.startOneShot(85);
+		}
+	}
+
+	task void update_parent()
+	{
+		const am_addr_t new_parent = find_link();
+		const am_addr_t current_parent = call Info.get_parent();
+
+		if (new_parent != current_parent)
+		{
+			simdbg("G-A", "arrow,-,%u,%u,(0,0,0)\n", TOS_NODE_ID, current_parent);
+
+			// Select the node which an edge exists
+			call Info.set_parent(new_parent);
+
+			simdbg("G-A", "arrow,+,%u,%u,(0,0,0)\n", TOS_NODE_ID, new_parent);
+
 			post send_connect();
 		}
 	}
@@ -151,6 +227,9 @@ implementation
 
 	command error_t StdControl.stop()
 	{
+		call ConnectTimer.stop();
+		call SetupTimer.stop();
+
 		return SUCCESS;
 	}
 
@@ -166,9 +245,16 @@ implementation
 
 	event message_t* SetupReceive.receive(message_t* msg, void* payload, uint8_t len)
 	{
-		SetupMessage* rcvd = (SetupMessage*)payload;
+		const SetupMessage* rcvd = (SetupMessage*)payload;
+		const am_addr_t from = call AMPacket.source(msg);
 
 		METRIC_RCV_SETUP(rcvd);
+
+		if (rcvd->sender_is_root)
+		{
+			call LinkEstimator.insertNeighbor(from);
+            call LinkEstimator.pinNeighbor(from);
+		}
 
 		if (!root_distance_set || root_distance > (rcvd->root_distance + 1))
 		{
@@ -232,51 +318,13 @@ implementation
 	{
 		ConnectMessage* rcvd = (ConnectMessage*)payload;
 
-		METRIC_RCV_CONNECT(rcvd);
+		METRIC_RCV_CONNECT(rcvd); // TODO: receive here?
 
 		// If we snooped a connect, then the sender has chosen a new parent.
 
 		call Connections.remove(rcvd->proximate_source_id);
 
 		return msg;
-	}
-
-	am_addr_t find_link(void)
-	{
-		am_addr_t chosen_neighbour = TOS_NODE_ID;
-		uint16_t chosen_dist = root_distance;
-
-		const am_addr_t* iter;
-		const am_addr_t* end;
-
-		if (!root_distance_set)
-		{
-			return AM_BROADCAST_ADDR;
-		}
-
-		for (iter = call NeighbourRootDistances.beginKeys(), end = call NeighbourRootDistances.endKeys(); iter != end; ++iter)
-		{
-			const uint16_t* neighbour_root_dist = call NeighbourRootDistances.get_from_iter(iter);
-
-			if (neighbour_root_dist == NULL)
-			{
-				continue;
-			}
-
-			if ((*neighbour_root_dist < chosen_dist) ||
-				(*neighbour_root_dist == chosen_dist && *iter < chosen_neighbour))
-			{
-				chosen_neighbour = *iter;
-				chosen_dist = *neighbour_root_dist;
-			}
-		}
-
-		if (chosen_neighbour == TOS_NODE_ID)
-		{
-			return AM_BROADCAST_ADDR;
-		}
-
-		return chosen_neighbour;
 	}
 
 	event void SetupTimer.fired()
@@ -286,13 +334,13 @@ implementation
 
 	event void ConnectTimer.fired()
 	{
-		simdbg("G-A", "arrow,-,%u,%u,(0,0,0)\n", TOS_NODE_ID, call Info.get_parent());
+		post update_parent();
+	}
 
-		// Select the node which an edge exists
-		call Info.set_parent(find_link());
+	event void LinkEstimator.evicted(am_addr_t neighbour)
+	{
+		call NeighbourRootDistances.remove(neighbour);
 
-		simdbg("G-A", "arrow,+,%u,%u,(0,0,0)\n", TOS_NODE_ID, call Info.get_parent());
-
-		post send_connect();
+		post update_parent();
 	}
 }

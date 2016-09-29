@@ -10,6 +10,8 @@ typedef nx_struct SetupMessage {
 	// The id of the node that sent this message
 	nx_am_addr_t proximate_source_id;
 
+	nx_uint8_t sender_is_root;
+
 } SetupMessage;
 
 inline SequenceNumberWithBottom Setup_get_sequence_number(const SetupMessage* msg) { return UNKNOWN_SEQNO; }

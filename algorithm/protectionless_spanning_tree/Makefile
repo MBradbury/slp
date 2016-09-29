@@ -7,7 +7,7 @@ COMPONENT = SourceBroadcasterAppC
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
-CFLAGS += -I"../common" -I"../common/spanningtree" -I$(TOSDIR)/lib/net
+CFLAGS += -I"../common" -I"../common/spanningtree" -I$(TOSDIR)/lib/net -I$(TOSDIR)/lib/net/le
 
 include ../common/makefile.common
 
