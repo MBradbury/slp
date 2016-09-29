@@ -12,6 +12,8 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <assert.h>
+
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
@@ -140,9 +142,6 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
-	uses interface MetricLogging;
-
-	uses interface NodeType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -154,10 +153,11 @@ module SourceBroadcasterC
 
 implementation 
 {
-	enum
+	typedef enum
 	{
 		SourceNode, SinkNode, NormalNode
-	};
+	} NodeType;
+	NodeType type = NormalNode;
 
 	typedef enum
 	{
@@ -185,6 +185,17 @@ implementation
 
 	bool reach_borderline = FALSE;
 
+	const char* type_to_string()
+	{
+		switch (type)
+		{
+		case SourceNode:      return "SourceNode";
+		case SinkNode:        return "SinkNode  ";
+		case NormalNode:      return "NormalNode";
+		default:              return "<unknown> ";
+		}
+	}
+
 	uint16_t landmark_bottom_left_distance = BOTTOM;
 	uint16_t landmark_bottom_right_distance = BOTTOM;
 	uint16_t landmark_top_right_distance = BOTTOM;
@@ -197,6 +208,9 @@ implementation
 	uint16_t srw_count = 0;	//short random walk count.
 	uint16_t lrw_count = 0;	//long random walk count.
 
+	uint16_t RANDOM_WALK_HOPS = BOTTOM;
+	uint16_t LONG_RANDOM_WALK_HOPS = BOTTOM;
+
 	distance_neighbours_t neighbours;
 
 	bool busy = FALSE;
@@ -206,7 +220,7 @@ implementation
 
 	uint32_t get_source_period()
 	{
-		assert(call NodeType.get() == SourceNode);
+		assert(type == SourceNode);
 		return call SourcePeriodModel.get();
 	}
 
@@ -442,9 +456,8 @@ implementation
 			{
 				if (biased_direction == UnknownBias)
 				{
-					neighbour = &local_neighbours.data[neighbour_index];  //choose one neighbour
+					neighbour = &local_neighbours.data[neighbour_index];   //choose one neighbour.
 
-					//determine the neighbour is V or H.
 					if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance)
 						biased = V;
 					else if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance)
@@ -575,25 +588,14 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
 
 		init_distance_neighbours(&neighbours);
 
-		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
-		call MessageType.register_pair(AWAY_CHANNEL, "Away");
-		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
-
-		call NodeType.register_pair(SourceNode, "SourceNode");
-		call NodeType.register_pair(SinkNode, "SinkNode");
-		call NodeType.register_pair(NormalNode, "NormalNode");
-
-		if (call NodeType.is_node_sink())
+		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
-			call NodeType.init(SinkNode);
-		}
-		else
-		{
-			call NodeType.init(NormalNode);
+			type = SinkNode;
+			simdbg("Node-Change-Notification", "The node has become a Sink\n");
 		}
 
 		call RadioControl.start();
@@ -603,11 +605,11 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
+			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
 
 			call ObjectDetector.start();
 
-			if (call NodeType.get() == SinkNode)
+			if (TOS_NODE_ID == SINK_NODE_ID)
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
@@ -615,7 +617,7 @@ implementation
 		}
 		else
 		{
-			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
+			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
 
 			call RadioControl.start();
 		}
@@ -623,15 +625,18 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
+		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// A sink node cannot become a source node
-		if (call NodeType.get() != SinkNode)
+		// The sink node cannot become a source node
+		if (type != SinkNode)
 		{
-			call NodeType.set(SourceNode);
+			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Source\n");
+
+			type = SourceNode;
 
 			call BroadcastNormalTimer.startOneShot(6 * 1000);	//wait till beacon messages send finished.
 		}
@@ -639,11 +644,14 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (call NodeType.get() == SourceNode)
+		if (type == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			call NodeType.set(NormalNode);
+			type = NormalNode;
+
+			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
+			simdbg("Node-Change-Notification", "The node has become a Normal\n");
 		}
 	}
 
@@ -715,22 +723,31 @@ implementation
 	{
 		NormalMessage message;
 		am_addr_t target;
+		uint16_t random_walk_length;
 
 		const uint32_t source_period = get_source_period();
 
-		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
 #endif
 
+		//initialise the short sount and long count.
 		if (srw_count == 0 && lrw_count == 0)
 		{
 			srw_count = SHORT_COUNT;
 			lrw_count = LONG_COUNT;
 		}
 
-		//#if defined(SHORT_LONG_SEQUENCE)
+
+		random_walk_length = landmark_sink_distance/2 -1;
+		RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + 2;
+		LONG_RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + landmark_sink_distance + 2;
+		
+		
+		//simdbg("stdout","(ssd:%d,random walk length:%d)short random walk hop=%d, long random walk hop=%d\n", landmark_sink_distance, random_walk_length, RANDOM_WALK_HOPS, LONG_RANDOM_WALK_HOPS);
+
 		#ifdef SHORT_LONG_SEQUENCE
 		{
 			message.random_walk_hops = short_long_sequence_random_walk(srw_count, lrw_count);
@@ -772,7 +789,7 @@ implementation
 		message.further_or_closer_set = random_walk_direction();
 
 		target = random_walk_target(message.further_or_closer_set, message.biased_direction, NULL, 0);
-
+		
 		message.biased_direction = biased;		//initialise biased_direction as UnknownBias. 
 
 		// If we don't know who our neighbours are, then we
@@ -793,8 +810,8 @@ implementation
 		}
 		else
 		{
-			simdbg("Metric-SOURCE_DROPPED", NXSEQUENCE_NUMBER_SPEC "\n",
-				message.sequence_number);
+			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "\n",
+				sim_time(), TOS_NODE_ID, message.sequence_number);
 		}
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
@@ -811,7 +828,7 @@ implementation
 	{
 		AwayMessage message;
 
-		if (call NodeType.get() == SinkNode)
+		if (TOS_NODE_ID == SINK_NODE_ID)
 		{
 			landmark_sink_distance = 0;
 			message.landmark_location = SINK;
@@ -839,7 +856,7 @@ implementation
 	{
 		BeaconMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
+		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
 
 		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
@@ -892,13 +909,12 @@ implementation
 
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
-				
+
 				if (reach_borderline == TRUE && forwarding_message.further_or_closer_set != CloserSet)
 				{
 					forwarding_message.further_or_closer_set = CloserSet;
-					target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &source_addr, 1);
+					target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
 				}
-				//target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
 				
 				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
 
@@ -910,7 +926,7 @@ implementation
 					//return;
 				//}
 				// if the message reach the sink, do not need flood.
-				if (call NodeType.get() == SinkNode)
+				if (TOS_NODE_ID == SINK_NODE_ID)
 				{
 					return;
 				}
@@ -926,8 +942,9 @@ implementation
 			{
 				if (!rcvd->broadcast && rcvd->source_distance + 1 == rcvd->random_walk_hops)
 				{
-					simdbg("Metric-PATH-END", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
-						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
+						sim_time(), TOS_NODE_ID, source_addr,
+						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
 				// We want other nodes to continue broadcasting
@@ -1070,7 +1087,7 @@ implementation
 			if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location == SINK)
 			{
 				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(3 * 1000);
+				call DelayBRSenderTimer.startOneShot(2 * 1000);
 			}
 		}
 		else

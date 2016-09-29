@@ -1,4 +1,4 @@
-from __future__ import print_function, division
+from __future__ import print_function
 
 import os, itertools, math, datetime
 
@@ -7,6 +7,8 @@ import numpy as np
 from simulator import CommandLineCommon
 
 import algorithm.protectionless as protectionless
+
+from simulator import Configuration
 
 from data import results
 
@@ -23,84 +25,60 @@ class RunSimulations(RunSimulationsCommon):
         if time_taken is None:
             return None
 
+        configuration_name = arguments[argument_names.index('configuration')]
+        network_size = int(arguments[argument_names.index('network size')])
+        distance = float(arguments[argument_names.index('distance')])
+
+        configuration = Configuration.create_specific(configuration_name, network_size, distance)
+
         return 1.3 * time_taken + 3
 
 class CLI(CommandLineCommon.CLI):
 
-    local_parameter_names = ('short walk length', 'long walk length',
-                             'order', 'short count', 'long count', 'wait before short')
+    executable_path = 'run.py'
+
+    distance = 4.5
+
+    noise_models = ["meyer-heavy"]
+
+    communication_models = ["ideal"]
+
+    sizes = [11, 15, 21, 25]
+
+    source_periods = [0.25, 0.5, 1.0, 2.0]
+
+    configurations = [
+        'SourceCorner',
+        'Source2CornerTop',
+        'Source3CornerTop',
+
+        'SinkCorner',
+        'SinkCorner2Source',
+        'SinkCorner3Source',
+
+        #'FurtherSinkCorner',
+        #'FurtherSinkCorner2Source',
+        #'FurtherSinkCorner3Source'
+    ]
+
+    attacker_models = ['SeqNosReactiveAttacker()']
+
+    orders = [
+    "ShortLong",
+    #"LongShort",   
+    ]
+
+    wait_before_short = [0]
+
+    short_counts = [1]
+    long_counts = [2]
+
+    repeats = 300
+
+    local_parameter_names = ('order', 'short count', 'long count', 'wait before short')
+
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.result_file_path, RunSimulations)
-
-        subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("average-graph")
-        subparser = self._subparsers.add_parser("scatter-graph")
-        subparser = self._subparsers.add_parser("best-worst-average-graph")
-
-    def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
-        parameters = self.algorithm_module.Parameters
-        
-        half_ssd = int(math.floor(s/2)) + 1
-        half_ssd_further = s
-        ssd_further = 2*s
-
-        random_walk_short = list(range(2, half_ssd))
-        random_walk_long = list(range(s+2, s+half_ssd))
-        random_walk_short_for_further = list(range(2, half_ssd_further))
-        random_walk_long_for_further = list(range(ssd_further+2, ssd_further+half_ssd_further))
-
-        non_further = any(topo for topo in ['SourceCorner','Source2CornerTop','Source3CornerTop','SinkCorner','SinkCorner2Source','SinkCorner3Source'] if topo in parameters.configurations)
-
-        further = any(topo for topo in ['FurtherSinkCorner','FurtherSinkCorner2Source','FurtherSinkCorner3Source'] if topo in parameters.configurations)
-
-        #check the random-walk_tye.
-        if len(parameters.random_walk_types) == 1:
-            pass
-        else:
-            raise RuntimeError("only support ONE random_walk_type!")
-
-        #set up the walk_short and walk_long
-        if non_further and further:
-            raise RuntimeError("Build other configurations with Further* configurations!")
-
-        if non_further:
-            if 'only_short_random_walk' in parameters.random_walk_types:
-                walk_short = random_walk_short
-                walk_long = random_walk_short
-
-            elif 'only_long_random_walk' in parameters.random_walk_types:
-                walk_short = random_walk_long
-                walk_long = random_walk_long
-        
-            elif 'phantom_bias' in parameters.random_walk_types:
-                walk_short = random_walk_short
-                walk_long = random_walk_long
-
-            else:
-                raise RuntimeError("error in the function: _short_long_walk_lengths")
-
-        elif further:
-            if 'only_short_random_walk' in parameters.random_walk_types:
-                walk_short = random_walk_short_for_further
-                walk_long = random_walk_short_for_further
-
-            elif 'only_long_random_walk' in parameters.random_walk_types:
-                walk_short = random_walk_long_for_further
-                walk_long = random_walk_long_for_further
-        
-            elif 'phantom_bias' in parameters.random_walk_types:
-                walk_short = random_walk_short_for_further
-                walk_long = random_walk_long_for_further
-
-            else:
-                raise RuntimeError("error in the function: _short_long_walk_lengths")
-        
-        else:
-            raise RuntimeError("error in the function: _short_long_walk_lengths")
-
-        return list(zip(walk_short, walk_long))
-        #return list((x,y) for x in walk_short for y in walk_long)
+        super(CLI, self).__init__(__package__)
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -110,39 +88,39 @@ class CLI(CommandLineCommon.CLI):
         names = self.parameter_names()
         size = args[names.index('network size')]
         if size == 11:
-            return datetime.timedelta(hours=2)
-        elif size == 15:
             return datetime.timedelta(hours=4)
-        elif size == 21:
+        elif size == 15:
             return datetime.timedelta(hours=8)
-        elif size == 25:
+        elif size == 21:
             return datetime.timedelta(hours=16)
+        elif size == 25:
+            return datetime.timedelta(hours=32)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _argument_product(self):
-        parameters = self.algorithm_module.Parameters
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
+        time_taken = safety_period_table_generator.time_taken()
+
+        runner = RunSimulations(driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
 
         argument_product = itertools.product(
-            parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.orders,
-            parameters.short_counts, parameters.long_counts, parameters.wait_before_short
+            self.sizes, self.configurations,
+            self.attacker_models, self.noise_models, self.communication_models,
+            [self.distance], self.source_periods, self.orders,
+            self.short_counts, self.long_counts, self.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, nido, lnst, sp, swl, lwl, o, sc, lc, wbs)
+            (s, c, am, nm, cm, d, sp, o, sc, lc, wbs)
 
-            for (s, c, am, nm, cm, d, nido, lnst, sp, o, sc, lc, wbs) in argument_product
-
-            for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
+            for (s, c, am, nm, cm, d, sp, o, sc, lc, wbs) in argument_product
         ]        
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
-        return argument_product
-
+        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
 
     def _run_table(self, args):
         phantom_results = results.Results(
@@ -171,12 +149,12 @@ class CLI(CommandLineCommon.CLI):
         )
 
         parameters = [
-            ('source period', ' seconds'),
-            ('long walk length', ' hops'),
-            ('short walk length', ' hops')
+            ('source period', ' seconds')
         ]
 
         custom_yaxis_range_max = {
+            'captured': 80,
+            'sent': 30000
         }
 
         for (parameter_name, parameter_unit) in parameters:
@@ -195,8 +173,8 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = parameter_unit
                 g.key_position = key_position
 
-                if result_name in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[result_name]
+                if yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
                 g.create(phantom_results)
 
@@ -265,8 +243,8 @@ class CLI(CommandLineCommon.CLI):
         )
 
         custom_yaxis_range_max = {
-            'captured': 80,
-            'sent': 30000
+            'captured': 50,
+            'sent': 20000
         }
 
         combine = ["short walk length", "long walk length"]
@@ -315,8 +293,8 @@ class CLI(CommandLineCommon.CLI):
         )
 
         custom_yaxis_range_max = {
-            'captured': 80,
-            'sent': 30000
+            'captured': 50,
+            'sent': 20000
         }
 
         combine = ["short walk length", "long walk length"]
@@ -357,19 +335,19 @@ class CLI(CommandLineCommon.CLI):
                 ).run()
 
     def run(self, args):
-        args = super(CLI, self).run(args)
+        super(CLI, self).run(args)
 
-        if 'table' == args.mode:
+        if 'table' in args:
             self._run_table(args)
 
-        if 'graph' == args.mode:
+        if 'graph' in args:
             self._run_graph(args)
 
-        if 'average-graph' == args.mode:
+        if 'average-graph' in args:
             self._run_average_graph(args)
 
-        if 'scatter-graph' == args.mode:
+        if 'scatter-graph' in args:
             self._run_scatter_graph(args)
 
-        if 'best-worst-average-graph' == args.mode:
+        if 'best-worst-average-graph' in args:
             self._run_best_worst_average_graph(args)
