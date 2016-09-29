@@ -26,6 +26,8 @@ module SpanningTreeSetupP
 		interface Receive as ConnectReceive;
 		interface Receive as ConnectSnoop;
 
+		interface AMSend as RoutingSend;
+
 		interface AMPacket;
 
 		interface PacketAcknowledgements;
@@ -78,6 +80,7 @@ implementation
 	{
 		am_addr_t chosen_neighbour = TOS_NODE_ID;
 		uint16_t chosen_dist = root_distance;
+		uint16_t chosen_link_quality = UINT16_MAX;
 
 		const am_addr_t* iter;
 		const am_addr_t* end;
@@ -98,13 +101,15 @@ implementation
 				continue;
 			}
 
-			link_quality = call LinkEstimator.getLinkQuality(*iter);
+			link_quality = call LinkEstimator.getForwardQuality(*iter);
 
-			if ((*neighbour_root_dist < chosen_dist) ||
-				(*neighbour_root_dist == chosen_dist && *iter < chosen_neighbour))
+			if ((*neighbour_root_dist < chosen_dist  && link_quality <= chosen_link_quality) ||
+				(*neighbour_root_dist == chosen_dist && link_quality <  chosen_link_quality) ||
+				(*neighbour_root_dist == chosen_dist && link_quality == chosen_link_quality && *iter < chosen_neighbour))
 			{
 				chosen_neighbour = *iter;
 				chosen_dist = *neighbour_root_dist;
+				chosen_link_quality = link_quality;
 			}
 		}
 
@@ -342,5 +347,13 @@ implementation
 		call NeighbourRootDistances.remove(neighbour);
 
 		post update_parent();
+	}
+
+	event void RoutingSend.sendDone(message_t* msg, error_t error)
+	{
+		if (error == ENOACK)
+		{
+			post update_parent();
+		}
 	}
 }
