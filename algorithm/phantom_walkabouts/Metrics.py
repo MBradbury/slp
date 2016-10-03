@@ -1,8 +1,6 @@
-from __future__ import division
+from __future__ import print_function, division
 
 from simulator.MetricsCommon import MetricsCommon
-
-from numpy import mean
 
 class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):

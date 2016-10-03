@@ -1,14 +1,16 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
-import os, itertools, math, datetime
+import datetime
+import itertools
+import math
+import os
 
 import numpy as np
 
 from simulator import CommandLineCommon
+from simulator import Configuration
 
 import algorithm.protectionless as protectionless
-
-from simulator import Configuration
 
 from data import results
 
@@ -19,6 +21,7 @@ from data.util import scalar_extractor
 from data.run.common import RunSimulationsCommon
 
 class RunSimulations(RunSimulationsCommon):
+
     def _get_safety_period(self, argument_names, arguments):
         time_taken = super(RunSimulations, self)._get_safety_period(argument_names, arguments)
 
@@ -35,54 +38,17 @@ class RunSimulations(RunSimulationsCommon):
 
 class CLI(CommandLineCommon.CLI):
 
-    executable_path = 'run.py'
-
-    distance = 4.5
-
-    noise_models = ["meyer-heavy"]
-
-    communication_models = ["ideal"]
-
-    sizes = [11, 15, 21, 25]
-
-    source_periods = [0.25, 0.5, 1.0, 2.0]
-
-    configurations = [
-        #'SourceCorner',
-        #'Source2CornerTop',
-        #'Source3CornerTop',
-
-        'SinkCorner',
-        'SinkCorner2Source',
-        'SinkCorner3Source',
-
-        #'FurtherSinkCorner',
-        #'FurtherSinkCorner2Source',
-        #'FurtherSinkCorner3Source'
-    ]
-
-    attacker_models = ['SeqNosReactiveAttacker()']
-
-    direction_biases = [0.9]
-
-    orders = [
-    "ShortLong",
-    #"LongShort",
-    
-    ]
-
-    wait_before_short = [0]
-
-    short_counts = [1]
-    long_counts = [1]
-
-    repeats = 200
-
-
     local_parameter_names = ('direction bias',
                              'order', 'short count', 'long count', 'wait before short')
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path, RunSimulations)
+
+        subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("average-graph")
+        subparser = self._subparsers.add_parser("scatter-graph")
+        subparser = self._subparsers.add_parser("best-worst-average-graph")
+
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -102,30 +68,28 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        time_taken = safety_period_table_generator.time_taken()
 
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
+    def _argument_product(self):
+        parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(
-            self.sizes, self.configurations,
-            self.attacker_models, self.noise_models, self.communication_models,
-            [self.distance], self.source_periods, self.direction_biases, self.orders,
-            self.short_counts, self.long_counts, self.wait_before_short
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.source_periods, parameters.direction_biases, parameters.orders,
+            parameters.short_counts, parameters.long_counts, parameters.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs)
+            (s, c, am, nm, cm, d, nido, lnst, sp, db, o, sc, lc, wbs)
 
-            for (s, c, am, nm, cm, d, sp, db, o, sc, lc, wbs) in argument_product
+            for (s, c, am, nm, cm, d, nido, lnst, sp, db, o, sc, lc, wbs) in argument_product
 
         ]        
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
-        runner.run(self.executable_path, self.repeats, self.parameter_names(), argument_product, self._time_estimater)
+        return argument_product
 
     def _run_table(self, args):
         phantom_results = results.Results(
@@ -279,7 +243,6 @@ class CLI(CommandLineCommon.CLI):
             ).run()
 
     def _run_average_graph(self, args):
-        import numpy as np
         from data.graph import combine_versus
 
         graph_parameters = {
@@ -340,19 +303,19 @@ class CLI(CommandLineCommon.CLI):
                 ).run()
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
+        if 'table' == args.mode:
             self._run_table(args)
 
-        if 'graph' in args:
+        if 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'average-graph' in args:
+        if 'average-graph' == args.mode:
             self._run_average_graph(args)
 
-        if 'scatter-graph' in args:
+        if 'scatter-graph' == args.mode:
             self._run_scatter_graph(args)
 
-        if 'best-worst-average-graph' in args:
+        if 'best-worst-average-graph' == args.mode:
             self._run_best_worst_average_graph(args)
