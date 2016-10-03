@@ -41,22 +41,29 @@ def run_simulation(module, a, count=1):
                 sim.run()
             except Exception as ex:
                 import traceback
+                
+                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+
                 print("Killing run due to {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
+                print("For parameters:", file=sys.stderr)
+                print(all_args, file=sys.stderr)
+
                 return 1
-            else:
-                try:
-                    sim.metrics.print_results()
-                except Exception as ex:
-                    import traceback
 
-                    all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+            try:
+                sim.metrics.print_results()
+            except Exception as ex:
+                import traceback
 
-                    print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
-                    print(traceback.format_exc(), file=sys.stderr)
-                    print("For parameters:", file=sys.stderr)
-                    print(all_args, file=sys.stderr)
-                    return 2
+                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+
+                print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
+                print(traceback.format_exc(), file=sys.stderr)
+                print("For parameters:", file=sys.stderr)
+                print(all_args, file=sys.stderr)
+                
+                return 2
 
     return 0
 
