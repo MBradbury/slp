@@ -698,7 +698,7 @@ class AnalyzerCommon(object):
                 path = item
 
                 try:
-                    result = self.analyse_and_summarise_path_wrapped(path)
+                    result = self.analyse_and_summarise_path(path)
 
                     # Skip 0 length results
                     if result.number_of_repeats == 0:
