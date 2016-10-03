@@ -25,12 +25,6 @@ class RunSimulations(RunSimulationsCommon):
         if time_taken is None:
             return None
 
-        configuration_name = arguments[argument_names.index('configuration')]
-        network_size = int(arguments[argument_names.index('network size')])
-        distance = float(arguments[argument_names.index('distance')])
-
-        configuration = Configuration.create_specific(configuration_name, network_size, distance)
-
         return 1.3 * time_taken + 3
 
 class CLI(CommandLineCommon.CLI):
@@ -70,7 +64,8 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-            [parameters.distance], parameters.source_periods, parameters.orders,
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.source_periods, parameters.orders,
             parameters.short_counts, parameters.long_counts, parameters.wait_before_short
         )
 
