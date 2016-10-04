@@ -12,18 +12,16 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 typedef struct
 {
-	uint16_t bottom_left_distance;
-	uint16_t bottom_right_distance;
-	uint16_t top_right_distance;
-	uint16_t sink_distance;
+	int16_t bottom_left_distance;
+	int16_t bottom_right_distance;
+	int16_t top_right_distance;
+	int16_t sink_distance;
 } distance_container_t;
 
 void distance_update(distance_container_t* find, distance_container_t const* given)
@@ -136,6 +134,11 @@ module SourceBroadcasterC
 	uses interface Receive as NormalReceive;
 	uses interface Receive as NormalSnoop;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
+
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
 
@@ -153,11 +156,10 @@ module SourceBroadcasterC
 
 implementation 
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-	NodeType type = NormalNode;
+	};
 
 	typedef enum
 	{
@@ -179,37 +181,26 @@ implementation
 	typedef enum
 	{
 		UnknownMessageType, ShortRandomWalk, LongRandomWalk
-	}MessageType;
-	MessageType messagetype = UnknownMessageType;
-	MessageType nextmessagetype = UnknownMessageType;
+	}WalkType;
+	WalkType messagetype = UnknownMessageType;
+	WalkType nextmessagetype = UnknownMessageType;
 
 	bool reach_borderline = FALSE;
 
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode:      return "SourceNode";
-		case SinkNode:        return "SinkNode  ";
-		case NormalNode:      return "NormalNode";
-		default:              return "<unknown> ";
-		}
-	}
+	int16_t landmark_bottom_left_distance = BOTTOM;
+	int16_t landmark_bottom_right_distance = BOTTOM;
+	int16_t landmark_top_right_distance = BOTTOM;
+	int16_t landmark_sink_distance = BOTTOM;
 
-	uint16_t landmark_bottom_left_distance = BOTTOM;
-	uint16_t landmark_bottom_right_distance = BOTTOM;
-	uint16_t landmark_top_right_distance = BOTTOM;
-	uint16_t landmark_sink_distance = BOTTOM;
+	int16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
+	int16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
+	int16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
 
-	uint16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
-	uint16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
-	uint16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
+	int16_t srw_count = 0;	//short random walk count.
+	int16_t lrw_count = 0;	//long random walk count.
 
-	uint16_t srw_count = 0;	//short random walk count.
-	uint16_t lrw_count = 0;	//long random walk count.
-
-	uint16_t RANDOM_WALK_HOPS = BOTTOM;
-	uint16_t LONG_RANDOM_WALK_HOPS = BOTTOM;
+	int16_t RANDOM_WALK_HOPS = BOTTOM;
+	int16_t LONG_RANDOM_WALK_HOPS = BOTTOM;
 
 	distance_neighbours_t neighbours;
 
@@ -220,7 +211,7 @@ implementation
 
 	uint32_t get_source_period()
 	{
-		assert(type == SourceNode);
+		assert(call NodeType.get() == SourceNode);
 		return call SourcePeriodModel.get();
 	}
 
@@ -240,15 +231,15 @@ implementation
 
 	void sink_location_check()
 	{
-		uint16_t bl_br_dist;
-		uint16_t bl_tr_dist;
-		uint16_t br_tr_dist;
+		int16_t bl_br_dist;
+		int16_t bl_tr_dist;
+		int16_t br_tr_dist;
 
 		if (sink_bl_dist != BOTTOM && sink_br_dist !=BOTTOM && sink_tr_dist != BOTTOM)
 		{
-			bl_br_dist = (uint16_t) (abs(sink_bl_dist - sink_br_dist));
-			bl_tr_dist = (uint16_t) (abs(sink_bl_dist - sink_tr_dist));
-			br_tr_dist = (uint16_t) (abs(sink_br_dist - sink_tr_dist));
+			bl_br_dist = abs(sink_bl_dist - sink_br_dist);
+			bl_tr_dist = abs(sink_bl_dist - sink_tr_dist);
+			br_tr_dist = abs(sink_br_dist - sink_tr_dist);
 	
 			if ( bl_br_dist <= CENTRE_AREA && bl_tr_dist <= CENTRE_AREA && br_tr_dist <= CENTRE_AREA )
 				location = Centre;
@@ -553,9 +544,9 @@ implementation
 		return rw;
 	}
 
-	MessageType sl_next_message_type(int16_t srw, int16_t lrw)
+	WalkType sl_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType sl_type;
+		WalkType sl_type;
 
 		if (srw == 0 && lrw != 0)
 			sl_type = LongRandomWalk;
@@ -565,9 +556,9 @@ implementation
 		return sl_type;
 	}
 
-	MessageType ls_next_message_type(int16_t srw, int16_t lrw)
+	WalkType ls_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType ls_type;
+		WalkType ls_type;
 
 		if (lrw == 0 && srw != 0)
 			ls_type = ShortRandomWalk;
@@ -588,14 +579,25 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		init_distance_neighbours(&neighbours);
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+		call MessageType.register_pair(AWAY_CHANNEL, "Away");
+		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
+		if (call NodeType.is_node_sink())
 		{
-			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			call NodeType.init(SinkNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -605,11 +607,11 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 
-			if (TOS_NODE_ID == SINK_NODE_ID)
+			if (call NodeType.get() == SinkNode)
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
@@ -617,7 +619,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -625,18 +627,15 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
-
-			type = SourceNode;
+			call NodeType.set(SourceNode);
 
 			call BroadcastNormalTimer.startOneShot(6 * 1000);	//wait till beacon messages send finished.
 		}
@@ -644,14 +643,11 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
-
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -810,8 +806,8 @@ implementation
 		}
 		else
 		{
-			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "\n",
-				sim_time(), TOS_NODE_ID, message.sequence_number);
+			simdbg("Metric-SOURCE_DROPPED", NXSEQUENCE_NUMBER_SPEC "\n",
+				message.sequence_number);
 		}
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
@@ -828,7 +824,7 @@ implementation
 	{
 		AwayMessage message;
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		if (call NodeType.get() == SinkNode)
 		{
 			landmark_sink_distance = 0;
 			message.landmark_location = SINK;
@@ -856,7 +852,7 @@ implementation
 	{
 		BeaconMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
 		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
@@ -926,7 +922,7 @@ implementation
 					//return;
 				//}
 				// if the message reach the sink, do not need flood.
-				if (TOS_NODE_ID == SINK_NODE_ID)
+				if (call NodeType.get() == SinkNode)
 				{
 					return;
 				}
@@ -942,9 +938,8 @@ implementation
 			{
 				if (!rcvd->broadcast && rcvd->source_distance + 1 == rcvd->random_walk_hops)
 				{
-					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, source_addr,
-						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+					simdbg("Metric-PATH-END", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
+						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
 				// We want other nodes to continue broadcasting
@@ -1078,7 +1073,7 @@ implementation
 
 		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 		{
-			sink_bl_dist = rcvd->landmark_distance;
+			sink_br_dist = rcvd->landmark_distance;
 			call DelayBRSenderTimer.startOneShot(3 * 1000);	
 		}
 /*

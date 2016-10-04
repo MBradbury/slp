@@ -1,6 +1,9 @@
 from __future__ import print_function, division
 
-import os, itertools, math, datetime
+import datetime
+import itertools
+import math
+import os
 
 import numpy as np
 
