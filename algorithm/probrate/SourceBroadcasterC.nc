@@ -202,16 +202,14 @@ implementation
 
 	event void BroadcastTimer.fired()
 	{
-		NormalMessage* message;
-
 		call BroadcastTimer.startOneShot(get_broadcast_period());
 
 		simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
 
-		message = call MessageQueue.dequeue();
-
-		if (message != NULL)
+		if (!call MessageQueue.empty())
 		{
+			NormalMessage* message = call MessageQueue.dequeue();
+
 			if (send_Normal_message(message, AM_BROADCAST_ADDR))
 			{
 				call MessagePool.put(message);
