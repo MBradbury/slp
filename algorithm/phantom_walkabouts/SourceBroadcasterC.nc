@@ -18,10 +18,10 @@
 
 typedef struct
 {
-	uint16_t bottom_left_distance;
-	uint16_t bottom_right_distance;
-	uint16_t top_right_distance;
-	uint16_t sink_distance;
+	int16_t bottom_left_distance;
+	int16_t bottom_right_distance;
+	int16_t top_right_distance;
+	int16_t sink_distance;
 } distance_container_t;
 
 void distance_update(distance_container_t* find, distance_container_t const* given)
@@ -143,6 +143,7 @@ module SourceBroadcasterC
 	uses interface MetricLogging;
 
 	uses interface NodeType;
+	uses interface MessageType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -179,23 +180,23 @@ implementation
 	typedef enum
 	{
 		UnknownMessageType, ShortRandomWalk, LongRandomWalk
-	}MessageType;
-	MessageType messagetype = UnknownMessageType;
-	MessageType nextmessagetype = UnknownMessageType;
+	}WalkType;
+	WalkType messagetype = UnknownMessageType;
+	WalkType nextmessagetype = UnknownMessageType;
 
 	bool reach_borderline = FALSE;
 
-	uint16_t landmark_bottom_left_distance = BOTTOM;
-	uint16_t landmark_bottom_right_distance = BOTTOM;
-	uint16_t landmark_top_right_distance = BOTTOM;
-	uint16_t landmark_sink_distance = BOTTOM;
+	int16_t landmark_bottom_left_distance = BOTTOM;
+	int16_t landmark_bottom_right_distance = BOTTOM;
+	int16_t landmark_top_right_distance = BOTTOM;
+	int16_t landmark_sink_distance = BOTTOM;
 
-	uint16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
-	uint16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
-	uint16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
+	int16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
+	int16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
+	int16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
 
-	uint16_t srw_count = 0;	//short random walk count.
-	uint16_t lrw_count = 0;	//long random walk count.
+	int16_t srw_count = 0;	//short random walk count.
+	int16_t lrw_count = 0;	//long random walk count.
 
 	distance_neighbours_t neighbours;
 
@@ -226,15 +227,16 @@ implementation
 
 	void sink_location_check()
 	{
-		uint16_t bl_br_dist;
-		uint16_t bl_tr_dist;
-		uint16_t br_tr_dist;
+		int16_t bl_br_dist;
+		int16_t bl_tr_dist;
+		int16_t br_tr_dist;
 
 		if (sink_bl_dist != BOTTOM && sink_br_dist !=BOTTOM && sink_tr_dist != BOTTOM)
 		{
-			bl_br_dist = (uint16_t) (abs(sink_bl_dist - sink_br_dist));
-			bl_tr_dist = (uint16_t) (abs(sink_bl_dist - sink_tr_dist));
-			br_tr_dist = (uint16_t) (abs(sink_br_dist - sink_tr_dist));
+
+			bl_br_dist = abs_generic(sink_bl_dist - sink_br_dist);
+			bl_tr_dist = abs_generic(sink_bl_dist - sink_tr_dist);
+			br_tr_dist = abs_generic(sink_br_dist - sink_tr_dist);
 	
 			if ( bl_br_dist <= CENTRE_AREA && bl_tr_dist <= CENTRE_AREA && br_tr_dist <= CENTRE_AREA )
 				location = Centre;
@@ -540,9 +542,9 @@ implementation
 		return rw;
 	}
 
-	MessageType sl_next_message_type(int16_t srw, int16_t lrw)
+	WalkType sl_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType sl_type;
+		WalkType sl_type;
 
 		if (srw == 0 && lrw != 0)
 			sl_type = LongRandomWalk;
@@ -552,9 +554,9 @@ implementation
 		return sl_type;
 	}
 
-	MessageType ls_next_message_type(int16_t srw, int16_t lrw)
+	WalkType ls_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType ls_type;
+		WalkType ls_type;
 
 		if (lrw == 0 && srw != 0)
 			ls_type = ShortRandomWalk;
@@ -1061,7 +1063,7 @@ implementation
 
 		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 		{
-			sink_bl_dist = rcvd->landmark_distance;
+			sink_br_dist = rcvd->landmark_distance;
 			call DelayBRSenderTimer.startOneShot(3 * 1000);	
 		}
 /*

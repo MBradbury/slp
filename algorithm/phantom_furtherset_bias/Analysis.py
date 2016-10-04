@@ -1,4 +1,3 @@
-
 from data.analysis import AnalyzerCommon
 
 class Analyzer(AnalyzerCommon):
@@ -44,5 +43,8 @@ class Analyzer(AnalyzerCommon):
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+
+        d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
         return d

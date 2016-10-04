@@ -8,11 +8,11 @@ typedef nx_struct NormalMessage
   NXSequenceNumber sequence_number;
 
   // The id of the node that sent this message
-  nx_uint16_t source_id;
+  nx_int16_t source_id;
 
   // The number of hops that this message
   // has travelled from the source. 
-  nx_uint16_t source_distance;
+  nx_int16_t source_distance;
 
   nx_int16_t landmark_distance_of_bottom_left_sender;
 
@@ -22,13 +22,13 @@ typedef nx_struct NormalMessage
 
   nx_int16_t landmark_distance_of_sink_sender;
 
-  nx_uint8_t further_or_closer_set;
+  nx_int8_t further_or_closer_set;
 
-  nx_uint8_t biased_direction;
+  nx_int8_t biased_direction;
 
-  nx_uint8_t broadcast;
+  nx_int8_t broadcast;
 
-  nx_uint16_t random_walk_hops;
+  nx_int16_t random_walk_hops;
 
   //nx_uint16_t srw_count;
   
