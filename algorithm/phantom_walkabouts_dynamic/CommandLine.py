@@ -28,12 +28,6 @@ class RunSimulations(RunSimulationsCommon):
         if time_taken is None:
             return None
 
-        configuration_name = arguments[argument_names.index('configuration')]
-        network_size = int(arguments[argument_names.index('network size')])
-        distance = float(arguments[argument_names.index('distance')])
-
-        configuration = Configuration.create_specific(configuration_name, network_size, distance)
-
         return 1.3 * time_taken + 6
 
 class CLI(CommandLineCommon.CLI):
@@ -48,7 +42,6 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._subparsers.add_parser("average-graph")
         subparser = self._subparsers.add_parser("scatter-graph")
         subparser = self._subparsers.add_parser("best-worst-average-graph")
-
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -67,7 +60,6 @@ class CLI(CommandLineCommon.CLI):
             return datetime.timedelta(hours=32)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
-
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
