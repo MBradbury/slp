@@ -24,7 +24,7 @@ class Metrics(MetricsCommon):
     def _process_SOURCE_DROPPED(self, line):
         (time, node_id, sequence_number) = line.split(',')
 
-        time = int(time)
+        time = float(time)
 
         self._source_dropped.append(time)
 
