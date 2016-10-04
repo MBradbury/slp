@@ -8,6 +8,7 @@ import os
 import numpy as np
 
 from simulator import CommandLineCommon
+from simulator import Configuration
 
 import algorithm.protectionless as protectionless
 
