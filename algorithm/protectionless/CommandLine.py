@@ -70,12 +70,14 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            'safety period': ('Safety Period (seconds)', 'left top'),
-            'time taken': ('Time Taken (seconds)', 'left top'),
+            #'safety period': ('Safety Period (seconds)', 'left top'),
+            #'time taken': ('Time Taken (seconds)', 'left top'),
             #'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            #'captured': ('Capture Ratio (%)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
             #'sent': ('Total Messages Sent', 'left top'),
-            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'good move ratio': ('Good Move Ratio (%)', 'right top'),
+            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
         protectionless_results = results.Results(
@@ -84,32 +86,41 @@ class CLI(CommandLineCommon.CLI):
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources")
 
-        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-            name = '{}-v-configuration'.format(yaxis.replace(" ", "_"))
+        varying = [
+            ("source period", " seconds"),
+            ("communication model", "~")
+        ]
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
+        error_bars = set() # {'received ratio', 'good move ratio', 'norm(norm(sent,time taken),num_nodes)'}
 
-            g = versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yaxis, vary='configuration',
-                yextractor=yextractor)
+        for (vary, vary_prefix) in varying:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "_"))
 
-            g.generate_legend_graph = True
+                yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
 
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = yaxis_label
-            g.vary_label = ''
-            g.vary_prefix = ''
+                g = versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis='network size', yaxis=yaxis, vary=vary,
+                    yextractor=yextractor)
 
-            g.nokey = True
-            g.key_position = key_position
+                #g.generate_legend_graph = True
 
-            g.create(protectionless_results)
+                g.xaxis_label = 'Network Size'
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_prefix
 
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name)
-            ).run()
+                g.error_bars = yaxis in error_bars
+
+                #g.nokey = True
+                g.key_position = key_position
+
+                g.create(protectionless_results)
+
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    '{}-{}'.format(self.algorithm_module.name, name)
+                ).run()
 
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults
