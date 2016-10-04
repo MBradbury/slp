@@ -73,7 +73,7 @@ class CLI(CommandLineCommon.CLI):
                 walk_short = random_walk_long
                 walk_long = random_walk_long
         
-            elif 'phantom_bias' in parameters.random_walk_types:
+            elif 'phantom_furtherset_bias' in parameters.random_walk_types:
                 walk_short = random_walk_short
                 walk_long = random_walk_long
 

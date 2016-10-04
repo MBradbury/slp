@@ -27,12 +27,6 @@ class RunSimulations(RunSimulationsCommon):
         if time_taken is None:
             return None
 
-        configuration_name = arguments[argument_names.index('configuration')]
-        network_size = int(arguments[argument_names.index('network size')])
-        distance = float(arguments[argument_names.index('distance')])
-
-        configuration = Configuration.create_specific(configuration_name, network_size, distance)
-
         return 1.3 * time_taken + 6
 
 class CLI(CommandLineCommon.CLI):
