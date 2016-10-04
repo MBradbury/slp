@@ -25,6 +25,10 @@
 	({ __typeof__(a) _a = (a), _b = (b); \
 	   (_a == BOTTOM ? _b : (_b == BOTTOM ? _a : (_b < _a ? _b : _a))); })
 
+#define abs_generic(x) \
+	({ __typeof__(x) _x = (x); \
+		(x < 0) ? -x : x; })
+
 
 inline int16_t botinc(int16_t x)
 {
