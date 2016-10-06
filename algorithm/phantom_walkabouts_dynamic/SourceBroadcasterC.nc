@@ -29,7 +29,6 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 	find->bottom_left_distance = minbot(find->bottom_left_distance, given->bottom_left_distance);
 	find->bottom_right_distance = minbot(find->bottom_right_distance, given->bottom_right_distance);
 	find->top_right_distance = minbot(find->top_right_distance, given->top_right_distance);
-
 	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
 }
 
@@ -65,8 +64,8 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 { \
 	distance_container_t dist; \
 	dist.bottom_left_distance = BOTTOM; \
-	dist.top_right_distance = rcvd->name; \
 	dist.bottom_right_distance = BOTTOM; \
+	dist.top_right_distance = rcvd->name; \
 	dist.sink_distance = BOTTOM; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
@@ -74,10 +73,10 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 #define UPDATE_NEIGHBOURS_SINK(rcvd, source_addr, name) \
 { \
 	distance_container_t dist; \
-	dist.sink_distance = rcvd->name;\
 	dist.bottom_left_distance = BOTTOM; \
 	dist.bottom_right_distance = BOTTOM; \
 	dist.top_right_distance = BOTTOM; \
+	dist.sink_distance = rcvd->name; \
 	insert_distance_neighbour(&neighbours, source_addr, &dist); \
 }
 
@@ -168,15 +167,15 @@ implementation
 
 	typedef enum
 	{
-		UnknownLocation, Centre, Others 
+		UnknownSinkLocation, Centre, Others 
 	}SinkLocation;
-	SinkLocation location = UnknownLocation;
+	SinkLocation sink_location = UnknownSinkLocation;
 
 	typedef enum
 	{
-		UnknownBias, H, V 
+		UnknownBiasType, H, V 
 	}BiasedType;
-	BiasedType biased = UnknownBias;
+	BiasedType bias_direction = UnknownBiasType;
 
 	typedef enum
 	{
@@ -237,17 +236,17 @@ implementation
 
 		if (sink_bl_dist != BOTTOM && sink_br_dist !=BOTTOM && sink_tr_dist != BOTTOM)
 		{
-			bl_br_dist = abs(sink_bl_dist - sink_br_dist);
-			bl_tr_dist = abs(sink_bl_dist - sink_tr_dist);
-			br_tr_dist = abs(sink_br_dist - sink_tr_dist);
+			bl_br_dist = abs_generic(sink_bl_dist - sink_br_dist);
+			bl_tr_dist = abs_generic(sink_bl_dist - sink_tr_dist);
+			br_tr_dist = abs_generic(sink_br_dist - sink_tr_dist);
 	
 			if ( bl_br_dist <= CENTRE_AREA && bl_tr_dist <= CENTRE_AREA && br_tr_dist <= CENTRE_AREA )
-				location = Centre;
+				sink_location = Centre;
 			else
-				location = Others;
+				sink_location = Others;
 		}
 		else
-			location = Others;
+			sink_location = Others;
 	}
 
 
@@ -438,28 +437,28 @@ implementation
 			uint16_t neighbour_index = rnd % local_neighbours.size;
 			uint16_t brn = rnd % 100; 	//biased random number;
 
-			if (location == UnknownLocation)
+			if (sink_location == UnknownSinkLocation)
 			{
 				sink_location_check();
 			}
 
-			if (location == Centre && further_or_closer_set == CloserSet)	//deal with biased random walk here.
+			if (sink_location == Centre && further_or_closer_set == CloserSet)	//deal with biased random walk here.
 			{
-				if (biased_direction == UnknownBias)
+				if (biased_direction == UnknownBiasType)
 				{
 					neighbour = &local_neighbours.data[neighbour_index];   //choose one neighbour.
 
 					if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance)
-						biased = V;
+						bias_direction = V;
 					else if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance)
-						biased = H;
+						bias_direction = H;
 					else
-						simdbgerror("stdout","biased direction error!\n");
+						simdbgerror("stdout","bias_direction error!\n");
 
 					chosen_address = neighbour->address;
 				}
 
-				else	//biased == H or biased == V.
+				else	//bias_direction == H or bias_direction == V.
 				{
 					for (k = 0; k != local_neighbours.size; ++k)
 					{
@@ -507,7 +506,7 @@ implementation
 		}
 
 		//simdbgverbose("stdout", "Location:%u, biased_direction:%u, Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
-		//		location, biased_direction, chosen_address, neighbour_index, rnd, local_neighbours.size);
+		//		sink_location, biased_direction, chosen_address, neighbour_index, rnd, local_neighbours.size);
 
 		return chosen_address;
 	}
@@ -756,26 +755,20 @@ implementation
 		}
 		#endif
 
-		//message.nextMessageType = nextmessagetype;
 
 		if (message.random_walk_hops == RANDOM_WALK_HOPS)
 		{
 			messagetype = ShortRandomWalk;
-			//message.currentMessageTpye = messagetype;
 		}
 		else
 		{
 			messagetype = LongRandomWalk;
-			//message.currentMessageTpye = messagetype;
 		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 		message.biased_direction = 0;	//initialise the biased_direction when first generate message.
-
-		//message.srw_count = srw_count;
-		//message.lrw_count = lrw_count;
 
 		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
@@ -786,7 +779,7 @@ implementation
 
 		target = random_walk_target(message.further_or_closer_set, message.biased_direction, NULL, 0);
 		
-		message.biased_direction = biased;		//initialise biased_direction as UnknownBias. 
+		message.biased_direction = bias_direction;		//initialise biased_direction as UnknownBiasType. 
 
 		// If we don't know who our neighbours are, then we
 		// cannot unicast to one of them.
@@ -954,8 +947,6 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		//srw_count = rcvd -> srw_count;
-		//lrw_count = rcvd -> lrw_count;
 		process_normal(msg, rcvd, source_addr);
 	}
 
