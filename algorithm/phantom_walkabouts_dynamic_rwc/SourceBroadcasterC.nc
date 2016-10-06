@@ -744,7 +744,7 @@ implementation
 		RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + 2;
 		LONG_RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + landmark_sink_distance + 2;
 		
-		if (landmark_sink_distance < 15)
+		if (landmark_sink_distance <= SOURCE_SINK_DISTANCE_LIMIT )
 		{
 			srw_count_dynamic = 0;
 			lrw_count_dynamic = SHORT_COUNT + LONG_COUNT;

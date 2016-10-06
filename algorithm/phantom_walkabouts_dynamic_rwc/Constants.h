@@ -21,5 +21,6 @@ enum Channels
 #define TOPRIGHT 3
 
 #define LONG_RANDOM_WALK_RECEIVE_RATIO 0.4
+#define SOURCE_SINK_DISTANCE_LIMIT 15
 
 #endif // SLP_CONSTANTS_H
