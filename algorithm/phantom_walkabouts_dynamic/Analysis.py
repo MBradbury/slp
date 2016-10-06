@@ -16,8 +16,6 @@ class Analyzer(AnalyzerCommon):
     def results_header():
         d = AnalyzerCommon.common_results_header()
 
-        #d['short walk length']  = lambda x: x.opts['short_walk_length']
-        #d['long walk length']   = lambda x: x.opts['long_walk_length']
         d['short count']        = lambda x: x.opts['short_count']
         d['long count']         = lambda x: x.opts['long_count']
         d['order']              = lambda x: x.opts['order']
