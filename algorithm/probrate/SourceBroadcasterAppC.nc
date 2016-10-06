@@ -34,6 +34,10 @@ implementation
     App.NodeType -> NodeTypeP;
     NodeTypeP.MetricLogging -> MetricLogging;
 
+    components new MessageTypeP(2);
+    App.MessageType -> MessageTypeP;
+    MessageTypeP.MetricLogging -> MetricLogging;
+
     // Radio Control
     components ActiveMessageC;
 

@@ -902,7 +902,7 @@ implementation
 
 			send_Notify_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (call NodeType.is_node_sink() && !sink_received_away_reponse)
+			if (call NodeType.get() == SinkNode && !sink_received_away_reponse)
 			{
 				call AwaySenderTimer.startOneShot(get_away_delay());
 			}
