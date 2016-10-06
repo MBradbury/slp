@@ -51,8 +51,17 @@ if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
     Metrics = importlib.import_module("{}.Metrics".format(module))
 
     # Print out the versions of slp-algorithms-tinyos and tinyos being used
-    slp_algorithms_version = subprocess.check_output("hg id -n -i -b -t", shell=True)
-    tinyos_version = subprocess.check_output("git rev-parse HEAD", shell=True, cwd=os.environ["TOSROOT"])
+    try:
+        slp_algorithms_version = subprocess.check_output("hg id -n -i -b -t", shell=True)
+    except subprocess.CalledProcessError:
+        slp_algorithms_version = "<unknown hg rev>"
+
+    try:
+        tinyos_version = subprocess.check_output("git rev-parse HEAD", shell=True, cwd=os.environ["TOSROOT"])
+    except subprocess.CalledProcessError:
+        tinyos_version = "<unknown git rev>"
+    except KeyError:
+        tinyos_version = "<unknown tinyos dir>"
 
     print("@version:slp-algorithms={}".format(slp_algorithms_version.strip()))
     print("@version:tinyos={}".format(tinyos_version.strip()))
