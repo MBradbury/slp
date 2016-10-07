@@ -186,6 +186,7 @@ implementation
 
 	bool reach_borderline = FALSE;
 	bool slw_init = FALSE;
+	bool phantom_walkabout_dynamic_rwc = FALSE;
 
 	int16_t landmark_bottom_left_distance = BOTTOM;
 	int16_t landmark_bottom_right_distance = BOTTOM;
@@ -724,19 +725,12 @@ implementation
 		NormalMessage message;
 		am_addr_t target;
 		uint16_t random_walk_length;
-		int32_t m1;
-		int32_t m2;
+		int32_t m1 = 0;
+		int32_t m2 = 0;
 
 		const uint32_t source_period = get_source_period();
 
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
-
-		//initialise the short sount and long count.
-		//if (srw_count == 0 && lrw_count == 0)
-		//{
-		//	srw_count = SHORT_COUNT;
-		//	lrw_count = LONG_COUNT;
-		//}
 
 		message_send_no +=1;
 
@@ -755,13 +749,23 @@ implementation
 			lrw_count_dynamic = LONG_COUNT + 1;
 		}
 		
-		m1 = (SHORT_COUNT + LONG_COUNT) * random_walk_length / (SHORT_COUNT - LONG_RANDOM_WALK_RECEIVE_RATIO * LONG_COUNT);		
+		if ( (SHORT_COUNT - LONG_RANDOM_WALK_RECEIVE_RATIO * LONG_COUNT) > 0)
+		{
+			phantom_walkabout_dynamic_rwc = TRUE;
+			m1 = (SHORT_COUNT + LONG_COUNT) * random_walk_length / (SHORT_COUNT - LONG_RANDOM_WALK_RECEIVE_RATIO * LONG_COUNT);
+		}	
+
+		if ( (LONG_RANDOM_WALK_RECEIVE_RATIO * lrw_count_dynamic - srw_count_dynamic) <= 0)
+		{
+			srw_count_dynamic = 0;
+			lrw_count_dynamic = SHORT_COUNT + LONG_COUNT;
+		}
 
 		m2 = (srw_count_dynamic + lrw_count_dynamic) * random_walk_length / (LONG_RANDOM_WALK_RECEIVE_RATIO * lrw_count_dynamic - srw_count_dynamic);
+		
+		//printf("m1 = %d, m2 = %d\n", m1, m2);
 
-		printf("m1 = %d, m2 = %d\n", m1, m2);
-
-		if ( message_send_no > m1 && message_send_no < (m1 + m2) )
+		if ( message_send_no > m1 && message_send_no < (m1 + m2)  && phantom_walkabout_dynamic_rwc == TRUE)
 		{
 			// initialise srw_count_dynamic and lrw_count_dynamic only once
 			if (slw_init == FALSE)
@@ -776,7 +780,7 @@ implementation
 				srw_count = srw_count_dynamic;
 				lrw_count = lrw_count_dynamic;
 			}
-			printf(" <dynamic>: mesage send number: %d, ", message_send_no);
+			//printf(" <dynamic>: mesage send number: %d, ", message_send_no);
 		}
 		else
 		{
@@ -786,7 +790,7 @@ implementation
 				srw_count = SHORT_COUNT;
 				lrw_count = LONG_COUNT;
 			}
-			printf(" <normal>: mesage send number: %d, ", message_send_no);
+			//printf(" <normal>: mesage send number: %d, ", message_send_no);
 		}
 
 
@@ -807,12 +811,12 @@ implementation
 		if (message.random_walk_hops == RANDOM_WALK_HOPS)
 		{
 			messagetype = ShortRandomWalk;
-			printf("short random walk.\n");
+			//printf("short random walk.\n");
 		}
 		else
 		{
 			messagetype = LongRandomWalk;
-			printf("long random walk.\n");
+			//printf("long random walk.\n");
 		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
