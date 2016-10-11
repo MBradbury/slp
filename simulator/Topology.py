@@ -117,6 +117,7 @@ class Grid(Topology):
         self.centre_node = self.topology_nid_to_ordered_nid[(len(self.nodes) - 1) / 2]
         self.bottom_left = self.topology_nid_to_ordered_nid[len(self.nodes) - size]
         self.bottom_right = self.topology_nid_to_ordered_nid[len(self.nodes) - 1]
+        self.bottom_near_right = self.topology_nid_to_ordered_nid[len(self.nodes) - 2]
 
     def __str__(self):
         return "Grid<size={}>".format(self.size)
