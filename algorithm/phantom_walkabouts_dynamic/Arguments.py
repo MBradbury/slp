@@ -46,7 +46,7 @@ class Arguments(ArgumentsCommon):
 
         result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
 
-        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
+        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_near_right
 
         result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
 

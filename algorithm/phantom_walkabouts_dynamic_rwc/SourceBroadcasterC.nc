@@ -217,6 +217,7 @@ implementation
 	uint32_t get_source_period()
 	{
 		assert(call NodeType.get() == SourceNode);
+		//simdbgverbose("stdout", "here\n");
 		return call SourcePeriodModel.get();
 	}
 
@@ -314,8 +315,12 @@ implementation
 					possible_sets |= CloserSet;
 				}
 			}
-			//simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
+			simdbgverbose("stdout", "CloserSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSideSet_neighbours=%d\n",
+			CloserSet_neighbours, FurtherSet_neighbours, CloserSideSet_neighbours, FurtherSideSet_neighbours);
 		}
+
+		simdbgverbose("stdout", "possible_sets=%d, landmark_bottom_left_distance=%d, landmark_bottom_right_distance=%d, landmark_sink_distance=%d\n", 
+				possible_sets, landmark_bottom_left_distance, landmark_bottom_right_distance, landmark_sink_distance);
 
 		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 		{	
@@ -504,7 +509,7 @@ implementation
 					chosen_address = neighbour->address;
 				}
 			}
-			//simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
+			simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
 
 #ifdef SLP_VERBOSE_DEBUG
 			print_distance_neighbours("stdout", &local_neighbours);
@@ -730,6 +735,8 @@ implementation
 
 		const uint32_t source_period = get_source_period();
 
+		simdbgverbose("stdout", "call BroadcastNormalTimer.fired, source_period: %u\n", source_period);
+
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		message_send_no +=1;
@@ -763,7 +770,7 @@ implementation
 
 		m2 = (srw_count_dynamic + lrw_count_dynamic) * random_walk_length / (LONG_RANDOM_WALK_RECEIVE_RATIO * lrw_count_dynamic - srw_count_dynamic);
 		
-		//printf("m1 = %d, m2 = %d\n", m1, m2);
+		//printf("m1=%d, m2 = %d\n", m1, m2);
 
 		if ( message_send_no > m1 && message_send_no < (m1 + m2)  && phantom_walkabout_dynamic_rwc == TRUE)
 		{
@@ -774,12 +781,12 @@ implementation
 				lrw_count = lrw_count_dynamic;
 				slw_init = TRUE;
 			}
-
 			if (srw_count == 0 && lrw_count == 0)
 			{
 				srw_count = srw_count_dynamic;
 				lrw_count = lrw_count_dynamic;
 			}
+
 			//printf(" <dynamic>: mesage send number: %d, ", message_send_no);
 		}
 		else
@@ -841,8 +848,8 @@ implementation
 		{
 			message.broadcast = (target == AM_BROADCAST_ADDR);
 
-			//simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
-			//	sim_time_string(), target, message.further_or_closer_set);
+			simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
+				sim_time_string(), target, message.further_or_closer_set);
 
 			call Packet.clear(&packet);
 
@@ -853,16 +860,19 @@ implementation
 		}
 		else
 		{
-			simdbg("Metric-SOURCE_DROPPED", NXSEQUENCE_NUMBER_SPEC "\n",
+			simdbgverbose("stdout", "target is AM_BROADCAST_ADDR\n");
+			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n",
 				message.sequence_number);
 		}
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
 		{
+			//simdbgverbose("stdout", "call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n");
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + source_period);
 		}
 		else
 		{
+			//simdbgverbose("stdout", "call startOneShot(source_period)\n");
 			call BroadcastNormalTimer.startOneShot(source_period);
 		}
 	}
