@@ -34,7 +34,7 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 
 void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
-	simdbg_clear(name, "[%u] => addr=%u / bl=%d, br=%d, tr=%d, sink_dist=%d",
+	simdbg_clear(name, "[%lu] => addr=%u / bl=%d, br=%d, tr=%d, sink_dist=%d",
 		i, address, contents->bottom_left_distance, contents->bottom_right_distance, contents->top_right_distance, contents->sink_distance);
 }
 
@@ -373,7 +373,7 @@ implementation
 		}
 		else
 		{
-			return UnknownSet;
+			return UnknownSet;		
 		}
 
 	}
@@ -1121,24 +1121,7 @@ implementation
 			sink_br_dist = rcvd->landmark_distance;
 			call DelayBRSenderTimer.startOneShot(3 * 1000);	
 		}
-/*
-		if (BOTTOM_RIGHT_NODE_ID == SINK_NODE_ID)
-		{
-			if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location == SINK)
-			{
-				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(2 * 1000);
-			}
-		}
-		else
-		{
-			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
-			{
-				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(3 * 1000);
-			}
-		}
-*/
+		
 		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 		{
 			sink_tr_dist = rcvd->landmark_distance;
