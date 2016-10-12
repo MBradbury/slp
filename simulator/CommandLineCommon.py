@@ -120,8 +120,8 @@ class CLI(object):
     def _argument_product(self):
         raise NotImplementedError()
 
-    def time_taken_to_safety_period(self, time_taken):
-        return time_taken
+    def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
+        return time_taken - first_normal_sent_time
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         if driver.mode() == "TESTBED":
