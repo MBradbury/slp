@@ -46,8 +46,8 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def time_taken_to_safety_period(self, time_taken):
-        return time_taken * 2.0
+    def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
+        return (time_taken - first_normal_sent_time) * 2.0
 
     def _time_estimater(self, *args):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -66,25 +66,6 @@ class CLI(CommandLineCommon.CLI):
             return datetime.timedelta(hours=24)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
-
-
-    def _run_table(self, args):
-        safety_period_table = safety_period.TableGenerator(
-            self.algorithm_module.result_file_path,
-            self.time_taken_to_safety_period
-        )
-
-        prod = itertools.product(Simulation.available_noise_models(),
-                                 Simulation.available_communication_models())
-
-        for (noise_model, comm_model) in prod:
-
-            print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
-
-            filename = '{}-{}-{}-results'.format(self.algorithm_module.name, noise_model, comm_model)
-
-            self._create_table(filename, safety_period_table,
-                               param_filter=lambda (cm, nm, am, c, d): nm == noise_model and cm == comm_model)
 
     def _run_graph(self, args):
         graph_parameters = {
@@ -131,9 +112,6 @@ class CLI(CommandLineCommon.CLI):
 
     def run(self, args):
         args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
 
         if 'graph' == args.mode:
             self._run_graph(args)
