@@ -25,7 +25,7 @@ class RunSimulations(RunSimulationsCommon):
         if time_taken is None:
             return None
 
-        return 1.3 * time_taken + 2
+        return 1.3 * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
