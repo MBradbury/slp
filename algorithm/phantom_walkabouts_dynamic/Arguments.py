@@ -33,23 +33,17 @@ class Arguments(ArgumentsCommon):
         self.add_argument("--short-count", type=int, required=True)
         self.add_argument("--long-count", type=int, required=True)
 
-        self.add_argument("--landmark-node", default="sink_id")
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
-
-        result["LANDMARK_NODE_ID"] = self._get_node_id(self.args.landmark_node)
 
         result["Biased_No"] = int(self.args.direction_bias *100)
 
         configuration = Configuration.create(self.args.configuration, self.args)
 
         result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
-
-        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_near_right
-
+        result["BOTTOM_RIGHT_NODE_ID"] = topo.topology_nid_to_ordered_nid[topo.ordered_nid_to_topology_nid[topo.bottom_right] - 1]
         result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
-
         result["TOP_RIGHT_NODE_ID"] = configuration.topology.top_right
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)

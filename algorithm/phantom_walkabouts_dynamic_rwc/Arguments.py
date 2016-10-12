@@ -43,10 +43,11 @@ class Arguments(ArgumentsCommon):
         result["Biased_No"] = int(self.args.direction_bias *100)
 
         configuration = Configuration.create(self.args.configuration, self.args)
+        topo = configuration.topology
 
         result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
 
-        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_near_right
+        result["BOTTOM_RIGHT_NODE_ID"] = topo.topology_nid_to_ordered_nid[topo.ordered_nid_to_topology_nid[topo.bottom_right] - 1]
 
         result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
 
