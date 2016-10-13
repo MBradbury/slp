@@ -320,6 +320,38 @@ implementation
 			else					return FurtherSideSet;
 		}
 
+		else if (possible_sets == ( FurtherSet | CloserSideSet | FurtherSideSet))
+		{
+			uint16_t rnd = call Random.rand16() % 3;
+			if(rnd == 0)			return FurtherSet;
+			else if (rnd == 1)		return CloserSideSet;
+			else					return FurtherSideSet;
+		}
+
+		else if (possible_sets == (CloserSet  | CloserSideSet | FurtherSideSet))
+		{
+			uint16_t rnd = call Random.rand16() % 3;
+			if(rnd == 0)			return CloserSet;
+			else if (rnd == 1)		return CloserSideSet;
+			else					return FurtherSideSet;
+		}
+
+		else if (possible_sets == (CloserSet | FurtherSet  | FurtherSideSet))
+		{
+			uint16_t rnd = call Random.rand16() % 3;
+			if(rnd == 0)			return CloserSet;
+			else if (rnd == 1)		return FurtherSet;
+			else					return FurtherSideSet;
+		}
+
+		else if (possible_sets == (CloserSet | FurtherSet | CloserSideSet))
+		{
+			uint16_t rnd = call Random.rand16() % 3;
+			if(rnd == 0)			return CloserSet;
+			else if (rnd == 1)		return FurtherSet;
+			else					return CloserSideSet;			
+		}
+
 		else if (possible_sets == (CloserSet|CloserSideSet))
 		{
 			uint16_t rnd = call Random.rand16() % 2;
@@ -434,8 +466,8 @@ implementation
 			distance_neighbour_detail_t*  neighbour;
 
 			uint16_t rnd = call Random.rand16();
-			uint16_t neighbour_index = rnd % local_neighbours.size;
-			uint16_t brn = rnd % 100; 	//biased random number;
+			uint16_t neighbour_index = rnd % local_neighbours.size;  //randomly choose neighbour index
+			uint16_t brn = rnd % 100; 	//bias random number;
 
 			if (sink_location == UnknownSinkLocation)
 			{
@@ -614,7 +646,20 @@ implementation
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
+			if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
+			{
+				call DelayBLSenderTimer.startOneShot(3 * 1000);	
+			}
 
+			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID )
+			{
+				call DelayBRSenderTimer.startOneShot(5 * 1000);	
+			}
+		
+			if (TOS_NODE_ID == TOP_RIGHT_NODE_ID )
+			{
+				call DelayTRSenderTimer.startOneShot(7 * 1000);
+			}
 		}
 		else
 		{
@@ -636,7 +681,7 @@ implementation
 		{
 			call NodeType.set(SourceNode);
 
-			call BroadcastNormalTimer.startOneShot(6 * 1000);	//wait till beacon messages send finished.
+			call BroadcastNormalTimer.startOneShot(10 * 1000);	//wait till beacon messages send finished.
 		}
 	}
 
@@ -910,10 +955,10 @@ implementation
 				// A node on the path away from, or towards the landmark node
 				// doesn't have anyone to send to.
 				// We do not want to broadcast here as it may lead the attacker towards the source.
-				//if (target == AM_BROADCAST_ADDR)
-				//{
-					//return;
-				//}
+				if (target == AM_BROADCAST_ADDR)
+				{
+					return;
+				}
 				// if the message reach the sink, do not need flood.
 				if (call NodeType.get() == SinkNode)
 				{
@@ -1059,36 +1104,16 @@ implementation
 		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID && rcvd->landmark_location == SINK)
 		{
 			sink_bl_dist = rcvd->landmark_distance;
-			call DelayBLSenderTimer.startOneShot(2 * 1000);	
 		}
 
 		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 		{
-			sink_br_dist = rcvd->landmark_distance;
-			call DelayBRSenderTimer.startOneShot(3 * 1000);	
+			sink_br_dist = rcvd->landmark_distance;	
 		}
-/*
-		if (BOTTOM_RIGHT_NODE_ID == SINK_NODE_ID)
-		{
-			if (TOS_NODE_ID == TOP_LEFT_NODE_ID && rcvd->landmark_location == SINK)
-			{
-				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(2 * 1000);
-			}
-		}
-		else
-		{
-			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
-			{
-				sink_br_dist = rcvd->landmark_distance;
-				call DelayBRSenderTimer.startOneShot(3 * 1000);
-			}
-		}
-*/
+
 		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
 		{
 			sink_tr_dist = rcvd->landmark_distance;
-			call DelayTRSenderTimer.startOneShot(4 * 1000);
 		}
 
 
