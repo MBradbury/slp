@@ -42,7 +42,7 @@ class Arguments(ArgumentsCommon):
         configuration = Configuration.create(self.args.configuration, self.args)
 
         result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
-        result["BOTTOM_RIGHT_NODE_ID"] = topo.topology_nid_to_ordered_nid[topo.ordered_nid_to_topology_nid[topo.bottom_right] - 1]
+        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
         result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
         result["TOP_RIGHT_NODE_ID"] = configuration.topology.top_right
 
