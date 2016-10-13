@@ -15,6 +15,7 @@ class Results(object):
     def __init__(self, result_file, parameters, results, source_period_normalisation=None, network_size_normalisation=None):
         self.parameter_names = list(parameters)
         self.result_names = list(results)
+        self.result_file_name = result_file
 
         self.data = {}
 
@@ -95,7 +96,11 @@ class Results(object):
                     headers = values
 
     def _process(self, name, headers, values):
-        index = headers.index(name)
+        try:
+            index = headers.index(name)
+        except ValueError as ex:
+            raise RuntimeError("Unable to read '{}' from the result file '{}'.".format(name, self.result_file_name))
+
         value = values[index]
 
         if name == 'captured':
