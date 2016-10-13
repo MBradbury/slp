@@ -44,15 +44,13 @@ class Arguments(ArgumentsCommon):
         result["RANDOM_WALK_HOPS"] = int(self.args.short_walk_length)
         result["LONG_RANDOM_WALK_HOPS"] = int(self.args.long_walk_length)
 
-        result["LANDMARK_NODE_ID"] = self._get_node_id(self.args.landmark_node)
-
         result["Biased_No"] = int(self.args.direction_bias *100)
 
         configuration = Configuration.create(self.args.configuration, self.args)
 
         result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
 
-        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_near_right
+        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
 
         result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
 
