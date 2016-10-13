@@ -65,6 +65,7 @@ class Analyzer(AnalyzerCommon):
         d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
+        d['first normal sent time'] = lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
 
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
         
