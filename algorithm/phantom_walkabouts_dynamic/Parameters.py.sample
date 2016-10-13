@@ -1,21 +1,22 @@
+
 distance = 4.5
 
 noise_models = ["meyer-heavy"]
 
 communication_models = ["ideal"]
 
-sizes = [11, 15, 21, 25]
+sizes = [11]
 
-source_periods = [0.25, 0.5, 1.0, 2.0]
+source_periods = [1.0]
 
 configurations = [
     'SourceCorner',
-    'Source2CornerTop',
-    'Source3CornerTop',
+    #'Source2CornerTop',
+    #'Source3CornerTop',
 
-    'SinkCorner',
-    'SinkCorner2Source',
-    'SinkCorner3Source',
+    #'SinkCorner',
+    #'SinkCorner2Source',
+    #'SinkCorner3Source',
 
     #'FurtherSinkCorner',
     #'FurtherSinkCorner2Source',
@@ -30,7 +31,7 @@ random_walk_types = [
 
 attacker_models = ['SeqNosReactiveAttacker()']
 
-latest_node_start_time = 1.0 # in seconds
+latest_node_start_time = 1 # in seconds
 
 node_id_orders = ['topology']
 
@@ -46,4 +47,4 @@ wait_before_short = [0]
 short_counts = [1]
 long_counts = [1]
 
-repeats = 300
+repeats = 1000
