@@ -1,8 +1,6 @@
-from __future__ import division
+from __future__ import print_function, division
 
 from simulator.MetricsCommon import MetricsCommon
-
-from numpy import mean
 
 class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
@@ -16,20 +14,23 @@ class Metrics(MetricsCommon):
         self._source_dropped = []
         self._path_dropped = []
 
-    def _process_PATH_END(self, line):
-        (time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
+    def _process_PATH_END(self, d_or_e, node_id, time, detail):
+        (proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
 
-        self._paths_reached_end.append((ultimate_source_id, sequence_number))
+        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
+        sequence_number = int(sequence_number)
 
-    def _process_SOURCE_DROPPED(self, line):
-        (time, node_id, sequence_number) = line.split(',')
+        self._paths_reached_end.append((top_ultimate_source_id, sequence_number))
+
+    def _process_SOURCE_DROPPED(self, d_or_e, node_id, time, detail):
+        (sequence_number,) = detail.split(',')
 
         time = float(time)
 
         self._source_dropped.append(time)
 
-    def _process_PATH_DROPPED(self, line):
-        (time, node_id, sequence_number, source_distance) = line.split(',')
+    def _process_PATH_DROPPED(self, d_or_e, node_id, time, detail):
+        (sequence_number, source_distance) = detail.split(',')
 
         source_distance = int(source_distance)
 
