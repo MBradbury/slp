@@ -47,7 +47,8 @@ class Arguments(ArgumentsCommon):
 
         result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
 
-        result["BOTTOM_RIGHT_NODE_ID"] = topo.topology_nid_to_ordered_nid[topo.ordered_nid_to_topology_nid[topo.bottom_right] - 1]
+        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
+        #result["BOTTOM_RIGHT_NODE_ID"] = topo.topology_nid_to_ordered_nid[topo.ordered_nid_to_topology_nid[topo.bottom_right] - 1]
 
         result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
 
