@@ -72,6 +72,7 @@ module SourceBroadcasterC
 	uses interface MetricLogging;
 
 	uses interface NodeType;
+	uses interface MessageType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
