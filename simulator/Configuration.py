@@ -361,6 +361,38 @@ class RingOpposite(Configuration):
             space_behind_sink=True
         )
 
+class CircleSinkCentre(Configuration):
+    def __init__(self, *args):
+        circle = Circle(*args)
+
+        super(CircleSinkCentre, self).__init__(
+            circle,
+            source_ids={5},
+            sink_id=circle.ordered_nid_to_topology_nid[circle.centre_node],
+            space_behind_sink=True
+        )
+
+class CircleSourceCentre(Configuration):
+    def __init__(self, *args):
+        circle = Circle(*args)
+
+        super(CircleSourceCentre, self).__init__(
+            circle,
+            source_ids={circle.ordered_nid_to_topology_nid[circle.centre_node]},
+            sink_id=5,
+            space_behind_sink=False
+        )
+
+class CircleEdges(Configuration):
+    def __init__(self, *args):
+        circle = Circle(*args)
+
+        super(CircleEdges, self).__init__(
+            circle,
+            source_ids={len(circle.nodes) - 5 - 1},
+            sink_id=5,
+            space_behind_sink=False
+        )
 
 class Source2Corners(Configuration):
     def __init__(self, *args):
