@@ -1,4 +1,3 @@
-
 # Setup System Requirements
 
 The following commands will get you set up with TinyOS and the slp-algorithms-tinyos framework on your local machine.
@@ -7,18 +6,16 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
    Other OSes will need to install these packages in a different way.
    You may need to prefix commands with "sudo" to install using admin privileges.
 
-   ```bash
-   sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make
-   ```
+        :::bash
+        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make
 
    Python 2 or 3 is supported, but python 2 is recommended as it is faster.
 
 2. Install python libraries
 
-   ```bash
-   pip install scipy numpy cython pandas more_itertools shutilwhich psutil pip --upgrade
-   pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
-   ```
+        :::bash
+        pip install scipy numpy cython pandas more_itertools shutilwhich psutil pip --upgrade
+        pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
 
    Make sure to prefix these commands with ```sudo``` if installing for the system python.
 
@@ -49,11 +46,10 @@ Please ensure that you install the python packages using pip after setting up py
 
 1. Setup directory structure
 
-   ```bash
-   cd ~
-   mkdir wsn
-   cd wsn
-   ```
+        :::bash
+        cd ~
+        mkdir wsn
+        cd wsn
 
 2. Clone the SLP simulation framework
 
@@ -61,53 +57,47 @@ Please ensure that you install the python packages using pip after setting up py
    own repository to push changes to. You can do this on bitbucket.org.
 
    * Anonymously:
-     ```bash
-     hg clone https://MBradbury@bitbucket.org/MBradbury/slp-algorithms-tinyos
-     ```
+
+        :::bash
+        hg clone https://MBradbury@bitbucket.org/MBradbury/slp-algorithms-tinyos
 
    * With a username (one of the following):
-     ```bash
-     hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos
-     ```
-     ```bash
-     hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos
-     ```
+
+        :::bash
+        hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos
+
+        hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos
 
 You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
 
 # Setup TinyOS
 
 1. Clone the tinyos fork 
-   ```bash
-   cd ~/wsn
-   git clone -b bradbury_2_1_2 https://github.com/MBradbury/tinyos-main.git
-   ```
+        :::bash
+        cd ~/wsn
+        git clone -b bradbury_2_1_2 https://github.com/MBradbury/tinyos-main.git
 
    There should now be a folder at ~/wsn/tinyos-main.
 
 2. Create ~/tinyos.env with the following contents
 
-   ```bash
-   export TOSROOT="<fill in path to tinyos repo here>"
-   export TOSDIR="$TOSROOT/tos"
-   export CLASSPATH="$CLASSPATH:$TOSROOT/support/sdk/java:$TOSROOT/support/sdk/java/tinyos.jar"
-   export MAKERULES="$TOSROOT/support/make/Makerules"
-   export PYTHONPATH="$PYTHONPATH:$TOSROOT/support/sdk/python"
-   ```
+        :::bash
+        export TOSROOT="<fill in path to tinyos repo here>"
+        export TOSDIR="$TOSROOT/tos"
+        export CLASSPATH="$CLASSPATH:$TOSROOT/support/sdk/java:$TOSROOT/support/sdk/java/tinyos.jar"
+        export MAKERULES="$TOSROOT/support/make/Makerules"
+        export PYTHONPATH="$PYTHONPATH:$TOSROOT/support/sdk/python"
 
    Replace <fill in path to tinyos repo here> with the path to the tinyos repo.
 
 3. Add the following to ~/.bashrc before any interactivity check
 
-   ```bash
-   source ~/tinyos.env
-   ```
-
+        :::bash
+        source ~/tinyos.env
    Then run the following:
 
-   ```bash
-   source ~/.bashrc
-   ```
+        :::bash
+        source ~/.bashrc
 
 4. Install TinyOS dependencies
 
@@ -116,33 +106,28 @@ You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
 
    1. Add the TinyProd signing key
 
-      ```bash
-      wget -O - http://tinyprod.net/repos/debian/tinyprod.key | sudo apt-key add -
-      ```
+        :::bash
+        wget -O - http://tinyprod.net/repos/debian/tinyprod.key | sudo apt-key add -
 
    2. Specify the apt-get sources
 
       Add a file called "/etc/apt/sources.list.d/tinyprod-debian.list" with the following contents:
 
-      ```
-      deb http://tinyprod.net/repos/debian wheezy main
-      deb http://tinyprod.net/repos/debian msp430-46 main
-      deb http://tinyos.stanford.edu/tinyos/dists/ubuntu lucid main
-      ```
+        deb http://tinyprod.net/repos/debian wheezy main
+        deb http://tinyprod.net/repos/debian msp430-46 main
+        deb http://tinyos.stanford.edu/tinyos/dists/ubuntu lucid main
 
    3. Install the dependencies
 
-      ```bash
-      sudo apt-get update
-      sudo apt-get install nesc tinyos-tools msp430-46 avr-tinyos
-      ```
+        :::bash
+        sudo apt-get update
+        sudo apt-get install nesc tinyos-tools msp430-46 avr-tinyos
 
    4. Test tinyos worked
 
-      ```bash
-      cd ~/wsn/tinyos-main/apps/Blink
-      make micaz sim
-      ```
+        :::bash
+        cd ~/wsn/tinyos-main/apps/Blink
+        make micaz sim
 
       You should see an output that contains "*** Successfully built micaz TOSSIM library".
 
