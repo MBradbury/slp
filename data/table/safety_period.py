@@ -118,7 +118,7 @@ class TableGenerator:
 
                 individual_results = [items[tuple()][index] for index in indexes]
 
-                result.setdefault(table_key, {})[source_period] = accessor(*individual_result)
+                result.setdefault(table_key, {})[source_period] = accessor(*individual_results)
 
         return result
 

@@ -298,6 +298,44 @@ class SingleTypeReactiveAttacker(Attacker):
         seqno_key = (ult_from_id, msg_type)
         self._sequence_numbers[seqno_key] = sequence_number
 
+class SingleSourceZoomingAttacker(Attacker):
+    """
+    This attacker can determine the source node of certain messages
+    that can be sent from multiple sources. This attacker focuses
+    on zooming in on one source id. If that node does not have a source
+    present, then it will ignore messages from that node in the future.
+    """
+    def __init__(self):
+        super(SingleSourceZoomingAttacker, self).__init__()
+        self._sequence_numbers = {}
+        self._current_node_target = None
+        self._discarded_node_targets = {}
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type)
+
+        if ult_from_id in self._discarded_node_targets:
+            return False
+
+        if self._current_node_target is None:
+            self._current_node_target = ult_from_id
+
+        if self._current_node_target != ult_from_id:
+            return False
+
+        return msg_type in _messages_without_sequence_numbers or \
+               self._sequence_numbers.get(seqno_key, -1) < sequence_number
+
+    def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type)
+        self._sequence_numbers[seqno_key] = sequence_number
+
+        # Ignore messages from this node in the future
+        if self.position == self._current_node_target and not self._has_found_source:
+            self._current_node_target = None
+            self._discarded_node_targets.add(self.position)
+
+
 class CollaborativeSeqNosReactiveAttacker(Attacker):
     def __init__(self):
         super(CollaborativeSeqNosReactiveAttacker, self).__init__()
