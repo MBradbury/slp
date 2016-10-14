@@ -51,13 +51,13 @@ class CLI(CommandLineCommon.CLI):
         names = self.parameter_names()
         size = args[names.index('network size')]
         if size == 11:
-            return datetime.timedelta(hours=4)
+            return datetime.timedelta(hours=1)
         elif size == 15:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=1)
         elif size == 21:
-            return datetime.timedelta(hours=16)
+            return datetime.timedelta(hours=1)
         elif size == 25:
-            return datetime.timedelta(hours=32)
+            return datetime.timedelta(hours=1)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
