@@ -102,7 +102,7 @@ class MetricsCommon(object):
                     self.normal_sent_time[(top_node_id, sequence_number)] = time
 
                     # Handle starting the duration timeout in the simulation running
-                    self.sim.tossim.triggerRunDurationStart()
+                    self.sim.trigger_duration_run_start(time)
 
     def process_RCV(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
