@@ -134,14 +134,18 @@ class Circle(Topology):
         mid_point = (diameter - 1) / 2
         centre_node_pos = np.array((mid_point * distance, mid_point * distance), dtype=np.float64)
 
-        for (nid, (y, x)) in enumerate(itertools.product(line, line)):
-            position = np.array((x * distance, y * distance), dtype=np.float64)
-            distance = self.coord_distance_meters(centre_node_pos, position) 
+        for (y, x) in itertools.product(line, line):
 
-            if distance < self.diameter / 2.0:
+            position = np.array((x * distance, y * distance), dtype=np.float64)
+
+            dist = self.coord_distance_meters(centre_node_pos, position)
+
+            if dist <= self.diameter / 2.0:
+                nid = len(self.nodes)
+
                 self.nodes[nid] = position
 
-                if distance == 0:
+                if np.isclose(dist, 0):
                     self.centre_node = nid
 
         self._process_node_id_order(node_id_order)
