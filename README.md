@@ -37,11 +37,21 @@
    source ~/tinyos.env
    ```
 
+   Then run the following:
+
+   ```bash
+   source ~/.bashrc
+   ```
+
+   ```bash
+   sudo apt-get install liblapack-dev python-pip python-dev g++ gfortran
+   ```
+
 5. Install python libraries
 
    ```bash
-   pip install scipy numpy pandas more_itertools shutilwhich psutil pip --upgrade
-   pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
+   sudo pip install scipy numpy cython pandas more_itertools shutilwhich psutil pip --upgrade
+   pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
    ```
 
 ## Using pyenv (general)
