@@ -1,6 +1,6 @@
 from __future__ import division
 
-from data.analysis import Analyse, AnalysisResults, AnalyzerCommon
+from data.analysis import Analyse, AnalyzerCommon
 
 from simulator import SourcePeriodModel
 
