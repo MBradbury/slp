@@ -114,7 +114,7 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         custom_yaxis_range_max = {
-            'captured': 80,
+            'captured': 50,
             'sent': 30000
         }
 
@@ -144,156 +144,6 @@ class CLI(CommandLineCommon.CLI):
                     self.algorithm_module.name + '-' + name
                 ).run()
 
-    def _run_scatter_graph(self, args):
-        from data.graph import scatter
-
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-        }
-
-        phantom_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation="NumSources"
-        )
-
-        combine = ["short walk length", "long walk length"]
-
-        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-
-            name = '{}-comb-{}'.format(yaxis.replace(" ", "_"), "=".join(combine).replace(" ", "-"))
-
-            g = scatter.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yaxis, combine=combine,
-                yextractor=scalar_extractor
-            )
-
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = yaxis_label
-            g.key_position = key_position
-
-            g.create(phantom_results)
-
-            summary.GraphSummary(
-                self.algorithm_module.graphs_path,
-                self.algorithm_module.name + '-' + name
-            ).run()
-
-    def _run_best_worst_average_graph(self, args):
-        from data.graph import best_worst_average_versus
-
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-        }
-
-        phantom_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation="NumSources"
-        )
-
-        custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 20000
-        }
-
-        combine = ["short walk length", "long walk length"]
-
-        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-
-            name = '{}-bwa-{}'.format(yaxis.replace(" ", "_"), "=".join(combine).replace(" ", "-"))
-
-            g = best_worst_average_versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yaxis, vary=combine,
-                yextractor=scalar_extractor
-            )
-
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = yaxis_label
-            g.key_position = key_position
-
-            if yaxis in custom_yaxis_range_max:
-                g.yaxis_range_max = custom_yaxis_range_max[yaxis]
-
-            g.create(phantom_results)
-
-            summary.GraphSummary(
-                self.algorithm_module.graphs_path,
-                self.algorithm_module.name + '-' + name
-            ).run()
-
-    def _run_average_graph(self, args):
-        from data.graph import combine_versus
-
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-        }
-
-        phantom_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation="NumSources"
-        )
-
-        custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 20000
-        }
-
-        combine = ["short walk length", "long walk length"]
-
-        parameters = [
-            ('source period', ' seconds'),
-        ]
-
-        for (parameter_name, parameter_unit) in parameters:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-
-                name = '{}-v-{}-i-{}'.format(
-                    yaxis.replace(" ", "_"),
-                    parameter_name.replace(" ", "-"),
-                    "=".join(combine).replace(" ", "-")
-                )
-
-                g = combine_versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=parameter_name, combine=combine, combine_function=np.mean,
-                    yextractor=scalar_extractor
-                )
-
-                g.xaxis_label = 'Network Size'
-                g.yaxis_label = yaxis_label
-                g.vary_label = parameter_name.title()
-                g.vary_prefix = parameter_unit
-                g.key_position = key_position
-
-                if yaxis in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
-
-                g.create(phantom_results)
-
-                summary.GraphSummary(
-                    self.algorithm_module.graphs_path,
-                    self.algorithm_module.name + '-' + name
-                ).run()
-
     def run(self, args):
         args = super(CLI, self).run(args)
 
@@ -302,12 +152,3 @@ class CLI(CommandLineCommon.CLI):
 
         if 'graph' == args.mode:
             self._run_graph(args)
-
-        if 'average-graph' == args.mode:
-            self._run_average_graph(args)
-
-        if 'scatter-graph' == args.mode:
-            self._run_scatter_graph(args)
-
-        if 'best-worst-average-graph' == args.mode:
-            self._run_best_worst_average_graph(args)
