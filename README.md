@@ -336,3 +336,35 @@ This can be done in two ways (#2 is recommended, as I tend to forget to do #1):
 1. By specifying "--notify=<email address>" when submitting your jobs.
 
 2. By editing your ~/.bashrc to contain "export SLP_NOTIFY_EMAILS=<email address>"
+
+# Faster analysis
+
+Analysing results may be slow depending on how many are present.
+
+Your first attempt to speed up the analysis is to ask the analysis to use more threads.
+A good number of threads will vary from machine to machine. I usually use the total number
+of physical cores present on the machine, if it has HT. If not, I use the number of physical
+cores minus 1.
+
+```bash
+./create.py <algorithm> analyse --thread-count 4
+```
+
+If that is still fairly slow, you can compile the analysis code to c.
+
+Make sure cython is installed first.
+```bash
+pip install cython
+```
+
+Then make sure you are in the root of slp-algorithms-tinyos before cythonising analysis.
+Once cythonised, the analysis script is run as usual.
+```bash
+cd slp-algorithms-tinyos
+./scripts/cythonise_analysis.sh
+./create.py <algorithm> analyse --thread-count 4
+```
+
+A very important thing to note is that if you make any change to data/analysis.py
+then you MUST rerun ./scripts/cythonise_analysis.sh. This may happen when you pull
+from another repo. If you do not then analysis may not work properly.
