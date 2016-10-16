@@ -26,7 +26,7 @@ admin permissions to use pip install, then pyenv is a good alternative.
 
 ```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-MAKE_OPTS=profile-opt pyenv install 2.7.12
+CONFIGURE_OPTS="--with-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
 pyenv global 2.7.12
 ```
 
