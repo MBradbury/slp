@@ -1,6 +1,7 @@
 from __future__ import division
 
-import math, subprocess
+import math
+import subprocess
 
 def name():
     return __name__

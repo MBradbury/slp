@@ -1,4 +1,8 @@
-import os, subprocess, math
+from __future__ import division
+
+import os
+import math
+import subprocess
 
 def name():
     return __name__

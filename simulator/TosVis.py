@@ -273,7 +273,7 @@ class GuiSimulation(Simulation):
 
         self._node_label = args.gui_node_label
 
-        self._gui = Gui(self, node_position_scale_factor=args.gui_scale)
+        self.gui = Gui(self, node_position_scale_factor=args.gui_scale)
 
         if self._node_label is not None:
             variables = self.nesc_app.variables.variables()[0::3]
@@ -292,7 +292,7 @@ class GuiSimulation(Simulation):
                 if value == "<no such variable>":
                     raise RuntimeError("Tossim was unable to find the variable '{}'.".format(self._node_label))
 
-                self._gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
+                self.gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 
 ###############################################
 
@@ -304,4 +304,4 @@ class GuiOfflineSimulation(OfflineSimulation):
             args=args,
             log_filename=log_filename)
         
-        self._gui = Gui(self, node_position_scale_factor=args.gui_scale)
+        self.gui = Gui(self, node_position_scale_factor=args.gui_scale)
