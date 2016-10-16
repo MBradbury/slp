@@ -389,13 +389,13 @@ class MetricsCommon(object):
         return total_count
 
     @staticmethod
-    def smaller_dict_str(d):
-        return str(d).replace(": ", ":").replace(", ", ",")
+    def smaller_dict_str(dict_result):
+        return str(dict_result).replace(": ", ":").replace(", ", ",")
 
     @staticmethod
-    def compressed_dict_str(d):
-        d = MetricsCommon.smaller_dict_str(d)
-        return base64.b64encode(zlib.compress(d, 9))
+    def compressed_dict_str(dict_result):
+        dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result).encode("utf-8")
+        return base64.b64encode(zlib.compress(dict_result_bytes, 9))
 
     @staticmethod
     def items():

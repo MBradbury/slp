@@ -77,7 +77,7 @@ class Topology(object):
         else:
             raise RuntimeError("Unknown node id order {}".format(node_id_order))
 
-        self.ordered_ids = self.nodes.keys()
+        self.ordered_ids = list(self.nodes.keys())
 
 class Line(Topology):
     def __init__(self, size, distance, node_id_order, seed=None):
