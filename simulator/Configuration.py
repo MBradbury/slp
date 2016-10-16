@@ -61,7 +61,7 @@ class Configuration(object):
         if not hasattr(self.topology, "distance"):
             return
 
-        coords = self.topology.nodes.values()
+        coords = list(self.topology.nodes.values())
 
         self._dist_matrix_meters = cdist(coords, coords, 'euclidean')
 
