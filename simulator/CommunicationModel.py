@@ -15,10 +15,10 @@ except ImportError:
 from data.restricted_eval import restricted_eval
 
 class CommunicationModel(object):
-    def __init__(self):
+    def __init__(self, white_gausian_noise):
         self.noise_floor = None
         self.link_gain = None
-        self.white_gausian_noise = None
+        self.white_gausian_noise = white_gausian_noise
 
     def setup(self, sim):
         """Set up the communication model, using parameters from the provided simulation."""
@@ -26,7 +26,7 @@ class CommunicationModel(object):
 
 class LinkLayerCommunicationModel(CommunicationModel):
     def __init__(self, path_loss_exponent, shadowing_stddev, d0, pl_d0, noise_floor, s, white_gausian_noise):
-        super(LinkLayerCommunicationModel, self).__init__()
+        super(LinkLayerCommunicationModel, self).__init__(white_gausian_noise)
 
         # Argument validity checking
         if s[0,1] != s[1,0]:
@@ -45,7 +45,6 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.pl_d0 = pl_d0
         self.noise_floor_pn = noise_floor
         self.s = s
-        self.white_gausian_noise = white_gausian_noise
 
         self.output_power_var = None
 
@@ -62,7 +61,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         num_nodes = len(nodes)
 
-        self.noise_floor = np.zeros(num_nodes, dtype=np.float64)
+        self.noise_floor = np.full(num_nodes, self.noise_floor_pn, dtype=np.float64)
         self.output_power_var = np.zeros(num_nodes, dtype=np.float64)
         self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
 
@@ -81,29 +80,30 @@ class LinkLayerCommunicationModel(CommunicationModel):
                     distance, i, ni, j, nj, self.d0))
 
     def _obtain_radio_pt_pn(self, nodes, rng):
-
         s = self.s
-        t = np.zeros((2, 2), dtype=np.float64)
+        t00 = 0.0
+        t01 = 0.0
+        t11 = 0.0
 
         if s[0,0] == 0 and s[1,1] == 0:
             pass
 
         else:
             t00 = sqrt(s[0,0])
-
-            t[0,0] = t00
-            t[0,1] = s[0,1] / t00
-            t[1,0] = 0.0
-            t[1,1] = sqrt((s[0,0] * s[1,1] - s[0,1] * s[0,1]) / s[0,0])
+            t01 = s[0,1] / t00
+            t11 = sqrt((s[0,0] * s[1,1] - s[0,1] * s[0,1]) / s[0,0])
 
         rg = rng.gauss
+
+        nf = self.noise_floor
+        opv = self.output_power_var
 
         for (i, ni) in enumerate(nodes):
             rnd1 = rg(0, 1)
             rnd2 = rg(0, 1)
 
-            self.noise_floor[i] = self.noise_floor_pn + t[0,0] * rnd1
-            self.output_power_var[i] = t[0,1] * rnd1 + t[1,1] * rnd2
+            nf[i] += t00 * rnd1
+            opv[i] = t01 * rnd1 + t11 * rnd2
 
     def _obtain_link_gain(self, nodes, rng):
         rg = rng.gauss
@@ -128,11 +128,10 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
 class IdealCommunicationModel(CommunicationModel):
     def __init__(self, connection_strength, noise_floor_pn, white_gausian_noise):
-        super(IdealCommunicationModel, self).__init__()
+        super(IdealCommunicationModel, self).__init__(white_gausian_noise)
 
         self.connection_strength = connection_strength
         self.noise_floor_pn = noise_floor_pn
-        self.white_gausian_noise = white_gausian_noise
 
     def setup(self, sim):
         nodes = sim.configuration.topology.nodes.values()
