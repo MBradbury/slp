@@ -34,8 +34,8 @@ def copy_back(dirname):
 def submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
 
-    # Don't submit, just print the command
     class DummySubmitter(Submitter):
+        """Don't submit, just print the command"""
         def _submit_job(self, command):
             print(command)
 
@@ -56,8 +56,8 @@ def submitter(notify_emails=None):
 def array_submitter(notify_emails=None):
     from data.run.driver.cluster_submitter import Runner as Submitter
 
-    # Don't submit, just print the command
     class DummySubmitter(Submitter):
+        """Don't submit, just print the command"""
         def _submit_job(self, command):
             print(command)
 

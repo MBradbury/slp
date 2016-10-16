@@ -7,6 +7,7 @@ import subprocess
 import data.util
 
 def print_header(stream):
+    """Print the document header which imports required packages."""
     print('\\documentclass[a4paper,notitlepage]{article}', file=stream)
     print('\\usepackage[margin=0.5cm]{geometry}', file=stream)
     print('\\usepackage{multirow}', file=stream)
@@ -27,9 +28,12 @@ def print_header(stream):
     print('\\begin{document}', file=stream)
 
 def print_footer(stream):
+    """Prints the document footer which ends the document."""
     print('\\end{document}', file=stream)
 
 def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmode"):
+    """Compile the latex document at :path_and_name:.
+    Extra outputs other than the pdf will be removed."""
     (path, name_with_ext) = os.path.split(path_and_name)
     (name_without_ext, ext) = os.path.splitext(name_with_ext)
 
@@ -41,7 +45,7 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
         subprocess.call(command, shell=True)
 
     finally:
-        exts_to_remove = [".log", ".aux", ".dvi", ".out", ".synctex.gz"]
+        exts_to_remove = (".log", ".aux", ".dvi", ".out", ".synctex.gz")
 
         for ext_to_remove in exts_to_remove:
             data.util.silent_remove(os.path.join(path, name_without_ext + ext_to_remove))
@@ -69,7 +73,7 @@ def escape(text):
     }
 
     regex = re.compile('|'.join(re.escape(unicode(key))
-                       for key
-                       in sorted(conv.keys(), key=lambda item: - len(item))))
+                                for key
+                                in sorted(conv.keys(), key=lambda item: - len(item))))
 
     return regex.sub(lambda match: conv[match.group()], text)

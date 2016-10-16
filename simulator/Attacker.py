@@ -8,11 +8,11 @@ from data.restricted_eval import restricted_eval
 
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
-_messages_without_sequence_numbers = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon', 'Inform', 'Search', 'Change', 'EmptyNormal'}
+MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon', 'Inform', 'Search', 'Change', 'EmptyNormal'}
 
 # An attacker can detect these are not messages to follow,
 # so the attacker will ignore these messages.
-_messages_to_ignore = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon', 'Inform', 'Search', 'Change'}
+MESSAGES_TO_IGNORE = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon', 'Inform', 'Search', 'Change'}
 
 class Attacker(object):
     def __init__(self):
@@ -34,7 +34,7 @@ class Attacker(object):
         self._sim = sim
         self.ident = ident
 
-        self._sim.register_output_handler('A-R', self.process_ATTACKER_RCV)
+        self._sim.register_output_handler('A-R', self.process_attacker_rcv_event)
 
         self.position = start_node_id
         self._has_found_source = self.found_source_slow()
@@ -51,7 +51,7 @@ class Attacker(object):
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         pass
 
-    def process_ATTACKER_RCV(self, d_or_e, node_id, time, detail):
+    def process_attacker_rcv_event(self, d_or_e, node_id, time, detail):
         # Don't want to move if the source has been found
         if self._has_found_source:
             return
@@ -62,7 +62,7 @@ class Attacker(object):
 
         # Doesn't want to process this message if we are not on the correct node,
         # or if this is a message the attacker knows to ignore
-        if self.position != node_id or msg_type in _messages_to_ignore:
+        if self.position != node_id or msg_type in MESSAGES_TO_IGNORE:
             return
 
         time = float(time)
@@ -141,10 +141,10 @@ class Attacker(object):
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
-        if not hasattr(self._sim, "_gui"):
+        if not hasattr(self._sim, "gui"):
             return
 
-        (x, y) = self._sim._gui.node_location(node_id)
+        (x, y) = self._sim.gui.node_location(node_id)
 
         shape_id = "attacker{}".format(self.ident)
 
@@ -154,8 +154,8 @@ class Attacker(object):
 
         time = self._sim.sim_time()
 
-        self._sim._gui.scene.execute(time, 'delshape("{}")'.format(shape_id))
-        self._sim._gui.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
+        self._sim.gui.scene.execute(time, 'delshape("{}")'.format(shape_id))
+        self._sim.gui.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
 
     def __str__(self):
         return type(self).__name__ + "()"
@@ -253,7 +253,7 @@ class SeqNoReactiveAttacker(Attacker):
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = msg_type
-        return msg_type in _messages_without_sequence_numbers or \
+        return msg_type in MESSAGES_WITHOUT_SEQUENCE_NUMBERS or \
                self._sequence_numbers.get(seqno_key, -1) < sequence_number
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -271,7 +271,7 @@ class SeqNosReactiveAttacker(Attacker):
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
-        return msg_type in _messages_without_sequence_numbers or \
+        return msg_type in MESSAGES_WITHOUT_SEQUENCE_NUMBERS or \
                self._sequence_numbers.get(seqno_key, -1) < sequence_number
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -323,7 +323,7 @@ class SingleSourceZoomingAttacker(Attacker):
         if self._current_node_target != ult_from_id:
             return False
 
-        return msg_type in _messages_without_sequence_numbers or \
+        return msg_type in MESSAGES_WITHOUT_SEQUENCE_NUMBERS or \
                self._sequence_numbers.get(seqno_key, -1) < sequence_number
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -352,7 +352,7 @@ class CollaborativeSeqNosReactiveAttacker(Attacker):
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
-        return msg_type in _messages_without_sequence_numbers or \
+        return msg_type in MESSAGES_WITHOUT_SEQUENCE_NUMBERS or \
                (not self._other_attackers_responded(seqno_key, sequence_number) and
                 self._sequence_numbers.get(seqno_key, -1) < sequence_number)
 
@@ -378,7 +378,7 @@ class TimedBacktrackingAttacker(Attacker):
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         seqno_key = (ult_from_id, msg_type)
-        return msg_type in _messages_without_sequence_numbers or \
+        return msg_type in MESSAGES_WITHOUT_SEQUENCE_NUMBERS or \
                self._sequence_numbers.get(seqno_key, -1) < sequence_number
 
     def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):

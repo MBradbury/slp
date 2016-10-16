@@ -28,22 +28,23 @@ import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
-def bytes2human(n):
+def bytes2human(num):
+    """Converts a number of bytes to a human readable string
     # From: https://github.com/giampaolo/psutil/blob/master/scripts/meminfo.py
     # http://code.activestate.com/recipes/578019
     # >>> bytes2human(10000)
     # '9.8K'
     # >>> bytes2human(100001221)
-    # '95.4M'
+    # '95.4M'"""
     symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
     prefix = {}
-    for i, s in enumerate(symbols):
-        prefix[s] = 1 << (i + 1) * 10
-    for s in reversed(symbols):
-        if n >= prefix[s]:
-            value = float(n) / prefix[s]
-            return '%.1f%s' % (value, s)
-    return "%sB" % n
+    for i, symb in enumerate(symbols):
+        prefix[symb] = 1 << (i + 1) * 10
+    for symb in reversed(symbols):
+        if num >= prefix[symb]:
+            value = float(num) / prefix[symb]
+            return '%.1f%s' % (value, symb)
+    return "%sB" % num
 
 def pprint_ntuple(nt):
     # From: https://github.com/giampaolo/psutil/blob/master/scripts/meminfo.py
@@ -284,7 +285,8 @@ class Analyse(object):
         # Work out dtypes for other sent messages
         self.HEADING_DTYPES.update({name: np.uint32 for name in self.unnormalised_headings if name.endswith('Sent')})
 
-        self.columns = pd.read_csv(infile_path,
+        self.columns = pd.read_csv(
+            infile_path,
             names=self.unnormalised_headings, header=None,
             sep='|',
             skiprows=line_number,
@@ -350,7 +352,8 @@ class Analyse(object):
 
                     #axis=1 means to apply per row
                     columns_to_add[norm_head] = self.columns.apply(self._get_norm_value,
-                                                                 axis=1, raw=True, reduce=True, args=(num, den, constants))
+                                                                   axis=1, raw=True, reduce=True,
+                                                                   args=(num, den, constants))
 
             print("Merging normalised columns with the loaded data...")
             self.normalised_columns = pd.concat(columns_to_add, axis=1, ignore_index=True, copy=False)
@@ -576,7 +579,7 @@ class AnalysisResults(object):
                 if heading not in expected_fail:
                     print("Failed to average {}: {}".format(heading, ex), file=sys.stderr)
                     #print(traceback.format_exc(), file=sys.stderr)
-            
+
             try:
                 self.variance_of[heading] = analysis.variance_of(heading)
             except NotImplementedError:
@@ -681,7 +684,9 @@ class AnalyzerCommon(object):
         return result
 
     def run(self, summary_file, nprocs=None):
-        """Perform the analysis and write the output to the :summary_file:"""
+        """Perform the analysis and write the output to the :summary_file:.
+        If :nprocs: is not specified then the number of CPU cores will be used.
+        """
 
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling
@@ -720,6 +725,8 @@ class AnalyzerCommon(object):
 
         if nprocs is None:
             nprocs = multiprocessing.cpu_count()
+
+            print("Using {} threads".format(nprocs))
 
         inqueue = multiprocessing.Queue()
         outqueue = multiprocessing.Queue()
