@@ -388,6 +388,9 @@ class MetricsCommon(object):
 
         return total_count
 
+    def reached_sim_upper_bound(self):
+        return self.sim_time() >= self.sim.upper_bound_safety_period
+
     @staticmethod
     def smaller_dict_str(dict_result):
         return str(dict_result).replace(": ", ":").replace(", ", ",")
@@ -406,6 +409,7 @@ class MetricsCommon(object):
         d["Delivered"]                     = lambda x: x.total_delivered()
         d["Collisions"]                    = lambda x: None
         d["Captured"]                      = lambda x: x.captured()
+        d["ReachedSimUpperBound"]          = lambda x: x.reached_sim_upper_bound()
         d["ReceiveRatio"]                  = lambda x: x.receive_ratio()
         d["FirstNormalSentTime"]           = lambda x: x.first_normal_sent_time()
         d["TimeTaken"]                     = lambda x: x.sim_time()
