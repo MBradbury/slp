@@ -7,7 +7,7 @@ import sys
 
 import simulator.Configuration as Configuration
 
-def run_simulation(module, a, count=1):
+def run_simulation(module, a, count=1, print_warnings=False):
     
     configuration = Configuration.create(a.args.configuration, a.args)
 
@@ -64,6 +64,9 @@ def run_simulation(module, a, count=1):
                 print(all_args, file=sys.stderr)
                 
                 return 2
+
+            if print_warnings:
+                sim.metrics.print_warnings()
 
     return 0
 

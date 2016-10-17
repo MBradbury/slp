@@ -465,3 +465,19 @@ class MetricsCommon(object):
             raise RuntimeError("Failed to get the result string for seed {} (events={}, sim_time={}) caused by {}".format(
                 self.seed(), self.event_count, self.sim_time(), traceback.format_exc())
             )
+
+    def print_warnings(self, stream=None):
+        """Print any warnings about result consistency."""
+
+        if np.isnan(self.first_normal_sent_time()):
+            print("First Normal Sent Time is NaN:", file=stream)
+            print("\tMake sure a Normal message is sent.", file=stream)
+
+        if np.isnan(self.receive_ratio()):
+            print("Receive Ratio is NaN:", file=stream)
+            print("\tMake sure a Normal message is sent.", file=stream)
+
+        if self.reached_sim_upper_bound():
+            print("Reached Upper Bound:", file=stream)
+            print("\tSimulation reached the upper bound, likely because the safety period was not triggered.", file=stream)
+            print("\tEnsure that a Normal message is sent in your simulation.", file=stream)
