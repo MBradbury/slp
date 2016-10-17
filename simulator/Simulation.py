@@ -61,13 +61,15 @@ class Simulation(object):
 
         self._create_nodes(configuration.topology)
 
+        self.upper_bound_safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
         else:
             # To make simulations safer an upper bound on the simulation time
             # is used when no safety period makes sense. This upper bound is the
             # time it would have otherwise taken the attacker to scan the whole network.
-            self.safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+            self.safety_period = self.upper_bound_safety_period
 
         self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
 
@@ -199,10 +201,10 @@ class Simulation(object):
 
             if hasattr(self, "_during_run"):
                 event_count = self.tossim.runAllEventsWithTriggeredMaxTimeAndCallback(
-                    self.safety_period_value, self.continue_predicate, self._during_run)
+                    self.safety_period_value, self.upper_bound_safety_period, self.continue_predicate, self._during_run)
             else:
                 event_count = self.tossim.runAllEventsWithTriggeredMaxTime(
-                    self.safety_period_value, self.continue_predicate)
+                    self.safety_period_value, self.upper_bound_safety_period, self.continue_predicate)
 
         finally:
             self._post_run(event_count)
