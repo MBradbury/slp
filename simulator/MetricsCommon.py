@@ -49,10 +49,10 @@ class MetricsCommon(object):
 
         self.node_transitions = defaultdict(int)
 
-        self.register('M-NC', self.process_NODE_CHANGE)
+        self.register('M-NC', self.process_node_change_event)
 
         # BCAST / RCV / DELIVER events
-        self.register('M-C', self.process_COMMUNICATE)
+        self.register('M-C', self.process_communicate_event)
 
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
@@ -61,22 +61,22 @@ class MetricsCommon(object):
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
 
-    def process_COMMUNICATE(self, d_or_e, node_id, time, detail):
+    def process_communicate_event(self, d_or_e, node_id, time, detail):
         (comm_type, contents) = detail.split(':', 1)
 
         if comm_type == 'BCAST':
-            return self.process_BCAST(node_id, time, contents)
+            return self.process_bcast_event(node_id, time, contents)
         elif comm_type == 'RCV':
-            return self.process_RCV(node_id, time, contents)
+            return self.process_rcv_event(node_id, time, contents)
         elif comm_type == 'DELIV':
-            return self.process_DELIVER(node_id, time, contents)
+            return self.process_deliver_event(node_id, time, contents)
         else:
             raise RuntimeError("Unknown communication type of {}".format(comm_type))
 
     def _time_to_bin(self, time):
         return int(math.floor(time / self._time_bin_width))
 
-    def process_BCAST(self, node_id, time, line):
+    def process_bcast_event(self, node_id, time, line):
         (kind, status, sequence_number) = line.split(',')
 
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
@@ -102,9 +102,9 @@ class MetricsCommon(object):
                     self.normal_sent_time[(top_node_id, sequence_number)] = time
 
                     # Handle starting the duration timeout in the simulation running
-                    self.sim.tossim.triggerRunDurationStart()
+                    self.sim.trigger_duration_run_start(time)
 
-    def process_RCV(self, node_id, time, line):
+    def process_rcv_event(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
@@ -131,7 +131,7 @@ class MetricsCommon(object):
         # Although source node distances are used here, we do not want to use the 
         # node_source_distance functions as when the source is mobile this code
         # will try to get a distance that the configuration doesn't believe the be a source.
-        if kind not in simulator.Attacker._messages_to_ignore:
+        if kind not in simulator.Attacker.MESSAGES_TO_IGNORE:
             ord_proximate_source_id, top_proximate_source_id = self._process_node_id(proximate_source_id)
 
             nd = self.configuration.node_distance
@@ -156,14 +156,14 @@ class MetricsCommon(object):
                 else:
                     self.received_from_closer_or_same_meters[top_source_id] += 1
 
-    def process_DELIVER(self, node_id, time, line):
+    def process_deliver_event(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number) = line.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
         self.delivered[kind][top_node_id] += 1
 
-    def process_NODE_CHANGE(self, d_or_e, node_id, time, detail):
+    def process_node_change_event(self, d_or_e, node_id, time, detail):
         (old_name, new_name) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
@@ -388,14 +388,17 @@ class MetricsCommon(object):
 
         return total_count
 
-    @staticmethod
-    def smaller_dict_str(d):
-        return str(d).replace(": ", ":").replace(", ", ",")
+    def reached_sim_upper_bound(self):
+        return self.sim_time() >= self.sim.upper_bound_safety_period
 
     @staticmethod
-    def compressed_dict_str(d):
-        d = MetricsCommon.smaller_dict_str(d)
-        return base64.b64encode(zlib.compress(d, 9))
+    def smaller_dict_str(dict_result):
+        return str(dict_result).replace(": ", ":").replace(", ", ",")
+
+    @staticmethod
+    def compressed_dict_str(dict_result):
+        dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result).encode("utf-8")
+        return base64.b64encode(zlib.compress(dict_result_bytes, 9))
 
     @staticmethod
     def items():
@@ -406,6 +409,7 @@ class MetricsCommon(object):
         d["Delivered"]                     = lambda x: x.total_delivered()
         d["Collisions"]                    = lambda x: None
         d["Captured"]                      = lambda x: x.captured()
+        d["ReachedSimUpperBound"]          = lambda x: x.reached_sim_upper_bound()
         d["ReceiveRatio"]                  = lambda x: x.receive_ratio()
         d["FirstNormalSentTime"]           = lambda x: x.first_normal_sent_time()
         d["TimeTaken"]                     = lambda x: x.sim_time()

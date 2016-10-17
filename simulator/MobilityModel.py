@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import math
+import random
 
 from data.restricted_eval import restricted_eval
 
@@ -42,17 +43,18 @@ class MobilityModel(object):
         periods = []
         periods_lengths = []
 
-        for (node_id, intervals) in self.active_times.items():
+        for (node_idx, (node_id, intervals)) in enumerate(self.active_times.items()):
 
             indexes.append("{}U".format(self.configuration.topology.to_topo_nid(node_id)))
 
             period = [
-                "{{{}, {}}}".format(to_tinyos_format(begin), to_tinyos_format(end))
-                for (begin, end)
-                in intervals
+                "[{node_idx}][{interval_idx}].from = {}, [{node_idx}][{interval_idx}].to = {}".format(
+                    to_tinyos_format(begin), to_tinyos_format(end), node_idx=node_idx, interval_idx=interval_idx)
+                for (interval_idx, (begin, end))
+                in enumerate(intervals)
             ]
 
-            periods.append("{ " + ", ".join(period) + " }")
+            periods.append(", ".join(period))
 
             periods_lengths.append("{}U".format(len(period)))
 
@@ -60,13 +62,35 @@ class MobilityModel(object):
         build_arguments["SOURCE_DETECTED_PERIODS"] = "{ " + ", ".join(periods) + " }"
         build_arguments["SOURCE_DETECTED_PERIODS_LENGTHS"] = "{ " + ", ".join(periods_lengths) + " }"
         build_arguments["SOURCE_DETECTED_NUM_NODES"] = len(indexes)
+        build_arguments["SOURCE_DETECTED_NUM_CHANGES"] = max(periods_lengths)
 
         return build_arguments
+
+    @staticmethod
+    def _build_time_list_from_path(node_path, duration, start_time=0):
+        current_time = start_time
+
+        times = OrderedDict()
+
+        for (i, node) in enumerate(node_path):
+            end_time = current_time + duration if (i + 1) != len(node_path) else float('inf')
+
+            if node not in times:
+                times[node] = [(current_time, end_time)]
+            else:
+                times[node].append((current_time, end_time))
+
+            current_time += duration
+
+        return times
+
 
     def __str__(self):
         return type(self).__name__ + "()"
 
 class StationaryMobilityModel(MobilityModel):
+    """The default source mobility model, where the source just stays where it is."""
+
     def __init__(self):
         super(StationaryMobilityModel, self).__init__()
 
@@ -79,25 +103,49 @@ class StationaryMobilityModel(MobilityModel):
         self._setup_impl(configuration, times)
 
 class RandomWalkMobilityModel(MobilityModel):
-    def __init__(self, max_time, duration):
+    def __init__(self, max_time, duration, seed):
+        super(RandomWalkMobilityModel, self).__init__()
+
         # There needs to be a finite length to the random walk!
         self.max_time = max_time
 
         # Duration is the length for which a node will act as a source node.
         self.duration = duration
 
-        super(RandomWalkMobilityModel, self).__init__()
+        self.seed = seed
+
+    def _generate_edge_walk_path(self, configuration, source_id):
+        rng = random.Random(self.seed)
+
+        path = [source_id]
+
+        max_length = int(self.max_time / self.duration)
+
+        for i in xrange(max_length):
+            neighbours = list(configuration.one_hop_neighbours(path[-1]))
+
+            path.append(rng.choice(neighbours))
+
+        return path
 
     def setup(self, configuration):
-        # TODO: Use configuration.connectivity_matrix to choose which node
-        # to move the source to after the duration
-        raise NotImplementedError()
+        times = OrderedDict()
+
+        for source_id in configuration.source_ids:
+            path = self._generate_edge_walk_path(configuration, source_id)
+
+            times.update(self._build_time_list_from_path(path, self.duration))
+
+        self._setup_impl(configuration, times)
 
     def __str__(self):
         return type(self).__name__ + "(max_time={}, duration={})".format(self.max_time, self.duration)
 
 
 class TowardsSinkMobilityModel(MobilityModel):
+    """Generate a path that has the source nodes move towards the sink
+    every :duration: time units."""
+
     def __init__(self, duration):
         super(TowardsSinkMobilityModel, self).__init__()
         self.duration = duration
@@ -111,22 +159,58 @@ class TowardsSinkMobilityModel(MobilityModel):
             # Remove the last element from the list as the sink cannot become a source
             path = path[:-1]
 
-            current_time = 0
-
-            for (i, node) in enumerate(path):
-                end_time = current_time + self.duration if (i + 1) != len(path) else float('inf')
-
-                if node not in times:
-                    times[node] = [(current_time, end_time)]
-                else:
-                    times[node].append( (current_time, end_time) )
-
-                current_time += self.duration
+            times.update(self._build_time_list_from_path(path, self.duration))
 
         self._setup_impl(configuration, times)
 
     def __str__(self):
         return type(self).__name__ + "(duration={})".format(self.duration)
+
+
+class RoundNetworkEdgeMobilityModel(MobilityModel):
+    def __init__(self, max_time, duration):
+        super(RoundNetworkEdgeMobilityModel, self).__init__()
+        
+        # There needs to be a finite length to the random walk!
+        self.max_time = max_time
+
+        # Duration is the length for which a node will act as a source node.
+        self.duration = duration
+
+    def _generate_edge_walk_path(self, configuration, source_id):
+        path = [source_id]
+
+        max_length = int(self.max_time / self.duration)
+
+        for i in xrange(max_length):
+            try:
+                prev = path[-2]
+            except IndexError:
+                prev = None
+
+            start = path[-1]
+
+            possible = [x for x in configuration.one_hop_neighbours(start) if x != prev]
+
+            neighbour = min(possible, key=lambda x: len(list(configuration.one_hop_neighbours(x))))
+
+            path.append(neighbour)
+
+        return path
+
+    def setup(self, configuration):
+        times = OrderedDict()
+
+        for source_id in configuration.source_ids:
+            path = self._generate_edge_walk_path(configuration, source_id)
+
+            times.update(self._build_time_list_from_path(path, self.duration))
+
+        self._setup_impl(configuration, times)
+
+    def __str__(self):
+        return type(self).__name__ + "(max_time={},duration={})".format(self.max_time, self.duration)    
+
 
 def models():
     """A list of the names of the available models."""
