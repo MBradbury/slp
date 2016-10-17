@@ -164,7 +164,7 @@ class Plotter(GenericPlotter):
     def clearlinks(self):
         self.canvas.delete('link')
         self.links.clear()
-        for n in self.nodes.keys():
+        for n in self.nodes:
             self.nodeLinks[n] = []
         self.tk.update()
 

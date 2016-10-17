@@ -61,13 +61,15 @@ class Simulation(object):
 
         self._create_nodes(configuration.topology)
 
+        self.upper_bound_safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
         else:
             # To make simulations safer an upper bound on the simulation time
             # is used when no safety period makes sense. This upper bound is the
             # time it would have otherwise taken the attacker to scan the whole network.
-            self.safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+            self.safety_period = self.upper_bound_safety_period
 
         self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
 
@@ -182,6 +184,9 @@ class Simulation(object):
 
         self.metrics.event_count = event_count
 
+    def trigger_duration_run_start(self, time):
+        self.tossim.triggerRunDurationStart()
+
     def continue_predicate(self):
         """Specifies if the simulator run loop should continue executing."""
         # For performance reasons do not do anything expensive in this function,
@@ -196,10 +201,10 @@ class Simulation(object):
 
             if hasattr(self, "_during_run"):
                 event_count = self.tossim.runAllEventsWithTriggeredMaxTimeAndCallback(
-                    self.safety_period_value, self.continue_predicate, self._during_run)
+                    self.safety_period_value, self.upper_bound_safety_period, self.continue_predicate, self._during_run)
             else:
                 event_count = self.tossim.runAllEventsWithTriggeredMaxTime(
-                    self.safety_period_value, self.continue_predicate)
+                    self.safety_period_value, self.upper_bound_safety_period, self.continue_predicate)
 
         finally:
             self._post_run(event_count)
@@ -336,6 +341,7 @@ class OfflineSimulation(object):
         # They are used to emulate sim_time and calculate the execution length.
         self._real_start_time = None
         self._real_end_time = None
+        self._duration_start_time = None
 
         self.attacker_found_source = False
 
@@ -431,6 +437,10 @@ class OfflineSimulation(object):
         else:
             return None
 
+    def trigger_duration_run_start(self, time):
+        if self._duration_start_time is not None:
+            self._duration_start_time = time
+
     def run(self):
         """Run the simulator loop."""
         event_count = 0
@@ -470,7 +480,8 @@ class OfflineSimulation(object):
                     break
 
                 # Stop if the safety period has expired
-                if (self._real_end_time - self._real_start_time).total_seconds() >= self.safety_period_value:
+                if self._duration_start_time is not None and \
+                   (current_time - self._duration_start_time).total_seconds() >= self.safety_period_value:
                     break
 
                 # Handle the event

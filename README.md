@@ -1,48 +1,23 @@
+# Setup System Requirements
 
-# Setup
+The following commands will get you set up with TinyOS and the slp-algorithms-tinyos framework on your local machine.
 
-1. Clone the SLP simulation framework
+1. Install required packages. The commands below are specific to Debian.
+   Other OSes will need to install these packages in a different way.
+   You may need to prefix commands with "sudo" to install using admin privileges.
 
-   * Anonymously:
-     ```bash
-     hg clone https://MBradbury@bitbucket.org/MBradbury/slp-algorithms-tinyos
-     ```
+        :::bash
+        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make
 
-   * With a username (one of the following):
-     ```bash
-     hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos
-     ```
-     ```bash
-     hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos
-     ```
+   Python 2 or 3 is supported, but python 2 is recommended as it is faster.
 
-2. Clone the tinyos fork 
-   ```bash
-   git clone -b bradbury_2_1_2 https://github.com/MBradbury/tinyos-main.git
-   ```
+2. Install python libraries
 
-3. Create ~/tinyos.env with the following contents
+        :::bash
+        pip install scipy numpy cython pandas more_itertools shutilwhich psutil pip --upgrade
+        pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
 
-   ```bash
-   export TOSROOT="<fill in path to tinyos repo here>"
-   export TOSDIR="$TOSROOT/tos"
-   export CLASSPATH="$CLASSPATH:$TOSROOT/support/sdk/java:$TOSROOT/support/sdk/java/tinyos.jar"
-   export MAKERULES="$TOSROOT/support/make/Makerules"
-   export PYTHONPATH="$PYTHONPATH:$TOSROOT/support/sdk/python"
-   ```
-
-4. Add the following to ~/.bashrc before any interactivity check
-
-   ```bash
-   source ~/tinyos.env
-   ```
-
-5. Install python libraries
-
-   ```bash
-   pip install scipy numpy pandas more_itertools shutilwhich psutil pip --upgrade
-   pip install git+git://github.com/MBradbury/python_java_random.git --upgrade
-   ```
+   Make sure to prefix these commands with ```sudo``` if installing for the system python.
 
 ## Using pyenv (general)
 
@@ -51,7 +26,7 @@ admin permissions to use pip install, then pyenv is a good alternative.
 
 ```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-MAKE_OPTS=profile-opt pyenv install 2.7.12
+CONFIGURE_OPTS="--with-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
 pyenv global 2.7.12
 ```
 
@@ -64,6 +39,98 @@ module load flux-installers && pyenv-install.sh && source ~/.bashrc
 MAKE_OPTS=profile-opt pyenv install 2.7.12
 pyenv global 2.7.12
 ```
+
+Please ensure that you install the python packages using pip after setting up python in this way.
+
+# Setup SLP Simulation Framework
+
+1. Setup directory structure
+
+        :::bash
+        cd ~
+        mkdir wsn
+        cd wsn
+
+2. Clone the SLP simulation framework
+
+   I recommend forking MBradbury/slp-algorithms-tinyos to allow you your
+   own repository to push changes to. You can do this on bitbucket.org.
+
+   * Anonymously:
+
+        :::bash
+        hg clone https://MBradbury@bitbucket.org/MBradbury/slp-algorithms-tinyos
+
+   * With a username (one of the following):
+
+        :::bash
+        hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos
+
+        hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos
+
+You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
+
+# Setup TinyOS
+
+1. Clone the tinyos fork 
+        :::bash
+        cd ~/wsn
+        git clone -b bradbury_2_1_2 https://github.com/MBradbury/tinyos-main.git
+
+   There should now be a folder at ~/wsn/tinyos-main.
+
+2. Create ~/tinyos.env with the following contents
+
+        :::bash
+        export TOSROOT="<fill in path to tinyos repo here>"
+        export TOSDIR="$TOSROOT/tos"
+        export CLASSPATH="$CLASSPATH:$TOSROOT/support/sdk/java:$TOSROOT/support/sdk/java/tinyos.jar"
+        export MAKERULES="$TOSROOT/support/make/Makerules"
+        export PYTHONPATH="$PYTHONPATH:$TOSROOT/support/sdk/python"
+
+   Replace <fill in path to tinyos repo here> with the path to the tinyos repo.
+
+3. Add the following to ~/.bashrc before any interactivity check
+
+        :::bash
+        source ~/tinyos.env
+   Then run the following:
+
+        :::bash
+        source ~/.bashrc
+
+4. Install TinyOS dependencies
+
+   These instructions are based on those at: http://tinyprod.net/repos/debian/
+   You can view that website for more information.
+
+   1. Add the TinyProd signing key
+
+        :::bash
+        wget -O - http://tinyprod.net/repos/debian/tinyprod.key | sudo apt-key add -
+
+   2. Specify the apt-get sources
+
+      Add a file called "/etc/apt/sources.list.d/tinyprod-debian.list" with the following contents:
+
+        deb http://tinyprod.net/repos/debian wheezy main
+        deb http://tinyprod.net/repos/debian msp430-46 main
+        deb http://tinyos.stanford.edu/tinyos/dists/ubuntu lucid main
+
+   3. Install the dependencies
+
+        :::bash
+        sudo apt-get update
+        sudo apt-get install nesc tinyos-tools msp430-46 avr-tinyos
+
+   4. Test tinyos worked
+
+        :::bash
+        cd ~/wsn/tinyos-main/apps/Blink
+        make micaz sim
+
+      You should see an output that contains "*** Successfully built micaz TOSSIM library".
+
 
 ## Updating from upstream
 
@@ -93,6 +160,11 @@ hg push
 
 You can update the tinyos repository by doing the following:
 ```bash
+git pull
+```
+
+Or by the following instruction if you forked it:
+```bash
 git pull https://github.com/MBradbury/tinyos-main bradbury_2_1_2
 ```
 
@@ -112,6 +184,22 @@ hg clone https://MBradbury@bitbucket.org/MBradbury/slp-results-protectionless pr
 ```
 
 The directories in the results directory should have names that match the algorithm name.
+
+# Examples for running simulations
+
+(Assumes you are in ~/wsn/slp-algorithms-tinyos)
+
+See the options that can be provided to an algorithm:
+```bash
+./run.py algorithm.protectionless GUI -h
+```
+
+Some example runs
+```bash
+./run.py algorithm.protectionless GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy  -am "SeqNosReactiveAttacker()" --source-period 1
+./run.py algorithm.adaptive_spr GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy  -am "SeqNosReactiveAttacker()" --source-period 1 -safety 50 --approach PB_FIXED1_APPROACH
+./run.py algorithm.phantom GUI -c SourceCorner -ns 11 -cm ideal -nm casino-lab  -am "SeqNosReactiveAttacker()" --source-period 1 -safety 50 --walk-length 8
+```
 
 # Running on the cluster
 
@@ -248,3 +336,35 @@ This can be done in two ways (#2 is recommended, as I tend to forget to do #1):
 1. By specifying "--notify=<email address>" when submitting your jobs.
 
 2. By editing your ~/.bashrc to contain "export SLP_NOTIFY_EMAILS=<email address>"
+
+# Faster analysis
+
+Analysing results may be slow depending on how many are present.
+
+Your first attempt to speed up the analysis is to ask the analysis to use more threads.
+A good number of threads will vary from machine to machine. I usually use the total number
+of physical cores present on the machine, if it has HT. If not, I use the number of physical
+cores minus 1.
+
+```bash
+./create.py <algorithm> analyse --thread-count 4
+```
+
+If that is still fairly slow, you can compile the analysis code to c.
+
+Make sure cython is installed first.
+```bash
+pip install cython
+```
+
+Then make sure you are in the root of slp-algorithms-tinyos before cythonising analysis.
+Once cythonised, the analysis script is run as usual.
+```bash
+cd slp-algorithms-tinyos
+./scripts/cythonise_analysis.sh
+./create.py <algorithm> analyse --thread-count 4
+```
+
+A very important thing to note is that if you make any change to data/analysis.py
+then you MUST rerun ./scripts/cythonise_analysis.sh. This may happen when you pull
+from another repo. If you do not then analysis may not work properly.
