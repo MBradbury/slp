@@ -85,7 +85,7 @@ if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
 # needs to be run in a separate process.
 if a.args.mode in {"GUI", "SINGLE", "OFFLINE", "OFFLINE_GUI"}:
     from simulator.DoRun import run_simulation
-    run_simulation(module, a)
+    run_simulation(module, a, print_warnings=True)
 
 else:
     from datetime import datetime
