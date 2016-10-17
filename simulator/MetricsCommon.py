@@ -220,7 +220,10 @@ class MetricsCommon(object):
         return dict(sum(self.received.values(), Counter()))
 
     def first_normal_sent_time(self):
-        return min(self.normal_sent_time.values())
+        try:
+            return min(self.normal_sent_time.values())
+        except ValueError:
+            return float('NaN')
 
     def average_normal_latency(self):
         # It is possible that the sink has received no Normal messages
@@ -245,6 +248,9 @@ class MetricsCommon(object):
         # The simulation will not usually finish at exactly the same time that
         # the last message was sent (because it takes time to receive a message),
         # so a small tolerance value is used.
+
+        if len(self.normal_sent_time) == 0:
+            return float('NaN')
 
         end_time = self.sim_time()
         send_modifier = 0
@@ -426,7 +432,7 @@ class MetricsCommon(object):
         d["NormalLatency"]                 = lambda x: x.average_normal_latency()
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
-        d["NodeWasSource"]                 = lambda x: x.node_was_source()
+        d["NodeWasSource"]                 = lambda x: MetricsCommon.smaller_dict_str(x.node_was_source())
         d["NodeTransitions"]               = lambda x: MetricsCommon.smaller_dict_str(dict(x.node_transitions))
         d["SentHeatMap"]                   = lambda x: MetricsCommon.compressed_dict_str(x.sent_heat_map())
         d["ReceivedHeatMap"]               = lambda x: MetricsCommon.compressed_dict_str(x.received_heat_map())
@@ -459,3 +465,19 @@ class MetricsCommon(object):
             raise RuntimeError("Failed to get the result string for seed {} (events={}, sim_time={}) caused by {}".format(
                 self.seed(), self.event_count, self.sim_time(), traceback.format_exc())
             )
+
+    def print_warnings(self, stream=None):
+        """Print any warnings about result consistency."""
+
+        if np.isnan(self.first_normal_sent_time()):
+            print("First Normal Sent Time is NaN:", file=stream)
+            print("\tMake sure a Normal message is sent.", file=stream)
+
+        if np.isnan(self.receive_ratio()):
+            print("Receive Ratio is NaN:", file=stream)
+            print("\tMake sure a Normal message is sent.", file=stream)
+
+        if self.reached_sim_upper_bound():
+            print("Reached Upper Bound:", file=stream)
+            print("\tSimulation reached the upper bound, likely because the safety period was not triggered.", file=stream)
+            print("\tEnsure that a Normal message is sent in your simulation.", file=stream)
