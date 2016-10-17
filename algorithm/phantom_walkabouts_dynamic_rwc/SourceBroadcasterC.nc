@@ -409,6 +409,7 @@ implementation
 		}
 		else
 		{
+			simdbgverbose("stdout","possible set =0, return UnknownSet.\n");
 			return UnknownSet;		
 		}
 
@@ -541,10 +542,6 @@ implementation
 				}
 			}
 			simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
-
-#ifdef SLP_VERBOSE_DEBUG
-			print_distance_neighbours("stdout", &local_neighbours);
-#endif
 		}
 
 		//simdbgverbose("stdout", "Location:%u, biased_direction:%u, Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
@@ -888,8 +885,7 @@ implementation
 		
 		message.biased_direction = bias_direction;		//initialise biased_direction as UnknownBiasType. 
 
-		// If we don't know who our neighbours are, then we
-		// cannot unicast to one of them.
+	
 		if (target != AM_BROADCAST_ADDR)
 		{
 			message.broadcast = (target == AM_BROADCAST_ADDR);
@@ -907,9 +903,9 @@ implementation
 		else
 		{
 			simdbgverbose("stdout", "target is AM_BROADCAST_ADDR\n");
-			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n",
-				message.sequence_number);
+			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
 		}
+
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
 		{
@@ -1203,11 +1199,6 @@ implementation
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
-
-
-#ifdef SLP_VERBOSE_DEBUG
-		print_distance_neighbours("stdout", &neighbours);
-#endif
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
