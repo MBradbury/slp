@@ -329,7 +329,7 @@ implementation
 			else if (rnd == 1)		return FurtherSet;
 			else if (rnd == 2)		return CloserSideSet;
 			else					return FurtherSideSet;
-		}
+		}		
 		else if (possible_sets == ( FurtherSet | CloserSideSet | FurtherSideSet))
 		{
 			uint16_t rnd = call Random.rand16() % 3;
@@ -508,7 +508,7 @@ implementation
 						neighbour = &local_neighbours.data[k];
 						if(biased_direction == H)
 						{
-							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < Biased_No)
+							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -517,7 +517,7 @@ implementation
 						}
 						else		//biased_direction is V
 						{
-							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < Biased_No)
+							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -654,17 +654,17 @@ implementation
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
 
-			if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
+			if (call NodeType.is_topology_node_id(BOTTOM_LEFT_NODE_ID))
 			{
 				call DelayBLSenderTimer.startOneShot(3 * 1000);	
 			}
 
-			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID )
+			if (call NodeType.is_topology_node_id(BOTTOM_RIGHT_NODE_ID))
 			{
 				call DelayBRSenderTimer.startOneShot(5 * 1000);	
 			}
 		
-			if (TOS_NODE_ID == TOP_RIGHT_NODE_ID )
+			if (call NodeType.is_topology_node_id(TOP_RIGHT_NODE_ID))
 			{
 				call DelayTRSenderTimer.startOneShot(7 * 1000);
 			}
@@ -885,7 +885,7 @@ implementation
 		
 		message.biased_direction = bias_direction;		//initialise biased_direction as UnknownBiasType. 
 
-	
+			
 		if (target != AM_BROADCAST_ADDR)
 		{
 			message.broadcast = (target == AM_BROADCAST_ADDR);
@@ -898,14 +898,13 @@ implementation
 			if (send_Normal_message(&message, target))
 			{
 				call NormalSeqNos.increment(TOS_NODE_ID);
-			}
+			}			
 		}
 		else
 		{
 			simdbgverbose("stdout", "target is AM_BROADCAST_ADDR\n");
 			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
 		}
-
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
 		{
@@ -1026,8 +1025,8 @@ implementation
 					return;
 				}
 
-				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
-					sim_time_string(), TOS_NODE_ID, target);
+				simdbgverbose("stdout", "Forwarding normal from %u to target = %u\n",
+					TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
 
@@ -1162,17 +1161,17 @@ implementation
 		}
 
 
-		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(BOTTOM_LEFT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_bl_dist = rcvd->landmark_distance;	
 		}
 
-		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(BOTTOM_RIGHT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_br_dist = rcvd->landmark_distance;	
 		}
 		
-		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(TOP_RIGHT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_tr_dist = rcvd->landmark_distance;
 		}

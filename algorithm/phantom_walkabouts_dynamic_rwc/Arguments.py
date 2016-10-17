@@ -40,19 +40,12 @@ class Arguments(ArgumentsCommon):
 
         result["LANDMARK_NODE_ID"] = self._get_node_id(self.args.landmark_node)
 
-        result["Biased_No"] = int(self.args.direction_bias *100)
+        result["BIASED_NO"] = int(self.args.direction_bias * 100)
 
-        configuration = Configuration.create(self.args.configuration, self.args)
-        topo = configuration.topology
-
-        result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
-
-        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
-        #result["BOTTOM_RIGHT_NODE_ID"] = topo.topology_nid_to_ordered_nid[topo.ordered_nid_to_topology_nid[topo.bottom_right] - 1]
-
-        result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
-
-        result["TOP_RIGHT_NODE_ID"] = configuration.topology.top_right
+        result["BOTTOM_LEFT_NODE_ID"] = self._get_node_id("bottom_left")
+        result["BOTTOM_RIGHT_NODE_ID"] = self._get_node_id("bottom_right")
+        result["TOP_LEFT_NODE_ID"] = self._get_node_id("top_left")
+        result["TOP_RIGHT_NODE_ID"] = self._get_node_id("top_right")
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
 
