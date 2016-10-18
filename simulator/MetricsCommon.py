@@ -413,7 +413,7 @@ class MetricsCommon(object):
         d["Sent"]                          = lambda x: x.total_sent()
         d["Received"]                      = lambda x: x.total_received()
         d["Delivered"]                     = lambda x: x.total_delivered()
-        d["Collisions"]                    = lambda x: None
+        #d["Collisions"]                    = lambda x: None
         d["Captured"]                      = lambda x: x.captured()
         d["ReachedSimUpperBound"]          = lambda x: x.reached_sim_upper_bound()
         d["ReceiveRatio"]                  = lambda x: x.receive_ratio()
