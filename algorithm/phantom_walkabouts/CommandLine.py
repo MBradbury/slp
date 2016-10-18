@@ -107,13 +107,12 @@ class CLI(CommandLineCommon.CLI):
         #return list((x,y) for x in walk_short for y in walk_long)
         
 
-    def _time_estimater(self, *args):
+    def _time_estimater(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
-        names = self.parameter_names()
-        size = args[names.index('network size')]
+        size = args['network size']
         if size == 11:
             return datetime.timedelta(hours=4)
         elif size == 15:

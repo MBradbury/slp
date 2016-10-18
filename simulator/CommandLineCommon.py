@@ -81,6 +81,7 @@ class CLI(object):
 
         subparser = subparsers.add_parser("analyse")
         subparser.add_argument("--thread-count", type=int, default=None)
+        subparser.add_argument("--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
 
         ###
 
@@ -178,13 +179,12 @@ class CLI(object):
 
         return [process(*args) for args in argument_product]
 
-    def _time_estimater(self, *args):
+    def _time_estimater(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
-        names = self.parameter_names()
-        size = args[names.index('network size')]
+        size = args['network size']
         if size == 11:
             return datetime.timedelta(hours=9)
         elif size == 15:
@@ -212,7 +212,7 @@ class CLI(object):
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-        analyzer.run(self.algorithm_module.result_file, args.thread_count)
+        analyzer.run(self.algorithm_module.result_file, args.thread_count, headers_to_skip=args.headers_to_skip)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.

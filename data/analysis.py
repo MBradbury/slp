@@ -235,11 +235,12 @@ class Analyse(object):
         "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
     }
 
-    def __init__(self, infile_path, normalised_values, with_converters=True, with_normalised=True):
+    def __init__(self, infile_path, normalised_values, with_converters=True, with_normalised=True, headers_to_skip=tuple()):
 
         self.opts = {}
 
-        self.unnormalised_headings = []
+        all_headings = []
+
         self.columns = {}
         self.normalised_columns = None
 
@@ -257,7 +258,7 @@ class Analyse(object):
                     # Skip the attributes that contain some extra info
                     continue
 
-                elif len(self.unnormalised_headings) == 0 and '=' in line:
+                elif len(all_headings) == 0 and '=' in line:
                     # We are reading the options so record them.
                     # Some option values will have an '=' in them so only split once.
                     opt = line.split('=', 1)
@@ -266,12 +267,14 @@ class Analyse(object):
 
                 elif line.startswith('#'):
                     # Read the headings
-                    self.unnormalised_headings = line[1:].split('|')
+                    all_headings = line[1:].split('|')
 
                     break
 
         if line_number == 0:
             raise EmptyFileError(infile_path)
+
+        self.unnormalised_headings = [heading for heading in all_headings if heading not in headers_to_skip]
 
         self._unnormalised_headings_count = len(self.unnormalised_headings)
 
@@ -285,9 +288,12 @@ class Analyse(object):
         # Work out dtypes for other sent messages
         self.HEADING_DTYPES.update({name: np.uint32 for name in self.unnormalised_headings if name.endswith('Sent')})
 
+        print("Loading: ", self.unnormalised_headings)
+
         self.columns = pd.read_csv(
             infile_path,
-            names=self.unnormalised_headings, header=None,
+            names=all_headings, header=None,
+            usecols=self.unnormalised_headings,
             sep='|',
             skiprows=line_number,
             comment='@',
@@ -683,7 +689,7 @@ class AnalyzerCommon(object):
 
         return result
 
-    def run(self, summary_file, nprocs=None):
+    def run(self, summary_file, nprocs=None, **kwargs):
         """Perform the analysis and write the output to the :summary_file:.
         If :nprocs: is not specified then the number of CPU cores will be used.
         """
@@ -691,7 +697,7 @@ class AnalyzerCommon(object):
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling
         if nprocs is not None and nprocs == 1:
-            return self.run_single(summary_file)
+            return self.run_single(summary_file, **kwargs)
 
         def worker(inqueue, outqueue):
             while True:
@@ -703,7 +709,7 @@ class AnalyzerCommon(object):
                 path = item
 
                 try:
-                    result = self.analyse_and_summarise_path(path)
+                    result = self.analyse_and_summarise_path(path, **kwargs)
 
                     # Skip 0 length results
                     if result.number_of_repeats == 0:
@@ -790,11 +796,11 @@ class AnalyzerCommon(object):
         pool.close()
         pool.join()
 
-    def run_single(self, summary_file):
+    def run_single(self, summary_file, **kwargs):
         """Perform the analysis and write the output to the :summary_file:"""
         
         def worker(ipath):
-            result = self.analyse_and_summarise_path_wrapped(path)
+            result = self.analyse_and_summarise_path_wrapped(path, **kwargs)
 
             # Skip 0 length results
             if result.number_of_repeats == 0:
