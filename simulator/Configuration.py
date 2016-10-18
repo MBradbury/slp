@@ -544,7 +544,18 @@ class DCSWarwickSrc201Sink208(Configuration):
             space_behind_sink=True
         )
 
-class IndriyaSrc31Sink60(Configuration):
+class IndriyaOneFloorSrc31Sink15(Configuration):
+    def __init__(self, *args, **kwargs):
+        indriya = Indriya()
+
+        super(IndriyaSrc31Sink60, self).__init__(
+            indriya,
+            source_ids={31},
+            sink_id=15,
+            space_behind_sink=True
+        )
+
+class IndriyaTwoFloorsSrc31Sink60(Configuration):
     def __init__(self, *args, **kwargs):
         indriya = Indriya()
 
