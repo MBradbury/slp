@@ -497,7 +497,7 @@ implementation
 						neighbour = &local_neighbours.data[k];
 						if(biased_direction == H)
 						{
-							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < Biased_No)
+							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -506,7 +506,7 @@ implementation
 						}
 						else		//biased_direction is V
 						{
-							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < Biased_No)
+							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -531,10 +531,6 @@ implementation
 				}
 			}
 			//simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
-
-#ifdef SLP_VERBOSE_DEBUG
-			print_distance_neighbours("stdout", &local_neighbours);
-#endif
 		}
 
 		//simdbgverbose("stdout", "Location:%u, biased_direction:%u, Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
@@ -646,17 +642,17 @@ implementation
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
-			if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
+			if (call NodeType.is_topology_node_id(BOTTOM_LEFT_NODE_ID))
 			{
 				call DelayBLSenderTimer.startOneShot(3 * 1000);	
 			}
 
-			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID )
+			if (call NodeType.is_topology_node_id(BOTTOM_RIGHT_NODE_ID))
 			{
 				call DelayBRSenderTimer.startOneShot(5 * 1000);	
 			}
 		
-			if (TOS_NODE_ID == TOP_RIGHT_NODE_ID )
+			if (call NodeType.is_topology_node_id(TOP_RIGHT_NODE_ID))
 			{
 				call DelayTRSenderTimer.startOneShot(7 * 1000);
 			}
@@ -965,8 +961,7 @@ implementation
 					return;
 				}
 
-				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
-					sim_time_string(), TOS_NODE_ID, target);
+				simdbgverbose("stdout", "Forwarding normal from %u to target = %u\n", TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
 
@@ -1101,17 +1096,17 @@ implementation
 		}
 
 
-		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(BOTTOM_LEFT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_bl_dist = rcvd->landmark_distance;
 		}
 
-		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(BOTTOM_RIGHT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_br_dist = rcvd->landmark_distance;	
 		}
 
-		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(TOP_RIGHT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_tr_dist = rcvd->landmark_distance;
 		}
@@ -1139,11 +1134,6 @@ implementation
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
-
-
-#ifdef SLP_VERBOSE_DEBUG
-		print_distance_neighbours("stdout", &neighbours);
-#endif
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
