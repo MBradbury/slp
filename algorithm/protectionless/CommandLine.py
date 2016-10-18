@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import datetime
 import itertools
 import os
 
@@ -39,7 +40,24 @@ class CLI(CommandLineCommon.CLI):
         # network's normal message generation rate is the same.
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
-        return argument_product        
+        return argument_product
+
+    def _time_estimater(self, args, **kwargs):
+        """Estimates how long simulations are run for. Override this in algorithm
+        specific CommandLine if these values are too small or too big. In general
+        these have been good amounts of time to run simulations for. You might want
+        to adjust the number of repeats to get the simulation time in this range."""
+        size = args['network size']
+        if size == 11:
+            return datetime.timedelta(hours=9)
+        elif size == 15:
+            return datetime.timedelta(hours=21)
+        elif size == 21:
+            return datetime.timedelta(hours=42)
+        elif size == 25:
+            return datetime.timedelta(hours=71)
+        else:
+            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
     def _run_table(self, args):
         protectionless_results = results.Results(

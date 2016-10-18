@@ -49,13 +49,12 @@ class CLI(CommandLineCommon.CLI):
     def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
         return (time_taken - first_normal_sent_time) * 2.0
 
-    def _time_estimater(self, *args):
+    def _time_estimater(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
-        names = self.parameter_names()
-        size = args[names.index('network size')]
+        size = args['network size']
         if size == 11:
             return datetime.timedelta(hours=3)
         elif size == 15:

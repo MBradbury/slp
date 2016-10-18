@@ -78,7 +78,12 @@ class RunSimulationsCommon(object):
 
             estimated_time = None
             if time_estimater is not None:
-                estimated_time = time_estimater(*arguments)
+                estimated_time = time_estimater(
+                    dict(zip(argument_names, arguments)),
+                    safety_period=opts.get("--safety-period"),
+                    job_size=opts.get("--job-size"),
+                    thread_count=opts.get("--thread-count")
+                )
 
             self.driver.add_job(options, filename, estimated_time)
 
