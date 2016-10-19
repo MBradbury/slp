@@ -82,6 +82,7 @@ class CLI(object):
         subparser = subparsers.add_parser("analyse")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
+        subparser.add_argument("--drop-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to drop results that hit the upper time bound.")
 
         ###
 
@@ -212,7 +213,8 @@ class CLI(object):
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-        analyzer.run(self.algorithm_module.result_file, args.thread_count, headers_to_skip=args.headers_to_skip)
+        analyzer.run(self.algorithm_module.result_file, args.thread_count,
+                     headers_to_skip=args.headers_to_skip, drop_if_hit_upper_time_bound=args.drop_if_hit_upper_time_bound)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.

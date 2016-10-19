@@ -236,13 +236,13 @@ class Analyse(object):
         "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
     }
 
-    def __init__(self, infile_path, normalised_values, with_converters=True, with_normalised=True, headers_to_skip=None):
+    def __init__(self, infile_path, normalised_values, with_converters=True,
+                 with_normalised=True, headers_to_skip=None, drop_if_hit_upper_time_bound=False):
 
         self.opts = {}
 
         all_headings = []
 
-        self.columns = {}
         self.normalised_columns = None
 
         with open(infile_path, 'r') as infile:
@@ -294,7 +294,7 @@ class Analyse(object):
 
         print("Loading: ", self.unnormalised_headings)
 
-        self.columns = pd.read_csv(
+        df = pd.read_csv(
             infile_path,
             names=all_headings, header=None,
             usecols=self.unnormalised_headings,
@@ -308,13 +308,21 @@ class Analyse(object):
 
         # Removes rows with infs in certain columns
         # If NormalLatency is inf then no Normal messages were ever received by a sink
-        self.columns = self.columns.replace([np.inf, -np.inf], np.nan)
-        self.columns.dropna(subset=["NormalLatency"], how="all", inplace=True)
+        df = df.replace([np.inf, -np.inf], np.nan)
+        df.dropna(subset=["NormalLatency"], how="all", inplace=True)
+
+        if drop_if_hit_upper_time_bound:
+            print("Removing results that have not hit the upper time bound...")
+
+            indexes_to_remove = df[df["ReachedSimUpperBound"]].index
+            df.drop(indexes_to_remove, inplace=True)
+
+            print("Removed {} rows".format(len(indexes_to_remove)))
 
         # Remove any duplicated seeds. Their result will be the same so shouldn't be counted.
         print("Removing the following duplicated seeds: ")
-        print(self.columns["Seed"][self.columns.duplicated(subset="Seed", keep=False)])
-        self.columns.drop_duplicates(subset="Seed", keep="first", inplace=True)
+        print(df["Seed"][df.duplicated(subset="Seed", keep=False)])
+        df.drop_duplicates(subset="Seed", keep="first", inplace=True)
 
         if with_normalised:
             # Calculate any constants that do not change (e.g. from simulation options)
@@ -327,7 +335,7 @@ class Analyse(object):
                 if name in cached_cols:
                     return cached_cols[name]
 
-                cached_cols[name] = calc_cols[num](self.columns, cached_cols, constants)
+                cached_cols[name] = calc_cols[num](df, cached_cols, constants)
 
                 return cached_cols[name]
 
@@ -340,15 +348,15 @@ class Analyse(object):
                 if num in self.headings and den in self.headings:
                     print("Creating {} using ({},{}) on the fast path 1".format(norm_head, num, den))
 
-                    num_col = columns_to_add[num] if num in columns_to_add else self.columns[num]
-                    den_col = columns_to_add[den] if den in columns_to_add else self.columns[den]
+                    num_col = columns_to_add[num] if num in columns_to_add else df[num]
+                    den_col = columns_to_add[den] if den in columns_to_add else df[den]
 
                     columns_to_add[norm_head] = num_col / den_col
 
                 elif num in self.headings and den in constants:
                     print("Creating {} using ({},{}) on the fast path 2".format(norm_head, num, den))
 
-                    num_col = columns_to_add[num] if num in columns_to_add else self.columns[num]
+                    num_col = columns_to_add[num] if num in columns_to_add else df[num]
 
                     columns_to_add[norm_head] = num_col / constants[den]
 
@@ -361,16 +369,18 @@ class Analyse(object):
                     print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))
 
                     #axis=1 means to apply per row
-                    columns_to_add[norm_head] = self.columns.apply(self._get_norm_value,
-                                                                   axis=1, raw=True, reduce=True,
-                                                                   args=(num, den, constants))
+                    columns_to_add[norm_head] = df.apply(self._get_norm_value,
+                                                         axis=1, raw=True, reduce=True,
+                                                         args=(num, den, constants))
 
             print("Merging normalised columns with the loaded data...")
             self.normalised_columns = pd.concat(columns_to_add, axis=1, ignore_index=True, copy=False)
             self.normalised_columns.columns = list(columns_to_add.iterkeys())
 
-        print("Columns:", self.columns.info(memory_usage='deep'))
+        print("Columns:", df.info(memory_usage='deep'))
         print("Normalised Columns:", self.normalised_columns.info(memory_usage='deep'))
+
+        self.columns = df
 
 
     def headings_index(self, name):
