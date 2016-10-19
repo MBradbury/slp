@@ -235,7 +235,7 @@ class Analyse(object):
         "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
     }
 
-    def __init__(self, infile_path, normalised_values, with_converters=True, with_normalised=True, headers_to_skip=tuple()):
+    def __init__(self, infile_path, normalised_values, with_converters=True, with_normalised=True, headers_to_skip=None):
 
         self.opts = {}
 
@@ -274,7 +274,10 @@ class Analyse(object):
         if line_number == 0:
             raise EmptyFileError(infile_path)
 
-        self.unnormalised_headings = [heading for heading in all_headings if heading not in headers_to_skip]
+        self.unnormalised_headings = [
+            heading for heading in all_headings
+            if heading not in (tuple() if headers_to_skip is None else headers_to_skip)
+        ]
 
         self._unnormalised_headings_count = len(self.unnormalised_headings)
 
