@@ -23,7 +23,7 @@ class RunSimulations(RunSimulationsCommon):
         if time_taken is None:
             return None
 
-        return 1.3 * time_taken + 3
+        return 1.3 * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
@@ -73,7 +73,7 @@ class CLI(CommandLineCommon.CLI):
                 walk_short = random_walk_long
                 walk_long = random_walk_long
         
-            elif 'phantom_bias' in parameters.random_walk_types:
+            elif 'phantom_furtherset_bias' in parameters.random_walk_types:
                 walk_short = random_walk_short
                 walk_long = random_walk_long
 

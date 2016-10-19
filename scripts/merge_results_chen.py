@@ -28,7 +28,7 @@ for filename in glob.glob('*.txt'):
 	#gather all parameters from the header of result files.
 	with open (filename) as currentfile:
 		for line in currentfile:
-			line_first_word = re.split('=|\|',line)[0]
+			line_first_word = re.split('=|\||:',line)[0]
 			
 			if parameter_check == False:
 				parameters.append(line_first_word)

@@ -265,7 +265,7 @@ class MetricsCommon(object):
 
         if len(self.normal_sent_time) > 1 and np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
             send_modifier = 1
-
+        
         return len(self.normal_latency) / (len(self.normal_sent_time) - send_modifier)
 
     def average_sink_source_hops(self):

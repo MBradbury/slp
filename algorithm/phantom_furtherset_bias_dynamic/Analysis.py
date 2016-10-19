@@ -1,4 +1,3 @@
-
 from data.analysis import AnalyzerCommon
 
 class Analyzer(AnalyzerCommon):
@@ -13,8 +12,6 @@ class Analyzer(AnalyzerCommon):
     def results_header():
         d = AnalyzerCommon.common_results_header()
 
-        #d['short walk length']  = lambda x: x.opts['short_walk_length']
-        #d['long walk length']   = lambda x: x.opts['long_walk_length']
         d['short count']        = lambda x: x.opts['short_count']
         d['long count']         = lambda x: x.opts['long_count']
         d['order']              = lambda x: x.opts['order']
@@ -44,5 +41,8 @@ class Analyzer(AnalyzerCommon):
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+
+        d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
         return d

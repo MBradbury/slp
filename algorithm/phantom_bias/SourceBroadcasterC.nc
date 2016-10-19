@@ -74,6 +74,7 @@ module SourceBroadcasterC
 	uses interface MetricLogging;
 
 	uses interface NodeType;
+	uses interface MessageType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -114,10 +115,10 @@ implementation
 	typedef enum
 	{
 		UnknownMessageType, ShortRandomWalk, LongRandomWalk
-	}MessageType;
+	}WalkType;
 
-	MessageType messagetype = UnknownMessageType;
-	MessageType nextmessagetype = UnknownMessageType;
+	WalkType messagetype = UnknownMessageType;
+	WalkType nextmessagetype = UnknownMessageType;
 
 	int16_t landmark_distance = BOTTOM;
 
@@ -402,9 +403,9 @@ implementation
 		return rw;
 	}
 
-	MessageType sl_next_message_type(int16_t srw, int16_t lrw)
+	WalkType sl_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType sl_type;
+		WalkType sl_type;
 
 		if (srw == 0 && lrw != 0)
 			sl_type = LongRandomWalk;
@@ -414,9 +415,9 @@ implementation
 		return sl_type;
 	}
 
-	MessageType ls_next_message_type(int16_t srw, int16_t lrw)
+	WalkType ls_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType ls_type;
+		WalkType ls_type;
 
 		if (lrw == 0 && srw != 0)
 			ls_type = ShortRandomWalk;
@@ -494,7 +495,7 @@ implementation
 		{
 			call NodeType.set(SourceNode);
 
-			call BroadcastNormalTimer.startOneShot(2 * 1000); // 3 seconds
+			call BroadcastNormalTimer.startOneShot(2 * 1000); // 2 seconds
 		}
 	}
 
@@ -576,7 +577,7 @@ implementation
 		}
 		else
 		{
-			simdbg("Metric-SOURCE_DROPPED", SEQUENCE_NUMBER_SPEC "\n",
+			simdbg("Metric-SOURCE_DROPPED", NXSEQUENCE_NUMBER_SPEC "\n",
 				message.sequence_number);
 		}
 
@@ -691,7 +692,7 @@ implementation
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					simdbg("Metric-PATH_DROPPED", SEQUENCE_NUMBER_SPEC ",%u\n",
+					simdbg("Metric-PATH_DROPPED", NXSEQUENCE_NUMBER_SPEC ",%u\n",
 						rcvd->sequence_number, rcvd->source_distance);
 
 					return;
@@ -708,7 +709,7 @@ implementation
 			{
 				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 				{
-					simdbg("Metric-PATH-END", "%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
+					simdbg("Metric-PATH-END", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
 						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 

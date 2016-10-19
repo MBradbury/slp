@@ -7,7 +7,7 @@ communication_models = ["ideal"]
 
 sizes = [11]
 
-source_periods = [ 1.0 ]
+source_periods = [1.0]
 
 configurations = [
     'SourceCorner',
@@ -26,7 +26,7 @@ configurations = [
 random_walk_types = [
     #'only_short_random_walk',
     #'only_long_random_walk',
-    'phantom_bias'
+    'phantom_walkabouts'
 ]
 
 attacker_models = ['SeqNosReactiveAttacker()']
@@ -35,9 +35,11 @@ latest_node_start_time = 1 # in seconds
 
 node_id_orders = ['topology']
 
+direction_biases = [0.9]
+
 orders = [
 	"ShortLong",
-	#"LongShort",   
+	#"LongShort",
 ]
 
 wait_before_short = [0]
@@ -45,4 +47,4 @@ wait_before_short = [0]
 short_counts = [1]
 long_counts = [1]
 
-repeats = 500
+repeats = 1000
