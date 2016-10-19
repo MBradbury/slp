@@ -17,6 +17,20 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
         pip install scipy numpy cython pandas more_itertools shutilwhich psutil pip --upgrade
         pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
 
+
+   Note: When installing python_euclidean2_2d you may need to specify the path to the numpy headers.
+   You can execute the following line to get the location of the numpy headers.
+
+        :::bash
+        python -c "import numpy; print(numpy.get_include())"
+
+   Installing python_euclidean2_2d then looks something like:
+
+        :::bash
+        CFLAGS="-I~/.pyenv/versions/2.7.11/lib/python2.7/site-packages/numpy/core/include" pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
+
+        --global-option=built_ext --global-option="-I<path to numpy headers>"
+
    Make sure to prefix these commands with ```sudo``` if installing for the system python.
 
 ## Using pyenv (general)
