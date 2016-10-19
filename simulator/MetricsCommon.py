@@ -80,29 +80,31 @@ class MetricsCommon(object):
         (kind, status, sequence_number) = line.split(',')
 
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
-        if status == "0":
-            ord_node_id, top_node_id = self._process_node_id(node_id)
-            time = float(time)
+        if status != "0":
+            return
 
-            self.sent[kind][top_node_id] += 1
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        time = float(time)
 
-            hist = self.sent_over_time[kind]
-            bin_no = self._time_to_bin(time)
-            if len(hist) <= bin_no:
-                hist.extend([0] * (bin_no - len(hist) + 1))
-            hist[bin_no] += 1
+        self.sent[kind][top_node_id] += 1
 
-            if ord_node_id in self.source_ids and kind == "Normal":
-                sequence_number = int(sequence_number)
+        hist = self.sent_over_time[kind]
+        bin_no = self._time_to_bin(time)
+        if len(hist) <= bin_no:
+            hist.extend([0] * (bin_no - len(hist) + 1))
+        hist[bin_no] += 1
 
-                # There are some times when we do not know the sequence number of the normal message
-                # (See protectionless_ctp). As a -1 means a previous message is being rebroadcasted,
-                # we can simply ignore adding this message
-                if sequence_number != -1:
-                    self.normal_sent_time[(top_node_id, sequence_number)] = time
+        if ord_node_id in self.source_ids and kind == "Normal":
+            sequence_number = int(sequence_number)
 
-                    # Handle starting the duration timeout in the simulation running
-                    self.sim.trigger_duration_run_start(time)
+            # There are some times when we do not know the sequence number of the normal message
+            # (See protectionless_ctp). As a -1 means a previous message is being rebroadcasted,
+            # we can simply ignore adding this message
+            if sequence_number != -1:
+                self.normal_sent_time[(top_node_id, sequence_number)] = time
+
+                # Handle starting the duration timeout in the simulation running
+                self.sim.trigger_duration_run_start(time)
 
     def process_rcv_event(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
@@ -191,6 +193,12 @@ class MetricsCommon(object):
         self.node_transitions[(old_name, new_name)] += 1
 
 
+    def num_normal_sent_if_finished(self):
+        if self.reached_sim_upper_bound() and len(self.normal_sent_time) == 0:
+            return float('NaN')
+        else:
+            return len(self.normal_sent_time)
+
 
     def seed(self):
         return self.sim.seed
@@ -255,7 +263,7 @@ class MetricsCommon(object):
         end_time = self.sim_time()
         send_modifier = 0
 
-        if len(self.normal_sent_time) > 0 and np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
+        if len(self.normal_sent_time) > 1 and np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
             send_modifier = 1
 
         return len(self.normal_latency) / (len(self.normal_sent_time) - send_modifier)

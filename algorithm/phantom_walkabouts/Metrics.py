@@ -39,13 +39,13 @@ class Metrics(MetricsCommon):
         self._path_dropped.append(source_distance)
 
     def paths_reached_end(self):
-        return len(self._paths_reached_end) / len(self.normal_sent_time)
+        return len(self._paths_reached_end) / self.num_normal_sent_if_finished()
 
     def source_dropped(self):
-        return len(self._source_dropped) / (len(self._source_dropped) + len(self.normal_sent_time))
+        return len(self._source_dropped) / (len(self._source_dropped) + self.num_normal_sent_if_finished())
 
     def path_dropped(self):
-        return len(self._path_dropped) / len(self.normal_sent_time)
+        return len(self._path_dropped) / self.num_normal_sent_if_finished()
 
     def path_dropped_average_length(self):
         return 0 if len(self._path_dropped) == 0 else mean(self._path_dropped)
