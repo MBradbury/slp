@@ -36,7 +36,7 @@ To install on flux there is a slightly different procedure:
 
 ```bash
 module load flux-installers && pyenv-install.sh && source ~/.bashrc
-MAKE_OPTS=profile-opt pyenv install 2.7.12
+CONFIGURE_OPTS="--with-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
 pyenv global 2.7.12
 ```
 
