@@ -47,7 +47,8 @@ def bytes2human(num):
     return "%sB" % num
 
 def pprint_ntuple(nt):
-    # From: https://github.com/giampaolo/psutil/blob/master/scripts/meminfo.py
+    """Returns a tuple of human readable bytes from a tuple of bytes
+    # From: https://github.com/giampaolo/psutil/blob/master/scripts/meminfo.py"""
     result = {}
     for name in nt._fields:
         value = getattr(nt, name)
