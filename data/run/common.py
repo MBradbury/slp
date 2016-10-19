@@ -103,6 +103,9 @@ class RunSimulationsCommon(object):
         source_period = key[-1]
         key = tuple(key[:-1])
 
+        #from pprint import pprint
+        #pprint(self._safety_periods)
+
         try:
             return self._safety_periods[key][source_period]
         except KeyError as ex:

@@ -1,10 +1,14 @@
 from __future__ import print_function, division
 
-import os, itertools, math, datetime
+import datetime
+import itertools
+import math
+import os
 
 import numpy as np
 
 from simulator import CommandLineCommon
+from simulator import Configuration
 
 import algorithm.protectionless as protectionless
 
@@ -23,7 +27,7 @@ class RunSimulations(RunSimulationsCommon):
         if time_taken is None:
             return None
 
-        return 1.3 * time_taken + 3
+        return 1.3 * time_taken
 
 class CLI(CommandLineCommon.CLI):
 
