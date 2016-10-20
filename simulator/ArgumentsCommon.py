@@ -60,6 +60,12 @@ class ArgumentsCommon(object):
 
         ###
 
+        # The profile parser is the same as the single parser
+        # The only difference is that the code will not be rebuilt.
+        parser_profile = subparsers.add_parser("PROFILE", add_help=False, parents=[parser_single])
+
+        ###
+
         parser_gui = subparsers.add_parser("GUI", add_help=False, parents=[parser_single])
 
         parser_gui.add_argument("--gui-node-label", type=str, required=False, default=None)
@@ -104,7 +110,7 @@ class ArgumentsCommon(object):
 
         # Store any of the parsers that we need
         self._parser = parser
-        self._online_subparsers = (parser_testbed, parser_single, parser_gui, parser_parallel, parser_cluster)
+        self._online_subparsers = (parser_testbed, parser_single, parser_profile, parser_gui, parser_parallel, parser_cluster)
         self._offline_subparsers = (parser_offline, parser_offline_gui)
 
         # Haven't parsed anything yet
