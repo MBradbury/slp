@@ -368,3 +368,35 @@ cd slp-algorithms-tinyos
 A very important thing to note is that if you make any change to data/analysis.py
 then you MUST rerun ./scripts/cythonise_analysis.sh. This may happen when you pull
 from another repo. If you do not then analysis may not work properly.
+
+# Profiling the code
+
+## Simulator framework profiling
+
+Perform the analysis:
+```bash
+python -OO -m cProfile -o s1.prof ./run.py ...
+```
+
+View the results:
+```bash
+./scripts/analyse_prof.sh s1.prof
+```
+
+## TinyOS profiling
+
+Install the dependences:
+```bash
+sudo apt-get install google-pprof
+sudo pip install yep
+```
+
+Perform the analysis:
+```bash
+python -OO -m yep -o t1.prof --
+```
+
+Visualise the call tree:
+```bash
+google-pprof -gv $(which python) t1.prof
+```
