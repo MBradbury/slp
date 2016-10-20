@@ -393,7 +393,7 @@ sudo pip install yep
 
 Perform the analysis:
 ```bash
-python -OO -m yep -o t1.prof --
+python -OO -m yep -o t1.prof -- ./run.py ...
 ```
 
 Visualise the call tree:
