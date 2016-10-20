@@ -387,7 +387,7 @@ View the results:
 
 Install the dependences:
 ```bash
-sudo apt-get install google-pprof
+sudo apt-get install google-perftools
 sudo pip install yep
 ```
 
