@@ -23,4 +23,7 @@ enum Channels
 #define LONG_RANDOM_WALK_RECEIVE_RATIO 0.3
 #define SOURCE_SINK_DISTANCE_LIMIT 15
 
+#define ND_MEAN 2.5 //normal distribution mean
+#define ND_VARIANCE 1  ////normal distribution variance
+
 #endif // SLP_CONSTANTS_H
