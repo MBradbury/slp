@@ -649,10 +649,13 @@ implementation
 
 	int similar_value(double num)
  	{
-   	if (num < (int)floor(num) + 0.5)
-     	return (int)floor(num);
-   	else
-    	return (int)ceil(num);
+ 		if(num < 0)
+ 			num = 0;
+ 
+   		if (num < (int)floor(num) + 0.5)
+     		return (int)floor(num);
+   		else
+    		return (int)ceil(num);
 	}
 
 	uint32_t beacon_send_wait()
