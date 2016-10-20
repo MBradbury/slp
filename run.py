@@ -17,7 +17,7 @@ a.parse(sys.argv[2:])
 # topology file has been written. So do not attempt to do so again.
 #
 # Also do not build for offline analysis runs
-if a.args.mode not in {"CLUSTER", "OFFLINE", "OFFLINE_GUI"}:
+if a.args.mode not in {"PROFILE", "CLUSTER", "OFFLINE", "OFFLINE_GUI"}:
     import os.path
 
     import simulator.Builder as Builder
@@ -37,6 +37,10 @@ if a.args.mode not in {"CLUSTER", "OFFLINE", "OFFLINE_GUI"}:
 
     # Now build the simulation with the specified arguments
     Builder.build_sim(module.replace(".", os.path.sep), **build_arguments)
+
+# Make the mode SINGLE, as PROFILE is SINGLE except for not building the code
+if a.args.mode == "PROFILE":
+    a.args.mode = "SINGLE"
 
 # Set the thread count, but only for jobs that need it
 if a.args.mode in {"CLUSTER", "PARALLEL"}:
