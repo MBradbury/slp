@@ -30,15 +30,8 @@ class Arguments(ArgumentsCommon):
 
         self.add_argument("--order", type=str, choices=order_choices, required=True)
 
-        self.add_argument("--short-count", type=int, required=True)
-        self.add_argument("--long-count", type=int, required=True)
-
-        self.add_argument("--landmark-node", default="sink_id")
-
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
-
-        result["LANDMARK_NODE_ID"] = self._get_node_id(self.args.landmark_node)
 
         result["BIASED_NO"] = int(self.args.direction_bias * 100)
 
@@ -53,8 +46,5 @@ class Arguments(ArgumentsCommon):
             result["LOND_SHORT_SEQUENCE"] = 0
         else:
             result["SHORT_LONG_SEQUENCE"] = 0
-
-        result["SHORT_COUNT"] = int(self.args.short_count)
-        result["LONG_COUNT"] = int(self.args.long_count)
 
         return result

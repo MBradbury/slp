@@ -15,14 +15,10 @@ class Analyzer(AnalyzerCommon):
     @staticmethod
     def results_header():
         d = AnalyzerCommon.common_results_header()
-
-        d['short count']        = lambda x: x.opts['short_count']
-        d['long count']         = lambda x: x.opts['long_count']
+        
         d['order']              = lambda x: x.opts['order']
         d['direction bias']     = lambda x: x.opts['direction_bias']
         d['wait before short']  = lambda x: x.opts['wait_before_short']
-               
-        d['landmark node']      = lambda x: x.opts['landmark_node']
         
         d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
         d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')

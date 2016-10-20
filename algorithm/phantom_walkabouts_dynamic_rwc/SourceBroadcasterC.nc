@@ -12,6 +12,10 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
@@ -186,6 +190,7 @@ implementation
 
 	bool reach_borderline = FALSE;
 	bool slw_init = FALSE;
+	bool slw_dynamic_init = FALSE;
 	bool phantom_walkabout_dynamic_rwc = FALSE;
 
 	int16_t landmark_bottom_left_distance = BOTTOM;
@@ -197,6 +202,8 @@ implementation
 	int16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
 	int16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
 
+	int16_t srw_count_init = 0;	//randomly choose short random walk count.
+	int16_t lrw_count_init = 0;	//randomly choose long random walk count.
 	int16_t srw_count = 0;	//short random walk count.
 	int16_t lrw_count = 0;	//long random walk count.
 	int16_t srw_count_dynamic = 0;
@@ -606,6 +613,48 @@ implementation
 		return ls_type;
 	}
 
+	double ranf() 
+ 	{
+   		srand(time(NULL)+rand());
+   		return (double)rand() / (double)RAND_MAX;
+ 	}
+
+	double box_muller(double m, double s)	
+	{				        
+		double x1, x2, w, yy1;
+		static double yy2;
+		static int use_last = 0;
+
+		if (use_last)		       
+		{
+			yy1 = yy2;
+			use_last = 0;
+		}
+		else
+		{
+			do {
+				x1 = 2.0 * ranf() - 1.0;
+				x2 = 2.0 * ranf() - 1.0;
+				w = x1 * x1 + x2 * x2;
+			} while ( w >= 1.0 );
+
+			w = sqrt( (-2.0 * log( w ) ) / w );
+			yy1 = x1 * w;
+			yy2 = x2 * w;
+			use_last = 1;
+		}
+
+		return( m + yy1 * s );
+	}
+
+	int similar_value(double num)
+ 	{
+   	if (num < (int)floor(num) + 0.5)
+     	return (int)floor(num);
+   	else
+    	return (int)ceil(num);
+	}
+
 	uint32_t beacon_send_wait()
 	{
 		return 75U + (uint32_t)(50U * random_float());
@@ -628,6 +677,9 @@ implementation
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
 		call NodeType.register_pair(NormalNode, "NormalNode");
+
+		srw_count_init = similar_value(box_muller(ND_MEAN, ND_VARIANCE));
+		lrw_count_init = similar_value(box_muller(ND_MEAN, ND_VARIANCE));
 
 		if (call NodeType.is_node_sink())
 		{
@@ -767,6 +819,8 @@ implementation
 	{
 	}
 
+	
+
 	event void BroadcastNormalTimer.fired()
 	{
 		NormalMessage message;
@@ -787,49 +841,56 @@ implementation
 		RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + 2;
 		LONG_RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + landmark_sink_distance + 2;
 
-		
-		if (landmark_sink_distance <= SOURCE_SINK_DISTANCE_LIMIT )
+		//initialise the short random walks and long random walks only once.
+		if (slw_init == FALSE) 
 		{
-			srw_count_dynamic = 0;
-			lrw_count_dynamic = SHORT_COUNT + LONG_COUNT;
-		}
-		else
-		{
-			srw_count_dynamic = SHORT_COUNT - 1;
-			lrw_count_dynamic = LONG_COUNT + 1;
+			slw_init =TRUE;
+			if (srw_count_init != 0 && lrw_count_init != 0)
+	  		{
+	    		if (srw_count_init >= lrw_count_init && srw_count_init % lrw_count_init == 0)
+	    		{
+	    			srw_count_init = srw_count_init / lrw_count_init;
+	    			lrw_count_init = 1;
+	    		}
+	    		else if (srw_count_init < lrw_count_init && lrw_count_init % srw_count_init == 0)
+	    		{
+	      			srw_count_init = 1;
+	      			lrw_count_init = lrw_count_init / srw_count_init;
+	    		}
+	    		else ;
+	  		}
+	  		srw_count = srw_count_init;
+			lrw_count = lrw_count_init;
+	  		//printf("short random=%d, long random=%d\n", srw_count, lrw_count);
 		}
 		
-		if ( (SHORT_COUNT - LONG_RANDOM_WALK_RECEIVE_RATIO * LONG_COUNT) > 0)
+		//use dynamic phantom walkabouts here.
+		if ( (srw_count_init - LONG_RANDOM_WALK_RECEIVE_RATIO * lrw_count_init) > 0)  
 		{
 			phantom_walkabout_dynamic_rwc = TRUE;
-			m1 = (SHORT_COUNT + LONG_COUNT) * random_walk_length / (SHORT_COUNT - LONG_RANDOM_WALK_RECEIVE_RATIO * LONG_COUNT);
-		}	
 
-		if ( (LONG_RANDOM_WALK_RECEIVE_RATIO * lrw_count_dynamic - srw_count_dynamic) <= 0)
-		{
 			srw_count_dynamic = 0;
-			lrw_count_dynamic = SHORT_COUNT + LONG_COUNT;
+			lrw_count_dynamic = srw_count_init + lrw_count_init;
+
+			m1 = (srw_count_init + lrw_count_init) * random_walk_length / (srw_count_init - LONG_RANDOM_WALK_RECEIVE_RATIO * lrw_count_init);
+			m2 = (srw_count_dynamic + lrw_count_dynamic) * random_walk_length / (LONG_RANDOM_WALK_RECEIVE_RATIO * lrw_count_dynamic - srw_count_dynamic);
+			//printf("m1=%d, m2 = %d\n", m1, m2);
 		}
-
-		m2 = (srw_count_dynamic + lrw_count_dynamic) * random_walk_length / (LONG_RANDOM_WALK_RECEIVE_RATIO * lrw_count_dynamic - srw_count_dynamic);
 		
-		//printf("m1=%d, m2 = %d\n", m1, m2);
-
-		if ( message_send_no > m1 && message_send_no < (m1 + m2)  && phantom_walkabout_dynamic_rwc == TRUE)
+		if ( message_send_no >= m1 && message_send_no <= (m1 + m2)  && phantom_walkabout_dynamic_rwc == TRUE)
 		{
 			// initialise srw_count_dynamic and lrw_count_dynamic only once
-			if (slw_init == FALSE)
+			if (slw_dynamic_init == FALSE)
 			{
 				srw_count = srw_count_dynamic;
 				lrw_count = lrw_count_dynamic;
-				slw_init = TRUE;
+				slw_dynamic_init = TRUE;
 			}
 			if (srw_count == 0 && lrw_count == 0)
 			{
 				srw_count = srw_count_dynamic;
 				lrw_count = lrw_count_dynamic;
 			}
-
 			//printf(" <dynamic>: mesage send number: %d, ", message_send_no);
 		}
 		else
@@ -837,12 +898,11 @@ implementation
 			//initialise the short sount and long count.
 			if (srw_count == 0 && lrw_count == 0)
 			{
-				srw_count = SHORT_COUNT;
-				lrw_count = LONG_COUNT;
+				srw_count = srw_count_init;
+				lrw_count = lrw_count_init;
 			}
 			//printf(" <normal>: mesage send number: %d, ", message_send_no);
 		}
-
 
 		//simdbg("stdout","(ssd:%d,random walk length:%d)short random walk hop=%d, long random walk hop=%d\n", landmark_sink_distance, random_walk_length, RANDOM_WALK_HOPS, LONG_RANDOM_WALK_HOPS);
 
@@ -861,12 +921,12 @@ implementation
 		if (message.random_walk_hops == RANDOM_WALK_HOPS)
 		{
 			messagetype = ShortRandomWalk;
-			//printf("short random walk.\n");
+			//printf("short random walk. ");
 		}
 		else
 		{
 			messagetype = LongRandomWalk;
-			//printf("long random walk.\n");
+			//printf("long random walk. ");
 		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -908,12 +968,12 @@ implementation
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
 		{
-			//simdbgverbose("stdout", "call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n");
+			//printf("call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n");
 			call BroadcastNormalTimer.startOneShot(WAIT_BEFORE_SHORT_MS + source_period);
 		}
 		else
 		{
-			//simdbgverbose("stdout", "call startOneShot(source_period)\n");
+			//printf("call startOneShot(source_period)\n");
 			call BroadcastNormalTimer.startOneShot(source_period);
 		}
 	}
