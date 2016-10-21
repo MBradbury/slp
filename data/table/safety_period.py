@@ -55,10 +55,10 @@ class TableGenerator:
             print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model and \\textbf{{{}}} distance and \\textbf{{{}}} node id order and \\textbf{{{}}} latest start time}}'.format(
                 config, attacker_model, noise_model, communication_model, distance, node_id_order, latest_start_time), file=stream)
             print('\\centering', file=stream)
-            print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
+            print('\\begin{tabular}{ | c | c || c | c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
-            print('Size & Period & Received & Source-Sink   & Latency   & Average Time    & Safety Period & Captured \\tabularnewline', file=stream)
-            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Taken (seconds) & (seconds)     & (\\%)    \\tabularnewline', file=stream)
+            print('Size & Period & Received & Source-Sink   & Latency   & Average Time    & First Normal    & Safety Period & Captured \\tabularnewline', file=stream)
+            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Taken (seconds) & Sent Time (sec) & (seconds)     & (\\%)    \\tabularnewline', file=stream)
             print('\\hline', file=stream)
             print('', file=stream)
 
@@ -87,6 +87,7 @@ class TableGenerator:
                 
                     print('{} & {} & {:0.0f} $\\pm$ {:0.2f} & {:.1f} $\\pm$ {:.2f}'
                           ' & {:0.1f} $\\pm$ {:0.1f} & {:0.2f} $\\pm$ {:0.2f}'
+                          ' & {:0.3f} $\\pm$ {:0.3f}'
                           ' & {:0.2f} & {:0.0f} \\tabularnewline'.format(
                             size,
                             src_period,
@@ -94,6 +95,7 @@ class TableGenerator:
                             ssd[0], ssd[1],
                             latency[0], latency[1],
                             time_taken[0], time_taken[1],
+                            first_normal_sent_time[0], first_normal_sent_time[1],
                             safety_period,
                             captured),
                           file=stream)
