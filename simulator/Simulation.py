@@ -61,7 +61,8 @@ class Simulation(object):
 
         self._create_nodes(configuration.topology)
 
-        self.upper_bound_safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+        slowest_source_period = args.source_period if isinstance(args.source_period, float) else args.source_period.slowest()
+        self.upper_bound_safety_period = len(configuration.topology.nodes) * 2.0 * slowest_source_period
 
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
