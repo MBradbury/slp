@@ -38,7 +38,8 @@ class Configuration(object):
 
     def build_arguments(self):
         build_arguments = {
-            "SINK_NODE_ID": self.topology.to_topo_nid(self.sink_id)
+            "SINK_NODE_ID": self.topology.to_topo_nid(self.sink_id),
+            "MAX_TOSSIM_NODES": self.size(),
         }
 
         if self.space_behind_sink:
