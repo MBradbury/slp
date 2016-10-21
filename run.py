@@ -100,6 +100,19 @@ else:
 
     print_lock = Lock()
 
+    def subprocess_args_with_seed_44(subprocess_args):
+        subprocess_args = list(subprocess_args)
+
+        try:
+            seed_index = subprocess_args.index('--seed')
+            subprocess_args[seed_index + 1] = '44'
+        except ValueError:
+            subprocess_args.append('--seed')
+            subprocess_args.append('44')
+
+        return subprocess_args
+
+
     def runner(args):
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
@@ -133,6 +146,7 @@ else:
             raise
 
     subprocess_args = ["python", "-OO", "-m", "simulator.DoRun"] + sys.argv[1:]
+    subprocess_args_44 = subprocess_args_with_seed_44(subprocess_args)
 
     if a.args.mode == "CLUSTER":
         if a.args.job_id is not None:
@@ -154,8 +168,12 @@ else:
     #    The process pool would stay alive.
     job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
 
+    # Always run with a seed of 44 first.
+    # This allows us to do compatibility checks.
+    all_args = [subprocess_args_44] + [subprocess_args] * a.args.job_size
+
     try:
-        result = job_pool.map_async(runner, [subprocess_args] * a.args.job_size)
+        result = job_pool.map_async(runner, all_args)
 
         # No more jobs to submit
         job_pool.close()
