@@ -8,7 +8,6 @@ import os
 import numpy as np
 
 from simulator import CommandLineCommon
-from simulator import Configuration
 
 import algorithm.protectionless as protectionless
 
@@ -104,9 +103,7 @@ class CLI(CommandLineCommon.CLI):
             raise RuntimeError("error in the function: _short_long_walk_lengths")
 
         return list(zip(walk_short, walk_long))
-        #return list((x,y) for x in walk_short for y in walk_long)
         
-
     def _time_estimater(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
@@ -114,13 +111,13 @@ class CLI(CommandLineCommon.CLI):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 11:
-            return datetime.timedelta(hours=4)
+            return datetime.timedelta(hours=1)
         elif size == 15:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=1)
         elif size == 21:
-            return datetime.timedelta(hours=16)
+            return datetime.timedelta(hours=1)
         elif size == 25:
-            return datetime.timedelta(hours=32)
+            return datetime.timedelta(hours=1)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
