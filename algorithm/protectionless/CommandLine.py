@@ -70,7 +70,7 @@ class CLI(CommandLineCommon.CLI):
         self._create_table(self.algorithm_module.name + "-results", result_table)
 
     def _run_safety_table(self, args):
-        time_taken_to_safety_period = lambda time_taken: time_taken * 2.0
+        time_taken_to_safety_period = lambda time_taken, fnst: (time_taken - fnst) * 2.0
 
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path, time_taken_to_safety_period)
 
