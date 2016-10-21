@@ -2,8 +2,8 @@
 import argparse
 from random import SystemRandom
 
-from simulator.Simulation import Simulation
 import simulator.Attacker as Attacker
+import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
@@ -42,8 +42,8 @@ class ArgumentsCommon(object):
 
         parser_single.add_argument("--seed", type=int, required=False)
 
-        parser_single.add_argument("-cm", "--communication-model", type=str, choices=Simulation.available_communication_models(), required=True)
-        parser_single.add_argument("-nm", "--noise-model", type=str, choices=Simulation.available_noise_models(), required=True)
+        parser_single.add_argument("-cm", "--communication-model", type=str, choices=simulator.common.available_communication_models(), required=True)
+        parser_single.add_argument("-nm", "--noise-model", type=str, choices=simulator.common.available_noise_models(), required=True)
 
         parser_single.add_argument("-ns", "--network-size", type=int, required=True)
         parser_single.add_argument("-d", "--distance", type=float, default=4.5)
