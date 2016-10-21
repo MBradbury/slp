@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import argparse
 import datetime
 import importlib
+import itertools
 import os
 import sys
 
@@ -85,6 +86,12 @@ class CLI(object):
         subparser.add_argument("--drop-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to drop results that hit the upper time bound.")
 
         ###
+
+        if safety_period_result_path is not None:            
+            if isinstance(safety_period_result_path, bool):
+                pass
+            else:
+                subparser = subparsers.add_parser("safety-table")
 
         subparser = subparsers.add_parser("time-taken-table")
         subparser = subparsers.add_parser("detect-missing")
@@ -215,6 +222,21 @@ class CLI(object):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
         analyzer.run(self.algorithm_module.result_file, args.thread_count,
                      headers_to_skip=args.headers_to_skip, drop_if_hit_upper_time_bound=args.drop_if_hit_upper_time_bound)
+
+    def _run_safety_table(self, args):
+        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path, self.time_taken_to_safety_period)
+
+        prod = itertools.product(simulator.common.available_noise_models(),
+                                 simulator.common.available_communication_models())
+
+        for (noise_model, comm_model) in prod:
+
+            print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
+
+            filename = '{}-{}-{}-results'.format(self.algorithm_module.name, noise_model, comm_model)
+
+            self._create_table(filename, safety_period_table,
+                               param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
@@ -399,6 +421,9 @@ class CLI(object):
 
         elif 'time-taken-table' == args.mode:
             self._run_time_taken_table(args)
+
+        elif 'safety-table' == args.mode:
+            self._run_safety_table(args)
 
         elif 'detect-missing' == args.mode:
             self._run_detect_missing(args)
