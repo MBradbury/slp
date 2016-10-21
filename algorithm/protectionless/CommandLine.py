@@ -20,7 +20,6 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
         subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("safety-table")
         subparser = self._subparsers.add_parser("graph")
         subparser = self._subparsers.add_parser("ccpe-comparison-table")
         subparser = self._subparsers.add_parser("ccpe-comparison-graph")
@@ -201,9 +200,6 @@ class CLI(CommandLineCommon.CLI):
 
         if 'table' == args.mode:
             self._run_table(args)
-
-        elif 'safety-table' == args.mode:
-            self._run_safety_table(args)
 
         elif 'graph' == args.mode:
             self._run_graph(args)
