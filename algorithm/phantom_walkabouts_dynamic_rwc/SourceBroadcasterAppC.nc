@@ -14,9 +14,11 @@ implementation
 	// Low levels events such as boot and LED control
 	components DelayedBootEventMainP as MainC;
 	components LedsC;
+	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
+	App.Random -> RandomC;
 
 #if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
 	components PrintfMetricLoggingP as MetricLogging;
@@ -113,8 +115,4 @@ implementation
 		new SequenceNumbersP(SLP_MAX_NUM_AWAY_MESSAGES) as AwaySeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 	App.AwaySeqNos -> AwaySeqNos;
- 
-    // Random
-    components RandomC;
-    App.Random -> RandomC;
 }
