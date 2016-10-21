@@ -12,9 +12,7 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
@@ -120,6 +118,7 @@ module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
+	uses interface Random;
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
@@ -153,8 +152,6 @@ module SourceBroadcasterC
 
 	uses interface SequenceNumbers as NormalSeqNos;
 	uses interface SequenceNumbers as AwaySeqNos;
-	 
-	uses interface Random;
 }
 
 implementation 
@@ -613,12 +610,6 @@ implementation
 		return ls_type;
 	}
 
-	double ranf() 
- 	{
-   		srand(time(NULL)+rand());
-   		return (double)rand() / (double)RAND_MAX;
- 	}
-
 	double box_muller(double m, double s)	
 	{				        
 		double x1, x2, w, yy1;
@@ -633,8 +624,8 @@ implementation
 		else
 		{
 			do {
-				x1 = 2.0 * ranf() - 1.0;
-				x2 = 2.0 * ranf() - 1.0;
+				x1 = 2.0 * random_float() - 1.0;
+				x2 = 2.0 * random_float() - 1.0;
 				w = x1 * x1 + x2 * x2;
 			} while ( w >= 1.0 );
 
