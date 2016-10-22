@@ -880,7 +880,8 @@ implementation
 			//printf("m1=%d, m2 = %d\n", m1, m2);
 		}
 		
-		if ( message_send_no >= m1 && message_send_no <= (m1 + m2)  && phantom_walkabout_dynamic_rwc == TRUE)
+		//if ( message_send_no >= m1 && message_send_no <= (m1 + m2)  && phantom_walkabout_dynamic_rwc == TRUE)
+		if (  message_send_no % (m1 + m2) > m1 && phantom_walkabout_dynamic_rwc == TRUE)
 		{
 			// initialise srw_count_dynamic and lrw_count_dynamic only once
 			if (slw_dynamic_init == FALSE)
