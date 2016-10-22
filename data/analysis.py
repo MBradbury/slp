@@ -205,6 +205,7 @@ class Analyse(object):
         "Seed": np.int64,
         "Sent": np.uint32,
         "Captured": np.bool_,
+        "ReachedSimUpperBound": np.bool_,
         "Received": np.uint32,
         "Delivered": np.uint32,
         "ReceiveRatio": np.float_,

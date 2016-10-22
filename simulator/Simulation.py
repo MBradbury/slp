@@ -61,7 +61,8 @@ class Simulation(object):
 
         self._create_nodes(configuration.topology)
 
-        self.upper_bound_safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+        slowest_source_period = args.source_period if isinstance(args.source_period, float) else args.source_period.slowest()
+        self.upper_bound_safety_period = configuration.size() * 4.0 * slowest_source_period
 
         if hasattr(args, "safety_period"):
             self.safety_period = args.safety_period
@@ -276,24 +277,6 @@ class Simulation(object):
     def noise_model_path(self):
         """The path to the noise model, specified in the algorithm arguments."""
         return os.path.join('models', 'noise', self.noise_model + '.txt')
-
-    @staticmethod
-    def available_noise_models():
-        """Gets the names of the noise models available in the noise directory"""
-        return ("casino-lab", "meyer-heavy", "ttx4-demo")
-
-        # Querying the files is the best approach. But it is expensive, so lets disable it.
-        #import glob
-        #return [
-        #    os.path.splitext(os.path.basename(noise_file))[0]
-        #    for noise_file
-        #    in glob.glob('models/noise/*.txt')
-        #]
-
-    @staticmethod
-    def available_communication_models():
-        """Gets the names of the communication models available"""
-        return simulator.CommunicationModel.MODEL_NAME_MAPPING.keys()
 
 
 class OfflineSimulation(object):
