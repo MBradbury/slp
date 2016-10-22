@@ -20,7 +20,6 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
         subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("safety-table")
         subparser = self._subparsers.add_parser("graph")
         subparser = self._subparsers.add_parser("ccpe-comparison-table")
         subparser = self._subparsers.add_parser("ccpe-comparison-graph")
@@ -70,7 +69,7 @@ class CLI(CommandLineCommon.CLI):
         self._create_table(self.algorithm_module.name + "-results", result_table)
 
     def _run_safety_table(self, args):
-        time_taken_to_safety_period = lambda time_taken: time_taken * 2.0
+        time_taken_to_safety_period = lambda time_taken, fnst: (time_taken - fnst) * 2.0
 
         safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path, time_taken_to_safety_period)
 
@@ -201,9 +200,6 @@ class CLI(CommandLineCommon.CLI):
 
         if 'table' == args.mode:
             self._run_table(args)
-
-        elif 'safety-table' == args.mode:
-            self._run_safety_table(args)
 
         elif 'graph' == args.mode:
             self._run_graph(args)
