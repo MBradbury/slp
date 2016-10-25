@@ -659,6 +659,8 @@ class AnalyzerCommon(object):
 
         d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
         d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
+        
+        d['total wall time']    = lambda x: AnalyzerCommon._format_results(x, 'TotalWallTime')
         d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
         d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
 
