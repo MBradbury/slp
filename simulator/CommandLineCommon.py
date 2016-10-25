@@ -319,7 +319,7 @@ class CLI(object):
     def _run_time_taken_table(self, args):
         result = results.Results(self.algorithm_module.result_file_path,
                                  parameters=self.local_parameter_names,
-                                 results=('time taken', 'wall time', 'event count', 'repeats'))
+                                 results=('time taken', 'total wall time', 'wall time', 'event count', 'repeats'))
 
         result_table = fake_result.ResultTable(result)
 
