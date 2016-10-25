@@ -12,9 +12,9 @@ class ResultTable(BaseResultTable):
     good = '\\goodcolour'
     neutral = ''
 
-    def __init__(self, base_results, comparison_results):
+    def __init__(self, base_results, comparison_results, fmt=None):
 
-        super(ResultTable, self).__init__(base_results)
+        super(ResultTable, self).__init__(base_results, fmt=fmt)
 
         self.base_results = base_results
         self.comparison_results = comparison_results

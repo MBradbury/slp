@@ -10,7 +10,7 @@ from data import results
 
 class TableGenerator:
 
-    def __init__(self, result_file, time_taken_to_safety_period):
+    def __init__(self, result_file, time_taken_to_safety_period, fmt=None):
         self._result_names = ('time taken', 'received ratio',
                               'normal latency', 'ssd', 'captured',
                               'first normal sent time')
@@ -22,6 +22,11 @@ class TableGenerator:
         )
 
         self.time_taken_to_safety_period = time_taken_to_safety_period
+
+        self.fmt = fmt
+        if fmt is None:
+            from data_formatter import TableDataFormatter
+            self.fmt = TableDataFormatter()
 
     def write_tables(self, stream, param_filter=lambda x: True):
 
@@ -74,30 +79,28 @@ class TableGenerator:
 
                     result = self._results.data[data_key][src_period][tuple()]
 
-                    def _get_value(name):
-                        return result[self._result_names.index(name)]
+                    def _get_name_and_value(name):
+                        return name, result[self._result_names.index(name)]
 
-                    rcv = _get_value('received ratio')
-                    ssd = _get_value('ssd')
-                    latency = _get_value('normal latency')
-                    time_taken = _get_value('time taken')
-                    first_normal_sent_time = _get_value('first normal sent time')
-                    safety_period = self.time_taken_to_safety_period(time_taken[0], first_normal_sent_time[0])
-                    captured = _get_value('captured')
+                    def _get_just_value(name):
+                        return result[self._result_names.index(name)][0]
+
+                    safety_period = self.time_taken_to_safety_period(
+                        _get_just_value('time taken'),
+                        _get_just_value('first normal sent time'))
                 
-                    print('{} & {} & {:0.0f} $\\pm$ {:0.2f} & {:.1f} $\\pm$ {:.2f}'
-                          ' & {:0.1f} $\\pm$ {:0.1f} & {:0.2f} $\\pm$ {:0.2f}'
-                          ' & {:0.3f} $\\pm$ {:0.3f}'
-                          ' & {:0.2f} & {:0.0f} \\tabularnewline'.format(
+                    print('{} & {} & {} & {}'
+                          ' & {} & {} & {}'
+                          ' & {:0.2f} & {} \\tabularnewline'.format(
                             size,
                             src_period,
-                            rcv[0], rcv[1],
-                            ssd[0], ssd[1],
-                            latency[0], latency[1],
-                            time_taken[0], time_taken[1],
-                            first_normal_sent_time[0], first_normal_sent_time[1],
+                            self.fmt.format_value(*_get_name_and_value('received ratio')),
+                            self.fmt.format_value(*_get_name_and_value('ssd')),
+                            self.fmt.format_value(*_get_name_and_value('normal latency')),
+                            self.fmt.format_value(*_get_name_and_value('time taken')),
+                            self.fmt.format_value(*_get_name_and_value('first normal sent time')),
                             safety_period,
-                            captured),
+                            self.fmt.format_value(*_get_name_and_value('captured'))),
                           file=stream)
                     
                 print('\\hline', file=stream)
