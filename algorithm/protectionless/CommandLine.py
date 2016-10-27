@@ -68,23 +68,6 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_table(self.algorithm_module.name + "-results", result_table)
 
-    def _run_safety_table(self, args):
-        time_taken_to_safety_period = lambda time_taken, fnst: (time_taken - fnst) * 2.0
-
-        safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path, time_taken_to_safety_period)
-
-        prod = itertools.product(Simulation.available_noise_models(),
-                                 Simulation.available_communication_models())
-
-        for (noise_model, comm_model) in prod:
-
-            print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
-
-            filename = '{}-{}-{}-results'.format(self.algorithm_module.name, noise_model, comm_model)
-
-            self._create_table(filename, safety_period_table,
-                               param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
-
     def _run_graph(self, args):
         graph_parameters = {
             #'safety period': ('Safety Period (seconds)', 'left top'),
