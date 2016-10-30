@@ -33,7 +33,7 @@ class RunSimulations(RunSimulationsCommon):
 class CLI(CommandLineCommon.CLI):
 
     local_parameter_names = ('direction bias',
-                             'order', 'wait before short')
+                             'order', 'wait before short', 'dynamic period repeat')
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path, RunSimulations)
 
@@ -68,13 +68,13 @@ class CLI(CommandLineCommon.CLI):
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.direction_bias, parameters.orders,
-            parameters.wait_before_short
+            parameters.wait_before_short, parameters.dynamic_period_repeat
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, nido, lnst, sp, db, o, wbs)
+            (s, c, am, nm, cm, d, nido, lnst, sp, db, o, wbs, dpr)
 
-            for (s, c, am, nm, cm, d, nido, lnst, sp, db, o, wbs) in argument_product
+            for (s, c, am, nm, cm, d, nido, lnst, sp, db, o, wbs, dpr) in argument_product
 
         ]        
 

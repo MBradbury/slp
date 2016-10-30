@@ -19,6 +19,7 @@ class Analyzer(AnalyzerCommon):
         d['order']              = lambda x: x.opts['order']
         d['direction bias']     = lambda x: x.opts['direction_bias']
         d['wait before short']  = lambda x: x.opts['wait_before_short']
+        d['dynamic period repeat']  = lambda x: x.opts['dynamic_period_repeat']
         
         d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
         d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
