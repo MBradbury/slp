@@ -67,7 +67,7 @@ class CLI(CommandLineCommon.CLI):
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.direction_biases, parameters.orders,
+            parameters.source_periods, parameters.direction_bias, parameters.orders,
             parameters.wait_before_short
         )
 
