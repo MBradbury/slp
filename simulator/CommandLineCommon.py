@@ -13,6 +13,7 @@ import simulator.Configuration as Configuration
 
 from data import results, latex
 from data.table import safety_period, fake_result
+from data.table.data_formatter import TableDataFormatter
 from data.graph import heatmap, summary
 from data.util import recreate_dirtree, touch
 
@@ -94,6 +95,8 @@ class CLI(object):
                 subparser = subparsers.add_parser("safety-table")
 
         subparser = subparsers.add_parser("time-taken-table")
+        subparser.add_argument("--show-stddev", action="store_true")
+
         subparser = subparsers.add_parser("detect-missing")
         subparser = subparsers.add_parser("graph-heatmap")
 
@@ -321,7 +324,9 @@ class CLI(object):
                                  parameters=self.local_parameter_names,
                                  results=('time taken', 'total wall time', 'wall time', 'event count', 'repeats'))
 
-        result_table = fake_result.ResultTable(result)
+        fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
+
+        result_table = fake_result.ResultTable(result, fmt)
 
         self._create_table(self.algorithm_module.name + "-time-taken", result_table)
 
