@@ -31,10 +31,15 @@ class MetricsCommon(object):
         self._time_bin_width = 0.5
         self.sent_over_time = defaultdict(list)
 
-        self.received_from_closer_or_same_hops = Counter()
-        self.received_from_further_hops = Counter()
-        self.received_from_closer_or_same_meters = Counter()
-        self.received_from_further_meters = Counter()
+        self.received_from_closer_or_same_hops = defaultdict(Counter)
+        self.received_from_further_hops = defaultdict(Counter)
+        self.received_from_closer_or_same_meters = defaultdict(Counter)
+        self.received_from_further_meters = defaultdict(Counter)
+
+        self.delivered_from_closer_or_same_hops = defaultdict(Counter)
+        self.delivered_from_further_hops = defaultdict(Counter)
+        self.delivered_from_closer_or_same_meters = defaultdict(Counter)
+        self.delivered_from_further_meters = defaultdict(Counter)
 
         self.normal_sent_time = {}
         self.normal_latency = {}
@@ -140,23 +145,23 @@ class MetricsCommon(object):
             ndm = self.configuration.node_distance_meters
 
             for ord_source_id in self.source_ids:
+                top_source_id = self.configuration.topology.to_topo_nid(ord_source_id)
+
                 prox_distance = nd(ord_proximate_source_id, ord_source_id)
                 node_distance = nd(ord_node_id, ord_source_id)
-
-                top_source_id = self.configuration.topology.to_topo_nid(ord_source_id)
                 
                 if node_distance < prox_distance:
-                    self.received_from_further_hops[top_source_id] += 1
+                    self.received_from_further_hops[kind][top_source_id] += 1
                 else:
-                    self.received_from_closer_or_same_hops[top_source_id] += 1
+                    self.received_from_closer_or_same_hops[kind][top_source_id] += 1
                 
                 prox_distance_m = ndm(ord_proximate_source_id, ord_source_id)
                 node_distance_m = ndm(ord_node_id, ord_source_id)
                 
                 if node_distance_m < prox_distance_m:
-                    self.received_from_further_meters[top_source_id] += 1
+                    self.received_from_further_meters[kind][top_source_id] += 1
                 else:
-                    self.received_from_closer_or_same_meters[top_source_id] += 1
+                    self.received_from_closer_or_same_meters[kind][top_source_id] += 1
 
     def process_deliver_event(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number) = line.split(',')
@@ -164,6 +169,37 @@ class MetricsCommon(object):
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
         self.delivered[kind][top_node_id] += 1
+
+        # For messages the attacker responds to,
+        # record whether this message was received from a node closer or further from each source
+        #
+        # Although source node distances are used here, we do not want to use the 
+        # node_source_distance functions as when the source is mobile this code
+        # will try to get a distance that the configuration doesn't believe the be a source.
+        if kind not in simulator.Attacker.MESSAGES_TO_IGNORE:
+            ord_proximate_source_id, top_proximate_source_id = self._process_node_id(proximate_source_id)
+
+            nd = self.configuration.node_distance
+            ndm = self.configuration.node_distance_meters
+
+            for ord_source_id in self.source_ids:
+                top_source_id = self.configuration.topology.to_topo_nid(ord_source_id)
+
+                prox_distance = nd(ord_proximate_source_id, ord_source_id)
+                node_distance = nd(ord_node_id, ord_source_id)
+                
+                if node_distance < prox_distance:
+                    self.delivered_from_further_hops[kind][top_source_id] += 1
+                else:
+                    self.delivered_from_closer_or_same_hops[kind][top_source_id] += 1
+                
+                prox_distance_m = ndm(ord_proximate_source_id, ord_source_id)
+                node_distance_m = ndm(ord_node_id, ord_source_id)
+                
+                if node_distance_m < prox_distance_m:
+                    self.delivered_from_further_meters[kind][top_source_id] += 1
+                else:
+                    self.delivered_from_closer_or_same_meters[kind][top_source_id] += 1
 
     def process_node_change_event(self, d_or_e, node_id, time, detail):
         (old_name, new_name) = detail.split(',')
@@ -405,6 +441,58 @@ class MetricsCommon(object):
     def reached_sim_upper_bound(self):
         return self.sim_time() >= self.sim.upper_bound_safety_period
 
+    def rcvd_closer_or_same_hops_all(self):
+        return dict(sum(self.received_from_closer_or_same_hops.values(), Counter()))
+
+    def rcvd_further_hops_all(self):
+        return dict(sum(self.received_from_further_hops.values(), Counter()))
+
+    def rcvd_closer_or_same_meters_all(self):
+        return dict(sum(self.received_from_closer_or_same_meters.values(), Counter()))
+
+    def rcvd_further_meters_all(self):
+        return dict(sum(self.received_from_further_meters.values(), Counter()))
+
+    def rcvd_closer_or_same_hops(self, msg):
+        return dict(self.received_from_closer_or_same_hops[msg])
+
+    def rcvd_further_hops(self, msg):
+        return dict(self.received_from_further_hops[msg])
+
+    def rcvd_closer_or_same_meters(self, msg):
+        return dict(self.received_from_closer_or_same_meters[msg])
+
+    def rcvd_further_meters(self, msg):
+        return dict(self.received_from_further_meters[msg])
+
+
+
+    def deliv_closer_or_same_hops_all(self):
+        return dict(sum(self.delivered_from_closer_or_same_hops.values(), Counter()))
+
+    def deliv_further_hops_all(self):
+        return dict(sum(self.delivered_from_further_hops.values(), Counter()))
+
+    def deliv_closer_or_same_meters_all(self):
+        return dict(sum(self.delivered_from_closer_or_same_meters.values(), Counter()))
+
+    def deliv_further_meters_all(self):
+        return dict(sum(self.delivered_from_further_meters.values(), Counter()))
+
+    def deliv_closer_or_same_hops(self, msg):
+        return dict(self.delivered_from_closer_or_same_hops[msg])
+
+    def deliv_further_hops(self, msg):
+        return dict(self.delivered_from_further_hops[msg])
+
+    def deliv_closer_or_same_meters(self, msg):
+        return dict(self.delivered_from_closer_or_same_meters[msg])
+
+    def deliv_further_meters(self, msg):
+        return dict(self.delivered_from_further_meters[msg])
+
+
+
     @staticmethod
     def smaller_dict_str(dict_result):
         return str(dict_result).replace(": ", ":").replace(", ", ",")
@@ -448,10 +536,15 @@ class MetricsCommon(object):
         d["TimeBinWidth"]                  = lambda x: x._time_bin_width
         d["SentOverTime"]                  = lambda x: MetricsCommon.smaller_dict_str(dict(x.sent_over_time))
 
-        d["ReceivedFromCloserOrSameHops"]  = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_closer_or_same_hops))
-        d["ReceivedFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_further_hops))
-        d["ReceivedFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_closer_or_same_meters))
-        d["ReceivedFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(dict(x.received_from_further_meters))
+        d["ReceivedFromCloserOrSameHops"]  = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_closer_or_same_hops_all())
+        d["ReceivedFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_further_hops_all())
+        d["ReceivedFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(x.rcvd_closer_or_same_meters_all())
+        d["ReceivedFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_further_meters_all())
+
+        d["DeliveredFromCloserOrSameHops"]  = lambda x: MetricsCommon.smaller_dict_str(x.deliv_closer_or_same_hops_all())
+        d["DeliveredFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_hops_all())
+        d["DeliveredFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(x.deliv_closer_or_same_meters_all())
+        d["DeliveredFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_meters_all())
 
         return d
 
