@@ -1,12 +1,13 @@
 from __future__ import print_function
 
+import math
 import sys
 
 from data import latex
 
 class TableDataFormatter(object):
-    def __init__(self):
-        pass
+    def __init__(self, convert_to_stddev):
+        self.convert_to_stddev = convert_to_stddev
 
     def format_header(self, name):
         try:
@@ -47,8 +48,14 @@ class TableDataFormatter(object):
                 "norm(norm(norm(sent,time taken),num_nodes),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
             }[name]
         except KeyError as ex:
-            print("Failed to find the name '{}' for row {}. Using default. : {}".format(name, row, ex), file=sys.stderr)
-            return name
+            print("Failed to find the name '{}'. Using default. : {}".format(name, ex), file=sys.stderr)
+            return (name, "~")
+
+    def _convert_variance(self, variance):
+        if self.convert_to_stddev:
+            return math.sqrt(variance)
+        else:
+            return variance
 
     def format_value(self, name, value):
         if value is None:
@@ -67,17 +74,17 @@ class TableDataFormatter(object):
         elif name in {"landmark node"}:
             return latex.escape(value)
         elif name in {"received ratio", "ssd", "paths reached end"}:
-            return "${:.1f} \\pm {:.1f}$".format(value[0], value[1])
+            return "${:.1f} \\pm {:.1f}$".format(value[0], self._convert_variance(value[1]))
         elif name in {"sent", "received", "delivered",
                       "fake", "away", "choose", "dummy normal",
                       "normal latency"}:
-            return "${:.0f} \\pm {:.0f}$".format(value[0], value[1])
+            return "${:.0f} \\pm {:.0f}$".format(value[0], self._convert_variance(value[1]))
         elif isinstance(value, dict):
             return latex.escape(str(value))
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
         else:
             try:
-                return "${:.3f} \\pm {:.3f}$".format(value[0], value[1])
+                return "${:.3f} \\pm {:.3f}$".format(value[0], self._convert_variance(value[1]))
             except TypeError as e:
                 raise RuntimeError("Unable to format values for {} with values {} under the default setting".format(name, value), e)

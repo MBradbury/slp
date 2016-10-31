@@ -9,6 +9,7 @@ from simulator import CommandLineCommon
 
 from data import results
 from data.table import safety_period, direct_comparison, fake_result
+from data.table.data_formatter import TableDataFormatter
 from data.graph import summary, versus
 from data.util import scalar_extractor
 
@@ -20,6 +21,8 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
         subparser = self._subparsers.add_parser("table")
+        subparser.add_argument("--show-stddev", action="store_true")
+
         subparser = self._subparsers.add_parser("graph")
         subparser = self._subparsers.add_parser("ccpe-comparison-table")
         subparser = self._subparsers.add_parser("ccpe-comparison-graph")
@@ -64,7 +67,9 @@ class CLI(CommandLineCommon.CLI):
             parameters=self.local_parameter_names,
             results=('sent', 'norm(norm(sent,time taken),num_nodes)', 'normal latency', 'ssd', 'attacker distance'))
 
-        result_table = fake_result.ResultTable(protectionless_results)
+        fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
+
+        result_table = fake_result.ResultTable(protectionless_results, fmt)
 
         self._create_table(self.algorithm_module.name + "-results", result_table)
 
