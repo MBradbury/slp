@@ -38,7 +38,7 @@ class CLI(object):
         try:
             self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
         except ImportError:
-            print("Failed to import Parameters, have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
+            print("Failed to import Parameters. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
         parser = argparse.ArgumentParser(add_help=True)
         subparsers = parser.add_subparsers(title="mode", dest="mode")
@@ -57,11 +57,11 @@ class CLI(object):
         subparser = cluster_subparsers.add_parser("copy-result-summary", help="Copy the result summary for this algorithm obtained by using the 'analyse' command to the cluster.")
         subparser = cluster_subparsers.add_parser("copy-parameters", help="Copy this algorithm's Parameters.py file to the cluster.")
         subparser = cluster_subparsers.add_parser("submit", help="Use this command to submit the cluster jobs. Run this on the cluster.")
-        subparser.add_argument("--array", action="store_true")
-        subparser.add_argument("--notify", nargs="*")
-        subparser.add_argument("--no-skip-complete", action="store_true")
+        subparser.add_argument("--array", action="store_true", help="Submit multiple arrays jobs (experimental).")
+        subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
+        subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
 
-        subparser = cluster_subparsers.add_parser("copy-back")
+        subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
 
         ###
 
