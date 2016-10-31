@@ -321,9 +321,23 @@ class Analyse(object):
             print("Removed {} rows".format(len(indexes_to_remove)))
 
         # Remove any duplicated seeds. Their result will be the same so shouldn't be counted.
-        print("Removing the following duplicated seeds: ")
-        print(df["Seed"][df.duplicated(subset="Seed", keep=False)])
-        df.drop_duplicates(subset="Seed", keep="first", inplace=True)
+        duplicated_seeds_filter = df.duplicated(subset="Seed", keep=False)
+        if not duplicated_seeds_filter.any():
+            print("Removing the following duplicated seeds:")
+            print(df["Seed"][duplicated_seeds_filter])
+
+            print("Checking that duplicate seeds have the same results...")
+            columns_to_check = ["Seed", "Sent", "Received", "Delivered", "Captured", "FirstNormalSentTime", "EventCount"]
+            dupe_seeds = df[columns_to_check][duplicated_seeds_filter].groupby("Seed", sort=False)
+
+            for name, group in dupe_seeds:
+                differing = group[group.columns[group.apply(lambda s: len(s.unique()) > 1)]]
+
+                if not differing.empty:
+                    raise RuntimeError("For seed {}, the following columns differ: {}".format(name, differing))
+
+            df.drop_duplicates(subset="Seed", keep="first", inplace=True)
+        del duplicated_seeds_filter
 
         if with_normalised:
             # Calculate any constants that do not change (e.g. from simulation options)
