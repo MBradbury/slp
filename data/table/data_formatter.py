@@ -6,7 +6,7 @@ import sys
 from data import latex
 
 class TableDataFormatter(object):
-    def __init__(self, convert_to_stddev):
+    def __init__(self, convert_to_stddev=False):
         self.convert_to_stddev = convert_to_stddev
 
     def format_header(self, name):
