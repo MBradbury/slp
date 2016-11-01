@@ -1,5 +1,5 @@
 
-import CommunicationModel
+from simulator import CommunicationModel
 
 # Parameters that all simulations must have
 # The source period must come last
