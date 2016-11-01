@@ -32,7 +32,6 @@ class CLI(object):
         self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
 
         self.safety_period_result_path = safety_period_result_path
-
         self.custom_run_simulation_class = custom_run_simulation_class
 
         try:

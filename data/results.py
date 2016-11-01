@@ -114,7 +114,15 @@ class Results(object):
         elif name in {'approach', 'landmark node', 'order'}:
             return value
         else:
-            return ast.literal_eval(value)
+            try:
+                return ast.literal_eval(value)
+            except ValueError:
+                # If the value is a string, check if the value is a parameter
+                # If it is then just return the string value of the parameter
+                if name in self.parameter_names:
+                    return value
+                else:
+                    raise
 
     @staticmethod
     def extract_average_and_stddev(value):
