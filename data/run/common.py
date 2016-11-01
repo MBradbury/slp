@@ -45,6 +45,8 @@ class RunSimulationsCommon(object):
                 self.driver.total_job_size -= 1
                 continue
 
+            darguments = dict(zip(argument_names, arguments))
+
             # Not all drivers will supply job_repeats
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
 
@@ -59,12 +61,12 @@ class RunSimulationsCommon(object):
             if hasattr(self.driver, 'job_thread_count') and self.driver.job_thread_count is not None:
                 opts["--thread-count"] = self.driver.job_thread_count
 
-            for (name, value) in zip(argument_names, arguments):
+            for (name, value) in darguments.items():
                 flag = _argument_name_to_parameter(name)
                 opts[flag] = value
 
             if self._safety_periods is not None:
-                safety_period = self._get_safety_period(argument_names, arguments)
+                safety_period = self._get_safety_period(darguments)
                 opts["--safety-period"] = safety_period
 
             opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
@@ -79,7 +81,7 @@ class RunSimulationsCommon(object):
             estimated_time = None
             if time_estimater is not None:
                 estimated_time = time_estimater(
-                    dict(zip(argument_names, arguments)),
+                    darguments,
                     safety_period=opts.get("--safety-period"),
                     job_size=opts.get("--job-size"),
                     thread_count=opts.get("--thread-count")
@@ -88,23 +90,15 @@ class RunSimulationsCommon(object):
             self.driver.add_job(options, filename, estimated_time)
 
 
-    def _get_safety_period(self, argument_names, arguments):
+    def _get_safety_period(self, darguments):
         if self._safety_periods is None:
             return None
 
-        key = []
-
-        for name in simulator.common.global_parameter_names:
-            value = str(arguments[argument_names.index(name)])
-
-            key.append(value)
+        key = [str(darguments[name]) for name in simulator.common.global_parameter_names]
 
         # Source period is always stored as the last item in the list
         source_period = key[-1]
         key = tuple(key[:-1])
-
-        #from pprint import pprint
-        #pprint(self._safety_periods)
 
         try:
             return self._safety_periods[key][source_period]
