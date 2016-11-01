@@ -20,6 +20,7 @@ class MetricsCommon(object):
     def __init__(self, sim, configuration):
         self.sim = sim
         self.configuration = configuration
+        self.topology = configuration.topology
 
         self.source_ids = set() # set(configuration.source_ids)
         self.sink_ids = set() # {configuration.sink_id}
@@ -61,7 +62,7 @@ class MetricsCommon(object):
 
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
-        return ordered_node_id, self.configuration.topology.to_topo_nid(ordered_node_id)
+        return ordered_node_id, self.topology.to_topo_nid(ordered_node_id)
 
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
@@ -111,6 +112,51 @@ class MetricsCommon(object):
                 # Handle starting the duration timeout in the simulation running
                 self.sim.trigger_duration_run_start(time)
 
+    def _record_direction_received(self, kind, ord_node_id, proximate_source_id,
+                                   further_hops, closer_or_same_hops,
+                                   further_meters, closer_or_same_meters):
+        # For messages the attacker responds to,
+        # record whether this message was received from a node closer or further from each source
+        #
+        # Although source node distances are used here, we do not want to use the 
+        # node_source_distance functions as when the source is mobile this code
+        # will try to get a distance that the configuration doesn't believe the be a source.
+        if kind in simulator.Attacker.MESSAGES_TO_IGNORE:
+            return
+
+        ord_proximate_source_id = int(proximate_source_id)
+
+        conf = self.configuration
+        topo = conf.topology
+
+        oi = topo.ordered_index
+
+        idx_proximate_source_id = oi(ord_proximate_source_id)
+        idx_node_id = oi(ord_node_id)
+
+        nd = conf._dist_matrix
+        ndm = conf._dist_matrix_meters
+
+        for ord_source_id in self.source_ids:
+            top_source_id = topo.to_topo_nid(ord_source_id)
+            idx_source_id = oi(ord_source_id)
+
+            prox_distance = nd[idx_source_id, idx_proximate_source_id]
+            node_distance = nd[idx_source_id, idx_node_id]
+            
+            if node_distance < prox_distance:
+                further_hops[kind][top_source_id] += 1
+            else:
+                closer_or_same_hops[kind][top_source_id] += 1
+            
+            prox_distance_m = ndm[idx_source_id, idx_proximate_source_id]
+            node_distance_m = ndm[idx_source_id, idx_node_id]
+            
+            if node_distance_m < prox_distance_m:
+                further_meters[kind][top_source_id] += 1
+            else:
+                closer_or_same_meters[kind][top_source_id] += 1
+
     def process_rcv_event(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
 
@@ -131,37 +177,9 @@ class MetricsCommon(object):
             self.normal_latency[key] = time - sent_time
             self.normal_hop_count.append(hop_count)
 
-
-        # For messages the attacker responds to,
-        # record whether this message was received from a node closer or further from each source
-        #
-        # Although source node distances are used here, we do not want to use the 
-        # node_source_distance functions as when the source is mobile this code
-        # will try to get a distance that the configuration doesn't believe the be a source.
-        if kind not in simulator.Attacker.MESSAGES_TO_IGNORE:
-            ord_proximate_source_id, top_proximate_source_id = self._process_node_id(proximate_source_id)
-
-            nd = self.configuration.node_distance
-            ndm = self.configuration.node_distance_meters
-
-            for ord_source_id in self.source_ids:
-                top_source_id = self.configuration.topology.to_topo_nid(ord_source_id)
-
-                prox_distance = nd(ord_proximate_source_id, ord_source_id)
-                node_distance = nd(ord_node_id, ord_source_id)
-                
-                if node_distance < prox_distance:
-                    self.received_from_further_hops[kind][top_source_id] += 1
-                else:
-                    self.received_from_closer_or_same_hops[kind][top_source_id] += 1
-                
-                prox_distance_m = ndm(ord_proximate_source_id, ord_source_id)
-                node_distance_m = ndm(ord_node_id, ord_source_id)
-                
-                if node_distance_m < prox_distance_m:
-                    self.received_from_further_meters[kind][top_source_id] += 1
-                else:
-                    self.received_from_closer_or_same_meters[kind][top_source_id] += 1
+        self._record_direction_received(kind, ord_node_id, proximate_source_id,
+                                        self.received_from_further_hops, self.received_from_closer_or_same_hops,
+                                        self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
     def process_deliver_event(self, node_id, time, line):
         (kind, proximate_source_id, ultimate_source_id, sequence_number) = line.split(',')
@@ -170,36 +188,9 @@ class MetricsCommon(object):
 
         self.delivered[kind][top_node_id] += 1
 
-        # For messages the attacker responds to,
-        # record whether this message was received from a node closer or further from each source
-        #
-        # Although source node distances are used here, we do not want to use the 
-        # node_source_distance functions as when the source is mobile this code
-        # will try to get a distance that the configuration doesn't believe the be a source.
-        if kind not in simulator.Attacker.MESSAGES_TO_IGNORE:
-            ord_proximate_source_id, top_proximate_source_id = self._process_node_id(proximate_source_id)
-
-            nd = self.configuration.node_distance
-            ndm = self.configuration.node_distance_meters
-
-            for ord_source_id in self.source_ids:
-                top_source_id = self.configuration.topology.to_topo_nid(ord_source_id)
-
-                prox_distance = nd(ord_proximate_source_id, ord_source_id)
-                node_distance = nd(ord_node_id, ord_source_id)
-                
-                if node_distance < prox_distance:
-                    self.delivered_from_further_hops[kind][top_source_id] += 1
-                else:
-                    self.delivered_from_closer_or_same_hops[kind][top_source_id] += 1
-                
-                prox_distance_m = ndm(ord_proximate_source_id, ord_source_id)
-                node_distance_m = ndm(ord_node_id, ord_source_id)
-                
-                if node_distance_m < prox_distance_m:
-                    self.delivered_from_further_meters[kind][top_source_id] += 1
-                else:
-                    self.delivered_from_closer_or_same_meters[kind][top_source_id] += 1
+        self._record_direction_received(kind, ord_node_id, proximate_source_id,
+                                        self.delivered_from_further_hops, self.delivered_from_closer_or_same_hops,
+                                        self.delivered_from_further_meters, self.delivered_from_closer_or_same_meters)
 
     def process_node_change_event(self, d_or_e, node_id, time, detail):
         (old_name, new_name) = detail.split(',')
@@ -315,7 +306,7 @@ class MetricsCommon(object):
         return self.sim.any_attacker_found_source()
 
     def attacker_source_distance(self):
-        ttn = self.configuration.topology.to_topo_nid
+        ttn = self.topology.to_topo_nid
         ndm = self.configuration.node_distance_meters
 
         return {
@@ -329,7 +320,7 @@ class MetricsCommon(object):
         }
 
     def attacker_sink_distance(self):
-        ttn = self.configuration.topology.to_topo_nid
+        ttn = self.topology.to_topo_nid
         ndm = self.configuration.node_distance_meters
 
         return {
@@ -357,7 +348,7 @@ class MetricsCommon(object):
         }
 
     def attacker_steps_towards(self):
-        ttn = self.configuration.topology.to_topo_nid
+        ttn = self.topology.to_topo_nid
 
         return {
             (ttn(ord_source_id), attacker.ident): attacker.steps_towards[ord_source_id]
@@ -370,7 +361,7 @@ class MetricsCommon(object):
         }
 
     def attacker_steps_away(self):
-        ttn = self.configuration.topology.to_topo_nid
+        ttn = self.topology.to_topo_nid
 
         return {
             (ttn(ord_source_id), attacker.ident): attacker.steps_away[ord_source_id]
@@ -383,7 +374,7 @@ class MetricsCommon(object):
         }
 
     def attacker_min_source_distance(self):
-        ttn = self.configuration.topology.to_topo_nid
+        ttn = self.topology.to_topo_nid
 
         return {
             (ttn(ord_source_id), attacker.ident): attacker.min_source_distance[ord_source_id]

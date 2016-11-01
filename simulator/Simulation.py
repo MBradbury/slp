@@ -226,23 +226,29 @@ class Simulation(object):
         cm.setup(self)
 
         index_to_ordered = self.configuration.topology.index_to_ordered
+        isnan = np.isnan
+
+        wgn = cm.white_gausian_noise
+
+        radio_add = self.radio.add
+        radio_setNoise = self.radio.setNoise
 
         for ((i, j), gain) in np.ndenumerate(cm.link_gain):
             if i == j:
                 continue
-            if np.isnan(gain):
+            if isnan(gain):
                 continue
 
             # Convert from the indexes to the ordered node ids
             nidi = index_to_ordered(i)
             nidj = index_to_ordered(j)
 
-            self.radio.add(nidi, nidj, gain)
+            radio_add(nidi, nidj, gain)
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
             nidi = index_to_ordered(i)
 
-            self.radio.setNoise(nidi, noise_floor, cm.white_gausian_noise)
+            radio_setNoise(nidi, noise_floor, wgn)
 
     def setup_noise_models(self):
         """Create the noise model for each of the nodes in the network."""

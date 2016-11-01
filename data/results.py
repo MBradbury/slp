@@ -23,6 +23,7 @@ class Results(object):
 
         self.global_parameter_names = simulator.common.global_parameter_names[:-1]
 
+        # Create attributes that will store all the parameter value for a given parameter
         for param in self.global_parameter_names:
             setattr(self, _name_to_attr(param), set())
 
