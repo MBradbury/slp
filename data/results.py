@@ -111,8 +111,6 @@ class Results(object):
             return self.extract_average_and_stddev(value) * 1000.0
         elif '(' in value and value.endswith(')'):
             return self.extract_average_and_stddev(value)
-        elif name in {'approach', 'landmark node', 'order'}:
-            return value
         else:
             try:
                 return ast.literal_eval(value)
