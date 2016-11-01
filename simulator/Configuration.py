@@ -3,7 +3,7 @@ from __future__ import print_function, division
 from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
-from data.memoize import memoize
+from data.memoize import memoize, memoize_instance
 from data.testbed.dcswarwick import DCSWarwick
 from data.testbed.indriya import Indriya
 from simulator.Topology import Line, Grid, Circle, Random, SimpleTree, Ring
@@ -89,8 +89,10 @@ class Configuration(object):
 
     def node_distance(self, ordered_nidi, ordered_nidj):
         """Get the distance between two ordered nodes in hops."""
-        i = self.topology.ordered_index(ordered_nidi)
-        j = self.topology.ordered_index(ordered_nidj)
+        oi = self.topology.ordered_index
+
+        i = oi(ordered_nidi)
+        j = oi(ordered_nidj)
 
         return self._dist_matrix[i,j]
 
@@ -114,8 +116,10 @@ class Configuration(object):
 
     def node_distance_meters(self, ordered_nidi, ordered_nidj):
         """Get the distance between two ordered nodes in meters."""
-        i = self.topology.ordered_index(ordered_nidi)
-        j = self.topology.ordered_index(ordered_nidj)
+        oi = self.topology.ordered_index
+
+        i = oi(ordered_nidi)
+        j = oi(ordered_nidj)
 
         return self._dist_matrix_meters[i,j]
 

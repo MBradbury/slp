@@ -62,8 +62,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         num_nodes = len(nodes)
 
         self.noise_floor = np.full(num_nodes, self.noise_floor_pn, dtype=np.float64)
-        self.output_power_var = np.zeros(num_nodes, dtype=np.float64)
-        self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
+        self.link_gain = np.empty((num_nodes, num_nodes), dtype=np.float64)
 
         self._obtain_radio_pt_pn(nodes, rng)
 
@@ -96,14 +95,14 @@ class LinkLayerCommunicationModel(CommunicationModel):
         rg = rng.gauss
 
         nf = self.noise_floor
-        opv = self.output_power_var
+        lg = self.link_gain
 
-        for (i, ni) in enumerate(nodes):
+        for i in xrange(len(nodes)):
             rnd1 = rg(0, 1)
             rnd2 = rg(0, 1)
 
             nf[i] += t00 * rnd1
-            opv[i] = t01 * rnd1 + t11 * rnd2
+            lg[i:] = t01 * rnd1 + t11 * rnd2
 
     def _obtain_link_gain(self, nodes, rng):
         rg = rng.gauss
@@ -111,7 +110,6 @@ class LinkLayerCommunicationModel(CommunicationModel):
         ssd = self.shadowing_stddev
         npld0 = -self.pl_d0
         d0 = self.d0
-        opv = self.output_power_var
         lg = self.link_gain
 
         for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
@@ -121,8 +119,8 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
             pathloss = npld0 - ple10 * log10(distance / d0) + rnd1 * ssd
 
-            lg[i,j] = opv[i] + pathloss
-            lg[j,i] = opv[j] + pathloss
+            lg[i,j] += pathloss
+            lg[j,i] += pathloss
 
 
 

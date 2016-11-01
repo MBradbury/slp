@@ -13,12 +13,7 @@ from data import results
 import simulator.common
 
 def _argument_name_to_parameter(argument_name):
-    argument_name = argument_name.replace(" ", "-")
-
-    return "--" + argument_name
-
-#def _argument_name_to_stored(argument_name):
-#    return _argument_name_to_parameter(argument_name)[2:].replace("-", " ")
+    return "--" + argument_name.replace(" ", "-")
 
 class RunSimulationsCommon(object):
     def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=True, safety_periods=None):
