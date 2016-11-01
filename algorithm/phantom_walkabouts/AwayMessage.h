@@ -19,7 +19,7 @@ typedef nx_struct AwayMessage
 
   nx_int16_t sink_tr_dist;
 
-  nx_uint16_t landmark_location;
+  nx_int16_t landmark_location;
 
 } AwayMessage;
 
