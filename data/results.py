@@ -3,13 +3,15 @@ from __future__ import division
 
 import ast
 import csv
-from functools import partial
 import math
 
 import numpy
 
 import simulator.common
 from simulator import Configuration, SourcePeriodModel
+
+def _name_to_attr(name):
+    return name.replace(" ", "_") + "s"
 
 class Results(object):
     def __init__(self, result_file, parameters, results, source_period_normalisation=None, network_size_normalisation=None):
@@ -22,19 +24,47 @@ class Results(object):
         self.global_parameter_names = simulator.common.global_parameter_names[:-1]
 
         for param in self.global_parameter_names:
-            setattr(self, self.name_to_attr(param), set())
+            setattr(self, _name_to_attr(param), set())
 
         self._read_results(result_file, source_period_normalisation, network_size_normalisation)
 
     def parameters(self):
         return [
-            (param, getattr(self, self.name_to_attr(param)))
+            (param, getattr(self, _name_to_attr(param)))
             for param in self.global_parameter_names
         ]
 
-    @staticmethod
-    def name_to_attr(name):
-        return name.replace(" ", "_") + "s"
+    def _normalise_source_period(self, strategy, dvalues):
+
+        src_period = dvalues['source period']
+
+        if strategy is None:
+            source_period = src_period
+
+        elif strategy == "NumSources":
+            config = dvalues['configuration']
+            size = int(dvalues['network size'])
+            distance = float(dvalues['distance'])
+
+            # Get the source period normalised wrt the number of sources
+            configuration = Configuration.create_specific(config, size, distance, "topology")
+            source_period = str(float(src_period) / len(configuration.source_ids))
+
+        else:
+            raise RuntimeError("Unknown source period normalisation strategy '{}'".format(strategy))
+
+        return source_period
+
+    def _normalise_network_size(self, strategy, dvalues):
+        if strategy is None:
+            network_size = dvalues['network size']
+        elif strategy == "UseNumNodes":
+            network_size = dvalues['num nodes']
+        else:
+            raise RuntimeError("Unknown network size normalisation strategy '{}'".format(network_size_normalisation))
+
+        return network_size
+
 
     def _read_results(self, result_file, source_period_normalisation, network_size_normalisation):
         with open(result_file, 'r') as f:
@@ -44,50 +74,26 @@ class Results(object):
             reader = csv.reader(f, delimiter='|')
             
             headers = []
-
-            def _get_value_for(name, values):
-                if name == 'source period':
-                    return SourcePeriodModel.eval_input(values[headers.index(name)]).simple_str()
-                else:
-                    return values[headers.index(name)]
             
             for values in reader:
                 # Check if we have seen the first line
                 # We do this because we want to ignore it
                 if seen_first:
 
-                    get_value = partial(_get_value_for, values=values)
+                    dvalues = dict(zip(headers, values))
+                    dvalues['source period'] = SourcePeriodModel.eval_input(dvalues['source period']).simple_str()
 
-                    src_period = get_value('source period')
+                    source_period = self._normalise_source_period(source_period_normalisation, dvalues)
 
-                    if source_period_normalisation is None:
-                        source_period = src_period
-                    elif source_period_normalisation == "NumSources":
+                    values[headers.index('network size')] = self._normalise_network_size(network_size_normalisation, dvalues)
 
-                        config = get_value('configuration')
-                        size = int(get_value('network size'))
-                        distance = float(get_value('distance'))
+                    table_key = tuple(dvalues[name] for name in self.global_parameter_names)
 
-                        # Get the source period normalised wrt the number of sources
-                        configuration = Configuration.create_specific(config, size, distance, "topology")
-                        source_period = str(float(src_period) / len(configuration.source_ids))
-                    else:
-                        raise RuntimeError("Unknown source period normalisation strategy '{}'".format(source_period_normalisation))
-
-                    if network_size_normalisation is None:
-                        pass
-                    elif network_size_normalisation == "UseNumNodes":
-                        values[headers.index('network size')] = values[headers.index('num nodes')]
-                    else:
-                        raise RuntimeError("Unknown network size normalisation strategy '{}'".format(network_size_normalisation))
-
-                    table_key = tuple(get_value(name) for name in self.global_parameter_names)
-
-                    params = tuple([self._process(name, headers, values) for name in self.parameter_names])
-                    results = tuple([self._process(name, headers, values) for name in self.result_names])
+                    params = tuple([self._process(name, dvalues) for name in self.parameter_names])
+                    results = tuple([self._process(name, dvalues) for name in self.result_names])
 
                     for param in self.global_parameter_names:
-                        getattr(self, self.name_to_attr(param)).add(get_value(param))
+                        getattr(self, _name_to_attr(param)).add(dvalues[param])
 
                     self.data.setdefault(table_key, {}).setdefault(source_period, {})[params] = results
 
@@ -95,13 +101,11 @@ class Results(object):
                     seen_first = True
                     headers = values
 
-    def _process(self, name, headers, values):
+    def _process(self, name, dvalues):
         try:
-            index = headers.index(name)
+            value = dvalues[name]
         except ValueError as ex:
             raise RuntimeError("Unable to read '{}' from the result file '{}'.".format(name, self.result_file_name))
-
-        value = values[index]
 
         if name == 'captured':
             return float(value) * 100.0
