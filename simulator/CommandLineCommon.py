@@ -148,14 +148,16 @@ class CLI(object):
             else:
                 RunSimulations = self.custom_run_simulation_class
 
-        if self.safety_period_result_path is not None:
-            if self.safety_period_result_path is True:
-                safety_periods = True
-            else:
-                safety_period_table_generator = safety_period.TableGenerator(self.safety_period_result_path, self.time_taken_to_safety_period)
-                safety_periods = safety_period_table_generator.safety_periods()
-        else:
+        if self.safety_period_result_path is True:
+            safety_periods = True
+        elif self.safety_period_result_path is None:
             safety_periods = None
+        else:
+            safety_period_table_generator = safety_period.TableGenerator(
+                self.safety_period_result_path,
+                self.time_taken_to_safety_period)
+            
+            safety_periods = safety_period_table_generator.safety_periods()
 
         runner = RunSimulations(
             driver, self.algorithm_module, result_path,
@@ -163,7 +165,10 @@ class CLI(object):
             safety_periods=safety_periods
         )
 
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
+        runner.run(self.algorithm_module.Parameters.repeats,
+                   self.parameter_names(),
+                   self._argument_product(),
+                   self._time_estimater)
 
     def adjust_source_period_for_multi_source(self, argument_product):
         """For configurations with multiple sources, so that the network has the
