@@ -13,3 +13,6 @@ def load(parent, name):
         raise RuntimeError("{} is not a valid name in {}".format(name, modules.keys()))
 
     return modules[name].find_module(name).load_module(name)
+
+def list_available(parent):
+	return [modname for (importer, modname, ispkg) in pkgutil.iter_modules(parent.__path__)]

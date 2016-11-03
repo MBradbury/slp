@@ -11,7 +11,9 @@ import simulator.common
 
 import simulator.Configuration as Configuration
 
-from data import results, latex
+from data import results, latex, submodule_loader
+import data.cluster
+import data.testbed
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
 from data.graph import heatmap, summary
@@ -45,7 +47,7 @@ class CLI(object):
         ###
 
         subparser = subparsers.add_parser("cluster")
-        subparser.add_argument("name", type=str)
+        subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cluster), help="This is the name of the cluster")
 
         cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
 
@@ -65,7 +67,7 @@ class CLI(object):
         ###
 
         subparser = subparsers.add_parser("testbed")
-        subparser.add_argument("name", type=str)
+        subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
 
         testbed_subparsers = subparser.add_subparsers(title="testbed mode", dest="testbed_mode")
 
@@ -264,9 +266,6 @@ class CLI(object):
     def _run_cluster(self, args):
         cluster_directory = os.path.join("cluster", self.algorithm_module.name)
 
-        import data.cluster
-        from data import submodule_loader
-
         cluster = submodule_loader.load(data.cluster, args.name)
 
         if 'build' == args.cluster_mode:
@@ -307,9 +306,6 @@ class CLI(object):
 
     def _run_testbed(self, args):
         testbed_directory = os.path.join("testbed", self.algorithm_module.name)
-
-        import data.testbed
-        from data import submodule_loader
 
         testbed = submodule_loader.load(data.testbed, args.name)
 
