@@ -231,26 +231,31 @@ The cluster will now have the correct safety periods present to be able to run t
 
 ## Arguments
 
-The next step is to modify the algorithm's CommandLine.py file to contain the correct set of arguments you wish to run.
+The next step is to modify the algorithm's Parameters.py file to contain the correct set of arguments you wish to run.
 To aid in testing there exists a dummy cluster driver which will print out the cluster command rather than execute it.
 
-Use this to test that you have set up the correct parameters in CommandLine.py like so:
+Use this to test that you have set up the correct parameters in Parameters.py like so:
 ```bash
-./create.py <algorithm> cluster submit dummy
+./create.py <algorithm> cluster dummy submit
+```
+
+To copy this file to the cluster you must execute the following
+```bash
+./create.py <algorithm> cluster <cluster> copy-parameters
 ```
 
 ## Build
 
-You must now build all the combinations of arguments.
+You must now build all the combinations of arguments. You may wish to provide "--no-skip-complete" if no runs have been performed.
 ```bash
-./create.py <algorithm> cluster build dummy
+./create.py <algorithm> cluster dummy build
 ```
 
 ## Copy built binaries to cluster
 
 To copy the built binaries to the cluster you need to execute the following command:
 ```bash
-./create.py <algorithm> cluster copy <cluster>
+./create.py <algorithm> cluster <cluster> copy
 ```
 
 ## Submitting jobs to the cluster
@@ -279,7 +284,7 @@ To keep things simple you could just use a very large request time, but it is li
 run as often as they could be.
 
 
-Now submit the jobs using:
+Now submit the jobs using the following. Again you may need to provide "--no-skip-complete".
 ```bash
 ./create.py <algorithm> cluster <cluster> submit
 ```
@@ -293,6 +298,16 @@ make sure that you divide the walltime by the number of array jobs that will be 
 
 ```bash
 ./create.py <algorithm> cluster <cluster> submit --array
+```
+
+## Releasing jobs
+
+Cluster jobs are submitted as held jobs. Please inspect them to make sure that everything is setup correctly.
+To queue to jobs you need to release them. This is different for different cluster platforms.
+
+For flux you should do the following:
+```bash
+./scripts/pbs-qstat.sh | cut -f 1 -d' ' | xargs qrls
 ```
 
 ## Copy back from cluster
