@@ -489,7 +489,7 @@ implementation
 						neighbour = &local_neighbours.data[k];
 						if(biased_direction == H)
 						{
-							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < Biased_No)
+							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -498,7 +498,7 @@ implementation
 						}
 						else		//biased_direction is V
 						{
-							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < Biased_No)
+							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -523,10 +523,6 @@ implementation
 				}
 			}
 			//simdbgverbose("stdout","sink_bl_dist=%d, sink_br_dist=%d, sink_tr_dist=%d\n", sink_bl_dist, sink_br_dist, sink_tr_dist);
-
-#ifdef SLP_VERBOSE_DEBUG
-			print_distance_neighbours("stdout", &local_neighbours);
-#endif
 		}
 
 		//simdbgverbose("stdout", "Location:%u, biased_direction:%u, Chosen %u at index %u (rnd=%u) out of %u neighbours\n",
@@ -770,7 +766,6 @@ implementation
 			lrw_count = LONG_COUNT;
 		}
 
-		//#if defined(SHORT_LONG_SEQUENCE)
 		#ifdef SHORT_LONG_SEQUENCE
 		{
 			message.random_walk_hops = short_long_sequence_random_walk(srw_count, lrw_count);
@@ -783,26 +778,20 @@ implementation
 		}
 		#endif
 
-		//message.nextMessageType = nextmessagetype;
 
 		if (message.random_walk_hops == RANDOM_WALK_HOPS)
 		{
 			messagetype = ShortRandomWalk;
-			//message.currentMessageTpye = messagetype;
 		}
 		else
 		{
 			messagetype = LongRandomWalk;
-			//message.currentMessageTpye = messagetype;
 		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
 		message.biased_direction = 0;	//initialise the biased_direction when first generate message.
-
-		//message.srw_count = srw_count;
-		//message.lrw_count = lrw_count;
 
 		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
 		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
@@ -982,8 +971,6 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		//srw_count = rcvd -> srw_count;
-		//lrw_count = rcvd -> lrw_count;
 		process_normal(msg, rcvd, source_addr);
 	}
 
@@ -1093,17 +1080,17 @@ implementation
 		}
 
 
-		if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(BOTTOM_LEFT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_bl_dist = rcvd->landmark_distance;	
 		}
 
-		if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(BOTTOM_RIGHT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_br_dist = rcvd->landmark_distance;
 		}
 
-		if (TOS_NODE_ID == TOP_RIGHT_NODE_ID && rcvd->landmark_location == SINK)
+		if (call NodeType.is_topology_node_id(TOP_RIGHT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
 			sink_tr_dist = rcvd->landmark_distance;
 		}
@@ -1131,11 +1118,6 @@ implementation
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
 		}
-
-
-#ifdef SLP_VERBOSE_DEBUG
-		print_distance_neighbours("stdout", &neighbours);
-#endif
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
