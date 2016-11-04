@@ -94,6 +94,7 @@ class CLI(object):
                 pass
             else:
                 subparser = subparsers.add_parser("safety-table")
+                subparser.add_argument("--show-stddev", action="store_true")
 
         subparser = subparsers.add_parser("time-taken-table")
         subparser.add_argument("--show-stddev", action="store_true")
@@ -233,7 +234,10 @@ class CLI(object):
                      headers_to_skip=args.headers_to_skip, drop_if_hit_upper_time_bound=args.drop_if_hit_upper_time_bound)
 
     def _run_safety_table(self, args):
-        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path, self.time_taken_to_safety_period)
+
+        fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
+
+        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path, self.time_taken_to_safety_period, fmt)
 
         prod = itertools.product(simulator.common.available_noise_models(),
                                  simulator.common.available_communication_models())
