@@ -18,8 +18,8 @@ implementation
 		int16_t distance
 		)
 	{
-		simdbg("M-C",
-			"RCV:%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
+		simdbg("M-CR",
+			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
 			message_type, proximate_source, ultimate_source, sequence_number, distance);
 	}
 
@@ -29,8 +29,8 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		simdbg("M-C",
-			"BCAST:%s,%u," SEQUENCE_NUMBER_SPEC "\n",
+		simdbg("M-CB",
+			"%s,%u," SEQUENCE_NUMBER_SPEC "\n",
 			message_type, status, sequence_number);
 	}
 
@@ -41,8 +41,8 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		simdbg("M-C", \
-			"DELIV:%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
+		simdbg("M-CD", \
+			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
 			message_type, proximate_source, ultimate_source_poss_bottom, sequence_number);
 	}
 

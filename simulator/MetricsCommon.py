@@ -58,7 +58,9 @@ class MetricsCommon(object):
         self.register('M-NC', self.process_node_change_event)
 
         # BCAST / RCV / DELIVER events
-        self.register('M-C', self.process_communicate_event)
+        self.register('M-CB', self.process_bcast_event)
+        self.register('M-CR', self.process_rcv_event)
+        self.register('M-CD', self.process_deliver_event)
 
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
@@ -67,23 +69,11 @@ class MetricsCommon(object):
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
 
-    def process_communicate_event(self, d_or_e, node_id, time, detail):
-        (comm_type, contents) = detail.split(':', 1)
-
-        if comm_type == 'BCAST':
-            return self.process_bcast_event(node_id, time, contents)
-        elif comm_type == 'RCV':
-            return self.process_rcv_event(node_id, time, contents)
-        elif comm_type == 'DELIV':
-            return self.process_deliver_event(node_id, time, contents)
-        else:
-            raise RuntimeError("Unknown communication type of {}".format(comm_type))
-
     def _time_to_bin(self, time):
         return int(math.floor(time / self._time_bin_width))
 
-    def process_bcast_event(self, node_id, time, line):
-        (kind, status, sequence_number) = line.split(',')
+    def process_bcast_event(self, d_or_e, node_id, time, detail):
+        (kind, status, sequence_number) = detail.split(',')
 
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
         if status != "0":
@@ -130,6 +120,7 @@ class MetricsCommon(object):
         topo = conf.topology
 
         oi = topo.ordered_index
+        ttn = topo.to_topo_nid
 
         idx_proximate_source_id = oi(ord_proximate_source_id)
         idx_node_id = oi(ord_node_id)
@@ -138,7 +129,7 @@ class MetricsCommon(object):
         ndm = conf._dist_matrix_meters
 
         for ord_source_id in self.source_ids:
-            top_source_id = topo.to_topo_nid(ord_source_id)
+            top_source_id = ttn(ord_source_id)
             idx_source_id = oi(ord_source_id)
 
             prox_distance = nd[idx_source_id, idx_proximate_source_id]
@@ -157,8 +148,8 @@ class MetricsCommon(object):
             else:
                 closer_or_same_meters[kind][top_source_id] += 1
 
-    def process_rcv_event(self, node_id, time, line):
-        (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
+    def process_rcv_event(self, d_or_e, node_id, time, detail):
+        (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
@@ -181,8 +172,8 @@ class MetricsCommon(object):
                                         self.received_from_further_hops, self.received_from_closer_or_same_hops,
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
-    def process_deliver_event(self, node_id, time, line):
-        (kind, proximate_source_id, ultimate_source_id, sequence_number) = line.split(',')
+    def process_deliver_event(self, d_or_e, node_id, time, detail):
+        (kind, proximate_source_id, ultimate_source_id, sequence_number) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
