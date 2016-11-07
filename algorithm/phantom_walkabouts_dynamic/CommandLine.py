@@ -39,9 +39,6 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("average-graph")
-        subparser = self._subparsers.add_parser("scatter-graph")
-        subparser = self._subparsers.add_parser("best-worst-average-graph")
 
     def _time_estimater(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
