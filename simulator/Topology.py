@@ -19,6 +19,7 @@ class Topology(object):
         self.ordered_nid_to_topology_nid = {}
         self.keys = []
         self.ordered_ids = []
+        self.ordered_ids_reverse_mapping = {}
         self.seed = seed
 
     def node_distance_meters(self, node1, node2):
@@ -39,7 +40,8 @@ class Topology(object):
 
     def ordered_index(self, ordered_nid):
         """Get the index that an ordered node id will be stored in"""
-        return self.ordered_ids.index(ordered_nid)
+        #return self.ordered_ids.index(ordered_nid)
+        return self.ordered_ids_reverse_mapping[ordered_nid]
 
     def index_to_ordered(self, node_idx):
         """Get the ordered node id from a node index"""
@@ -78,6 +80,7 @@ class Topology(object):
             raise RuntimeError("Unknown node id order {}".format(node_id_order))
 
         self.ordered_ids = list(self.nodes.keys())
+        self.ordered_ids_reverse_mapping = {nid: idx for (idx, nid) in enumerate(self.ordered_ids)}
 
 class Line(Topology):
     def __init__(self, size, distance, node_id_order, seed=None):
