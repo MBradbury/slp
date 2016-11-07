@@ -36,6 +36,11 @@ class CLI(object):
         self.safety_period_result_path = safety_period_result_path
         self.custom_run_simulation_class = custom_run_simulation_class
 
+        # Make sure that local_parameter_names is a tuple
+        # People have run into issues where they used ('<name>') instead of ('<name>',)
+        if not isinstance(self.local_parameter_names, tuple):
+            raise RuntimeError("CLI.local_parameter_names must be a tuple! If there is only one element, have your forgotten the comma?")
+
         try:
             self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
         except ImportError:
