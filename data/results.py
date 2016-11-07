@@ -15,8 +15,8 @@ def _name_to_attr(name):
 
 class Results(object):
     def __init__(self, result_file, parameters, results, source_period_normalisation=None, network_size_normalisation=None):
-        self.parameter_names = list(parameters)
-        self.result_names = list(results)
+        self.parameter_names = tuple(parameters)
+        self.result_names = tuple(results)
         self.result_file_name = result_file
 
         self.data = {}

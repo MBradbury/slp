@@ -123,7 +123,7 @@ class CLI(object):
         self._subparsers = subparsers
 
     def parameter_names(self):
-        return tuple(list(self.global_parameter_names) + list(self.local_parameter_names))
+        return self.global_parameter_names + self.local_parameter_names
 
     @staticmethod
     def _create_table(name, result_table, param_filter=lambda x: True):
