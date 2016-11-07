@@ -20,17 +20,17 @@ def catter_header(row, d_or_e, channel):
     return "{}:{}:{}:{}:{}:".format(row["date_time"], channel, d_or_e, row["node_id"], row["local_time"])
 
 def catter_metric_receive_msg(row, channel):
-    return catter_header(row, "D", channel) + "RCV:{},{},{},{},{}".format(
+    return catter_header(row, "D", channel) + "{},{},{},{},{}".format(
         row["message_type"], row["proximate_source"], row["ultimate_source"], row["sequence_number"], row["distance"]
     )
 
 def catter_metric_bcast_msg(row, channel):
-    return catter_header(row, "D", channel) + "BCAST:{},{},{}".format(
+    return catter_header(row, "D", channel) + "{},{},{}".format(
         row["message_type"], row["status"], row["sequence_number"]
     )
 
 def catter_metric_deliver_msg(row, channel):
-    return catter_header(row, "D", channel) + "DELIV:{},{},{},{}".format(
+    return catter_header(row, "D", channel) + "{},{},{},{}".format(
         row["message_type"], row["proximate_source"], row["ultimate_source_poss_bottom"], row["sequence_number"]
     )
 
@@ -63,9 +63,9 @@ def default_catter(row, channel):
     return catter_header(row, "F", channel)
 
 message_types_to_channels = {
-    AM_METRIC_RECEIVE_MSG: ("M-C", catter_metric_receive_msg),
-    AM_METRIC_BCAST_MSG: ("M-C", catter_metric_bcast_msg),
-    AM_METRIC_DELIVER_MSG: ("M-C", catter_metric_deliver_msg),
+    AM_METRIC_RECEIVE_MSG: ("M-CR", catter_metric_receive_msg),
+    AM_METRIC_BCAST_MSG: ("M-CB", catter_metric_bcast_msg),
+    AM_METRIC_DELIVER_MSG: ("M-CD", catter_metric_deliver_msg),
     AM_ATTACKER_RECEIVE_MSG: ("A-R", catter_attacker_receive_msg),
     AM_METRIC_NODE_CHANGE_MSG: ("M-NC", catter_metric_node_change_msg),
     AM_ERROR_OCCURRED_MSG: ("stderr", catter_error_occurred_msg),
