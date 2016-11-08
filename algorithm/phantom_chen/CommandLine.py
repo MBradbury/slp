@@ -63,7 +63,7 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
-        return (time_taken - first_normal_sent_time) * 2.0
+        return (time_taken - first_normal_sent_time) * 1.3
 
     def _run_table(self, args):
         phantom_results = results.Results(
@@ -100,7 +100,6 @@ class CLI(CommandLineCommon.CLI):
 
         parameters = [
             ('source period', ' seconds'),
-            ('walk length', ' hops')
         ]
 
         for (parameter_name, parameter_unit) in parameters:
@@ -146,9 +145,3 @@ class CLI(CommandLineCommon.CLI):
 
         if 'graph' == args.mode:
             self._run_graph(args)
-
-        if 'min-max-versus' == args.mode:
-            self._run_min_max_versus(args)
-
-        if 'dual-min-max-versus' == args.mode:
-            self._run_dual_min_max_versus(args)
