@@ -124,7 +124,7 @@ class CLI(CommandLineCommon.CLI):
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
-                    '{}-{}'.format(self.algorithm_module.name, name)
+                    'results/{}-{}'.format(self.algorithm_module.name, name)
                 ).run()
 
     def _run_ccpe_comparison_table(self, args):

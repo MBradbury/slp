@@ -37,12 +37,15 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
     (path, name_with_ext) = os.path.split(path_and_name)
     (name_without_ext, ext) = os.path.splitext(name_with_ext)
 
+    if not path:
+        path = "."
+
     data.util.silent_remove(os.path.join(path, name_without_ext + ".pdf"))
 
     try:
-        command = "{} \"{}\"".format(executable, path_and_name)
-
-        subprocess.call(command, shell=True)
+        command = "{} -output-directory=\"{}\" \"{}\"".format(executable, path, path_and_name)
+        print(command)
+        subprocess.check_call(command, shell=True)
 
     finally:
         exts_to_remove = (".log", ".aux", ".dvi", ".out", ".synctex.gz")
