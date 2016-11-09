@@ -2,7 +2,6 @@
 from __future__ import print_function, division
 
 import copy
-import functools
 import sys
 
 import simulator.Configuration as Configuration
@@ -16,10 +15,12 @@ def run_simulation(module, a, count=1, print_warnings=False):
         from simulator.TosVis import GuiSimulation as Simulation
 
     elif a.args.mode == "OFFLINE":
+        import functools
         from simulator.Simulation import OfflineSimulation
         Simulation = functools.partial(OfflineSimulation, log_filename=a.args.merged_log)
 
     elif a.args.mode == "OFFLINE_GUI":
+        import functools
         from simulator.TosVis import GuiOfflineSimulation as OfflineSimulation
         Simulation = functools.partial(OfflineSimulation, log_filename=a.args.merged_log)
 
