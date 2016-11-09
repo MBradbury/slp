@@ -336,6 +336,8 @@ class OfflineSimulation(object):
 
         self._log_file = open(log_filename, 'r')
 
+        self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+):(\d+):(.+)')
+
     def __enter__(self):
         return self
 
@@ -401,8 +403,6 @@ class OfflineSimulation(object):
         # For performance reasons do not do anything expensive in this function,
         # that includes simple things such as iterating or calling functions.
         return not self.attacker_found_source
-
-    LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+):(\d+):(.+)')
 
     def _parse_line(self, line):
 
