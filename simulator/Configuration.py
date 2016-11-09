@@ -3,7 +3,7 @@ from __future__ import print_function, division
 from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
-from data.memoize import memoize, memoize_instance
+from data.memoize import memoize
 from data.testbed.dcswarwick import DCSWarwick
 from data.testbed.indriya import Indriya
 from simulator.Topology import Line, Grid, Circle, Random, SimpleTree, Ring

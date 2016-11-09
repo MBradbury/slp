@@ -94,7 +94,6 @@ if a.args.mode in {"GUI", "SINGLE", "OFFLINE", "OFFLINE_GUI"}:
 else:
     from datetime import datetime
     import multiprocessing.pool
-    import subprocess
     from threading import Lock
     import traceback
 
