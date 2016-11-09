@@ -88,8 +88,8 @@ class Grapher(GrapherBase):
                     values.append(src_period)
                     values.extend(params)
 
-                    (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
-                    (key_names, values, vvalue) = self._remove_index(key_names, values, self.vary)
+                    (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
+                    (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
 
                     #if self.xaxis == 'network size':
                     #    xvalue = xvalue ** 2

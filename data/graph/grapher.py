@@ -117,3 +117,20 @@ class GrapherBase(object):
                 stream.write(str(row[i]).rjust(col_paddings[i] + 2))
             
             stream.write('\n')
+
+    @staticmethod
+    def remove_index(names, values, index_name):
+        names = list(names)
+        values = list(values)
+
+        idx = names.index(index_name)
+
+        value = values[idx]
+
+        del names[idx]
+        del values[idx]
+
+        names = tuple(names)
+        values = tuple(values)
+
+        return (names, values, value)

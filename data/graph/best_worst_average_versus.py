@@ -44,19 +44,17 @@ class Grapher(GrapherBase):
                     values.append(src_period)
                     values.extend(params)
 
-                    (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
+                    (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
 
                     cvalues = []
                     for vary in self.vary:
-                        (key_names, values, cvalue) = self._remove_index(key_names, values, vary)
+                        (key_names, values, cvalue) = self.remove_index(key_names, values, vary)
                         cvalues.append(cvalue)
-
-                    key_names = tuple(key_names)
-                    values = tuple(values)
+                    cvalues = tuple(cvalues)
 
                     yvalue = results[ simulation_results.result_names.index(self.yaxis) ]
 
-                    dat.setdefault((key_names, values), {}).setdefault(xvalue, {})[tuple(cvalues)] = self.yextractor(yvalue)
+                    dat.setdefault((key_names, values), {}).setdefault(xvalue, {})[cvalues] = self.yextractor(yvalue)
 
         
         newdat = defaultdict(dict)
