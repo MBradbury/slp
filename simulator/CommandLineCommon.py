@@ -126,8 +126,8 @@ class CLI(object):
         return self.global_parameter_names + self.local_parameter_names
 
     @staticmethod
-    def _create_table(name, result_table, param_filter=lambda x: True):
-        filename = name + ".tex"
+    def _create_table(name, result_table, directory="results", param_filter=lambda x: True):
+        filename = os.path.join(directory, name + ".tex")
 
         with open(filename, 'w') as result_file:
             latex.print_header(result_file)

@@ -33,7 +33,7 @@ class ResultTable(object):
         titles = [
             self.fmt.format_header(title)[row]
             for title
-            in ["source period"] + self.results.parameter_names +  self.results.result_names
+            in ("source period",) + self.results.parameter_names +  self.results.result_names
         ]
 
         return "        " + " & ".join(titles) + "\\\\"
