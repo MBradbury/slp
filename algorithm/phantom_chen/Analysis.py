@@ -9,10 +9,6 @@ class Analyzer(AnalyzerCommon):
         return (
             ('Sent', 'TimeTaken'),
             (('Sent', 'TimeTaken'), 'num_nodes'),
-
-            ('energy_impact', 'num_nodes'),
-            (('energy_impact', 'num_nodes'), 'TimeTaken'),
-            ('daily_allowance_used', '1'),
         )
 
     @staticmethod
@@ -46,9 +42,5 @@ class Analyzer(AnalyzerCommon):
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),num_nodes)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
-
-        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,num_nodes)')
-        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
-        d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
-
+        
         return d
