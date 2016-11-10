@@ -43,6 +43,6 @@ repeats = 2000
 
 attacker_models = ['TimedBacktrackingAttacker(wait_time_secs={source_period})', 'SeqNosReactiveAttacker()']
 
-latest_node_start_time = 1 # in seconds
+latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
