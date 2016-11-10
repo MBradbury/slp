@@ -21,8 +21,8 @@ from data.util import scalar_extractor
 from data.run.common import RunSimulationsCommon
 
 class RunSimulations(RunSimulationsCommon):
-    def _get_safety_period(self, argument_names, arguments):
-        time_taken = super(RunSimulations, self)._get_safety_period(argument_names, arguments)
+    def _get_safety_period(self, darguments):
+        time_taken = super(RunSimulations, self)._get_safety_period(darguments)
 
         if time_taken is None:
             return None
