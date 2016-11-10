@@ -241,6 +241,7 @@ class Analyse(object):
                  with_normalised=True, headers_to_skip=None, drop_if_hit_upper_time_bound=False):
 
         self.opts = {}
+        self.headers_to_skip = headers_to_skip
 
         all_headings = []
 
@@ -627,6 +628,7 @@ class AnalysisResults(object):
         self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
 
         self.opts = analysis.opts
+        self.headers_to_skip = analysis.headers_to_skip
         
         self.number_of_repeats = analysis.columns.shape[0]
 
@@ -689,10 +691,10 @@ class AnalyzerCommon(object):
                 ave = average_corrector(x.average_of[name])
                 return "{}".format(ave)
             except KeyError:
-                if not allow_missing:
-                    raise
-                else:
+                if allow_missing or name in x.headers_to_skip:
                     return "None"
+                else:
+                    raise
 
     def analyse_path(self, path, **kwargs):
         #try:
