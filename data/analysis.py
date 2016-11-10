@@ -454,13 +454,14 @@ class Analyse(object):
 
             if name == "good_move_ratio":
 
-                attacker_moves = values[self.headings.index("AttackerMoves")]
+                if __debug__:
+                    attacker_moves = values[self.headings.index("AttackerMoves")]
 
-                # We can't calculate the good move ratio if the attacker hasn't moved
-                for (attacker_id, num_moves) in attacker_moves.iteritems():
-                    if num_moves == 0:
-                        print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
-                        return None
+                    # We can't calculate the good move ratio if the attacker hasn't moved
+                    for (attacker_id, num_moves) in attacker_moves.iteritems():
+                        if num_moves == 0:
+                            print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
+                            return None
 
                 try:
                     steps_towards = values[self.headings.index("AttackerStepsTowards")]
@@ -472,8 +473,8 @@ class Analyse(object):
                 ratios = []
 
                 for key in steps_towards.keys():
-                    steps_towards_node = float(steps_towards[key])
-                    steps_away_from_node = float(steps_away[key])
+                    steps_towards_node = steps_towards[key]
+                    steps_away_from_node = steps_away[key]
 
                     ratios.append(steps_towards_node / (steps_towards_node + steps_away_from_node))
 
@@ -681,15 +682,26 @@ class AnalyzerCommon(object):
         d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
 
     @staticmethod
-    def _format_results(x, name, allow_missing=False, average_corrector=lambda x: x, variance_corrector=lambda x: x):
+    def _format_results(x, name, allow_missing=False, average_corrector=None, variance_corrector=None):
         if name in x.variance_of:
-            ave = average_corrector(x.average_of[name])
-            var = variance_corrector(x.variance_of[name])
+            ave = x.average_of[name]
+            var = x.variance_of[name]
+
+            if average_corrector is not None:
+                ave = average_corrector(ave)
+
+            if variance_corrector is not None:
+                var = variance_corrector(var)
+
             return "{}({})".format(ave, var)
         else:
             try:
-                ave = average_corrector(x.average_of[name])
-                return "{}".format(ave)
+                ave = x.average_of[name]
+
+                if average_corrector is not None:
+                    ave = average_corrector(ave)
+
+                return str(ave)
             except KeyError:
                 if allow_missing or name in x.headers_to_skip:
                     return "None"
