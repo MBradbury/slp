@@ -35,6 +35,6 @@ repeats = 750
 
 attacker_models = ['SeqNoReactiveAttacker()', 'BasicReactiveAttacker()', 'IgnorePreviousLocationReactiveAttacker()']
 
-latest_node_start_time = 1 # in seconds
+latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
