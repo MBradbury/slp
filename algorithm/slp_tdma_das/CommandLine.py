@@ -8,9 +8,9 @@ from data.run.common import RunSimulationsCommon
 from data.table import safety_period
 
 class RunSimulations(RunSimulationsCommon):
-    def _get_safety_period(self, argument_names, arguments):
-        minimum_setup_period = arguments[argument_names.index("minimum setup periods")]
-        tdma_safety_period = arguments[argument_names.index("tdma safety periods")]
+    def _get_safety_period(self, darguments):
+        minimum_setup_period = darguments["minimum setup periods"]
+        tdma_safety_period = darguments["tdma safety periods"]
 
         period_length_sec = 3
 
