@@ -48,7 +48,7 @@ class CLI(CommandLineCommon.CLI):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.local_parameter_names,
-            results=('normal latency', 'ssd', 'attacker distance'))
+            results=('captured', 'received ratio', 'ssd', 'attacker distance'))
 
         result_table = fake_result.ResultTable(adaptive_results)
 
