@@ -14,6 +14,7 @@ import simulator.Configuration as Configuration
 from data import results, latex, submodule_loader
 import data.cluster
 import data.testbed
+from data.run.common import MissingSafetyPeriodError
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
 from data.graph import heatmap, summary
@@ -173,10 +174,17 @@ class CLI(object):
             safety_periods=safety_periods
         )
 
-        runner.run(self.algorithm_module.Parameters.repeats,
-                   self.parameter_names(),
-                   self._argument_product(),
-                   self._time_estimater)
+        try:
+            runner.run(self.algorithm_module.Parameters.repeats,
+                       self.parameter_names(),
+                       self._argument_product(),
+                       self._time_estimater)
+        except MissingSafetyPeriodError as ex:
+            from pprint import pprint
+            import traceback
+            print(traceback.format_exc())
+            print("Available safety periods:")
+            pprint(ex.safety_periods)
 
     def adjust_source_period_for_multi_source(self, argument_product):
         """For configurations with multiple sources, so that the network has the

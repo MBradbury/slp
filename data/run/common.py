@@ -12,6 +12,15 @@ import numpy as np
 from data import results
 import simulator.common
 
+class MissingSafetyPeriodError(RuntimeError):
+    def __init__(self, key, source_period, safety_periods):
+        self.key = key
+        self.source_period = source_period
+        self.safety_periods = safety_periods
+
+    def __str__(self):
+        return "Failed to find the safety period key {} and source period {}".format(self.key, repr(self.source_period))
+
 def _argument_name_to_parameter(argument_name):
     return "--" + argument_name.replace(" ", "-")
 
@@ -98,7 +107,7 @@ class RunSimulationsCommon(object):
         try:
             return self._safety_periods[key][source_period]
         except KeyError as ex:
-            raise KeyError("Failed to find the safety period key {} and source period {}".format(key, repr(source_period)), ex)
+            raise MissingSafetyPeriodError(key, source_period, self._safety_periods)
 
     def _load_existing_results(self, argument_names):
         try:
