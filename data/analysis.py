@@ -235,6 +235,16 @@ class Analyse(object):
         "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
         "ReceivedFromFurtherHops": _parse_dict_node_to_value,
         "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
+
+        "ReceivedFromCloserOrSameHopsFake": _parse_dict_node_to_value,
+        "ReceivedFromCloserOrSameMetersFake": _parse_dict_node_to_value,
+        "ReceivedFromFurtherHopsFake": _parse_dict_node_to_value,
+        "ReceivedFromFurtherMetersFake": _parse_dict_node_to_value,
+
+        "DeliveredFromCloserOrSameHops": _parse_dict_node_to_value,
+        "DeliveredFromCloserOrSameMeters": _parse_dict_node_to_value,
+        "DeliveredFromFurtherHops": _parse_dict_node_to_value,
+        "DeliveredFromFurtherMeters": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile_path, normalised_values, with_converters=True,
@@ -314,7 +324,7 @@ class Analyse(object):
         df.dropna(subset=["NormalLatency"], how="all", inplace=True)
 
         if drop_if_hit_upper_time_bound:
-            print("Removing results that have not hit the upper time bound...")
+            print("Removing results that have hit the upper time bound...")
 
             indexes_to_remove = df[df["ReachedSimUpperBound"]].index
             df.drop(indexes_to_remove, inplace=True)
@@ -680,6 +690,17 @@ class AnalyzerCommon(object):
         d['total wall time']    = lambda x: AnalyzerCommon._format_results(x, 'TotalWallTime')
         d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
         d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
+
+        d['captured']           = lambda x: str(x.average_of['Captured'])
+        d['reached upper bound']= lambda x: str(x.average_of['ReachedSimUpperBound'])
+
+        d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
+        d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
+        d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
+
+        d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
+        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
+        
 
     @staticmethod
     def _format_results(x, name, allow_missing=False, average_corrector=None, variance_corrector=None):
