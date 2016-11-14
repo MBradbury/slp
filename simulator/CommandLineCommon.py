@@ -339,7 +339,8 @@ class CLI(object):
     def _run_time_taken_table(self, args):
         result = results.Results(self.algorithm_module.result_file_path,
                                  parameters=self.local_parameter_names,
-                                 results=('time taken', 'total wall time', 'wall time', 'event count', 'repeats'))
+                                 results=('time taken', 'total wall time', 'wall time', 'event count',
+                                          'repeats', 'captured', 'reached upper bound'))
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
