@@ -63,7 +63,7 @@ class TableDataFormatter(object):
         elif name in {"source period", "fake period", "walk length", "walk retries",
                       "repeats", "short walk length", "long walk length"}:
             return "${}$".format(value)
-        elif name in {"duration", "temp fake duration", "captured"}:
+        elif name in {"duration", "temp fake duration"}:
             return "${:.0f}$".format(value)
         elif name == "pr(tfs)" or name == "pr(pfs)":
             return "${:.0f}$".format(value * 100.0)
