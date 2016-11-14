@@ -248,7 +248,7 @@ class Analyse(object):
     }
 
     def __init__(self, infile_path, normalised_values, with_converters=True,
-                 with_normalised=True, headers_to_skip=None, drop_if_hit_upper_time_bound=False):
+                 with_normalised=True, headers_to_skip=None, keep_if_hit_upper_time_bound=False):
 
         self.opts = {}
         self.headers_to_skip = headers_to_skip
@@ -323,7 +323,7 @@ class Analyse(object):
         df = df.replace([np.inf, -np.inf], np.nan)
         df.dropna(subset=["NormalLatency"], how="all", inplace=True)
 
-        if drop_if_hit_upper_time_bound:
+        if not keep_if_hit_upper_time_bound:
             print("Removing results that have hit the upper time bound...")
 
             indexes_to_remove = df[df["ReachedSimUpperBound"]].index
