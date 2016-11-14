@@ -23,6 +23,7 @@ class TableDataFormatter(object):
                 "short walk length": ("Short Walk Length", "(hops)"),
                 "long walk length": ("Long Walk Length", "(hops)"),
                 "captured": ("Cap", "(\\%)"),
+                "reached upper bound": ("RUB", "(\\%)"),
                 "fake": ("Fake", "Messages"),
                 "dummy normal": ("Dummy Normal", "Messages"),
                 "received ratio": ("Received", "(\\%)"),
