@@ -38,7 +38,7 @@ class ArgumentsCommon(object):
 
         ###
 
-        parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=[parser_testbed])
+        parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=(parser_testbed,))
 
         parser_single.add_argument("--seed", type=int, required=False)
 
@@ -53,7 +53,7 @@ class ArgumentsCommon(object):
         parser_single.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0,
                                    help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
 
-        parser_single.add_argument("--node-id-order", choices=["topology", "randomised"], default="randomised")
+        parser_single.add_argument("--node-id-order", choices=("topology", "randomised"), default="randomised")
 
         if has_safety_period:
             parser_single.add_argument("-safety", "--safety-period", type=float, required=True)
@@ -62,25 +62,25 @@ class ArgumentsCommon(object):
 
         # The profile parser is the same as the single parser
         # The only difference is that the code will not be rebuilt.
-        parser_profile = subparsers.add_parser("PROFILE", add_help=False, parents=[parser_single])
+        parser_profile = subparsers.add_parser("PROFILE", add_help=False, parents=(parser_single,))
 
         ###
 
-        parser_gui = subparsers.add_parser("GUI", add_help=False, parents=[parser_single])
+        parser_gui = subparsers.add_parser("GUI", add_help=False, parents=(parser_single,))
 
         parser_gui.add_argument("--gui-node-label", type=str, required=False, default=None)
         parser_gui.add_argument("--gui-scale", type=int, required=False, default=6)
 
         ###
 
-        parser_parallel = subparsers.add_parser("PARALLEL", add_help=False, parents=[parser_single])
+        parser_parallel = subparsers.add_parser("PARALLEL", add_help=False, parents=(parser_single,))
 
         parser_parallel.add_argument("--job-size", type=int, required=True)
         parser_parallel.add_argument("--thread-count", type=int, default=None)
 
         ###
 
-        parser_cluster = subparsers.add_parser("CLUSTER", add_help=False, parents=[parser_parallel])
+        parser_cluster = subparsers.add_parser("CLUSTER", add_help=False, parents=(parser_parallel,))
 
         parser_cluster.add_argument("--job-id", type=int, default=None,
                                     help="Used to pass the array id when this job has been submitted as a job array to the cluster.")
@@ -88,7 +88,7 @@ class ArgumentsCommon(object):
         ###
         ###
 
-        parser_offline = subparsers.add_parser("OFFLINE", add_help=False, parents=[parser_testbed])
+        parser_offline = subparsers.add_parser("OFFLINE", add_help=False, parents=(parser_testbed,))
 
         parser_offline.add_argument("--merged-log", type=str, required=True)
 
@@ -101,7 +101,7 @@ class ArgumentsCommon(object):
 
         ###
 
-        parser_offline_gui = subparsers.add_parser("OFFLINE_GUI", add_help=False, parents=[parser_offline])
+        parser_offline_gui = subparsers.add_parser("OFFLINE_GUI", add_help=False, parents=(parser_offline,))
 
         parser_offline_gui.add_argument("--gui-scale", type=int, required=False, default=6)
 

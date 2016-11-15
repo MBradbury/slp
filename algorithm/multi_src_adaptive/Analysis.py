@@ -29,11 +29,6 @@ class Analyzer(AnalyzerCommon):
 
         AnalyzerCommon.common_results(d)
         
-        d['captured']           = lambda x: str(x.average_of['Captured'])
-        d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance', average_corrector=Analyzer._correct_attacker_distance)
-        d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
-        d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
         d['choose']             = lambda x: AnalyzerCommon._format_results(x, 'ChooseSent')
@@ -41,7 +36,6 @@ class Analyzer(AnalyzerCommon):
         d['tfs']                = lambda x: AnalyzerCommon._format_results(x, 'TFS')
         d['pfs']                = lambda x: AnalyzerCommon._format_results(x, 'PFS')
         d['fake to normal']     = lambda x: AnalyzerCommon._format_results(x, 'FakeToNormal')
-        d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')

@@ -1,6 +1,8 @@
 
 #include "MetricLogging.h"
 
+#define UNKNOWN_NODE_TYPE ((uint8_t)-1)
+
 generic module NodeTypeImplP(uint8_t maximum_node_types)
 {
 	provides interface NodeType;
@@ -14,7 +16,7 @@ implementation
 
 	uint8_t size = 0;
 
-	uint8_t current_type = -1;
+	uint8_t current_type = UNKNOWN_NODE_TYPE;
 
 	command bool NodeType.register_pair(uint8_t ident, const char* name)
 	{
@@ -47,7 +49,7 @@ implementation
 			}
 		}
 
-		return (uint8_t)-1;
+		return UNKNOWN_NODE_TYPE;
 	}
 
 	command const char* NodeType.to_string(uint8_t ident)
@@ -64,14 +66,14 @@ implementation
 		return "<unknown>";
 	}
 
-	command const char* NodeType.current_to_string()
+	command const char* NodeType.current_to_string(void)
 	{
 		return call NodeType.to_string(current_type);
 	}
 
 	command void NodeType.init(uint8_t ident)
 	{
-		METRIC_NODE_CHANGE((uint8_t)-1, "<unknown>", ident, call NodeType.to_string(ident));
+		METRIC_NODE_CHANGE(UNKNOWN_NODE_TYPE, "<unknown>", ident, call NodeType.to_string(ident));
 
 		current_type = ident;
 	}
@@ -86,13 +88,18 @@ implementation
 		}
 	}
 
-	command uint8_t NodeType.get()
+	command uint8_t NodeType.get(void)
 	{
 		return current_type;
 	}
 
+	command uint8_t NodeType.unknown_type(void)
+	{
+		return UNKNOWN_NODE_TYPE;
+	}
 
-	command am_addr_t NodeType.get_topology_node_id()
+
+	command am_addr_t NodeType.get_topology_node_id(void)
 	{
 #ifdef TOSSIM
 		return sim_mote_tag(sim_node());
@@ -101,7 +108,7 @@ implementation
 #endif
 	}
 
-	command bool NodeType.is_node_sink()
+	command bool NodeType.is_node_sink(void)
 	{
 		return call NodeType.is_topology_node_id(SINK_NODE_ID);
 	}
