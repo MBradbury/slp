@@ -52,13 +52,13 @@ implementation
 		simdbgverbose("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %u ms.\n", duration_ms);
 	}
 
-	command void FakeMessageGenerator.stop()
+	command void FakeMessageGenerator.stop(void)
 	{
 		call DurationTimer.stop();
 		call SendFakeTimer.stop();
 	}
 
-	event void SendFakeTimer.fired()
+	event void SendFakeTimer.fired(void)
 	{
 		uint32_t period, start_time;
 
@@ -82,14 +82,14 @@ implementation
 		signal FakeMessageGenerator.sendFakeMessage();
 	}
 
-	event void DurationTimer.fired()
+	event void DurationTimer.fired(void)
 	{
 		simdbgverbose("FakeMessageGeneratorImplP", "DurationTimer fired.\n");
 
 		call FakeMessageGenerator.expireDuration();
 	}
 
-	command void FakeMessageGenerator.expireDuration()
+	command void FakeMessageGenerator.expireDuration(void)
 	{
 		const uint8_t payload_length = call Packet.payloadLength(&message);
 		const void* payload = call Packet.getPayload(&message, payload_length);
