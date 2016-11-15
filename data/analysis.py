@@ -235,10 +235,20 @@ class Analyse(object):
         "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
         "ReceivedFromFurtherHops": _parse_dict_node_to_value,
         "ReceivedFromFurtherMeters": _parse_dict_node_to_value,
+
+        "ReceivedFromCloserOrSameHopsFake": _parse_dict_node_to_value,
+        "ReceivedFromCloserOrSameMetersFake": _parse_dict_node_to_value,
+        "ReceivedFromFurtherHopsFake": _parse_dict_node_to_value,
+        "ReceivedFromFurtherMetersFake": _parse_dict_node_to_value,
+
+        "DeliveredFromCloserOrSameHops": _parse_dict_node_to_value,
+        "DeliveredFromCloserOrSameMeters": _parse_dict_node_to_value,
+        "DeliveredFromFurtherHops": _parse_dict_node_to_value,
+        "DeliveredFromFurtherMeters": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile_path, normalised_values, with_converters=True,
-                 with_normalised=True, headers_to_skip=None, drop_if_hit_upper_time_bound=False):
+                 with_normalised=True, headers_to_skip=None, keep_if_hit_upper_time_bound=False):
 
         self.opts = {}
         self.headers_to_skip = headers_to_skip
@@ -313,8 +323,8 @@ class Analyse(object):
         df = df.replace([np.inf, -np.inf], np.nan)
         df.dropna(subset=["NormalLatency"], how="all", inplace=True)
 
-        if drop_if_hit_upper_time_bound:
-            print("Removing results that have not hit the upper time bound...")
+        if not keep_if_hit_upper_time_bound:
+            print("Removing results that have hit the upper time bound...")
 
             indexes_to_remove = df[df["ReachedSimUpperBound"]].index
             df.drop(indexes_to_remove, inplace=True)
@@ -454,13 +464,14 @@ class Analyse(object):
 
             if name == "good_move_ratio":
 
-                attacker_moves = values[self.headings.index("AttackerMoves")]
+                if __debug__:
+                    attacker_moves = values[self.headings.index("AttackerMoves")]
 
-                # We can't calculate the good move ratio if the attacker hasn't moved
-                for (attacker_id, num_moves) in attacker_moves.iteritems():
-                    if num_moves == 0:
-                        print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
-                        return None
+                    # We can't calculate the good move ratio if the attacker hasn't moved
+                    for (attacker_id, num_moves) in attacker_moves.iteritems():
+                        if num_moves == 0:
+                            print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
+                            return None
 
                 try:
                     steps_towards = values[self.headings.index("AttackerStepsTowards")]
@@ -472,8 +483,8 @@ class Analyse(object):
                 ratios = []
 
                 for key in steps_towards.keys():
-                    steps_towards_node = float(steps_towards[key])
-                    steps_away_from_node = float(steps_away[key])
+                    steps_towards_node = steps_towards[key]
+                    steps_away_from_node = steps_away[key]
 
                     ratios.append(steps_towards_node / (steps_towards_node + steps_away_from_node))
 
@@ -680,16 +691,38 @@ class AnalyzerCommon(object):
         d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
         d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
 
+        d['captured']           = lambda x: str(x.average_of['Captured'])
+        d['reached upper bound']= lambda x: str(x.average_of['ReachedSimUpperBound'])
+
+        d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
+        d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
+        d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
+
+        d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
+        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
+        
+
     @staticmethod
-    def _format_results(x, name, allow_missing=False, average_corrector=lambda x: x, variance_corrector=lambda x: x):
+    def _format_results(x, name, allow_missing=False, average_corrector=None, variance_corrector=None):
         if name in x.variance_of:
-            ave = average_corrector(x.average_of[name])
-            var = variance_corrector(x.variance_of[name])
+            ave = x.average_of[name]
+            var = x.variance_of[name]
+
+            if average_corrector is not None:
+                ave = average_corrector(ave)
+
+            if variance_corrector is not None:
+                var = variance_corrector(var)
+
             return "{}({})".format(ave, var)
         else:
             try:
-                ave = average_corrector(x.average_of[name])
-                return "{}".format(ave)
+                ave = x.average_of[name]
+
+                if average_corrector is not None:
+                    ave = average_corrector(ave)
+
+                return str(ave)
             except KeyError:
                 if allow_missing or name in x.headers_to_skip:
                     return "None"

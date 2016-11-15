@@ -14,6 +14,7 @@ import simulator.Configuration as Configuration
 from data import results, latex, submodule_loader
 import data.cluster
 import data.testbed
+from data.run.common import MissingSafetyPeriodError
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
 from data.graph import heatmap, summary
@@ -89,8 +90,8 @@ class CLI(object):
 
         subparser = subparsers.add_parser("analyse")
         subparser.add_argument("--thread-count", type=int, default=None)
-        subparser.add_argument("--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
-        subparser.add_argument("--drop-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to drop results that hit the upper time bound.")
+        subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
+        subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
 
         ###
 
@@ -173,10 +174,17 @@ class CLI(object):
             safety_periods=safety_periods
         )
 
-        runner.run(self.algorithm_module.Parameters.repeats,
-                   self.parameter_names(),
-                   self._argument_product(),
-                   self._time_estimater)
+        try:
+            runner.run(self.algorithm_module.Parameters.repeats,
+                       self.parameter_names(),
+                       self._argument_product(),
+                       self._time_estimater)
+        except MissingSafetyPeriodError as ex:
+            from pprint import pprint
+            import traceback
+            print(traceback.format_exc())
+            print("Available safety periods:")
+            pprint(ex.safety_periods)
 
     def adjust_source_period_for_multi_source(self, argument_product):
         """For configurations with multiple sources, so that the network has the
@@ -236,7 +244,7 @@ class CLI(object):
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
         analyzer.run(self.algorithm_module.result_file, args.thread_count,
-                     headers_to_skip=args.headers_to_skip, drop_if_hit_upper_time_bound=args.drop_if_hit_upper_time_bound)
+                     headers_to_skip=args.headers_to_skip, keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
 
     def _run_safety_table(self, args):
 
@@ -331,7 +339,8 @@ class CLI(object):
     def _run_time_taken_table(self, args):
         result = results.Results(self.algorithm_module.result_file_path,
                                  parameters=self.local_parameter_names,
-                                 results=('time taken', 'total wall time', 'wall time', 'event count', 'repeats'))
+                                 results=('time taken', 'total wall time', 'wall time', 'event count',
+                                          'repeats', 'captured', 'reached upper bound'))
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 

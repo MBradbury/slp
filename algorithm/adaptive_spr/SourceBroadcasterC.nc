@@ -97,8 +97,6 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
 
-	//int16_t sink_source_distance = BOTTOM;
-	//int16_t source_distance = BOTTOM;
 	int16_t sink_distance = BOTTOM;
 
 	bool sink_received_away_reponse = FALSE;
@@ -405,7 +403,6 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
-		//message.sink_source_distance = sink_source_distance;
 
 		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
 		message.fake_sequence_increments = source_fake_sequence_increments;
@@ -422,7 +419,6 @@ implementation
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
-		//message.sink_source_distance = sink_source_distance;
 		message.algorithm = ALGORITHM;
 
 		sequence_number_increment(&away_sequence_counter);
@@ -455,8 +451,6 @@ implementation
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -476,10 +470,7 @@ implementation
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
 			}
 
-			//source_distance = minbot(source_distance, rcvd->source_distance + 1);
-
 			forwarding_message = *rcvd;
-			//forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
@@ -499,8 +490,6 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			//sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
-
 			if (first_source_distance == BOTTOM)
 			{
 				first_source_distance = rcvd->source_distance + 1;
@@ -513,7 +502,6 @@ implementation
 				// However, we don't want to keep doing this as it benefits the attacker.
 				{
 					NormalMessage forwarding_message = *rcvd;
-					//forwarding_message.sink_source_distance = sink_source_distance;
 					forwarding_message.source_distance += 1;
 					forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 					forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
@@ -532,8 +520,6 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -546,7 +532,6 @@ implementation
 			METRIC_RCV_NORMAL(rcvd);
 
 			forwarding_message = *rcvd;
-			//forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
 			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
 			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
@@ -577,8 +562,6 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
@@ -587,10 +570,7 @@ implementation
 
 			METRIC_RCV_AWAY(rcvd);
 
-			//sink_source_distance = minbot(sink_source_distance, rcvd->sink_distance + 1);
-
 			forwarding_message = *rcvd;
-			//forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 
@@ -605,8 +585,6 @@ implementation
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
-
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -634,7 +612,6 @@ implementation
 			}
 
 			forwarding_message = *rcvd;
-			//forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 
@@ -650,8 +627,6 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
@@ -663,7 +638,6 @@ implementation
 			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 			forwarding_message = *rcvd;
-			//forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 
@@ -676,6 +650,9 @@ implementation
 		case SinkNode: Sink_receive_Away(rcvd, source_addr); break;
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
+
+		case TailFakeNode:
+		case PermFakeNode:
 		case TempFakeNode: Fake_receive_Away(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
@@ -692,7 +669,6 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
@@ -726,8 +702,6 @@ implementation
 
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-
 		sink_received_away_reponse = TRUE;
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
@@ -738,16 +712,12 @@ implementation
 
 			METRIC_RCV_FAKE(rcvd);
 
-			//forwarding_message.sink_source_distance = sink_source_distance;
-
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
 	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
@@ -759,8 +729,6 @@ implementation
 
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
@@ -769,16 +737,12 @@ implementation
 
 			METRIC_RCV_FAKE(rcvd);
 
-			//forwarding_message.sink_source_distance = sink_source_distance;
-
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
 	}
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		//sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
-
 		const uint8_t type = call NodeType.get();
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
@@ -788,8 +752,6 @@ implementation
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
-
-			//forwarding_message.sink_source_distance = sink_source_distance;
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -839,7 +801,7 @@ implementation
 
 	event uint32_t FakeMessageGenerator.initialStartDelay()
 	{
-		return signal FakeMessageGenerator.calculatePeriod() / 2;
+		return signal FakeMessageGenerator.calculatePeriod() / 4;
 	}
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
@@ -864,8 +826,6 @@ implementation
 		FakeMessage message;
 
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
-		//message.sink_source_distance = sink_source_distance;
-		//message.source_distance = source_distance;
 		message.sink_distance = sink_distance;
 		message.message_type = call NodeType.get();
 		message.source_id = TOS_NODE_ID;

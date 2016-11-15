@@ -2,7 +2,7 @@
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.MobilityModel
 
-approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
+approaches = ("PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH")
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
@@ -18,9 +18,7 @@ class Arguments(ArgumentsCommon):
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        result.update({
-            "APPROACH": self.args.approach,
-            self.args.approach: 1,
-        })
+        result["APPROACH"] = self.args.approach
+        result[self.args.approach] = 1
 
         return result
