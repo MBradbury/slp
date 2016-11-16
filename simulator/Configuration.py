@@ -309,33 +309,33 @@ class FurtherSinkCorner3Source(Configuration):
             space_behind_sink=False
         )
 
-class SinkSourceOppsite(Configuration):
+class SinkSourceOpposite(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkSourceOppsite, self).__init__(
+        super(SinkSourceOpposite, self).__init__(
             grid,
             source_ids={(grid.size * 2) + 2},
             sink_id=(grid.size * (grid.size - 2)) - 2 - 1,
             space_behind_sink=True
         )
 
-class SinkSourceOppsite2Source(Configuration):
+class SinkSourceOpposite2Source(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkSourceOppsite2Source, self).__init__(
+        super(SinkSourceOpposite2Source, self).__init__(
             grid,
             source_ids={(grid.size * 2) + 2, (grid.size * 2) + 4},
             sink_id=(grid.size * (grid.size - 2)) - 2 - 1,
             space_behind_sink=True
         )
 
-class SinkSourceOppsite3Source(Configuration):
+class SinkSourceOpposite3Source(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkSourceOppsite3Source, self).__init__(
+        super(SinkSourceOpposite3Source, self).__init__(
             grid,
             source_ids={(grid.size * 2) + 2, (grid.size * 2) + 4, (grid.size * 2) + grid.size + 3},
             sink_id=(grid.size * (grid.size - 2)) - 2 - 1,
