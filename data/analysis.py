@@ -158,9 +158,12 @@ def dict_mean(dict_list):
 
     result = dict_list[0]
 
+    get = result.get
+
     for (n, dict_item) in enumerate(islice(dict_list, 1, None), start=2):
         for (key, value) in dict_item.iteritems():
-            result[key] += (value - result[key]) / n
+            current = get(key, 0)
+            result[key] = current + ((value - current) / n)
 
     return result
 
