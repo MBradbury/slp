@@ -72,6 +72,7 @@ enum SLPErrorCodes {
 	ERROR_POOL_FULL = 5,
 	ERROR_TOO_MANY_NODE_TYPES = 6,
 	ERROR_TOO_MANY_MESSAGE_TYPES = 7,
+	ERROR_QUEUE_FULL = 8,
 
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,
