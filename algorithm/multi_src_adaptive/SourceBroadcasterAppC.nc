@@ -13,7 +13,7 @@ implementation
 
 	// Low levels events such as boot and LED control
 	components DelayedBootEventMainP as MainC;
-	components LedsC;
+	components LedsWhenGuiC as LedsC;
 	components RandomC;
 	
 	App.Boot -> MainC;
