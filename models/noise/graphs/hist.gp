@@ -19,7 +19,7 @@ set xlabel "Decibels (dB)"
 set ylabel "Count"
 
 set output "hist-graph-meyer-heavy.pdf"
-plot "<(head -n 1000 ../meyer-heavy.txt)" using (bin($1,binwidth)):(1.0) smooth freq with boxes title "meyer-heavy" lc rgb "dark-violet"
+plot "<(head -n 2500 ../meyer-heavy.txt)" using (bin($1,binwidth)):(1.0) smooth freq with boxes title "meyer-heavy" lc rgb "dark-violet"
 
 set output "hist-graph-casino-lab.pdf"
-plot "<(head -n 1000 ../casino-lab.txt)" using (bin($1,binwidth)):(1.0) smooth freq with boxes title "casino-lab" lc rgb "forest-green"
+plot "<(head -n 2500 ../casino-lab.txt)" using (bin($1,binwidth)):(1.0) smooth freq with boxes title "casino-lab" lc rgb "forest-green"
