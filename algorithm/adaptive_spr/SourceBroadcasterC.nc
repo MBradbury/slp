@@ -269,6 +269,8 @@ implementation
 	{
 		simdbgverbose("Boot", "Application booted.\n");
 
+		init_distance_neighbours(&neighbours);
+
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
