@@ -20,24 +20,26 @@
 typedef struct
 {
 	int16_t sink_distance;
+	int16_t source_distance;
 } ni_container_t;
 
 void ni_update(ni_container_t* find, ni_container_t const* given)
 {
 	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
+	find->source_distance = minbot(find->source_distance, given->source_distance);
 }
 
 void ni_print(const char* name, size_t i, am_addr_t address, ni_container_t const* contents)
 {
-	simdbg_clear(name, "[%u] => addr=%u / sink-dist=%d",
-		i, address, contents->sink_distance);
+	simdbg_clear(name, "[%u] => addr=%u / sink-dist=%d src-dist=%d",
+		i, address, contents->sink_distance, contents->source_distance);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(ni_container_t, ni, ni_update, ni_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
-#define UPDATE_NEIGHBOURS(source_addr, sink_distance) \
+#define UPDATE_NEIGHBOURS(source_addr, sink_distance, source_distance) \
 { \
-	const ni_container_t dist = { sink_distance }; \
+	const ni_container_t dist = { sink_distance, source_distance }; \
 	insert_ni_neighbour(&neighbours, source_addr, &dist); \
 }
 
@@ -98,6 +100,7 @@ implementation
 	SequenceNumber away_sequence_counter;
 
 	int16_t sink_distance = BOTTOM;
+	int16_t source_distance = BOTTOM;
 
 	// Sink variables
 	int sink_away_messages_to_send;
@@ -171,6 +174,8 @@ implementation
 			call NodeType.set(SourceNode);
 
 			call SourcePeriodModel.startPeriodic();
+
+			source_distance = 0;
 		}
 	}
 
@@ -181,6 +186,8 @@ implementation
 			call SourcePeriodModel.stop();
 
 			call NodeType.set(NormalNode);
+
+			source_distance = BOTTOM;
 		}
 	}
 
@@ -230,15 +237,14 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
 
-		sequence_number_increment(&away_sequence_counter);
-
-		//extra_to_send = 2;
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySenderTimer.startOneShot(65);
 		}
 		else
 		{
+			sequence_number_increment(&away_sequence_counter);
+			
 			sink_away_messages_to_send -= 1;
 
 			if (sink_away_messages_to_send > 0)
@@ -252,6 +258,7 @@ implementation
 	{
 		BeaconMessage message;
 		message.sink_distance_of_sender = sink_distance;
+		message.source_distance_of_sender = source_distance;
 
 		send_Beacon_message(&message, AM_BROADCAST_ADDR);
 	}
@@ -285,7 +292,9 @@ implementation
 
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, BOTTOM);
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
+
+		source_distance = minbot(source_distance, rcvd->source_distance + 1);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -299,7 +308,9 @@ implementation
 
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, BOTTOM);
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
+
+		source_distance = minbot(source_distance, rcvd->source_distance + 1);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -322,7 +333,7 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, BOTTOM);
 
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
@@ -351,7 +362,7 @@ implementation
 
 	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
 	}
