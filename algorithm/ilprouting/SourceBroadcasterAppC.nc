@@ -1,6 +1,8 @@
 #include "Constants.h"
 #include "MessageQueueInfo.h"
 
+#include "pp.h"
+
 #include <Timer.h>
 
 configuration SourceBroadcasterAppC
@@ -97,6 +99,9 @@ implementation
     App.NormalSeqNos -> NormalSeqNos;
 
     // Pool / Queue
+    STATIC_ASSERT_MSG(SLP_SEND_QUEUE_SIZE > 0, SLP_SEND_QUEUE_SIZE_must_be_gt_0);
+    STATIC_ASSERT_MSG(SLP_SEND_QUEUE_SIZE < 255, SLP_SEND_QUEUE_SIZE_must_be_lt_255);
+
     components
         new PoolC(message_queue_info_t, SLP_SEND_QUEUE_SIZE) as MessagePoolP,
         new QueueC(message_queue_info_t*, SLP_SEND_QUEUE_SIZE) as MessageQueueP;
