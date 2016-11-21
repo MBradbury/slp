@@ -278,6 +278,25 @@ class SeqNosReactiveAttacker(Attacker):
         seqno_key = (ult_from_id, msg_type)
         self._sequence_numbers[seqno_key] = sequence_number
 
+class SeqNosOOOReactiveAttacker(Attacker):
+    """
+    This attacker can determine the source node of certain messages
+    that can be sent from multiple sources.
+    It is capable of moving in response to new messages when they
+    are sent out-of-order.
+    """
+    def __init__(self):
+        super(SeqNosOOOReactiveAttacker, self).__init__()
+        self._sequence_numbers = set()
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        seqno_key = (ult_from_id, msg_type, sequence_number)
+        return msg_type in MESSAGES_WITHOUT_SEQUENCE_NUMBERS or \
+               seqno_key not in self._sequence_numbers
+
+    def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        self._sequence_numbers.add((ult_from_id, msg_type, sequence_number))
+
 
 class SingleTypeReactiveAttacker(Attacker):
     """
