@@ -51,8 +51,12 @@ implementation
 
     // Timers
     components new TimerMilliC() as ConsiderTimer;
+    components new TimerMilliC() as AwaySenderTimer;
+    components new TimerMilliC() as BeaconSenderTimer;
 
     App.ConsiderTimer -> ConsiderTimer;
+    App.AwaySenderTimer -> AwaySenderTimer;
+    App.BeaconSenderTimer -> BeaconSenderTimer;
 
     // Networking
     components
@@ -64,6 +68,20 @@ implementation
     
     App.NormalSend -> NormalSender;
     App.NormalReceive -> NormalReceiver;
+
+    components
+        new AMSenderC(AWAY_CHANNEL) as AwaySender,
+        new AMReceiverC(AWAY_CHANNEL) as AwayReceiver;
+
+    App.AwaySend -> AwaySender;
+    App.AwayReceive -> AwayReceiver;
+
+    components
+        new AMSenderC(BEACON_CHANNEL) as BeaconSender,
+        new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;
+
+    App.BeaconSend -> BeaconSender;
+    App.BeaconReceive -> BeaconReceiver;
 
 
     // Object Detector - For Source movement
