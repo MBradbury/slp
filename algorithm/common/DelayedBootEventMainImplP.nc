@@ -9,7 +9,10 @@ module DelayedBootEventMainImplP
 	provides interface Boot;
 
 	uses interface Boot as OriginalBoot;
+
+#if defined(TESTBED)
 	uses interface Timer<TMilli> as DelayTimer;
+#endif
 }
 implementation
 {
@@ -24,8 +27,10 @@ implementation
 #endif
 	}
 
+#if defined(TESTBED)
 	event void DelayTimer.fired()
 	{
 		signal Boot.booted();
 	}
+#endif
 }
