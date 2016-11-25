@@ -67,6 +67,9 @@ class EmptyFileError(RuntimeError):
     def __init__(self, filename):
         super(EmptyFileError, self).__init__("The file '{}' is empty.".format(filename))
 
+class EmptyDataFrameError(RuntimeError):
+    def __init__(self, filename):
+        super(EmptyDataFrameError, self).__init__("The DataFrame loaded from '{}' is empty.".format(filename))
 
 def _normalised_value_name(value):
     if isinstance(value, str):
@@ -352,6 +355,9 @@ class Analyse(object):
 
             df.drop_duplicates(subset="Seed", keep="first", inplace=True)
         del duplicated_seeds_filter
+
+        if len(df.index) == 0:
+            raise EmptyDataFrameError(infile_path)
 
         if with_normalised:
             # Calculate any constants that do not change (e.g. from simulation options)
