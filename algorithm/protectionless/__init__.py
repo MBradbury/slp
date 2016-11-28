@@ -1,4 +1,4 @@
-__all__ = ["Analysis", "Arguments", "CommandLine", "Metrics"]
+__all__ = ("Analysis", "Arguments", "CommandLine", "Metrics")
 
 def _setup():
     import algorithm
