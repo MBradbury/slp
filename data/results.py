@@ -105,7 +105,7 @@ class Results(object):
     def _process(self, name, dvalues):
         try:
             value = dvalues[name]
-        except ValueError as ex:
+        except KeyError as ex:
             raise RuntimeError("Unable to read '{}' from the result file '{}'. Available keys: {}".format(name, self.result_file_name, dvalues.keys()))
 
         if name == 'captured':
