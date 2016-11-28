@@ -415,9 +415,10 @@ class Analyse(object):
                                                          axis=1, raw=True, reduce=True,
                                                          args=(num, den, constants))
 
-            print("Merging normalised columns with the loaded data...")
-            self.normalised_columns = pd.concat(columns_to_add, axis=1, ignore_index=True, copy=False)
-            self.normalised_columns.columns = list(columns_to_add.iterkeys())
+            if len(columns_to_add) > 0:
+                print("Merging normalised columns with the loaded data...")
+                self.normalised_columns = pd.concat(columns_to_add, axis=1, ignore_index=True, copy=False)
+                self.normalised_columns.columns = list(columns_to_add.iterkeys())
 
         print("Columns:", df.info(memory_usage='deep'))
 
