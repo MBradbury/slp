@@ -78,8 +78,12 @@ module SourceBroadcasterC
 
 	uses interface LocalTime<TMilli>;
 
+	// Messages that are queued to send
 	uses interface Queue<message_queue_info_t*> as MessageQueue;
     uses interface Pool<message_queue_info_t> as MessagePool;
+
+    // Cache of the recently seen sequence numbers
+    uses interface Cache<SequenceNumber> as RecentlySeen;
 }
 
 implementation
@@ -244,7 +248,7 @@ implementation
 		else
 		{
 			sequence_number_increment(&away_sequence_counter);
-			
+
 			sink_away_messages_to_send -= 1;
 
 			if (sink_away_messages_to_send > 0)
@@ -302,7 +306,10 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			record_received_message(msg);
+			if (record_received_message(msg) == SUCCESS)
+			{
+				call RecentlySeen.insert(rcvd->sequence_number);
+			}
 		}
 	}
 
@@ -318,7 +325,10 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			record_received_message(msg);
+			if (record_received_message(msg) == SUCCESS)
+			{
+				call RecentlySeen.insert(rcvd->sequence_number);
+			}
 		}
 	}
 

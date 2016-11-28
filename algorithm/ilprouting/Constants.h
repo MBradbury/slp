@@ -13,4 +13,6 @@ enum Channels
 
 #define SLP_MAX_1_HOP_NEIGHBOURHOOD 10
 
+#define SLP_RECENTLY_SEEN_SIZE 10
+
 #endif // SLP_CONSTANTS_H

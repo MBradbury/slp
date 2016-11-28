@@ -109,6 +109,10 @@ implementation
     App.MessagePool -> MessagePoolP;
     App.MessageQueue -> MessageQueueP;
 
+    components new CircularBufferC(SequenceNumber, SLP_RECENTLY_SEEN_SIZE) as RecentlySeen;
+
+    App.RecentlySeen -> RecentlySeen;
+
     // Time
     components LocalTimeMilliC;
     
