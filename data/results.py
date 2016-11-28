@@ -1,5 +1,5 @@
 # Author: Matthew Bradbury
-from __future__ import division
+from __future__ import print_function, division
 
 import ast
 import csv
@@ -140,14 +140,15 @@ class Results(object):
         if 'repeats' not in self.result_names:
             raise RuntimeError("The repeats result must be present in the results ({}).".format(self.result_names))
 
+        repeats_index = self.result_names.index('repeats')
+
         result = {}
         for (params, items1) in self.data.items():
             for (period, items2) in items1.items():
                 for (key, data) in items2.items():
-                    line = list(params)
-                    line.append(period)
-                    line.extend(key)
 
-                    result[tuple(map(str, line))] = data[self.result_names.index('repeats')]
+                    line = params + (period,) + key
+
+                    result[line] = data[repeats_index]
         
         return result
