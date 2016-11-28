@@ -77,18 +77,18 @@ class CLI(object):
 
         testbed_subparsers = subparser.add_subparsers(title="testbed mode", dest="testbed_mode")
 
-        subparser = testbed_subparsers.add_parser("build")
+        subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
 
         ###
 
-        subparser = subparsers.add_parser("run")
+        subparser = subparsers.add_parser("run", help="Run the parameters combination specified in Parameters.py on this local machine.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--no-skip-complete", action="store_true")
 
         ###
 
-        subparser = subparsers.add_parser("analyse")
+        subparser = subparsers.add_parser("analyse", help="Analyse the results of this algorithm.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
@@ -99,14 +99,15 @@ class CLI(object):
             if isinstance(safety_period_result_path, bool):
                 pass
             else:
-                subparser = subparsers.add_parser("safety-table")
+                subparser = subparsers.add_parser("safety-table", help="Output protectionless information along with the safety period to be used for those parameter combinations.")
                 subparser.add_argument("--show-stddev", action="store_true")
 
-        subparser = subparsers.add_parser("time-taken-table")
+        subparser = subparsers.add_parser("time-taken-table", help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("--show-stddev", action="store_true")
 
-        subparser = subparsers.add_parser("detect-missing")
-        subparser = subparsers.add_parser("graph-heatmap")
+        subparser = subparsers.add_parser("detect-missing", help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
+
+        subparser = subparsers.add_parser("graph-heatmap", help="Graph the sent and received heatmaps.")
 
         ###
 
