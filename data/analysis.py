@@ -127,6 +127,13 @@ def _parse_dict_node_to_value(indict, decompress=False):
     # Reduces memory usage, but increases cpu time by a factor of 5 to create this
     #result = pd.Series(result, dtype=np.float_)
 
+    # Direct parsing is also slow
+    #result = pd.read_csv(
+    #    StringIO.StringIO(indict[1:-1].replace(",", "\n")),
+    #    squeeze=True,
+    #    sep=":",
+    #    header=None, names=("nid", "value"))
+
     return result
 
 DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
@@ -413,7 +420,9 @@ class Analyse(object):
             self.normalised_columns.columns = list(columns_to_add.iterkeys())
 
         print("Columns:", df.info(memory_usage='deep'))
-        print("Normalised Columns:", self.normalised_columns.info(memory_usage='deep'))
+
+        if self.normalised_columns is not None:
+            print("Normalised Columns:", self.normalised_columns.info(memory_usage='deep'))
 
         self.columns = df
 
