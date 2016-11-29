@@ -13,6 +13,14 @@ class Analyzer(AnalyzerCommon):
     def results_header():
         d = AnalyzerCommon.common_results_header()
 
+        d['slot period']              = lambda x: x.opts['slot_period']
+        d['dissem period']            = lambda x: x.opts['dissem_period']
+        d['tdma num slots']           = lambda x: x.opts['tdma_num_slots']
+        d['slot assignment interval'] = lambda x: x.opts['slot_assignment_interval']
+        d['minimum setup periods']    = lambda x: x.opts['minimum_setup_periods']
+        d['pre beacon periods']       = lambda x: x.opts['pre_beacon_periods']
+        d['dissem timeout']           = lambda x: x.opts['dissem_timeout']
+
         AnalyzerCommon.common_results(d)
 
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
