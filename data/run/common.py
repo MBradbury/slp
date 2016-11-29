@@ -133,7 +133,7 @@ class RunSimulationsCommon(object):
         key = tuple(map(str, arguments))
 
         if key not in self._existing_results:
-            print("Unable to find the key {} in the existing results".format(key), file=sys.stderr)
+            print("Unable to find the key {} in the existing results. Will now run the simulations for these parameters.".format(key), file=sys.stderr)
             return False
 
         # Check that more than enough jobs were done
