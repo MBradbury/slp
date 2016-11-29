@@ -1,17 +1,24 @@
 #ifndef SLP_MESSAGES_NORMALMESSAGE_H
 #define SLP_MESSAGES_NORMALMESSAGE_H
 
-#include "Common.h"
 #include "SequenceNumber.h"
 
 typedef nx_struct NormalMessage
 {
-	NXSequenceNumber sequence_number;
-	nx_uint16_t source_id;
-	nx_uint16_t target;
-	nx_uint16_t random_walk_hop_remaining;
-	nx_uint16_t source_distance;
-	nx_uint16_t random_walk_direction;
+  NXSequenceNumber sequence_number;
+
+  // The id of the node that sent this message
+  nx_am_addr_t source_id;
+
+  // The number of hops that this message
+  // has travelled from the source. 
+  nx_uint16_t source_distance;
+
+  nx_int16_t landmark_distance_of_sender;
+
+  nx_uint8_t further_or_closer_set;
+
+  nx_uint8_t broadcast;
 
 } NormalMessage;
 
