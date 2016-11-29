@@ -4,7 +4,6 @@ import ast
 import base64
 from collections import OrderedDict, Sequence
 import copy
-import datetime
 import fnmatch
 from functools import partial
 import gc
@@ -15,7 +14,6 @@ from numbers import Number
 import os
 import re
 import sys
-import timeit
 import traceback
 import zlib
 
@@ -23,6 +21,8 @@ from more_itertools import unique_everseen
 import numpy as np
 import pandas as pd
 import psutil
+
+from data.progress import Progress
 
 import simulator.common
 import simulator.Configuration as Configuration
@@ -843,7 +843,8 @@ class AnalyzerCommon(object):
 
             print("|".join(self.values.keys()), file=out)
 
-            start_time = timeit.default_timer()
+            progress = Progress("analysing file")
+            progress.start(len(files))
 
             for num in range(total):
                 (path, line, error) = outqueue.get()
@@ -857,17 +858,7 @@ class AnalyzerCommon(object):
                     print("Error processing {} with {}".format(path, ex))
                     print(tb)
 
-                current_time_taken = timeit.default_timer() - start_time
-                time_per_job = current_time_taken / (num + 1)
-                estimated_total = time_per_job * total
-                estimated_remaining = estimated_total - current_time_taken
-
-                current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
-                estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
-
-                print("Finished analysing file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
-                    num + 1, total, ((num + 1) / total) * 100.0, current_time_taken_str, estimated_remaining_str))
-                print()
+                progress.print_progress(num)
 
             print('Finished writing {}'.format(summary_file))
 
@@ -906,13 +897,12 @@ class AnalyzerCommon(object):
         # These are sorted to give anyone watching the output a sense of progress.
         files = sorted(fnmatch.filter(os.listdir(self.results_directory), '*.txt'))
 
-        total = len(files)
-
         with open(summary_file_path, 'w') as out:
 
             print("|".join(self.values.keys()), file=out)
 
-            start_time = timeit.default_timer()
+            progress = Progress("analysing file")
+            progress.start(len(files))
 
             for num, infile in enumerate(files):
                 path = os.path.join(self.results_directory, infile)
@@ -927,16 +917,6 @@ class AnalyzerCommon(object):
                     print("Error processing {} with {}".format(path, ex))
                     print(traceback.format_exc())
 
-                current_time_taken = timeit.default_timer() - start_time
-                time_per_job = current_time_taken / (num + 1)
-                estimated_total = time_per_job * total
-                estimated_remaining = estimated_total - current_time_taken
-
-                current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
-                estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
-
-                print("Finished analysing file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
-                    num + 1, total, ((num + 1) / total) * 100.0, current_time_taken_str, estimated_remaining_str))
-                print()
+                progress.print_progress(num)
 
             print('Finished writing {}'.format(summary_file))
