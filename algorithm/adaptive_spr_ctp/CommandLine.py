@@ -16,9 +16,6 @@ from data.graph import summary, versus, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('approach',)
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
@@ -48,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=(
                 #'sent', 'time taken',
                 'normal latency', 'ssd', 'captured',
@@ -77,7 +74,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -109,7 +106,7 @@ class CLI(CommandLineCommon.CLI):
 
         our_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         adaptive_spr_results = results.Results(
@@ -162,7 +159,7 @@ class CLI(CommandLineCommon.CLI):
 
         our_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=graph_parameters.keys())
 
         adaptive_spr_results = results.Results(

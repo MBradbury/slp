@@ -24,10 +24,6 @@ class CLI(object):
 
     global_parameter_names = simulator.common.global_parameter_names
 
-    # Parameters unique to each simulation
-    # Classes that derive from this should assign this variable
-    local_parameter_names = None
-
     def __init__(self, package, safety_period_result_path=None, custom_run_simulation_class=None):
         super(CLI, self).__init__()
 
@@ -39,8 +35,8 @@ class CLI(object):
 
         # Make sure that local_parameter_names is a tuple
         # People have run into issues where they used ('<name>') instead of ('<name>',)
-        if not isinstance(self.local_parameter_names, tuple):
-            raise RuntimeError("CLI.local_parameter_names must be a tuple! If there is only one element, have your forgotten the comma?")
+        if not isinstance(self.algorithm_module.local_parameter_names, tuple):
+            raise RuntimeError("self.algorithm_module.local_parameter_names must be a tuple! If there is only one element, have your forgotten the comma?")
 
         try:
             self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
@@ -77,18 +73,18 @@ class CLI(object):
 
         testbed_subparsers = subparser.add_subparsers(title="testbed mode", dest="testbed_mode")
 
-        subparser = testbed_subparsers.add_parser("build")
+        subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
 
         ###
 
-        subparser = subparsers.add_parser("run")
+        subparser = subparsers.add_parser("run", help="Run the parameters combination specified in Parameters.py on this local machine.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--no-skip-complete", action="store_true")
 
         ###
 
-        subparser = subparsers.add_parser("analyse")
+        subparser = subparsers.add_parser("analyse", help="Analyse the results of this algorithm.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
@@ -99,14 +95,15 @@ class CLI(object):
             if isinstance(safety_period_result_path, bool):
                 pass
             else:
-                subparser = subparsers.add_parser("safety-table")
+                subparser = subparsers.add_parser("safety-table", help="Output protectionless information along with the safety period to be used for those parameter combinations.")
                 subparser.add_argument("--show-stddev", action="store_true")
 
-        subparser = subparsers.add_parser("time-taken-table")
+        subparser = subparsers.add_parser("time-taken-table", help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("--show-stddev", action="store_true")
 
-        subparser = subparsers.add_parser("detect-missing")
-        subparser = subparsers.add_parser("graph-heatmap")
+        subparser = subparsers.add_parser("detect-missing", help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
+
+        subparser = subparsers.add_parser("graph-heatmap", help="Graph the sent and received heatmaps.")
 
         ###
 
@@ -124,7 +121,7 @@ class CLI(object):
         self._subparsers = subparsers
 
     def parameter_names(self):
-        return self.global_parameter_names + self.local_parameter_names
+        return self.global_parameter_names + self.algorithm_module.local_parameter_names
 
     @staticmethod
     def _create_table(name, result_table, directory="results", param_filter=lambda x: True):
@@ -338,7 +335,7 @@ class CLI(object):
 
     def _run_time_taken_table(self, args):
         result = results.Results(self.algorithm_module.result_file_path,
-                                 parameters=self.local_parameter_names,
+                                 parameters=self.algorithm_module.local_parameter_names,
                                  results=('time taken', 'total wall time', 'wall time', 'event count',
                                           'repeats', 'captured', 'reached upper bound'))
 
@@ -353,7 +350,7 @@ class CLI(object):
         argument_product = {tuple(map(str, row)) for row in self._argument_product()}
 
         result = results.Results(self.algorithm_module.result_file_path,
-                                 parameters=self.local_parameter_names,
+                                 parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
         repeats = result.parameter_set()
@@ -390,7 +387,7 @@ class CLI(object):
 
         results_summary = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=heatmap_results)
 
         for name in heatmap_results:

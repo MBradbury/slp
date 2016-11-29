@@ -4,6 +4,7 @@ import os.path, itertools
 
 from simulator import CommandLineCommon
 
+import algorithm
 import algorithm.protectionless as protectionless
 
 # The import statement doesn't work, so we need to use __import__ instead
@@ -17,9 +18,6 @@ from data.graph import summary, versus, bar, min_max_versus, dual_min_max_versus
 from data.util import useful_log10, scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('approach',)
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
@@ -48,7 +46,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=(
                 #'sent', 'time taken',
                 'normal latency', 'ssd', 'captured',
@@ -77,7 +75,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -100,7 +98,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name)
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
             ).run()
 
     def _run_comparison_table(self, args):
@@ -109,12 +107,12 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_spr_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
-            parameters=adaptive.CommandLine.CLI.local_parameter_names,
+            parameters=adaptive.local_parameter_names,
             results=results_to_compare)
 
         result_table = comparison.ResultTable(adaptive_results, adaptive_spr_results)
@@ -160,23 +158,23 @@ class CLI(CommandLineCommon.CLI):
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
-            parameters=protectionless.CommandLine.CLI.local_parameter_names,
+            parameters=protectionless.local_parameter_names,
             results=list(set(graph_parameters.keys()) & set(protectionless.Analysis.Analyzer.results_header().keys()))
         )
 
         adaptive_spr_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=graph_parameters.keys())
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
-            parameters=adaptive.CommandLine.CLI.local_parameter_names,
+            parameters=adaptive.local_parameter_names,
             results=graph_parameters.keys())
 
         template_results = results.Results(
             template.result_file_path,
-            parameters=template.CommandLine.CLI.local_parameter_names,
+            parameters=template.local_parameter_names,
             results=graph_parameters.keys())
 
         def graph_min_max_versus(result_name, xaxis):
@@ -227,7 +225,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for result_name in graph_parameters.keys():
@@ -244,6 +242,8 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_dual_min_max_versus(self, args):
+        import algorithm.protectionless.Analysis as protectionless_Analysis
+
         graph_parameters = {
             ('captured', 'sent'): ('Capture Ratio (%)', 'Messages Sent', 'right top'),
         }
@@ -257,18 +257,18 @@ class CLI(CommandLineCommon.CLI):
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
-            parameters=protectionless.CommandLine.CLI.local_parameter_names,
-            results=list(set(results_to_load) & set(protectionless.Analysis.Analyzer.results_header().keys()))
+            parameters=protectionless.local_parameter_names,
+            results=list(set(results_to_load) & set(protectionless_Analysis.Analyzer.results_header().keys()))
         )
 
         adaptive_spr_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_load)
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
-            parameters=adaptive.CommandLine.CLI.local_parameter_names,
+            parameters=adaptive.local_parameter_names,
             results=results_to_load)
 
         def graph_dual_min_max_versus(result_name1, result_name2, xaxis):
@@ -321,7 +321,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for (result_name1, result_name2) in graph_parameters.keys():

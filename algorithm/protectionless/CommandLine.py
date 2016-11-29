@@ -4,6 +4,8 @@ import datetime
 import itertools
 import os
 
+import algorithm
+
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
@@ -14,9 +16,6 @@ from data.graph import summary, versus
 from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = tuple()
-
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
@@ -64,7 +63,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('sent', 'norm(norm(sent,time taken),num_nodes)', 'normal latency', 'ssd', 'attacker distance'))
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
@@ -87,7 +86,7 @@ class CLI(CommandLineCommon.CLI):
 
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources")
 
@@ -124,7 +123,7 @@ class CLI(CommandLineCommon.CLI):
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
-                    'results/{}-{}'.format(self.algorithm_module.name, name)
+                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
     def _run_ccpe_comparison_table(self, args):
@@ -138,7 +137,7 @@ class CLI(CommandLineCommon.CLI):
 
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('time taken', 'received ratio', 'safety period')
         )
 
@@ -153,13 +152,13 @@ class CLI(CommandLineCommon.CLI):
 
         old_results = OldResults(
             'results/CCPE/protectionless-results.csv',
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=result_names
         )
 
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=result_names
         )
 

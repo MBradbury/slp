@@ -82,7 +82,7 @@ class Runner:
 
         print("Copying files to {}...".format(target_directory))
 
-        files_to_copy = [
+        files_to_copy = (
             "app.c",
             "ident_flags.txt",
             "main.exe",
@@ -90,7 +90,7 @@ class Runner:
             "main.srec",
             "tos_image.xml",
             "wiring-check.xml",
-        ]
+        )
         for name in files_to_copy:
             try:
                 shutil.copy(os.path.join(module_path, "build", self.platform, name), target_directory)

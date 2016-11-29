@@ -62,7 +62,7 @@ def submitter(notify_emails=None):
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
-    #module_commands = "module load java/oracle/1.7.0_65 ; . sci/bin/activate"
+    #module_commands = ". sci/bin/activate"
 
     prepare_command = ""
 

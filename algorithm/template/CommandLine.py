@@ -21,9 +21,6 @@ from data.util import useful_log10
 import numpy
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)')
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
@@ -57,7 +54,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         template_results = results.Results(template.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
         result_table = fake_result.ResultTable(template_results)
@@ -79,7 +76,7 @@ class CLI(CommandLineCommon.CLI):
         versus_results = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         template_results = results.Results(template.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=versus_results)
 
         #for yaxis in versus_results:
@@ -96,11 +93,11 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(template.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         result_table = direct_comparison.ResultTable(old_results, template_results)
@@ -113,11 +110,11 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(template.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         result_table = direct_comparison.ResultTable(old_results, template_results)

@@ -9,9 +9,6 @@ import algorithm.protectionless as protectionless
 from data import results
 from data.table import safety_period, fake_result
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('pr fake',)
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
@@ -42,7 +39,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         selected_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs'))
 
         result_table = fake_result.ResultTable(selected_results)
