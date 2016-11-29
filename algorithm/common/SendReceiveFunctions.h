@@ -13,15 +13,8 @@
 #define MSG_GET_NAME(TYPE, NAME) PPCAT(PPCAT(TYPE, _get_), NAME)
 #define MSG_GET(TYPE, NAME, MSG) MSG_GET_NAME(TYPE, NAME)(MSG)
 
-// Don't flash mote leds when sending a message on the testbed
-// We aren't there to see it and it reduces the log output size
-#ifdef TESTBED
-#	define SEND_LED_ON
-#	define SEND_LED_OFF
-#else
-#	define SEND_LED_ON call Leds.led0On()
-#	define SEND_LED_OFF call Leds.led0Off()
-#endif
+#define SEND_LED_ON call Leds.led0On()
+#define SEND_LED_OFF call Leds.led0Off()
 
 #define SEND_MESSAGE(NAME) \
 error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) \

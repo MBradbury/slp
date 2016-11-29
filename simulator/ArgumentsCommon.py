@@ -146,6 +146,11 @@ class ArgumentsCommon(object):
         if self.args.verbose:
             result["SLP_VERBOSE_DEBUG"] = 1
 
+        # Only enable things like LEDS for the cases that we will use them
+        # We could enable them for the testbed, but we get better reliability and performance by not doing so
+        if self.args.mode == "GUI":
+            result["SLP_USES_GUI_OUPUT"] = 1
+
         # Source period could either be a float or a class derived from PeriodModel
         if hasattr(self.args, 'source_period'):
             if isinstance(self.args.source_period, float):

@@ -9,9 +9,6 @@ from data.table import safety_period, direct_comparison
 from data.graph import summary, versus
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = tuple()
-
     def __init__(self):
         super(CLI, self).__init__(__package__)
 

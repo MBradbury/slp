@@ -41,18 +41,18 @@ class Runner:
 
         print("Copying files from {} to {}...".format(module_path, target_directory))
 
-        files_to_copy = [
+        files_to_copy = (
             "Analysis.py",
             "Arguments.py",
             "CommandLine.py",
             "Metrics.py",
             "__init__.py",
-        ]
-        files_to_move = [
+        )
+        files_to_move = (
             "app.xml",
             "_TOSSIM.so",
             "TOSSIM.py",
-        ]
+        )
         for name in files_to_copy:
             shutil.copy(os.path.join(module_path, name), target_directory)
         for name in files_to_move:

@@ -7,9 +7,6 @@ from simulator import CommandLineCommon
 from data.table import safety_period
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval', 'minimum setup periods', 'pre beacon periods', "dissem timeout")
-
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
@@ -23,7 +20,8 @@ class CLI(CommandLineCommon.CLI):
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
-            parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods, parameters.dissem_timeout
+            parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
+            parameters.pre_beacon_periods, parameters.dissem_timeout
         ))
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
