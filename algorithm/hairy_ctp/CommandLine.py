@@ -13,9 +13,6 @@ from data.graph import summary, versus
 from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = tuple()
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
 
@@ -78,7 +75,7 @@ class CLI(CommandLineCommon.CLI):
 
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources")
 

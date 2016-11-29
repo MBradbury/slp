@@ -185,7 +185,7 @@ def _energy_impact(columns, cached_cols, constants):
     return (columns["Sent"] * cost_per_bcast_nah + columns["Received"] * cost_per_deliver_nah) / 1000000.0
 
 def _daily_allowance_used(columns, cached_cols, constants):
-    # Magic constants are from Great Duck Island paper, in nanoamp hours
+    # Magic constants are from Great Duck Island paper
     daily_allowance_mah = 6.9
 
     cpu_power_consumption_ma = 5
@@ -675,7 +675,7 @@ class AnalyzerCommon(object):
         self.normalised_values = normalised_values if normalised_values is not None else tuple()
 
     @staticmethod
-    def common_results_header():
+    def common_results_header(local_parameter_names):
         d = OrderedDict()
         
         # Include the number of simulations that were analysed
@@ -684,13 +684,12 @@ class AnalyzerCommon(object):
         # Give everyone access to the number of nodes in the simulation
         d['num nodes']          = lambda x: str(x.get_configuration().size())
 
-        # The options that all simulations must include
-        # We do not loop though opts to allow algorithms to rename parameters if they wish
-        for parameter in simulator.common.global_parameter_names:
+        # The options that all simulations must include and the local parameter names
+        for parameter in simulator.common.global_parameter_names + local_parameter_names:
 
-            parameter_underscore = parameter.replace(" ", "_")
+            param_underscore = parameter.replace(" ", "_")
 
-            d[parameter]        = lambda x, name=parameter_underscore: x.opts[name]
+            d[parameter]        = lambda x, name=param_underscore: x.opts[name]
 
         return d
 

@@ -7,9 +7,6 @@ from simulator import CommandLineCommon
 from data.table import safety_period
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval', 'minimum setup periods', 'pre beacon periods', "dissem timeout")
-
     def __init__(self):
         super(CLI, self).__init__(__package__)
 

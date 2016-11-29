@@ -9,9 +9,6 @@ import algorithm.protectionless as protectionless
 from data.table import safety_period
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('broadcast period',)
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 

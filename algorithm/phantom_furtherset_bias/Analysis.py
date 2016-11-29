@@ -1,5 +1,7 @@
 from data.analysis import AnalyzerCommon
 
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
@@ -10,16 +12,7 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def results_header():
-        d = AnalyzerCommon.common_results_header()
-
-        d['short walk length']  = lambda x: x.opts['short_walk_length']
-        d['long walk length']   = lambda x: x.opts['long_walk_length']
-        d['short count']        = lambda x: x.opts['short_count']
-        d['long count']         = lambda x: x.opts['long_count']
-        d['order']              = lambda x: x.opts['order']
-        d['wait before short']  = lambda x: x.opts['wait_before_short']
-               
-        d['landmark node']      = lambda x: x.opts['landmark_node']
+        d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
 
         AnalyzerCommon.common_results(d)
         

@@ -41,7 +41,7 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def results_header():
-        d = AnalyzerCommon.common_results_header()
+        d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
 
         AnalyzerCommon.common_results(d)
 

@@ -28,9 +28,6 @@ class RunSimulations(RunSimulationsCommon):
         return 1.3 * time_taken
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('order', 'short count', 'long count', 'wait before short')
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path, RunSimulations)
 
@@ -81,7 +78,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
         result_table = fake_result.ResultTable(phantom_results)
@@ -99,7 +96,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
         )
@@ -152,7 +149,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
         )
@@ -193,7 +190,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
         )
@@ -242,7 +239,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
         )
