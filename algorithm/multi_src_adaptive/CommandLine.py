@@ -13,9 +13,6 @@ from data.graph import summary, versus, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('approach',)
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
@@ -46,7 +43,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'attacker distance'))
 
         result_table = fake_result.ResultTable(adaptive_results)
@@ -70,7 +67,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources")
 

@@ -12,9 +12,6 @@ from data.table import safety_period, direct_comparison, fake_result
 from data.graph import summary, versus
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('buffer size',)
-
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
@@ -39,7 +36,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         noforward_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio'))
 
         result_table = fake_result.ResultTable(noforward_results)

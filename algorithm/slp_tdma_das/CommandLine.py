@@ -9,6 +9,8 @@ from data.table import safety_period
 
 class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
+        time_taken = super(RunSimulations, self)._get_safety_period(self, darguments)
+
         minimum_setup_period = darguments["minimum setup periods"]
         tdma_safety_period = darguments["tdma safety periods"]
 
@@ -17,11 +19,6 @@ class RunSimulations(RunSimulationsCommon):
         return (minimum_setup_period + tdma_safety_period) * period_length_sec
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval',
-                             'minimum setup periods', 'pre beacon periods', 'dissem timeout',
-                             'search distance', 'tdma safety periods')
-
     def __init__(self):
         super(CLI, self).__init__(__package__, True, RunSimulations)
 

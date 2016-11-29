@@ -1,6 +1,10 @@
 
 from data.analysis import AnalyzerCommon
 
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+
+from . import CommandLine
+
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
@@ -11,15 +15,7 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def results_header():
-        d = AnalyzerCommon.common_results_header()
-
-        d['slot period']              = lambda x: x.opts['slot_period']
-        d['dissem period']            = lambda x: x.opts['dissem_period']
-        d['tdma num slots']           = lambda x: x.opts['tdma_num_slots']
-        d['slot assignment interval'] = lambda x: x.opts['slot_assignment_interval']
-        d['minimum setup periods']    = lambda x: x.opts['minimum_setup_periods']
-        d['pre beacon periods']       = lambda x: x.opts['pre_beacon_periods']
-        d['dissem timeout']           = lambda x: x.opts['dissem_timeout']
+        d = AnalyzerCommon.common_results_header(CommandLine.CLI.local_parameter_names)
 
         AnalyzerCommon.common_results(d)
 
