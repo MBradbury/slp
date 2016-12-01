@@ -5,10 +5,10 @@ import os.path
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
 
-# The import statement doesn't work, so we need to use __import__ instead
-template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+template = algorithm.import_algorithm("template")
 
 from data import results
 from data.table import fake_result, comparison

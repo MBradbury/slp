@@ -1,13 +1,14 @@
 from __future__ import print_function
 
-import os.path, itertools
+import itertools
+import os.path
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
 
-# The import statement doesn't work, so we need to use __import__ instead
-adaptive_spr = __import__("algorithm.adaptive_spr", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+adaptive_spr = algorithm.import_algorithm("adaptive_spr")
 
 from data import results
 

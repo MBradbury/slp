@@ -5,10 +5,10 @@ import os
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
 
-# The import statement doesn't work, so we need to use __import__ instead
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+adaptive = algorithm.import_algorithm("adaptive")
 
 from data import results
 
