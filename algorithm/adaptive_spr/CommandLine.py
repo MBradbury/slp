@@ -5,11 +5,10 @@ import os.path, itertools
 from simulator import CommandLineCommon
 
 import algorithm
-import algorithm.protectionless as protectionless
 
-# The import statement doesn't work, so we need to use __import__ instead
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
-template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+adaptive = algorithm.import_algorithm("adaptive")
+template = algorithm.import_algorithm("template")
 
 from data import results
 
@@ -242,8 +241,6 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_dual_min_max_versus(self, args):
-        import algorithm.protectionless.Analysis as protectionless_Analysis
-
         graph_parameters = {
             ('captured', 'sent'): ('Capture Ratio (%)', 'Messages Sent', 'right top'),
         }
@@ -258,7 +255,7 @@ class CLI(CommandLineCommon.CLI):
         protectionless_results = results.Results(
             protectionless.result_file_path,
             parameters=protectionless.local_parameter_names,
-            results=list(set(results_to_load) & set(protectionless_Analysis.Analyzer.results_header().keys()))
+            results=list(set(results_to_load) & set(protectionless.Analysis.Analyzer.results_header().keys()))
         )
 
         adaptive_spr_results = results.Results(

@@ -32,6 +32,8 @@ from simulator import SourcePeriodModel
             raise RuntimeError("Detected outlier, the time taken is {}, upper bound is {}".format(
                 time_taken, upper_bound))"""
 
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
