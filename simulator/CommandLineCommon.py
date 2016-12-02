@@ -394,7 +394,7 @@ class CLI(object):
             heatmap.Grapher(self.algorithm_module.graphs_path, results_summary, name).create()
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_"))
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_")))
             ).run()
 
     def _run_per_parameter_grapher(self, args):
@@ -420,7 +420,7 @@ class CLI(object):
 
         summary.GraphSummary(
             os.path.join(self.algorithm_module.graphs_path, args.grapher),
-            '{}-{}'.format(self.algorithm_module.name, args.grapher)
+            os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, args.grapher))
         ).run()
 
 
