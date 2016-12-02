@@ -177,6 +177,10 @@ def dict_mean(dict_list):
 
     return result
 
+def dict_var(dict_list, mean):
+    """Dict var using incremental calculation"""
+    raise RuntimeError("Finding the variance of a dict is not implemented")
+
 def _energy_impact(columns, cached_cols, constants):
     # Magic constants are from Great Duck Island paper, in nanoamp hours
     cost_per_bcast_nah = 20.0
@@ -598,13 +602,13 @@ class Analyse(object):
         else:
             return values.mean()
 
-    def variance_of(self, header):
+    def variance_of(self, header, mean):
         values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
         first = values[0]
 
         if isinstance(first, dict):
-            raise NotImplementedError("Finding the variance of dicts is not implemented")
+            return dict_var(values, mean)
         elif isinstance(first, str):
             raise TypeError("Cannot find the variance of a string for {}".format(header))
         else:
@@ -647,7 +651,7 @@ class AnalysisResults(object):
                     #print(traceback.format_exc(), file=sys.stderr)
 
             try:
-                self.variance_of[heading] = analysis.variance_of(heading)
+                self.variance_of[heading] = analysis.variance_of(heading, self.average_of[heading])
             except NotImplementedError:
                 pass
             except (TypeError, RuntimeError) as ex:
