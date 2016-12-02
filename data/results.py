@@ -5,13 +5,27 @@ import ast
 import csv
 import math
 
-import numpy
+import numpy as np
 
 import simulator.common
 from simulator import Configuration, SourcePeriodModel
 
 def _name_to_attr(name):
     return name.replace(" ", "_") + "s"
+
+def extract_average_and_stddev(value):
+    (mean, var) = value.split(';', 1)
+
+    mean = ast.literal_eval(mean)
+    var = ast.literal_eval(var)
+
+    # The variance can be a dict, so we need to handle square rooting those values
+    if isinstance(var, dict):
+        stddev = {k: math.sqrt(v) for (k, v) in var.iteritems()}
+    else:
+        stddev = math.sqrt(var)
+
+    return np.array((mean, stddev))
 
 class Results(object):
     def __init__(self, result_file, parameters, results, source_period_normalisation=None, network_size_normalisation=None):
@@ -70,37 +84,31 @@ class Results(object):
     def _read_results(self, result_file, source_period_normalisation, network_size_normalisation):
         with open(result_file, 'r') as f:
 
-            seen_first = False
-            
             reader = csv.reader(f, delimiter='|')
             
-            headers = []
+            reader_iter = iter(reader)
+
+            # First line contains the headers
+            headers = next(reader_iter)
             
-            for values in reader:
-                # Check if we have seen the first line
-                # We do this because we want to ignore it
-                if seen_first:
+            # Remaining lines contain the results
+            for values in reader_iter:
+                dvalues = dict(zip(headers, values))
+                dvalues['source period'] = SourcePeriodModel.eval_input(dvalues['source period']).simple_str()
 
-                    dvalues = dict(zip(headers, values))
-                    dvalues['source period'] = SourcePeriodModel.eval_input(dvalues['source period']).simple_str()
+                source_period = self._normalise_source_period(source_period_normalisation, dvalues)
 
-                    source_period = self._normalise_source_period(source_period_normalisation, dvalues)
+                dvalues['network size'] = self._normalise_network_size(network_size_normalisation, dvalues)
 
-                    values[headers.index('network size')] = self._normalise_network_size(network_size_normalisation, dvalues)
+                table_key = tuple(dvalues[name] for name in self.global_parameter_names)
 
-                    table_key = tuple(dvalues[name] for name in self.global_parameter_names)
+                params = tuple([self._process(name, dvalues) for name in self.parameter_names])
+                results = tuple([self._process(name, dvalues) for name in self.result_names])
 
-                    params = tuple([self._process(name, dvalues) for name in self.parameter_names])
-                    results = tuple([self._process(name, dvalues) for name in self.result_names])
+                for param in self.global_parameter_names:
+                    getattr(self, _name_to_attr(param)).add(dvalues[param])
 
-                    for param in self.global_parameter_names:
-                        getattr(self, _name_to_attr(param)).add(dvalues[param])
-
-                    self.data.setdefault(table_key, {}).setdefault(source_period, {})[params] = results
-
-                else:
-                    seen_first = True
-                    headers = values
+                self.data.setdefault(table_key, {}).setdefault(source_period, {})[params] = results
 
     def _process(self, name, dvalues):
         try:
@@ -111,11 +119,11 @@ class Results(object):
         if name == 'captured':
             return float(value) * 100.0
         elif name in {'received ratio', 'paths reached end', 'source dropped'}:
-            return self.extract_average_and_stddev(value) * 100.0
+            return extract_average_and_stddev(value) * 100.0
         elif name == 'normal latency':
-            return self.extract_average_and_stddev(value) * 1000.0
-        elif '(' in value and value.endswith(')'):
-            return self.extract_average_and_stddev(value)
+            return extract_average_and_stddev(value) * 1000.0
+        elif ';' in value:
+            return extract_average_and_stddev(value)
         else:
             try:
                 return ast.literal_eval(value)
@@ -126,15 +134,6 @@ class Results(object):
                     return value
                 else:
                     raise
-
-    @staticmethod
-    def extract_average_and_stddev(value):
-        split = value.split('(', 1)
-
-        mean = float(split[0])
-        var = float(split[1].strip(')'))
-
-        return numpy.array((mean, math.sqrt(var)))
 
     def parameter_set(self):
         if 'repeats' not in self.result_names:

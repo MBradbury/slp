@@ -746,7 +746,7 @@ class AnalyzerCommon(object):
             if variance_corrector is not None:
                 var = variance_corrector(var)
 
-            return "{}({})".format(ave, var)
+            return "{};{}".format(ave, var)
         else:
             try:
                 ave = x.average_of[name]

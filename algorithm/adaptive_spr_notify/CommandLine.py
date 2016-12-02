@@ -97,7 +97,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name)
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
             ).run()
 
     def _run_comparison_table(self, args):
@@ -224,7 +224,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for result_name in graph_parameters.keys():
@@ -318,7 +318,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for (result_name1, result_name2) in graph_parameters.keys():
