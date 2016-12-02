@@ -38,7 +38,7 @@ class GrapherBase(object):
             patchlevel = match.group(2)
 
             if version < 5:
-                raise RuntimeError("The gnuplot binary ({}) is too old ({})".format(name, result))
+                raise RuntimeError("The gnuplot binary ({}) is too old ({}). You need to install gnuplot 5 by doing something like 'sudo apt-get install gnuplot5-nox'.".format(name, result))
 
         gnuplot = get_gnuplot_binary_name()
 
