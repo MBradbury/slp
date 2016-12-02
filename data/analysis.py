@@ -178,8 +178,18 @@ def dict_mean(dict_list):
     return result
 
 def dict_var(dict_list, mean):
-    """Dict var using incremental calculation"""
-    raise RuntimeError("Finding the variance of a dict is not implemented")
+    """Dict variance"""
+
+    lin = {k: list() for k in dict_list[0]}
+
+    for d in dict_list:
+        for (k, v) in d.iteritems():
+            lin[k].append(v)
+
+    for k in lin:
+        lin[k] = np.var(lin[k], dtype=np.float64)
+
+    return lin
 
 def _energy_impact(columns, cached_cols, constants):
     # Magic constants are from Great Duck Island paper, in nanoamp hours
@@ -654,7 +664,7 @@ class AnalysisResults(object):
                 self.variance_of[heading] = analysis.variance_of(heading, self.average_of[heading])
             except NotImplementedError:
                 pass
-            except (TypeError, RuntimeError) as ex:
+            except (TypeError, KeyError, RuntimeError) as ex:
                 if heading not in expected_fail:
                     print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
                     #print(traceback.format_exc(), file=sys.stderr)
