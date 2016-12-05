@@ -11,6 +11,7 @@ import numpy as np
 
 from data import results
 import simulator.common
+from simulator import Attacker
 
 class MissingSafetyPeriodError(RuntimeError):
     def __init__(self, key, source_period, safety_periods):
@@ -93,12 +94,27 @@ class RunSimulationsCommon(object):
 
             self.driver.add_job(options, filename, estimated_time)
 
+    def _prepare_argument_name(self, name, darguments):
+        value = darguments[name]
+
+        if name == 'attacker model':
+            # Attacker models are special. Their string format is likely to be different
+            # from what is specified in Parameters.py, as the string format prints out
+            # argument names.
+            return str(Attacker.eval_input(value))
+        else:
+            return str(value)
+
 
     def _get_safety_period(self, darguments):
         if self._safety_periods is None:
             return None
 
-        key = [str(darguments[name]) for name in simulator.common.global_parameter_names]
+        key = [
+            self._prepare_argument_name(name, darguments)
+            for name
+            in simulator.common.global_parameter_names
+        ]
 
         # Source period is always stored as the last item in the list
         source_period = key[-1]
