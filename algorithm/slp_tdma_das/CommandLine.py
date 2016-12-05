@@ -4,6 +4,8 @@ import itertools
 
 from simulator import CommandLineCommon
 
+protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
+
 from data.run.common import RunSimulationsCommon
 from data.table import safety_period
 
@@ -20,7 +22,7 @@ class RunSimulations(RunSimulationsCommon):
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, True, RunSimulations)
+        super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
