@@ -133,7 +133,7 @@ class Results(object):
                 if name in self.parameter_names:
                     return value
                 else:
-                    raise
+                    RuntimeError("Unable to parse the string '{}' for {}".format(value, name))
 
     def parameter_set(self):
         if 'repeats' not in self.result_names:
