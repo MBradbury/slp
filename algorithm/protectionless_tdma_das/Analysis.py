@@ -20,6 +20,7 @@ class Analyzer(AnalyzerCommon):
         AnalyzerCommon.common_results(d)
 
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
+        d['empty normal']       = lambda x: AnalyzerCommon._format_results(x, 'EmptyNormalSent')
         d['dissem']             = lambda x: AnalyzerCommon._format_results(x, 'DissemSent')
 
         d['first normal sent time'] = lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')

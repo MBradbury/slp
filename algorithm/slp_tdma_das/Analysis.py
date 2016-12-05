@@ -18,10 +18,15 @@ class Analyzer(AnalyzerCommon):
         AnalyzerCommon.common_results(d)
 
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
+        d['empty normal']       = lambda x: AnalyzerCommon._format_results(x, 'EmptyNormalSent')
         d['dissem']             = lambda x: AnalyzerCommon._format_results(x, 'DissemSent')
+        d['search']             = lambda x: AnalyzerCommon._format_results(x, 'SearchSent')
+        d['change']             = lambda x: AnalyzerCommon._format_results(x, 'ChangeSent')
+
+        d['first normal sent time'] = lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
 
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
-        
+
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
 
