@@ -97,9 +97,6 @@ class GrapherBase(object):
         pool.close()
         pool.join()
 
-        #outqueue.close()
-        #outqueue.join_thread()
-
         # Check if an exception was thrown and rethrow it
         if outqueue.qsize() > 0:
             #(msg, ex) = outqueue.get(False)
