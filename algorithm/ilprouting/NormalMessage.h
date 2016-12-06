@@ -3,6 +3,12 @@
 
 #include "SequenceNumber.h"
 
+typedef enum {
+	NORMAL_ROUTE_AVOID_SINK,
+	NORMAL_ROUTE_TO_SINK,
+
+} NormalMessageStages;
+
 typedef nx_struct NormalMessage {
   NXSequenceNumber sequence_number;
 
@@ -12,6 +18,8 @@ typedef nx_struct NormalMessage {
 
   // The id of the node that sent this message
   nx_am_addr_t source_id;
+
+  nx_uint8_t stage;
 
 } NormalMessage;
 
