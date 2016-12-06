@@ -31,7 +31,7 @@ void ni_update(ni_container_t* find, ni_container_t const* given)
 
 void ni_print(const char* name, size_t i, am_addr_t address, ni_container_t const* contents)
 {
-	simdbg_clear(name, "[%u] => addr=%u / sink-dist=%d src-dist=%d",
+	simdbg_clear(name, "[%zu] => addr=%u / sink-dist=%d src-dist=%d",
 		i, address, contents->sink_distance, contents->source_distance);
 }
 
@@ -60,6 +60,8 @@ module SourceBroadcasterC
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
+	uses interface Receive as NormalSnoop;
+	uses interface PacketAcknowledgements as NormalPacketAcknowledgements;
 
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
@@ -195,9 +197,54 @@ implementation
 		}
 	}
 
-	USE_MESSAGE(Normal);
+	USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(Normal);
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Beacon);
+
+	message_queue_info_t* find_message_queue_info(message_t* msg)
+	{
+		// TODO: Fix this to find the correct queue item wrt to the message
+		return (call MessageQueue.empty()) ? NULL : call MessageQueue.head();
+	}
+
+	void send_Normal_done(message_t* msg, error_t error)
+	{
+		if (error != SUCCESS)
+		{
+			// Failed to send the message
+		}
+		else
+		{
+			message_queue_info_t* info = find_message_queue_info(msg);
+
+			if (info != NULL)
+			{
+				if (info->ack_requested && !call NormalPacketAcknowledgements.wasAcked(msg))
+				{
+					// Message was sent, but no ack received
+					// Leaving the message in the queue will cause it to be sent again
+					// in the next consider slot.
+
+					info->rtx_attempts -= 1;
+
+					// Give up sending this message
+					if (info->rtx_attempts == 0)
+					{
+						// TODO: Fix this to remove the info found earlier.
+						info = call MessageQueue.dequeue();
+						call MessagePool.put(info);
+					}
+				}
+				else
+				{
+					// All good
+					// TODO: Fix this to remove the info found earlier.
+					info = call MessageQueue.dequeue();
+					call MessagePool.put(info);
+				}
+			}
+		}
+	}
 
 	event void SourcePeriodModel.fired()
 	{
@@ -208,11 +255,118 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
 		message.source_id = TOS_NODE_ID;
+		message.stage = NORMAL_ROUTE_AVOID_SINK;
 
-		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
+		if (send_Normal_message(&message, AM_BROADCAST_ADDR, NULL))
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
+	}
+
+	am_addr_t find_next_in_avoid_sink_route(void)
+	{
+		// Want to find a neighbour who has a greater source distance
+		// and the same or further sink distance
+
+		am_addr_t chosen_address;
+		uint16_t i;
+
+		ni_neighbours_t local_neighbours;
+		init_ni_neighbours(&local_neighbours);
+
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			// TODO: need to consider BOTTOM
+			if (
+					neighbour->contents.source_distance > source_distance &&
+					neighbour->contents.sink_distance >= sink_distance
+			   )
+			{
+				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+			}
+		}
+
+		if (local_neighbours.size == 0)
+		{
+			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
+				neighbours.size);*/
+
+			chosen_address = AM_BROADCAST_ADDR;
+		}
+		else
+		{
+			// Choose a neighbour with equal probabilities.
+			const uint16_t rnd = call Random.rand16();
+			const uint16_t neighbour_index = rnd % local_neighbours.size;
+			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+
+			chosen_address = neighbour->address;
+
+#ifdef SLP_VERBOSE_DEBUG
+			print_ni_neighbours("stdout", &local_neighbours);
+#endif
+
+			/*simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d) (their-dsrc=%d my-dsrc=%d)\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				neighbour->contents.sink_distance, sink_distance,
+				neighbour->contents.source_distance, source_distance);*/
+		}
+
+		return chosen_address;
+	}
+
+	am_addr_t find_next_in_to_sink_route(void)
+	{
+		// Want to find a neighbour who has a smaller sink distance
+
+		am_addr_t chosen_address;
+		uint16_t i;
+
+		ni_neighbours_t local_neighbours;
+		init_ni_neighbours(&local_neighbours);
+
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			// TODO: need to consider BOTTOM
+			if (
+					neighbour->contents.sink_distance < sink_distance
+			   )
+			{
+				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+			}
+		}
+
+		if (local_neighbours.size == 0)
+		{
+			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
+				neighbours.size);*/
+
+			chosen_address = AM_BROADCAST_ADDR;
+		}
+		else
+		{
+			// Choose a neighbour with equal probabilities.
+			const uint16_t rnd = call Random.rand16();
+			const uint16_t neighbour_index = rnd % local_neighbours.size;
+			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+
+			chosen_address = neighbour->address;
+
+#ifdef SLP_VERBOSE_DEBUG
+			print_ni_neighbours("stdout", &local_neighbours);
+#endif
+
+			/*simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d) (their-dsrc=%d my-dsrc=%d)\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				neighbour->contents.sink_distance, sink_distance,
+				neighbour->contents.source_distance, source_distance);*/
+		}
+
+		return chosen_address;
 	}
 
 	event void ConsiderTimer.fired()
@@ -221,16 +375,31 @@ implementation
 
 		if (!call MessageQueue.empty())
 		{
+			am_addr_t next = AM_BROADCAST_ADDR;
+
 			message_queue_info_t* info = call MessageQueue.head();
 
 			NormalMessage message = *(NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
 			message.source_distance += 1;
 
-			if (send_Normal_message(&message, AM_BROADCAST_ADDR))
+			if (message.stage == NORMAL_ROUTE_AVOID_SINK)
 			{
-				info = call MessageQueue.dequeue();
-				call MessagePool.put(info);
+				next = find_next_in_avoid_sink_route();
+
+				// When we are done with avoiding the sink, we need to head to it
+				if (next == AM_BROADCAST_ADDR)
+				{
+					message.stage = NORMAL_ROUTE_TO_SINK;
+				}
 			}
+			else
+			{
+				next = find_next_in_to_sink_route();
+			}
+
+			info->ack_requested = next != AM_BROADCAST_ADDR && info->rtx_attempts > 0;
+
+			send_Normal_message(&message, next, &info->ack_requested);
 		}
 	}
 
@@ -291,6 +460,9 @@ implementation
 		memcpy(&item->msg, msg, sizeof(*item));
 		item->time_added = call LocalTime.get();
 
+		item->ack_requested = FALSE;
+		item->rtx_attempts = 4;
+
 		return SUCCESS;
 	}
 
@@ -337,6 +509,39 @@ implementation
 		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
 
 		case SourceNode: break;
+	RECEIVE_MESSAGE_END(Normal)
+
+
+	// If the sink snoops a normal message, we may as well just deliver it
+	void Sink_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
+
+		// TODO: Enable this when the sink can snoop and then correctly
+		// respond to a message being received.
+		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		{
+			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV_NORMAL(rcvd);
+
+			simdbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
+				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
+		}*/
+	}
+
+	void x_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
+
+		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
+		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
+		case SourceNode: x_snoop_Normal(rcvd, source_addr); break;
+		case SinkNode: Sink_snoop_Normal(rcvd, source_addr); break;
+		case NormalNode: x_snoop_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 

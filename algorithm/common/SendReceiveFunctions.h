@@ -66,6 +66,61 @@ inline bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target)
 	return send_##NAME##_message_ex(tosend, target) == SUCCESS; \
 }
 
+#define SEND_MESSAGE_ACK_REQUEST(NAME) \
+error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, bool* ack_request) \
+{ \
+	if (!busy || tosend == NULL) \
+	{ \
+		error_t status; \
+ \
+		void* const void_message = call NAME##Send.getPayload(&packet, sizeof(NAME##Message)); \
+		NAME##Message* const message = (NAME##Message*)void_message; \
+		if (message == NULL) \
+		{ \
+			ERROR_OCCURRED(ERROR_PACKET_HAS_NO_PAYLOAD, "Packet for " #NAME "Message has no payload.\n"); \
+			return EINVAL; \
+		} \
+ \
+		if (tosend != NULL) \
+		{ \
+			*message = *tosend; \
+		} \
+		else \
+		{ \
+			/* Need tosend set, so that the metrics recording works. */ \
+			tosend = message; \
+		} \
+ \
+ 		if (ack_request != NULL && *ack_request) \
+ 		{ \
+			*ack_request = call NAME##PacketAcknowledgements.requestAck(&packet) == SUCCESS; \
+		} \
+ \
+		status = call NAME##Send.send(target, &packet, sizeof(NAME##Message)); \
+		if (status == SUCCESS) \
+		{ \
+			SEND_LED_ON; \
+			busy = TRUE; \
+		} \
+ \
+		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend)); \
+ \
+		return status; \
+	} \
+	else \
+	{ \
+		simdbgverbose("stdout", "Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n"); \
+ \
+		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
+ \
+		return EBUSY; \
+	} \
+} \
+inline bool send_##NAME##_message(const NAME##Message* tosend, am_addr_t target, bool* ack_request) \
+{ \
+	return send_##NAME##_message_ex(tosend, target, ack_request) == SUCCESS; \
+}
+
 #define SEND_MESSAGE_NO_TARGET(NAME) \
 error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 { \
@@ -116,6 +171,19 @@ inline bool send_##NAME##_message(const NAME##Message* tosend) \
 	return send_##NAME##_message_ex(tosend) == SUCCESS; \
 }
 
+#define SEND_DONE_NO_EXTRA_TO_SEND(NAME, CALLBACK) \
+event void NAME##Send.sendDone(message_t* msg, error_t error) \
+{ \
+	simdbgverbose("stdout", #NAME " Send sendDone with status %i.\n", error); \
+ \
+	if (&packet == msg) \
+	{ \
+		SEND_LED_OFF; \
+		busy = FALSE; \
+	} \
+ \
+	(CALLBACK)(msg, error); \
+}
 
 #define SEND_DONE(NAME, CALLBACK) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
@@ -252,6 +320,15 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	USE_MESSAGE_WITH_CALLBACK(NAME); \
 	inline void send_##NAME##_done(message_t* msg, error_t error) {}
 
+#define USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(NAME) \
+	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
+	SEND_MESSAGE_ACK_REQUEST(NAME); \
+	void send_##NAME##_done(message_t* msg, error_t error); \
+	SEND_DONE_NO_EXTRA_TO_SEND(NAME, send_##NAME##_done)
+
+#define USE_MESSAGE_ACK_REQUEST(NAME) \
+	USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(NAME); \
+	inline void send_##NAME##_done(message_t* msg, error_t error) {}
 
 #define USE_MESSAGE_NO_TARGET_WITH_CALLBACK(NAME) \
 	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
