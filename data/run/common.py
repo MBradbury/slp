@@ -45,12 +45,12 @@ class RunSimulationsCommon(object):
         self.driver.total_job_size = len(argument_product)
 
         for arguments in argument_product:
-            if self._already_processed(repeats, arguments):
-                print("Already gathered results for {}, so skipping it.".format(arguments), file=sys.stderr)
+            darguments = OrderedDict(zip(argument_names, arguments))
+
+            if self._already_processed(repeats, darguments):
+                print("Already gathered results for {} with {} repeats, so skipping it.".format(darguments, repeats), file=sys.stderr)
                 self.driver.total_job_size -= 1
                 continue
-
-            darguments = dict(zip(argument_names, arguments))
 
             # Not all drivers will supply job_repeats
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
@@ -142,11 +142,11 @@ class RunSimulationsCommon(object):
             else:
                 raise
 
-    def _already_processed(self, repeats, arguments):
+    def _already_processed(self, repeats, darguments):
         if not self._skip_completed_simulations:
             return False
 
-        key = tuple(map(str, arguments))
+        key = tuple(self._prepare_argument_name(name, darguments) for name in darguments)
 
         if key not in self._existing_results:
             print("Unable to find the key {} in the existing results. Will now run the simulations for these parameters.".format(key), file=sys.stderr)
