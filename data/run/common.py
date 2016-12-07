@@ -159,7 +159,6 @@ class RunSimulationsCommon(object):
 
     @staticmethod
     def _sanitize_job_name(name):
-
         name = str(name)
 
         # These characters cause issues in file names.
