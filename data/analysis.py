@@ -345,10 +345,22 @@ class Analyse(object):
             verbose=True
         )
 
+        initial_length = len(df.index)
+
+        if initial_length == 0:
+            raise EmptyDataFrameError(infile_path)
+
         # Removes rows with infs in certain columns
         # If NormalLatency is inf then no Normal messages were ever received by a sink
         df = df.replace([np.inf, -np.inf], np.nan)
         df.dropna(subset=["NormalLatency"], how="all", inplace=True)
+
+        current_length = len(df.index)
+
+        print("Removed {} out of {} rows as no Normal message was ever received at the sink".format(initial_length - current_length, initial_length))
+
+        if current_length == 0:
+            raise RuntimeError("When removing results where the sink never received a Normal message, all results were removed.")
 
         if not keep_if_hit_upper_time_bound:
             print("Removing results that have hit the upper time bound...")
@@ -356,11 +368,11 @@ class Analyse(object):
             indexes_to_remove = df[df["ReachedSimUpperBound"]].index
             df.drop(indexes_to_remove, inplace=True)
 
-            print("Removed {} rows".format(len(indexes_to_remove)))
+            print("Removed {} out of {} rows that reached the simulation upper time bound".format(len(indexes_to_remove), current_length))
 
         # Remove any duplicated seeds. Their result will be the same so shouldn't be counted.
         duplicated_seeds_filter = df.duplicated(subset="Seed", keep=False)
-        if not duplicated_seeds_filter.any():
+        if duplicated_seeds_filter.any():
             print("Removing the following duplicated seeds:")
             print(df["Seed"][duplicated_seeds_filter])
 
@@ -374,7 +386,14 @@ class Analyse(object):
                 if not differing.empty:
                     raise RuntimeError("For seed {}, the following columns differ: {}".format(name, differing))
 
+            initial_length = len(df.index)
+
             df.drop_duplicates(subset="Seed", keep="first", inplace=True)
+
+            current_length = len(df.index)
+
+            print("Removed {} out of {} rows as the seeds were duplicated".format(initial_length - current_length, initial_length))
+
         del duplicated_seeds_filter
 
         if len(df.index) == 0:
