@@ -107,6 +107,7 @@ implementation
 
 	int16_t sink_distance = BOTTOM;
 	int16_t source_distance = BOTTOM;
+	int16_t sink_source_distance = BOTTOM;
 
 	// Sink variables
 	int sink_away_messages_to_send;
@@ -254,6 +255,7 @@ implementation
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
+		message.sink_source_distance = sink_source_distance;
 		message.source_id = TOS_NODE_ID;
 		message.stage = NORMAL_ROUTE_AVOID_SINK;
 
@@ -382,22 +384,31 @@ implementation
 			NormalMessage message = *(NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
 			message.source_distance += 1;
 
-			if (message.stage == NORMAL_ROUTE_AVOID_SINK)
+			switch (message.stage)
 			{
-				next = find_next_in_avoid_sink_route();
-
-				// When we are done with avoiding the sink, we need to head to it
-				if (next == AM_BROADCAST_ADDR)
+				case NORMAL_ROUTE_AVOID_SINK:
 				{
-					message.stage = NORMAL_ROUTE_TO_SINK;
-				}
-			}
-			else
-			{
-				next = find_next_in_to_sink_route();
+					next = find_next_in_avoid_sink_route();
+
+					// When we are done with avoiding the sink, we need to head to it
+					/*if (next == AM_BROADCAST_ADDR && (sink_source_distance == BOTTOM || message.source_distance > sink_source_distance))
+					{
+						message.stage = NORMAL_ROUTE_TO_SINK;
+					}*/
+				} break;
+
+				case NORMAL_ROUTE_TO_SINK:
+				{
+					next = find_next_in_to_sink_route();
+				} break;
+
+				default:
+				{
+					next = AM_BROADCAST_ADDR;
+				} break;
 			}
 
-			info->ack_requested = next != AM_BROADCAST_ADDR && info->rtx_attempts > 0;
+			info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
 			send_Normal_message(&message, next, &info->ack_requested);
 		}
@@ -471,6 +482,7 @@ implementation
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
 		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -490,6 +502,7 @@ implementation
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
 		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -517,6 +530,9 @@ implementation
 	{
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
+		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+
 		// TODO: Enable this when the sink can snoop and then correctly
 		// respond to a message being received.
 		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
@@ -533,6 +549,9 @@ implementation
 	void x_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
+
+		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
@@ -551,6 +570,11 @@ implementation
 		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, BOTTOM);
 
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+
+		if (call NodeType.get() == SourceNode)
+		{
+			sink_source_distance = minbot(sink_source_distance, sink_distance);
+		}
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{

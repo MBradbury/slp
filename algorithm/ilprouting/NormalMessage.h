@@ -15,6 +15,7 @@ typedef nx_struct NormalMessage {
   // The number of hops that this message
   // has travelled from the source. 
   nx_uint16_t source_distance;
+  nx_int16_t sink_source_distance;
 
   // The id of the node that sent this message
   nx_am_addr_t source_id;
