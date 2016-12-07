@@ -63,13 +63,16 @@ implementation
     // Networking
     components
         new AMSenderC(NORMAL_CHANNEL) as NormalSender,
-        new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver;
+        new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver,
+        new AMSnooperC(NORMAL_CHANNEL) as NormalSnooper;
     
     App.Packet -> NormalSender; // TODO: is this right?
     App.AMPacket -> NormalSender; // TODO: is this right?
-    
+
     App.NormalSend -> NormalSender;
     App.NormalReceive -> NormalReceiver;
+    App.NormalSnoop -> NormalSnooper;
+    App.NormalPacketAcknowledgements -> NormalSender.Acks;
 
     components
         new AMSenderC(AWAY_CHANNEL) as AwaySender,
