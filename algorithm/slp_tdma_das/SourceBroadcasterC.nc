@@ -202,7 +202,7 @@ implementation
         NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot());
     }
 
-    void set_dissem_timer()
+    void set_dissem_timer(void)
     {
         dissem_sending = get_dissem_timeout();
     }
@@ -293,7 +293,7 @@ implementation
 
     //Main Logic{{{
 
-	USE_MESSAGE(Normal);
+	USE_MESSAGE_WITH_CALLBACK(Normal);
     USE_MESSAGE(Dissem);
     USE_MESSAGE(Search);
     USE_MESSAGE(Change);
@@ -308,19 +308,15 @@ implementation
             call TDMA.set_slot(get_tdma_num_slots());
 
             start = FALSE;
-
-            //NeighbourList_add(&n_info, TOS_NODE_ID, 0, call TDMA.get_slot()); //Already done by set_hop and set_slot
         }
         else
         {
             set_hop(BOT);
             call TDMA.set_slot(BOT);
-            //NeighbourList_add(&n_info, TOS_NODE_ID, BOT, BOT); //Done by set_hop and set_slot
         }
 
         IDList_add(&neighbours, TOS_NODE_ID);
         set_dissem_timer();
-        //dissem_sending = get_dissem_timeout(); //Done by set_dissem
     }
 
     void process_dissem(void)
@@ -350,8 +346,6 @@ implementation
             simdbgverbose("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbgverbose_clear("stdout", "\n");
 
             simdbgverbose("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, call TDMA.get_slot(), hop);
-
-            //NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot()); //Done by set_hop and set_slot
 
             {
                 OnehopList onehop;
@@ -384,7 +378,6 @@ implementation
                 // Do not check for slot collisions with ourself
                 if(n_info_i->slot == call TDMA.get_slot() && n_info_i->id != TOS_NODE_ID)
                 {
-
                     simdbgverbose("stdout", "Found colliding slot from node %u, will evaluate if (%u || (%u && %u))\n",
                         n_info_i->id, (hop > n_info_i->hop), (hop == n_info_i->hop), (TOS_NODE_ID > n_info_i->id));
 
@@ -394,7 +387,6 @@ implementation
                     if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
                     {
                         call TDMA.set_slot(call TDMA.get_slot() - 1);
-                        //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
 
                         simdbgverbose("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
                             call TDMA.get_slot(), n_info_i->id, n_info_i->slot);
@@ -547,10 +539,7 @@ implementation
 
 		if (message != NULL)
 		{
-            error_t send_result;
-            /*message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);*/
-            message->sequence_number = period_counter;
-            send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
+            error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
 			if (send_result == SUCCESS)
 			{
 				call MessagePool.put(message);
@@ -559,11 +548,6 @@ implementation
 			{
 				simdbgerrorverbose("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
 			}
-
-            if (call TDMA.is_slot_active() && !(call MessageQueue.empty()))
-            {
-                post send_normal();
-            }
 		}
         else
         {
@@ -571,6 +555,16 @@ implementation
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
         }
 	}
+
+    void send_Normal_done(message_t* msg, error_t error)
+    {
+        // If our slot is currently active and there are more messages to be sent
+        // then send them.
+        if (call TDMA.is_slot_active() && !(call MessageQueue.empty()))
+        {
+            post send_normal();
+        }
+    }
 
     void MessageQueue_clear()
     {
@@ -644,7 +638,7 @@ implementation
 
                 if (call MessageQueue.enqueue(message) != SUCCESS)
                 {
-                    simdbgerrorverbose("stdout", "Failed to enqueue, should not happen!\n");
+                    ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
                 }
                 else
                 {
@@ -679,7 +673,7 @@ implementation
 
 				if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
 				{
-					simdbgerrorverbose("stdout", "Failed to enqueue, should not happen!\n");
+					ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
 				}
 			}
 			else
