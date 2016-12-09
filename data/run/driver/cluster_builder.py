@@ -69,7 +69,7 @@ class Runner:
 
         print("All Done!")
 
-        self._progress.print_progress(self._jobs_executed + 1)
+        self._progress.print_progress(self._jobs_executed)
 
         self._jobs_executed += 1
 
