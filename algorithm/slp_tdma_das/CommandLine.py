@@ -11,7 +11,7 @@ protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
 
 from data import results
 from data.run.common import RunSimulationsCommon
-from data.graph import summary, versus
+from data.graph import summary, versus, baseline_versus
 from data.table import safety_period
 from data.util import scalar_extractor
 
@@ -36,6 +36,7 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
 
         subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("graph-versus-baseline")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -105,32 +106,54 @@ class CLI(CommandLineCommon.CLI):
                     os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
-    def _run_min_max_versus(self, args):
+    def _run_graph_versus_baseline(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'normal': ('Normal Messages Sent', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
-        }
-
-        custom_yaxis_range_max = {
+            'attacker distance': ('Meters', 'left top'),
         }
 
         protectionless_tdma_das_results = results.Results(
             protectionless_tdma_das.result_file_path,
             parameters=protectionless_tdma_das.local_parameter_names,
-            results=list(set(graph_parameters.keys()) & set(protectionless_tdma_das_results.Analysis.Analyzer.results_header().keys())))
+            results=list(set(graph_parameters.keys()) & set(protectionless_tdma_das.Analysis.Analyzer.results_header().keys())))
 
         slp_tdma_das_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=graph_parameters.keys())
+            results=tuple(graph_parameters.keys()))
+
+        for (vary, vary_prefix) in [("source period", " seconds")]:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = '{}-v-baseline-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
+
+                g = baseline_versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis='network size', yaxis=yaxis, vary=vary,
+                    yextractor=scalar_extractor)
+
+                g.xaxis_label = 'Network Size'
+                g.yaxis_label = yaxis_label
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_prefix
+                g.key_position = key_position
+
+                g.create(slp_tdma_das_results, baseline_results=protectionless_tdma_das_results)
+
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
+                ).run()
+
 
     def run(self, args):
         args = super(CLI, self).run(args)
 
         if 'graph' == args.mode:
             self._run_graph(args)
+
+        if 'graph-versus-baseline' == args.mode:
+            self._run_graph_versus_baseline(args)
