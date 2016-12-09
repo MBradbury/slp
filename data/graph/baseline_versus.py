@@ -45,11 +45,14 @@ class Grapher(GrapherBase):
                     dat.setdefault((key_names, values), {})[(xvalue, vvalue)] = self._value_extractor(yvalue)
 
                     if baseline_results is not None:
-                        algo_params = zip(simulation_results.parameter_names, params)
-                        baseline_params = [(name, value) for (name, value) in algo_params if name in baseline_results.parameter_names]
-                        _, baseline_params_values = zip(*baseline_params)
+                        baseline_params = tuple(
+                            value
+                            for (name, value)
+                            in zip(simulation_results.parameter_names, params)
+                            if name in baseline_results.parameter_names
+                        )
 
-                        baseline_res = baseline_results.data[data_key][src_period][baseline_params_values]
+                        baseline_res = baseline_results.data[data_key][src_period][baseline_params]
 
                         baseline_yvalue = baseline_res[ baseline_results.result_names.index(self.yaxis) ]
 
