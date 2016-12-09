@@ -124,11 +124,11 @@ class CLI(object):
         return self.global_parameter_names + self.algorithm_module.local_parameter_names
 
     @staticmethod
-    def _create_table(name, result_table, directory="results", param_filter=lambda x: True):
+    def _create_table(name, result_table, directory="results", param_filter=lambda x: True, orientation='portrait'):
         filename = os.path.join(directory, name + ".tex")
 
         with open(filename, 'w') as result_file:
-            latex.print_header(result_file)
+            latex.print_header(result_file, orientation=orientation)
             result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
@@ -343,7 +343,7 @@ class CLI(object):
 
         result_table = fake_result.ResultTable(result, fmt)
 
-        self._create_table(self.algorithm_module.name + "-time-taken", result_table)
+        self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape")
 
     def _run_detect_missing(self, args):
         

@@ -6,7 +6,7 @@ import itertools
 
 from simulator.Configuration import configuration_rank
 
-from data import results
+from data import latex, results
 
 class TableGenerator:
 
@@ -58,7 +58,7 @@ class TableGenerator:
             print('\\begin{table}[H]', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
             print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model and \\textbf{{{}}} distance and \\textbf{{{}}} node id order and \\textbf{{{}}} latest start time}}'.format(
-                config, attacker_model, noise_model, communication_model, distance, node_id_order, latest_start_time), file=stream)
+                config, latex.escape(attacker_model), noise_model, communication_model, distance, node_id_order, latest_start_time), file=stream)
             print('\\centering', file=stream)
             print('\\begin{tabular}{ | c | c || c | c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
