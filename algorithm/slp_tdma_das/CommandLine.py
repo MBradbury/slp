@@ -19,16 +19,12 @@ class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
         time_taken = super(RunSimulations, self)._get_safety_period(darguments)
 
-        # minimum_setup_period = darguments["minimum setup periods"]
-        # tdma_safety_period = darguments["tdma safety periods"]
-        # dissem_period = darguments["dissem period"]
-        # slot_period = darguments["slot period"]
-        # tdma_num_slots = darguments["tdma num slots"]
+        dissem_period = darguments["dissem period"]
+        slot_period = darguments["slot period"]
+        tdma_num_slots = darguments["tdma num slots"]
 
-        # period_length_sec = dissem_period + (slot_period * tdma_num_slots)
-        # tdma_safety_period = int(time_taken / period_length_sec) - minimum_setup_periods + 1
+        safety = time_taken / (dissem_period + (slot_period * tdma_num_slots))
 
-        # return (minimum_setup_period + tdma_safety_period) * period_length_sec
         return time_taken
 
 class CLI(CommandLineCommon.CLI):
