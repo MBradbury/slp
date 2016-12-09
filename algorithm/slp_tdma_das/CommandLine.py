@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import itertools
+import os
 
 from simulator import CommandLineCommon
 
@@ -8,8 +9,11 @@ import algorithm
 
 protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
 
+from data import results
 from data.run.common import RunSimulationsCommon
+from data.graph import summary, versus
 from data.table import safety_period
+from data.util import scalar_extractor
 
 class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
@@ -30,6 +34,8 @@ class RunSimulations(RunSimulationsCommon):
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
+
+        subparser = self._subparsers.add_parser("graph")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -62,6 +68,69 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
+    def _run_graph(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'attacker distance': ('Meters', 'left top'),
+        }
+
+        slp_tdma_das_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=tuple(graph_parameters.keys()))
+
+        for (vary, vary_prefix) in [("source period", " seconds")]:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
+
+                g = versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis='network size', yaxis=yaxis, vary=vary,
+                    yextractor=scalar_extractor)
+
+                g.xaxis_label = 'Network Size'
+                g.yaxis_label = yaxis_label
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_prefix
+                g.key_position = key_position
+
+                g.create(slp_tdma_das_results)
+
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
+                ).run()
+
+    def _run_min_max_versus(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'normal': ('Normal Messages Sent', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
+        }
+
+        custom_yaxis_range_max = {
+        }
+
+        protectionless_tdma_das_results = results.Results(
+            protectionless_tdma_das.result_file_path,
+            parameters=protectionless_tdma_das.local_parameter_names,
+            results=list(set(graph_parameters.keys()) & set(protectionless_tdma_das_results.Analysis.Analyzer.results_header().keys())))
+
+        slp_tdma_das_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=graph_parameters.keys())
 
     def run(self, args):
         args = super(CLI, self).run(args)
+
+        if 'graph' == args.mode:
+            self._run_graph(args)
