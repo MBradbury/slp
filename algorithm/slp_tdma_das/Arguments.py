@@ -1,4 +1,6 @@
 
+from __future__ import division
+
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
@@ -33,7 +35,7 @@ class Arguments(ArgumentsCommon):
         result["TDMA_PRE_BEACON_PERIODS"] = self.args.pre_beacon_periods
         result["TDMA_DISSEM_TIMEOUT"] = self.args.dissem_timeout
         # result["SAFETY_PERIOD"] = self.args.tdma_safety_periods
-        result["SAFETY_PERIOD"] = self.args.safety_period // (self.args.dissem_period + (self.args.slot_period * self.args.tdma_num_slots))
+        result["SAFETY_PERIOD"] = self.args.safety_period
         result["SEARCH_DIST"] = self.args.search_distance
 
         return result
