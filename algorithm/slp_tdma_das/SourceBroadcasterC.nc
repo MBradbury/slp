@@ -208,7 +208,7 @@ implementation
     }
     //###################}}}
 
-    //Startup Events{{{
+    //Startup Events
 	event void Boot.booted()
 	{
         neighbours = IDList_new();
