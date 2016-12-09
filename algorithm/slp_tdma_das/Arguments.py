@@ -2,6 +2,7 @@
 from __future__ import division
 
 from simulator.ArgumentsCommon import ArgumentsCommon
+import simulator.Configuration
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
@@ -26,6 +27,15 @@ class Arguments(ArgumentsCommon):
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
+
+        configuration = simulator.Configuration.create(self.args.configuration, self.args)
+
+        if len(configuration.source_ids) != 1:
+            raise RuntimeError("Configuration must have one and only one source")
+
+        (source_id,) = configuration.source_ids
+
+        ssd_hops = configuration.ssd(source_id)
 
         result["SLOT_PERIOD_MS"] = int(self.args.slot_period * 1000)
         result["DISSEM_PERIOD_MS"] = int(self.args.dissem_period * 1000)
