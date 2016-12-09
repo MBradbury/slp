@@ -19,13 +19,17 @@ class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
         time_taken = super(RunSimulations, self)._get_safety_period(darguments)
 
+        network_size = darguments["network size"]
+        search_distance = darguments["search distance"]
         dissem_period = darguments["dissem period"]
         slot_period = darguments["slot period"]
         tdma_num_slots = darguments["tdma num slots"]
+        tdma_period_length = dissem_period + (slot_period * tdma_num_slots)
+        ssd = network_size - 1                                                  #XXX Cheap fix until I find the real solution
+        change_distance = ssd // 3
+        path_length = search_distance + change_distance
 
-        safety = time_taken / (dissem_period + (slot_period * tdma_num_slots))
-
-        return time_taken
+        return time_taken + path_length*tdma_period_length
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
