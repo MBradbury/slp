@@ -1,11 +1,8 @@
 from __future__ import print_function, division
 
-import os, itertools, math, collections
-
-import numpy as np
+import os
 
 import data.util
-from data import latex
 from data.graph.versus import Grapher as GrapherBase
 
 class Grapher(GrapherBase):
