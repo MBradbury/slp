@@ -83,7 +83,7 @@ class ResultTable(object):
                 print('        \\hline', file=stream)
 
             caption = " and ".join([
-                "{} \\textbf{{{}}}".format(name, value)
+                "{} \\textbf{{{}}}".format(name, latex.escape(value))
                 for (name, value)
                 in zip(self.results.global_parameter_names, table_key)
             ])
