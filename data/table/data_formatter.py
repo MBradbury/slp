@@ -44,6 +44,15 @@ class TableDataFormatter(object):
                 "walk retries": ("Walk", "Retries"),
                 "paths reached end": ("Paths Ended", "(\\%)"),
 
+                "slot period": ("Slot", "Period"),
+                "dissem period": ("Dissem", "Period"),
+                "dissem timeout": ("Dissem", "Timeout"),
+                "tdma num slots": ("Num", "Slots"),
+                "slot assignment interval": ("Ass.", "Int."),
+                "minimum setup periods": ("Min Setup", "Periods"),
+                "pre beacon periods": ("Pre Beacon", "Periods"),
+
+
                 "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
                 "norm(norm(sent,time taken),num_nodes)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
                 "norm(norm(norm(sent,time taken),num_nodes),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
@@ -84,8 +93,10 @@ class TableDataFormatter(object):
             return latex.escape(str(value))
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
+        elif isinstance(value, int):
+            return "${}$".format(value)
         else:
             try:
                 return "${:.3f} \\pm {:.3f}$".format(value[0], self._convert_variance(value[1]))
             except TypeError as e:
-                raise RuntimeError("Unable to format values for {} with values {} under the default setting".format(name, value), e)
+                raise RuntimeError("Unable to format values for {} with values {} under the default settings. (HINT: You might need to add a custom formatter in this function)".format(name, value), e)
