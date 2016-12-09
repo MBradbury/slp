@@ -5,6 +5,8 @@ typedef struct message_queue_info
 {
 	message_t msg;
 	uint32_t time_added;
+	uint8_t rtx_attempts;
+	bool ack_requested;
 
 } message_queue_info_t;
 
