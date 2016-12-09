@@ -6,10 +6,16 @@ import subprocess
 
 import data.util
 
-def print_header(stream):
+def print_header(stream, orientation='portrait'):
     """Print the document header which imports required packages."""
+
+    geometry_args = "margin=0.5cm"
+
+    if orientation == 'landscape':
+        geometry_args += ",landscape"
+
     print('\\documentclass[a4paper,notitlepage]{article}', file=stream)
-    print('\\usepackage[margin=0.5cm]{geometry}', file=stream)
+    print('\\usepackage[{}]{{geometry}}'.format(geometry_args), file=stream)
     print('\\usepackage{multirow}', file=stream)
     print('\\usepackage{boxedminipage}', file=stream)
     print('\\usepackage{float}', file=stream)
