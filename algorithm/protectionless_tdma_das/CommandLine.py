@@ -38,9 +38,12 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         print("NOTE: This table shows the average time taken to capture the source, not the safety period.")
 
-        time_taken_to_safety_period = lambda time_taken: time_taken
+        time_after_first_normal_to_safety_period = lambda tafn: tafn
 
-        safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path, time_taken_to_safety_period)
+        safety_period_table = safety_period.TableGenerator(
+            self.algorithm_module.result_file_path,
+            time_after_first_normal_to_safety_period
+        )
 
         filename = '{}-results'.format(self.algorithm_module.name)
 

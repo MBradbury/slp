@@ -137,8 +137,8 @@ class CLI(object):
     def _argument_product(self):
         raise NotImplementedError()
 
-    def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
-        return time_taken - first_normal_sent_time
+    def time_after_first_normal_to_safety_period(self, time_after_first_normal):
+        return time_after_first_normal
 
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         if driver.mode() == "TESTBED":
@@ -161,7 +161,7 @@ class CLI(object):
         else:
             safety_period_table_generator = safety_period.TableGenerator(
                 self.safety_period_result_path,
-                self.time_taken_to_safety_period)
+                self.time_after_first_normal_to_safety_period)
             
             safety_periods = safety_period_table_generator.safety_periods()
 
@@ -247,7 +247,7 @@ class CLI(object):
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
-        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path, self.time_taken_to_safety_period, fmt)
+        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path, self.time_after_first_normal_to_safety_period, fmt)
 
         prod = itertools.product(simulator.common.available_noise_models(),
                                  simulator.common.available_communication_models())
