@@ -222,13 +222,11 @@ def _time_after_first_normal(columns, cached_cols, constants):
     return columns["TimeTaken"] - columns["FirstNormalSentTime"]
 
 def _get_calculation_columns():
-    cols = {}
-
-    cols["energy_impact"] = _energy_impact
-    cols["daily_allowance_used"] = _daily_allowance_used
-    cols["time_after_first_normal"] = _time_after_first_normal
-
-    return cols
+    return {
+        "energy_impact": _energy_impact,
+        "daily_allowance_used": _daily_allowance_used,
+        "time_after_first_normal": _time_after_first_normal,
+    }
 
 class Analyse(object):
 
@@ -381,7 +379,7 @@ class Analyse(object):
             print(df["Seed"][duplicated_seeds_filter])
 
             print("Checking that duplicate seeds have the same results...")
-            columns_to_check = ["Seed", "Sent", "Received", "Delivered", "Captured", "FirstNormalSentTime", "EventCount"]
+            columns_to_check = ("Seed", "Sent", "Received", "Delivered", "Captured", "FirstNormalSentTime", "EventCount")
             dupe_seeds = df[columns_to_check][duplicated_seeds_filter].groupby("Seed", sort=False)
 
             for name, group in dupe_seeds:
@@ -410,7 +408,7 @@ class Analyse(object):
             calc_cols = _get_calculation_columns()
             cached_cols = {}
 
-            def get_cached_cal_cols(name):
+            def get_cached_calc_cols(name):
                 if name in cached_cols:
                     return cached_cols[name]
 
@@ -442,7 +440,7 @@ class Analyse(object):
                 elif num in calc_cols and den in constants:
                     print("Creating {} using ({},{}) on the fast path 3".format(norm_head, num, den))
 
-                    columns_to_add[norm_head] = get_cached_cal_cols(num) / constants[den]
+                    columns_to_add[norm_head] = get_cached_calc_cols(num) / constants[den]
 
                 else:
                     print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))

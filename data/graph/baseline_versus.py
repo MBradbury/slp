@@ -14,7 +14,10 @@ class Grapher(GrapherBase):
             output_directory, result_name, xaxis, yaxis, vary, yextractor
         )
 
+        self.result_label = ''
         self.baseline_label = 'Baseline'
+
+        self.force_vvalue_label = False
 
     def create(self, simulation_results, baseline_results=None):
         print('Removing existing directories')
@@ -39,7 +42,9 @@ class Grapher(GrapherBase):
 
                     yvalue = results[ simulation_results.result_names.index(self.yaxis) ]
 
-                    dat.setdefault((key_names, values), {})[(xvalue, vvalue)] = self._value_extractor(yvalue)
+                    gkey = (xvalue, self.result_label) if self.force_vvalue_label else (xvalue, vvalue)
+
+                    dat.setdefault((key_names, values), {})[gkey] = self._value_extractor(yvalue)
 
                     if baseline_results is not None:
                         baseline_params = tuple(
@@ -53,7 +58,9 @@ class Grapher(GrapherBase):
 
                         baseline_yvalue = baseline_res[ baseline_results.result_names.index(self.yaxis) ]
 
-                        dat.setdefault((key_names, values), {})[(xvalue, "{} - {}".format(self.baseline_label, vvalue))] = self._value_extractor(baseline_yvalue)
+                        baseline_gkey = (xvalue, self.baseline_label) if self.force_vvalue_label else (xvalue, "{} ({})".format(vvalue, self.baseline_label))
+
+                        dat.setdefault((key_names, values), {})[baseline_gkey] = self._value_extractor(baseline_yvalue)
 
         for ((key_names, key_values), values) in dat.items():
             self._create_plot(key_names, key_values, values)
