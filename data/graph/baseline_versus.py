@@ -53,7 +53,7 @@ class Grapher(GrapherBase):
 
                         baseline_yvalue = baseline_res[ baseline_results.result_names.index(self.yaxis) ]
 
-                        dat.setdefault((key_names, values), {})[(xvalue, "{}({})".format(self.baseline_label, vvalue))] = self._value_extractor(baseline_yvalue)
+                        dat.setdefault((key_names, values), {})[(xvalue, "{} - {}".format(self.baseline_label, vvalue))] = self._value_extractor(baseline_yvalue)
 
         for ((key_names, key_values), values) in dat.items():
             self._create_plot(key_names, key_values, values)
