@@ -51,7 +51,7 @@ class Analyzer(AnalyzerCommon):
             (('energy_impact', 'num_nodes'), 'TimeTaken'),
             ('daily_allowance_used', '1'),
             
-            ('good_move_ratio', '1'),
+            #('good_move_ratio', '1'),
         )
 
     @staticmethod
@@ -96,7 +96,7 @@ class Analyzer(AnalyzerCommon):
         d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
         d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
 
-        d['good move ratio'] = lambda x: AnalyzerCommon._format_results(x, 'norm(good_move_ratio,1)')
+        #d['good move ratio'] = lambda x: AnalyzerCommon._format_results(x, 'norm(good_move_ratio,1)')
 
         return d
 
