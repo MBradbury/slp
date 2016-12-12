@@ -379,7 +379,7 @@ class Analyse(object):
             print(df["Seed"][duplicated_seeds_filter])
 
             print("Checking that duplicate seeds have the same results...")
-            columns_to_check = ("Seed", "Sent", "Received", "Delivered", "Captured", "FirstNormalSentTime", "EventCount")
+            columns_to_check = ["Seed", "Sent", "Received", "Delivered", "Captured", "FirstNormalSentTime", "EventCount"]
             dupe_seeds = df[columns_to_check][duplicated_seeds_filter].groupby("Seed", sort=False)
 
             for name, group in dupe_seeds:
@@ -513,8 +513,10 @@ class Analyse(object):
             return values[index]
         except ValueError:
 
-            if name in constants:
+            try:
                 return constants[name]
+            except KeyError:
+                pass
 
             if name == "good_move_ratio":
 
