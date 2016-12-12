@@ -9,7 +9,10 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def normalised_parameters():
-        return tuple()
+        return (
+            ('Sent', 'TimeTaken'),
+            (('Sent', 'TimeTaken'), 'num_nodes'),
+        )
 
     @staticmethod
     def results_header():
@@ -27,5 +30,8 @@ class Analyzer(AnalyzerCommon):
 
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+
+        d['norm(sent,time taken)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(norm(sent,time taken),network size)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
         return d

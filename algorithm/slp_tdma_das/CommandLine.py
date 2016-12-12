@@ -133,6 +133,8 @@ class CLI(CommandLineCommon.CLI):
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'attacker distance': ('Meters', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
         }
 
         protectionless_tdma_das_results = results.Results(
