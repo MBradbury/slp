@@ -184,9 +184,14 @@ implementation
         return get_minimum_setup_periods() - 1;
     }
 
-    uint32_t get_safety_period()
+    /*uint32_t get_safety_period()*/
+    /*{*/
+        /*return SAFETY_PERIOD;*/
+    /*}*/
+
+    uint32_t get_change_length()
     {
-        return SAFETY_PERIOD;
+        return CHANGE_LENGTH;
     }
     //###################}}}
 
@@ -843,7 +848,7 @@ implementation
         if((rcvd->dist == 0 && npar.count != 0))
         {
             start_node = TRUE;
-            redir_length = get_safety_period()/3;
+            redir_length = get_change_length();
             simdbgverbose("stdout", "Search messages ended\n");
         }
         else if(rcvd->dist == 0 && npar.count == 0)
