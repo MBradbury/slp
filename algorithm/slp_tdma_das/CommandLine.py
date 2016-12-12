@@ -2,6 +2,7 @@ from __future__ import print_function, division
 
 import itertools
 import os
+import datetime
 
 from simulator import CommandLineCommon
 
