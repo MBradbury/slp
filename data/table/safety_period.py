@@ -10,10 +10,10 @@ from data import latex, results
 
 class TableGenerator:
 
-    def __init__(self, result_file, time_taken_to_safety_period, fmt=None):
-        self._result_names = ('time taken', 'received ratio',
+    def __init__(self, result_file, time_after_first_normal_to_safety_period, fmt=None):
+        self._result_names = ('received ratio',
                               'normal latency', 'ssd', 'captured',
-                              'first normal sent time')
+                              'time after first normal')
 
         self._results = results.Results(
             result_file,
@@ -21,7 +21,7 @@ class TableGenerator:
             results=self._result_names
         )
 
-        self.time_taken_to_safety_period = time_taken_to_safety_period
+        self.time_after_first_normal_to_safety_period = time_after_first_normal_to_safety_period
 
         self.fmt = fmt
         if fmt is None:
@@ -60,10 +60,10 @@ class TableGenerator:
             print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model and \\textbf{{{}}} distance and \\textbf{{{}}} node id order and \\textbf{{{}}} latest start time}}'.format(
                 config, latex.escape(attacker_model), noise_model, communication_model, distance, node_id_order, latest_start_time), file=stream)
             print('\\centering', file=stream)
-            print('\\begin{tabular}{ | c | c || c | c | c | c | c || c || c | }', file=stream)
+            print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
-            print('Size & Period & Received & Source-Sink   & Latency   & Average Time    & First Normal    & Safety Period & Captured \\tabularnewline', file=stream)
-            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Taken (seconds) & Sent Time (sec) & (seconds)     & (\\%)    \\tabularnewline', file=stream)
+            print('Size & Period & Received & Source-Sink   & Latency   & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
+            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
             print('\\hline', file=stream)
             print('', file=stream)
 
@@ -85,20 +85,18 @@ class TableGenerator:
                     def _get_just_value(name):
                         return result[self._result_names.index(name)][0]
 
-                    safety_period = self.time_taken_to_safety_period(
-                        _get_just_value('time taken'),
-                        _get_just_value('first normal sent time'))
+                    safety_period = self.time_after_first_normal_to_safety_period(
+                        _get_just_value('time after first normal'))
                 
                     print('{} & {} & {} & {}'
-                          ' & {} & {} & {}'
+                          ' & {} & {}'
                           ' & {:0.2f} & {} \\tabularnewline'.format(
                             size,
                             src_period,
                             self.fmt.format_value(*_get_name_and_value('received ratio')),
                             self.fmt.format_value(*_get_name_and_value('ssd')),
                             self.fmt.format_value(*_get_name_and_value('normal latency')),
-                            self.fmt.format_value(*_get_name_and_value('time taken')),
-                            self.fmt.format_value(*_get_name_and_value('first normal sent time')),
+                            self.fmt.format_value(*_get_name_and_value('time after first normal')),
                             safety_period,
                             self.fmt.format_value(*_get_name_and_value('captured'))),
                           file=stream)
@@ -129,8 +127,8 @@ class TableGenerator:
 
     def safety_periods(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
-        return self._get_result_mapping(('time taken', 'first normal sent time'),
-                                        lambda tt, fnst: self.time_taken_to_safety_period(tt[0], fnst[0]))
+        return self._get_result_mapping(('time after first normal'),
+                                        lambda tafn: self.time_after_first_normal_to_safety_period(tafn[0]))
 
     def time_taken(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> time taken

@@ -38,6 +38,7 @@ class TableDataFormatter(object):
                 "safety period": ("Safety Period", "(sec)"),
                 "wall time": ("Wall Time", "(sec)"),
                 "total wall time": ("Total Wall Time", "(sec)"),
+                "first normal sent time": ("FNST", "(sec)"),
                 "event count": ("Event Count", ""),
                 
                 "walk length": ("Walk Length", "(hops)"),
@@ -51,6 +52,7 @@ class TableDataFormatter(object):
                 "slot assignment interval": ("Ass.", "Int."),
                 "minimum setup periods": ("Min Setup", "Periods"),
                 "pre beacon periods": ("Pre Beacon", "Periods"),
+                "search distance": ("Search", "Distance"),
 
 
                 "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
