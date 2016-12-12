@@ -109,7 +109,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph_versus_baseline(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
