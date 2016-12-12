@@ -51,8 +51,6 @@ class Analyzer(AnalyzerCommon):
 
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
 
-        d['first normal sent time'] = lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
-
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
 
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')

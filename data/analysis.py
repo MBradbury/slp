@@ -218,11 +218,15 @@ def _daily_allowance_used(columns, cached_cols, constants):
 
     return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
 
+def _time_after_first_normal(columns, cached_cols, constants):
+    return columns["TimeTaken"] - columns["FirstNormalSentTime"]
+
 def _get_calculation_columns():
     cols = {}
 
     cols["energy_impact"] = _energy_impact
     cols["daily_allowance_used"] = _daily_allowance_used
+    cols["time_after_first_normal"] = _time_after_first_normal
 
     return cols
 
@@ -707,6 +711,8 @@ class AnalyzerCommon(object):
         self.values = values
         self.normalised_values = normalised_values if normalised_values is not None else tuple()
 
+        self.normalised_values += (('time_after_first_normal', '1'),)
+
     @staticmethod
     def common_results_header(local_parameter_names):
         d = OrderedDict()
@@ -736,7 +742,10 @@ class AnalyzerCommon(object):
         d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered')
 
         d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
-        d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
+        #d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
+
+        d['first normal sent time']= lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
+        d['time after first normal']= lambda x: AnalyzerCommon._format_results(x, 'norm(time_after_first_normal,1)')
         
         d['total wall time']    = lambda x: AnalyzerCommon._format_results(x, 'TotalWallTime')
         d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
