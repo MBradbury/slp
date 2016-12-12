@@ -17,7 +17,7 @@ from data.util import scalar_extractor
 
 class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
-        time_taken = super(RunSimulations, self)._get_safety_period(darguments)
+        tafn = super(RunSimulations, self)._get_safety_period(darguments)
 
         network_size = darguments["network size"]
         search_distance = darguments["search distance"]
@@ -141,6 +141,9 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_label = vary.title()
                 g.vary_prefix = vary_prefix
                 g.key_position = key_position
+
+                g.nokey = True
+                g.generate_legend_graph = True
 
                 g.create(slp_tdma_das_results, baseline_results=protectionless_tdma_das_results)
 
