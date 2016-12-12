@@ -148,6 +148,7 @@ class CLI(CommandLineCommon.CLI):
 
                 g.nokey = True
                 g.generate_legend_graph = True
+                g.legend_font_size = '8'
 
                 g.create(slp_tdma_das_results, baseline_results=protectionless_tdma_das_results)
 
