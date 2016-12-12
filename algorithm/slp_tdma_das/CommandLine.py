@@ -138,9 +138,13 @@ class CLI(CommandLineCommon.CLI):
 
                 g.xaxis_label = 'Network Size'
                 g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
-                g.vary_prefix = vary_prefix
+                g.vary_label = vary.title() + " -"
+                #g.vary_prefix = vary_prefix
                 g.key_position = key_position
+
+                g.force_vvalue_label = True
+                g.result_label = "SLP TDMA DAS"
+                g.baseline_label = "Protectionless TDMA DAS"
 
                 g.nokey = True
                 g.generate_legend_graph = True
