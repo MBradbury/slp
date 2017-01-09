@@ -84,11 +84,8 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 
 	// Messages that are queued to send
-	uses interface Queue<message_queue_info_t*> as MessageQueue;
+	uses interface Dictionary<SequenceNumber, message_queue_info_t*> as MessageQueue;
     uses interface Pool<message_queue_info_t> as MessagePool;
-
-    // Cache of the recently seen sequence numbers
-    uses interface Cache<SequenceNumber> as RecentlySeen;
 }
 
 implementation
@@ -207,16 +204,91 @@ implementation
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Beacon);
 
+	void print_dictionary_queue(void)
+	{
+		const SequenceNumber* begin = call MessageQueue.beginKeys();
+		const SequenceNumber* end = call MessageQueue.endKeys();
+
+		simdbg("stdout", "{");
+
+		for (; begin != end; ++begin)
+		{
+			const SequenceNumber key = *begin;
+			message_queue_info_t** value = call MessageQueue.get(key);
+
+			if (value)
+			{
+				simdbg_clear("stdout", "%" PRIu32 ": %p", key, *value);
+			}
+			else
+			{
+				simdbg_clear("stdout", "%" PRIu32 ": NULL", key);
+			}
+
+			if (begin + 1 != end)
+			{
+				simdbg_clear("stdout", ", ");
+			}
+		}
+
+		simdbg_clear("stdout", "}\n");
+	}
+
 	message_queue_info_t* choose_message_to_send(void)
 	{
+		message_queue_info_t** const begin = call MessageQueue.begin();
+		message_queue_info_t** const end = call MessageQueue.end();
+
+		message_queue_info_t** iter = begin;
+
+		// Cannot choose messages to send when there are no messages
+		if (call MessageQueue.count() == 0)
+		{
+			return NULL;
+		}
+
 		// TODO: Change this to reorder messages
-		return (call MessageQueue.empty()) ? NULL : call MessageQueue.head();
-	}	
+		return *begin;
+	}
 
 	message_queue_info_t* find_message_queue_info(message_t* msg)
 	{
-		// TODO: Fix this to find the correct queue item wrt to the message
-		return (call MessageQueue.empty()) ? NULL : call MessageQueue.head();
+		const NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+
+		return call MessageQueue.get_or_default(normal_message->sequence_number, NULL);
+	}
+
+	error_t record_received_message(message_t* msg)
+	{
+		bool success;
+
+		const NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+
+		message_queue_info_t* item = call MessagePool.get();
+		if (!item)
+		{
+			ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
+
+			return ENOMEM;
+		}
+
+		success = call MessageQueue.put(normal_message->sequence_number, item);
+		if (!success)
+		{
+			ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
+
+			call MessagePool.put(item);
+
+			return ENOMEM;
+		}
+
+		memcpy(&item->msg, msg, sizeof(*item));
+		item->time_added = call LocalTime.get();
+
+		item->ack_requested = FALSE;
+		item->rtx_attempts = 4;
+
+		return SUCCESS;
 	}
 
 	void send_Normal_done(message_t* msg, error_t error)
@@ -227,6 +299,8 @@ implementation
 		}
 		else
 		{
+			const NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+
 			message_queue_info_t* info = find_message_queue_info(msg);
 
 			if (info != NULL)
@@ -242,35 +316,43 @@ implementation
 					// Give up sending this message
 					if (info->rtx_attempts == 0)
 					{
-						// TODO: Fix this to remove the info found earlier.
-						info = call MessageQueue.dequeue();
+						call MessageQueue.remove(normal_message->sequence_number);
 						call MessagePool.put(info);
 					}
 				}
 				else
 				{
 					// All good
-					// TODO: Fix this to remove the info found earlier.
-					info = call MessageQueue.dequeue();
+					call MessageQueue.remove(normal_message->sequence_number);
 					call MessagePool.put(info);
 				}
+			}
+			else
+			{
+				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ") for the message\n",
+					normal_message->sequence_number);
+
+				print_dictionary_queue();
 			}
 		}
 	}
 
 	event void SourcePeriodModel.fired()
 	{
-		NormalMessage message;
+		NormalMessage* message;
+		message_t msg;
 
 		simdbgverbose("SourceBroadcasterC", "SourcePeriodModel fired.\n");
 
-		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
-		message.source_distance = 0;
-		message.sink_source_distance = sink_source_distance;
-		message.source_id = TOS_NODE_ID;
-		message.stage = NORMAL_ROUTE_AVOID_SINK;
+		message = (NormalMessage*)call NormalSend.getPayload(&msg, sizeof(NormalMessage));
 
-		if (send_Normal_message(&message, AM_BROADCAST_ADDR, NULL))
+		message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+		message->source_distance = 0;
+		message->sink_source_distance = sink_source_distance;
+		message->source_id = TOS_NODE_ID;
+		message->stage = NORMAL_ROUTE_AVOID_SINK;
+
+		if (record_received_message(&msg) == SUCCESS)
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
@@ -386,7 +468,7 @@ implementation
 	{
 		// Consider to whom the message should be sent to
 
-		if (!call MessageQueue.empty())
+		if (call MessageQueue.count() > 0)
 		{
 			am_addr_t next = AM_BROADCAST_ADDR;
 
@@ -402,7 +484,7 @@ implementation
 					next = find_next_in_avoid_sink_route();
 
 					// When we are done with avoiding the sink, we need to head to it
-					/*if (next == AM_BROADCAST_ADDR && (sink_source_distance == BOTTOM || message.source_distance > sink_source_distance))
+					/*if (next == AM_BROADCAST_ADDR && neighbours.size > 0 && (sink_source_distance == BOTTOM || message.source_distance > sink_source_distance))
 					{
 						message.stage = NORMAL_ROUTE_TO_SINK;
 					}*/
@@ -464,37 +546,6 @@ implementation
 		send_Beacon_message(&message, AM_BROADCAST_ADDR);
 	}
 
-	error_t record_received_message(message_t* msg)
-	{
-		error_t status;
-
-		message_queue_info_t* item = call MessagePool.get();
-		if (!item)
-		{
-			ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
-
-			return ENOMEM;
-		}
-
-		status = call MessageQueue.enqueue(item);
-		if (status != SUCCESS)
-		{
-			ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
-
-			call MessagePool.put(item);
-
-			return status;
-		}
-
-		memcpy(&item->msg, msg, sizeof(*item));
-		item->time_added = call LocalTime.get();
-
-		item->ack_requested = FALSE;
-		item->rtx_attempts = 4;
-
-		return SUCCESS;
-	}
-
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
@@ -508,10 +559,7 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (record_received_message(msg) == SUCCESS)
-			{
-				call RecentlySeen.insert(rcvd->sequence_number);
-			}
+			record_received_message(msg);
 		}
 	}
 
@@ -528,10 +576,7 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (record_received_message(msg) == SUCCESS)
-			{
-				call RecentlySeen.insert(rcvd->sequence_number);
-			}
+			record_received_message(msg);
 		}
 	}
 

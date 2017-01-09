@@ -107,14 +107,10 @@ implementation
 
     components
         new PoolC(message_queue_info_t, SLP_SEND_QUEUE_SIZE) as MessagePoolP,
-        new QueueC(message_queue_info_t*, SLP_SEND_QUEUE_SIZE) as MessageQueueP;
+        new DictionaryP(SequenceNumber, message_queue_info_t*, SLP_SEND_QUEUE_SIZE) as MessageQueueP;
 
     App.MessagePool -> MessagePoolP;
     App.MessageQueue -> MessageQueueP;
-
-    components new CircularBufferC(SequenceNumber, SLP_RECENTLY_SEEN_SIZE) as RecentlySeen;
-
-    App.RecentlySeen -> RecentlySeen;
 
     // Time
     components LocalTimeMilliC;
