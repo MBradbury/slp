@@ -14,6 +14,9 @@ typedef nx_struct AwayMessage {
   // as the known distance may be higher.
   nx_uint16_t sink_distance;
 
+  // The messages delivery latency that needs to be targeted.
+  nx_uint16_t target_latency_ms;
+
 } AwayMessage;
 
 inline SequenceNumberWithBottom Away_get_sequence_number(const AwayMessage* msg) { return msg->sequence_number; }

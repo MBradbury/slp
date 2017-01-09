@@ -91,7 +91,8 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 			tosend = message; \
 		} \
  \
- 		if (ack_request != NULL && *ack_request) \
+		/* Doesn't make sense to request an ack when broadcasting. */ \
+ 		if (ack_request != NULL && *ack_request && target != AM_BROADCAST_ADDR) \
  		{ \
 			*ack_request = call NAME##PacketAcknowledgements.requestAck(&packet) == SUCCESS; \
 		} \
