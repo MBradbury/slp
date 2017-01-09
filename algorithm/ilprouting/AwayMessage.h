@@ -14,7 +14,8 @@ typedef nx_struct AwayMessage {
   // as the known distance may be higher.
   nx_uint16_t sink_distance;
 
-  // The messages delivery latency that needs to be targeted.
+  // The target buffer size that needs to be reached before messages are sent.
+  nx_uint16_t target_buffer_size;
   nx_uint16_t target_latency_ms;
 
 } AwayMessage;

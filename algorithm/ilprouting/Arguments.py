@@ -19,11 +19,14 @@ class Arguments(ArgumentsCommon):
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
 
-       	self.add_argument("--buffer-size", type=buffer_size, required=True)
+        self.add_argument("--max-buffer-size", type=buffer_size, required=True)
+
+        self.add_argument("--target-latency", type=float, required=True)
 
     def build_arguments(self):
-    	result = super(Arguments, self).build_arguments()
+        result = super(Arguments, self).build_arguments()
 
-    	result["SLP_SEND_QUEUE_SIZE"] = self.args.buffer_size
+        result["SLP_SEND_QUEUE_SIZE"] = self.args.max_buffer_size
+        result["SLP_TARGET_LATENCY"] = int(self.args.target_latency * 1000)
 
-    	return result
+        return result
