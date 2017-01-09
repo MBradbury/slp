@@ -13,6 +13,9 @@
 #include <Timer.h>
 #include <TinyError.h>
 
+// The amount of time in ms that it takes to send a message from one node to another
+#define ALPHA 1
+
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
@@ -109,6 +112,8 @@ implementation
 	int16_t source_distance = BOTTOM;
 	int16_t sink_source_distance = BOTTOM;
 
+	int16_t target_latency_ms = BOTTOM;
+
 	// Sink variables
 	int sink_away_messages_to_send;
 
@@ -202,6 +207,12 @@ implementation
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Beacon);
 
+	message_queue_info_t* choose_message_to_send(void)
+	{
+		// TODO: Change this to reorder messages
+		return (call MessageQueue.empty()) ? NULL : call MessageQueue.head();
+	}	
+
 	message_queue_info_t* find_message_queue_info(message_t* msg)
 	{
 		// TODO: Fix this to find the correct queue item wrt to the message
@@ -270,7 +281,9 @@ implementation
 		// Want to find a neighbour who has a greater source distance
 		// and the same or further sink distance
 
-		am_addr_t chosen_address;
+		// Return AM_BROADCAST_ADDR when no available nodes.
+
+		am_addr_t chosen_address = AM_BROADCAST_ADDR;
 		uint16_t i;
 
 		ni_neighbours_t local_neighbours;
@@ -294,8 +307,6 @@ implementation
 		{
 			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
 				neighbours.size);*/
-
-			chosen_address = AM_BROADCAST_ADDR;
 		}
 		else
 		{
@@ -379,7 +390,7 @@ implementation
 		{
 			am_addr_t next = AM_BROADCAST_ADDR;
 
-			message_queue_info_t* info = call MessageQueue.head();
+			message_queue_info_t* const info = choose_message_to_send();
 
 			NormalMessage message = *(NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
 			message.source_distance += 1;
@@ -421,6 +432,11 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
 
+		message.target_latency_ms = (uint16_t)ceil(
+			(SLP_SEND_QUEUE_SIZE * call SourcePeriodModel.get() +
+			(sink_source_distance == BOTTOM ? 0 : sink_source_distance) * ALPHA) / 2
+		);
+
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySenderTimer.startOneShot(65);
@@ -443,6 +459,7 @@ implementation
 		BeaconMessage message;
 		message.sink_distance_of_sender = sink_distance;
 		message.source_distance_of_sender = source_distance;
+		message.target_latency_ms_of_sender = target_latency_ms;
 
 		send_Beacon_message(&message, AM_BROADCAST_ADDR);
 	}
@@ -465,6 +482,7 @@ implementation
 			ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
 
 			call MessagePool.put(item);
+
 			return status;
 		}
 
@@ -502,7 +520,7 @@ implementation
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
 		source_distance = minbot(source_distance, rcvd->source_distance + 1);
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = minbot(sink_source_distance, source_distance);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -576,6 +594,8 @@ implementation
 			sink_source_distance = minbot(sink_source_distance, sink_distance);
 		}
 
+		target_latency_ms = rcvd->target_latency_ms;
+
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage message;
@@ -604,6 +624,11 @@ implementation
 		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
+
+		if (rcvd->target_latency_ms_of_sender != BOTTOM)
+		{
+			target_latency_ms = rcvd->target_latency_ms_of_sender;
+		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
