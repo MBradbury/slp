@@ -516,11 +516,13 @@ implementation
 
 	event void ConsiderTimer.fired()
 	{
-		simdbgverbose("stdout", "ConsiderTimer fired. [target_buffer_size=%d, MessageQueue.count()=%u]\n", target_buffer_size, call MessageQueue.count());
+		simdbgverbose("stdout", "ConsiderTimer fired. [target_buffer_size=%d, MessageQueue.count()=%u]\n",
+			target_buffer_size, call MessageQueue.count());
 
 		// Consider to whom the message should be sent to
 
-		if ((target_buffer_size == BOTTOM && call MessageQueue.count() > 0) || (target_buffer_size != BOTTOM && call MessageQueue.count() >= target_buffer_size))
+		if ((target_buffer_size == BOTTOM && call MessageQueue.count() > 0) ||
+			(target_buffer_size != BOTTOM && call MessageQueue.count() >= target_buffer_size))
 		{
 			am_addr_t next = AM_BROADCAST_ADDR;
 
