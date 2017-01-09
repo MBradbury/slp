@@ -26,7 +26,7 @@ admin permissions to use pip install, then pyenv is a good alternative.
 
 ```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-CONFIGURE_OPTS="--with-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
 pyenv global 2.7.12
 ```
 
@@ -36,7 +36,7 @@ To install on flux there is a slightly different procedure:
 
 ```bash
 module load flux-installers && pyenv-install.sh && source ~/.bashrc
-CONFIGURE_OPTS="--with-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
 pyenv global 2.7.12
 ```
 
