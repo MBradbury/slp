@@ -258,6 +258,12 @@ class MetricsCommon(object):
         else:
             return float('inf')
 
+    def maximum_normal_latency(self):
+        if len(self.normal_latency) != 0:
+            return max(self.normal_latency.values())
+        else:
+            return float('inf')
+
     def receive_ratio(self):
         # The receive ratio may be end up being lower than it actually is
         # if a simple division is performed below.
@@ -508,6 +514,7 @@ class MetricsCommon(object):
         d["AttackerStepsAway"]             = lambda x: x.attacker_steps_away()
         d["AttackerMinSourceDistance"]     = lambda x: x.attacker_min_source_distance()
         d["NormalLatency"]                 = lambda x: x.average_normal_latency()
+        d["MaxNormalLatency"]              = lambda x: x.maximum_normal_latency()
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["NodeWasSource"]                 = lambda x: MetricsCommon.smaller_dict_str(x.node_was_source())
