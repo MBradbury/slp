@@ -20,31 +20,50 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
 
 typedef struct
 {
 	int16_t sink_distance;
 	int16_t source_distance;
+
+	uint16_t failed_unicasts;
+	uint16_t succeeded_unicasts;
 } ni_container_t;
 
 void ni_update(ni_container_t* find, ni_container_t const* given)
 {
 	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
 	find->source_distance = minbot(find->source_distance, given->source_distance);
+
+	find->failed_unicasts += given->failed_unicasts;
+	find->succeeded_unicasts += given->succeeded_unicasts;
 }
 
 void ni_print(const char* name, size_t i, am_addr_t address, ni_container_t const* contents)
 {
-	simdbg_clear(name, "[%zu] => addr=%u / sink-dist=%d src-dist=%d",
-		i, address, contents->sink_distance, contents->source_distance);
+	simdbg_clear(name, "(%zu) %u: sink-dist=%d src-dist=%d [%u/%u]",
+		i, address, contents->sink_distance, contents->source_distance,
+		contents->succeeded_unicasts, contents->succeeded_unicasts + contents->failed_unicasts);
 }
 
 DEFINE_NEIGHBOUR_DETAIL(ni_container_t, ni, ni_update, ni_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
 #define UPDATE_NEIGHBOURS(source_addr, sink_distance, source_distance) \
 { \
-	const ni_container_t dist = { sink_distance, source_distance }; \
+	const ni_container_t dist = { sink_distance, source_distance, 0, 0 }; \
+	insert_ni_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_NEIGHBOURS_FAILED_UNICAST(source_addr) \
+{ \
+	const ni_container_t dist = { BOTTOM, BOTTOM, 1, 0 }; \
+	insert_ni_neighbour(&neighbours, source_addr, &dist); \
+}
+
+#define UPDATE_NEIGHBOURS_SUCCEEDED_UNICAST(source_addr) \
+{ \
+	const ni_container_t dist = { BOTTOM, BOTTOM, 0, 1 }; \
 	insert_ni_neighbour(&neighbours, source_addr, &dist); \
 }
 
@@ -131,6 +150,7 @@ implementation
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
+		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
@@ -352,11 +372,18 @@ implementation
 
 			if (info != NULL)
 			{
-				if (info->ack_requested && !call NormalPacketAcknowledgements.wasAcked(msg))
+				const am_addr_t target = call AMPacket.destination(msg);
+
+				const bool ack_requested = info->ack_requested;
+				const bool was_acked = call NormalPacketAcknowledgements.wasAcked(msg);
+
+				if (ack_requested & !was_acked)
 				{
 					// Message was sent, but no ack received
 					// Leaving the message in the queue will cause it to be sent again
 					// in the next consider slot.
+
+					UPDATE_NEIGHBOURS_FAILED_UNICAST(target);
 
 					info->rtx_attempts -= 1;
 
@@ -372,7 +399,14 @@ implementation
 					// All good
 					call MessageQueue.remove(normal_message->sequence_number);
 					call MessagePool.put(info);
+
+					if (ack_requested & was_acked)
+					{
+						UPDATE_NEIGHBOURS_SUCCEEDED_UNICAST(target);
+					}
 				}
+
+				print_ni_neighbours("stdout", &neighbours);
 			}
 			else
 			{
@@ -425,10 +459,14 @@ implementation
 		{
 			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-			// TODO: need to consider BOTTOM
+			const int16_t neighbour_source_distance = neighbour->contents.source_distance == BOTTOM ? source_distance+1 : neighbour->contents.source_distance;
+
 			if (
-					neighbour->contents.source_distance > source_distance &&
-					neighbour->contents.sink_distance >= sink_distance
+					neighbour_source_distance > source_distance &&
+					(
+						(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance > sink_source_distance / 2) ||
+						(neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM && neighbour->contents.sink_distance >= sink_distance)
+					)
 			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
@@ -437,8 +475,10 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
-				neighbours.size);*/
+			simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u) (my-sink-distance=%d, my-source-distance=%d)\n",
+				neighbours.size, sink_distance, source_distance);
+
+			print_ni_neighbours("stdout", &neighbours);
 		}
 		else
 		{
@@ -527,8 +567,15 @@ implementation
 			am_addr_t next = AM_BROADCAST_ADDR;
 
 			message_queue_info_t* const info = choose_message_to_send();
+			NormalMessage message;
 
-			NormalMessage message = *(NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
+			if (info == NULL)
+			{
+				ERROR_OCCURRED(ERROR_UNKNOWN, "Unable to choose a message to send.\n");
+				return;
+			}
+
+			message = *(NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
 			message.source_distance += 1;
 
 			switch (message.stage)
@@ -538,8 +585,9 @@ implementation
 					next = find_next_in_avoid_sink_route();
 
 					// When we are done with avoiding the sink, we need to head to it
-					/*if (next == AM_BROADCAST_ADDR && neighbours.size > 0 && (sink_source_distance == BOTTOM || message.source_distance > sink_source_distance))
+					/*if (next == AM_BROADCAST_ADDR && /*neighbours.size > 0 &&* / (sink_source_distance == BOTTOM || message.source_distance > sink_source_distance))
 					{
+						simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK\n");
 						message.stage = NORMAL_ROUTE_TO_SINK;
 					}*/
 				} break;
@@ -551,11 +599,12 @@ implementation
 
 				default:
 				{
+					simdbg("stderr", "Unknown message stage\n");
 					next = AM_BROADCAST_ADDR;
 				} break;
 			}
 
-			//if (next != AM_BROADCAST_ADDR)
+			if (next != AM_BROADCAST_ADDR)
 			{
 				info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
@@ -721,6 +770,8 @@ implementation
 			message.sink_distance += 1;
 
 			send_Away_message(&message, AM_BROADCAST_ADDR);
+
+			call BeaconSenderTimer.startOneShot(100 + (call Random.rand16() % 50));
 		}
 	}
 
