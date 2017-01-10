@@ -278,13 +278,13 @@ implementation
 			return NULL;
 		}
 
-		simdbg("stdout", "target buffer size %" PRIi16 " :: target latency ms %" PRIi16 "\n", target_buffer_size, target_latency_ms);
+		//simdbg("stdout", "target buffer size %" PRIi16 " :: target latency ms %" PRIi16 "\n", target_buffer_size, target_latency_ms);
 
 		// If we don't know our target latency, then there isn't much that can be done
 		// so just send messages in FIFO order.
 		if (target_latency_ms == BOTTOM)
 		{
-			simdbg("stdout", "Chosen message number 0 (unknown latency)\n");
+			//simdbg("stdout", "Chosen message number 0 (unknown latency)\n");
 
 			return *begin;
 		}
@@ -299,7 +299,7 @@ implementation
 
 			if (time_since_added + min_time_to_travel >= (uint32_t)target_latency_ms)
 			{
-				simdbg("stdout", "Chosen message number %ld (deadline requirement) (mtt=%" PRIu32 ")\n", iter - begin, min_time_to_travel);
+				//simdbg("stdout", "Chosen message number %ld (deadline requirement) (mtt=%" PRIu32 ")\n", iter - begin, min_time_to_travel);
 
 				return value;
 			}
@@ -311,7 +311,7 @@ implementation
 			const uint16_t idx = rnd % call MessageQueue.count();
 			message_queue_info_t* const value = begin[idx];
 
-			simdbg("stdout", "Chosen message number %u (random)\n", idx);
+			//simdbg("stdout", "Chosen message number %u (random)\n", idx);
 
 			return value;
 		}
@@ -406,7 +406,7 @@ implementation
 					}
 				}
 
-				print_ni_neighbours("stdout", &neighbours);
+				//print_ni_neighbours("stdout", &neighbours);
 			}
 			else
 			{
@@ -475,10 +475,10 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u) (my-sink-distance=%d, my-source-distance=%d)\n",
+			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u) (my-sink-distance=%d, my-source-distance=%d)\n",
 				neighbours.size, sink_distance, source_distance);
 
-			print_ni_neighbours("stdout", &neighbours);
+			print_ni_neighbours("stdout", &neighbours);*/
 		}
 		else
 		{
@@ -585,11 +585,13 @@ implementation
 					next = find_next_in_avoid_sink_route();
 
 					// When we are done with avoiding the sink, we need to head to it
-					/*if (next == AM_BROADCAST_ADDR && /*neighbours.size > 0 &&* / (sink_source_distance == BOTTOM || message.source_distance > sink_source_distance))
+					if (next == AM_BROADCAST_ADDR && /*neighbours.size > 0 &&*/ (sink_source_distance == BOTTOM || message.source_distance > sink_source_distance))
 					{
 						simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK\n");
 						message.stage = NORMAL_ROUTE_TO_SINK;
-					}*/
+
+						next = find_next_in_to_sink_route();
+					}
 				} break;
 
 				case NORMAL_ROUTE_TO_SINK:
