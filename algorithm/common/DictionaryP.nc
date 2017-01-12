@@ -10,6 +10,11 @@ implementation
 	Value values[MAX_SIZE];
 	uint16_t count = 0;
 
+	command uint16_t Dictionary.max_size()
+	{
+		return MAX_SIZE;
+	}
+
 	command uint16_t Dictionary.count()
 	{
 		return count;
