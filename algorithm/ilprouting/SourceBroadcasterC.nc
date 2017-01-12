@@ -17,7 +17,9 @@
 // The amount of time in ms that it takes to send a message from one node to another
 #define ALPHA 100
 
-#define SINK_AWAY_MESSAGES_TO_SEND 3
+#define SINK_AWAY_MESSAGES_TO_SEND 2
+
+#define RTX_ATTEMPTS 5
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
@@ -185,8 +187,11 @@ implementation
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000);
 			}
-
-			call ConsiderTimer.startPeriodic(ALPHA);
+			else
+			{
+				// Sink doesn't send any messages
+				call ConsiderTimer.startPeriodic(ALPHA);
+			}
 		}
 		else
 		{
@@ -327,7 +332,7 @@ implementation
 		return call MessageQueue.get_or_default(normal_message->sequence_number, NULL);
 	}
 
-	error_t record_received_message(message_t* msg)
+	error_t record_received_message(message_t* msg, bool switch_to_route_to_sink)
 	{
 		bool success;
 
@@ -352,10 +357,17 @@ implementation
 		}
 
 		memcpy(&item->msg, msg, sizeof(*item));
-		item->time_added = call LocalTime.get();
 
+		if (switch_to_route_to_sink)
+		{
+			NormalMessage* stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
+
+			stored_normal_message->stage = NORMAL_ROUTE_TO_SINK;
+		}
+
+		item->time_added = call LocalTime.get();
 		item->ack_requested = FALSE;
-		item->rtx_attempts = 5;
+		item->rtx_attempts = RTX_ATTEMPTS;
 
 		return SUCCESS;
 	}
@@ -369,7 +381,7 @@ implementation
 		}
 		else
 		{
-			const NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+			NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
 			message_queue_info_t* info = find_message_queue_info(msg);
 
@@ -393,8 +405,21 @@ implementation
 					// Give up sending this message
 					if (info->rtx_attempts == 0)
 					{
-						call MessageQueue.remove(normal_message->sequence_number);
-						call MessagePool.put(info);
+						if (normal_message->stage == NORMAL_ROUTE_AVOID_SINK)
+						{
+							// If we failed to route and avoid the sink, then lets just give up and route towards the sink
+							normal_message->stage = NORMAL_ROUTE_TO_SINK;
+							info->rtx_attempts = RTX_ATTEMPTS;
+
+							simdbg("stdout", "Failed to route message to avoid sink, giving up and routing to sink.\n");
+						}
+						else
+						{
+							// Failed to route to sink, so remove from queue.
+
+							call MessageQueue.remove(normal_message->sequence_number);
+							call MessagePool.put(info);
+						}
 					}
 				}
 				else
@@ -439,7 +464,7 @@ implementation
 		message->stage = NORMAL_ROUTE_AVOID_SINK;
 
 		// Put the message in the buffer, do not send directly.
-		if (record_received_message(&msg) == SUCCESS)
+		if (record_received_message(&msg, FALSE) == SUCCESS)
 		{
 			sequence_number_increment(&normal_sequence_counter);
 		}
@@ -559,13 +584,19 @@ implementation
 
 	event void ConsiderTimer.fired()
 	{
-		//simdbgverbose("stdout", "ConsiderTimer fired. [target_buffer_size=%d, MessageQueue.count()=%u]\n",
-		//	target_buffer_size, call MessageQueue.count());
+		simdbgverbose("stdout", "ConsiderTimer fired. [target_buffer_size=%d, MessageQueue.count()=%u]\n",
+			target_buffer_size, call MessageQueue.count());
 
 		// Consider to whom the message should be sent to
 
+		// If we have no neighbour knowledge, then don't start sending
+		if (neighbours.size == 0)
+		{
+			return;
+		}
+
 		if ((target_buffer_size == BOTTOM && call MessageQueue.count() > 0) ||
-			(target_buffer_size != BOTTOM && call MessageQueue.count() >= target_buffer_size))
+			(target_buffer_size != BOTTOM && call MessageQueue.count() > 0 && call MessageQueue.count() >= target_buffer_size))
 		{
 			am_addr_t next = AM_BROADCAST_ADDR;
 
@@ -574,7 +605,8 @@ implementation
 
 			if (info == NULL)
 			{
-				ERROR_OCCURRED(ERROR_UNKNOWN, "Unable to choose a message to send.\n");
+				ERROR_OCCURRED(ERROR_UNKNOWN, "Unable to choose a message to send (call MessageQueue.count()=%u,target_buffer_size=%u).\n",
+					call MessageQueue.count(), target_buffer_size);
 				return;
 			}
 
@@ -628,23 +660,35 @@ implementation
 	event void AwaySenderTimer.fired()
 	{
 		AwayMessage message;
+		int32_t calc_target_buffer_size;
 
 		simdbgverbose("stdout", "AwaySenderTimer fired.\n");
 
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
-
 		message.target_latency_ms = SLP_TARGET_LATENCY;
-		message.target_buffer_size = (uint16_t)ceil(
-			(SLP_TARGET_LATENCY - (sink_source_distance == BOTTOM ? 0 : sink_source_distance) * ALPHA) /
+
+		// TODO: cannot use SourcePeriodModel.get() here, as only the source should
+		// have access to this!
+		// It needs to be replaced somehow...
+
+		calc_target_buffer_size = (int32_t)ceil(
+			(SLP_TARGET_LATENCY /*- (sink_source_distance == BOTTOM ? 0 : sink_source_distance) * ALPHA*/) /
 			(double)call SourcePeriodModel.get()
 		);
 
-		if (message.target_buffer_size > SLP_SEND_QUEUE_SIZE)
+		if (calc_target_buffer_size > SLP_SEND_QUEUE_SIZE)
 		{
-			ERROR_OCCURRED(ERROR_UNKNOWN, "Invalid target buffer size %u, must be <= %u\n", message.target_buffer_size, SLP_SEND_QUEUE_SIZE);
+			ERROR_OCCURRED(ERROR_UNKNOWN, "Invalid target buffer size %u, must be <= %u\n", calc_target_buffer_size, SLP_SEND_QUEUE_SIZE);
 		}
+
+		if (calc_target_buffer_size <= 0)
+		{
+			ERROR_OCCURRED(ERROR_UNKNOWN, "Invalid target buffer size %u, must be > 0\n", calc_target_buffer_size);
+		}
+
+		message.target_buffer_size = (uint16_t)calc_target_buffer_size;
 
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -689,7 +733,20 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			record_received_message(msg);
+			record_received_message(msg, FALSE);
+		}
+		else
+		{
+			// It is possible that we get a message that we have previously 
+			// If we do nothing the route will terminate
+			//
+			// Note there is a chance that we receive the message, and the sender
+			// fails to receive the ack. This will cause a fork in the single-path route.
+			if (rcvd->stage == NORMAL_ROUTE_AVOID_SINK)
+			{
+				// Record and switch so this message is routed towards the sink
+				record_received_message(msg, TRUE);
+			}
 		}
 	}
 
