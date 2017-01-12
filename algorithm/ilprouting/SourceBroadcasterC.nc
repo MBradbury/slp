@@ -5,6 +5,7 @@
 #include "NeighbourDetail.h"
 
 #include "MessageQueueInfo.h"
+#include "SeqNoWithFlag.h"
 
 #include "NormalMessage.h"
 #include "AwayMessage.h"
@@ -100,7 +101,7 @@ module SourceBroadcasterC
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
-	uses interface SequenceNumbers as NormalSeqNos;
+	uses interface Cache<SeqNoWithFlag> as LruNormalSeqNos;
 
 	uses interface LocalTime<TMilli>;
 
@@ -124,6 +125,7 @@ implementation
 	// All node variables
 	ni_neighbours_t neighbours;
 
+	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
 
 	int16_t sink_distance = BOTTOM;
@@ -144,6 +146,7 @@ implementation
 
 		init_ni_neighbours(&neighbours);
 
+		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
 
 		sink_away_messages_to_send = SINK_AWAY_MESSAGES_TO_SEND;
@@ -429,7 +432,7 @@ implementation
 
 		message = (NormalMessage*)call NormalSend.getPayload(&msg, sizeof(NormalMessage));
 
-		message->sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+		message->sequence_number = sequence_number_next(&normal_sequence_counter);
 		message->source_distance = 0;
 		message->sink_source_distance = sink_source_distance;
 		message->source_id = TOS_NODE_ID;
@@ -438,7 +441,7 @@ implementation
 		// Put the message in the buffer, do not send directly.
 		if (record_received_message(&msg) == SUCCESS)
 		{
-			call NormalSeqNos.increment(TOS_NODE_ID);
+			sequence_number_increment(&normal_sequence_counter);
 		}
 	}
 
@@ -516,8 +519,8 @@ implementation
 		{
 			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-			// TODO: need to consider BOTTOM
 			if (
+					neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
 					neighbour->contents.sink_distance < sink_distance
 			   )
 			{
@@ -556,8 +559,8 @@ implementation
 
 	event void ConsiderTimer.fired()
 	{
-		simdbgverbose("stdout", "ConsiderTimer fired. [target_buffer_size=%d, MessageQueue.count()=%u]\n",
-			target_buffer_size, call MessageQueue.count());
+		//simdbgverbose("stdout", "ConsiderTimer fired. [target_buffer_size=%d, MessageQueue.count()=%u]\n",
+		//	target_buffer_size, call MessageQueue.count());
 
 		// Consider to whom the message should be sent to
 
@@ -585,7 +588,7 @@ implementation
 					next = find_next_in_avoid_sink_route();
 
 					// When we are done with avoiding the sink, we need to head to it
-					if (next == AM_BROADCAST_ADDR && /*neighbours.size > 0 &&*/ (sink_source_distance == BOTTOM || message.source_distance > sink_source_distance))
+					if (next == AM_BROADCAST_ADDR)
 					{
 						simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK\n");
 						message.stage = NORMAL_ROUTE_TO_SINK;
@@ -611,6 +614,13 @@ implementation
 				info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
 				send_Normal_message(&message, next, &info->ack_requested);
+			}
+			else
+			{
+				if (message.stage == NORMAL_ROUTE_TO_SINK && call NodeType.get() != SinkNode)
+				{
+					ERROR_OCCURRED(ERROR_UNKNOWN, "Cannot find route to sink.\n");
+				}
 			}
 		}
 	}
@@ -666,14 +676,16 @@ implementation
 
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage, 0};
+
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
 		source_distance = minbot(source_distance, rcvd->source_distance + 1);
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			call LruNormalSeqNos.insert(seq_no_lookup);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -683,18 +695,20 @@ implementation
 
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage, 0};
+
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
 		source_distance = minbot(source_distance, rcvd->source_distance + 1);
 		sink_source_distance = minbot(sink_source_distance, source_distance);
 
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			call LruNormalSeqNos.insert(seq_no_lookup);
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			record_received_message(msg);
+			//record_received_message(msg);
 		}
 	}
 

@@ -1,5 +1,6 @@
 #include "Constants.h"
 #include "MessageQueueInfo.h"
+#include "SeqNoWithFlag.h"
 
 #include "pp.h"
 
@@ -98,8 +99,8 @@ implementation
     App.SourcePeriodModel -> SourcePeriodModelP;
 
     components
-        new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
-    App.NormalSeqNos -> NormalSeqNos;
+        new CircularBufferC(SeqNoWithFlag, SLP_MAX_NUM_SOURCES * SLP_SEND_QUEUE_SIZE) as LruNormalSeqNos;
+    App.LruNormalSeqNos -> LruNormalSeqNos;
 
     // Pool / Queue
     STATIC_ASSERT_MSG(SLP_SEND_QUEUE_SIZE > 0, SLP_SEND_QUEUE_SIZE_must_be_gt_0);
