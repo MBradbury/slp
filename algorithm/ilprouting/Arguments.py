@@ -27,6 +27,8 @@ class Arguments(ArgumentsCommon):
         result = super(Arguments, self).build_arguments()
 
         result["SLP_SEND_QUEUE_SIZE"] = self.args.max_buffer_size
-        result["SLP_TARGET_LATENCY"] = int(self.args.target_latency * 1000)
+        result["SLP_TARGET_LATENCY_MS"] = int(self.args.target_latency * 1000)
+
+        result["SLP_FASTEST_SOURCE_PERIOD_MS"] = int(self.args.source_period.fastest() * 1000)
 
         return result
