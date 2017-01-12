@@ -667,15 +667,11 @@ implementation
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
-		message.target_latency_ms = SLP_TARGET_LATENCY;
-
-		// TODO: cannot use SourcePeriodModel.get() here, as only the source should
-		// have access to this!
-		// It needs to be replaced somehow...
+		message.target_latency_ms = SLP_TARGET_LATENCY_MS;
 
 		calc_target_buffer_size = (int32_t)ceil(
-			(SLP_TARGET_LATENCY /*- (sink_source_distance == BOTTOM ? 0 : sink_source_distance) * ALPHA*/) /
-			(double)call SourcePeriodModel.get()
+			(SLP_TARGET_LATENCY_MS /*- (sink_source_distance == BOTTOM ? 0 : sink_source_distance) * ALPHA*/) /
+			(double)SLP_FASTEST_SOURCE_PERIOD_MS
 		);
 
 		if (calc_target_buffer_size > SLP_SEND_QUEUE_SIZE)
