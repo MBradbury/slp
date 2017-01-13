@@ -187,11 +187,8 @@ implementation
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000);
 			}
-			else
-			{
-				// Sink doesn't send any messages
-				call ConsiderTimer.startPeriodic(ALPHA);
-			}
+
+			call ConsiderTimer.startPeriodic(ALPHA);
 		}
 		else
 		{
@@ -332,7 +329,7 @@ implementation
 		return call MessageQueue.get_or_default(normal_message->sequence_number, NULL);
 	}
 
-	error_t record_received_message(message_t* msg, bool switch_to_route_to_sink)
+	error_t record_received_message(message_t* msg, uint8_t switch_stage)
 	{
 		bool success;
 
@@ -358,11 +355,11 @@ implementation
 
 		memcpy(&item->msg, msg, sizeof(*item));
 
-		if (switch_to_route_to_sink)
+		if (switch_stage != UINT8_MAX)
 		{
 			NormalMessage* stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
 
-			stored_normal_message->stage = NORMAL_ROUTE_TO_SINK;
+			stored_normal_message->stage = switch_stage;
 		}
 
 		item->time_added = call LocalTime.get();
@@ -464,7 +461,7 @@ implementation
 		message->stage = NORMAL_ROUTE_AVOID_SINK;
 
 		// Put the message in the buffer, do not send directly.
-		if (record_received_message(&msg, FALSE) == SUCCESS)
+		if (record_received_message(&msg, UINT8_MAX) == SUCCESS)
 		{
 			sequence_number_increment(&normal_sequence_counter);
 		}
@@ -547,6 +544,58 @@ implementation
 			if (
 					neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
 					neighbour->contents.sink_distance < sink_distance
+				)
+			{
+				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+			}
+		}
+
+		if (local_neighbours.size == 0)
+		{
+			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
+				neighbours.size);*/
+
+			chosen_address = AM_BROADCAST_ADDR;
+		}
+		else
+		{
+			// Choose a neighbour with equal probabilities.
+			const uint16_t rnd = call Random.rand16();
+			const uint16_t neighbour_index = rnd % local_neighbours.size;
+			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+
+			chosen_address = neighbour->address;
+
+#ifdef SLP_VERBOSE_DEBUG
+			print_ni_neighbours("stdout", &local_neighbours);
+#endif
+
+			/*simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d) (their-dsrc=%d my-dsrc=%d)\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				neighbour->contents.sink_distance, sink_distance,
+				neighbour->contents.source_distance, source_distance);*/
+		}
+
+		return chosen_address;
+	}
+
+	am_addr_t find_next_in_from_sink_route(void)
+	{
+		// Want to find a neighbour closer to the source from the sink
+
+		am_addr_t chosen_address;
+		uint16_t i;
+
+		ni_neighbours_t local_neighbours;
+		init_ni_neighbours(&local_neighbours);
+
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			if (
+					neighbour->contents.source_distance != BOTTOM && source_distance != BOTTOM &&
+					neighbour->contents.source_distance < source_distance
 			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
@@ -581,6 +630,7 @@ implementation
 
 		return chosen_address;
 	}
+
 
 	event void ConsiderTimer.fired()
 	{
@@ -634,6 +684,11 @@ implementation
 					next = find_next_in_to_sink_route();
 				} break;
 
+				case NORMAL_ROUTE_FROM_SINK:
+				{
+					next = find_next_in_from_sink_route();
+				} break;
+
 				default:
 				{
 					simdbg("stderr", "Unknown message stage\n");
@@ -641,7 +696,7 @@ implementation
 				} break;
 			}
 
-			if (next != AM_BROADCAST_ADDR)
+			if (next != AM_BROADCAST_ADDR || message.stage == NORMAL_ROUTE_FROM_SINK)
 			{
 				info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
@@ -688,6 +743,7 @@ implementation
 
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
+			// Failed to send away message, so schedule to retry
 			call AwaySenderTimer.startOneShot(65);
 		}
 		else
@@ -696,6 +752,7 @@ implementation
 
 			sink_away_messages_to_send -= 1;
 
+			// If there are more away messages to send, then schedule the next one
 			if (sink_away_messages_to_send > 0)
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000);
@@ -729,7 +786,18 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			record_received_message(msg, FALSE);
+			// If we are routing from the sink, only do so for a short number of hops
+			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
+			{
+				if (sink_distance <= sink_source_distance / 2)
+				{
+					record_received_message(msg, UINT8_MAX);
+				}
+			}
+			else
+			{
+				record_received_message(msg, UINT8_MAX);
+			}
 		}
 		else
 		{
@@ -741,7 +809,7 @@ implementation
 			if (rcvd->stage == NORMAL_ROUTE_AVOID_SINK)
 			{
 				// Record and switch so this message is routed towards the sink
-				record_received_message(msg, TRUE);
+				record_received_message(msg, NORMAL_ROUTE_TO_SINK);
 			}
 		}
 	}
@@ -761,7 +829,7 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			//record_received_message(msg);
+			record_received_message(msg, NORMAL_ROUTE_FROM_SINK);
 		}
 	}
 

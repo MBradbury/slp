@@ -6,6 +6,7 @@
 typedef enum {
 	NORMAL_ROUTE_AVOID_SINK,
 	NORMAL_ROUTE_TO_SINK,
+  NORMAL_ROUTE_FROM_SINK,
 
 } NormalMessageStages;
 
