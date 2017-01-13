@@ -34,12 +34,12 @@ class Plotter(GenericPlotter):
         self.tk.title(self.windowTitle)
         self.canvas = Canvas(self.tk, width=700, height=700)
         self.canvas.pack(fill=BOTH, expand=YES)
-        self.timeText = self.canvas.create_text(0, 0, text="time=0.0", anchor=NW)
+        self.createText('time', 0, 0, text="time=0.0 seconds")
 
     ###################
     def setTime(self, time):
         if time - self.lastShownTime > 0.00001:
-            self.canvas.itemconfigure(self.timeText, text='Time: %.5f seconds' % time)
+            self.updateText('time', text='Time: %.5f seconds' % time)
             self.lastShownTime = time
 
     ###################
@@ -194,6 +194,14 @@ class Plotter(GenericPlotter):
         self.shapes[ident] = self.canvas.create_rectangle(x1, y1, x2, y2)
         self.configPolygon(self.shapes[ident], linestyle, fillstyle)
         self.tk.update()
+
+    ###################
+    def createText(self, ident, *args, **kwargs):
+        self.shapes[ident] = self.canvas.create_text(*args, anchor=NW, **kwargs)
+
+    ###################
+    def updateText(self, ident, text):
+        self.canvas.itemconfigure(self.shapes[ident], text=text)
 
     ###################
     def delshape(self, ident):

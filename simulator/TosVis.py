@@ -93,6 +93,7 @@ class Gui:
         # Default factor to scale the node positions by
         self._node_position_scale_factor = node_position_scale_factor
 
+        self.scene.execute(0, "createText('events', 200, 0, text='events: 0')")
 
         # set line style used for neighbour relationship
         self.scene.execute(0, 'linestyle(1,color=(.7,.7,.7))')
@@ -284,6 +285,8 @@ class GuiSimulation(Simulation):
     def _during_run(self, event_count):
         if event_count % 10 == 0 and self._node_label is not None and self.nesc_app is not None:
             time = self.sim_time()
+
+            self.gui.scene.execute(time, "updateText('events', text='events: {}')".format(event_count))
 
             for node in self.nodes:
                 var = node.tossim_node.getVariable(self._node_label)
