@@ -169,6 +169,7 @@ class Gui:
         tailfs_colour = [x / 255.0 for x in (196, 146, 37)]
         search_colour = [x / 255.0 for x in (196, 196, 37)]
         change_colour = [x / 255.0 for x in (225, 41, 41)]
+        path_colour = [x / 255.0 for x in (196, 196, 37)]
         source_colour = [x / 255.0 for x in (64, 168, 73)]
         sink_colour = [x / 255.0 for x in (36, 160, 201)]
         normal_colour = [0, 0, 0]
@@ -183,6 +184,8 @@ class Gui:
             colour = search_colour
         elif new_kind == "ChangeNode":
             colour = change_colour
+        elif new_kind == "PathNode":
+            colour = path_colour
         elif new_kind == "NormalNode":
             colour = normal_colour
         elif new_kind == "SourceNode":
