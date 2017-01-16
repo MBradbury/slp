@@ -363,6 +363,7 @@ implementation
 		}
 
 		item->time_added = call LocalTime.get();
+		item->proximate_source = call AMPacket.source(msg);
 		item->ack_requested = FALSE;
 		item->rtx_attempts = RTX_ATTEMPTS;
 
@@ -452,6 +453,9 @@ implementation
 
 		call Packet.clear(&msg);
 
+		// Need to set source as we do not go through the send interface
+		call AMPacket.setSource(&msg, TOS_NODE_ID);
+
 		message = (NormalMessage*)call NormalSend.getPayload(&msg, sizeof(NormalMessage));
 
 		message->sequence_number = sequence_number_next(&normal_sequence_counter);
@@ -467,7 +471,7 @@ implementation
 		}
 	}
 
-	am_addr_t find_next_in_avoid_sink_route(void)
+	am_addr_t find_next_in_avoid_sink_route(const message_queue_info_t* info)
 	{
 		// Want to find a neighbour who has a greater source distance
 		// and the same or further sink distance
@@ -490,21 +494,81 @@ implementation
 
 			if (
 					neighbour_source_distance > source_distance &&
+
 					(
 						(sink_distance != BOTTOM && sink_source_distance != BOTTOM &&
 							sink_distance * 2 > sink_source_distance)
 						||
 						(neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
 							neighbour->contents.sink_distance >= sink_distance)
-					)
+					) &&
+
+					neighbour->address != info->proximate_source
 			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 			}
 		}
 
+		// TODO:
 		// At this point we have all the valid neighbours we could potentially choose from.
 		// We now need to make sure the best neighbour is chosen.
+
+		if (local_neighbours.size == 0)
+		{
+			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u) (my-sink-distance=%d, my-source-distance=%d)\n",
+				neighbours.size, sink_distance, source_distance);
+
+			print_ni_neighbours("stdout", &neighbours);*/
+		}
+		else
+		{
+			// Choose a neighbour with equal probabilities.
+			const uint16_t rnd = call Random.rand16();
+			const uint16_t neighbour_index = rnd % local_neighbours.size;
+			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+
+			chosen_address = neighbour->address;
+
+#ifdef SLP_VERBOSE_DEBUG
+			print_ni_neighbours("stdout", &local_neighbours);
+#endif
+
+			/*simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d) (their-dsrc=%d my-dsrc=%d)\n",
+				chosen_address, neighbour_index, rnd, local_neighbours.size,
+				neighbour->contents.sink_distance, sink_distance,
+				neighbour->contents.source_distance, source_distance);*/
+		}
+
+		return chosen_address;
+	}
+
+	am_addr_t find_next_in_avoid_sink_backtrack_route(const message_queue_info_t* info)
+	{
+		// The normal message has hit a region where there are no suitable nodes
+		// available. So the message will need to go closer to the source to look
+		// for a better route.
+
+		am_addr_t chosen_address = AM_BROADCAST_ADDR;
+		uint16_t i;
+
+		ni_neighbours_t local_neighbours;
+		init_ni_neighbours(&local_neighbours);
+
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+			if (
+					// Do not send back to the previous node unless absolutely necessary
+					neighbour->address != info->proximate_source &&
+
+					neighbour->contents.sink_distance >= sink_distance
+			   )
+			{
+				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+			}
+		}
 
 		if (local_neighbours.size == 0)
 		{
@@ -675,16 +739,50 @@ implementation
 			{
 				case NORMAL_ROUTE_AVOID_SINK:
 				{
-					next = find_next_in_avoid_sink_route();
+					next = find_next_in_avoid_sink_route(info);
 
 					// When we are done with avoiding the sink, we need to head to it
 					if (next == AM_BROADCAST_ADDR)
 					{
-						simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK\n");
-						message.stage = NORMAL_ROUTE_TO_SINK;
+						if (sink_source_distance != BOTTOM && source_distance < sink_source_distance)
+						{
+							// We are too close to the source and it is likely that we haven't yet gone
+							// around the sink. So lets try backtracking and finding another route.
 
-						next = find_next_in_to_sink_route();
+							simdbg("stdout", "Switching to NORMAL_ROUTE_AVOID_SINK_BACKTRACK\n");
+							message.stage = NORMAL_ROUTE_AVOID_SINK_BACKTRACK;
+
+							next = find_next_in_avoid_sink_backtrack_route(info);
+
+							if (next == AM_BROADCAST_ADDR)
+							{
+								simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up)\n");
+								message.stage = NORMAL_ROUTE_TO_SINK;
+
+								next = find_next_in_to_sink_route();
+							}
+						}
+						else
+						{
+							// No neighbours left to choose from, when far from the source
+
+							simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK\n");
+							message.stage = NORMAL_ROUTE_TO_SINK;
+
+							next = find_next_in_to_sink_route();
+						}
 					}
+				} break;
+
+				case NORMAL_ROUTE_AVOID_SINK_BACKTRACK:
+				{
+					// Received a message after backtracking, now need to pick a better direction to send it in.
+
+					simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK\n");
+					message.stage = NORMAL_ROUTE_AVOID_SINK;
+
+					next = find_next_in_avoid_sink_route(info);
+
 				} break;
 
 				case NORMAL_ROUTE_TO_SINK:
