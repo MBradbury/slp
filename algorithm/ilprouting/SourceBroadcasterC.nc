@@ -410,7 +410,7 @@ implementation
 							normal_message->stage = NORMAL_ROUTE_TO_SINK;
 							info->rtx_attempts = RTX_ATTEMPTS;
 
-							simdbg("stdout", "Failed to route message to avoid sink, giving up and routing to sink.\n");
+							simdbgverbose("stdout", "Failed to route message to avoid sink, giving up and routing to sink.\n");
 						}
 						else
 						{
@@ -494,7 +494,7 @@ implementation
 				: neighbour->contents.source_distance;
 
 			if (
-					neighbour_source_distance > source_distance &&
+					(neighbour_source_distance > source_distance &&
 
 					(
 						(sink_distance != BOTTOM && sink_source_distance != BOTTOM &&
@@ -504,7 +504,13 @@ implementation
 							neighbour->contents.sink_distance >= sink_distance)
 					) &&
 
-					neighbour->address != info->proximate_source
+					neighbour->address != info->proximate_source)
+
+					||
+
+					// If we are the source and do not know our sink distance,
+					// then lets just allow everything
+					(call NodeType.get() == SourceNode && (sink_distance == BOTTOM || sink_source_distance == BOTTOM))
 			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
@@ -617,7 +623,7 @@ implementation
 			if (
 					neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
 					neighbour->contents.sink_distance < sink_distance
-				)
+			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 			}
@@ -754,7 +760,7 @@ implementation
 
 							next = find_next_in_avoid_sink_backtrack_route(info);
 
-							simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen %u\n", next);
+							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen %u\n", next);
 
 							if (next == AM_BROADCAST_ADDR)
 							{
@@ -762,7 +768,7 @@ implementation
 
 								next = find_next_in_to_sink_route();
 
-								simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen %u\n", next);
+								simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen %u\n", next);
 							}
 						}
 						else
@@ -773,7 +779,7 @@ implementation
 
 							next = find_next_in_to_sink_route();
 
-							simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen %u\n", next);
+							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen %u\n", next);
 						}
 					}
 				} break;
@@ -786,7 +792,7 @@ implementation
 
 					next = find_next_in_avoid_sink_route(info);
 
-					simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", next);
+					simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", next);
 
 				} break;
 
@@ -802,7 +808,7 @@ implementation
 
 				default:
 				{
-					simdbg("stderr", "Unknown message stage\n");
+					simdbgverbose("stderr", "Unknown message stage\n");
 					next = AM_BROADCAST_ADDR;
 				} break;
 			}
@@ -825,7 +831,7 @@ implementation
 
 				if (info->calculate_target_attempts == 0)
 				{
-					simdbg("stdout", "Removing the message %" PRIu32 " from the pool as we have failed to work out where to send it.\n",
+					simdbgverbose("stdout", "Removing the message %" PRIu32 " from the pool as we have failed to work out where to send it.\n",
 						message.sequence_number);
 
 					call MessageQueue.remove(message.sequence_number);
@@ -1048,6 +1054,18 @@ implementation
 		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
+
+		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance_of_sender));
+		source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
+
+		if (call NodeType.get() == SourceNode)
+		{
+			sink_source_distance = minbot(sink_source_distance, sink_distance);
+		}
+		if (call NodeType.get() == SinkNode)
+		{
+			sink_source_distance = minbot(sink_source_distance, source_distance);
+		}
 
 		if (rcvd->target_buffer_size_of_sender != BOTTOM)
 		{
