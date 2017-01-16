@@ -366,6 +366,7 @@ implementation
 		item->proximate_source = call AMPacket.source(msg);
 		item->ack_requested = FALSE;
 		item->rtx_attempts = RTX_ATTEMPTS;
+		item->calculate_target_attempts = RTX_ATTEMPTS;
 
 		return SUCCESS;
 	}
@@ -379,9 +380,9 @@ implementation
 		}
 		else
 		{
-			NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+			message_queue_info_t* const info = find_message_queue_info(msg);
 
-			message_queue_info_t* info = find_message_queue_info(msg);
+			NormalMessage* const normal_message = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
 
 			if (info != NULL)
 			{
@@ -749,27 +750,30 @@ implementation
 							// We are too close to the source and it is likely that we haven't yet gone
 							// around the sink. So lets try backtracking and finding another route.
 
-							simdbg("stdout", "Switching to NORMAL_ROUTE_AVOID_SINK_BACKTRACK\n");
 							message.stage = NORMAL_ROUTE_AVOID_SINK_BACKTRACK;
 
 							next = find_next_in_avoid_sink_backtrack_route(info);
 
+							simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen %u\n", next);
+
 							if (next == AM_BROADCAST_ADDR)
 							{
-								simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up)\n");
 								message.stage = NORMAL_ROUTE_TO_SINK;
 
 								next = find_next_in_to_sink_route();
+
+								simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen %u\n", next);
 							}
 						}
 						else
 						{
 							// No neighbours left to choose from, when far from the source
 
-							simdbg("stdout", "Switching to NORMAL_ROUTE_TO_SINK\n");
 							message.stage = NORMAL_ROUTE_TO_SINK;
 
 							next = find_next_in_to_sink_route();
+
+							simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen %u\n", next);
 						}
 					}
 				} break;
@@ -777,11 +781,12 @@ implementation
 				case NORMAL_ROUTE_AVOID_SINK_BACKTRACK:
 				{
 					// Received a message after backtracking, now need to pick a better direction to send it in.
-
-					simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK\n");
+					
 					message.stage = NORMAL_ROUTE_AVOID_SINK;
 
 					next = find_next_in_avoid_sink_route(info);
+
+					simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", next);
 
 				} break;
 
@@ -813,6 +818,18 @@ implementation
 				if (message.stage == NORMAL_ROUTE_TO_SINK && call NodeType.get() != SinkNode)
 				{
 					ERROR_OCCURRED(ERROR_UNKNOWN, "Cannot find route to sink.\n");
+				}
+
+				// Remove if unable to send
+				info->calculate_target_attempts -= 1;
+
+				if (info->calculate_target_attempts == 0)
+				{
+					simdbg("stdout", "Removing the message %" PRIu32 " from the pool as we have failed to work out where to send it.\n",
+						message.sequence_number);
+
+					call MessageQueue.remove(message.sequence_number);
+					call MessagePool.put(info);
 				}
 			}
 		}
