@@ -897,7 +897,10 @@ implementation
 		message.target_buffer_size_of_sender = target_buffer_size;
 		message.target_latency_ms_of_sender = target_latency_ms;
 
-		send_Beacon_message(&message, AM_BROADCAST_ADDR);
+		if (!send_Beacon_message(&message, AM_BROADCAST_ADDR))
+		{
+			call BeaconSenderTimer.startOneShot(65);
+		}
 	}
 
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
