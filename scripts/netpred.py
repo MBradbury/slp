@@ -89,7 +89,10 @@ class NetworkPredicateChecker(object):
 
             for neigh
             in self.configuration.one_hop_neighbours(nid)
-            if dsrc(neigh, source_id) > dsrc(nid, source_id) and (dsink(nid) > ssd(source_id) / 2 or dsink(neigh) >= dsink(nid))
+
+            #if dsrc(neigh, source_id) > dsrc(nid, source_id) and (dsink(nid) > ssd(source_id) / 2 or dsink(neigh) >= dsink(nid))
+
+            if dsrc(neigh, source_id) > dsrc(nid, source_id) and (dsink(nid) * 2 > ssd(source_id) or dsink(neigh) >= dsink(nid))
         ]
 
 

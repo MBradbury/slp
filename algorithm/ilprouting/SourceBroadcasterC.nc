@@ -484,19 +484,27 @@ implementation
 		{
 			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-			const int16_t neighbour_source_distance = neighbour->contents.source_distance == BOTTOM ? source_distance+1 : neighbour->contents.source_distance;
+			const int16_t neighbour_source_distance = neighbour->contents.source_distance == BOTTOM
+				? source_distance+1
+				: neighbour->contents.source_distance;
 
 			if (
 					neighbour_source_distance > source_distance &&
 					(
-						(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance > sink_source_distance / 2) ||
-						(neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM && neighbour->contents.sink_distance >= sink_distance)
+						(sink_distance != BOTTOM && sink_source_distance != BOTTOM &&
+							sink_distance * 2 > sink_source_distance)
+						||
+						(neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
+							neighbour->contents.sink_distance >= sink_distance)
 					)
 			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 			}
 		}
+
+		// At this point we have all the valid neighbours we could potentially choose from.
+		// We now need to make sure the best neighbour is chosen.
 
 		if (local_neighbours.size == 0)
 		{
@@ -789,7 +797,7 @@ implementation
 			// If we are routing from the sink, only do so for a short number of hops
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
 			{
-				if (sink_distance <= sink_source_distance / 2)
+				if (sink_distance * 2 <= sink_source_distance)
 				{
 					record_received_message(msg, UINT8_MAX);
 				}
