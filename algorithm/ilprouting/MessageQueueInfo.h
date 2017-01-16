@@ -7,6 +7,7 @@ typedef struct message_queue_info
 	uint32_t time_added;
 	am_addr_t proximate_source;
 	uint8_t rtx_attempts;
+	uint8_t calculate_target_attempts;
 	bool ack_requested;
 
 } message_queue_info_t;
