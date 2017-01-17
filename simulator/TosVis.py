@@ -142,12 +142,15 @@ class Gui:
             return
 
         if ledno == 0:
+            # Red
             x, y = x+5, y+5
             color = '1,0,0'
         elif ledno == 1:
+            # Green
             x, y = x, y+5
-            color = '0,.8,0'
+            color = '0,1,0'
         elif ledno == 2:
+            # Blue
             x, y = x-5, y+5
             color = '0,0,1'
         else:
@@ -161,7 +164,7 @@ class Gui:
         (amtype, amlen, amdst) = detail
         (x, y) = self.node_location(sender)
         self.scene.execute(time,
-                   'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.3)'
+                   'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.2)'
                % (x, y, 10))
 
     ####################
@@ -169,14 +172,14 @@ class Gui:
         (amtype, amlen) = detail
         (x, y) = self.node_location(receiver)
         self.scene.execute(time,
-            'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
+            'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.2)'
             % (x, y, 10))
 
     def _animate_am_snoop(self, time, snooper, detail):
         (amtype, amlen, amtarget, attime) = detail
         (x, y) = self.node_location(snooper)
         self.scene.execute(time,
-            'circle(%d,%d,%d,line=LineStyle(color=(0.0,0.5,0.5),width=2.5),delay=.3)'
+            'circle(%d,%d,%d,line=LineStyle(color=(0.0,0.5,0.5),width=2),delay=.2)'
             % (x, y, 10))
 
     def _animate_change_state(self, time, node, detail):
