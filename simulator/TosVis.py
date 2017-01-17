@@ -12,10 +12,12 @@ class DebugAnalyzer:
     CHANGE  = 3
     DAS     = 4
     ARROW   = 5
+    AM_SNOOP = 6
 
     LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
+    AMSNOOP_RE = re.compile(r'Snooped on active message of type (\d+) and length (\d+) for (\d+) @ (.+)\.')
     CHANGE_RE = re.compile(r'([a-zA-Z]+Node|<unknown>),([a-zA-Z]+Node)')
     DAS_RE    = re.compile(r'DAS is (\d)')
     ARROW_RE  = re.compile(r'arrow,(\+|\-|!),(\d+),(\d+),\(([0-9\.]+),([0-9\.]+),([0-9\.]+)\)')
@@ -51,6 +53,14 @@ class DebugAnalyzer:
             amtype = int(match.group(1))
             amlen  = int(match.group(2))
             return (self.AM_RECV, (amtype, amlen))
+
+        match = self.AMSNOOP_RE.match(detail)
+        if match is not None:
+            amtype = int(match.group(1))
+            amlen  = int(match.group(2))
+            amtarget = int(match.group(3))
+            attime  = str(match.group(4))
+            return (self.AM_SNOOP, (amtype, amlen, amtarget, attime))
 
         # Node becoming TFS, PFS, Normal, or any of the other types
         match = self.CHANGE_RE.match(detail)
@@ -162,38 +172,31 @@ class Gui:
             'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.3)'
             % (x, y, 10))
 
+    def _animate_am_snoop(self, time, snooper, detail):
+        (amtype, amlen, amtarget, attime) = detail
+        (x, y) = self.node_location(snooper)
+        self.scene.execute(time,
+            'circle(%d,%d,%d,line=LineStyle(color=(0.0,0.5,0.5),width=2.5),delay=.3)'
+            % (x, y, 10))
+
     def _animate_change_state(self, time, node, detail):
         (old_kind, new_kind) = detail
 
-        pfs_colour = [x / 255.0 for x in (225, 41, 41)]
-        tfs_colour = [x / 255.0 for x in (196, 196, 37)]
-        tailfs_colour = [x / 255.0 for x in (196, 146, 37)]
-        search_colour = [x / 255.0 for x in (196, 196, 37)]
-        change_colour = [x / 255.0 for x in (225, 41, 41)]
-        path_colour = [x / 255.0 for x in (196, 196, 37)]
-        source_colour = [x / 255.0 for x in (64, 168, 73)]
-        sink_colour = [x / 255.0 for x in (36, 160, 201)]
-        normal_colour = [0, 0, 0]
+        colour_map = {
+            "TempFakeNode": (196, 196, 37),
+            "PermFakeNode": (225, 41, 41),
+            "TailFakeNode": (196, 146, 37),
+            "SearchNode":   (196, 196, 37),
+            "ChangeNode":   (225, 41, 41),
+            "PathNode":     (196, 196, 37),
+            "NormalNode":   (0, 0, 0),
+            "SourceNode":   (64, 168, 73),
+            "SinkNode":     (36, 160, 201),
+        }
 
-        if new_kind == "TempFakeNode":
-            colour = tfs_colour
-        elif new_kind == "PermFakeNode":
-            colour = pfs_colour
-        elif new_kind == "TailFakeNode":
-            colour = tailfs_colour
-        elif new_kind == "SearchNode":
-            colour = search_colour
-        elif new_kind == "ChangeNode":
-            colour = change_colour
-        elif new_kind == "PathNode":
-            colour = path_colour
-        elif new_kind == "NormalNode":
-            colour = normal_colour
-        elif new_kind == "SourceNode":
-            colour = source_colour
-        elif new_kind == "SinkNode":
-            colour = sink_colour
-        else:
+        try:
+            colour = [x / 255.0 for x in colour_map[new_kind]]
+        except KeyError:
             raise RuntimeError("Unknown kind '{}'".format(new_kind))
 
         self.scene.execute(time, 'nodecolor({},{},{},{})'.format(node, *colour))
@@ -260,6 +263,7 @@ class Gui:
             DebugAnalyzer.LED: self._animate_leds,
             DebugAnalyzer.AM_SEND: self._animate_am_send,
             DebugAnalyzer.AM_RECV: self._animate_am_receive,
+            DebugAnalyzer.AM_SNOOP: self._animate_am_snoop,
             DebugAnalyzer.CHANGE: self._animate_change_state,
             DebugAnalyzer.DAS: self._animate_das_state,
             DebugAnalyzer.ARROW: self._animate_arrow,
