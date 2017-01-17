@@ -13,4 +13,10 @@ typedef struct
 	uint8_t padding;
 } SeqNoWithFlag;
 
+typedef struct
+{
+	SequenceNumber seq_no;
+	am_addr_t addr;
+} SeqNoWithAddr;
+
 #endif // SLP_SEQNOWITHFLAG_H

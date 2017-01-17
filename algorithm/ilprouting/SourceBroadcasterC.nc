@@ -15,11 +15,13 @@
 #include <TinyError.h>
 
 // The amount of time in ms that it takes to send a message from one node to another
-#define ALPHA 100
+#define ALPHA 10
 
 #define SINK_AWAY_MESSAGES_TO_SEND 2
 
 #define RTX_ATTEMPTS 5
+
+#define NORMAL_ROUTE_FROM_SINK_DISTANCE_LIMIT 3
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
@@ -108,7 +110,7 @@ module SourceBroadcasterC
 	uses interface LocalTime<TMilli>;
 
 	// Messages that are queued to send
-	uses interface Dictionary<SequenceNumber, message_queue_info_t*> as MessageQueue;
+	uses interface Dictionary<SeqNoWithAddr, message_queue_info_t*> as MessageQueue;
     uses interface Pool<message_queue_info_t> as MessagePool;
 }
 
@@ -248,23 +250,23 @@ implementation
 
 	void print_dictionary_queue(void)
 	{
-		const SequenceNumber* begin = call MessageQueue.beginKeys();
-		const SequenceNumber* end = call MessageQueue.endKeys();
+		const SeqNoWithAddr* begin = call MessageQueue.beginKeys();
+		const SeqNoWithAddr* end = call MessageQueue.endKeys();
 
 		simdbg("stdout", "{");
 
 		for (; begin != end; ++begin)
 		{
-			const SequenceNumber key = *begin;
+			const SeqNoWithAddr key = *begin;
 			message_queue_info_t** value = call MessageQueue.get(key);
 
 			if (value)
 			{
-				simdbg_clear("stdout", "%" PRIu32 ": %p", key, *value);
+				simdbg_clear("stdout", "(%" PRIu32 ",%" PRIu32 "): %p", key.seq_no, key.addr, *value);
 			}
 			else
 			{
-				simdbg_clear("stdout", "%" PRIu32 ": NULL", key);
+				simdbg_clear("stdout", "(%" PRIu32 ",%" PRIu32 "): NULL", key.seq_no, key.addr);
 			}
 
 			if (begin + 1 != end)
@@ -348,35 +350,61 @@ implementation
 		return random_float() <= SLP_PR_SEND_DIRECT_TO_SINK;
 	}
 
+	void put_back_in_pool(message_queue_info_t* info)
+	{
+		const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
+
+		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
+
+		call MessageQueue.remove(seq_no_lookup);
+		call MessagePool.put(info);
+	}
+
 	message_queue_info_t* find_message_queue_info(message_t* msg)
 	{
-		const NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+		const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
-		return call MessageQueue.get_or_default(normal_message->sequence_number, NULL);
+		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
+
+		return call MessageQueue.get_or_default(seq_no_lookup, NULL);
 	}
 
 	error_t record_received_message(message_t* msg, uint8_t switch_stage)
 	{
 		bool success;
+		message_queue_info_t* item;
 
-		const NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+		// Check if there is already a message with this sequence number present
+		// If there is then we will just overwrite it with the current message.
+		item = find_message_queue_info(msg);
 
-		message_queue_info_t* item = call MessagePool.get();
 		if (!item)
 		{
-			ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
+			const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
-			return ENOMEM;
+			const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
+
+			item = call MessagePool.get();
+			if (!item)
+			{
+				ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
+
+				return ENOMEM;
+			}
+
+			success = call MessageQueue.put(seq_no_lookup, item);
+			if (!success)
+			{
+				ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
+
+				call MessagePool.put(item);
+
+				return ENOMEM;
+			}
 		}
-
-		success = call MessageQueue.put(normal_message->sequence_number, item);
-		if (!success)
+		else
 		{
-			ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
-
-			call MessagePool.put(item);
-
-			return ENOMEM;
+			simdbgverbose("stdout", "Overwriting message in the queue with a message of the same seq no and source id\n");
 		}
 
 		memcpy(&item->msg, msg, sizeof(*item));
@@ -441,17 +469,14 @@ implementation
 						else
 						{
 							// Failed to route to sink, so remove from queue.
-
-							call MessageQueue.remove(normal_message->sequence_number);
-							call MessagePool.put(info);
+							put_back_in_pool(info);
 						}
 					}
 				}
 				else
 				{
 					// All good
-					call MessageQueue.remove(normal_message->sequence_number);
-					call MessagePool.put(info);
+					put_back_in_pool(info);
 
 					if (ack_requested & was_acked)
 					{
@@ -907,8 +932,7 @@ implementation
 					simdbgverbose("stdout", "Removing the message %" PRIu32 " from the pool as we have failed to work out where to send it.\n",
 						message.sequence_number);
 
-					call MessageQueue.remove(message.sequence_number);
-					call MessagePool.put(info);
+					put_back_in_pool(info);
 				}
 			}
 		}
@@ -994,7 +1018,7 @@ implementation
 			// If we are routing from the sink, only do so for a short number of hops
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
 			{
-				if (sink_distance <= 3)
+				if (sink_distance <= NORMAL_ROUTE_FROM_SINK_DISTANCE_LIMIT)
 				{
 					record_received_message(msg, UINT8_MAX);
 				}
