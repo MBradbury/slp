@@ -108,7 +108,7 @@ implementation
 
     components
         new PoolC(message_queue_info_t, SLP_SEND_QUEUE_SIZE) as MessagePoolP,
-        new DictionaryP(SequenceNumber, message_queue_info_t*, SLP_SEND_QUEUE_SIZE) as MessageQueueP;
+        new DictionaryP(SeqNoWithAddr, message_queue_info_t*, SLP_SEND_QUEUE_SIZE) as MessageQueueP;
 
     App.MessagePool -> MessagePoolP;
     App.MessageQueue -> MessageQueueP;
