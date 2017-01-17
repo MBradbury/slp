@@ -142,6 +142,20 @@ implementation
 
 	// Rest
 
+	// Produces a random float between 0 and 1
+	float random_float(void)
+	{
+		// There appears to be problem with the 32 bit random number generator
+		// in TinyOS that means it will not generate numbers in the full range
+		// that a 32 bit integer can hold. So use the 16 bit value instead.
+		// With the 16 bit integer we get better float values to compared to the
+		// fake source probability.
+		// Ref: https://github.com/tinyos/tinyos-main/issues/248
+		const uint16_t rnd = call Random.rand16();
+
+		return ((float)rnd) / UINT16_MAX;
+	}
+
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
@@ -322,6 +336,18 @@ implementation
 		}
 	}
 
+	bool source_should_send_to_sink(void)
+	{
+		// Wait for a few messages to head out before doing this.
+
+		if (sequence_number_get(&normal_sequence_counter) <= 10)
+		{
+			return FALSE;
+		}
+
+		return random_float() <= SLP_PR_SEND_DIRECT_TO_SINK;
+	}
+
 	message_queue_info_t* find_message_queue_info(message_t* msg)
 	{
 		const NormalMessage* normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
@@ -463,7 +489,20 @@ implementation
 		message->source_distance = 0;
 		message->sink_source_distance = sink_source_distance;
 		message->source_id = TOS_NODE_ID;
-		message->stage = NORMAL_ROUTE_AVOID_SINK;
+
+
+		// After a while we want to just route directly to the sink every so often.
+		// This should improve the latency and also reduce the chances of avoidance messages
+		// drawing the attacker back to the source.
+		if (source_should_send_to_sink())
+		{
+			simdbgverbose("stdout", "source is sending message direct to the sink\n");
+			message->stage = NORMAL_ROUTE_TO_SINK;
+		}
+		else
+		{
+			message->stage = NORMAL_ROUTE_AVOID_SINK;
+		}
 
 		// Put the message in the buffer, do not send directly.
 		if (record_received_message(&msg, UINT8_MAX) == SUCCESS)
@@ -658,26 +697,51 @@ implementation
 		return chosen_address;
 	}
 
-	am_addr_t find_next_in_from_sink_route(void)
+	am_addr_t find_next_in_from_sink_route(const message_queue_info_t* info)
 	{
-		// Want to find a neighbour closer to the source from the sink
-
 		am_addr_t chosen_address;
 		uint16_t i;
 
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
 
+		// The sink should broadcast to all neighbours
+		// Subsequent nodes should unicast, but might broadcast
+		if (call NodeType.get() == SinkNode)
+		{
+			return AM_BROADCAST_ADDR;
+		}
+
 		for (i = 0; i != neighbours.size; ++i)
 		{
 			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
 			if (
-					neighbour->contents.source_distance != BOTTOM && source_distance != BOTTOM &&
-					neighbour->contents.source_distance < source_distance
+					// Do not send back to the previous node
+					neighbour->address != info->proximate_source &&
+
+					neighbour->contents.sink_distance > sink_distance
 			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+			}
+		}
+
+		if (local_neighbours.size == 0)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				if (
+						// Do not send back to the previous node
+						neighbour->address != info->proximate_source &&
+
+						neighbour->contents.sink_distance >= sink_distance
+				   )
+				{
+					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
 			}
 		}
 
@@ -742,6 +806,14 @@ implementation
 			message = *(NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
 			message.source_distance += 1;
 
+			// If we have hit the maximum walk distance, switch to routing to sink
+			if (message.source_distance >= SLP_MAX_WALK_LENGTH)
+			{
+				message.stage = NORMAL_ROUTE_TO_SINK;
+
+				simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK as max walk length has been hit\n");
+			}
+
 			switch (message.stage)
 			{
 				case NORMAL_ROUTE_AVOID_SINK:
@@ -803,7 +875,8 @@ implementation
 
 				case NORMAL_ROUTE_FROM_SINK:
 				{
-					next = find_next_in_from_sink_route();
+					// AM_BROADCAST_ADDR is valid for this function
+					next = find_next_in_from_sink_route(info);
 				} break;
 
 				default:
@@ -921,7 +994,7 @@ implementation
 			// If we are routing from the sink, only do so for a short number of hops
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
 			{
-				if (sink_distance * 2 <= sink_source_distance)
+				if (sink_distance <= 3)
 				{
 					record_received_message(msg, UINT8_MAX);
 				}
