@@ -207,3 +207,24 @@ class ArgumentsCommon(object):
                     return configuration.topology.to_topo_nid(ord_node_id)
 
             raise RuntimeError("No way to work out node from {}.".format(topo_node_id_str))
+
+    @staticmethod
+    def type_probability(x):
+        x = float(x)
+        if x < 0.0 or x > 1.0:
+            raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]".format(x))
+        return x
+
+    @staticmethod
+    def type_positive_int(x):
+        x = int(x)
+        if x < 0:
+            raise argparse.ArgumentTypeError("{} must be positive".format(x))
+        return x
+
+    @staticmethod
+    def type_positive_float(x):
+        x = float(x)
+        if x < 0:
+            raise argparse.ArgumentTypeError("{} must be positive".format(x))
+        return x
