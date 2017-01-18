@@ -543,17 +543,13 @@ implementation
 
 	bool find_next_in_avoid_sink_route(const message_queue_info_t* info, am_addr_t* next)
 	{
-		// Want to find a neighbour who has a greater source distance
-		// and the same or further sink distance
-
-		// Return AM_BROADCAST_ADDR when no available nodes.
-
 		bool success = FALSE;
 		uint16_t i;
 
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
 
+		// Prefer to pick neighbours with a greater source and also greater sink distance
 		for (i = 0; i != neighbours.size; ++i)
 		{
 			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
@@ -563,25 +559,51 @@ implementation
 				: neighbour->contents.source_distance;
 
 			if (
-					(neighbour_source_distance > source_distance &&
+					neighbour_source_distance > source_distance &&
+				
+					(neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
+						neighbour->contents.sink_distance >= sink_distance) &&
 
-					(
-						(sink_distance != BOTTOM && sink_source_distance != BOTTOM &&
-							sink_distance * 2 > sink_source_distance)
-						||
-						(neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
-							neighbour->contents.sink_distance >= sink_distance)
-					) &&
-
-					neighbour->address != info->proximate_source)
-
-					||
-
-					// If we are the source and do not know our sink distance,
-					// then lets just allow everything
-					(call NodeType.get() == SourceNode && (sink_distance == BOTTOM || sink_source_distance == BOTTOM))
-			   )
+					neighbour->address != info->proximate_source
+				)
 			{
+				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+			}
+		}
+
+		// Otherwise look for neighbours with a greater source distance
+		// that are in the ssd/2 area
+		if (local_neighbours.size == 0)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				const int16_t neighbour_source_distance = neighbour->contents.source_distance == BOTTOM
+					? source_distance+1
+					: neighbour->contents.source_distance;
+
+				if (
+						neighbour_source_distance > source_distance &&
+
+						(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance * 2 > sink_source_distance) &&
+
+						neighbour->address != info->proximate_source
+					)
+				{
+					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+			}
+		}
+
+		// If this is the source and the sink distance and ssd are unknown, just allow everyone.
+		if (local_neighbours.size == 0 && call NodeType.get() == SourceNode &&
+			sink_distance == BOTTOM || sink_source_distance == BOTTOM)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 			}
 		}
