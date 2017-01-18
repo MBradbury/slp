@@ -26,10 +26,7 @@ class RunSimulations(RunSimulationsCommon):
         tdma_num_slots = darguments["tdma num slots"]
         tdma_period_length = dissem_period + (slot_period * tdma_num_slots)
         ssd = network_size - 1                                                  #XXX Cheap fix until I find the real solution
-        change_distance = ssd // 3
-        path_length = search_distance + change_distance
 
-        # return path_length*tdma_period_length
         return (1 + ssd)*tdma_period_length*1.5
 
 class CLI(CommandLineCommon.CLI):
@@ -46,9 +43,9 @@ class CLI(CommandLineCommon.CLI):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 11:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8) #Assuming 100 slots and 5.5s period length
         elif size == 15:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=12) #Assuming 100 slots and 5.5s period length
         elif size == 21:
             return datetime.timedelta(hours=1)
         elif size == 25:
