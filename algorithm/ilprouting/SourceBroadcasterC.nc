@@ -14,20 +14,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-// The amount of time in ms that it takes to send a message from one node to another
-#define ALPHA 20
-
-#define SINK_AWAY_MESSAGES_TO_SEND 2
-#define SINK_AWAY_DELAY_MS (1 * 1000)
-#define AWAY_BEACON_RETRY_SEND_DELAY 65
-
-#define BEACON_SEND_DELAY_FIXED 100
-#define BEACON_SEND_DELAY_RANDOM 50
-
-#define RTX_ATTEMPTS 5
-
-#define NORMAL_ROUTE_FROM_SINK_DISTANCE_LIMIT 3
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
@@ -458,6 +444,8 @@ implementation
 
 					UPDATE_NEIGHBOURS_FAILED_UNICAST(target);
 
+					info->failed_neighbour_sends[failed_neighbour_sends_length(info)] = target;
+
 					info->rtx_attempts -= 1;
 
 					// Give up sending this message
@@ -559,13 +547,13 @@ implementation
 				: neighbour->contents.source_distance;
 
 			if (
-					neighbour_source_distance > source_distance &&
-				
-					(neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
-						neighbour->contents.sink_distance >= sink_distance) &&
+				neighbour_source_distance > source_distance &&
+			
+				(neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
+					neighbour->contents.sink_distance >= sink_distance) &&
 
-					neighbour->address != info->proximate_source
-				)
+				neighbour->address != info->proximate_source
+			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 			}
@@ -584,12 +572,12 @@ implementation
 					: neighbour->contents.source_distance;
 
 				if (
-						neighbour_source_distance > source_distance &&
+					neighbour_source_distance > source_distance &&
 
-						(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance * 2 > sink_source_distance) &&
+					(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance * 2 > sink_source_distance) &&
 
-						neighbour->address != info->proximate_source
-					)
+					neighbour->address != info->proximate_source
+				   )
 				{
 					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -598,7 +586,7 @@ implementation
 
 		// If this is the source and the sink distance and ssd are unknown, just allow everyone.
 		if (local_neighbours.size == 0 && call NodeType.get() == SourceNode &&
-			sink_distance == BOTTOM || sink_source_distance == BOTTOM)
+			(sink_distance == BOTTOM || sink_source_distance == BOTTOM))
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -659,10 +647,10 @@ implementation
 			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
 			if (
-					// Do not send back to the previous node unless absolutely necessary
-					neighbour->address != info->proximate_source &&
+				// Do not send back to the previous node unless absolutely necessary
+				neighbour->address != info->proximate_source &&
 
-					neighbour->contents.sink_distance >= sink_distance
+				neighbour->contents.sink_distance >= sink_distance
 			   )
 			{
 				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
@@ -699,6 +687,66 @@ implementation
 		return success;
 	}
 
+	void init_bad_neighbours(const message_queue_info_t* info, am_addr_t* bad_neighbours, uint8_t* bad_neighbours_size)
+	{
+		uint8_t i, j;
+
+		am_addr_t skippable_neighbours[RTX_ATTEMPTS];
+		uint8_t skippable_neighbours_count[RTX_ATTEMPTS];
+		uint8_t skippable_neighbours_size = 0;
+
+		const uint8_t bad_threshold = BAD_NEIGHBOUR_THRESHOLD;
+
+		// Count how many neighbours turn up
+		for (i = 0; i != failed_neighbour_sends_length(info); ++i)
+		{
+			const am_addr_t bad_neighbour = info->failed_neighbour_sends[i];
+
+			for (j = 0; j != skippable_neighbours_size; ++j)
+			{
+				if (skippable_neighbours[j] == bad_neighbour)
+					break;
+			}
+
+			if (j == skippable_neighbours_size)
+			{
+				skippable_neighbours_size += 1;
+
+				skippable_neighbours[j] = bad_neighbour;
+				skippable_neighbours_count[j] = 1;
+			}
+			else
+			{
+				skippable_neighbours_count[j] += 1;
+			}
+		}
+
+		// Copy neighbours that are bad to the list
+		for (i = 0; i != skippable_neighbours_size; ++i)
+		{
+			if (skippable_neighbours_count[i] >= bad_threshold)
+			{
+				bad_neighbours[*bad_neighbours_size] = skippable_neighbours[i];
+				*bad_neighbours_size += 1;
+			}
+		}
+	}
+
+	bool neighbour_present(const am_addr_t* neighs, uint8_t neighs_size, am_addr_t neighbour)
+	{
+		uint8_t i;
+
+		for (i = 0; i != neighs_size; ++i)
+		{
+			if (neighs[i] == neighbour)
+			{
+				return TRUE;
+			}
+		}
+
+		return FALSE;
+	}
+
 	bool find_next_in_to_sink_route(const message_queue_info_t* info, am_addr_t* next)
 	{
 		// Want to find a neighbour who has a smaller sink distance
@@ -706,19 +754,108 @@ implementation
 		bool success = FALSE;
 		uint16_t i;
 
+		am_addr_t bad_neighbours[RTX_ATTEMPTS];
+		uint8_t bad_neighbours_size = 0;
+
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
 
-		for (i = 0; i != neighbours.size; ++i)
-		{
-			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+		// Find out if there are any bad neighbours present. If there are
+		// then we will try to pick a neighbour other than this one.
+		init_bad_neighbours(info, bad_neighbours, &bad_neighbours_size);
 
-			if (
-					neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
-					neighbour->contents.sink_distance < sink_distance
-			   )
+		// Try sending to neighbours that are closer to the sink and further from the source
+		if (local_neighbours.size == 0)
+		{
+			for (i = 0; i != neighbours.size; ++i)
 			{
-				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				if (
+					neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
+					neighbour->contents.sink_distance < sink_distance &&
+
+					neighbour->contents.source_distance != BOTTOM && source_distance != BOTTOM &&
+					neighbour->contents.source_distance >= source_distance &&
+
+					!neighbour_present(bad_neighbours, bad_neighbours_size, neighbour->address)
+				   )
+				{
+					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+			}
+		}
+
+		// Try sending to neighbours closer to the sink
+		if (local_neighbours.size == 0)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				if (
+					neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
+					neighbour->contents.sink_distance < sink_distance &&
+
+					!neighbour_present(bad_neighbours, bad_neighbours_size, neighbour->address)
+				   )
+				{
+					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+			}
+		}
+
+		// Try sliding about same-sink distance nodes
+		if (local_neighbours.size == 0)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				if (
+					neighbour->contents.sink_distance != BOTTOM && sink_distance != BOTTOM &&
+					neighbour->contents.sink_distance == sink_distance &&
+
+					!neighbour_present(bad_neighbours, bad_neighbours_size, neighbour->address)
+				   )
+				{
+					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+			}
+		}
+
+		// Just pick a random neighbour that wasn't the one we just came from
+		if (local_neighbours.size == 0)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				if (
+					neighbour->address != info->proximate_source &&
+
+					!neighbour_present(bad_neighbours, bad_neighbours_size, neighbour->address)
+				   )
+				{
+					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+			}
+		}
+
+		// Just pick a random neighbour that wasn't the one we just came from.
+		// Also allow potentially bad neighbours.
+		if (local_neighbours.size == 0)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				if (
+					neighbour->address != info->proximate_source
+				   )
+				{
+					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
 			}
 		}
 
@@ -766,21 +903,7 @@ implementation
 			return TRUE;
 		}
 
-		for (i = 0; i != neighbours.size; ++i)
-		{
-			ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
-
-			if (
-					// Do not send back to the previous node
-					neighbour->address != info->proximate_source &&
-
-					neighbour->contents.sink_distance > sink_distance
-			   )
-			{
-				insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
-			}
-		}
-
+		// Try to find nodes further from the sink
 		if (local_neighbours.size == 0)
 		{
 			for (i = 0; i != neighbours.size; ++i)
@@ -788,10 +911,29 @@ implementation
 				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
 				if (
-						// Do not send back to the previous node
-						neighbour->address != info->proximate_source &&
+					// Do not send back to the previous node
+					neighbour->address != info->proximate_source &&
 
-						neighbour->contents.sink_distance >= sink_distance
+					neighbour->contents.sink_distance > sink_distance
+				   )
+				{
+					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
+				}
+			}
+		}
+
+		// Accept nodes that are the same sink distance away
+		if (local_neighbours.size == 0)
+		{
+			for (i = 0; i != neighbours.size; ++i)
+			{
+				ni_neighbour_detail_t const* const neighbour = &neighbours.data[i];
+
+				if (
+					// Do not send back to the previous node
+					neighbour->address != info->proximate_source &&
+
+					neighbour->contents.sink_distance == sink_distance
 				   )
 				{
 					insert_ni_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
@@ -1083,6 +1225,7 @@ implementation
 
 		source_distance = minbot(source_distance, rcvd->source_distance + 1);
 		sink_source_distance = minbot(sink_source_distance, source_distance);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
@@ -1103,24 +1246,24 @@ implementation
 
 
 	// If the sink snoops a normal message, we may as well just deliver it
-	void Sink_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage, 0};
+
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
 		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+		sink_source_distance = minbot(sink_source_distance, source_distance);
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
-		// TODO: Enable this when the sink can snoop and then correctly
-		// respond to a message being received.
-		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
+		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
+			call LruNormalSeqNos.insert(seq_no_lookup);
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			simdbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
-				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
-		}*/
+			record_received_message(msg, NORMAL_ROUTE_FROM_SINK);
+		}
 	}
 
 	void x_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -1136,7 +1279,7 @@ implementation
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
 		case SourceNode: x_snoop_Normal(rcvd, source_addr); break;
-		case SinkNode: Sink_snoop_Normal(rcvd, source_addr); break;
+		case SinkNode: Sink_snoop_Normal(msg, rcvd, source_addr); break;
 		case NormalNode: x_snoop_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
