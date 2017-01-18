@@ -497,6 +497,7 @@ class MetricsCommon(object):
         d["Sent"]                          = lambda x: x.total_sent()
         d["Received"]                      = lambda x: x.total_received()
         d["Delivered"]                     = lambda x: x.total_delivered()
+        d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
         #d["Collisions"]                    = lambda x: None
         d["Captured"]                      = lambda x: x.captured()
         d["ReachedSimUpperBound"]          = lambda x: x.reached_sim_upper_bound()
