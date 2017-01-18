@@ -497,7 +497,6 @@ class MetricsCommon(object):
         d["Sent"]                          = lambda x: x.total_sent()
         d["Received"]                      = lambda x: x.total_received()
         d["Delivered"]                     = lambda x: x.total_delivered()
-        d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
         #d["Collisions"]                    = lambda x: None
         d["Captured"]                      = lambda x: x.captured()
         d["ReachedSimUpperBound"]          = lambda x: x.reached_sim_upper_bound()
@@ -518,6 +517,7 @@ class MetricsCommon(object):
         d["MaxNormalLatency"]              = lambda x: x.maximum_normal_latency()
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
+        d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
         d["NodeWasSource"]                 = lambda x: MetricsCommon.smaller_dict_str(x.node_was_source())
         d["NodeTransitions"]               = lambda x: MetricsCommon.smaller_dict_str(dict(x.node_transitions))
         d["SentHeatMap"]                   = lambda x: MetricsCommon.compressed_dict_str(x.sent_heat_map())
