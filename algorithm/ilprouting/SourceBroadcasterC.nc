@@ -483,13 +483,11 @@ implementation
 						UPDATE_NEIGHBOURS_SUCCEEDED_UNICAST(target);
 					}
 				}
-
-				//print_ni_neighbours("stdout", &neighbours);
 			}
 			else
 			{
-				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ") for the message\n",
-					normal_message->sequence_number);
+				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ", %" PRIu16 ") for the message\n",
+					normal_message->sequence_number, normal_message->source_id);
 
 				print_dictionary_queue();
 			}
