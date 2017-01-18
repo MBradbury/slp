@@ -99,6 +99,9 @@ class TableDataFormatter(object):
             return "${}$".format(value)
         else:
             try:
-                return "${:.3f} \\pm {:.3f}$".format(value[0], self._convert_variance(value[1]))
+                if isinstance(value[0], dict):
+                    return "${} \\pm {}$".format(value[0], self._convert_variance(value[1]))
+                else:
+                    return "${:.3f} \\pm {:.3f}$".format(value[0], self._convert_variance(value[1]))
             except TypeError as e:
                 raise RuntimeError("Unable to format values for {} with values {} under the default settings. (HINT: You might need to add a custom formatter in this function)".format(name, value), e)
