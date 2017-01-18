@@ -15,9 +15,14 @@
 #include <TinyError.h>
 
 // The amount of time in ms that it takes to send a message from one node to another
-#define ALPHA 10
+#define ALPHA 20
 
 #define SINK_AWAY_MESSAGES_TO_SEND 2
+#define SINK_AWAY_DELAY_MS (1 * 1000)
+#define AWAY_BEACON_RETRY_SEND_DELAY 65
+
+#define BEACON_SEND_DELAY_FIXED 100
+#define BEACON_SEND_DELAY_RANDOM 50
 
 #define RTX_ATTEMPTS 5
 
@@ -201,7 +206,7 @@ implementation
 
 			if (call NodeType.get() == SinkNode)
 			{
-				call AwaySenderTimer.startOneShot(1 * 1000);
+				call AwaySenderTimer.startOneShot(SINK_AWAY_DELAY_MS);
 			}
 
 			call ConsiderTimer.startPeriodic(ALPHA);
@@ -468,6 +473,8 @@ implementation
 						}
 						else
 						{
+							simdbgverbose("stdout", "Failed to send message at stage %u.\n", normal_message->stage);
+
 							// Failed to route to sink, so remove from queue.
 							put_back_in_pool(info);
 						}
@@ -534,14 +541,14 @@ implementation
 		}
 	}
 
-	am_addr_t find_next_in_avoid_sink_route(const message_queue_info_t* info)
+	bool find_next_in_avoid_sink_route(const message_queue_info_t* info, am_addr_t* next)
 	{
 		// Want to find a neighbour who has a greater source distance
 		// and the same or further sink distance
 
 		// Return AM_BROADCAST_ADDR when no available nodes.
 
-		am_addr_t chosen_address = AM_BROADCAST_ADDR;
+		bool success = FALSE;
 		uint16_t i;
 
 		ni_neighbours_t local_neighbours;
@@ -597,7 +604,8 @@ implementation
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			chosen_address = neighbour->address;
+			*next = neighbour->address;
+			success = TRUE;
 
 #ifdef SLP_VERBOSE_DEBUG
 			print_ni_neighbours("stdout", &local_neighbours);
@@ -609,16 +617,16 @@ implementation
 				neighbour->contents.source_distance, source_distance);*/
 		}
 
-		return chosen_address;
+		return success;
 	}
 
-	am_addr_t find_next_in_avoid_sink_backtrack_route(const message_queue_info_t* info)
+	bool find_next_in_avoid_sink_backtrack_route(const message_queue_info_t* info, am_addr_t* next)
 	{
 		// The normal message has hit a region where there are no suitable nodes
 		// available. So the message will need to go closer to the source to look
 		// for a better route.
 
-		am_addr_t chosen_address = AM_BROADCAST_ADDR;
+		bool success = FALSE;
 		uint16_t i;
 
 		ni_neighbours_t local_neighbours;
@@ -653,7 +661,8 @@ implementation
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			chosen_address = neighbour->address;
+			*next = neighbour->address;
+			success = TRUE;
 
 #ifdef SLP_VERBOSE_DEBUG
 			print_ni_neighbours("stdout", &local_neighbours);
@@ -665,14 +674,14 @@ implementation
 				neighbour->contents.source_distance, source_distance);*/
 		}
 
-		return chosen_address;
+		return success;
 	}
 
-	am_addr_t find_next_in_to_sink_route(void)
+	bool find_next_in_to_sink_route(const message_queue_info_t* info, am_addr_t* next)
 	{
 		// Want to find a neighbour who has a smaller sink distance
 
-		am_addr_t chosen_address;
+		bool success = FALSE;
 		uint16_t i;
 
 		ni_neighbours_t local_neighbours;
@@ -695,8 +704,6 @@ implementation
 		{
 			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
 				neighbours.size);*/
-
-			chosen_address = AM_BROADCAST_ADDR;
 		}
 		else
 		{
@@ -705,7 +712,8 @@ implementation
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			chosen_address = neighbour->address;
+			*next = neighbour->address;
+			success = TRUE;
 
 #ifdef SLP_VERBOSE_DEBUG
 			print_ni_neighbours("stdout", &local_neighbours);
@@ -717,12 +725,12 @@ implementation
 				neighbour->contents.source_distance, source_distance);*/
 		}
 
-		return chosen_address;
+		return success;
 	}
 
-	am_addr_t find_next_in_from_sink_route(const message_queue_info_t* info)
+	bool find_next_in_from_sink_route(const message_queue_info_t* info, am_addr_t* next)
 	{
-		am_addr_t chosen_address;
+		bool success = FALSE;
 		uint16_t i;
 
 		ni_neighbours_t local_neighbours;
@@ -732,7 +740,8 @@ implementation
 		// Subsequent nodes should unicast, but might broadcast
 		if (call NodeType.get() == SinkNode)
 		{
-			return AM_BROADCAST_ADDR;
+			*next = AM_BROADCAST_ADDR;
+			return TRUE;
 		}
 
 		for (i = 0; i != neighbours.size; ++i)
@@ -773,7 +782,8 @@ implementation
 			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
 				neighbours.size);*/
 
-			chosen_address = AM_BROADCAST_ADDR;
+			*next = AM_BROADCAST_ADDR;
+			success = TRUE;
 		}
 		else
 		{
@@ -782,7 +792,8 @@ implementation
 			const uint16_t neighbour_index = rnd % local_neighbours.size;
 			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
 
-			chosen_address = neighbour->address;
+			*next = neighbour->address;
+			success = TRUE;
 
 #ifdef SLP_VERBOSE_DEBUG
 			print_ni_neighbours("stdout", &local_neighbours);
@@ -794,7 +805,7 @@ implementation
 				neighbour->contents.source_distance, source_distance);*/
 		}
 
-		return chosen_address;
+		return success;
 	}
 
 
@@ -815,6 +826,7 @@ implementation
 			(target_buffer_size != BOTTOM && call MessageQueue.count() > 0 && call MessageQueue.count() >= target_buffer_size))
 		{
 			am_addr_t next = AM_BROADCAST_ADDR;
+			bool success = FALSE;
 
 			message_queue_info_t* const info = choose_message_to_send();
 			NormalMessage message;
@@ -841,10 +853,10 @@ implementation
 			{
 				case NORMAL_ROUTE_AVOID_SINK:
 				{
-					next = find_next_in_avoid_sink_route(info);
+					success = find_next_in_avoid_sink_route(info, &next);
 
 					// When we are done with avoiding the sink, we need to head to it
-					if (next == AM_BROADCAST_ADDR)
+					if (!success)
 					{
 						if (sink_source_distance != BOTTOM && source_distance < sink_source_distance)
 						{
@@ -853,15 +865,16 @@ implementation
 
 							message.stage = NORMAL_ROUTE_AVOID_SINK_BACKTRACK;
 
-							next = find_next_in_avoid_sink_backtrack_route(info);
+							success = find_next_in_avoid_sink_backtrack_route(info, &next);
 
 							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen %u\n", next);
 
-							if (next == AM_BROADCAST_ADDR)
+							// Couldn't work out where to backtrack to, so lets just go to the sink
+							if (!success)
 							{
 								message.stage = NORMAL_ROUTE_TO_SINK;
 
-								next = find_next_in_to_sink_route();
+								success = find_next_in_to_sink_route(info, &next);
 
 								simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen %u\n", next);
 							}
@@ -872,7 +885,7 @@ implementation
 
 							message.stage = NORMAL_ROUTE_TO_SINK;
 
-							next = find_next_in_to_sink_route();
+							success = find_next_in_to_sink_route(info, &next);
 
 							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen %u\n", next);
 						}
@@ -885,7 +898,7 @@ implementation
 					
 					message.stage = NORMAL_ROUTE_AVOID_SINK;
 
-					next = find_next_in_avoid_sink_route(info);
+					success = find_next_in_avoid_sink_route(info, &next);
 
 					simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", next);
 
@@ -893,23 +906,22 @@ implementation
 
 				case NORMAL_ROUTE_TO_SINK:
 				{
-					next = find_next_in_to_sink_route();
+					success = find_next_in_to_sink_route(info, &next);
 				} break;
 
 				case NORMAL_ROUTE_FROM_SINK:
 				{
 					// AM_BROADCAST_ADDR is valid for this function
-					next = find_next_in_from_sink_route(info);
+					success = find_next_in_from_sink_route(info, &next);
 				} break;
 
 				default:
 				{
 					simdbgverbose("stderr", "Unknown message stage\n");
-					next = AM_BROADCAST_ADDR;
 				} break;
 			}
 
-			if (next != AM_BROADCAST_ADDR || message.stage == NORMAL_ROUTE_FROM_SINK)
+			if (success)
 			{
 				info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
@@ -968,7 +980,7 @@ implementation
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			// Failed to send away message, so schedule to retry
-			call AwaySenderTimer.startOneShot(65);
+			call AwaySenderTimer.startOneShot(AWAY_BEACON_RETRY_SEND_DELAY);
 		}
 		else
 		{
@@ -979,7 +991,7 @@ implementation
 			// If there are more away messages to send, then schedule the next one
 			if (sink_away_messages_to_send > 0)
 			{
-				call AwaySenderTimer.startOneShot(1 * 1000);
+				call AwaySenderTimer.startOneShot(SINK_AWAY_DELAY_MS);
 			}
 		}
 	}
@@ -994,7 +1006,7 @@ implementation
 
 		if (!send_Beacon_message(&message, AM_BROADCAST_ADDR))
 		{
-			call BeaconSenderTimer.startOneShot(65);
+			call BeaconSenderTimer.startOneShot(AWAY_BEACON_RETRY_SEND_DELAY);
 		}
 	}
 
@@ -1135,7 +1147,7 @@ implementation
 
 			send_Away_message(&message, AM_BROADCAST_ADDR);
 
-			call BeaconSenderTimer.startOneShot(100 + (call Random.rand16() % 50));
+			call BeaconSenderTimer.startOneShot(BEACON_SEND_DELAY_FIXED + (call Random.rand16() % BEACON_SEND_DELAY_RANDOM));
 		}
 	}
 
