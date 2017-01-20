@@ -269,6 +269,12 @@ implementation
 		simdbg_clear("stdout", "}\n");
 	}
 
+	bool has_enough_messages_to_send(void)
+	{
+		return (target_buffer_size == BOTTOM && call MessageQueue.count() > 0) ||
+		       (target_buffer_size != BOTTOM && call MessageQueue.count() > 0 && call MessageQueue.count() >= target_buffer_size);
+	}
+
 	message_queue_info_t* choose_message_to_send(void)
 	{
 		message_queue_info_t** const begin = call MessageQueue.begin();
@@ -986,8 +992,7 @@ implementation
 			return;
 		}
 
-		if ((target_buffer_size == BOTTOM && call MessageQueue.count() > 0) ||
-			(target_buffer_size != BOTTOM && call MessageQueue.count() > 0 && call MessageQueue.count() >= target_buffer_size))
+		if (has_enough_messages_to_send())
 		{
 			am_addr_t next = AM_BROADCAST_ADDR;
 			bool success = FALSE;
@@ -1132,11 +1137,13 @@ implementation
 		if (calc_target_buffer_size > SLP_SEND_QUEUE_SIZE)
 		{
 			ERROR_OCCURRED(ERROR_UNKNOWN, "Invalid target buffer size %u, must be <= %u\n", calc_target_buffer_size, SLP_SEND_QUEUE_SIZE);
+			calc_target_buffer_size = SLP_SEND_QUEUE_SIZE - 1;
 		}
 
 		if (calc_target_buffer_size <= 0)
 		{
 			ERROR_OCCURRED(ERROR_UNKNOWN, "Invalid target buffer size %u, must be > 0\n", calc_target_buffer_size);
+			calc_target_buffer_size = 1;
 		}
 
 		message.target_buffer_size = (uint16_t)calc_target_buffer_size;
