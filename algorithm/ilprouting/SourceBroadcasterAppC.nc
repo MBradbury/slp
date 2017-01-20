@@ -34,11 +34,11 @@ implementation
 
     App.MetricLogging -> MetricLogging;
 
-    components new NodeTypeP(6);
+    components new NodeTypeP(3);
     App.NodeType -> NodeTypeP;
     NodeTypeP.MetricLogging -> MetricLogging;
 
-    components new MessageTypeP(6);
+    components new MessageTypeP(3);
     App.MessageType -> MessageTypeP;
     MessageTypeP.MetricLogging -> MetricLogging;
 
