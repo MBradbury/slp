@@ -757,10 +757,12 @@ class AnalyzerCommon(object):
         d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
+        
+        d['unique normal generated']= lambda x: AnalyzerCommon._format_results(x, 'UniqueNormalGenerated', allow_missing=True)
 
         d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
-        
+
 
     @staticmethod
     def _format_results(x, name, allow_missing=False, average_corrector=None, variance_corrector=None):
