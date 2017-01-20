@@ -535,6 +535,15 @@ implementation
 		}
 	}
 
+	ni_neighbour_detail_t* choose_random_neighbour(ni_neighbours_t* local_neighbours)
+	{
+		const uint16_t rnd = call Random.rand16();
+		const uint16_t neighbour_index = rnd % local_neighbours->size;
+		ni_neighbour_detail_t* const neighbour = &local_neighbours->data[neighbour_index];
+
+		return neighbour;
+	}
+
 	bool find_next_in_avoid_sink_route(const message_queue_info_t* info, am_addr_t* next)
 	{
 		bool success = FALSE;
@@ -602,35 +611,12 @@ implementation
 			}
 		}
 
-		// TODO:
-		// At this point we have all the valid neighbours we could potentially choose from.
-		// We now need to make sure the best neighbour is chosen.
-
-		if (local_neighbours.size == 0)
+		if (local_neighbours.size > 0)
 		{
-			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u) (my-sink-distance=%d, my-source-distance=%d)\n",
-				neighbours.size, sink_distance, source_distance);
-
-			print_ni_neighbours("stdout", &neighbours);*/
-		}
-		else
-		{
-			// Choose a neighbour with equal probabilities.
-			const uint16_t rnd = call Random.rand16();
-			const uint16_t neighbour_index = rnd % local_neighbours.size;
-			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+			const ni_neighbour_detail_t* const neighbour = choose_random_neighbour(&local_neighbours);
 
 			*next = neighbour->address;
 			success = TRUE;
-
-#ifdef SLP_VERBOSE_DEBUG
-			print_ni_neighbours("stdout", &local_neighbours);
-#endif
-
-			/*simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d) (their-dsrc=%d my-dsrc=%d)\n",
-				chosen_address, neighbour_index, rnd, local_neighbours.size,
-				neighbour->contents.sink_distance, sink_distance,
-				neighbour->contents.source_distance, source_distance);*/
 		}
 
 		return success;
@@ -663,31 +649,12 @@ implementation
 			}
 		}
 
-		if (local_neighbours.size == 0)
+		if (local_neighbours.size > 0)
 		{
-			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u) (my-sink-distance=%d, my-source-distance=%d)\n",
-				neighbours.size, sink_distance, source_distance);
-
-			print_ni_neighbours("stdout", &neighbours);*/
-		}
-		else
-		{
-			// Choose a neighbour with equal probabilities.
-			const uint16_t rnd = call Random.rand16();
-			const uint16_t neighbour_index = rnd % local_neighbours.size;
-			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+			const ni_neighbour_detail_t* const neighbour = choose_random_neighbour(&local_neighbours);
 
 			*next = neighbour->address;
 			success = TRUE;
-
-#ifdef SLP_VERBOSE_DEBUG
-			print_ni_neighbours("stdout", &local_neighbours);
-#endif
-
-			/*simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d) (their-dsrc=%d my-dsrc=%d)\n",
-				chosen_address, neighbour_index, rnd, local_neighbours.size,
-				neighbour->contents.sink_distance, sink_distance,
-				neighbour->contents.source_distance, source_distance);*/
 		}
 
 		return success;
@@ -865,29 +832,12 @@ implementation
 			}
 		}
 
-		if (local_neighbours.size == 0)
+		if (local_neighbours.size > 0)
 		{
-			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
-				neighbours.size);*/
-		}
-		else
-		{
-			// Choose a neighbour with equal probabilities.
-			const uint16_t rnd = call Random.rand16();
-			const uint16_t neighbour_index = rnd % local_neighbours.size;
-			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+			const ni_neighbour_detail_t* const neighbour = choose_random_neighbour(&local_neighbours);
 
 			*next = neighbour->address;
 			success = TRUE;
-
-#ifdef SLP_VERBOSE_DEBUG
-			print_ni_neighbours("stdout", &local_neighbours);
-#endif
-
-			/*simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d) (their-dsrc=%d my-dsrc=%d)\n",
-				chosen_address, neighbour_index, rnd, local_neighbours.size,
-				neighbour->contents.sink_distance, sink_distance,
-				neighbour->contents.source_distance, source_distance);*/
 		}
 
 		return success;
@@ -949,30 +899,15 @@ implementation
 
 		if (local_neighbours.size == 0)
 		{
-			/*simdbg("stdout", "No local neighbours to choose so broadcasting. (my-neighbours-size=%u)\n",
-				neighbours.size);*/
-
 			*next = AM_BROADCAST_ADDR;
 			success = TRUE;
 		}
 		else
 		{
-			// Choose a neighbour with equal probabilities.
-			const uint16_t rnd = call Random.rand16();
-			const uint16_t neighbour_index = rnd % local_neighbours.size;
-			const ni_neighbour_detail_t* const neighbour = &local_neighbours.data[neighbour_index];
+			const ni_neighbour_detail_t* const neighbour = choose_random_neighbour(&local_neighbours);
 
 			*next = neighbour->address;
 			success = TRUE;
-
-#ifdef SLP_VERBOSE_DEBUG
-			print_ni_neighbours("stdout", &local_neighbours);
-#endif
-
-			/*simdbg("stdout", "Chosen %u at index %u (rnd=%u) out of %u neighbours (their-dsink=%d my-dsink=%d) (their-dsrc=%d my-dsrc=%d)\n",
-				chosen_address, neighbour_index, rnd, local_neighbours.size,
-				neighbour->contents.sink_distance, sink_distance,
-				neighbour->contents.source_distance, source_distance);*/
 		}
 
 		return success;
