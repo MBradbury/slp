@@ -8,8 +8,8 @@ import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
 # Inheritance diagram for different modes:
-# TESTBED < SINGLE  < PARALLEL    < CLUSTER
-#                   < GUI
+# TESTBED < CYCLEACCURATE < SINGLE < PARALLEL < CLUSTER
+#                                  < GUI
 #         < OFFLINE < OFFLINE_GUI
 
 def _secure_random():
@@ -38,22 +38,26 @@ class ArgumentsCommon(object):
 
         ###
 
-        parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=(parser_testbed,))
+        parser_cycle = subparsers.add_parser("CYCLEACCURATE", add_help=False, parents=(parser_testbed,))
 
-        parser_single.add_argument("--seed", type=int, required=False)
+        parser_cycle.add_argument("--seed", type=int, required=False)
+
+        parser_cycle.add_argument("-ns", "--network-size", type=int, required=True)
+        parser_cycle.add_argument("-d", "--distance", type=float, default=4.5)
+
+        parser_cycle.add_argument("--node-id-order", choices=("topology", "randomised"), default="randomised")
+
+        ###
+
+        parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=(parser_cycle,))
 
         parser_single.add_argument("-cm", "--communication-model", type=str, choices=simulator.common.available_communication_models(), required=True)
         parser_single.add_argument("-nm", "--noise-model", type=str, choices=simulator.common.available_noise_models(), required=True)
-
-        parser_single.add_argument("-ns", "--network-size", type=int, required=True)
-        parser_single.add_argument("-d", "--distance", type=float, default=4.5)
 
         parser_single.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
 
         parser_single.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0,
                                    help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
-
-        parser_single.add_argument("--node-id-order", choices=("topology", "randomised"), default="randomised")
 
         if has_safety_period:
             parser_single.add_argument("-safety", "--safety-period", type=float, required=True)
@@ -110,7 +114,7 @@ class ArgumentsCommon(object):
 
         # Store any of the parsers that we need
         self._parser = parser
-        self._online_subparsers = (parser_testbed, parser_single, parser_profile, parser_gui, parser_parallel, parser_cluster)
+        self._online_subparsers = (parser_testbed, parser_cycle, parser_single, parser_profile, parser_gui, parser_parallel, parser_cluster)
         self._offline_subparsers = (parser_offline, parser_offline_gui)
 
         # Haven't parsed anything yet

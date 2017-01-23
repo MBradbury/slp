@@ -14,6 +14,7 @@ import simulator.Configuration as Configuration
 from data import results, latex, submodule_loader
 import data.cluster
 import data.testbed
+import data.cycle_accurate
 from data.run.common import MissingSafetyPeriodError
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
@@ -74,6 +75,16 @@ class CLI(object):
         testbed_subparsers = subparser.add_subparsers(title="testbed mode", dest="testbed_mode")
 
         subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
+        subparser.add_argument("--platform", type=str, default=None)
+
+        ###
+
+        subparser = subparsers.add_parser("cycle_accurate")
+        subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cycle_accurate), help="This is the name of the cycle accurate simulator")
+
+        testbed_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
+
+        subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
 
         ###
@@ -143,6 +154,8 @@ class CLI(object):
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
+        elif driver.mode() == "CYCLEACCURATE":
+            from data.run.common import RunCycleAccurateCommon as RunSimulations
         else:
             # Time for something very crazy...
             # Some simulations require a safety period that varies depending on
@@ -333,6 +346,21 @@ class CLI(object):
 
         sys.exit(0)
 
+    def _run_cycle_accurate(self, args):
+        cycle_accurate_directory = os.path.join("cycle_accurate", self.algorithm_module.name)
+
+        cycle_accurate = submodule_loader.load(data.cycle_accurate, args.name)
+
+        if 'build' == args.cycle_accurate_mode:
+            from data.run.driver.cycle_accurate_builder import Runner as Builder
+
+            print("Removing existing cycle accurate directory and creating a new one")
+            recreate_dirtree(cycle_accurate_directory)
+
+            self._execute_runner(Builder(cycle_accurate, platform=args.platform), cycle_accurate_directory, skip_completed_simulations=False)
+
+        sys.exit(0)
+
     def _run_time_taken_table(self, args):
         result = results.Results(self.algorithm_module.result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
@@ -433,6 +461,9 @@ class CLI(object):
 
         elif 'testbed' == args.mode:
             self._run_testbed(args)
+
+        elif 'cycle_accurate' == args.mode:
+            self._run_cycle_accurate(args)
 
         elif 'run' == args.mode:
             self._run_run(args)

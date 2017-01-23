@@ -196,3 +196,29 @@ class RunTestbedCommon(RunSimulationsCommon):
         # Testbed has no notion of repeats
         # Also no need to estimate time
         super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)
+
+class RunCycleAccurateCommon(RunSimulationsCommon):
+    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False, safety_periods=None):
+        # Do all cycle accurate tasks
+        # Cycle Accurate has no notion of safety period
+        super(RunCycleAccurateCommon, self).__init__(driver, algorithm_module, result_path, False, None)
+
+    def run(self, repeats, argument_names, argument_product, time_estimater=None):
+
+        # Filter out invalid parameters to pass onwards
+        to_filter = ['attacker model', 'noise model',
+                     'communication model',
+                     'latest node start time']
+
+        # Remove indexes
+        indexes = [argument_names.index(name) for name in to_filter]
+
+        filtered_argument_names = tuple(np.delete(argument_names, indexes))
+        filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
+
+        # Remove duplicates
+        filtered_argument_product = list(unique_everseen(filtered_argument_product))
+
+        # Cycle Accurate has no notion of repeats
+        # Also no need to estimate time
+        super(RunCycleAccurateCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)

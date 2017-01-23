@@ -19,13 +19,21 @@ class Progress(object):
     def print_progress(self, num):
         current_time_taken = timeit.default_timer() - self.start_time
         time_per_job = current_time_taken / (num + 1)
-        estimated_total = time_per_job * self.total_jobs
-        estimated_remaining = estimated_total - current_time_taken
 
         current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
-        estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
 
-        # It is intended to print an extra newline, as this makes the progress more visible.
-        print("Finished {} {} out of {}. Done {}%. Time taken {}, estimated remaining {}\n".format(
-            self.description, num + 1, self.total_jobs, ((num + 1) / self.total_jobs) * 100.0,
-            current_time_taken_str, estimated_remaining_str))
+        if self.total_jobs is not None:
+            estimated_total = time_per_job * self.total_jobs
+            estimated_remaining = estimated_total - current_time_taken
+
+            estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
+
+            # It is intended to print an extra newline, as this makes the progress more visible.
+            print("Finished {} {} out of {}. Done {}%. Time taken {}, estimated remaining {}\n".format(
+                self.description, num + 1, self.total_jobs, ((num + 1) / self.total_jobs) * 100.0,
+                current_time_taken_str, estimated_remaining_str))
+
+        else:
+            print("Finished {} {} jobs. Time taken {}.\n".format(
+                self.description, num + 1, current_time_taken_str))
+
