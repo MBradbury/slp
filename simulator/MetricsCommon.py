@@ -68,12 +68,12 @@ class MetricsCommon(object):
         self.register('M-CR', self.process_rcv_event)
         self.register('M-CD', self.process_deliver_event)
 
+        # Handle PowerTOSSIM-Z events
+        self.register('ENERGY_HANDLER', self.process_energy_handler)
+
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
         return ordered_node_id, self.topology.to_topo_nid(ordered_node_id)
-
-        # Handle PowerTOSSIM-Z events
-        self.register('ENERGY_HANDLER', self.process_ENERGY_HANDLER)
 
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
@@ -227,8 +227,8 @@ class MetricsCommon(object):
             return len(self.normal_sent_time)
 
 
-    def process_ENERGY_HANDLER(self, line):
-        powertossimz.handle_event(line)
+    def process_energy_handler(self, d_or_e, node_id, time, detail):
+        powertossimz.handle_event(node_id, time, detail)
 
     def seed(self):
         return self.sim.seed
@@ -423,6 +423,13 @@ class MetricsCommon(object):
 
         return result
 
+    def energy_per_node_per_activity(self, activity):
+        return {
+            node_id: powertossimz.total[node_id][activity]
+
+            for (node_id, coord) in enumerate(self.configuration.topology.nodes)
+        }
+
     def energy_per_node(self):
         return {
             node_id: powertossimz.total_energy(node_id)
@@ -430,8 +437,17 @@ class MetricsCommon(object):
             for (node_id, coord) in enumerate(self.configuration.topology.nodes)
         }
 
+    def energy_per_node_cpu(self):
+        return {
+            node_id: powertossimz.total_cpu_active_energy(node_id)
+
+            for (node_id, coord) in enumerate(self.configuration.topology.nodes)
+        }
+
     def energy_overall(self):
         return sum(self.energy_per_node().values())
+
+
 
     def times_node_changed_to(self, node_type, from_types=None):
         total_count = 0
@@ -544,6 +560,11 @@ class MetricsCommon(object):
         d["SentHeatMap"]                   = lambda x: MetricsCommon.compressed_dict_str(x.sent_heat_map())
         d["ReceivedHeatMap"]               = lambda x: MetricsCommon.compressed_dict_str(x.received_heat_map())
 
+        for energy_category in powertossimz.totals:
+            ec = energy_category.title()
+            d["EnergyPerNodePer{}".format(ec)]= lambda x: MetricsCommon.smaller_dict_str(x.energy_per_node_per_activity(energy_category))
+
+        d["EnergyPerNodeCPU"]              = lambda x: MetricsCommon.smaller_dict_str(x.energy_per_node_cpu())
         d["EnergyPerNode"]                 = lambda x: MetricsCommon.smaller_dict_str(x.energy_per_node())
         d["EnergyOverall"]                 = lambda x: x.energy_overall()
 
