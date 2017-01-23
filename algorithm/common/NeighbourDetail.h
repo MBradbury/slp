@@ -1,7 +1,7 @@
 #ifndef SLP_NEIGHBOURDETAIL_H
 #define SLP_NEIGHBOURDETAIL_H
 
-#define DEFINE_NEIGHBOUR_DETAIL(TYPE, TYPE_PREFIX, UPDATE_FN, PRINT_FN, MAX_SIZE) \
+#define DEFINE_NEIGHBOUR_DETAIL_MAIN(TYPE, TYPE_PREFIX, UPDATE_FN, PRINT_FN, MAX_SIZE) \
 	typedef struct \
 	{ \
 		am_addr_t address; \
@@ -54,8 +54,11 @@
 		} \
  \
 		return find != NULL; \
-	} \
- \
+	}
+
+// If building for a testbed, disable the ability to print the contents of neighbours
+#ifndef TESTBED
+#define DEFINE_NEIGHBOUR_DETAIL_PRINT(TYPE, TYPE_PREFIX, UPDATE_FN, PRINT_FN, MAX_SIZE) \
 	void print_##TYPE_PREFIX##_neighbours(const char* name, TYPE_PREFIX##_neighbours_t const* neighbours) \
 	{ \
 		uint16_t i; \
@@ -71,6 +74,13 @@
 			} \
 		} \
 		simdbg_clear(name, ")\n"); \
-	} \
+	}
+#else
+#define DEFINE_NEIGHBOUR_DETAIL_PRINT(TYPE, TYPE_PREFIX, UPDATE_FN, PRINT_FN, MAX_SIZE)
+#endif
+
+#define DEFINE_NEIGHBOUR_DETAIL(TYPE, TYPE_PREFIX, UPDATE_FN, PRINT_FN, MAX_SIZE) \
+	DEFINE_NEIGHBOUR_DETAIL_MAIN(TYPE, TYPE_PREFIX, UPDATE_FN, PRINT_FN, MAX_SIZE) \
+	DEFINE_NEIGHBOUR_DETAIL_PRINT(TYPE, TYPE_PREFIX, UPDATE_FN, PRINT_FN, MAX_SIZE) 
 
 #endif // SLP_NEIGHBOURDETAIL_H
