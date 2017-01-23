@@ -26,7 +26,7 @@ def choose_platform(provided, available):
             raise RuntimeError("The provided platform {} is not in the available platforms {}".format(provided, available))
 
 
-class Runner:
+class Runner(object):
     def __init__(self, testbed, platform=None):
         self._progress = Progress("building file")
         self.total_job_size = None
@@ -35,7 +35,7 @@ class Runner:
         self.testbed = testbed
         self.platform = choose_platform(platform, self.testbed.platform())
 
-    def add_job(self, options, name, estimated_time):
+    def add_job(self, options, name, estimated_time=None):
         print(name)
 
         if not self._progress.has_started():
@@ -46,7 +46,7 @@ class Runner:
 
         data.util.create_dirtree(target_directory)
 
-        # Parse options
+        # Get the job arguments
         options = shlex.split(options)
         module, argv = options[0], options[1:]
         module_path = module.replace(".", "/")
@@ -110,6 +110,8 @@ class Runner:
         self._progress.print_progress(self._jobs_executed + 1)
 
         self._jobs_executed += 1
+
+        return a, module, module_path, target_directory
 
     def mode(self):
         return "TESTBED"
