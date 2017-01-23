@@ -42,7 +42,7 @@ class Arguments(ArgumentsCommon):
         result["RANDOM_WALK_HOPS"] = int(self.args.short_walk_length)
         result["LONG_RANDOM_WALK_HOPS"] = int(self.args.long_walk_length)
 
-        result["LANDMARK_NODE_ID"] = self._get_landmark_node_id()
+        result["LANDMARK_NODE_ID"] = self._get_node_id(self.args.landmark_node)
 
         configuration = Configuration.create(self.args.configuration, self.args)
         
@@ -59,24 +59,3 @@ class Arguments(ArgumentsCommon):
         result["LONG_COUNT"] = int(self.args.long_count)
 
         return result
-
-    def _get_landmark_node_id(self):
-        landmark = self.args.landmark_node
-        configuration = Configuration.create(self.args.configuration, self.args)
-
-        try:
-            landmark = int(landmark)
-
-            max_id = len(configuration.topology.nodes)
-            if landmark < 0 or landmark >= max_id:
-                raise RuntimeError("The landmark node id is not in the range of [0,{})".format(max_id))
-
-            return landmark
-
-        except ValueError:
-            attr_sources = [configuration, configuration.topology]
-            for attr_source in attr_sources:
-                if hasattr(attr_source, landmark):
-                    return int(getattr(attr_source, landmark))
-            else:
-                raise RuntimeError("No way to work out landmark node from {}.".format(landmark))

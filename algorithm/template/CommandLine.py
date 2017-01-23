@@ -5,12 +5,10 @@ import os
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
 
-# The import statement doesn't work, so we need to use __import__ instead
-#import algorithm.template as template
-template = __import__(__package__, globals(), locals(), ['object'], -1)
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+adaptive = algorithm.import_algorithm("adaptive")
 
 from data import results, latex
 
@@ -18,49 +16,43 @@ from data.table import safety_period, fake_result, direct_comparison
 from data.graph import summary, bar
 from data.util import useful_log10
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 import numpy
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('fake period', 'temp fake duration', 'pr(tfs)', 'pr(pfs)')
-
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+
+        subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("ccpe-comparison-table")
+        subparser = self._subparsers.add_parser("ccpe-comparison-graph")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models,
-            [parameters.distance], parameters.periods,
-            parameters.temp_fake_durations, parameters.prs_tfs, parameters.prs_pfs
+            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.periods, parameters.temp_fake_durations,
+            parameters.prs_tfs, parameters.prs_pfs
         )
 
         argument_product = [
-            (size, config, attacker, noise, distance, src_period, fake_period, fake_dur, pr_tfs, pr_pfs)
-            for (size, config, attacker, noise, distance, (src_period, fake_period), fake_dur, pr_tfs, pr_pfs)
+            (size, config, attacker, nm, cm, distance, nido, lnst, src_period, fake_period, fake_dur, pr_tfs, pr_pfs)
+            for (size, config, attacker, nm, cm, distance, nido, lnst, (src_period, fake_period), fake_dur, pr_tfs, pr_pfs)
             in argument_product
         ]
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
-
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-                                skip_completed_simulations=skip_completed_simulations,
-                                safety_periods=safety_periods)
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product())
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
 
     def _run_table(self, args):
-        template_results = results.Results(template.result_file_path,
-            parameters=self.local_parameter_names,
+        template_results = results.Results(self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
         result_table = fake_result.ResultTable(template_results)
@@ -81,17 +73,17 @@ class CLI(CommandLineCommon.CLI):
 
         versus_results = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
-        template_results = results.Results(template.result_file_path,
-            parameters=self.local_parameter_names,
+        template_results = results.Results(self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
             results=versus_results)
 
         #for yaxis in versus_results:
         #    name = '{}-v-fake-period'.format(yaxis.replace(" ", "_"))
         #
-        #    versus.Grapher(template.graphs_path, name,
+        #    versus.Grapher(self.algorithm_module.graphs_path, name,
         #        xaxis='network size', yaxis=yaxis, vary='fake period', yextractor=extract).create(template_results)
         #
-        #    summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-' + name).run()
+        #    summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), 'template-' + name).run()
 
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults 
@@ -99,11 +91,11 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
-        template_results = results.Results(template.result_file_path,
-            parameters=self.local_parameter_names,
+        template_results = results.Results(self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         result_table = direct_comparison.ResultTable(old_results, template_results)
@@ -116,11 +108,11 @@ class CLI(CommandLineCommon.CLI):
         results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
 
         old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
-        template_results = results.Results(template.result_file_path,
-            parameters=self.local_parameter_names,
+        template_results = results.Results(self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         result_table = direct_comparison.ResultTable(old_results, template_results)
@@ -128,12 +120,15 @@ class CLI(CommandLineCommon.CLI):
         def create_ccpe_comp_bar(show, pc=False):
             name = 'ccpe-comp-{}-{}'.format(show, "pcdiff" if pc else "diff")
 
-            bar.Grapher(template.graphs_path, result_table, name,
+            bar.Grapher(self.algorithm_module.graphs_path, result_table, name,
                 shows=[show],
                 extractor=lambda (diff, pcdiff): pcdiff if pc else diff
             ).create()
 
-            summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-{}'.format(name).replace(" ", "_")).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+            ).run()
 
         for result_name in results_to_compare:
             create_ccpe_comp_bar(result_name, pc=True)
@@ -144,7 +139,7 @@ class CLI(CommandLineCommon.CLI):
             if name_addition is not None:
                 name += '-{}'.format(name_addition)
 
-            g = bar.Grapher(template.graphs_path, result_table, name,
+            g = bar.Grapher(self.algorithm_module.graphs_path, result_table, name,
                 shows=results_to_compare,
                 extractor=lambda (diff, pcdiff): modified(pcdiff))
 
@@ -156,23 +151,26 @@ class CLI(CommandLineCommon.CLI):
 
             g.create()
 
-            summary.GraphSummary(os.path.join(template.graphs_path, name), 'template-{}'.format(name).replace(" ", "_")).run()
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+            ).run()
 
         create_ccpe_comp_bar_pcdiff()
         create_ccpe_comp_bar_pcdiff(useful_log10, 'log10')
 
     
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
+        if 'table' == args.mode:
             self._run_table(args)
 
-        if 'graph' in args:
+        if 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'ccpe-comparison-table' in args:
+        if 'ccpe-comparison-table' == args.mode:
             self._run_ccpe_comparison_table(args)
 
-        if 'ccpe-comparison-graph' in args:
+        if 'ccpe-comparison-graph' == args.mode:
             self._run_ccpe_comparison_graph(args)

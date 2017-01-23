@@ -60,17 +60,6 @@ class Grapher(GrapherBase):
         else:
             return self.yextractor(yvalue)
 
-    @staticmethod
-    def _remove_index(names, values, index_name):
-        idx = names.index(index_name)
-
-        value = values[idx]
-
-        del names[idx]
-        del values[idx]
-
-        return (names, values, value)
-
     def create(self, simulation_results):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
@@ -89,11 +78,8 @@ class Grapher(GrapherBase):
                     values.append(src_period)
                     values.extend(params)
 
-                    (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
-                    (key_names, values, vvalue) = self._remove_index(key_names, values, self.vary)
-
-                    key_names = tuple(key_names)
-                    values = tuple(values)
+                    (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
+                    (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
 
                     yvalue = results[ simulation_results.result_names.index(self.yaxis) ]
 

@@ -12,8 +12,8 @@ implementation
     components SourceBroadcasterC as App;
 
     // Low levels events such as boot and LED control
-    components MainC;
-    components LedsC;
+    components DelayedBootEventMainP as MainC;
+    components LedsWhenGuiC as LedsC;
     components RandomC;
     components LocalTimeMilliC;
     
@@ -22,6 +22,32 @@ implementation
     App.Random -> RandomC;
     App.LocalTime -> LocalTimeMilliC;
 
+#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+    components PrintfMetricLoggingP as MetricLogging;
+#elif defined(USE_SERIAL_MESSAGES)
+    components SerialMetricLoggingP as MetricLogging;
+#else
+#   error "No known combination to wire up metric logging"
+#endif
+
+    App.MetricLogging -> MetricLogging;
+
+    components new NodeTypeP(6);
+    App.NodeType -> NodeTypeP;
+    NodeTypeP.MetricLogging -> MetricLogging;
+
+    components new MessageTypeP(6);
+    App.MessageType -> MessageTypeP;
+    MessageTypeP.MetricLogging -> MetricLogging;
+
+#if defined(USE_SERIAL_MESSAGES)
+    MetricLogging.MessageType -> MessageTypeP;
+#endif
+
+    components TDMAP;
+
+    App.TDMA -> TDMAP;
+    TDMAP.MetricLogging -> MetricLogging;
 
     // Radio Control
     components ActiveMessageC;
@@ -30,21 +56,9 @@ implementation
 
     // Timers
     components
-        /*new TimerMilliC() as BroadcastTimer,*/
-        new TimerMilliC() as DissemTimer,
-        new TimerMilliC() as DissemTimerSender,
-        new TimerMilliC() as EnqueueNormalTimer,
-        new TimerMilliC() as PreSlotTimer,
-        new TimerMilliC() as SlotTimer,
-        new TimerMilliC() as PostSlotTimer;
+        new TimerMilliC() as DissemTimerSender;
 
-    /*App.BroadcastTimer -> BroadcastTimer;*/
-    App.DissemTimer -> DissemTimer;
     App.DissemTimerSender -> DissemTimerSender;
-    /*App.EnqueueNormalTimer -> EnqueueNormalTimer;*/
-    App.PreSlotTimer -> PreSlotTimer;
-    App.SlotTimer -> SlotTimer;
-    App.PostSlotTimer -> PostSlotTimer;
 
     // Networking
     components
@@ -69,7 +83,14 @@ implementation
         new AMReceiverC(DISSEM_CHANNEL) as DissemReceiver;
 
     App.DissemSend -> DissemSender;
-    App.DissemReceive ->DissemReceiver;
+    App.DissemReceive -> DissemReceiver;
+
+    components
+        new AMSenderC(EMPTYNORMAL_CHANNEL) as EmptyNormalSender,
+        new AMReceiverC(EMPTYNORMAL_CHANNEL) as EmptyNormalReceiver;
+
+    App.EmptyNormalSend -> EmptyNormalSender;
+    App.EmptyNormalReceive -> EmptyNormalReceiver;
 
     /*components*/
         /*new AMSenderC(COLLISION_CHANNEL) as CollisionSender,*/
@@ -90,6 +111,7 @@ implementation
     // Object Detector - For Source movement
     components ObjectDetectorP;
     App.ObjectDetector -> ObjectDetectorP;
+    ObjectDetectorP.NodeType -> NodeTypeP;
 
     components SourcePeriodModelP;
     App.SourcePeriodModel -> SourcePeriodModelP;

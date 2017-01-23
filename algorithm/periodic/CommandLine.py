@@ -8,14 +8,9 @@ import algorithm.protectionless as protectionless
 
 from data.table import safety_period
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 class CLI(CommandLineCommon.CLI):
-    
-    local_parameter_names = ('broadcast period',)
-
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -23,28 +18,21 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-            [parameters.distance], parameters.periods
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.periods
         )
 
         argument_product = [
-            (size, config, attacker, noise, communication_model, distance, src_period, broadcast_period)
-            for (size, config, attacker, noise, communication_model, distance, (src_period, broadcast_period))
+            (size, config, attacker, noise, communication_model, distance, nido, lnst, src_period, broadcast_period)
+            for (size, config, attacker, noise, communication_model, distance, nido, lnst, (src_period, broadcast_period))
             in argument_product
         ]
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
-        runner = RunSimulations(
-            driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations,
-            safety_periods=safety_periods
-        )
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product())
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)

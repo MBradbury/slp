@@ -1,6 +1,7 @@
 from __future__ import division
 
-import math, subprocess
+import math
+import subprocess
 
 def name():
     return __name__
@@ -29,7 +30,7 @@ def copy_to():
     subprocess.check_call("rsync -avz -e ssh cluster {0}@{1}:~/slp-algorithms-tinyos".format(
         username, url()), shell=True)
 
-def copy_result_summary(results_directory_path, filename):
+def copy_file(results_directory_path, filename):
     username = raw_input("Enter your {} username: ".format(name().title()))
     subprocess.check_call("rsync -avz --rsync-path=\"mkdir -p ~/slp-algorithms-tinyos/{results_directory_path} && rsync\" -e ssh {results_directory_path}/{filename} {0}@{1}:~/slp-algorithms-tinyos/{results_directory_path}/{filename}".format(
         username, url(), results_directory_path=results_directory_path, filename=filename), shell=True)
@@ -61,7 +62,7 @@ def submitter(notify_emails=None):
     if notify_emails is not None and len(notify_emails) > 0:
         cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
-    #module_commands = "module load java/oracle/1.7.0_65 ; . sci/bin/activate"
+    #module_commands = ". sci/bin/activate"
 
     prepare_command = ""
 

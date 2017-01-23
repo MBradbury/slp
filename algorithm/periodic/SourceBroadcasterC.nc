@@ -8,8 +8,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_DUMMYNORMAL(msg) METRIC_RCV(DummyNormal, source_addr, source_addr, BOTTOM, 1)
 
@@ -34,6 +32,10 @@ module SourceBroadcasterC
 	uses interface AMSend as DummyNormalSend;
 	uses interface Receive as DummyNormalReceive;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -42,23 +44,10 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode  ";
-		case NormalNode:			return "NormalNode";
-		default:					return "<unknown> ";
-		}
-	}
+	};
 
 	uint32_t get_broadcast_period()
 	{
@@ -72,12 +61,22 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+		call MessageType.register_pair(DUMMY_NORMAL_CHANNEL, "DummyNormal");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
+		if (call NodeType.is_node_sink())
 		{
-			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			call NodeType.init(SinkNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -87,14 +86,14 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 			call BroadcastTimer.startOneShot(get_broadcast_period());
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -102,18 +101,15 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
-
-			type = SourceNode;
+			call NodeType.set(SourceNode);
 
 			call SourcePeriodModel.startPeriodic();
 		}
@@ -121,14 +117,11 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call SourcePeriodModel.stop();
 
-			type = NormalNode;
-
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -139,7 +132,7 @@ implementation
 	{
 		NormalMessage* message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "SourcePeriodModel fired.\n");
 
 		message = call MessagePool.get();
 		if (message != NULL)
@@ -159,22 +152,20 @@ implementation
 		}
 		else
 		{
-			simdbgerror("stdout", "No pool space available for another Normal message.\n");
+			ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another Normal message.\n");
 		}
 	}
 
 	event void BroadcastTimer.fired()
 	{
-		NormalMessage* message;
-
 		call BroadcastTimer.startOneShot(get_broadcast_period());
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
 
-		message = call MessageQueue.dequeue();
-
-		if (message != NULL)
+		if (!call MessageQueue.empty())
 		{
+			NormalMessage* message = call MessageQueue.dequeue();
+
 			if (send_Normal_message(message, AM_BROADCAST_ADDR))
 			{
 				call MessagePool.put(message);
@@ -215,7 +206,7 @@ implementation
 			}
 			else
 			{
-				simdbgerror("stdout", "No pool space available for another Normal message.\n");
+				ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another Normal message.\n");
 			}
 		}
 	}

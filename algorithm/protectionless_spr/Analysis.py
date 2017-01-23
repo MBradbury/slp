@@ -41,26 +41,15 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def results_header():
-        d = AnalyzerCommon.common_results_header()
+        d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
 
-        d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
-        d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
-        d['captured']           = lambda x: str(x.average_of['Captured'])
-        d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
-        d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
-        d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
-        d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
-        d['safety period']      = lambda x: str(x.average_of['TimeTaken'] * 2.0)
+        AnalyzerCommon.common_results(d)
+
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
-        d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
 
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
 
-        d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime', allow_missing=True)
-        d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount', allow_missing=True)
-        
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
 

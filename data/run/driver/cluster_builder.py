@@ -1,19 +1,27 @@
 from __future__ import print_function, division
-import os, importlib, shlex, shutil, timeit, datetime
+
+import os
+import importlib
+import shlex
+import shutil
 
 import data.util
+from data.progress import Progress
 
 from simulator import Builder
 from simulator import Configuration, Simulation
 
 class Runner:
     def __init__(self):
-        self._start_time = timeit.default_timer()
+        self._progress = Progress("building file")
         self.total_job_size = None
         self._jobs_executed = 0
 
     def add_job(self, options, name, estimated_time):
         print(name)
+
+        if not self._progress.has_started():
+            self._progress.start(self.total_job_size)
 
         # Create the target directory
         target_directory = name[:-len(".txt")]
@@ -38,28 +46,21 @@ class Runner:
 
         # Previously there have been problems with the built files not
         # properly having been flushed to the disk before attempting to move them.
-        # Write the topology here to give the files some time to flush to disk.
-
-        # Create the topology of this configuration
-        print("Creating topology file...")
-        configuration = Configuration.create(a.args.configuration, a.args)
-        Simulation.Simulation.write_topology_file(configuration.topology.nodes, target_directory)
-
 
         print("Copying files from {} to {}...".format(module_path, target_directory))
 
-        files_to_copy = [
+        files_to_copy = (
             "Analysis.py",
             "Arguments.py",
             "CommandLine.py",
             "Metrics.py",
             "__init__.py",
-        ]
-        files_to_move = [
+        )
+        files_to_move = (
             "app.xml",
             "_TOSSIM.so",
             "TOSSIM.py",
-        ]
+        )
         for name in files_to_copy:
             shutil.copy(os.path.join(module_path, name), target_directory)
         for name in files_to_move:
@@ -68,20 +69,7 @@ class Runner:
 
         print("All Done!")
 
-        job_num = self._jobs_executed + 1
-
-        current_time_taken = timeit.default_timer() - self._start_time
-        time_per_job = current_time_taken / job_num
-        estimated_total = time_per_job * self.total_job_size
-        estimated_remaining = estimated_total - current_time_taken
-
-        current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
-        estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
-
-        print("Finished building file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
-            job_num, self.total_job_size, (job_num / self.total_job_size) * 100.0, current_time_taken_str, estimated_remaining_str))
-
-        print()
+        self._progress.print_progress(self._jobs_executed)
 
         self._jobs_executed += 1
 

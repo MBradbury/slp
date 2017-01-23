@@ -8,8 +8,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 
@@ -33,6 +31,10 @@ module SourceBroadcasterC
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
@@ -40,24 +42,10 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode, TempFakeNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode";
-		case NormalNode:			return "NormalNode";
-		case TempFakeNode:			return "TempFakeNode";
-		default:					return "<unknown>";
-		}
-	}
+	};
 
 	SequenceNumber fake_sequence_counter;
 
@@ -82,14 +70,25 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		sequence_number_init(&fake_sequence_counter);
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+        call MessageType.register_pair(FAKE_CHANNEL, "Fake");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+		call NodeType.register_pair(TempFakeNode, "TempFakeNode");
+
+		if (call NodeType.is_node_sink())
 		{
-			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			call NodeType.init(SinkNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -99,13 +98,13 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -113,18 +112,15 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
-
-			type = SourceNode;
+			call NodeType.set(SourceNode);
 
 			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 		}
@@ -132,14 +128,11 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
-
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -148,32 +141,24 @@ implementation
 
 	void become_Normal(void)
 	{
-		const char* const old_type = type_to_string();
-
-		type = NormalNode;
-
-		simdbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
+		call NodeType.set(NormalNode);
 	}
 
 	void become_Fake(NodeType fake_type)
 	{
-		const char* const old_type = type_to_string();
-
 		if (fake_type != TempFakeNode)
 		{
 			assert("The perm type is not correct");
 		}
 
-		type = fake_type;
-
-		simdbg("Fake-Notification", "The node has become a %s was %s\n", type_to_string(), old_type);
+		call NodeType.set(fake_type);
 	}
 
 	event void BroadcastNormalTimer.fired()
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;

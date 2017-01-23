@@ -9,6 +9,8 @@ module ObjectDetectorImplP
 #ifdef USE_SERIAL_PRINTF
 	uses interface LocalTime<TMilli>;
 #endif
+
+	uses interface NodeType;
 }
 implementation
 {
@@ -23,18 +25,18 @@ implementation
 		uint32_t from;
 		uint32_t to;
 	} slp_period_t;
-
 	
+	// indexes contains node ids in topology format
 	const am_addr_t indexes[] = SOURCE_DETECTED_INDEXES;
-	const slp_period_t periods[][SOURCE_DETECTED_NUM_NODES] = SOURCE_DETECTED_PERIODS;
+	const slp_period_t periods[SOURCE_DETECTED_NUM_NODES][SOURCE_DETECTED_NUM_CHANGES] = SOURCE_DETECTED_PERIODS;
 	const uint32_t periods_lengths[] = SOURCE_DETECTED_PERIODS_LENGTHS;
 
-	bool get_index_from_address(am_addr_t id, uint32_t* idx)
+	bool get_index_from_address(uint32_t* idx)
 	{
 		unsigned int i, end;
 		for (i = 0, end = ARRAY_LENGTH(indexes); i != end; ++i)
 		{
-			if (indexes[i] == id)
+			if (indexes[i] == call NodeType.get_topology_node_id())
 			{
 				*idx = i;
 				return TRUE;
@@ -44,10 +46,10 @@ implementation
 		return FALSE;
 	}
 
-	bool get_periods_active(am_addr_t id, const slp_period_t** period, uint32_t* length)
+	bool get_periods_active(const slp_period_t** period, uint32_t* length)
 	{
 		uint32_t idx;
-		if (get_index_from_address(id, &idx))
+		if (get_index_from_address(&idx))
 		{
 			*period = periods[idx];
 			*length = periods_lengths[idx];
@@ -66,7 +68,7 @@ implementation
 		const slp_period_t* period;
 		uint32_t length;
 
-		if (get_periods_active(TOS_NODE_ID, &period, &length) && current_index < length)
+		if (get_periods_active(&period, &length) && current_index < length)
 		{
 			simdbgverbose("stdout", "Starting a detection timer for %" PRIu32 ".\n", period[current_index].from);
 
@@ -105,11 +107,11 @@ implementation
 		const slp_period_t* period;
 		uint32_t length;
 
-		simdbgverbose("stdout", "Detected an object at %s.\n", sim_time_string());
+		simdbgverbose("stdout", "Detected an object.\n");
 
 		detected = TRUE;
 
-		if (get_periods_active(TOS_NODE_ID, &period, &length) && current_index < length)
+		if (get_periods_active(&period, &length) && current_index < length)
 		{
 			// Don't start the expiry timer if this detection
 			// is to continue forever
@@ -132,7 +134,7 @@ implementation
 
 	event void ExpireTimer.fired()
 	{
-		simdbgverbose("stdout", "Stopped detecting an object as %s.\n", sim_time_string());
+		simdbgverbose("stdout", "Stopped detecting an object.\n");
 
 		detected = FALSE;
 		signal ObjectDetector.stoppedDetecting();

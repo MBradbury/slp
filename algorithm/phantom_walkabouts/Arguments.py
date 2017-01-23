@@ -36,27 +36,18 @@ class Arguments(ArgumentsCommon):
         self.add_argument("--short-count", type=int, required=True)
         self.add_argument("--long-count", type=int, required=True)
 
-        self.add_argument("--landmark-node", default="sink_id")
-
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
         result["RANDOM_WALK_HOPS"] = int(self.args.short_walk_length)
         result["LONG_RANDOM_WALK_HOPS"] = int(self.args.long_walk_length)
 
-        result["LANDMARK_NODE_ID"] = self._get_landmark_node_id()
+        result["BIASED_NO"] = int(self.args.direction_bias *100)
 
-        result["Biased_No"] = int(self.args.direction_bias *100)
-
-        configuration = Configuration.create(self.args.configuration, self.args)
-
-        result["BOTTOM_LEFT_NODE_ID"] = configuration.topology.bottom_left
-
-        result["BOTTOM_RIGHT_NODE_ID"] = configuration.topology.bottom_right
-
-        result["TOP_LEFT_NODE_ID"] = configuration.topology.top_left
-
-        result["TOP_RIGHT_NODE_ID"] = configuration.topology.top_right
+        result["BOTTOM_LEFT_NODE_ID"] = self._get_node_id("bottom_left")
+        result["BOTTOM_RIGHT_NODE_ID"] = self._get_node_id("bottom_right")
+        result["TOP_LEFT_NODE_ID"] = self._get_node_id("top_left")
+        result["TOP_RIGHT_NODE_ID"] = self._get_node_id("top_right")
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
 
@@ -69,24 +60,3 @@ class Arguments(ArgumentsCommon):
         result["LONG_COUNT"] = int(self.args.long_count)
 
         return result
-
-    def _get_landmark_node_id(self):
-        landmark = self.args.landmark_node
-        configuration = Configuration.create(self.args.configuration, self.args)
-
-        try:
-            landmark = int(landmark)
-
-            max_id = len(configuration.topology.nodes)
-            if landmark < 0 or landmark >= max_id:
-                raise RuntimeError("The landmark node id is not in the range of [0,{})".format(max_id))
-
-            return landmark
-
-        except ValueError:
-            attr_sources = [configuration, configuration.topology]
-            for attr_source in attr_sources:
-                if hasattr(attr_source, landmark):
-                    return int(getattr(attr_source, landmark))
-            else:
-                raise RuntimeError("No way to work out landmark node from {}.".format(landmark))

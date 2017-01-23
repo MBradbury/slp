@@ -10,14 +10,11 @@ from data.table import safety_period, direct_comparison
 from data.graph import summary, versus
 from data.util import scalar_extractor
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = tuple()
-
     def __init__(self):
         super(CLI, self).__init__(__package__)
+
+        subparser = self._subparsers.add_parser("graph")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -25,7 +22,8 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-            [parameters.distance], parameters.source_periods
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.source_periods
         )
 
         # Factor in the number of sources when selecting the source period.
@@ -35,33 +33,15 @@ class CLI(CommandLineCommon.CLI):
 
         # Provide the argument to the attacker model
         argument_product = [
-            (s, c, am.format(source_period=sp), nm, cm, d, sp)
-            for (s, c, am, nm, cm, d, sp)
+            (s, c, am.format(source_period=sp), nm, cm, d, nido, lnst, sp)
+            for (s, c, am, nm, cm, d, nido, lnst, sp)
             in argument_product
         ]
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-                                skip_completed_simulations=skip_completed_simulations)
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
-
-    def _run_table(self, args):
-        safety_period_table = safety_period.TableGenerator(self.algorithm_module.result_file_path)
-
-        prod = itertools.product(Simulation.available_noise_models(),
-                                 Simulation.available_communication_models())
-
-        for (noise_model, comm_model) in prod:
-
-            print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
-
-            filename = '{}-{}-{}-results'.format(self.algorithm_module.name, noise_model, comm_model)
-
-            self._create_table(filename, safety_period_table,
-                               param_filter=lambda (cm, nm, am, c, d): nm == noise_model and cm == comm_model)
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
     def _run_graph(self, args):
         graph_parameters = {
@@ -75,7 +55,7 @@ class CLI(CommandLineCommon.CLI):
 
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources")
 
@@ -106,73 +86,8 @@ class CLI(CommandLineCommon.CLI):
                 '{}-{}'.format(self.algorithm_module.name, name)
             ).run()
 
-    def _run_ccpe_comparison_table(self, args):
-        from data.old_results import OldResults
-
-        old_results = OldResults(
-            'results/CCPE/protectionless-results.csv',
-            parameters=tuple(),
-            results=('time taken', 'received ratio', 'safety period')
-        )
-
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
-            results=('time taken', 'received ratio', 'safety period')
-        )
-
-        result_table = direct_comparison.ResultTable(old_results, protectionless_results)
-
-        self._create_table('{}-ccpe-comparison'.format(self.algorithm_module.name), result_table)
-
-    def _run_ccpe_comparison_graphs(self, args):
-        from data.old_results import OldResults
-
-        result_names = ('time taken', 'received ratio', 'safety period')
-
-        old_results = OldResults(
-            'results/CCPE/protectionless-results.csv',
-            parameters=self.local_parameter_names,
-            results=result_names
-        )
-
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
-            results=result_names
-        )
-
-        result_table = direct_comparison.ResultTable(old_results, protectionless_results)
-
-        def create_ccpe_comp_versus(yxaxis, pc=False):
-            name = 'ccpe-comp-{}-{}'.format(yxaxis, "pcdiff" if pc else "diff")
-
-            versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yxaxis, vary='source period',
-                yextractor=lambda (diff, pcdiff): pcdiff if pc else diff
-            ).create(result_table)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
-            ).run()
-
-        for result_name in result_names:
-            create_ccpe_comp_versus(result_name, pc=True)
-            create_ccpe_comp_versus(result_name, pc=False)
-
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
-            self._run_table(args)
-
-        if 'graph' in args:
+        if 'graph' == args.mode:
             self._run_graph(args)
-
-        if 'ccpe-comparison-table' in args:
-            self._run_ccpe_comparison_table(args)
-
-        if 'ccpe-comparison-graph' in args:
-            self._run_ccpe_comparison_graphs(args)

@@ -8,8 +8,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance)
 
 module SourceBroadcasterC
@@ -30,6 +28,10 @@ module SourceBroadcasterC
 	uses interface Receive as NormalSnoop;
 	uses interface Intercept as NormalIntercept;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
 	uses interface ObjectDetector;
 	uses interface SourcePeriodModel;
 
@@ -42,23 +44,10 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string(void)
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode  ";
-		case NormalNode:			return "NormalNode";
-		default:					return "<unknown> ";
-		}
-	}
+	};
 
 	unsigned int extra_to_send = 0;
 
@@ -67,13 +56,22 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
+		if (call NodeType.is_node_sink())
 		{
-			type = SinkNode;
+			call NodeType.init(SinkNode);
 			call RootControl.setRoot();
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -83,7 +81,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call RoutingControl.start();
 
@@ -91,7 +89,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -99,18 +97,15 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
-
-			type = SourceNode;
+			call NodeType.set(SourceNode);
 
 			call SourcePeriodModel.startPeriodic();
 		}
@@ -118,14 +113,11 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call SourcePeriodModel.stop();
 
-			type = NormalNode;
-
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -135,7 +127,7 @@ implementation
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: SourcePeriodModel fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "SourcePeriodModel fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -240,7 +232,7 @@ implementation
 		{
 			// TODO: FIXME
 			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
-			METRIC_BCAST(Normal, "success", UNKNOWN_SEQNO);
+			METRIC_BCAST(Normal, SUCCESS, UNKNOWN_SEQNO);
 		}
 
 		return SUCCESS;
@@ -250,7 +242,7 @@ implementation
 
 		if (event_type == NET_C_TREE_SENT_BEACON)
 		{
-			METRIC_BCAST(CTPBeacon, "success", UNKNOWN_SEQNO);
+			METRIC_BCAST(CTPBeacon, SUCCESS, UNKNOWN_SEQNO);
 		}
 
 		else if (event_type == NET_C_TREE_RCV_BEACON)

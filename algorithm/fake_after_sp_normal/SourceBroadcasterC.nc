@@ -11,8 +11,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 // Notes:
 /*
  * Important to remember that the algorithm cannot rely on the first flood to get the minimum distance,
@@ -72,6 +70,10 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
@@ -79,23 +81,10 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode";
-		case NormalNode:			return "NormalNode";
-		default:					return "<unknown>";
-		}
-	}
+	};
 
 	distance_neighbours_t neighbours;
 
@@ -222,15 +211,27 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		sequence_number_init(&away_sequence_counter);
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+		call MessageType.register_pair(AWAY_CHANNEL, "Away");
+		call MessageType.register_pair(DUMMY_NORMAL_CHANNEL, "DummyNormal");
+		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
+		if (call NodeType.is_node_sink())
 		{
-			type = SinkNode;
+			call NodeType.init(SinkNode);
 			sink_distance = 0;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -240,13 +241,13 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -254,18 +255,15 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
-
-			type = SourceNode;
+			call NodeType.set(SourceNode);
 
 			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 		}
@@ -273,14 +271,11 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
-
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -293,7 +288,7 @@ implementation
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -324,7 +319,7 @@ implementation
 		BeaconMessage message;
 		bool result;
 
-		simdbgverbose("stdout", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("stdout", "BeaconSenderTimer fired.\n");
 
 		if (busy)
 		{
@@ -350,7 +345,7 @@ implementation
 		DummyNormalMessage message;
 		bool result;
 
-		simdbgverbose("stdout", "%s: DummyNormalSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("stdout", "DummyNormalSenderTimer fired.\n");
 
 		if (busy)
 		{

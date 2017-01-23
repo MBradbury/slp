@@ -10,8 +10,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
@@ -73,6 +71,10 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -84,12 +86,10 @@ module SourceBroadcasterC
 
 implementation 
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
+	};
 
 	typedef enum
 	{
@@ -101,6 +101,7 @@ implementation
 		int16_t address;
 		int16_t neighbour_size;
 	}neighbour_info;
+
 	neighbour_info node_neighbours[SLP_MAX_1_HOP_NEIGHBOURHOOD]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
 
 	typedef struct
@@ -108,25 +109,16 @@ implementation
 		int16_t address;
 		int16_t neighbour_size;
 	}bias_neighbour;
-	bias_neighbour bias_neighbours[2]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
+
+	bias_neighbour bias_neighbours[SLP_MAX_BIAS_NEIGHBOURS]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
 
 	typedef enum
 	{
 		UnknownMessageType, ShortRandomWalk, LongRandomWalk
-	}MessageType;
-	MessageType messagetype = UnknownMessageType;
-	MessageType nextmessagetype = UnknownMessageType;
+	}WalkType;
 
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode:      return "SourceNode";
-		case SinkNode:        return "SinkNode  ";
-		case NormalNode:      return "NormalNode";
-		default:              return "<unknown> ";
-		}
-	}
+	WalkType messagetype = UnknownMessageType;
+	WalkType nextmessagetype = UnknownMessageType;
 
 	int16_t landmark_distance = BOTTOM;
 
@@ -142,7 +134,7 @@ implementation
 
 	uint32_t get_source_period()
 	{
-		assert(type == SourceNode);
+		assert(call NodeType.get() == SourceNode);
 		return call SourcePeriodModel.get();
 	}
 
@@ -186,9 +178,21 @@ implementation
 			}
 		}
 
-		if (possible_sets == (FurtherSet | CloserSet) || (possible_sets & FurtherSet) != 0)
+		if (possible_sets == (FurtherSet | CloserSet))
 		{
-			// Both directions or only FurtherSet possible, so  pick one FurtherSet
+			// Both directions possible, so randomly pick one of them
+			const uint16_t rnd = call Random.rand16() % 2;
+			if (rnd == 0)
+			{
+				return FurtherSet;
+			}
+			else
+			{
+				return CloserSet;
+			}
+		}
+		else if ((possible_sets & FurtherSet) != 0)
+		{
 			return FurtherSet;
 		}
 		else if ((possible_sets & CloserSet) != 0)
@@ -245,9 +249,12 @@ implementation
 				}
 			}
 		}
+		//when message reachs 5, 6 belongs to the further set, and 16 belongs to close set.
+		//we want it continue to walk along the borderline.
+		//if you are confusing, ask author for help.
 		if (further_or_closer_set == CloserSet && local_neighbours.size == 1)
 		{
-			simdbgverbose("stdout","need change to further!\n");
+			simdbgverbose("stdout","need change to further set!\n");
 			return FurtherSet;
 		}
 		else if (local_neighbours.size == 0)
@@ -324,9 +331,9 @@ implementation
 		{
 			int16_t m,j;
 
-			for (m=0; m!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ++m)
+			for (m=0; m != SLP_MAX_1_HOP_NEIGHBOURHOOD; ++m)
 			{
-				for(j=0; j!= 2; ++j)
+				for(j=0; j!= SLP_MAX_BIAS_NEIGHBOURS; ++j)
 				{
 					if (node_neighbours[m].address == local_neighbours.data[j].address)
 					{
@@ -396,9 +403,9 @@ implementation
 		return rw;
 	}
 
-	MessageType sl_next_message_type(int16_t srw, int16_t lrw)
+	WalkType sl_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType sl_type;
+		WalkType sl_type;
 
 		if (srw == 0 && lrw != 0)
 			sl_type = LongRandomWalk;
@@ -408,9 +415,9 @@ implementation
 		return sl_type;
 	}
 
-	MessageType ls_next_message_type(int16_t srw, int16_t lrw)
+	WalkType ls_next_message_type(int16_t srw, int16_t lrw)
 	{
-		MessageType ls_type;
+		WalkType ls_type;
 
 		if (lrw == 0 && srw != 0)
 			ls_type = ShortRandomWalk;
@@ -431,14 +438,25 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		init_distance_neighbours(&neighbours);
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+		call MessageType.register_pair(AWAY_CHANNEL, "Away");
+		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
+		if (call NodeType.is_node_sink())
 		{
-			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			call NodeType.init(SinkNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -448,18 +466,18 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 
-			if (TOS_NODE_ID == LANDMARK_NODE_ID)
+			if (call NodeType.is_topology_node_id(LANDMARK_NODE_ID))
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -467,33 +485,27 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
+			call NodeType.set(SourceNode);
 
-			type = SourceNode;
-
-			call BroadcastNormalTimer.startOneShot(3 * 1000); // 3 seconds
+			call BroadcastNormalTimer.startOneShot(2 * 1000); // 2 seconds
 		}
 	}
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
-
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -508,7 +520,7 @@ implementation
 
 		const uint32_t source_period = get_source_period();
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
 
 #ifdef SLP_VERBOSE_DEBUG
 		//print_distance_neighbours("stdout", &neighbours);
@@ -565,8 +577,8 @@ implementation
 		}
 		else
 		{
-			simdbg_clear("Metric-SOURCE_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC "\n",
-				sim_time(), TOS_NODE_ID, message.sequence_number);
+			simdbg("Metric-SOURCE_DROPPED", NXSEQUENCE_NUMBER_SPEC "\n",
+				message.sequence_number);
 		}
 
 		if (messagetype == LongRandomWalk && nextmessagetype == ShortRandomWalk)
@@ -585,7 +597,7 @@ implementation
 
 		landmark_distance = 0;
 
-		simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "AwaySenderTimer fired.\n");
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -609,7 +621,7 @@ implementation
 	{
 		BeaconMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
 		message.landmark_distance_of_sender = landmark_distance;
 
@@ -647,13 +659,7 @@ implementation
 			else
 				continue;
 		}
-/*
-		for (j=0;j!=SLP_MAX_1_HOP_NEIGHBOURHOOD;j++)
-		{
-			if(node_neighbours[j].address!=BOTTOM)
-				simdbg("stdout","<After>neighbour address:%d, neighbour size:%d\n", node_neighbours[j].address, node_neighbours[j].neighbour_size);
-		}
-*/
+
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
@@ -669,33 +675,12 @@ implementation
 			forwarding_message.neighbour_size = neighbours.size;
 			forwarding_message.node_id = TOS_NODE_ID;
 
-			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast && TOS_NODE_ID != LANDMARK_NODE_ID)
+			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast && !(call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 			{
 				am_addr_t target;
 
-				// The previous node(s) were unable to choose a direction,
-				// so lets try to work out the direction the message should go in.
-/*
-				if (forwarding_message.further_or_closer_set == UnknownSet)
-				{
-					const distance_neighbour_detail_t* neighbour_detail = find_distance_neighbour(&neighbours, source_addr);
-					if (neighbour_detail != NULL)
-					{
-						forwarding_message.further_or_closer_set =
-							neighbour_detail->contents.distance < landmark_distance ? FurtherSet : CloserSet;
-					}
-					else
-					{
-						forwarding_message.further_or_closer_set = random_walk_direction();
-					}
-
-					simdbgverbose("stdout", "%s: Unknown direction, setting to %d\n",
-						sim_time_string(), forwarding_message.further_or_closer_set);
-				}
-*/
-				// Get a target, ignoring the node that sent us this message
-
-				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);//if chosen size is 0, choose the other set.
+				//if chosen size is 0, choose the other set.
+				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);
 				
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
 				simdbgverbose("stdout", "After target function, target is %d\n", target);
@@ -707,8 +692,8 @@ implementation
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					simdbg_clear("Metric-PATH_DROPPED", SIM_TIME_SPEC ",%u," SEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, rcvd->sequence_number, rcvd->source_distance);
+					simdbg("Metric-PATH_DROPPED", NXSEQUENCE_NUMBER_SPEC ",%u\n",
+						rcvd->sequence_number, rcvd->source_distance);
 
 					return;
 				}
@@ -722,11 +707,10 @@ implementation
 			}
 			else
 			{
-				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || TOS_NODE_ID == LANDMARK_NODE_ID))
+				if (!rcvd->broadcast && (rcvd->source_distance + 1 == rcvd->random_walk_hops || call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 				{
-					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, source_addr,
-						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+					simdbg("Metric-PATH-END", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
+						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
 				// We want other nodes to continue broadcasting
@@ -808,29 +792,9 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		//int16_t ii;
-
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
-/*
-		for (ii=0; ii!=SLP_MAX_1_HOP_NEIGHBOURHOOD; ii++)
-		{
-			if(node_neighbours[ii].address == rcvd->node_id)
-			{
-				node_neighbours[ii].neighbour_size = (node_neighbours[ii].neighbour_size <= rcvd->neighbour_size)? 
-				rcvd->neighbour_size: node_neighbours[ii].neighbour_size;
-				break;
-			}
-			else if (node_neighbours[ii].address == BOTTOM)
-			{
-				node_neighbours[ii].address = rcvd->node_id;
-				node_neighbours[ii].neighbour_size = rcvd->neighbour_size;
-				break;
-			}
-			else
-				continue;
-		}
-*/
+
 		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;

@@ -1,6 +1,8 @@
 
 from data.analysis import AnalyzerCommon
 
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
@@ -21,17 +23,10 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def results_header():
-        d = AnalyzerCommon.common_results_header()
-
-        d['approach']           = lambda x: x.opts['approach']
+        d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
 
         AnalyzerCommon.common_results(d)
         
-        d['captured']           = lambda x: str(x.average_of['Captured'])
-        d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance', average_corrector=Analyzer._correct_attacker_distance)
-        d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
-        d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
         d['choose']             = lambda x: AnalyzerCommon._format_results(x, 'ChooseSent')
@@ -39,7 +34,6 @@ class Analyzer(AnalyzerCommon):
         d['tfs']                = lambda x: AnalyzerCommon._format_results(x, 'TFS')
         d['pfs']                = lambda x: AnalyzerCommon._format_results(x, 'PFS')
         d['fake to normal']     = lambda x: AnalyzerCommon._format_results(x, 'FakeToNormal')
-        d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
@@ -57,12 +51,3 @@ class Analyzer(AnalyzerCommon):
         d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
 
         return d
-
-    @staticmethod
-    def _correct_attacker_distance(x):
-        """The format was changed to have a pair as the key,
-        this allows for multiple attackers and multiple sources."""
-        if isinstance(x, dict) and 0 in x:
-            return {(0, 0): x[0]}
-        else:
-            return x

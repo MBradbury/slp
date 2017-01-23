@@ -1,0 +1,32 @@
+#ifndef SLP_CONSTANTS_H
+#define SLP_CONSTANTS_H
+
+enum Channels
+{
+	NORMAL_CHANNEL = 1,
+	AWAY_CHANNEL = 2,
+	BEACON_CHANNEL = 3,
+};
+
+#define SLP_MAX_NUM_SOURCES 20
+#define SLP_MAX_NUM_SINKS 1
+
+#define SLP_MAX_1_HOP_NEIGHBOURHOOD 10
+
+
+// The amount of time in ms that it takes to send a message from one node to another
+#define ALPHA 20
+
+#define SINK_AWAY_MESSAGES_TO_SEND 2
+#define SINK_AWAY_DELAY_MS (1 * 1000)
+#define AWAY_BEACON_RETRY_SEND_DELAY 65
+
+#define BEACON_SEND_DELAY_FIXED 100
+#define BEACON_SEND_DELAY_RANDOM 50
+
+#define NORMAL_ROUTE_FROM_SINK_DISTANCE_LIMIT 4
+
+#define RTX_ATTEMPTS 5
+#define BAD_NEIGHBOUR_THRESHOLD (RTX_ATTEMPTS / 2) 
+
+#endif // SLP_CONSTANTS_H

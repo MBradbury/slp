@@ -16,6 +16,7 @@ cluster/
 */Graphs/*
 results/*/*.csv
 results/old/*
+results-old/
 noise/graphs/*.pdf
 results/
 *.aux
@@ -23,3 +24,4 @@ results/
 *.tex
 ./testbed/*
 Parameters.py
+testbed_results/

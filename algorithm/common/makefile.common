@@ -1,38 +1,57 @@
 
+# Additional Includes
+CFLAGS += -I"../common" -I"../common/metrics"
+
 # Additional warnings
-CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat  -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable
+CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable 
 
 CFLAGS += -DPOWERTOSSIMZ
 
+CFLAGS += -Wsign-compare
+
+# The micax compiler doesn't understand these flags
+ifdef TESTBED
+	ifneq ($(WSN_PLATFORM), micaz)
+		CFLAGS += -Werror=pointer-sign -Werror=format
+	endif
+else
+	CFLAGS += -Werror=pointer-sign -Werror=format
+endif
+
+# Setup printf library if required
 ifdef USE_SERIAL_PRINTF
 
-CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS -DUSE_SERIAL_PRINTF=1 -DPRINTF_BUFFER_SIZE=512
-
-CFLAGS += -Wsign-compare -Wpointer-sign
-
-else
-
-CFLAGS += -Werror=pointer-sign -Werror=format
+CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS -DUSE_SERIAL_PRINTF=1
 
 endif
 
 
+SERIAL_JAVA_TARGETS = metric_receive_msg.java metric_bcast_msg.java metric_deliver_msg.java attacker_receive_msg.java metric_node_change_msg.java metric_node_type_add_msg.java metric_message_type_add_msg.java error_occurred_msg.java metric_node_slot_change_msg.java
+SERIAL_CLASS_TARGETS = $(JAVA_TARGETS:.java=.class)
+
 # The Indriya testbed needs printf_msg java class files
-ifdef TESTBED
+ifdef USE_SERIAL_MESSAGES
+
+BUILD_EXTRA_DEPS += $(SERIAL_CLASS_TARGETS) printf_msg.class
+
 ifeq ($(TESTBED), indriya)
-
-BUILD_EXTRA_DEPS += printf_msg.class
-
 # Indriya testbed only support Java 1.4, see: https://indriya.comp.nus.edu.sg/motelab/html/faq.php
+SERIAL_JAVA_VERSION = 1.4
+else
+# A sensible modern Java version that should be widely available
+SERIAL_JAVA_VERSION = 1.7
+endif
 
-printf_msg.class: $(wildcard *.java) printf_msg.java
-	javac -source 1.4 -target 1.4 *.java
+$(SERIAL_CLASS_TARGETS) printf_msg.class: $(wildcard *.java) $(SERIAL_JAVA_TARGETS) printf_msg.java
+	javac -source $(SERIAL_JAVA_VERSION) -target $(SERIAL_JAVA_VERSION) *.java
 
 printf_msg.java:
 	mig java -target=null -java-classname=printf_msg $(TOSDIR)/lib/printf/printf.h printf_msg -o $@
 
-endif
+$(SERIAL_JAVA_TARGETS):
+	mig java -target=null -java-classname=$(@:.java=) ../common/metrics/SerialMetricLoggingTypes.h $(@:.java=) -o $@
+
 endif
 
 # Specify the extra clean for all make files
-CLEAN_EXTRA = *.class printf_msg.java
+CLEAN_EXTRA = *.class printf_msg.java $(SERIAL_JAVA_TARGETS)

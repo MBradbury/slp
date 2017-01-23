@@ -3,7 +3,7 @@
 #include "SendReceiveFunctions.h"
 #include "NeighbourDetail.h"
 
-#include "AwayChooseMessage.h"
+#include "AwayMessage.h"
 #include "FakeMessage.h"
 #include "NormalMessage.h"
 #include "DummyNormalMessage.h"
@@ -11,8 +11,6 @@
 
 #include <Timer.h>
 #include <TinyError.h>
-
-#include <assert.h>
 
 // Notes:
 /*
@@ -77,6 +75,10 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
 	uses interface FakeMessageGenerator;
 	uses interface ObjectDetector;
 
@@ -91,30 +93,16 @@ module SourceBroadcasterC
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode";
-		case NormalNode:			return "NormalNode";
-		default:					return "<unknown>";
-		}
-	}
+	};
 
 	am_addr_t sink_id = AM_BROADCAST_ADDR;
 
 	distance_neighbours_t neighbours;
 
 	SequenceNumber away_sequence_counter;
-	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
 	SequenceNumber source_fake_sequence_counter;
@@ -371,23 +359,35 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		sequence_number_init(&away_sequence_counter);
-		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
 
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+        call MessageType.register_pair(AWAY_CHANNEL, "Away");
+        call MessageType.register_pair(FAKE_CHANNEL, "Fake");
+        call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
+        call MessageType.register_pair(DUMMY_NORMAL_CHANNEL, "DummyNormal");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
+		if (call NodeType.is_node_sink())
 		{
 			AwayMessage message;
-			call FakeMessageGenerator.start(&message);
+			call FakeMessageGenerator.start(&message, sizeof(message));
 
-			type = SinkNode;
+			call NodeType.init(SinkNode);
 			sink_distance = 0;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -397,13 +397,13 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -411,18 +411,16 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
+			call NodeType.set(SourceNode);
 
-			type = SourceNode;
 			call SourceDistances.put(TOS_NODE_ID, 0);
 
 			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
@@ -431,15 +429,13 @@ implementation
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
 			call BroadcastNormalTimer.stop();
 
-			type = NormalNode;
 			call SourceDistances.remove(TOS_NODE_ID);
 
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -453,7 +449,7 @@ implementation
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -487,7 +483,7 @@ implementation
 		BeaconMessage message;
 		bool result;
 
-		simdbgverbose("stdout", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("stdout", "BeaconSenderTimer fired.\n");
 
 		if (busy)
 		{
@@ -513,7 +509,7 @@ implementation
 		DummyNormalMessage message;
 		bool result;
 
-		simdbgverbose("stdout", "%s: DummyNormalSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("stdout", "DummyNormalSenderTimer fired.\n");
 
 		if (busy)
 		{
@@ -774,51 +770,35 @@ implementation
 	RECEIVE_MESSAGE_END(Beacon)
 
 
+	event uint32_t FakeMessageGenerator.initialStartDelay()
+	{
+		return signal FakeMessageGenerator.calculatePeriod() / 2;
+	}
+
 	event uint32_t FakeMessageGenerator.calculatePeriod()
 	{
 		return get_pfs_period();
 	}
 
-	event void FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
+	event void FakeMessageGenerator.sendFakeMessage()
 	{
-		message->sequence_number = sequence_number_next(&fake_sequence_counter);
-		message->sender_sink_distance = sink_distance;
-		message->message_type = type;
-		message->source_id = TOS_NODE_ID;
-		message->sender_min_source_distance = min_source_distance;
-	}
+		FakeMessage message;
 
-	event void FakeMessageGenerator.durationExpired(const AwayMessage* original_message)
-	{
-		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
-	}
+		message.sequence_number = sequence_number_next(&fake_sequence_counter);
+		message.sender_sink_distance = sink_distance;
+		message.message_type = call NodeType.get();
+		message.source_id = TOS_NODE_ID;
+		message.sender_min_source_distance = min_source_distance;
 
-	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)
-	{
-		const char* result;
-
-		// Only if the message was successfully broadcasted, should the seqno be incremented.
-		if (error == SUCCESS)
+		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&fake_sequence_counter);
 		}
+	}
 
-		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
-
-		switch (error)
-		{
-		case SUCCESS: result = "success"; break;
-		case EBUSY: result = "busy"; break;
-		default: result = "failed"; break;
-		}
-
-		if (tosend != NULL)
-		{
-			METRIC_BCAST(Fake, result, tosend->sequence_number);
-		}
-		else
-		{
-			METRIC_BCAST(Fake, result, BOTTOM);
-		}
+	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size)
+	{
+		// Duration should never expire
+		assert(FALSE);
 	}
 }

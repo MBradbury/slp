@@ -11,11 +11,11 @@ class OldResults(Results):
         with open(result_file, 'r') as f:
 
             seen_first = False
-            
+           
             reader = csv.reader(f, delimiter=',')
-            
+
             headers = []
-            
+
             for values in reader:
                 # Check if we have seen the first line
                 # We do this because we want to ignore it
