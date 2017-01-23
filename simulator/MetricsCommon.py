@@ -55,18 +55,13 @@ class MetricsCommon(object):
         self.became_source_times = defaultdict(list)
         self.became_normal_after_source_times = defaultdict(list)
 
-<<<<<<< local
+        self.node_transitions = defaultdict(int)
+
         powertossimz.maxmotes = configuration.size()
         powertossimz.simfreq = sim.tossim.ticksPerSecond()
         powertossimz.initstate()
 
-        # Normal nodes becoming the source, or source nodes becoming normal
-        self.register('Metric-SOURCE_CHANGE', self.process_SOURCE_CHANGE)
-=======
-        self.node_transitions = defaultdict(int)
-
         self.register('M-NC', self.process_node_change_event)
->>>>>>> other
 
         # BCAST / RCV / DELIVER events
         self.register('M-CB', self.process_bcast_event)
@@ -428,7 +423,6 @@ class MetricsCommon(object):
 
         return result
 
-<<<<<<< local
     def energy_per_node(self):
         return {
             node_id: powertossimz.total_energy(node_id)
@@ -438,7 +432,7 @@ class MetricsCommon(object):
 
     def energy_overall(self):
         return sum(self.energy_per_node().values())
-=======
+
     def times_node_changed_to(self, node_type, from_types=None):
         total_count = 0
 
@@ -506,8 +500,6 @@ class MetricsCommon(object):
 
     def deliv_further_meters(self, msg):
         return dict(self.delivered_from_further_meters[msg])
-
->>>>>>> other
 
 
     @staticmethod
