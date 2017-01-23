@@ -188,6 +188,7 @@ implementation
 
 	command void MetricLogging.log_attacker_receive(
 		const char* message_type,
+		const message_t* wsn_msg,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number
