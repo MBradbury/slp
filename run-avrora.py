@@ -69,10 +69,11 @@ def main(argv):
         "simulation": "sensor-network",
         "seconds": "30",
         "monitors": "energy",
-        "radio-range": "5",
-        "nodes": str(configuration.size()),
+        "radio-range": a.args.distance + 0.25,
+        "nodecount": str(configuration.size()),
         "topology": "static",
         "topology-file": os.path.join(target_directory, "topology.txt"),
+        "random-seed": a.args.seed,
     }
 
     target_file = os.path.join(target_directory, "main.elf")
