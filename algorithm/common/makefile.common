@@ -5,8 +5,16 @@ CFLAGS += -I"../common" -I"../common/metrics"
 # Additional warnings
 CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable 
 
-CFLAGS += -Wsign-compare -Werror=pointer-sign -Werror=format
+CFLAGS += -Wsign-compare
 
+# The micax compiler doesn't understand these flags
+ifdef TESTBED
+	ifneq ($(WSN_PLATFORM), micaz)
+		CFLAGS += -Werror=pointer-sign -Werror=format
+	endif
+else
+	CFLAGS += -Werror=pointer-sign -Werror=format
+endif
 
 # Setup printf library if required
 ifdef USE_SERIAL_PRINTF
