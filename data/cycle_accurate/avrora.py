@@ -27,6 +27,6 @@ def post_build_actions(target_directory, a):
     configuration = Configuration.create(a.args.configuration, a.args)
 
     with open(os.path.join(target_directory, "topology.txt"), "w") as tf:
-        for (nid, (x, y)) in configuration.topology.nodes.items():
+        for (nid, (x, y)) in sorted(configuration.topology.nodes.items(), key=lambda k: k[0]):
             z = 0
             print("node{} {} {} {}".format(nid, x, y, z), file=tf)
