@@ -39,7 +39,7 @@ printf_msg.java:
 	mig java -target=null -java-classname=printf_msg $(TOSDIR)/lib/printf/printf.h printf_msg -o $@
 
 $(SERIAL_JAVA_TARGETS):
-	mig java -target=null -java-classname=$(@:.java=) ../common/SerialMetricLoggingTypes.h $(@:.java=) -o $@
+	mig java -target=null -java-classname=$(@:.java=) ../common/metrics/SerialMetricLoggingTypes.h $(@:.java=) -o $@
 
 endif
 
