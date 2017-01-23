@@ -1,0 +1,49 @@
+
+distance = 4.5
+
+noise_models = ["meyer-heavy"]
+
+communication_models = ["ideal"]
+
+sizes = [11]
+
+source_periods = [1.0]
+
+configurations = [
+    'SourceCorner',
+    #'Source2CornerTop',
+    #'Source3CornerTop',
+
+    #'SinkCorner',
+    #'SinkCorner2Source',
+    #'SinkCorner3Source',
+
+    #'FurtherSinkCorner',
+    #'FurtherSinkCorner2Source',
+    #'FurtherSinkCorner3Source'
+]
+
+attacker_models = ['SeqNosReactiveAttacker()']
+
+latest_node_start_time = 1.0 # in seconds
+
+node_id_orders = ['topology']
+
+direction_biases = [0.9]
+
+orders = [
+	"ShortLong",
+	#"LongShort",
+]
+
+dynamic_period_repeat = [
+    "single",
+    #"multiple",
+]
+
+wait_before_short = [0]
+
+short_counts = [1]
+long_counts = [1]
+
+repeats = 1000

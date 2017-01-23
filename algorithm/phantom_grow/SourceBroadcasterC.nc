@@ -13,10 +13,8 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
 
 typedef struct
@@ -27,7 +25,7 @@ void distance_container_update(distance_container_t* find, distance_container_t 
 {
 }
 
-void distance_container_print(char* name, size_t i, am_addr_t address, distance_container_t const* contents)
+void distance_container_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 	simdbg_clear(name, "[%u] => addr=%u", i, address);
 }
@@ -45,7 +43,6 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
-	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
 
@@ -64,6 +61,9 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -75,28 +75,15 @@ module SourceBroadcasterC
 
 implementation 
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode
-	} NodeType;
-
-	NodeType type = NormalNode;
+	};
 
 	typedef enum
 	{
 		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
 	} SetType;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode:      return "SourceNode";
-		case SinkNode:        return "SinkNode  ";
-		case NormalNode:      return "NormalNode";
-		default:              return "<unknown> ";
-		}
-	}
 
 	distance_neighbours_t neighbours;
 
@@ -104,12 +91,6 @@ implementation
 	message_t packet;
 
 	unsigned int extra_to_send = 0;
-
-	uint32_t get_source_period()
-	{
-		assert(type == SourceNode);
-		return call SourcePeriodModel.get();
-	}
 
 	// Produces a random float between 0 and 1
 	float random_float()
@@ -204,16 +185,26 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		init_distance_neighbours(&neighbours);
 
-		if (TOS_NODE_ID == SINK_NODE_ID)
-		{
-			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+		call MessageType.register_pair(AWAY_CHANNEL, "Away");
+		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
 
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+
+		if (call NodeType.is_node_sink())
+		{
+			call NodeType.init(SinkNode);
 			//sink_distance = 0;
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -223,18 +214,18 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
 			call ObjectDetector.start();
 
-			if (TOS_NODE_ID == LANDMARK_NODE_ID)
+			if (call NodeType.is_topology_node_id(LANDMARK_NODE_ID))
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -242,33 +233,27 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	event void ObjectDetector.detect()
 	{
-		// The sink node cannot become a source node
-		if (type != SinkNode)
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
 		{
-			simdbg("Metric-SOURCE_CHANGE", "set,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
+			call NodeType.set(SourceNode);
 
-			type = SourceNode;
-
-			call BroadcastNormalTimer.startOneShot(get_source_period());
+			call SourcePeriodModel.startPeriodic();
 		}
 	}
 
 	event void ObjectDetector.stoppedDetecting()
 	{
-		if (type == SourceNode)
+		if (call NodeType.get() == SourceNode)
 		{
-			call BroadcastNormalTimer.stop();
+			call SourcePeriodModel.stop();
 
-			type = NormalNode;
-
-			simdbg("Metric-SOURCE_CHANGE", "unset,%u\n", TOS_NODE_ID);
-			simdbg("Node-Change-Notification", "The node has become a Normal\n");
+			call NodeType.set(NormalNode);
 		}
 	}
 
@@ -295,14 +280,12 @@ implementation
 	}
 
 
-	event void BroadcastNormalTimer.fired()
+	event void SourcePeriodModel.fired()
 	{
 		NormalMessage message;
 		am_addr_t target;
 
-		const uint32_t source_period = get_source_period();
-
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "SourcePeriodModel fired.\n");
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
@@ -317,24 +300,33 @@ implementation
 
 		target = random_walk_target(&message, NULL, NULL, 0);
 
-		simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
-			sim_time_string(), target);
-
-		call Packet.clear(&packet);
-
-		if (send_Normal_message(&message, target))
+		// If we don't know who our neighbours are, then we
+		// cannot unicast to one of them.
+		if (target != AM_BROADCAST_ADDR)
 		{
-			call NormalSeqNos.increment(TOS_NODE_ID);
-		}
+			simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
+				sim_time_string(), target);
 
-		call BroadcastNormalTimer.startOneShot(source_period);
+			call Packet.clear(&packet);
+
+			if (send_Normal_message(&message, target))
+			{
+				call NormalSeqNos.increment(TOS_NODE_ID);
+			}
+		}
+		else
+		{
+			// Broadcasting under this circumstance would be akin to flooding.
+			// Which provides no protection.
+			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
+		}
 	}
 
 	event void AwaySenderTimer.fired()
 	{
 		AwayMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: AwaySenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "AwaySenderTimer fired.\n");
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -354,7 +346,7 @@ implementation
 	{
 		BeaconMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BeaconSenderTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
 		call Packet.clear(&packet);
 
@@ -385,9 +377,14 @@ implementation
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(&forwarding_message, &rcvd->senders_neighbours, &source_addr, 1);
 
+				// A node on the path away from, or towards the landmark node
+				// doesn't have anyone to send to.
+				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					forwarding_message.forced_broadcast = TRUE;
+					simdbg("M-PD", NXSEQUENCE_NUMBER_SPEC ",%u\n",
+						rcvd->sequence_number, rcvd->source_distance);
+
 					return;
 				}
 
@@ -400,15 +397,17 @@ implementation
 			}
 			else
 			{
-				if (rcvd->source_distance + 1 == RANDOM_WALK_HOPS && !rcvd->forced_broadcast)
+				if (!rcvd->forced_broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 				{
-					simdbg_clear("Metric-PATH-END", SIM_TIME_SPEC ",%u,%u,%u," SEQUENCE_NUMBER_SPEC ",%u\n",
-						sim_time(), TOS_NODE_ID, source_addr,
-						rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+					simdbg("M-PE", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
+						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
 				simdbgverbose("stdout", "%s: Broadcasting normal from %u (forced bcast = %d)\n",
 					sim_time_string(), TOS_NODE_ID, rcvd->forced_broadcast);
+
+				// We want other nodes to continue broadcasting
+				forwarding_message.forced_broadcast = TRUE;
 
 				call Packet.clear(&packet);
 
@@ -489,7 +488,7 @@ implementation
 			METRIC_RCV_AWAY(rcvd);
 
 			forwarding_message = *rcvd;
-			forwarding_message.source_distance += 1;
+			forwarding_message.landmark_distance += 1;
 
 			call Packet.clear(&packet);
 
@@ -505,8 +504,8 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
-		case NormalNode: x_receive_Away(msg, rcvd, source_addr); break;
-		case SourceNode: x_receive_Away(msg, rcvd, source_addr); break;
+		case NormalNode:
+		case SourceNode:
 		case SinkNode: x_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
@@ -519,8 +518,8 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
-		case NormalNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
-		case SourceNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
+		case NormalNode:
+		case SourceNode:
 		case SinkNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
 }

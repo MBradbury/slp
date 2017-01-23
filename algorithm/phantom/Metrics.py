@@ -1,51 +1,54 @@
-from __future__ import division
+from __future__ import print_function, division
+
+import numpy as np
 
 from simulator.MetricsCommon import MetricsCommon
-
-from numpy import mean
 
 class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
 
-        self.register('Metric-PATH-END', self._process_PATH_END)
-        self.register('Metric-SOURCE_DROPPED', self._process_SOURCE_DROPPED)
-        self.register('Metric-PATH_DROPPED', self._process_PATH_DROPPED)
+        self.register('M-PE', self._process_PATH_END)
+        self.register('M-SD', self._process_SOURCE_DROPPED)
+        self.register('M-PD', self._process_PATH_DROPPED)
 
         self._paths_reached_end = []
         self._source_dropped = []
         self._path_dropped = []
 
-    def _process_PATH_END(self, line):
-        (time, node_id, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = line.split(',')
+    def _process_PATH_END(self, d_or_e, node_id, time, detail):
+        (proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
 
-        self._paths_reached_end.append((ultimate_source_id, sequence_number))
+        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
+        sequence_number = int(sequence_number)
 
-    def _process_SOURCE_DROPPED(self, line):
-        (time, node_id, sequence_number) = line.split(',')
+        self._paths_reached_end.append((top_ultimate_source_id, sequence_number))
 
-        time = int(time)
+    def _process_SOURCE_DROPPED(self, d_or_e, node_id, time, detail):
+        (sequence_number,) = detail.split(',')
+
+        time = float(time)
 
         self._source_dropped.append(time)
 
-    def _process_PATH_DROPPED(self, line):
-        (time, node_id, sequence_number, source_distance) = line.split(',')
+    def _process_PATH_DROPPED(self, d_or_e, node_id, time, detail):
+        (sequence_number, source_distance) = detail.split(',')
 
         source_distance = int(source_distance)
 
         self._path_dropped.append(source_distance)
 
     def paths_reached_end(self):
-        return len(self._paths_reached_end) / len(self.normal_sent_time)
+        return len(self._paths_reached_end) / self.num_normal_sent_if_finished()
 
     def source_dropped(self):
-        return len(self._source_dropped) / (len(self._source_dropped) + len(self.normal_sent_time))
+        return len(self._source_dropped) / (len(self._source_dropped) + self.num_normal_sent_if_finished())
 
     def path_dropped(self):
-        return len(self._path_dropped) / len(self.normal_sent_time)
+        return len(self._path_dropped) / self.num_normal_sent_if_finished()
 
     def path_dropped_average_length(self):
-        return 0 if len(self._path_dropped) == 0 else mean(self._path_dropped)
+        return 0 if len(self._path_dropped) == 0 else np.mean(self._path_dropped)
 
     @staticmethod
     def items():

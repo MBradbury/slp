@@ -6,12 +6,24 @@ import sys
 
 import simulator.Configuration as Configuration
 
-def run_simulation(module, a, count=1):
+def run_simulation(module, a, count=1, print_warnings=False):
     
     configuration = Configuration.create(a.args.configuration, a.args)
 
+    # Get the correct Simulation constructor
     if a.args.mode == "GUI":
         from simulator.TosVis import GuiSimulation as Simulation
+
+    elif a.args.mode == "OFFLINE":
+        import functools
+        from simulator.Simulation import OfflineSimulation
+        Simulation = functools.partial(OfflineSimulation, log_filename=a.args.merged_log)
+
+    elif a.args.mode == "OFFLINE_GUI":
+        import functools
+        from simulator.TosVis import GuiOfflineSimulation as OfflineSimulation
+        Simulation = functools.partial(OfflineSimulation, log_filename=a.args.merged_log)
+
     else:
         from simulator.Simulation import Simulation
 
@@ -30,28 +42,37 @@ def run_simulation(module, a, count=1):
                 sim.run()
             except Exception as ex:
                 import traceback
+                
+                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+
                 print("Killing run due to {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
+                print("For parameters:", file=sys.stderr)
+                print(all_args, file=sys.stderr)
+
                 return 1
-            else:
-                try:
-                    sim.metrics.print_results()
-                except Exception as ex:
-                    import traceback
 
-                    all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+            try:
+                sim.metrics.print_results()
+            except Exception as ex:
+                import traceback
 
-                    print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
-                    print(traceback.format_exc(), file=sys.stderr)
-                    print("For parameters:", file=sys.stderr)
-                    print(all_args)
-                    return 2
+                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+
+                print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
+                print(traceback.format_exc(), file=sys.stderr)
+                print("For parameters:", file=sys.stderr)
+                print(all_args, file=sys.stderr)
+                
+                return 2
+
+            if print_warnings:
+                sim.metrics.print_warnings()
 
     return 0
 
-if __name__ == "__main__":
+def main():
     import importlib
-    import math
 
     module = sys.argv[1]
 
@@ -63,3 +84,6 @@ if __name__ == "__main__":
     result = run_simulation(module, a)
 
     sys.exit(result)
+
+if __name__ == "__main__":
+    main()

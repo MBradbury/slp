@@ -10,6 +10,11 @@ implementation
 	Value values[MAX_SIZE];
 	uint16_t count = 0;
 
+	command uint16_t Dictionary.max_size()
+	{
+		return MAX_SIZE;
+	}
+
 	command uint16_t Dictionary.count()
 	{
 		return count;
@@ -25,12 +30,12 @@ implementation
 		return values + count;
 	}
 
-	command Key* Dictionary.beginKeys()
+	command const Key* Dictionary.beginKeys()
 	{
 		return keys;
 	}
 
-	command Key* Dictionary.endKeys()
+	command const Key* Dictionary.endKeys()
 	{
 		return keys + count;
 	}

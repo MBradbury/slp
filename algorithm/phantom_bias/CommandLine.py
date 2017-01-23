@@ -1,14 +1,16 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
-import os, itertools, math, datetime
+import datetime
+import itertools
+import math
+import os
 
 import numpy as np
 
 from simulator import CommandLineCommon
+from simulator import Configuration
 
 import algorithm.protectionless as protectionless
-
-from simulator import Configuration
 
 from data import results
 
@@ -19,26 +21,23 @@ from data.util import scalar_extractor
 from data.run.common import RunSimulationsCommon
 
 class RunSimulations(RunSimulationsCommon):
-    def _get_safety_period(self, argument_names, arguments):
-        time_taken = super(RunSimulations, self)._get_safety_period(argument_names, arguments)
+    def _get_safety_period(self, darguments):
+        time_taken = super(RunSimulations, self)._get_safety_period(darguments)
 
         if time_taken is None:
             return None
 
-        configuration_name = arguments[argument_names.index('configuration')]
-        network_size = int(arguments[argument_names.index('network size')])
-        distance = float(arguments[argument_names.index('distance')])
-
-        configuration = Configuration.create_specific(configuration_name, network_size, distance)
-
         return 1.3 * time_taken
 
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('short walk length', 'long walk length',
-                             'order', 'short count', 'long count', 'wait before short')
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path, RunSimulations)
+
+        subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("average-graph")
+        subparser = self._subparsers.add_parser("scatter-graph")
+        subparser = self._subparsers.add_parser("best-worst-average-graph")
 
     def _short_long_walk_lengths(self, s, c, am, nm, d, sp, wbs):
         parameters = self.algorithm_module.Parameters
@@ -104,13 +103,12 @@ class CLI(CommandLineCommon.CLI):
         return list(zip(walk_short, walk_long))
         #return list((x,y) for x in walk_short for y in walk_long)
 
-    def _time_estimater(self, *args):
+    def _time_estimater(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
-        names = self.parameter_names()
-        size = args[names.index('network size')]
+        size = args['network size']
         if size == 11:
             return datetime.timedelta(hours=2)
         elif size == 15:
@@ -128,14 +126,15 @@ class CLI(CommandLineCommon.CLI):
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-            [parameters.distance], parameters.source_periods, parameters.orders,
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.source_periods, parameters.orders,
             parameters.short_counts, parameters.long_counts, parameters.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, sp, swl, lwl, o, sc, lc, wbs)
+            (s, c, am, nm, cm, d, nido, lnst, sp, swl, lwl, o, sc, lc, wbs)
 
-            for (s, c, am, nm, cm, d, sp, o, sc, lc, wbs) in argument_product
+            for (s, c, am, nm, cm, d, nido, lnst, sp, o, sc, lc, wbs) in argument_product
 
             for (swl, lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
         ]        
@@ -144,19 +143,11 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        time_taken = safety_period_table_generator.time_taken()
-
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=time_taken)
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
 
     def _run_table(self, args):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
         result_table = fake_result.ResultTable(phantom_results)
@@ -174,7 +165,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
         )
@@ -227,7 +218,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
         )
@@ -268,14 +259,14 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
         )
 
         custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 20000
+            'captured': 80,
+            'sent': 30000
         }
 
         combine = ["short walk length", "long walk length"]
@@ -318,14 +309,14 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation="NumSources"
         )
 
         custom_yaxis_range_max = {
-            'captured': 50,
-            'sent': 20000
+            'captured': 80,
+            'sent': 30000
         }
 
         combine = ["short walk length", "long walk length"]
@@ -366,19 +357,19 @@ class CLI(CommandLineCommon.CLI):
                 ).run()
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
+        if 'table' == args.mode:
             self._run_table(args)
 
-        if 'graph' in args:
+        if 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'average-graph' in args:
+        if 'average-graph' == args.mode:
             self._run_average_graph(args)
 
-        if 'scatter-graph' in args:
+        if 'scatter-graph' == args.mode:
             self._run_scatter_graph(args)
 
-        if 'best-worst-average-graph' in args:
+        if 'best-worst-average-graph' == args.mode:
             self._run_best_worst_average_graph(args)

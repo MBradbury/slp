@@ -53,23 +53,13 @@ class Grapher(GrapherBase):
         self.error_bars = False
 
         self.generate_legend_graph = False
+        self.legend_font_size = '14'
 
     def _value_extractor(self, yvalue):
         if self.error_bars:
             return yvalue
         else:
             return self.yextractor(yvalue)
-
-    @staticmethod
-    def _remove_index(names, values, index_name):
-        idx = names.index(index_name)
-
-        value = values[idx]
-
-        del names[idx]
-        del values[idx]
-
-        return (names, values, value)
 
     def create(self, simulation_results):
         print('Removing existing directories')
@@ -89,11 +79,8 @@ class Grapher(GrapherBase):
                     values.append(src_period)
                     values.extend(params)
 
-                    (key_names, values, xvalue) = self._remove_index(key_names, values, self.xaxis)
-                    (key_names, values, vvalue) = self._remove_index(key_names, values, self.vary)
-
-                    key_names = tuple(key_names)
-                    values = tuple(values)
+                    (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
+                    (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
 
                     yvalue = results[ simulation_results.result_names.index(self.yaxis) ]
 
@@ -224,7 +211,8 @@ class Grapher(GrapherBase):
             legend_width = 9.8
             legend_height = 0.3 * math.ceil(column_count / 3)
 
-            graph_p.write('set terminal pdf enhanced font ",14" size {},{}\n'.format(legend_width, legend_height))
+            graph_p.write('set terminal pdf enhanced font ",{}" size {},{}\n'.format(
+                self.legend_font_size, legend_width, legend_height))
 
             graph_p.write('set key horizontal\n')
 

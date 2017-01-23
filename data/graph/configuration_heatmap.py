@@ -128,7 +128,8 @@ class Grapher(GrapherBase):
             graph_p.write('set xrange [{}:{}]\n'.format(minx, maxx))
             graph_p.write('set xtics auto\n')
 
-            graph_p.write('set yrange [:] reverse\n'.format(maxy, miny))
+            #graph_p.write('set yrange [{}:{}] reverse\n'.format(maxy, miny))
+            graph_p.write('set yrange [:] reverse\n')
             graph_p.write('set ytics auto\n')
 
 
@@ -169,7 +170,7 @@ class Grapher(GrapherBase):
 
         coords = {}
 
-        for (nid, (x, y)) in enumerate(configuration.topology.nodes):
+        for (nid, (x, y)) in configuration.topology.nodes.items():
             
             coords[(x, y)] = self.zextractor(configuration, nid)
 

@@ -12,19 +12,32 @@ implementation
 	components SourceBroadcasterC as App;
 
 	// Low levels events such as boot and LED control
-	components MainC;
-	components LedsC;
+	components DelayedBootEventMainP as MainC;
+	components LedsWhenGuiC as LedsC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 
-#ifdef USE_SERIAL_PRINTF
-	components PrintfC;
-	components SerialStartC;
+#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+	components PrintfMetricLoggingP as MetricLogging;
+#elif defined(USE_SERIAL_MESSAGES)
+	components SerialMetricLoggingP as MetricLogging;
+#else
+#	error "No known combination to wire up metric logging"
+#endif
 
-	components LocalTimeMilliC;
-	
-	App.LocalTime -> LocalTimeMilliC;
+	App.MetricLogging -> MetricLogging;
+
+	components new NodeTypeP(3);
+	App.NodeType -> NodeTypeP;
+	NodeTypeP.MetricLogging -> MetricLogging;
+
+	components new MessageTypeP(1);
+	App.MessageType -> MessageTypeP;
+	MessageTypeP.MetricLogging -> MetricLogging;
+
+#if defined(USE_SERIAL_MESSAGES)
+	MetricLogging.MessageType -> MessageTypeP;
 #endif
 
 	// Radio Control
@@ -50,6 +63,7 @@ implementation
 	// Object Detector - For Source movement
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
+	ObjectDetectorP.NodeType -> NodeTypeP;
 
 	components SourcePeriodModelP;
 	App.SourcePeriodModel -> SourcePeriodModelP;

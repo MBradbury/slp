@@ -10,10 +10,11 @@ interface Dictionary<Key, Value>
 	command bool contains_key(Key key);
 
 	command uint16_t count();
+	command uint16_t max_size();
 
 	command Value* begin();
 	command Value* end();
 
-	command Key* beginKeys();
-	command Key* endKeys();
+	command const Key* beginKeys();
+	command const Key* endKeys();
 }

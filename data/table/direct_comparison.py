@@ -4,7 +4,7 @@ from data.table.comparison import ResultTable as BaseResultTable
 
 class ResultTable(BaseResultTable):
 
-    def __init__(self, base_results, comparison_results):
+    def __init__(self, base_results, comparison_results, fmt=None):
 
         if base_results.parameter_names != comparison_results.parameter_names:
             raise RuntimeError("Parameter names are not the same")
@@ -12,7 +12,7 @@ class ResultTable(BaseResultTable):
         if base_results.result_names != comparison_results.result_names:
             raise RuntimeError("Result names are not the same")
 
-        super(ResultTable, self).__init__(base_results, comparison_results)
+        super(ResultTable, self).__init__(base_results, comparison_results, fmt=fmt)
 
         self.parameter_names = base_results.parameter_names
         self.result_names = base_results.result_names

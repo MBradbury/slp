@@ -9,8 +9,6 @@ CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
 CFLAGS += -DTOSH_DATA_LENGTH=34
 
-CFLAGS += -I"../common"
-
 include ../common/makefile.common
 
 #include $(TINYOS_ROOT_DIR)/Makefile.include

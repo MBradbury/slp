@@ -5,10 +5,10 @@ import os
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
 
-# The import statement doesn't work, so we need to use __import__ instead
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+adaptive = algorithm.import_algorithm("adaptive")
 
 from data import results
 
@@ -16,25 +16,27 @@ from data.table import safety_period, fake_result
 from data.graph import summary, versus, min_max_versus, dual_min_max_versus
 from data.util import scalar_extractor
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('walk length', 'landmark node')
-
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+
+        subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("min-max-versus")
+        subparser = self._subparsers.add_parser("dual-min-max-versus")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.ifilter(
-            lambda (size, _1, _2, _3, _4, _5, _6, walk_length, _7): walk_length in parameters.walk_hop_lengths[size],
+            lambda (size, c, am, nm, cm, d, nido, lnst, sp, walk_length, lm): walk_length in parameters.walk_hop_lengths[size],
             itertools.product(
                 parameters.sizes, parameters.configurations,
                 parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-                [parameters.distance], parameters.source_periods,
-                set(itertools.chain(*parameters.walk_hop_lengths.values())), parameters.landmark_nodes)
+                [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+                parameters.source_periods,
+                set(itertools.chain(*parameters.walk_hop_lengths.values())), parameters.landmark_nodes
+            )
         ))
 
         # Factor in the number of sources when selecting the source period.
@@ -44,20 +46,14 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
-
-        runner = RunSimulations(driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product())
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
 
     def _run_table(self, args):
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end', 'source dropped'))
 
         result_table = fake_result.ResultTable(phantom_results)
@@ -82,7 +78,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             network_size_normalisation="UseNumNodes"
         )
@@ -124,7 +120,7 @@ class CLI(CommandLineCommon.CLI):
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
-                    self.algorithm_module.name + '-' + name
+                    os.path.join(algorithm.results_directory_name, self.algorithm_module.name + '-' + name)
                 ).run()
 
     def _run_min_max_versus(self, args):
@@ -167,7 +163,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=graph_parameters.keys(),
             network_size_normalisation="UseNumNodes"
         )
@@ -207,7 +203,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for result_name in graph_parameters.keys():
@@ -246,7 +242,7 @@ class CLI(CommandLineCommon.CLI):
 
         phantom_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_load,
             network_size_normalisation="UseNumNodes"
         )
@@ -294,23 +290,23 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for (result_name1, result_name2) in graph_parameters.keys():
             graph_dual_min_max_versus(result_name1, result_name2, 'network size')
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
+        if 'table' == args.mode:
             self._run_table(args)
 
-        if 'graph' in args:
+        if 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'min-max-versus' in args:
+        if 'min-max-versus' == args.mode:
             self._run_min_max_versus(args)
 
-        if 'dual-min-max-versus' in args:
+        if 'dual-min-max-versus' == args.mode:
             self._run_dual_min_max_versus(args)

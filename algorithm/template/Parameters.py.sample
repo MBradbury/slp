@@ -31,6 +31,10 @@ configurations = [
 
 attacker_models = ['SeqNoReactiveAttacker()']
 
+latest_node_start_time = 1.0 # in seconds
+
+node_id_orders = ['randomised']
+
 temp_fake_durations = [1, 2, 4]
 
 prs_tfs = [1.0, 0.9, 0.8]

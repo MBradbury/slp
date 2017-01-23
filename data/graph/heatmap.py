@@ -85,7 +85,8 @@ class Grapher(GrapherBase):
             graph_p.write('set xrange [{}:{}]\n'.format(minx, maxx))
             graph_p.write('set xtics auto\n')
 
-            graph_p.write('set yrange [:] reverse\n'.format(miny, maxy))
+            #graph_p.write('set yrange [{}:{}] reverse\n'.format(maxy, miny))
+            graph_p.write('set yrange [:] reverse\n')
             graph_p.write('set ytics auto\n')
 
             graph_p.write('set cbrange [:]\n')

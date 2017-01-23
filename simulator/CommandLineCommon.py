@@ -1,7 +1,9 @@
 from __future__ import print_function, division
 
+import argparse
 import datetime
 import importlib
+import itertools
 import os
 import sys
 
@@ -9,62 +11,124 @@ import simulator.common
 
 import simulator.Configuration as Configuration
 
-from data import results, latex
-from data.table import fake_result
+from data import results, latex, submodule_loader
+import data.cluster
+import data.testbed
+from data.run.common import MissingSafetyPeriodError
+from data.table import safety_period, fake_result
+from data.table.data_formatter import TableDataFormatter
 from data.graph import heatmap, summary
 from data.util import recreate_dirtree, touch
-
-class NoArgumentsFound(RuntimeError):
-    def __init__(self, name):
-        super(NoArgumentsFound, self).__init__("No arguments were found for {}".format(name))
-
-class TooManyArgumentsFound(RuntimeError):
-    def __init__(self, name):
-        super(TooManyArgumentsFound, self).__init__("Only one value is expected for {}".format(name))
 
 class CLI(object):
 
     global_parameter_names = simulator.common.global_parameter_names
 
-    # Parameters unique to each simulation
-    # Classes that derive from this should assign this variable
-    local_parameter_names = None
-
-    def __init__(self, package):
+    def __init__(self, package, safety_period_result_path=None, custom_run_simulation_class=None):
         super(CLI, self).__init__()
 
         self.algorithm_module = importlib.import_module(package)
         self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
 
+        self.safety_period_result_path = safety_period_result_path
+        self.custom_run_simulation_class = custom_run_simulation_class
+
+        # Make sure that local_parameter_names is a tuple
+        # People have run into issues where they used ('<name>') instead of ('<name>',)
+        if not isinstance(self.algorithm_module.local_parameter_names, tuple):
+            raise RuntimeError("self.algorithm_module.local_parameter_names must be a tuple! If there is only one element, have your forgotten the comma?")
+
         try:
             self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
         except ImportError:
-            print("Failed to import Parameters, have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
+            print("Failed to import Parameters. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
+
+        parser = argparse.ArgumentParser(add_help=True)
+        subparsers = parser.add_subparsers(title="mode", dest="mode")
+
+        ###
+
+        subparser = subparsers.add_parser("cluster")
+        subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cluster), help="This is the name of the cluster")
+
+        cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
+
+        subparser = cluster_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cluster. One set of binaries will be created per parameter combination you request.")
+        subparser.add_argument("--no-skip-complete", action="store_true")
+
+        subparser = cluster_subparsers.add_parser("copy", help="Copy the built binaries for this algorithm to the cluster.")
+        subparser = cluster_subparsers.add_parser("copy-result-summary", help="Copy the result summary for this algorithm obtained by using the 'analyse' command to the cluster.")
+        subparser = cluster_subparsers.add_parser("copy-parameters", help="Copy this algorithm's Parameters.py file to the cluster.")
+        subparser = cluster_subparsers.add_parser("submit", help="Use this command to submit the cluster jobs. Run this on the cluster.")
+        subparser.add_argument("--array", action="store_true", help="Submit multiple arrays jobs (experimental).")
+        subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
+        subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
+
+        subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
+
+        ###
+
+        subparser = subparsers.add_parser("testbed")
+        subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
+
+        testbed_subparsers = subparser.add_subparsers(title="testbed mode", dest="testbed_mode")
+
+        subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
+        subparser.add_argument("--platform", type=str, default=None)
+
+        ###
+
+        subparser = subparsers.add_parser("run", help="Run the parameters combination specified in Parameters.py on this local machine.")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        subparser.add_argument("--no-skip-complete", action="store_true")
+
+        ###
+
+        subparser = subparsers.add_parser("analyse", help="Analyse the results of this algorithm.")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
+        subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
+
+        ###
+
+        if safety_period_result_path is not None:            
+            if isinstance(safety_period_result_path, bool):
+                pass
+            else:
+                subparser = subparsers.add_parser("safety-table", help="Output protectionless information along with the safety period to be used for those parameter combinations.")
+                subparser.add_argument("--show-stddev", action="store_true")
+
+        subparser = subparsers.add_parser("time-taken-table", help="Creates a table showing how long simulations took in real and virtual time.")
+        subparser.add_argument("--show-stddev", action="store_true")
+
+        subparser = subparsers.add_parser("detect-missing", help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
+
+        subparser = subparsers.add_parser("graph-heatmap", help="Graph the sent and received heatmaps.")
+
+        ###
+
+        subparser = subparsers.add_parser("per-parameter-grapher")
+        subparser.add_argument("--grapher", required=True)
+        subparser.add_argument("--metric-name", required=True)
+
+        subparser.add_argument("--without-converters", action="store_true", default=False)
+        subparser.add_argument("--without-normalised", action="store_true", default=False)
+
+        ###
+
+        # Store any of the parsers that we need
+        self._parser = parser
+        self._subparsers = subparsers
 
     def parameter_names(self):
-        return tuple(list(self.global_parameter_names) + list(self.local_parameter_names))
+        return self.global_parameter_names + self.algorithm_module.local_parameter_names
 
     @staticmethod
-    def _get_args_for(args, name):
-        name += "="
-        return [arg[len(name):] for arg in args if arg.startswith(name)]
-
-    @staticmethod
-    def _get_arg_for(args, name):
-        found_args = CLI._get_args_for(args, name)
-        if len(found_args) == 1:
-            return found_args[0]
-        elif len(found_args) == 0:
-            raise NoArgumentsFound(name)
-        else:
-            raise TooManyArgumentsFound(name)
-
-    @staticmethod
-    def _create_table(name, result_table, param_filter=lambda x: True):
-        filename = name + ".tex"
+    def _create_table(name, result_table, directory="results", param_filter=lambda x: True, orientation='portrait'):
+        filename = os.path.join(directory, name + ".tex")
 
         with open(filename, 'w') as result_file:
-            latex.print_header(result_file)
+            latex.print_header(result_file, orientation=orientation)
             result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
@@ -73,8 +137,51 @@ class CLI(object):
     def _argument_product(self):
         raise NotImplementedError()
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations):
-        raise NotImplementedError()
+    def time_after_first_normal_to_safety_period(self, time_after_first_normal):
+        return time_after_first_normal
+
+    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+        if driver.mode() == "TESTBED":
+            from data.run.common import RunTestbedCommon as RunSimulations
+        else:
+            # Time for something very crazy...
+            # Some simulations require a safety period that varies depending on
+            # the arguments to the simulation.
+            #
+            # So this custom RunSimulationsCommon class gets overridden and provided.
+            if self.custom_run_simulation_class is None:
+                from data.run.common import RunSimulationsCommon as RunSimulations
+            else:
+                RunSimulations = self.custom_run_simulation_class
+
+        if self.safety_period_result_path is True:
+            safety_periods = True
+        elif self.safety_period_result_path is None:
+            safety_periods = None
+        else:
+            safety_period_table_generator = safety_period.TableGenerator(
+                self.safety_period_result_path,
+                self.time_after_first_normal_to_safety_period)
+            
+            safety_periods = safety_period_table_generator.safety_periods()
+
+        runner = RunSimulations(
+            driver, self.algorithm_module, result_path,
+            skip_completed_simulations=skip_completed_simulations,
+            safety_periods=safety_periods
+        )
+
+        try:
+            runner.run(self.algorithm_module.Parameters.repeats,
+                       self.parameter_names(),
+                       self._argument_product(),
+                       self._time_estimater)
+        except MissingSafetyPeriodError as ex:
+            from pprint import pprint
+            import traceback
+            print(traceback.format_exc())
+            print("Available safety periods:")
+            pprint(ex.safety_periods)
 
     def adjust_source_period_for_multi_source(self, argument_product):
         """For configurations with multiple sources, so that the network has the
@@ -87,20 +194,25 @@ class CLI(object):
         source_period_index = names.index('source period')
 
         def process(*args):
-            configuration = Configuration.create_specific(args[configuration_index], args[size_index], args[distance_index])
+            # Getting the configuration here with "topology" is fine, as we are only finding the number of sources.
+            configuration = Configuration.create_specific(args[configuration_index],
+                                                          args[size_index],
+                                                          args[distance_index],
+                                                          "topology",
+                                                          None)
             num_sources = len(configuration.source_ids)
+
             source_period = args[source_period_index] * num_sources
             return args[:source_period_index] + (source_period,) + args[source_period_index+1:]
 
         return [process(*args) for args in argument_product]
 
-    def _time_estimater(self, *args):
+    def _time_estimater(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
-        names = self.parameter_names()
-        size = args[names.index('network size')]
+        size = args['network size']
         if size == 11:
             return datetime.timedelta(hours=9)
         elif size == 15:
@@ -108,7 +220,7 @@ class CLI(object):
         elif size == 21:
             return datetime.timedelta(hours=42)
         elif size == 25:
-            return datetime.timedelta(hours=72)
+            return datetime.timedelta(hours=71)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
@@ -117,26 +229,47 @@ class CLI(object):
         driver = LocalDriver.Runner()
 
         try:
-            thread_count = self._get_arg_for(args, 'thread_count')
-            driver.job_thread_count = int(thread_count)
-        except NoArgumentsFound:
-            # Use default
+            driver.job_thread_count = int(args.thread_count)
+        except TypeError:
+            # None tells the runner to use the default
             driver.job_thread_count = None
 
-        skip_complete = 'no-skip-complete' not in args
+        skip_complete = not args.no_skip_complete
 
         self._execute_runner(driver, self.algorithm_module.results_path, skip_completed_simulations=skip_complete)
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-        analyzer.run(self.algorithm_module.result_file)
+        analyzer.run(self.algorithm_module.result_file, args.thread_count,
+                     headers_to_skip=args.headers_to_skip, keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
+
+    def _run_safety_table(self, args):
+
+        fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
+
+        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path, self.time_after_first_normal_to_safety_period, fmt)
+
+        prod = itertools.product(simulator.common.available_noise_models(),
+                                 simulator.common.available_communication_models())
+
+        for (noise_model, comm_model) in prod:
+
+            print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
+
+            filename = '{}-{}-{}-results'.format(self.algorithm_module.name, noise_model, comm_model)
+
+            self._create_table(filename, safety_period_table,
+                               param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
         This can be specified by using the "notify" parameter when submitting,
         or by setting the SLP_NOTIFY_EMAILS environment variable."""
         
-        emails_to_notify = self._get_args_for(args, 'notify')
+        emails_to_notify = args.notify
+
+        if emails_to_notify is None:
+            emails_to_notify = []
 
         emails_to_notify_env = os.getenv("SLP_NOTIFY_EMAILS")
         if emails_to_notify_env:
@@ -147,89 +280,78 @@ class CLI(object):
     def _run_cluster(self, args):
         cluster_directory = os.path.join("cluster", self.algorithm_module.name)
 
-        from data import cluster_manager
+        cluster = submodule_loader.load(data.cluster, args.name)
 
-        cluster = cluster_manager.load(args)
-
-        skip_complete = 'no-skip-complete' not in args
-
-        if 'build' in args:
+        if 'build' == args.cluster_mode:
             print("Removing existing cluster directory and creating a new one")
             recreate_dirtree(cluster_directory)
             touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
             touch("{}/__init__.py".format(cluster_directory))
 
+            skip_complete = not args.no_skip_complete
+
             self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
 
-        if 'copy' in args:
+        elif 'copy' == args.cluster_mode:
             cluster.copy_to()
 
-        if 'copy-result-summary' in args:
-            cluster.copy_result_summary(self.algorithm_module.results_path, self.algorithm_module.result_file)
+        elif 'copy-result-summary' == args.cluster_mode:
+            cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file)
 
-        if 'submit' in args:
+        elif 'copy-parameters' == args.cluster_mode:
+            cluster.copy_file(os.path.join('algorithm', self.algorithm_module.name), 'Parameters.py')
+
+        elif 'submit' == args.cluster_mode:
             emails_to_notify = self._get_emails_to_notify(args)
 
-            if 'array' not in args:
-                submitter = cluster.submitter(emails_to_notify)
-            else:
+            if args.array:
                 submitter = cluster.array_submitter(emails_to_notify)
+            else:
+                submitter = cluster.submitter(emails_to_notify)
+
+            skip_complete = not args.no_skip_complete
 
             self._execute_runner(submitter, cluster_directory, skip_completed_simulations=skip_complete)
 
-        if 'copy-back' in args:
+        elif 'copy-back' == args.cluster_mode:
             cluster.copy_back(self.algorithm_module.name)
 
         sys.exit(0)
 
     def _run_testbed(self, args):
-
-        from data import testbed_manager
-
-        testbed = testbed_manager.load(args)
-
         testbed_directory = os.path.join("testbed", self.algorithm_module.name)
 
-        if 'build' in args:
+        testbed = submodule_loader.load(data.testbed, args.name)
+
+        if 'build' == args.testbed_mode:
             from data.run.driver.testbed_builder import Runner as Builder
 
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            self._execute_runner(Builder(testbed), testbed_directory, skip_completed_simulations=False)
+            self._execute_runner(Builder(testbed, platform=args.platform), testbed_directory, skip_completed_simulations=False)
 
         sys.exit(0)
 
     def _run_time_taken_table(self, args):
         result = results.Results(self.algorithm_module.result_file_path,
-                                 parameters=self.local_parameter_names,
-                                 results=('time taken', 'wall time', 'event count', 'repeats'))
+                                 parameters=self.algorithm_module.local_parameter_names,
+                                 results=('time taken', 'first normal sent time',
+                                          'total wall time', 'wall time', 'event count',
+                                          'repeats', 'captured', 'reached upper bound'))
 
-        result_table = fake_result.ResultTable(result)
+        fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
-        self._create_table(self.algorithm_module.name + "-time-taken", result_table)
+        result_table = fake_result.ResultTable(result, fmt)
 
-    def _run_time_taken_boxplot(self, args):
-        from data.graph import boxplot
-
-        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-
-        grapher = boxplot.Grapher(os.path.join(self.algorithm_module.graphs_path, "boxplot"), "TimeTaken", self.parameter_names())
-        grapher.create(analyzer)
-
-        summary.GraphSummary(
-            os.path.join(self.algorithm_module.graphs_path, "boxplot"),
-            '{}-{}'.format(self.algorithm_module.name, "boxplot")
-        ).run()
-
+        self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape")
 
     def _run_detect_missing(self, args):
         
-
         argument_product = {tuple(map(str, row)) for row in self._argument_product()}
 
         result = results.Results(self.algorithm_module.result_file_path,
-                                 parameters=self.local_parameter_names,
+                                 parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
         repeats = result.parameter_set()
@@ -251,7 +373,7 @@ class CLI(object):
             if parameter_values not in argument_product:
                 continue
 
-            repeats_missing = max(self.repeats - repeats_performed, 0)
+            repeats_missing = max(self.algorithm_module.Parameters.repeats - repeats_performed, 0)
 
             # Number of repeats is below the target
             if repeats_missing > 0:
@@ -266,39 +388,71 @@ class CLI(object):
 
         results_summary = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=heatmap_results)
 
         for name in heatmap_results:
             heatmap.Grapher(self.algorithm_module.graphs_path, results_summary, name).create()
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_"))
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_")))
             ).run()
+
+    def _run_per_parameter_grapher(self, args):
+        import data.graph
+        from data import submodule_loader
+
+        graph_type = submodule_loader.load(data.graph, args.grapher)
+
+        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
+
+        grapher = graph_type.Grapher(
+            os.path.join(self.algorithm_module.graphs_path, args.grapher),
+            args.metric_name,
+            self.parameter_names()
+        )
+
+        grapher.xaxis_label = args.metric_name
+
+        grapher.create(analyzer,
+                       with_converters=not args.without_converters,
+                       with_normalised=not args.without_normalised
+        )
+
+        summary.GraphSummary(
+            os.path.join(self.algorithm_module.graphs_path, args.grapher),
+            os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, args.grapher))
+        ).run()
 
 
     def run(self, args):
+        args = self._parser.parse_args(args)
 
-        if 'cluster' in args:
+        if 'cluster' == args.mode:
             self._run_cluster(args)
 
-        if 'testbed' in args:
+        elif 'testbed' == args.mode:
             self._run_testbed(args)
 
-        if 'run' in args:
+        elif 'run' == args.mode:
             self._run_run(args)
 
-        if 'analyse' in args:
+        elif 'analyse' == args.mode:
             self._run_analyse(args)
 
-        if 'time-taken-table' in args:
+        elif 'time-taken-table' == args.mode:
             self._run_time_taken_table(args)
 
-        if 'time-taken-boxplot' in args:
-            self._run_time_taken_boxplot(args)
+        elif 'safety-table' == args.mode:
+            self._run_safety_table(args)
 
-        if 'detect-missing' in args:
+        elif 'detect-missing' == args.mode:
             self._run_detect_missing(args)
 
-        if 'graph-heatmap' in args:
+        elif 'graph-heatmap' == args.mode:
             self._run_graph_heatmap(args)
+
+        elif 'per-parameter-grapher' == args.mode:
+            self._run_per_parameter_grapher(args)
+
+        return args

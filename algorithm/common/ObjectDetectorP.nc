@@ -2,12 +2,16 @@
 configuration ObjectDetectorP
 {
 	provides interface ObjectDetector;
+
+	uses interface NodeType;
 }
 implementation
 {
 	components ObjectDetectorImplP as App;
 
 	ObjectDetector = App;
+
+	App.NodeType = NodeType;
 
 	// Timers
 	components new TimerMilliC() as DetectionTimer;
@@ -17,9 +21,6 @@ implementation
 	App.ExpireTimer -> ExpireTimer;
 
 #ifdef USE_SERIAL_PRINTF
-	components PrintfC;
-	components SerialStartC;
-
 	components LocalTimeMilliC;
 	
 	App.LocalTime -> LocalTimeMilliC;

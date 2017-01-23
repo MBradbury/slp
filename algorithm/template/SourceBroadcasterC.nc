@@ -9,8 +9,6 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#include <assert.h>
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, BOTTOM, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, BOTTOM, msg->sequence_number, msg->sink_distance + 1)
@@ -42,30 +40,19 @@ module SourceBroadcasterC
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
 	uses interface FakeMessageGenerator;
 }
 
 implementation
 {
-	typedef enum
+	enum
 	{
 		SourceNode, SinkNode, NormalNode, TempFakeNode, PermFakeNode
-	} NodeType;
-
-	NodeType type = NormalNode;
-
-	const char* type_to_string()
-	{
-		switch (type)
-		{
-		case SourceNode: 			return "SourceNode";
-		case SinkNode:				return "SinkNode  ";
-		case NormalNode:			return "NormalNode";
-		case TempFakeNode:			return "TempFakeNode";
-		case PermFakeNode:			return "PermFakeNode";
-		default:					return "<unknown> ";
-		}
-	}
+	};
 
 	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
@@ -156,22 +143,35 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "%s: Application booted.\n", sim_time_string());
+		simdbgverbose("Boot", "Application booted.\n");
 
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
 
-		if (TOS_NODE_ID == SOURCE_NODE_ID)
+		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
+        call MessageType.register_pair(AWAY_CHANNEL, "Away");
+        call MessageType.register_pair(CHOOSE_CHANNEL, "Choose");
+        call MessageType.register_pair(FAKE_CHANNEL, "Fake");
+
+		call NodeType.register_pair(SourceNode, "SourceNode");
+		call NodeType.register_pair(SinkNode, "SinkNode");
+		call NodeType.register_pair(NormalNode, "NormalNode");
+		call NodeType.register_pair(TempFakeNode, "TempFakeNode");
+		call NodeType.register_pair(PermFakeNode, "PermFakeNode");
+
+		if (call NodeType.is_node_sink())
 		{
-			type = SourceNode;
-			simdbg("Node-Change-Notification", "The node has become a Source\n");
+			call NodeType.init(SinkNode);
 		}
-		else if (TOS_NODE_ID == SINK_NODE_ID)
+		else if (call NodeType.get_topology_node_id() == SOURCE_NODE_ID)
 		{
-			type = SinkNode;
-			simdbg("Node-Change-Notification", "The node has become a Sink\n");
+			call NodeType.init(SourceNode);
+		}
+		else
+		{
+			call NodeType.init(NormalNode);
 		}
 
 		call RadioControl.start();
@@ -181,16 +181,16 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "%s: RadioControl started.\n", sim_time_string());
+			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
-			if (type == SourceNode)
+			if (call NodeType.get() == SourceNode)
 			{
 				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
 			}
 		}
 		else
 		{
-			simdbgerror("SourceBroadcasterC", "%s: RadioControl failed to start, retrying.\n", sim_time_string());
+			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -198,24 +198,22 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "%s: RadioControl stopped.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
 	}
 
 	USE_MESSAGE(Normal);
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Choose);
-	USE_MESSAGE(Fake);
+	USE_MESSAGE_WITH_CALLBACK(Fake);
 
 	void become_Normal()
 	{
-		type = NormalNode;
+		call NodeType.set(NormalNode);
 
 		call FakeMessageGenerator.stop();
-
-		simdbg("Fake-Notification", "The node has become a Normal\n");
 	}
 
-	void become_Fake(const AwayChooseMessage* message, NodeType perm_type)
+	void become_Fake(const AwayChooseMessage* message, uint8_t perm_type)
 	{
 		float rndFloat;
 
@@ -224,20 +222,18 @@ implementation
 			assert("The perm type is not correct");
 		}
 
-		type = perm_type;
-
 		rndFloat = random_float();
 
-		if (type == PermFakeNode)
+		if (perm_type == PermFakeNode)
 		{
 			if (rndFloat <= PR_PFS)
 			{
-				simdbg("Fake-Notification", "The node has become a PFS\n");
+				call NodeType.set(perm_type);
 
 				simdbgverbose("Fake-Probability-Decision",
  					"The node %u has become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
 
-				call FakeMessageGenerator.start(message, FAKE_PERIOD_MS);
+				call FakeMessageGenerator.start(message, sizeof(*message));
 			}
 			else
 			{
@@ -249,12 +245,12 @@ implementation
 		{
 			if (rndFloat <= PR_TFS)
 			{
-				simdbg("Fake-Notification", "The node has become a TFS\n");
+				call NodeType.set(perm_type);
 
 				simdbgverbose("Fake-Probability-Decision",
 					"The node %u has become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
 
-				call FakeMessageGenerator.startLimited(message, FAKE_PERIOD_MS, TEMP_FAKE_DURATION_MS);
+				call FakeMessageGenerator.startLimited(message, sizeof(*message), TEMP_FAKE_DURATION_MS);
 			}
 			else
 			{
@@ -268,7 +264,7 @@ implementation
 	{
 		NormalMessage message;
 
-		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
@@ -377,6 +373,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+		case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 		case TempFakeNode:
@@ -460,6 +457,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
+		case SinkNode: break;
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
@@ -590,7 +588,7 @@ implementation
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			if (pfs_can_become_normal() &&
-				type == PermFakeNode &&
+				call NodeType.get() == PermFakeNode &&
 				rcvd->from_pfs &&
 				(
 					(rcvd->source_distance > source_distance) ||
@@ -612,23 +610,58 @@ implementation
 		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
-
-	event void FakeMessageGenerator.generateFakeMessage(FakeMessage* message)
+	void send_Fake_done(message_t* msg, error_t error)
 	{
-		message->sequence_number = sequence_number_next(&fake_sequence_counter);
-		message->sink_source_distance = sink_source_distance;
-		message->source_distance = source_distance;
-		message->max_hop = first_source_distance;
-		message->sink_distance = sink_distance;
-		message->from_pfs = (type == PermFakeNode);
-		message->source_id = TOS_NODE_ID;
-
-		sequence_number_increment(&fake_sequence_counter);
+		if (error == SUCCESS)
+		{
+			if (pfs_can_become_normal())
+			{
+				if (call NodeType.get() == PermFakeNode && !is_pfs_candidate)
+				{
+					call FakeMessageGenerator.expireDuration();
+				}
+			}
+		}
 	}
 
-	event void FakeMessageGenerator.durationExpired(const AwayChooseMessage* original_message)
+	event uint32_t FakeMessageGenerator.initialStartDelay()
 	{
-		ChooseMessage message = *original_message;
+		// Note: This causes problem if the period is a factor of the duration.
+		// As the node will have busy==TRUE due to sending a FakeMessage when
+		// attempting to send a ChooseMessage.
+		// So it has been changed to the technique used by other fake source SLP algorithms.
+		//return FAKE_PERIOD_MS;
+		return FAKE_PERIOD_MS / 2;
+	}
+
+	event uint32_t FakeMessageGenerator.calculatePeriod()
+	{
+		return FAKE_PERIOD_MS;
+	}
+
+	event void FakeMessageGenerator.sendFakeMessage()
+	{
+		FakeMessage message;
+
+		message.sequence_number = sequence_number_next(&fake_sequence_counter);
+		message.sink_source_distance = sink_source_distance;
+		message.source_distance = source_distance;
+		message.max_hop = first_source_distance;
+		message.sink_distance = sink_distance;
+		message.from_pfs = (call NodeType.get() == PermFakeNode);
+		message.source_id = TOS_NODE_ID;
+
+		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
+		{
+			sequence_number_increment(&fake_sequence_counter);
+		}
+	}
+
+	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t size)
+	{
+		ChooseMessage message;
+
+		memcpy(&message, original, sizeof(message));
 
 		simdbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
@@ -642,29 +675,5 @@ implementation
 		send_Choose_message(&message, AM_BROADCAST_ADDR);
 
 		become_Normal();
-	}
-
-	event void FakeMessageGenerator.sent(error_t error, const FakeMessage* tosend)
-	{
-		const char* result;
-
-		simdbgverbose("SourceBroadcasterC", "Sent Fake with error=%u.\n", error);
-
-		switch (error)
-		{
-		case SUCCESS: result = "success"; break;
-		case EBUSY: result = "busy"; break;
-		default: result = "failed"; break;
-		}
-
-		METRIC_BCAST(Fake, result, (tosend != NULL) ? tosend->sequence_number : BOTTOM);
-
-		if (pfs_can_become_normal())
-		{
-			if (type == PermFakeNode && !is_pfs_candidate)
-			{
-				call FakeMessageGenerator.expireDuration();
-			}
-		}
 	}
 }

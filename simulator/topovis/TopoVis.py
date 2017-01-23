@@ -135,6 +135,10 @@ class GenericPlotter:
         pass
     def textstyle(self, ident, **kwargs):
         pass
+    def createText(self, ident, *args, **kwargs):
+        pass
+    def updateText(self, ident, text):
+        pass
 
 ###############################################
 def informPlotters(fn):
@@ -250,7 +254,7 @@ class Scene:
         command
         """
         if delay is INF:
-            # no need to scedule any execution at time infinity
+            # no need to schedule any execution at time infinity
             return
         if self.realtime:
             def execfn():
@@ -271,12 +275,14 @@ class Scene:
         """
         if time < self.time:
             raise RuntimeError(
-                    'Time cannot flow backward: current = %.3f, new = %.3f'
+                    'Time cannot flow backward: current = %.5f, new = %.5f'
                     % (self.time, time)
                     )
+
         if not self.realtime:
             sleep((time-self.time) * self.timescale)
             self.time = time
+
         for plotter in self.plotters:
             plotter.setTime(time)
 
@@ -503,4 +509,14 @@ class Scene:
         Define or redefine a text style
         """
         self.textStyles[ident] = FillStyle(**kwargs)
+
+    ###################
+    @informPlotters
+    def createText(self, ident, *args, **kwargs):
+        pass
+
+    ###################
+    @informPlotters
+    def updateText(self, ident, text):
+        pass
 

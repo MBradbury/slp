@@ -99,7 +99,7 @@ void IDList_add(IDList* list, am_addr_t id)
 {
     if(list->count >= MAX_TWOHOP)
     {
-        simdbgerror("stdout", "IDList is full\n");
+        simdbgerrorverbose("stdout", "IDList is full\n");
         return;
     }
 
@@ -119,9 +119,24 @@ int IDList_compare(const void* elem1, const void* elem2)
 
 void IDList_sort(IDList* list)
 {
-    simdbg("stdout", "IDList before sort: "); IDList_print(list); simdbg_clear("stdout", "\n");
-    qsort(list->ids, list->count, sizeof(list->ids[0]), &IDList_compare);
-    simdbg("stdout", "IDList after sort: "); IDList_print(list); simdbg_clear("stdout", "\n");
+    uint16_t i,j,a;
+
+    //simdbgverbose("stdout", "IDList before sort: "); IDList_print(list); simdbgverbose_clear("stdout", "\n");
+
+    for(i = 0; i < list->count; ++i)
+    {
+        for(j = i+1; j < list->count; j++)
+        {
+            if(list->ids[i] > list->ids[j])
+            {
+                a = list->ids[i];
+                list->ids[i] = list->ids[j];
+                list->ids[j] = a;
+            }
+        }
+    }
+
+    //simdbgverbose("stdout", "IDList after sort: "); IDList_print(list); simdbgverbose_clear("stdout", "\n");
 }
 
 uint16_t IDList_indexOf(IDList* list, am_addr_t el)
@@ -156,12 +171,12 @@ void IDList_clear(IDList* list)
 void IDList_print(const IDList* list)
 {
     uint16_t i;
-    simdbg_clear("stdout", "IDList size=%u [", list->count);
+    simdbgverbose_clear("stdout", "IDList size=%u [", list->count);
     for (i = 0; i < list->count; ++i)
     {
-        simdbg_clear("stdout", "%u, ", list->ids[i]);
+        simdbgverbose_clear("stdout", "%u, ", list->ids[i]);
     }
-    simdbg_clear("stdout", "]");
+    simdbgverbose_clear("stdout", "]");
 }
 
 uint16_t rank(IDList* list, am_addr_t id)
@@ -205,7 +220,7 @@ void NeighbourList_add_info(NeighbourList* list, const NeighbourInfo* info)
     if(i == UINT16_MAX){
         if(list->count >= MAX_TWOHOP)
         {
-            simdbgerror("stdout", "NeighbourList is full.\n");
+            simdbgerrorverbose("stdout", "NeighbourList is full.\n");
             return;
         }
         i = list->count;
@@ -270,7 +285,7 @@ NeighbourInfo* NeighbourList_info_for_min_hop(NeighbourList* list, const IDList*
     {
         NeighbourInfo* mininfo = NeighbourList_get(list, parents->ids[mini]);
 
-        simdbg("stdout", "Found min neighbour info: "); NeighbourInfo_print(mininfo); simdbg_clear("stdout", "\n");
+        simdbgverbose("stdout", "Found min neighbour info: "); NeighbourInfo_print(mininfo); simdbgverbose_clear("stdout", "\n");
 
         return mininfo;
     }
@@ -285,7 +300,7 @@ void NeighbourList_select(NeighbourList* list, const IDList* onehop, OnehopList*
         const NeighbourInfo* info = NeighbourList_get(list, onehop->ids[i]);
         if(info == NULL)
         {
-            simdbgerror("stdout", "Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
+            simdbgerrorverbose("stdout", "Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
             continue;
         }
         NeighbourList_add_info(&tempList, info);
@@ -297,7 +312,7 @@ void NeighbourList_to_OnehopList(const NeighbourList* list, OnehopList *newList)
 {
     if(list->count > MAX_ONEHOP)
     {
-        simdbg("stdout", "NeighbourList too big to coerce to OnehopList. Truncating.\n");
+        simdbgverbose("stdout", "NeighbourList too big to coerce to OnehopList. Truncating.\n");
     }
     newList->count = (list->count > MAX_ONEHOP) ? MAX_ONEHOP : list->count;
     memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
@@ -312,30 +327,30 @@ void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList)
 
 void NeighbourInfo_print(const NeighbourInfo* info)
 {
-    simdbg_clear("stdout", "(id=%u, slot=%u, hop=%u), ",
+    simdbgverbose_clear("stdout", "(id=%u, slot=%u, hop=%u), ",
         info->id, info->slot, info->hop);
 }
 
 void OnehopList_print(const OnehopList* list)
 {
     uint16_t i;
-    simdbg_clear("stdout", "OnehopList size=%u [", list->count);
+    simdbgverbose_clear("stdout", "OnehopList size=%u [", list->count);
     for (i = 0; i < list->count; ++i)
     {
         NeighbourInfo_print(&list->info[i]);
     }
-    simdbg_clear("stdout", "]");
+    simdbgverbose_clear("stdout", "]");
 }
 
 void NeighbourList_print(const NeighbourList* list)
 {
     uint16_t i;
-    simdbg_clear("stdout", "NeighbourList size=%u [", list->count);
+    simdbgverbose_clear("stdout", "NeighbourList size=%u [", list->count);
     for (i = 0; i < list->count; ++i)
     {
         NeighbourInfo_print(&list->info[i]);
     }
-    simdbg_clear("stdout", "]");
+    simdbgverbose_clear("stdout", "]");
 }
 
 OtherInfo OtherInfo_new(am_addr_t id)

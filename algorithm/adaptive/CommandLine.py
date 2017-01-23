@@ -1,28 +1,29 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
-import os.path, itertools
+import itertools
+import os.path
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
 
-# The import statement doesn't work, so we need to use __import__ instead
-template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+template = algorithm.import_algorithm("template")
 
 from data import results
-
-from data.table import safety_period, fake_result, comparison
+from data.table import fake_result, comparison
 from data.graph import summary, versus, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor
 
-from data.run.common import RunSimulationsCommon as RunSimulations
-
 class CLI(CommandLineCommon.CLI):
-
-    local_parameter_names = ('approach',)
-
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+
+        subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("comparison-table")
+        subparser = self._subparsers.add_parser("comparison-graph")
+        subparser = self._subparsers.add_parser("min-max-versus")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -30,27 +31,21 @@ class CLI(CommandLineCommon.CLI):
         argument_product = list(itertools.product(
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
-            [parameters.distance], parameters.source_periods, parameters.approaches
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.source_periods, parameters.approaches
         ))
 
         return argument_product
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
-        safety_period_table_generator = safety_period.TableGenerator(protectionless.result_file_path)
-        safety_periods = safety_period_table_generator.safety_periods()
-
-        runner = RunSimulations(
-            driver, self.algorithm_module, result_path,
-            skip_completed_simulations=skip_completed_simulations, safety_periods=safety_periods)
-
-        runner.run(self.algorithm_module.Parameters.repeats, self.parameter_names(), self._argument_product(), self._time_estimater)
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
 
     def _run_table(self, args):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
-            results=('normal latency', 'ssd', 'attacker distance'))
+            parameters=self.algorithm_module.local_parameter_names,
+            results=('captured', 'received ratio', 'ssd', 'attacker distance'))
 
         result_table = fake_result.ResultTable(adaptive_results)
 
@@ -71,19 +66,17 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
         for (vary, vary_prefix) in [("source period", " seconds"), ("communication model", "~")]:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
 
-                yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
-
                 g = versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=yextractor)
+                    yextractor=scalar_extractor)
 
                 g.xaxis_label = 'Network Size'
                 g.yaxis_label = yaxis_label
@@ -95,7 +88,7 @@ class CLI(CommandLineCommon.CLI):
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
-                    '{}-{}'.format(self.algorithm_module.name, name)
+                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
 
@@ -105,7 +98,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(
@@ -128,7 +121,7 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=results_to_compare)
 
         template_results = results.Results(
@@ -149,7 +142,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for result_name in results_to_compare:
@@ -184,7 +177,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         results_to_show = ('normal', 'fake', 'away', 'choose')
@@ -212,12 +205,12 @@ class CLI(CommandLineCommon.CLI):
 
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.local_parameter_names,
+            parameters=self.algorithm_module.local_parameter_names,
             results=graph_parameters.keys())
 
         template_results = results.Results(
             template.result_file_path,
-            parameters=template.CommandLine.CLI.local_parameter_names,
+            parameters=template.local_parameter_names,
             results=graph_parameters.keys())
 
         def graph_min_max_versus(result_name):
@@ -262,26 +255,26 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for result_name in graph_parameters.keys():
             graph_min_max_versus(result_name)
 
     def run(self, args):
-        super(CLI, self).run(args)
+        args = super(CLI, self).run(args)
 
-        if 'table' in args:
+        if 'table' == args.mode:
             self._run_table(args)
 
-        if 'graph' in args:
+        if 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'comparison-table' in args:
+        if 'comparison-table' == args.mode:
             self._run_comparison_table(args)
 
-        if 'comparison-graph' in args:
+        if 'comparison-graph' == args.mode:
             self._run_comparison_graph(args)
 
-        if 'min-max-versus' in args:
+        if 'min-max-versus' == args.mode:
             self._run_min_max_versus(args)

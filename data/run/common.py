@@ -1,9 +1,29 @@
 from __future__ import print_function, division
-import os, sys, math
+
 from collections import OrderedDict
+import math
+import os.path
+import sys
+
+from more_itertools import unique_everseen
+
+import numpy as np
 
 from data import results
 import simulator.common
+from simulator import Attacker
+
+class MissingSafetyPeriodError(RuntimeError):
+    def __init__(self, key, source_period, safety_periods):
+        self.key = key
+        self.source_period = source_period
+        self.safety_periods = safety_periods
+
+    def __str__(self):
+        return "Failed to find the safety period key {} and source period {}".format(self.key, repr(self.source_period))
+
+def _argument_name_to_parameter(argument_name):
+    return "--" + argument_name.replace(" ", "-")
 
 class RunSimulationsCommon(object):
     def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=True, safety_periods=None):
@@ -18,16 +38,6 @@ class RunSimulationsCommon(object):
 
         self._existing_results = {}
 
-    @staticmethod
-    def _argument_name_to_parameter(argument_name):
-        argument_name = argument_name.replace(" ", "-")
-
-        return "--" + argument_name
-
-    @classmethod
-    def _argument_name_to_stored(cls, argument_name):
-        return cls._argument_name_to_parameter(argument_name)[2:].replace("-", " ")
-
     def run(self, repeats, argument_names, argument_product, time_estimater=None):
         if self._skip_completed_simulations:
             self._load_existing_results(argument_names)
@@ -35,8 +45,10 @@ class RunSimulationsCommon(object):
         self.driver.total_job_size = len(argument_product)
 
         for arguments in argument_product:
-            if self._already_processed(repeats, arguments):
-                print("Already gathered results for {}, so skipping it.".format(arguments), file=sys.stderr)
+            darguments = OrderedDict(zip(argument_names, arguments))
+
+            if self._already_processed(repeats, darguments):
+                print("Already gathered results for {} with {} repeats, so skipping it.".format(darguments, repeats), file=sys.stderr)
                 self.driver.total_job_size -= 1
                 continue
 
@@ -44,7 +56,9 @@ class RunSimulationsCommon(object):
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
 
             opts = OrderedDict()
-            opts["--job-size"] = int(math.ceil(repeats / job_repeats))
+
+            if repeats is not None:
+                opts["--job-size"] = int(math.ceil(repeats / job_repeats))
 
             if hasattr(self.driver, 'array_job_variable') and self.driver.array_job_variable is not None:
                 opts["--job-id"] = self.driver.array_job_variable
@@ -52,12 +66,12 @@ class RunSimulationsCommon(object):
             if hasattr(self.driver, 'job_thread_count') and self.driver.job_thread_count is not None:
                 opts["--thread-count"] = self.driver.job_thread_count
 
-            for (name, value) in zip(argument_names, arguments):
-                flag = self._argument_name_to_parameter(name)
+            for (name, value) in darguments.items():
+                flag = _argument_name_to_parameter(name)
                 opts[flag] = value
 
             if self._safety_periods is not None:
-                safety_period = self._get_safety_period(argument_names, arguments)
+                safety_period = self._get_safety_period(darguments)
                 opts["--safety-period"] = safety_period
 
             opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
@@ -71,21 +85,36 @@ class RunSimulationsCommon(object):
 
             estimated_time = None
             if time_estimater is not None:
-                estimated_time = time_estimater(*arguments)
+                estimated_time = time_estimater(
+                    darguments,
+                    safety_period=opts.get("--safety-period"),
+                    job_size=opts.get("--job-size"),
+                    thread_count=opts.get("--thread-count")
+                )
 
             self.driver.add_job(options, filename, estimated_time)
 
+    def _prepare_argument_name(self, name, darguments):
+        value = darguments[name]
 
-    def _get_safety_period(self, argument_names, arguments):
+        if name == 'attacker model':
+            # Attacker models are special. Their string format is likely to be different
+            # from what is specified in Parameters.py, as the string format prints out
+            # argument names.
+            return str(Attacker.eval_input(value))
+        else:
+            return str(value)
+
+
+    def _get_safety_period(self, darguments):
         if self._safety_periods is None:
             return None
 
-        key = []
-
-        for name in simulator.common.global_parameter_names:
-            value = str(arguments[argument_names.index(name)])
-
-            key.append(value)
+        key = [
+            self._prepare_argument_name(name, darguments)
+            for name
+            in simulator.common.global_parameter_names
+        ]
 
         # Source period is always stored as the last item in the list
         source_period = key[-1]
@@ -94,7 +123,7 @@ class RunSimulationsCommon(object):
         try:
             return self._safety_periods[key][source_period]
         except KeyError as ex:
-            raise KeyError("Failed to find the safety period key {} and source period {}".format(key, repr(source_period)), ex)
+            raise MissingSafetyPeriodError(key, source_period, self._safety_periods)
 
     def _load_existing_results(self, argument_names):
         try:
@@ -108,19 +137,19 @@ class RunSimulationsCommon(object):
         except IOError as e:
             message = str(e)
             if 'No such file or directory' in message:
-                raise RuntimeError("The results file {} is not present. Perhaps rerun the command with 'no-skip-complete'?".format(
+                raise RuntimeError("The results file {} is not present. Perhaps rerun the command with '--no-skip-complete'?".format(
                     self.algorithm_module.result_file_path))
             else:
                 raise
 
-    def _already_processed(self, repeats, arguments):
+    def _already_processed(self, repeats, darguments):
         if not self._skip_completed_simulations:
             return False
 
-        key = tuple(map(str, arguments))
+        key = tuple(self._prepare_argument_name(name, darguments) for name in darguments)
 
         if key not in self._existing_results:
-            print("Unable to find the key {} in the existing results".format(key), file=sys.stderr)
+            print("Unable to find the key {} in the existing results. Will now run the simulations for these parameters.".format(key), file=sys.stderr)
             return False
 
         # Check that more than enough jobs were done
@@ -130,7 +159,6 @@ class RunSimulationsCommon(object):
 
     @staticmethod
     def _sanitize_job_name(name):
-
         name = str(name)
 
         # These characters cause issues in file names.
@@ -141,3 +169,30 @@ class RunSimulationsCommon(object):
             name = name.replace(char, "_")
 
         return name
+
+class RunTestbedCommon(RunSimulationsCommon):
+    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False, safety_periods=None):
+        # Do all testbed tasks
+        # Testbed has no notion of safety period
+        super(RunTestbedCommon, self).__init__(driver, algorithm_module, result_path, False, None)
+
+    def run(self, repeats, argument_names, argument_product, time_estimater=None):
+
+        # Filter out invalid parameters to pass onwards
+        to_filter = ['network size', 
+                     'attacker model', 'noise model',
+                     'communication model', 'distance',
+                     'node id order', 'latest node start time']
+
+        # Remove indexes
+        indexes = [argument_names.index(name) for name in to_filter]
+
+        filtered_argument_names = tuple(np.delete(argument_names, indexes))
+        filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
+
+        # Remove duplicates
+        filtered_argument_product = list(unique_everseen(filtered_argument_product))
+
+        # Testbed has no notion of repeats
+        # Also no need to estimate time
+        super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)

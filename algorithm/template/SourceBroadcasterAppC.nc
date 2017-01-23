@@ -12,13 +12,35 @@ implementation
 	components SourceBroadcasterC as App;
 
 	// Low levels events such as boot and LED control
-	components MainC;
-	components LedsC;
+	components DelayedBootEventMainP as MainC;
+	components LedsWhenGuiC as LedsC;
 	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 	App.Random -> RandomC;
+
+#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+	components PrintfMetricLoggingP as MetricLogging;
+#elif defined(USE_SERIAL_MESSAGES)
+	components SerialMetricLoggingP as MetricLogging;
+#else
+#	error "No known combination to wire up metric logging"
+#endif
+
+	App.MetricLogging -> MetricLogging;
+
+	components new NodeTypeP(6);
+	App.NodeType -> NodeTypeP;
+	NodeTypeP.MetricLogging -> MetricLogging;
+
+	components new MessageTypeP(6);
+	App.MessageType -> MessageTypeP;
+	MessageTypeP.MetricLogging -> MetricLogging;
+
+#if defined(USE_SERIAL_MESSAGES)
+	MetricLogging.MessageType -> MessageTypeP;
+#endif
 
 
 	// Radio Control
@@ -70,4 +92,6 @@ implementation
 	components FakeMessageGeneratorP;
 
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
+	FakeMessageGeneratorP.Packet -> ActiveMessageC;
+	FakeMessageGeneratorP.MetricLogging -> MetricLogging;
 }
