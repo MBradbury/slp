@@ -671,33 +671,38 @@ dbg_unknown_event_types = {}
 # The line format we expect consists of whitespace separated fields:
 # DATA can consist of more than 1 field, but the rest must not
 # junk POWER: Mote # STATE_TYPE {DATA...} at TIME(in cycles)
-def handle_event(l):
+def handle_event(mote, time, l):
     global maxseen, maxtime, detail, powercurses, debug
 
-    l=l.replace("\n","");
-    #if debug: print lineno, l
+    mote = int(mote)
+
     event = l.split(',')
-    event0 = event[0].split(':')
-    #print event1;
-    mote = (int)(event0[0].strip('DEBUG() '))
-    time = (float)(event0[1])
-    if (time>maxtime):
+
+    # Use the ticks time and not the seconds time
+    time = float(event[0])
+    event_name = event[1]
+
+    if time > maxtime:
         maxtime=time
+
     if debug:
         print("mote: %d, time: %.0f" % (mote,time))
     # Check if this is a power event
     # if event[1] != "POWER:":
     #     return
     
-    if(mote > maxseen): maxseen = mote
+    if mote > maxseen:
+        maxseen = mote
+
     if debug:
         print("handling event: '%s'" % l)
         print(event)
-    if event[1] in event_handler:
+
+    if event_name in event_handler:
         # Update the totals up to just before this event
         update_totals(time)
         # Update the state due to this event
-        event_handler[event[1]](mote,time,event[2:])
+        event_handler[event_name](mote,time,event[2:])
         if detail:
             # At this point, the state is updated, but still have the old
             # current values
@@ -707,9 +712,10 @@ def handle_event(l):
         
     else:
         global dbg_unknown_event_types
-        if not event[1] in dbg_unknown_event_types:
+        if event_name not in dbg_unknown_event_types:
             print("Don't know how to handle "+event[1]+" events")
-            dbg_unknown_event_types[event[1]] = 1
+            dbg_unknown_event_types[event_name] = 1
+
     if powercurses: 
         print("POWERCURSES,%.6f,%d,%.2f" % (time/simfreq,mote,battery[mote]/battery_total_charge*100))
 
@@ -717,10 +723,13 @@ def handle_event(l):
 
 ########################  "Main" code ###################
 
+def total_cpu_active_energy(mote):
+    return state[mote]['cpu_cycles'] * voltage * em['CPU_ACTIVE']/em['CPU_FREQ']
+
 def total_energy(mote):
     total_sum = sum(total[mote].values())
 
-    cpu_active_e = state[mote]['cpu_cycles'] * voltage * em['CPU_ACTIVE']/em['CPU_FREQ']
+    cpu_active_e = total_cpu_active_energy(mote)
 
     return total_sum + cpu_active_e
 
