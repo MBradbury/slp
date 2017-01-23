@@ -53,6 +53,7 @@ def build_actual(directory, platform, **kwargs):
 
     make_options = {
         "SLP_PARAMETER_CFLAGS": flags,
+        "WSN_PLATFORM": platform
     }
 
     if "USE_SERIAL_PRINTF" in kwargs:
