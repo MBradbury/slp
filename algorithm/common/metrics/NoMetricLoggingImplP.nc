@@ -1,14 +1,10 @@
 #include "MetricLogging.h"
 
-module PrintfMetricLoggingImplP
+module NoMetricLoggingImplP
 {
 	provides interface MetricLogging;
 
 	uses interface MessageType;
-
-#ifdef USE_SERIAL_PRINTF
-	uses interface LocalTime<TMilli>;
-#endif
 }
 implementation
 {
@@ -20,9 +16,6 @@ implementation
 		int16_t distance
 		)
 	{
-		simdbg("M-CR",
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
-			message_type, proximate_source, ultimate_source, sequence_number, distance);
 	}
 
 	command void MetricLogging.log_metric_bcast(
@@ -31,9 +24,6 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		simdbg("M-CB",
-			"%s,%u," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, status, sequence_number);
 	}
 
 	command void MetricLogging.log_metric_deliver(
@@ -43,9 +33,6 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		simdbg("M-CD", \
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, proximate_source, ultimate_source_poss_bottom, sequence_number);
 	}
 
 	command void MetricLogging.log_attacker_receive(
@@ -56,9 +43,6 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		simdbg("A-R",
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, proximate_source, ultimate_source_poss_bottom, sequence_number);
 	}
 
 	command void MetricLogging.log_metric_node_change(
@@ -68,9 +52,6 @@ implementation
 		const char* new_type_str
 		)
 	{
-		// One event to handle metrics and other for the GUI
-		simdbg("M-NC", "%s,%s\n", old_type_str, new_type_str);
-		simdbg("G-NC", "%s,%s\n", old_type_str, new_type_str);
 	}
 
 	command void MetricLogging.log_metric_node_type_add(
@@ -78,7 +59,6 @@ implementation
 		const char* node_type_name
 		)
 	{
-		simdbg("M-NTA", "%u,%s\n", node_type_id, node_type_name);
 	}
 
 	command void MetricLogging.log_metric_message_type_add(
@@ -86,7 +66,6 @@ implementation
 		const char* message_type_name
 		)
 	{
-		simdbg("M-MTA", "%u,%s\n", message_type_id, message_type_name);
 	}
 
 	command void MetricLogging.log_error_occurred(
@@ -94,8 +73,6 @@ implementation
 		const char* message
 		)
 	{
-		// No newline here, message needs to provide it!
-		simdbgerror("stderr", "%s", message);
 	}
 
 	//##########SLP TDMA DAS##########
@@ -104,6 +81,5 @@ implementation
 		uint16_t new_slot
 		)
 	{
-		simdbg("M-NSC", "%u,%u\n", old_slot, new_slot);
 	}
 }

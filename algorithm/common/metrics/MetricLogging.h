@@ -3,7 +3,7 @@
 
 #include "SerialMetricLoggingTypes.h"
 
-#if defined(USE_SERIAL_MESSAGES)
+#if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 
 // These are no-ops, as we cannot just put them across the line in a serial packet
 #define simdbg(name, fmtstr, ...)
@@ -48,7 +48,7 @@
 	call MetricLogging.log_metric_message_type_add(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME)
 
 // No need to format messages when using serial message as the string will not be used.
-#ifdef USE_SERIAL_MESSAGES
+#if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \
 	call MetricLogging.log_error_occurred(CODE, MESSAGE)
 #else
