@@ -3,12 +3,16 @@
 configuration PrintfMetricLoggingP
 {
 	provides interface MetricLogging;
+
+	uses interface MessageType;
 }
 implementation
 {
 	components PrintfMetricLoggingImplP as App;
 
 	MetricLogging = App;
+
+	App.MessageType = MessageType;
 
 #ifdef USE_SERIAL_PRINTF
 
