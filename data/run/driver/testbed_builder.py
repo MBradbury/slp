@@ -57,20 +57,8 @@ class Runner(object):
 
         # These are the arguments that will be passed to the compiler
         build_args = self.build_arguments(a)
-        build_args["TESTBED"] = self.testbed.name()
-        build_args["TESTBED_" + self.testbed.name().upper()] = 1
-
-        log_mode = self.testbed.log_mode()
-        if log_mode == "printf":
-            build_args["USE_SERIAL_PRINTF"] = 1
-            build_args["SERIAL_PRINTF_BUFFERED"] = 1
-        elif log_mode == "unbuffered_printf":
-            build_args["USE_SERIAL_PRINTF"] = 1
-            build_args["SERIAL_PRINTF_UNBUFFERED"] = 1
-        elif log_mode == "serial":
-            build_args["USE_SERIAL_MESSAGES"] = 1
-        else:
-            raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
+        build_args[self.mode()] = self.testbed.name()
+        build_args[self.mode() + "_" + self.testbed.name().upper()] = 1
 
         print("Building for {}".format(build_args))
 
@@ -125,12 +113,23 @@ class Runner(object):
 
         return a
 
-    @staticmethod
-    def build_arguments(a):
+    def build_arguments(self, a):
         build_args = a.build_arguments()
 
         configuration = Configuration.create(a.args.configuration, a.args)
 
         build_args.update(configuration.build_arguments())
+
+        log_mode = self.testbed.log_mode()
+        if log_mode == "printf":
+            build_args["USE_SERIAL_PRINTF"] = 1
+            build_args["SERIAL_PRINTF_BUFFERED"] = 1
+        elif log_mode == "unbuffered_printf":
+            build_args["USE_SERIAL_PRINTF"] = 1
+            build_args["SERIAL_PRINTF_UNBUFFERED"] = 1
+        elif log_mode == "serial":
+            build_args["USE_SERIAL_MESSAGES"] = 1
+        else:
+            raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
 
         return build_args
