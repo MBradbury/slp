@@ -69,7 +69,7 @@ def main(argv):
 
     # See: http://compilers.cs.ucla.edu/avrora/help/sensor-network.html
     options = {
-        "platform": "micaz",
+        "platform": cycle_accurate.platform(),
         "simulation": "sensor-network",
         "seconds": "30",
         "monitors": "energy",
@@ -83,8 +83,6 @@ def main(argv):
     target_file = os.path.join(target_directory, "main.elf")
 
     options_string = " ".join("-{}={}".format(k,v) for (k,v) in options.items())
-
-    #avrora -platform=micaz -simulation=sensor-network -seconds=30 -monitors=energy -radio-range=5 -nodes=121 -topology=static -topology-file=topology.txt main.elf
 
     command = "java -jar {} {} {}".format(avrora_path, options_string, target_file)
 
