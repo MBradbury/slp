@@ -112,6 +112,15 @@ class ArgumentsCommon(object):
         ###
         ###
 
+        # Add extra parameters that we did not want being inherited
+
+        # Testbed and cycle accurate simulators can work with LowPowerListening, but TOSSIM doesn't
+        for sub_parser in (parser_testbed, parser_cycle):
+            sub_parser.add_argument("-lpl", "--low-power-listening", type=int, required=False, default=-1)
+
+        ###
+        ###
+
         # Store any of the parsers that we need
         self._parser = parser
         self._online_subparsers = (parser_testbed, parser_cycle, parser_single, parser_profile, parser_gui, parser_parallel, parser_cluster)
@@ -183,6 +192,17 @@ class ArgumentsCommon(object):
             (source_id,) = configuration.source_ids
 
             result["SOURCE_NODE_ID"] = configuration.topology.to_topo_nid(source_id)
+
+        if hasattr(self.args, 'low_power_listening'):
+            lpl = self.args.low_power_listening
+
+            # Negative indicates disabled
+
+            if lpl >= 0:
+                result["LOW_POWER_LISTENING"] = lpl
+
+                # See SystemLowPowerListeningP.nc for how this macro is used
+                result["LPL_DEF_REMOTE_WAKEUP"] = lpl
 
         return result
 
