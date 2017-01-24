@@ -62,10 +62,12 @@ def build_actual(directory, platform, **kwargs):
     if "USE_SERIAL_MESSAGES" in kwargs:
         make_options["USE_SERIAL_MESSAGES"] = 1
 
-    # If this is a build for a testbed, make sure to pass that information
-    # on to the makefile, which may need to do additional things to support that testbed.
+    # If this is a build for a testbed or cycle accurate simulator, make sure to pass that information
+    # on to the makefile, which may need to do additional things to support that configuration.
     if "TESTBED" in kwargs:
         make_options["TESTBED"] = kwargs["TESTBED"]
+    if "CYCLEACCURATE" in kwargs:
+        make_options["CYCLEACCURATE"] = kwargs["CYCLEACCURATE"]
 
     make_options_string = " ".join('{}={}'.format(k, repr(v)) for (k, v) in make_options.items())
 

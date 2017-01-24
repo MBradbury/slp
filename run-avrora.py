@@ -5,7 +5,8 @@ import os
 import subprocess
 import sys
 
-from data.cycle_accurate import avrora
+from data import submodule_loader
+import data.cycle_accurate
 
 def main(argv):
     module = argv[1]
@@ -22,7 +23,9 @@ def main(argv):
 
     target = module.replace(".", "/") + ".txt"
 
-    builder = Builder(avrora)
+    cycle_accurate = submodule_loader.load(data.cycle_accurate, "avrora")
+
+    builder = Builder(cycle_accurate)
     builder.total_job_size = 1
     a, module, module_path, target_directory = builder.add_job(" ".join(argv[1:]), target)
 
@@ -64,6 +67,7 @@ def main(argv):
 
     avrora_path = "/home/matt/wsn/avrora/avrora-beta-1.7.117.jar"
 
+    # See: http://compilers.cs.ucla.edu/avrora/help/sensor-network.html
     options = {
         "platform": "micaz",
         "simulation": "sensor-network",
