@@ -8,7 +8,7 @@ def platform():
     return "micaz"
 
 def log_mode():
-    return "printf"
+    return "disabled"
 
 def url():
     return "about:blank"
