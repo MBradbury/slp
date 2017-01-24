@@ -57,7 +57,7 @@
 	}
 
 // If building for a testbed, disable the ability to print the contents of neighbours
-#ifndef TESTBED
+#ifdef TOSSIM
 #define DEFINE_NEIGHBOUR_DETAIL_PRINT(TYPE, TYPE_PREFIX, UPDATE_FN, PRINT_FN, MAX_SIZE) \
 	void print_##TYPE_PREFIX##_neighbours(const char* name, TYPE_PREFIX##_neighbours_t const* neighbours) \
 	{ \

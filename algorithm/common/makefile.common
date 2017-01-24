@@ -8,11 +8,7 @@ CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equa
 CFLAGS += -Wsign-compare
 
 # The micax compiler doesn't understand these flags
-ifdef TESTBED
-	ifneq ($(WSN_PLATFORM), micaz)
-		CFLAGS += -Werror=pointer-sign -Werror=format
-	endif
-else
+ifndef CYCLEACCURATE
 	CFLAGS += -Werror=pointer-sign -Werror=format
 endif
 
