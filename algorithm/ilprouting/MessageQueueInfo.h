@@ -1,6 +1,8 @@
 #ifndef SLP_MESSAGE_QUEUE_INFO_H
 #define SLP_MESSAGE_QUEUE_INFO_H
 
+#include <message.h>
+
 #include "Constants.h"
 
 typedef struct message_queue_info
