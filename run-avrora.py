@@ -47,11 +47,27 @@ def main(argv):
     except KeyError:
         tinyos_version = "<unknown tinyos dir>"
 
+    try:
+        java_version = subprocess.check_output("java -version 2>&1 | awk '/version/ {print $3}' | egrep -o '[^\"]*'", shell=True)
+    except subprocess.CalledProcessError:
+        java_version = "<unknown java version>"
+
+    avrora_path = "/home/matt/wsn/avrora/avrora-beta-1.7.117.jar"
+
+    try:
+        avrora_version = subprocess.check_output("java -jar {} -version -colors=false".format(avrora_path), shell=True)
+        avrora_version = avrora_version.split("\n")[0].strip()
+    except subprocess.CalledProcessError:
+        avrora_version = "<unknown avrora version>"
+
+    print("@version:java={}".format(java_version.strip()))
     print("@version:python={}".format(sys.version.replace("\n", " ")))
     print("@version:numpy={}".format(numpy.__version__))
 
     print("@version:slp-algorithms={}".format(slp_algorithms_version.strip()))
     print("@version:tinyos={}".format(tinyos_version.strip()))
+
+    print("@version:avrora={}".format(avrora_version))
 
     # Print other potentially useful meta data
     print("@date:{}".format(str(datetime.now())))
@@ -64,8 +80,6 @@ def main(argv):
 
     # Make sure this header has been written
     sys.stdout.flush()
-
-    avrora_path = "/home/matt/wsn/avrora/avrora-beta-1.7.117.jar"
 
     # See: http://compilers.cs.ucla.edu/avrora/help/sensor-network.html
     options = {
@@ -84,7 +98,8 @@ def main(argv):
 
     options_string = " ".join("-{}={}".format(k,v) for (k,v) in options.items())
 
-    command = "java -jar {} {} {}".format(avrora_path, options_string, target_file)
+    # Give a niceness to allow system to continue to respond
+    command = "nice -n 15 java -jar {} {} {}".format(avrora_path, options_string, target_file)
 
     print("@command:{}".format(command))
 
