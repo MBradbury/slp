@@ -8,7 +8,14 @@ import sys
 from data import submodule_loader
 import data.cycle_accurate
 
+import simulator.VersionDetection as VersionDetection
+
 def main(argv):
+    try:
+        avrora_path = os.environ["AVRORA_JAR_PATH"]
+    except KeyError:
+        raise RuntimeError("Unable to find the environment variable AVRORA_JAR_PATH so cannot run avrora.")
+
     module = argv[1]
 
     # Build the binaries
@@ -32,42 +39,16 @@ def main(argv):
     configuration = Configuration.create(a.args.configuration, a.args)
 
     from datetime import datetime
-    import numpy
 
     # Print out the versions of slp-algorithms-tinyos and tinyos being used
-    try:
-        slp_algorithms_version = subprocess.check_output("hg id -n -i -b -t", shell=True)
-    except subprocess.CalledProcessError:
-        slp_algorithms_version = "<unknown hg rev>"
+    print("@version:java={}".format(VersionDetection.java_version()))
+    print("@version:python={}".format(VersionDetection.python_version()))
+    print("@version:numpy={}".format(VersionDetection.numpy_version()))
 
-    try:
-        tinyos_version = subprocess.check_output("git rev-parse HEAD", shell=True, cwd=os.environ["TOSROOT"])
-    except subprocess.CalledProcessError:
-        tinyos_version = "<unknown git rev>"
-    except KeyError:
-        tinyos_version = "<unknown tinyos dir>"
+    print("@version:slp-algorithms={}".format(VersionDetection.slp_algorithms_version()))
+    print("@version:tinyos={}".format(VersionDetection.tinyos_version()))
 
-    try:
-        java_version = subprocess.check_output("java -version 2>&1 | awk '/version/ {print $3}' | egrep -o '[^\"]*'", shell=True)
-    except subprocess.CalledProcessError:
-        java_version = "<unknown java version>"
-
-    avrora_path = "/home/matt/wsn/avrora/avrora-beta-1.7.117.jar"
-
-    try:
-        avrora_version = subprocess.check_output("java -jar {} -version -colors=false".format(avrora_path), shell=True)
-        avrora_version = avrora_version.split("\n")[0].strip()
-    except subprocess.CalledProcessError:
-        avrora_version = "<unknown avrora version>"
-
-    print("@version:java={}".format(java_version.strip()))
-    print("@version:python={}".format(sys.version.replace("\n", " ")))
-    print("@version:numpy={}".format(numpy.__version__))
-
-    print("@version:slp-algorithms={}".format(slp_algorithms_version.strip()))
-    print("@version:tinyos={}".format(tinyos_version.strip()))
-
-    print("@version:avrora={}".format(avrora_version))
+    print("@version:avrora={}".format(VersionDetection.avrora_version()))
 
     # Print other potentially useful meta data
     print("@date:{}".format(str(datetime.now())))
