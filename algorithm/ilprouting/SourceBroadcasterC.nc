@@ -194,8 +194,6 @@ implementation
 			{
 				call AwaySenderTimer.startOneShot(SINK_AWAY_DELAY_MS);
 			}
-
-			call ConsiderTimer.startPeriodic(ALPHA);
 		}
 		else
 		{
@@ -419,6 +417,11 @@ implementation
 		item->rtx_attempts = RTX_ATTEMPTS;
 		item->calculate_target_attempts = RTX_ATTEMPTS;
 
+		if (has_enough_messages_to_send())
+		{
+			call ConsiderTimer.startOneShot(ALPHA);
+		}
+
 		return SUCCESS;
 	}
 
@@ -427,7 +430,7 @@ implementation
 		if (error != SUCCESS)
 		{
 			// Failed to send the message
-			// Do nothing as this message will be considered to be resent in the future
+			call ConsiderTimer.startOneShot(ALPHA);
 		}
 		else
 		{
@@ -464,6 +467,8 @@ implementation
 							info->rtx_attempts = RTX_ATTEMPTS;
 
 							simdbgverbose("stdout", "Failed to route message to avoid sink, giving up and routing to sink.\n");
+
+							call ConsiderTimer.startOneShot(ALPHA);
 						}
 						else
 						{
@@ -472,6 +477,10 @@ implementation
 							// Failed to route to sink, so remove from queue.
 							put_back_in_pool(info);
 						}
+					}
+					else
+					{
+						call ConsiderTimer.startOneShot(ALPHA);
 					}
 				}
 				else
