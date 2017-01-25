@@ -24,6 +24,8 @@ SERIAL_CLASS_TARGETS = $(JAVA_TARGETS:.java=.class)
 # The Indriya testbed needs printf_msg java class files
 ifdef USE_SERIAL_MESSAGES
 
+CFLAGS += -DNEW_PRINTF_SEMANTICS
+
 BUILD_EXTRA_DEPS += $(SERIAL_CLASS_TARGETS) printf_msg.class
 
 ifeq ($(TESTBED), indriya)
