@@ -98,7 +98,13 @@ class Runner(object):
 
         # Copy any generated class files
         for file in glob.glob(os.path.join(module_path, "*.class")):
-            shutil.copy(file, target_directory)
+            try:
+                shutil.copy(file, target_directory)
+            except shutil.Error as ex:
+                if str(ex).endswith("are the same file"):
+                    continue
+                else:
+                    raise
 
         print("All Done!")
 
