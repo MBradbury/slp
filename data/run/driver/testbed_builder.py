@@ -47,11 +47,18 @@ class Runner(object):
         data.util.create_dirtree(target_directory)
 
         # Get the job arguments
-        options = shlex.split(options)
-        module, argv = options[0], options[1:]
-        module_path = module.replace(".", "/")
 
-        a = self.parse_arguments(module, argv)
+        # If options is a tuple then we have just been given the
+        # module name and the parsed arguments.
+        if isinstance(options, tuple):
+            module, a = options
+        else:
+            options = shlex.split(options)
+            module, argv = options[0], options[1:]
+
+            a = self.parse_arguments(module, argv)
+
+        module_path = module.replace(".", "/")
 
         # Build the binary
 

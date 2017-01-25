@@ -7,9 +7,13 @@ import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
+from data import submodule_loader
+import data.cycle_accurate
+
 # Inheritance diagram for different modes:
-# TESTBED < CYCLEACCURATE < SINGLE < PARALLEL < CLUSTER
-#                                  < GUI
+# TESTBED < CYCLEACCURATE
+#         < SINGLE  < PARALLEL    < CLUSTER
+#                   < GUI
 #         < OFFLINE < OFFLINE_GUI
 
 def _secure_random():
@@ -45,7 +49,7 @@ class ArgumentsCommon(object):
         parser_cycle.add_argument("-ns", "--network-size", type=int, required=True)
         parser_cycle.add_argument("-d", "--distance", type=float, default=4.5)
 
-        parser_cycle.add_argument("--node-id-order", choices=("topology", "randomised"), default="randomised")
+        parser_cycle.add_argument("--node-id-order", choices=("topology", "randomised"), default="topology")
 
         ###
 
@@ -120,6 +124,8 @@ class ArgumentsCommon(object):
             sub_parser.add_argument("--lpl-local-wakeup", type=int, required=False, default=-1)
             sub_parser.add_argument("--lpl-remote-wakeup", type=int, required=False, default=-1)
             sub_parser.add_argument("--lpl-delay-after-receive", type=int, required=False, default=-1)
+
+        parser_cycle.add_argument("simulator", type=str, choices=submodule_loader.list_available(data.cycle_accurate))
 
         ###
         ###
