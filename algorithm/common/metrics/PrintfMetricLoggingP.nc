@@ -16,12 +16,12 @@ implementation
 
 #ifdef USE_SERIAL_PRINTF
 
+	components SerialStartC;
+
 #if defined(SERIAL_PRINTF_UNBUFFERED)
 	components SerialPrintfC;
 #elif defined(SERIAL_PRINTF_BUFFERED)
-	// Serial / Printf
 	components PrintfC;
-	components SerialStartC;
 #else
 #	error "Serial Printf needs to be buffered or unbuffered, but is neither."
 #endif
