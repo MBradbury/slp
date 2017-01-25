@@ -196,7 +196,7 @@ def _energy_impact(columns, cached_cols, constants):
     cost_per_bcast_nah = 20.0
     cost_per_deliver_nah = 8.0
 
-    return (columns["Sent"] * cost_per_bcast_nah + columns["Received"] * cost_per_deliver_nah) / 1000000.0
+    return (columns["Sent"] * cost_per_bcast_nah + columns["Delivered"] * cost_per_deliver_nah) / 1000000.0
 
 def _daily_allowance_used(columns, cached_cols, constants):
     # Magic constants are from Great Duck Island paper
