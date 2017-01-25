@@ -170,6 +170,18 @@ class RunSimulationsCommon(object):
 
         return name
 
+def filter_arguments(argument_names, argument_product, to_filter):
+    # Remove indexes
+    indexes = [argument_names.index(name) for name in to_filter]
+
+    filtered_argument_names = tuple(np.delete(argument_names, indexes))
+    filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
+
+    # Remove duplicates
+    filtered_argument_product = list(unique_everseen(filtered_argument_product))
+
+    return filtered_argument_names, filtered_argument_product
+
 class RunTestbedCommon(RunSimulationsCommon):
     def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False, safety_periods=None):
         # Do all testbed tasks
@@ -179,19 +191,12 @@ class RunTestbedCommon(RunSimulationsCommon):
     def run(self, repeats, argument_names, argument_product, time_estimater=None):
 
         # Filter out invalid parameters to pass onwards
-        to_filter = ['network size', 
+        to_filter = ('network size', 
                      'attacker model', 'noise model',
                      'communication model', 'distance',
-                     'node id order', 'latest node start time']
+                     'node id order', 'latest node start time')
 
-        # Remove indexes
-        indexes = [argument_names.index(name) for name in to_filter]
-
-        filtered_argument_names = tuple(np.delete(argument_names, indexes))
-        filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
-
-        # Remove duplicates
-        filtered_argument_product = list(unique_everseen(filtered_argument_product))
+        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, to_filter)
 
         # Testbed has no notion of repeats
         # Also no need to estimate time
@@ -206,18 +211,11 @@ class RunCycleAccurateCommon(RunSimulationsCommon):
     def run(self, repeats, argument_names, argument_product, time_estimater=None):
 
         # Filter out invalid parameters to pass onwards
-        to_filter = ['attacker model', 'noise model',
+        to_filter = ('attacker model', 'noise model',
                      'communication model',
-                     'latest node start time']
+                     'latest node start time')
 
-        # Remove indexes
-        indexes = [argument_names.index(name) for name in to_filter]
-
-        filtered_argument_names = tuple(np.delete(argument_names, indexes))
-        filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
-
-        # Remove duplicates
-        filtered_argument_product = list(unique_everseen(filtered_argument_product))
+        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, to_filter)
 
         # Cycle Accurate has no notion of repeats
         # Also no need to estimate time
