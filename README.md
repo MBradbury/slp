@@ -131,6 +131,17 @@ You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
 
       You should see an output that contains "*** Successfully built micaz TOSSIM library".
 
+# Set up Avrora (optional if only using TinyOS)
+
+  1. Make sure a suitable version of Java is installed
+
+  2. Go to https://sourceforge.net/projects/avrora/ and download the latest avrora jar
+
+  3. Edit ~/.bashrc to export en environment variable called "AVRORA_JAR_PATH" which contains
+     the path to the Avrora jar. An example path is shown below.
+
+     :::bash
+     export AVRORA_JAR_PATH="/home/matt/wsn/avrora/avrora-beta-1.7.117.jar"
 
 ## Updating from upstream
 
