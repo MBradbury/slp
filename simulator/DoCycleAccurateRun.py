@@ -10,13 +10,11 @@ import data.cycle_accurate
 
 import simulator.VersionDetection as VersionDetection
 
-def main(argv):
+def main(module, a):
     try:
         avrora_path = os.environ["AVRORA_JAR_PATH"]
     except KeyError:
         raise RuntimeError("Unable to find the environment variable AVRORA_JAR_PATH so cannot run avrora.")
-
-    module = argv[1]
 
     # Build the binaries
     from data.run.driver.cycle_accurate_builder import Runner as Builder
@@ -30,11 +28,11 @@ def main(argv):
 
     target = module.replace(".", "/") + ".txt"
 
-    cycle_accurate = submodule_loader.load(data.cycle_accurate, "avrora")
+    cycle_accurate = submodule_loader.load(data.cycle_accurate, a.args.simulator)
 
     builder = Builder(cycle_accurate)
     builder.total_job_size = 1
-    a, module, module_path, target_directory = builder.add_job(" ".join(argv[1:]), target)
+    a, module, module_path, target_directory = builder.add_job((module, a), target)
 
     configuration = Configuration.create(a.args.configuration, a.args)
 
@@ -64,7 +62,7 @@ def main(argv):
 
     # See: http://compilers.cs.ucla.edu/avrora/help/sensor-network.html
     options = {
-        "platform": cycle_accurate.platform(),
+        "platform": builder.platform,
         "simulation": "sensor-network",
         "seconds": "30",
         "monitors": "energy",
@@ -85,6 +83,3 @@ def main(argv):
     print("@command:{}".format(command))
 
     subprocess.check_call(command, shell=True)
-
-if __name__ == "__main__":
-    main(sys.argv)

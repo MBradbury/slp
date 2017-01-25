@@ -39,7 +39,7 @@ def tinyos_version():
 
 def avrora_version():
     try:
-        ver = subprocess.check_output("java -jar {} -version -colors=false".format(avrora_path), shell=True)
+        ver = subprocess.check_output("java -jar {} -version -colors=false".format(os.environ["AVRORA_JAR_PATH"]), shell=True)
         ver = ver.split("\n")[0].strip()
     except subprocess.CalledProcessError:
         ver = "<unknown avrora version>"

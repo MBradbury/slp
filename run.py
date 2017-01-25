@@ -16,6 +16,11 @@ def main(argv):
     a = Arguments.Arguments()
     a.parse(argv[2:])
 
+    if a.args.mode == "CYCLEACCURATE":
+        from simulator.DoCycleAccurateRun import main as main_cycle_accurate
+        main_cycle_accurate(module, a)
+        sys.exit(0)
+
     # For cluster runs, the binary has already been built and the
     # topology file has been written. So do not attempt to do so again.
     #
