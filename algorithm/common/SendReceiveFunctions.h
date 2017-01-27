@@ -321,6 +321,16 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	USE_MESSAGE_WITH_CALLBACK(NAME); \
 	inline void send_##NAME##_done(message_t* msg, error_t error) {}
 
+#define USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(NAME) \
+	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
+	SEND_MESSAGE(NAME); \
+	void send_##NAME##_done(message_t* msg, error_t error); \
+	SEND_DONE_NO_EXTRA_TO_SEND(NAME, send_##NAME##_done)
+
+#define USE_MESSAGE_NO_EXTRA_TO_SEND(NAME) \
+	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(NAME); \
+	inline void send_##NAME##_done(message_t* msg, error_t error) {}
+
 #define USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(NAME) \
 	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
 	SEND_MESSAGE_ACK_REQUEST(NAME); \
