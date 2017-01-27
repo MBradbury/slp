@@ -5,6 +5,8 @@ CFLAGS += -I"../common" -I"../common/metrics"
 # Additional warnings
 CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable 
 
+CFLAGS += -DPOWERTOSSIMZ
+
 CFLAGS += -Wsign-compare
 
 # The micax compiler doesn't understand these flags
