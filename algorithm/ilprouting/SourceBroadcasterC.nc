@@ -112,8 +112,6 @@ implementation
 		SourceNode, SinkNode, NormalNode
 	};
 
-	unsigned int extra_to_send = 0;
-
 	bool busy = FALSE;
 	message_t packet;
 
@@ -231,8 +229,8 @@ implementation
 	}
 
 	USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(Normal);
-	USE_MESSAGE(Away);
-	USE_MESSAGE(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	void print_dictionary_queue(void)
 	{
