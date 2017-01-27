@@ -18,6 +18,9 @@ enum {
 	AM_METRIC_NODE_SLOT_CHANGE_MSG = 57,
 };
 
+#define MAXIMUM_NODE_TYPE_NAME_LENGTH 20
+#define MAXIMUM_MESSAGE_TYPE_NAME_LENGTH 20
+
 #define METRIC_LOGGING_HEADER \
 	nx_am_id_t type; /* This is the type of debug/metric message*/ \
 	nx_am_addr_t node_id; \
@@ -76,7 +79,7 @@ typedef nx_struct metric_node_type_add_msg {
 	METRIC_LOGGING_HEADER
 
 	nx_uint8_t node_type_id;
-	nx_uint8_t node_type_name[20];
+	nx_uint8_t node_type_name[MAXIMUM_NODE_TYPE_NAME_LENGTH];
 
 } metric_node_type_add_msg_t;
 
@@ -84,7 +87,7 @@ typedef nx_struct metric_message_type_add_msg {
 	METRIC_LOGGING_HEADER
 
 	nx_uint8_t message_type_id;
-	nx_uint8_t message_type_name[20];
+	nx_uint8_t message_type_name[MAXIMUM_MESSAGE_TYPE_NAME_LENGTH];
 
 } metric_message_type_add_msg_t;
 

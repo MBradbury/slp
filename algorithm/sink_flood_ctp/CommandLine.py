@@ -40,8 +40,8 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
-        return (time_taken - first_normal_sent_time) * 2.0
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
     def _run_graph(self, args):
         graph_parameters = {

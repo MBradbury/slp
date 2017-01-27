@@ -5,10 +5,10 @@ import os.path
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
 
-# The import statement doesn't work, so we need to use __import__ instead
-template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+template = algorithm.import_algorithm("template")
 
 from data import results
 from data.table import fake_result, comparison
@@ -37,8 +37,8 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
-        return (time_taken - first_normal_sent_time) * 2.0
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
 
     def _run_table(self, args):
@@ -73,12 +73,10 @@ class CLI(CommandLineCommon.CLI):
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
 
-                yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
-
                 g = versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=yextractor)
+                    yextractor=scalar_extractor)
 
                 g.xaxis_label = 'Network Size'
                 g.yaxis_label = yaxis_label
@@ -90,7 +88,7 @@ class CLI(CommandLineCommon.CLI):
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
-                    '{}-{}'.format(self.algorithm_module.name, name)
+                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
 
@@ -144,7 +142,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for result_name in results_to_compare:
@@ -179,7 +177,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         results_to_show = ('normal', 'fake', 'away', 'choose')
@@ -257,7 +255,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for result_name in graph_parameters.keys():

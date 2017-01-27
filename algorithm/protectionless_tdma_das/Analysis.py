@@ -11,22 +11,27 @@ class Analyzer(AnalyzerCommon):
 
     @staticmethod
     def normalised_parameters():
-        return tuple()
+        return (
+            ('Sent', 'TimeTaken'),
+            (('Sent', 'TimeTaken'), 'num_nodes'),
+        )
 
     @staticmethod
     def results_header():
-        d = AnalyzerCommon.common_results_header(CommandLine.CLI.local_parameter_names)
+        d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
 
         AnalyzerCommon.common_results(d)
 
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
+        d['empty normal']       = lambda x: AnalyzerCommon._format_results(x, 'EmptyNormalSent')
         d['dissem']             = lambda x: AnalyzerCommon._format_results(x, 'DissemSent')
-
-        d['first normal sent time'] = lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
 
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+
+        d['norm(sent,time taken)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(norm(sent,time taken),network size)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
         return d

@@ -77,10 +77,7 @@ implementation
         slot_active = TRUE;
 
         signal TDMA.slot_started();
-        /*if(slot != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
-        {
-            post send_normal();
-        }*/
+
         call PostSlotTimer.startOneShotAt(now, SLOT_PERIOD_MS);
     }
 
