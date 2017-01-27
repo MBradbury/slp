@@ -25,7 +25,7 @@ class CLI(object):
 
     global_parameter_names = simulator.common.global_parameter_names
 
-    def __init__(self, package, safety_period_result_path=None, custom_run_simulation_class=None):
+    def __init__(self, package, safety_period_result_path=None, custom_run_simulation_class=None, safety_period_equivalence=None):
         super(CLI, self).__init__()
 
         self.algorithm_module = importlib.import_module(package)
@@ -33,6 +33,8 @@ class CLI(object):
 
         self.safety_period_result_path = safety_period_result_path
         self.custom_run_simulation_class = custom_run_simulation_class
+
+        self.safety_period_equivalence = safety_period_equivalence
 
         # Make sure that local_parameter_names is a tuple
         # People have run into issues where they used ('<name>') instead of ('<name>',)
@@ -181,7 +183,8 @@ class CLI(object):
         runner = RunSimulations(
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations,
-            safety_periods=safety_periods
+            safety_periods=safety_periods,
+            safety_period_equivalence=self.safety_period_equivalence
         )
 
         try:
