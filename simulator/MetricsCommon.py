@@ -14,6 +14,8 @@ except ImportError:
 
 import numpy as np
 
+from models.power import postprocessZ as powertossimz
+
 import simulator.Attacker
 
 class MetricsCommon(object):
@@ -55,12 +57,19 @@ class MetricsCommon(object):
 
         self.node_transitions = defaultdict(int)
 
+        powertossimz.maxmotes = configuration.size()
+        powertossimz.simfreq = sim.tossim.ticksPerSecond()
+        powertossimz.initstate()
+
         self.register('M-NC', self.process_node_change_event)
 
         # BCAST / RCV / DELIVER events
         self.register('M-CB', self.process_bcast_event)
         self.register('M-CR', self.process_rcv_event)
         self.register('M-CD', self.process_deliver_event)
+
+        # Handle PowerTOSSIM-Z events
+        self.register('ENERGY_HANDLER', self.process_energy_handler)
 
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
@@ -217,6 +226,9 @@ class MetricsCommon(object):
         else:
             return len(self.normal_sent_time)
 
+
+    def process_energy_handler(self, d_or_e, node_id, time, detail):
+        powertossimz.handle_event(node_id, time, detail)
 
     def seed(self):
         return self.sim.seed
@@ -411,6 +423,32 @@ class MetricsCommon(object):
 
         return result
 
+    def energy_per_node_per_activity(self, activity):
+        return {
+            node_id: powertossimz.total[node_id][activity]
+
+            for (node_id, coord) in enumerate(self.configuration.topology.nodes)
+        }
+
+    def energy_per_node(self):
+        return {
+            node_id: powertossimz.total_energy(node_id)
+
+            for (node_id, coord) in enumerate(self.configuration.topology.nodes)
+        }
+
+    def energy_per_node_cpu(self):
+        return {
+            node_id: powertossimz.total_cpu_active_energy(node_id)
+
+            for (node_id, coord) in enumerate(self.configuration.topology.nodes)
+        }
+
+    def energy_overall(self):
+        return sum(self.energy_per_node().values())
+
+
+
     def times_node_changed_to(self, node_type, from_types=None):
         total_count = 0
 
@@ -480,7 +518,6 @@ class MetricsCommon(object):
         return dict(self.delivered_from_further_meters[msg])
 
 
-
     @staticmethod
     def smaller_dict_str(dict_result):
         return str(dict_result).replace(": ", ":").replace(", ", ",")
@@ -523,6 +560,14 @@ class MetricsCommon(object):
         d["SentHeatMap"]                   = lambda x: MetricsCommon.compressed_dict_str(x.sent_heat_map())
         d["ReceivedHeatMap"]               = lambda x: MetricsCommon.compressed_dict_str(x.received_heat_map())
 
+        for energy_category in powertossimz.totals:
+            ec = energy_category.title()
+            d["EnergyPerNodePer{}".format(ec)]= lambda x: MetricsCommon.smaller_dict_str(x.energy_per_node_per_activity(energy_category))
+
+        d["EnergyPerNodeCPU"]              = lambda x: MetricsCommon.smaller_dict_str(x.energy_per_node_cpu())
+        d["EnergyPerNode"]                 = lambda x: MetricsCommon.smaller_dict_str(x.energy_per_node())
+        d["EnergyOverall"]                 = lambda x: x.energy_overall()
+
         d["TimeBinWidth"]                  = lambda x: x._time_bin_width
         d["SentOverTime"]                  = lambda x: MetricsCommon.smaller_dict_str(dict(x.sent_over_time))
 
@@ -550,6 +595,8 @@ class MetricsCommon(object):
     def print_results(self, stream=None):
         """Print the results to the specified stream (defaults to sys.stdout)."""
         try:
+            #powertossimz.print_summary()
+
             print(self.get_results(), file=stream)
         except Exception as ex:
             import traceback

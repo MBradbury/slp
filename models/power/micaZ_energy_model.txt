@@ -1,0 +1,78 @@
+# Energy model for the micaZ
+# based on mica2 model
+# see http://www.eecs.harvard.edu/~shnayder/ptossim/ for details
+# Lines starting with '#' are comments
+
+# Format: KEY\s+VALUE
+# Unless otherwise specified, VALUE is a current in mA
+# Value is always assumed to be a number
+
+VOLTAGE	 3.0
+
+# CPU numbers:
+# Idle mode is what the CPU is in when not actively executing, but 
+# no special action is taken.  The per-active-cycle numbers are added 
+# on top of that
+# Added .93mA to idle and active cpu power to account for the
+# oscillator.  Need to make it separate later...
+
+CPU_ACTIVE	8.93
+CPU_IDLE	4.93 # AOC: 4mA + 0.93
+CPU_ADC_NOISE_REDUCTION		0.32
+CPU_POWER_DOWN			0.0003 
+CPU_POWER_SAVE			0.009 
+CPU_STANDBY			1 
+CPU_EXTENDED_STANDBY		0.25 # http://vs.informatik.uni-kl.de/publications/2006/KrGe06/energy.pdf
+
+# The startup mode for the cpu
+CPU_INIT			3.2 
+
+CPU_FREQ	7382800
+
+RADIO_TX_FB	16.5
+RADIO_TX_F7	15.2
+RADIO_TX_F3	13.9	   
+RADIO_TX_EF 12.5	   
+RADIO_TX_EB	11.2	   
+RADIO_TX_E7	9.9	   
+RADIO_TX_E3	8.5	 
+RADIO_TX_FF	17.4
+ 
+# need to interpolate the above, but no point until the TX setting code
+# works
+
+RADIO_RX 19.7
+RADIO_OFF	0 
+ 
+
+# The default power mode
+RADIO_DEFAULT_POWER  255.0 # 0xFF
+
+# LED
+LED		2.2 # same as mica2, though some refs. indicate higher
+#default to off
+LED_INIT	0
+
+# EEPROM         
+EEPROM_READ	6.24 # AOC: assume same as mica2
+EEPROM_WRITE	18.40 # AOC: assume same as mica2
+EEPROM_SYNC	18.40 # Not sure what current it uses (this operation avoids data loose when rebooting) - I guess programming current
+EEPROM_ERASE	18.40 # Same current as programming(write)
+
+
+#ADC  
+#VS: we thought it took power, so it's tracked, but it actually doesn't
+ADC	0.0 # AOC: mica2 # VK  - 1.32mA http://vs.informatik.uni-kl.de/publications/2006/KrGe06/energy.pdf
+
+#VS: If the sensor board is plugged in, it draws this much current at all times
+SENSOR_BOARD	0.69 # AOC: assume same as mica2
+
+#VS: Sensors - don't actually use power beyond the general sensor board power
+SENSOR_PHOTO	0 
+SENSOR_TEMP	0 
+
+
+
+
+ 
+
