@@ -733,6 +733,14 @@ def total_energy(mote):
 
     return total_sum + cpu_active_e
 
+def mJ_to_mAh(mJ):
+    # 1 amp hour volt = 3600 joules
+
+    milli_ampere_seconds = mJ / voltage
+    milli_ampere_hours = milli_ampere_seconds / 3600.0
+
+    return milli_ampere_hours
+
 def print_summary():
     global total, battery, mote_died
     global maxseen, battery_total_charge,eff_table_filename,rec_table_filename,efftable,rectable, tracefile
@@ -746,9 +754,9 @@ def print_summary():
         sum = 0
         if not prettyprint:
             s = str(mote)+"   "
-        for t in totals:
+        for t in totals:    
             if prettyprint:
-                print("Mote %d, %s total: %.1f" % (mote, t, total[mote][t]))
+                print("Mote %d, %s total: %.1f mJ / %.8f mAh" % (mote, t, total[mote][t], mJ_to_mAh(total[mote][t])))
             else:
                 s += "%.4f" % total[mote][t]
                 s += "   "
