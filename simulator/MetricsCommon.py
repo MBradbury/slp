@@ -43,6 +43,7 @@ class MetricsCommon(object):
         self.delivered_from_further_meters = defaultdict(Counter)
 
         self.normal_sent_time = {}
+        self.normal_receive_time = OrderedDict()
         self.normal_latency = {}
         self.normal_hop_count = []
 
@@ -166,6 +167,7 @@ class MetricsCommon(object):
             key = (top_ultimate_source_id, sequence_number)
             sent_time = self.normal_sent_time[key]
             self.normal_latency[key] = time - sent_time
+            self.normal_receive_time[key] = time
             self.normal_hop_count.append(hop_count)
 
         self._record_direction_received(kind, ord_node_id, proximate_source_id,
@@ -263,6 +265,28 @@ class MetricsCommon(object):
             return max(self.normal_latency.values())
         else:
             return float('inf')
+
+    def normal_inter_arrival_time(self):
+        items = self.normal_receive_time.values()
+
+        return [btime - atime for atime, btime in zip(items, items[1:])]
+
+    def normal_inter_arrival_time_average(self):
+        iat = self.normal_inter_arrival_time()
+
+        if len(iat) > 0:
+            return np.mean(iat)
+        else:
+            return float('inf')
+
+    def normal_inter_arrival_time_variance(self):
+        iat = self.normal_inter_arrival_time()
+
+        if len(iat) > 0:
+            return np.var(iat)
+        else:
+            return float('inf')
+
 
     def receive_ratio(self):
         # The receive ratio may be end up being lower than it actually is
@@ -491,6 +515,10 @@ class MetricsCommon(object):
         return base64.b64encode(zlib.compress(dict_result_bytes, 9))
 
     @staticmethod
+    def smaller_list_str(list_result):
+        return str(list_result).replace(", ", ",")
+
+    @staticmethod
     def items():
         d = OrderedDict()
         d["Seed"]                          = lambda x: x.seed()
@@ -515,6 +543,9 @@ class MetricsCommon(object):
         d["AttackerMinSourceDistance"]     = lambda x: x.attacker_min_source_distance()
         d["NormalLatency"]                 = lambda x: x.average_normal_latency()
         d["MaxNormalLatency"]              = lambda x: x.maximum_normal_latency()
+        d["NormalInterArrivalTimeAverage"] = lambda x: x.normal_inter_arrival_time_average()
+        d["NormalInterArrivalTimeVar"]     = lambda x: x.normal_inter_arrival_time_variance()
+        d["NormalInterArrivalTimes"]       = lambda x: MetricsCommon.smaller_list_str(["{:0.5f}".format(i) for i in x.normal_inter_arrival_time()]).replace("'", "")
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
