@@ -1,9 +1,9 @@
 #ifndef SLP_METRIC_LOGGING_H
 #define SLP_METRIC_LOGGING_H
 
-#if defined(USE_SERIAL_MESSAGES)
-
 #include "SerialMetricLoggingTypes.h"
+
+#if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 
 // These are no-ops, as we cannot just put them across the line in a serial packet
 #define simdbg(name, fmtstr, ...)
@@ -48,7 +48,7 @@
 	call MetricLogging.log_metric_message_type_add(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME)
 
 // No need to format messages when using serial message as the string will not be used.
-#ifdef USE_SERIAL_MESSAGES
+#if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \
 	call MetricLogging.log_error_occurred(CODE, MESSAGE)
 #else
@@ -73,6 +73,10 @@ enum SLPErrorCodes {
 	ERROR_TOO_MANY_NODE_TYPES = 6,
 	ERROR_TOO_MANY_MESSAGE_TYPES = 7,
 	ERROR_QUEUE_FULL = 8,
+	ERROR_DICTIONARY_KEY_NOT_FOUND = 9,
+
+	ERROR_NODE_NAME_TOO_LONG = 10,
+	ERROR_MESSAGE_NAME_TOO_LONG = 11,
 
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,

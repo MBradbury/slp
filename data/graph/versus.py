@@ -53,6 +53,7 @@ class Grapher(GrapherBase):
         self.error_bars = False
 
         self.generate_legend_graph = False
+        self.legend_font_size = '14'
 
     def _value_extractor(self, yvalue):
         if self.error_bars:
@@ -210,7 +211,8 @@ class Grapher(GrapherBase):
             legend_width = 9.8
             legend_height = 0.3 * math.ceil(column_count / 3)
 
-            graph_p.write('set terminal pdf enhanced font ",14" size {},{}\n'.format(legend_width, legend_height))
+            graph_p.write('set terminal pdf enhanced font ",{}" size {},{}\n'.format(
+                self.legend_font_size, legend_width, legend_height))
 
             graph_p.write('set key horizontal\n')
 

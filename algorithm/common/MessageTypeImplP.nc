@@ -16,6 +16,15 @@ implementation
 
 	command bool MessageType.register_pair(uint8_t ident, const char* name)
 	{
+		const size_t name_length = strlen(name) + 1;
+
+		if (name_length > MAXIMUM_MESSAGE_TYPE_NAME_LENGTH)
+		{
+			ERROR_OCCURRED(ERROR_MESSAGE_NAME_TOO_LONG, "The message type %s is too long (%zu), please make it shorter than %u.\n",
+				name, name_length, MAXIMUM_MESSAGE_TYPE_NAME_LENGTH);
+			return FALSE;
+		}
+
 		if (size < maximum_message_types)
 		{
 			idents[size] = ident;

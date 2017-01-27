@@ -39,8 +39,6 @@ implementation
 		SourceNode, SinkNode, NormalNode
 	};
 
-	unsigned int extra_to_send = 0;
-
 	bool busy = FALSE;
 	message_t packet;
 
@@ -108,7 +106,7 @@ implementation
 		}
 	}
 
-	USE_MESSAGE(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 
 	event void SourcePeriodModel.fired()
 	{

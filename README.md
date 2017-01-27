@@ -26,7 +26,7 @@ admin permissions to use pip install, then pyenv is a good alternative.
 
 ```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-CONFIGURE_OPTS="--with-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
 pyenv global 2.7.12
 ```
 
@@ -36,7 +36,7 @@ To install on flux there is a slightly different procedure:
 
 ```bash
 module load flux-installers && pyenv-install.sh && source ~/.bashrc
-CONFIGURE_OPTS="--with-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
 pyenv global 2.7.12
 ```
 
@@ -131,6 +131,17 @@ You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
 
       You should see an output that contains "*** Successfully built micaz TOSSIM library".
 
+# Set up Avrora (optional if only using TinyOS)
+
+  1. Make sure a suitable version of Java is installed
+
+  2. Go to https://sourceforge.net/projects/avrora/ and download the latest avrora jar
+
+  3. Edit ~/.bashrc to export en environment variable called "AVRORA_JAR_PATH" which contains
+     the path to the Avrora jar. An example path is shown below.
+
+     :::bash
+     export AVRORA_JAR_PATH="/home/matt/wsn/avrora/avrora-beta-1.7.117.jar"
 
 ## Updating from upstream
 
