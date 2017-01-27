@@ -127,9 +127,6 @@ implementation
 	int16_t source_distance = BOTTOM;
 	int16_t sink_source_distance = BOTTOM;
 
-	int16_t target_buffer_size = BOTTOM;
-	int16_t target_latency_ms = BOTTOM;
-
 	// Sink variables
 	int sink_away_messages_to_send;
 
@@ -269,24 +266,12 @@ implementation
 
 	bool has_enough_messages_to_send(void)
 	{
-		return (target_buffer_size == BOTTOM && call MessageQueue.count() > 0) ||
-		       (target_buffer_size != BOTTOM && call MessageQueue.count() > 0 && call MessageQueue.count() >= target_buffer_size);
+		return call MessageQueue.count() > 0;
 	}
 
 	message_queue_info_t* choose_message_to_send(void)
 	{
 		message_queue_info_t** const begin = call MessageQueue.begin();
-		message_queue_info_t** const end = call MessageQueue.end();
-
-		message_queue_info_t** iter = begin;
-
-		const uint32_t current_time = call LocalTime.get();
-
-		const int16_t distance_to_consider =
-			sink_distance != BOTTOM ? sink_distance :
-			(sink_source_distance != BOTTOM ? sink_source_distance : 0);
-
-		const uint32_t min_time_to_travel = (2 + distance_to_consider) * (ALPHA + 1);
 
 		// Cannot choose messages to send when there are no messages
 		if (call MessageQueue.count() == 0)
@@ -294,43 +279,7 @@ implementation
 			return NULL;
 		}
 
-		//simdbg("stdout", "target buffer size %" PRIi16 " :: target latency ms %" PRIi16 "\n", target_buffer_size, target_latency_ms);
-
-		// If we don't know our target latency, then there isn't much that can be done
-		// so just send messages in FIFO order.
-		if (target_latency_ms == BOTTOM)
-		{
-			//simdbg("stdout", "Chosen message number 0 (unknown latency)\n");
-
-			return *begin;
-		}
-
-		// Check if there are any messages that need to be urgently sent to meet the latency deadline
-		for (iter = begin; iter != end; ++iter)
-		{
-			message_queue_info_t* const value = *iter;
-
-			// How long this packet has been in the queue
-			const uint32_t time_since_added = current_time - value->time_added;
-
-			if (time_since_added + min_time_to_travel >= (uint32_t)target_latency_ms)
-			{
-				//simdbg("stdout", "Chosen message number %ld (deadline requirement) (mtt=%" PRIu32 ")\n", iter - begin, min_time_to_travel);
-
-				return value;
-			}
-		}
-
-		// Otherwise we can just choose a random message to forward
-		{
-			const uint16_t rnd = call Random.rand16();
-			const uint16_t idx = rnd % call MessageQueue.count();
-			message_queue_info_t* const value = begin[idx];
-
-			//simdbg("stdout", "Chosen message number %u (random)\n", idx);
-
-			return value;
-		}
+		return begin[0];
 	}
 
 	bool source_should_send_to_sink(void)
@@ -349,7 +298,7 @@ implementation
 	{
 		const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
 
-		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
+		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, 0};
 
 		call MessageQueue.remove(seq_no_lookup);
 		call MessagePool.put(info);
@@ -359,7 +308,7 @@ implementation
 	{
 		const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
-		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
+		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, 0};
 
 		return call MessageQueue.get_or_default(seq_no_lookup, NULL);
 	}
@@ -377,7 +326,7 @@ implementation
 		{
 			const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
-			const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
+			const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, 0};
 
 			item = call MessagePool.get();
 			if (!item)
@@ -925,8 +874,8 @@ implementation
 
 	event void ConsiderTimer.fired()
 	{
-		simdbgverbose("stdout", "ConsiderTimer fired. [target_buffer_size=%d, MessageQueue.count()=%u]\n",
-			target_buffer_size, call MessageQueue.count());
+		simdbgverbose("stdout", "ConsiderTimer fired. [MessageQueue.count()=%u]\n",
+			call MessageQueue.count());
 
 		// Consider to whom the message should be sent to
 
@@ -946,8 +895,8 @@ implementation
 
 			if (info == NULL)
 			{
-				ERROR_OCCURRED(ERROR_UNKNOWN, "Unable to choose a message to send (call MessageQueue.count()=%u,target_buffer_size=%u).\n",
-					call MessageQueue.count(), target_buffer_size);
+				ERROR_OCCURRED(ERROR_UNKNOWN, "Unable to choose a message to send (call MessageQueue.count()=%u).\n",
+					call MessageQueue.count());
 				return;
 			}
 
@@ -1064,33 +1013,12 @@ implementation
 	event void AwaySenderTimer.fired()
 	{
 		AwayMessage message;
-		int32_t calc_target_buffer_size;
 
 		simdbgverbose("stdout", "AwaySenderTimer fired.\n");
 
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
-		message.target_latency_ms = SLP_TARGET_LATENCY_MS;
-
-		calc_target_buffer_size = (int32_t)ceil(
-			(SLP_TARGET_LATENCY_MS /*- (sink_source_distance == BOTTOM ? 0 : sink_source_distance) * ALPHA*/) /
-			(double)SLP_FASTEST_SOURCE_PERIOD_MS
-		);
-
-		if (calc_target_buffer_size > SLP_SEND_QUEUE_SIZE)
-		{
-			ERROR_OCCURRED(ERROR_UNKNOWN, "Invalid target buffer size %u, must be <= %u\n", calc_target_buffer_size, SLP_SEND_QUEUE_SIZE);
-			calc_target_buffer_size = SLP_SEND_QUEUE_SIZE - 1;
-		}
-
-		if (calc_target_buffer_size <= 0)
-		{
-			ERROR_OCCURRED(ERROR_UNKNOWN, "Invalid target buffer size %u, must be > 0\n", calc_target_buffer_size);
-			calc_target_buffer_size = 1;
-		}
-
-		message.target_buffer_size = (uint16_t)calc_target_buffer_size;
 
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -1116,8 +1044,6 @@ implementation
 		BeaconMessage message;
 		message.sink_distance_of_sender = sink_distance;
 		message.source_distance_of_sender = source_distance;
-		message.target_buffer_size_of_sender = target_buffer_size;
-		message.target_latency_ms_of_sender = target_latency_ms;
 
 		if (!send_Beacon_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -1247,9 +1173,6 @@ implementation
 			sink_source_distance = minbot(sink_source_distance, sink_distance);
 		}
 
-		target_buffer_size = rcvd->target_buffer_size;
-		target_latency_ms = rcvd->target_latency_ms;
-
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage message;
@@ -1291,16 +1214,6 @@ implementation
 		if (call NodeType.get() == SinkNode)
 		{
 			sink_source_distance = minbot(sink_source_distance, source_distance);
-		}
-
-		if (rcvd->target_buffer_size_of_sender != BOTTOM)
-		{
-			target_buffer_size = rcvd->target_buffer_size_of_sender;
-		}
-
-		if (rcvd->target_latency_ms_of_sender != BOTTOM)
-		{
-			target_latency_ms = rcvd->target_latency_ms_of_sender;
 		}
 	}
 

@@ -5,8 +5,6 @@ typedef nx_struct BeaconMessage
 {
   nx_int16_t sink_distance_of_sender;
   nx_int16_t source_distance_of_sender;
-  nx_int16_t target_buffer_size_of_sender;
-  nx_int16_t target_latency_ms_of_sender;
 
 } BeaconMessage;
 
