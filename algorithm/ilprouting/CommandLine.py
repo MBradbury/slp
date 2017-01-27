@@ -11,9 +11,14 @@ from data import results, latex
 from data.table import safety_period, direct_comparison, fake_result
 from data.graph import summary, versus
 
+# Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
+safety_period_equivalence = {
+    "attacker model": {"SeqNosOOOReactiveAttacker()": "SeqNosReactiveAttacker()"}
+}
+
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._subparsers.add_parser("table")
 
@@ -24,7 +29,8 @@ class CLI(CommandLineCommon.CLI):
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods
+            parameters.source_periods, parameters.max_buffer_sizes, parameters.max_walk_lengths,
+            parameters.direct_to_sink_prs
         ))
 
         return argument_product
