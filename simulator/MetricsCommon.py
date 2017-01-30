@@ -42,7 +42,7 @@ class MetricsCommon(object):
         self.delivered_from_closer_or_same_meters = defaultdict(Counter)
         self.delivered_from_further_meters = defaultdict(Counter)
 
-        self.normal_sent_time = {}
+        self.normal_sent_time = OrderedDict()
         self.normal_receive_time = OrderedDict()
         self.normal_latency = {}
         self.normal_hop_count = []
@@ -286,6 +286,28 @@ class MetricsCommon(object):
             return np.var(iat)
         else:
             return float('inf')
+
+    def normal_inter_generation_time(self):
+        items = self.normal_sent_time.values()
+
+        return [btime - atime for atime, btime in zip(items, items[1:])]
+
+    def normal_inter_generation_time_average(self):
+        igt = self.normal_inter_generation_time()
+
+        if len(igt) > 0:
+            return np.mean(igt)
+        else:
+            return float('inf')
+
+    def normal_inter_generation_time_variance(self):
+        igt = self.normal_inter_generation_time()
+
+        if len(igt) > 0:
+            return np.var(igt)
+        else:
+            return float('inf')
+
 
 
     def receive_ratio(self):
@@ -546,6 +568,9 @@ class MetricsCommon(object):
         d["NormalInterArrivalTimeAverage"] = lambda x: x.normal_inter_arrival_time_average()
         d["NormalInterArrivalTimeVar"]     = lambda x: x.normal_inter_arrival_time_variance()
         d["NormalInterArrivalTimes"]       = lambda x: MetricsCommon.smaller_list_str(["{:0.5f}".format(i) for i in x.normal_inter_arrival_time()]).replace("'", "")
+        d["NormalInterGenTimeAverage"]     = lambda x: x.normal_inter_generation_time_average()
+        d["NormalInterGenTimeVar"]         = lambda x: x.normal_inter_generation_time_variance()
+        d["NormalInterGenTimes"]           = lambda x: MetricsCommon.smaller_list_str(["{:0.5f}".format(i) for i in x.normal_inter_generation_time()]).replace("'", "")
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
