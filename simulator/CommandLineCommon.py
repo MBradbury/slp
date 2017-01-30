@@ -309,7 +309,7 @@ class CLI(object):
             self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
 
         elif 'copy' == args.cluster_mode:
-            cluster.copy_to()
+            cluster.copy_to(self.algorithm_module.name)
 
         elif 'copy-result-summary' == args.cluster_mode:
             cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file)
