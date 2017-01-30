@@ -18,7 +18,7 @@ def choose_platform(provided, available):
         if isinstance(available, str):
             return available
         else:
-            raise RuntimeError("Unable to choose between the available platforms {}".format(available))
+            raise RuntimeError("Unable to choose between the available platforms {}. Please specify one using --platform.".format(available))
     else:
         if provided in available:
             return provided
