@@ -332,6 +332,9 @@ class CLI(object):
         elif 'copy-back' == args.cluster_mode:
             cluster.copy_back(self.algorithm_module.name)
 
+        else:
+            raise RuntimeError("Unknown cluster mode {}".format(args.cluster_mode))
+
         sys.exit(0)
 
     def _run_testbed(self, args):
