@@ -26,4 +26,11 @@ results/
 Parameters.py
 testbed_results/
 cycle_accurate/*
-
+*.exe
+*.elf
+*.ihex
+*.srec
+*.orig
+*/ident_flags.txt
+*/tos_image.xml
+*/wiring-check.xml
