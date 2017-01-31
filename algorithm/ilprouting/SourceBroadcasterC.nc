@@ -72,6 +72,7 @@ module SourceBroadcasterC
 	uses interface Timer<TMilli> as ConsiderTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
+	uses interface Timer<TMilli> as ObjectDetectorStartTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -183,7 +184,7 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
-			call ObjectDetector.start();
+			call ObjectDetectorStartTimer.startOneShot(OBJECT_DETECTOR_START_DELAY_MS);
 
 			if (call NodeType.get() == SinkNode)
 			{
@@ -213,6 +214,7 @@ implementation
 			call SourcePeriodModel.startPeriodic();
 
 			source_distance = 0;
+			sink_source_distance = sink_distance;
 		}
 	}
 
@@ -225,6 +227,7 @@ implementation
 			call NodeType.set(NormalNode);
 
 			source_distance = BOTTOM;
+			sink_source_distance = BOTTOM;
 		}
 	}
 
@@ -870,6 +873,11 @@ implementation
 	}
 
 
+	event void ObjectDetectorStartTimer.fired()
+	{
+		call ObjectDetector.start();
+	}
+
 	event void ConsiderTimer.fired()
 	{
 		simdbgverbose("stdout", "ConsiderTimer fired. [MessageQueue.count()=%u]\n",
@@ -983,6 +991,8 @@ implementation
 
 			if (success)
 			{
+				simdbgverbose("stdout", "Sending message to %u\n", next);
+
 				info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
 				send_Normal_message(&message, next, &info->ack_requested);
