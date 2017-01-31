@@ -48,10 +48,12 @@ implementation
     components new TimerMilliC() as ConsiderTimer;
     components new TimerMilliC() as AwaySenderTimer;
     components new TimerMilliC() as BeaconSenderTimer;
+    components new TimerMilliC() as ObjectDetectorStartTimer;
 
     App.ConsiderTimer -> ConsiderTimer;
     App.AwaySenderTimer -> AwaySenderTimer;
     App.BeaconSenderTimer -> BeaconSenderTimer;
+    App.ObjectDetectorStartTimer -> ObjectDetectorStartTimer;
 
     // Networking
     components
