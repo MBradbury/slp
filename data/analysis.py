@@ -163,10 +163,21 @@ def _parse_dict_tuple_nodes_to_value(indict):
 
     return dict1
 
+DICT_STRING_TUPLE_KEY_RE = re.compile(r"\('([^']+)',\s*'([^']+)'\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)")
+
+def _parse_dict_string_tuple_to_value(indict):
+
+    dict1 = {
+        (a, b): float(c)
+        for (a, b, c) in DICT_STRING_TUPLE_KEY_RE.findall(indict)
+    }
+
+    return dict1
+
 def dict_mean(dict_list):
     """Dict mean using incremental averaging"""
 
-    result = dict_list[0]
+    result = next(iter(dict_list))
 
     get = result.get
 
@@ -259,6 +270,8 @@ class Analyse(object):
         "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
         #"NodeWasSource": _inf_handling_literal_eval,
+
+        "NodeTransitions": _parse_dict_string_tuple_to_value,
 
         "ReceivedFromCloserOrSameHops": _parse_dict_node_to_value,
         "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
@@ -626,7 +639,10 @@ class Analyse(object):
     def average_of(self, header):
         values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
-        first = values[0]
+        if len(values) == 0:
+            raise RuntimeError("There are no values for {} to be able to average".format(header))
+
+        first = next(iter(values))
 
         if isinstance(first, dict):
             return dict_mean(values)
@@ -638,7 +654,10 @@ class Analyse(object):
     def variance_of(self, header, mean):
         values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
-        first = values[0]
+        if len(values) == 0:
+            raise RuntimeError("There are no values for {} to be able to find the variance".format(header))
+
+        first = next(iter(values))
 
         if isinstance(first, dict):
             return dict_var(values, mean)
@@ -650,7 +669,7 @@ class Analyse(object):
     def median_of(self, header):
         values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
-        first = values[0]
+        first = next(iter(values))
 
         if isinstance(first, dict):
             raise NotImplementedError("Finding the median of dicts is not implemented")
@@ -786,7 +805,7 @@ class AnalyzerCommon(object):
 
                 return str(ave)
             except KeyError:
-                if allow_missing or name in x.headers_to_skip:
+                if allow_missing or (x.headers_to_skip is not None and name in x.headers_to_skip):
                     return "None"
                 else:
                     raise
