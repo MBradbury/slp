@@ -10,6 +10,7 @@
 #include "NormalMessage.h"
 #include "AwayMessage.h"
 #include "BeaconMessage.h"
+#include "PollMessage.h"
 
 #include <Timer.h>
 #include <TinyError.h>
@@ -17,6 +18,7 @@
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
+#define METRIC_RCV_POLL(msg) METRIC_RCV(Poll, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
 
 typedef struct
 {
@@ -90,6 +92,9 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
+	uses interface AMSend as PollSend;
+	uses interface Receive as PollReceive;
+
 	uses interface MetricLogging;
 
 	uses interface NodeType;
@@ -159,6 +164,7 @@ implementation
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
 		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
+		call MessageType.register_pair(POLL_CHANNEL, "Poll");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
@@ -234,6 +240,7 @@ implementation
 	USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(Normal);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Poll);
 
 	void print_dictionary_queue(void)
 	{
@@ -406,6 +413,17 @@ implementation
 					info->failed_neighbour_sends[failed_neighbour_sends_length(info)] = target;
 
 					info->rtx_attempts -= 1;
+
+					// When we hit this threshold, send out a query message asking for
+					// neighbours to identify themselves.
+					if (info->rtx_attempts == BAD_NEIGHBOUR_DO_SEARCH_THRESHOLD)
+					{
+						PollMessage message;
+						message.sink_distance_of_sender = sink_distance;
+						message.source_distance_of_sender = source_distance;
+
+						send_Poll_message(&message, AM_BROADCAST_ADDR);
+					}
 
 					// Give up sending this message
 					if (info->rtx_attempts == 0)
@@ -1052,6 +1070,7 @@ implementation
 		BeaconMessage message;
 		message.sink_distance_of_sender = sink_distance;
 		message.source_distance_of_sender = source_distance;
+		message.sink_source_distance = sink_source_distance;
 
 		if (!send_Beacon_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -1214,6 +1233,7 @@ implementation
 
 		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance_of_sender));
 		source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (call NodeType.get() == SourceNode)
 		{
@@ -1230,4 +1250,31 @@ implementation
 		case SourceNode:
 		case NormalNode: x_receive_Beacon(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
+
+	void x_receive_Poll(const PollMessage* const rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender);
+
+		METRIC_RCV_POLL(rcvd);
+
+		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance_of_sender));
+		source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
+
+		if (call NodeType.get() == SourceNode)
+		{
+			sink_source_distance = minbot(sink_source_distance, sink_distance);
+		}
+		if (call NodeType.get() == SinkNode)
+		{
+			sink_source_distance = minbot(sink_source_distance, source_distance);
+		}
+
+		call BeaconSenderTimer.startOneShot(BEACON_SEND_DELAY_FIXED + (call Random.rand16() % BEACON_SEND_DELAY_RANDOM));
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Poll, Receive)
+		case SinkNode:
+		case SourceNode:
+		case NormalNode: x_receive_Poll(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Poll)
 }
