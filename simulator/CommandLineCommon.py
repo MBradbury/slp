@@ -7,8 +7,9 @@ import itertools
 import os
 import sys
 
-import simulator.common
+import algorithm
 
+import simulator.common
 import simulator.Configuration as Configuration
 
 from data import results, latex, submodule_loader
