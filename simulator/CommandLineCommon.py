@@ -115,6 +115,8 @@ class CLI(object):
         subparser = subparsers.add_parser("time-taken-table", help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("--show-stddev", action="store_true")
 
+        subparser = subparsers.add_parser("error-table", help="Creates a table showing the number of simulations in which an error occurred.")
+
         subparser = subparsers.add_parser("detect-missing", help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
 
         subparser = subparsers.add_parser("graph-heatmap", help="Graph the sent and received heatmaps.")
@@ -277,6 +279,16 @@ class CLI(object):
 
             self._create_table(filename, safety_period_table,
                                param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
+
+    def _run_error_table(self, args):
+        res = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=('dropped no sink delivery', 'dropped hit upper bound', 'dropped duplicates'))
+
+        result_table = fake_result.ResultTable(res)
+
+        self._create_table(self.algorithm_module.name + "-error-results", result_table)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
@@ -483,6 +495,9 @@ class CLI(object):
 
         elif 'safety-table' == args.mode:
             self._run_safety_table(args)
+
+        elif 'error-table' == args.mode:
+            self._run_error_table(args)
 
         elif 'detect-missing' == args.mode:
             self._run_detect_missing(args)
