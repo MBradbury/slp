@@ -34,3 +34,4 @@ cycle_accurate/*
 */ident_flags.txt
 */tos_image.xml
 */wiring-check.xml
+app.c
