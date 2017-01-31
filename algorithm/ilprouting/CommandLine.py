@@ -40,12 +40,12 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_table(self, args):
-        noforward_results = results.Results(
+        ilprouting_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio'))
+            results=('normal latency', 'ssd', 'captured', 'received ratio'))
 
-        result_table = fake_result.ResultTable(noforward_results)
+        result_table = fake_result.ResultTable(ilprouting_results)
 
         self._create_table(self.algorithm_module.name + "-results", result_table)
 
