@@ -11,7 +11,9 @@
 #define simdbgerror(name, fmtstr, ...)
 #define simdbgerror_clear(name, fmtstr, ...)
 
-#elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+#elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF) || defined(AVRORA_OUTPUT)
+
+#include <stdio.h>
 
 #define TOS_NODE_ID_SPEC "%u"
 

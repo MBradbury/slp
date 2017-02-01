@@ -154,6 +154,8 @@ class Runner(object):
             build_args["USE_SERIAL_MESSAGES"] = 1
         elif log_mode == "disabled":
             build_args["NO_SERIAL_OUTPUT"] = 1
+        elif log_mode == "avrora":
+            build_args["AVRORA_OUTPUT"] = 1
         else:
             raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
 
