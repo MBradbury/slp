@@ -466,7 +466,7 @@ implementation
 					}
 					else
 					{
-						call ConsiderTimer.startOneShot(ALPHA_RETRY);
+						call ConsiderTimer.startOneShot(ALPHA * (RTX_ATTEMPTS - info->rtx_attempts));
 					}
 				}
 				else
