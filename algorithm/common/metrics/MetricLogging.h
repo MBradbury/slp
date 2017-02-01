@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 
-#define TOS_NODE_ID_SPEC "%u"
+#define TOS_NODE_ID_SPEC "%" PRIu16
 
 #define PROXIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
 #define ULTIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC

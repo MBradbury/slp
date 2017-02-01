@@ -5,14 +5,14 @@
 #endif
 
 // If we are using Avrora, then we need to switch to using its special printf technique
-#include "AvroraPrint.h"
+#include "avrora/AvroraPrint.h"
 
 #define simdbg(name, fmtstr, ...) \
 	do { \
 		memset(error_message, 0, ARRAY_SIZE(error_message)); \
  \
 		snprintf(error_message, ARRAY_SIZE(error_message), \
-			"%s:D:%" PRIu16 ":%lu:" fmtstr, \
+			"%s:D:%" PRIu16 ":%" PRIu32 ":" fmtstr, \
 			name, TOS_NODE_ID, call LocalTime.get(), ##__VA_ARGS__); \
  \
  		printStr(error_message); \
@@ -23,7 +23,7 @@
 		memset(error_message, 0, ARRAY_SIZE(error_message)); \
  \
 		snprintf(error_message, ARRAY_SIZE(error_message), \
-			"%s:E:%" PRIu16 ":%lu:" fmtstr, \
+			"%s:E:%" PRIu16 ":%" PRIu32 ":" fmtstr, \
 			name, TOS_NODE_ID, call LocalTime.get(), ##__VA_ARGS__); \
  \
  		printStr(error_message); \
@@ -61,7 +61,7 @@ implementation
 		)
 	{
 		simdbg("M-CB",
-			"%s,%u," SEQUENCE_NUMBER_SPEC "\n",
+			"%s,%" PRIu8 "," SEQUENCE_NUMBER_SPEC "\n",
 			message_type, status, sequence_number);
 	}
 
@@ -107,7 +107,7 @@ implementation
 		const char* node_type_name
 		)
 	{
-		simdbg("M-NTA", "%u,%s\n", node_type_id, node_type_name);
+		simdbg("M-NTA", "%" PRIu8 ",%s\n", node_type_id, node_type_name);
 	}
 
 	command void MetricLogging.log_metric_message_type_add(
@@ -115,7 +115,7 @@ implementation
 		const char* message_type_name
 		)
 	{
-		simdbg("M-MTA", "%u,%s\n", message_type_id, message_type_name);
+		simdbg("M-MTA", "%" PRIu8 ",%s\n", message_type_id, message_type_name);
 	}
 
 	command void MetricLogging.log_error_occurred(
@@ -133,6 +133,6 @@ implementation
 		uint16_t new_slot
 		)
 	{
-		simdbg("M-NSC", "%u,%u\n", old_slot, new_slot);
+		simdbg("M-NSC", "%" PRIu16 ",%" PRIu16 "\n", old_slot, new_slot);
 	}
 }
