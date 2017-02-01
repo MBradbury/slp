@@ -7,11 +7,10 @@ CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equa
 
 CFLAGS += -Wsign-compare
 
-# The micax compiler doesn't understand these flags
 ifndef CYCLEACCURATE
+# The micaz compiler doesn't understand these flags
+# so only enable them when not building for avrora
 CFLAGS += -Werror=pointer-sign -Werror=format
-else
-CFLAGS += -I"../common/avrora"
 endif
 
 # Setup printf library if required
