@@ -127,8 +127,6 @@ implementation
 	bool busy = FALSE;
 	message_t packet;
 
-	unsigned int extra_to_send = 0;
-
 	uint32_t get_source_period()
 	{
 		assert(call NodeType.get() == SourceNode);
@@ -416,9 +414,9 @@ implementation
 		return 75U + (uint32_t)(50U * random_float());
 	}
 
-	USE_MESSAGE(Normal);
-	USE_MESSAGE(Away);
-	USE_MESSAGE(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	event void Boot.booted()
 	{

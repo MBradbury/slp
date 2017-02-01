@@ -7,8 +7,12 @@ import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
+from data import submodule_loader
+import data.cycle_accurate
+
 # Inheritance diagram for different modes:
-# TESTBED < SINGLE  < PARALLEL    < CLUSTER
+# TESTBED < CYCLEACCURATE
+#         < SINGLE  < PARALLEL    < CLUSTER
 #                   < GUI
 #         < OFFLINE < OFFLINE_GUI
 
@@ -38,22 +42,26 @@ class ArgumentsCommon(object):
 
         ###
 
-        parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=(parser_testbed,))
+        parser_cycle = subparsers.add_parser("CYCLEACCURATE", add_help=False, parents=(parser_testbed,))
 
-        parser_single.add_argument("--seed", type=int, required=False)
+        parser_cycle.add_argument("--seed", type=int, required=False)
+
+        parser_cycle.add_argument("-ns", "--network-size", type=int, required=True)
+        parser_cycle.add_argument("-d", "--distance", type=float, default=4.5)
+
+        parser_cycle.add_argument("--node-id-order", choices=("topology", "randomised"), default="topology")
+
+        ###
+
+        parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=(parser_cycle,))
 
         parser_single.add_argument("-cm", "--communication-model", type=str, choices=simulator.common.available_communication_models(), required=True)
         parser_single.add_argument("-nm", "--noise-model", type=str, choices=simulator.common.available_noise_models(), required=True)
-
-        parser_single.add_argument("-ns", "--network-size", type=int, required=True)
-        parser_single.add_argument("-d", "--distance", type=float, default=4.5)
 
         parser_single.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
 
         parser_single.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0,
                                    help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
-
-        parser_single.add_argument("--node-id-order", choices=("topology", "randomised"), default="randomised")
 
         if has_safety_period:
             parser_single.add_argument("-safety", "--safety-period", type=float, required=True)
@@ -108,9 +116,23 @@ class ArgumentsCommon(object):
         ###
         ###
 
+        # Add extra parameters that we did not want being inherited
+
+        # Testbed and cycle accurate simulators can work with LowPowerListening, but TOSSIM doesn't
+        for sub_parser in (parser_testbed, parser_cycle):
+            sub_parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), required=False, default="disabled")
+            sub_parser.add_argument("--lpl-local-wakeup", type=int, required=False, default=-1)
+            sub_parser.add_argument("--lpl-remote-wakeup", type=int, required=False, default=-1)
+            sub_parser.add_argument("--lpl-delay-after-receive", type=int, required=False, default=-1)
+
+        parser_cycle.add_argument("simulator", type=str, choices=submodule_loader.list_available(data.cycle_accurate))
+
+        ###
+        ###
+
         # Store any of the parsers that we need
         self._parser = parser
-        self._online_subparsers = (parser_testbed, parser_single, parser_profile, parser_gui, parser_parallel, parser_cluster)
+        self._online_subparsers = (parser_testbed, parser_cycle, parser_single, parser_profile, parser_gui, parser_parallel, parser_cluster)
         self._offline_subparsers = (parser_offline, parser_offline_gui)
 
         # Haven't parsed anything yet
@@ -180,6 +202,24 @@ class ArgumentsCommon(object):
 
             result["SOURCE_NODE_ID"] = configuration.topology.to_topo_nid(source_id)
 
+        if hasattr(self.args, 'low_power_listening'):
+            # Negative indicates disabled
+
+            if self.args.low_power_listening == "enabled":
+                result["LOW_POWER_LISTENING"] = 1
+
+                # See SystemLowPowerListeningP.nc for how this macro is used
+                if self.args.lpl_remote_wakeup >= 0:
+                    result["LPL_DEF_REMOTE_WAKEUP"] = self.args.lpl_remote_wakeup
+
+                # See PowerCycleP.nc for how this macro is used
+                if self.args.lpl_local_wakeup >= 0:
+                    result["LPL_DEF_LOCAL_WAKEUP"] = self.args.lpl_local_wakeup
+
+                # See SystemLowPowerListeningP.nc for how this macro is used
+                if self.args.lpl_delay_after_receive >= 0:
+                    results["DELAY_AFTER_RECEIVE"] = self.args.lpl_delay_after_receive
+
         return result
 
     def _get_node_id(self, topo_node_id_str):
@@ -207,3 +247,24 @@ class ArgumentsCommon(object):
                     return configuration.topology.to_topo_nid(ord_node_id)
 
             raise RuntimeError("No way to work out node from {}.".format(topo_node_id_str))
+
+    @staticmethod
+    def type_probability(x):
+        x = float(x)
+        if x < 0.0 or x > 1.0:
+            raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]".format(x))
+        return x
+
+    @staticmethod
+    def type_positive_int(x):
+        x = int(x)
+        if x < 0:
+            raise argparse.ArgumentTypeError("{} must be positive".format(x))
+        return x
+
+    @staticmethod
+    def type_positive_float(x):
+        x = float(x)
+        if x < 0:
+            raise argparse.ArgumentTypeError("{} must be positive".format(x))
+        return x

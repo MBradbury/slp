@@ -16,6 +16,8 @@
 
 #define CHAR_BIT 8
 
-#include "StaticAssert.h"
+#ifndef STATIC_ASSERT_MSG
+#	include "slp_static_assert.h"
+#endif
 
 #endif // SLP_PP_H

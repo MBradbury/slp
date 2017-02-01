@@ -4,11 +4,11 @@ import os.path, itertools
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
 
-# The import statement doesn't work, so we need to use __import__ instead
-adaptive = __import__("algorithm.adaptive", globals(), locals(), ['object'], -1)
-template = __import__("algorithm.template", globals(), locals(), ['object'], -1)
+protectionless = algorithm.import_algorithm("protectionless")
+adaptive = algorithm.import_algorithm("adaptive")
+template = algorithm.import_algorithm("template")
 
 from data import results
 
@@ -38,8 +38,8 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
-        return (time_taken - first_normal_sent_time) * 2.0
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
 
     def _run_table(self, args):
@@ -97,7 +97,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name)
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
             ).run()
 
     def _run_comparison_table(self, args):
@@ -224,7 +224,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for result_name in graph_parameters.keys():
@@ -318,7 +318,7 @@ class CLI(CommandLineCommon.CLI):
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
             ).run()
 
         for (result_name1, result_name2) in graph_parameters.keys():

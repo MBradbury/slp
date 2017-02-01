@@ -4,7 +4,6 @@ import ast
 import base64
 from collections import OrderedDict, Sequence
 import copy
-import datetime
 import fnmatch
 from functools import partial
 import gc
@@ -15,7 +14,6 @@ from numbers import Number
 import os
 import re
 import sys
-import timeit
 import traceback
 import zlib
 
@@ -23,6 +21,8 @@ from more_itertools import unique_everseen
 import numpy as np
 import pandas as pd
 import psutil
+
+from data.progress import Progress
 
 import simulator.common
 import simulator.Configuration as Configuration
@@ -177,12 +177,26 @@ def dict_mean(dict_list):
 
     return result
 
+def dict_var(dict_list, mean):
+    """Dict variance"""
+
+    lin = {k: list() for k in dict_list[0]}
+
+    for d in dict_list:
+        for (k, v) in d.iteritems():
+            lin[k].append(v)
+
+    for k in lin:
+        lin[k] = np.var(lin[k], dtype=np.float64)
+
+    return lin
+
 def _energy_impact(columns, cached_cols, constants):
     # Magic constants are from Great Duck Island paper, in nanoamp hours
     cost_per_bcast_nah = 20.0
     cost_per_deliver_nah = 8.0
 
-    return (columns["Sent"] * cost_per_bcast_nah + columns["Received"] * cost_per_deliver_nah) / 1000000.0
+    return (columns["Sent"] * cost_per_bcast_nah + columns["Delivered"] * cost_per_deliver_nah) / 1000000.0
 
 def _daily_allowance_used(columns, cached_cols, constants):
     # Magic constants are from Great Duck Island paper
@@ -204,13 +218,15 @@ def _daily_allowance_used(columns, cached_cols, constants):
 
     return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
 
+def _time_after_first_normal(columns, cached_cols, constants):
+    return columns["TimeTaken"] - columns["FirstNormalSentTime"]
+
 def _get_calculation_columns():
-    cols = {}
-
-    cols["energy_impact"] = _energy_impact
-    cols["daily_allowance_used"] = _daily_allowance_used
-
-    return cols
+    return {
+        "energy_impact": _energy_impact,
+        "daily_allowance_used": _daily_allowance_used,
+        "time_after_first_normal": _time_after_first_normal,
+    }
 
 class Analyse(object):
 
@@ -331,10 +347,22 @@ class Analyse(object):
             verbose=True
         )
 
+        initial_length = len(df.index)
+
+        if initial_length == 0:
+            raise EmptyDataFrameError(infile_path)
+
         # Removes rows with infs in certain columns
         # If NormalLatency is inf then no Normal messages were ever received by a sink
         df = df.replace([np.inf, -np.inf], np.nan)
         df.dropna(subset=["NormalLatency"], how="all", inplace=True)
+
+        current_length = len(df.index)
+
+        print("Removed {} out of {} rows as no Normal message was ever received at the sink".format(initial_length - current_length, initial_length))
+
+        if current_length == 0:
+            raise RuntimeError("When removing results where the sink never received a Normal message, all results were removed.")
 
         if not keep_if_hit_upper_time_bound:
             print("Removing results that have hit the upper time bound...")
@@ -342,11 +370,11 @@ class Analyse(object):
             indexes_to_remove = df[df["ReachedSimUpperBound"]].index
             df.drop(indexes_to_remove, inplace=True)
 
-            print("Removed {} rows".format(len(indexes_to_remove)))
+            print("Removed {} out of {} rows that reached the simulation upper time bound".format(len(indexes_to_remove), current_length))
 
         # Remove any duplicated seeds. Their result will be the same so shouldn't be counted.
         duplicated_seeds_filter = df.duplicated(subset="Seed", keep=False)
-        if not duplicated_seeds_filter.any():
+        if duplicated_seeds_filter.any():
             print("Removing the following duplicated seeds:")
             print(df["Seed"][duplicated_seeds_filter])
 
@@ -360,7 +388,14 @@ class Analyse(object):
                 if not differing.empty:
                     raise RuntimeError("For seed {}, the following columns differ: {}".format(name, differing))
 
+            initial_length = len(df.index)
+
             df.drop_duplicates(subset="Seed", keep="first", inplace=True)
+
+            current_length = len(df.index)
+
+            print("Removed {} out of {} rows as the seeds were duplicated".format(initial_length - current_length, initial_length))
+
         del duplicated_seeds_filter
 
         if len(df.index) == 0:
@@ -373,7 +408,7 @@ class Analyse(object):
             calc_cols = _get_calculation_columns()
             cached_cols = {}
 
-            def get_cached_cal_cols(name):
+            def get_cached_calc_cols(name):
                 if name in cached_cols:
                     return cached_cols[name]
 
@@ -405,7 +440,7 @@ class Analyse(object):
                 elif num in calc_cols and den in constants:
                     print("Creating {} using ({},{}) on the fast path 3".format(norm_head, num, den))
 
-                    columns_to_add[norm_head] = get_cached_cal_cols(num) / constants[den]
+                    columns_to_add[norm_head] = get_cached_calc_cols(num) / constants[den]
 
                 else:
                     print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))
@@ -478,8 +513,10 @@ class Analyse(object):
             return values[index]
         except ValueError:
 
-            if name in constants:
+            try:
                 return constants[name]
+            except KeyError:
+                pass
 
             if name == "good_move_ratio":
 
@@ -598,13 +635,13 @@ class Analyse(object):
         else:
             return values.mean()
 
-    def variance_of(self, header):
+    def variance_of(self, header, mean):
         values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
         first = values[0]
 
         if isinstance(first, dict):
-            raise NotImplementedError("Finding the variance of dicts is not implemented")
+            return dict_var(values, mean)
         elif isinstance(first, str):
             raise TypeError("Cannot find the variance of a string for {}".format(header))
         else:
@@ -647,10 +684,10 @@ class AnalysisResults(object):
                     #print(traceback.format_exc(), file=sys.stderr)
 
             try:
-                self.variance_of[heading] = analysis.variance_of(heading)
+                self.variance_of[heading] = analysis.variance_of(heading, self.average_of[heading])
             except NotImplementedError:
                 pass
-            except (TypeError, RuntimeError) as ex:
+            except (TypeError, KeyError, RuntimeError) as ex:
                 if heading not in expected_fail:
                     print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
                     #print(traceback.format_exc(), file=sys.stderr)
@@ -673,6 +710,8 @@ class AnalyzerCommon(object):
         self.results_directory = results_directory
         self.values = values
         self.normalised_values = normalised_values if normalised_values is not None else tuple()
+
+        self.normalised_values += (('time_after_first_normal', '1'),)
 
     @staticmethod
     def common_results_header(local_parameter_names):
@@ -703,7 +742,10 @@ class AnalyzerCommon(object):
         d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered')
 
         d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
-        d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
+        #d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
+
+        d['first normal sent time']= lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
+        d['time after first normal']= lambda x: AnalyzerCommon._format_results(x, 'norm(time_after_first_normal,1)')
         
         d['total wall time']    = lambda x: AnalyzerCommon._format_results(x, 'TotalWallTime')
         d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
@@ -715,10 +757,12 @@ class AnalyzerCommon(object):
         d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
         d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
+        
+        d['unique normal generated']= lambda x: AnalyzerCommon._format_results(x, 'UniqueNormalGenerated', allow_missing=True)
 
         d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
-        
+
 
     @staticmethod
     def _format_results(x, name, allow_missing=False, average_corrector=None, variance_corrector=None):
@@ -732,7 +776,7 @@ class AnalyzerCommon(object):
             if variance_corrector is not None:
                 var = variance_corrector(var)
 
-            return "{}({})".format(ave, var)
+            return "{};{}".format(ave, var)
         else:
             try:
                 ave = x.average_of[name]
@@ -843,7 +887,8 @@ class AnalyzerCommon(object):
 
             print("|".join(self.values.keys()), file=out)
 
-            start_time = timeit.default_timer()
+            progress = Progress("analysing file")
+            progress.start(len(files))
 
             for num in range(total):
                 (path, line, error) = outqueue.get()
@@ -857,17 +902,7 @@ class AnalyzerCommon(object):
                     print("Error processing {} with {}".format(path, ex))
                     print(tb)
 
-                current_time_taken = timeit.default_timer() - start_time
-                time_per_job = current_time_taken / (num + 1)
-                estimated_total = time_per_job * total
-                estimated_remaining = estimated_total - current_time_taken
-
-                current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
-                estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
-
-                print("Finished analysing file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
-                    num + 1, total, ((num + 1) / total) * 100.0, current_time_taken_str, estimated_remaining_str))
-                print()
+                progress.print_progress(num)
 
             print('Finished writing {}'.format(summary_file))
 
@@ -906,13 +941,12 @@ class AnalyzerCommon(object):
         # These are sorted to give anyone watching the output a sense of progress.
         files = sorted(fnmatch.filter(os.listdir(self.results_directory), '*.txt'))
 
-        total = len(files)
-
         with open(summary_file_path, 'w') as out:
 
             print("|".join(self.values.keys()), file=out)
 
-            start_time = timeit.default_timer()
+            progress = Progress("analysing file")
+            progress.start(len(files))
 
             for num, infile in enumerate(files):
                 path = os.path.join(self.results_directory, infile)
@@ -927,16 +961,6 @@ class AnalyzerCommon(object):
                     print("Error processing {} with {}".format(path, ex))
                     print(traceback.format_exc())
 
-                current_time_taken = timeit.default_timer() - start_time
-                time_per_job = current_time_taken / (num + 1)
-                estimated_total = time_per_job * total
-                estimated_remaining = estimated_total - current_time_taken
-
-                current_time_taken_str = str(datetime.timedelta(seconds=current_time_taken))
-                estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
-
-                print("Finished analysing file {} out of {}. Done {}%. Time taken {}, estimated remaining {}".format(
-                    num + 1, total, ((num + 1) / total) * 100.0, current_time_taken_str, estimated_remaining_str))
-                print()
+                progress.print_progress(num)
 
             print('Finished writing {}'.format(summary_file))

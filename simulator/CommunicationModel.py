@@ -46,8 +46,6 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.noise_floor_pn = noise_floor
         self.s = s
 
-        self.output_power_var = None
-
     def setup(self, sim):
         nodes = sim.configuration.topology.nodes.values()
         rng = sim.rng

@@ -20,6 +20,15 @@ implementation
 
 	command bool NodeType.register_pair(uint8_t ident, const char* name)
 	{
+		const size_t name_length = strlen(name) + 1;
+
+		if (name_length > MAXIMUM_NODE_TYPE_NAME_LENGTH)
+		{
+			ERROR_OCCURRED(ERROR_NODE_NAME_TOO_LONG, "The node type %s is too long (%zu), please make it shorter than %u.\n",
+				name, name_length, MAXIMUM_NODE_TYPE_NAME_LENGTH);
+			return FALSE;
+		}
+
 		if (size < maximum_node_types)
 		{
 			idents[size] = ident;

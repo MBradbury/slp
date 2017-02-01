@@ -9,4 +9,8 @@ class Metrics(MetricsCommon):
     @staticmethod
     def items():
         d = MetricsCommon.items()
+
+        d["AwaySent"]               = lambda x: x.number_sent("Away")
+        d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
+
         return d

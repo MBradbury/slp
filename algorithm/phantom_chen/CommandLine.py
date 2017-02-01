@@ -62,8 +62,8 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
-    def time_taken_to_safety_period(self, time_taken, first_normal_sent_time):
-        return (time_taken - first_normal_sent_time) * 1.3
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 1.3
 
     def _run_table(self, args):
         phantom_results = results.Results(

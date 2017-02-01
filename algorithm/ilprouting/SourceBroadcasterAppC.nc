@@ -1,5 +1,6 @@
 #include "Constants.h"
 #include "MessageQueueInfo.h"
+#include "SeqNoWithFlag.h"
 
 #include "pp.h"
 
@@ -23,27 +24,19 @@ implementation
     App.Leds -> LedsC;
     App.Random -> RandomC;
 
-#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
-    components PrintfMetricLoggingP as MetricLogging;
-#elif defined(USE_SERIAL_MESSAGES)
-    components SerialMetricLoggingP as MetricLogging;
-#else
-#   error "No known combination to wire up metric logging"
-#endif
+    components MetricLoggingP as MetricLogging;
 
     App.MetricLogging -> MetricLogging;
 
-    components new NodeTypeP(6);
+    components new NodeTypeP(3);
     App.NodeType -> NodeTypeP;
     NodeTypeP.MetricLogging -> MetricLogging;
 
-    components new MessageTypeP(6);
+    components new MessageTypeP(3);
     App.MessageType -> MessageTypeP;
     MessageTypeP.MetricLogging -> MetricLogging;
 
-#if defined(USE_SERIAL_MESSAGES)
     MetricLogging.MessageType -> MessageTypeP;
-#endif
 
     // Radio Control
     components ActiveMessageC;
@@ -63,13 +56,16 @@ implementation
     // Networking
     components
         new AMSenderC(NORMAL_CHANNEL) as NormalSender,
-        new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver;
+        new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver,
+        new AMSnooperC(NORMAL_CHANNEL) as NormalSnooper;
     
     App.Packet -> NormalSender; // TODO: is this right?
     App.AMPacket -> NormalSender; // TODO: is this right?
-    
+
     App.NormalSend -> NormalSender;
     App.NormalReceive -> NormalReceiver;
+    App.NormalSnoop -> NormalSnooper;
+    App.NormalPacketAcknowledgements -> NormalSender.Acks;
 
     components
         new AMSenderC(AWAY_CHANNEL) as AwaySender,
@@ -95,8 +91,8 @@ implementation
     App.SourcePeriodModel -> SourcePeriodModelP;
 
     components
-        new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
-    App.NormalSeqNos -> NormalSeqNos;
+        new CircularBufferC(SeqNoWithFlag, SLP_MAX_NUM_SOURCES * SLP_SEND_QUEUE_SIZE) as LruNormalSeqNos;
+    App.LruNormalSeqNos -> LruNormalSeqNos;
 
     // Pool / Queue
     STATIC_ASSERT_MSG(SLP_SEND_QUEUE_SIZE > 0, SLP_SEND_QUEUE_SIZE_must_be_gt_0);
@@ -104,14 +100,10 @@ implementation
 
     components
         new PoolC(message_queue_info_t, SLP_SEND_QUEUE_SIZE) as MessagePoolP,
-        new QueueC(message_queue_info_t*, SLP_SEND_QUEUE_SIZE) as MessageQueueP;
+        new DictionaryP(SeqNoWithAddr, message_queue_info_t*, SLP_SEND_QUEUE_SIZE) as MessageQueueP;
 
     App.MessagePool -> MessagePoolP;
     App.MessageQueue -> MessageQueueP;
-
-    components new CircularBufferC(SequenceNumber, SLP_RECENTLY_SEEN_SIZE) as RecentlySeen;
-
-    App.RecentlySeen -> RecentlySeen;
 
     // Time
     components LocalTimeMilliC;
