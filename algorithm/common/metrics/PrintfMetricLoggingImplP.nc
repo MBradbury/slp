@@ -4,6 +4,8 @@ module PrintfMetricLoggingImplP
 {
 	provides interface MetricLogging;
 
+	uses interface MessageType;
+
 #ifdef USE_SERIAL_PRINTF
 	uses interface LocalTime<TMilli>;
 #endif

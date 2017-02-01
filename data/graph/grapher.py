@@ -16,30 +16,30 @@ try:
 except ImportError:
     from shutilwhich import which
 
+def get_gnuplot_binary_name():
+    possible_names = ('gnuplot-nox', 'gnuplot')
+    for name in possible_names:
+        if which(name) is not None:
+            return name
+
+    raise RuntimeError("Could not find gnuplot binary")
+
+def test_gnuplot_version(name):
+    result = subprocess.check_output([name, "--version"]).strip()
+
+    match = re.match(r"gnuplot (\d+\.?\d*) patchlevel (.*)", result)
+    
+    version = float(match.group(1))
+    patchlevel = match.group(2)
+
+    if version < 5:
+        raise RuntimeError("The gnuplot binary ({}) is too old ({}). You need to install gnuplot 5 by doing something like 'sudo apt-get install gnuplot5-nox'.".format(name, result))
+
 class GrapherBase(object):
     def __init__(self, output_directory):
         self.output_directory = output_directory
 
     def _create_graphs(self, subdir):
-        def get_gnuplot_binary_name():
-            names = ['gnuplot-nox', 'gnuplot']
-            for name in names:
-                if which(name) is not None:
-                    return name
-
-            raise RuntimeError("Could not find gnuplot binary")
-
-        def test_gnuplot_version(name):
-            result = subprocess.check_output([name, "--version"]).strip()
-
-            match = re.match(r"gnuplot (\d+\.?\d*) patchlevel (.*)", result)
-            
-            version = float(match.group(1))
-            patchlevel = match.group(2)
-
-            if version < 5:
-                raise RuntimeError("The gnuplot binary ({}) is too old ({})".format(name, result))
-
         gnuplot = get_gnuplot_binary_name()
 
         test_gnuplot_version(gnuplot)
@@ -48,22 +48,33 @@ class GrapherBase(object):
 
         print("Walking {}:".format(walk_dir))
 
-        def worker(queue):
+        def worker(inqueue, outqueue):
             while True:
-                item = queue.get()
+                item = inqueue.get()
 
                 if item is None:
                     return
 
                 (args1, args2, root) = item
 
-                subprocess.check_call(args1, cwd=root)
-                subprocess.check_call(args2, cwd=root)
+                try:
+                    subprocess.check_call(args1, cwd=root)
+                except subprocess.CalledProcessError as ex:
+                    outqueue.put((args1, root, ex))
+                    raise RuntimeError("Failed to {} in '{}'".format(args2, root), ex)
+
+                try:
+                    subprocess.check_call(args2, cwd=root)
+                except subprocess.CalledProcessError as ex:
+                    outqueue.put((args2, root, ex))
+                    raise RuntimeError("Failed to {} in '{}'".format(args2, root), ex)
 
         nprocs = multiprocessing.cpu_count()
 
-        queue = multiprocessing.Queue()
-        pool = multiprocessing.Pool(nprocs, worker, (queue,))
+        inqueue = multiprocessing.Queue()
+        outqueue = multiprocessing.Queue()
+
+        pool = multiprocessing.Pool(nprocs, worker, (inqueue, outqueue))
 
         for (root, subdirs, files) in os.walk(walk_dir):
             for filename in files:
@@ -71,20 +82,25 @@ class GrapherBase(object):
                 if extension in {'.p', '.gp', '.gnuplot', '.gnu', '.plot', '.plt'}:
                     pdf_filename = '{}.pdf'.format(name_without_ext)
 
-                    queue.put((
+                    inqueue.put((
                         [gnuplot, filename],
                         ['pdfcrop', pdf_filename, pdf_filename],
                         root))
 
         # Push the queue sentinel
         for i in range(nprocs):
-            queue.put(None)
+            inqueue.put(None)
 
-        queue.close()
-        queue.join_thread()
+        inqueue.close()
+        inqueue.join_thread()
 
         pool.close()
         pool.join()
+
+        # Check if an exception was thrown and rethrow it
+        if outqueue.qsize() > 0:
+            #(msg, ex) = outqueue.get(False)
+            raise RuntimeError("An error occurred while building the graphs. Please inspect previous exceptions.")
 
     # From: http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
     @staticmethod

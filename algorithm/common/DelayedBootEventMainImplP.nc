@@ -17,13 +17,11 @@ module DelayedBootEventMainImplP
 implementation
 {
 	event void OriginalBoot.booted()
-	{
-#if defined(TOSSIM)
-		signal Boot.booted();
-#elif defined(TESTBED)
+	{		
+#if defined(TESTBED)
 		call DelayTimer.startOneShot(DELAYED_BOOT_TIME_MINUTES * UINT32_C(60) * UINT32_C(1000));
 #else
-#	error "Unknown situation, should we delay the boot event or not?"
+		signal Boot.booted();
 #endif
 	}
 

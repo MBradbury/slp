@@ -32,6 +32,8 @@ from simulator import SourcePeriodModel
             raise RuntimeError("Detected outlier, the time taken is {}, upper bound is {}".format(
                 time_taken, upper_bound))"""
 
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
         super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
@@ -49,7 +51,7 @@ class Analyzer(AnalyzerCommon):
             (('energy_impact', 'num_nodes'), 'TimeTaken'),
             ('daily_allowance_used', '1'),
             
-            ('good_move_ratio', '1'),
+            #('good_move_ratio', '1'),
         )
 
     @staticmethod
@@ -59,8 +61,6 @@ class Analyzer(AnalyzerCommon):
         AnalyzerCommon.common_results(d)
 
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
-
-        d['first normal sent time'] = lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
 
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
         
@@ -96,7 +96,7 @@ class Analyzer(AnalyzerCommon):
         d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
         d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
 
-        d['good move ratio'] = lambda x: AnalyzerCommon._format_results(x, 'norm(good_move_ratio,1)')
+        #d['good move ratio'] = lambda x: AnalyzerCommon._format_results(x, 'norm(good_move_ratio,1)')
 
         return d
 

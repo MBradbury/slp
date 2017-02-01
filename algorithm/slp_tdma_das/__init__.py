@@ -6,7 +6,10 @@ def _setup():
 
 (name, results_path, result_file, result_file_path, graphs_path) = _setup()
 
-
 local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval',
                          'minimum setup periods', 'pre beacon periods', 'dissem timeout',
-                         'search distance', 'tdma safety periods')
+                         'search distance')
+
+# local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval',
+                         # 'minimum setup periods', 'pre beacon periods', 'dissem timeout',
+                         # 'search distance', 'tdma safety periods')

@@ -1,5 +1,8 @@
 
+from __future__ import division
+
 from simulator.ArgumentsCommon import ArgumentsCommon
+import simulator.Configuration
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
@@ -25,6 +28,15 @@ class Arguments(ArgumentsCommon):
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
+        configuration = simulator.Configuration.create(self.args.configuration, self.args)
+
+        if len(configuration.source_ids) != 1:
+            raise RuntimeError("Configuration must have one and only one source")
+
+        (source_id,) = configuration.source_ids
+
+        ssd_hops = configuration.ssd(source_id)
+
         result["SLOT_PERIOD_MS"] = int(self.args.slot_period * 1000)
         result["DISSEM_PERIOD_MS"] = int(self.args.dissem_period * 1000)
         result["TDMA_NUM_SLOTS"] = self.args.tdma_num_slots
@@ -32,8 +44,8 @@ class Arguments(ArgumentsCommon):
         result["TDMA_SETUP_PERIODS"] = self.args.minimum_setup_periods
         result["TDMA_PRE_BEACON_PERIODS"] = self.args.pre_beacon_periods
         result["TDMA_DISSEM_TIMEOUT"] = self.args.dissem_timeout
-        # result["SAFETY_PERIOD"] = self.args.tdma_safety_periods
-        result["SAFETY_PERIOD"] = self.args.safety_period // (self.args.dissem_period + (self.args.slot_period * self.args.tdma_num_slots))
+        # result["SAFETY_PERIOD"] = ssd_hops
         result["SEARCH_DIST"] = self.args.search_distance
+        result["CHANGE_LENGTH"] = ssd_hops - self.args.search_distance
 
         return result

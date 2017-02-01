@@ -25,3 +25,5 @@ results/
 ./testbed/*
 Parameters.py
 testbed_results/
+cycle_accurate/*
+
