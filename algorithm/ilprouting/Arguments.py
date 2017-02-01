@@ -24,6 +24,8 @@ class Arguments(ArgumentsCommon):
 
         self.add_argument("--pr-direct-to-sink", type=self.type_probability, required=True)
 
+        self.add_argument("--target-latency", type=self.type_positive_float, required=True)
+
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
@@ -31,5 +33,7 @@ class Arguments(ArgumentsCommon):
         result["SLP_MAX_WALK_LENGTH"] = self.args.max_walk_length
 
         result["SLP_PR_SEND_DIRECT_TO_SINK"] = self.args.pr_direct_to_sink
+
+        result["SLP_TARGET_LATENCY_MS"] = int(self.args.target_latency * 1000)
 
         return result

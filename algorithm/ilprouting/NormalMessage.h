@@ -22,6 +22,8 @@ typedef nx_struct NormalMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
+  nx_uint16_t delay;
+
   nx_uint8_t stage;
 
 } NormalMessage;
