@@ -8,7 +8,7 @@ def platform():
     return "micaz"
 
 def log_mode():
-    return "disabled"
+    return "avrora"
 
 def url():
     return "about:blank"

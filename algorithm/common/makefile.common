@@ -9,7 +9,9 @@ CFLAGS += -Wsign-compare
 
 # The micax compiler doesn't understand these flags
 ifndef CYCLEACCURATE
-	CFLAGS += -Werror=pointer-sign -Werror=format
+CFLAGS += -Werror=pointer-sign -Werror=format
+else
+CFLAGS += -I"../common/avrora"
 endif
 
 # Setup printf library if required
