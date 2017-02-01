@@ -29,6 +29,9 @@
  		printStr(error_message); \
 	} while (FALSE)
 
+// Note that GCC doesn't support a 64 bit print specifier for the AVR libc.
+// So we need to specially handle those values.
+
 module AvroraMetricLoggingImplP
 {
 	provides interface MetricLogging;
@@ -49,9 +52,19 @@ implementation
 		int16_t distance
 		)
 	{
-		simdbg("M-CR",
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
-			message_type, proximate_source, ultimate_source, sequence_number, distance);
+		if (sequence_number == BOTTOM)
+		{
+			simdbg("M-CR",
+				"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC ",-1," DISTANCE_SPEC "\n",
+				message_type, proximate_source, ultimate_source, distance);
+		}
+		else
+		{
+			const SequenceNumber seqno = (SequenceNumber)sequence_number;
+			simdbg("M-CR",
+				"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," NXSEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
+				message_type, proximate_source, ultimate_source, seqno, distance);
+		}
 	}
 
 	command void MetricLogging.log_metric_bcast(
@@ -60,9 +73,19 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		simdbg("M-CB",
-			"%s,%" PRIu8 "," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, status, sequence_number);
+		if (sequence_number == BOTTOM)
+		{
+			simdbg("M-CB",
+				"%s,%" PRIu8 ",-1\n",
+				message_type, status);
+		}
+		else
+		{
+			const SequenceNumber seqno = (SequenceNumber)sequence_number;
+			simdbg("M-CB",
+				"%s,%" PRIu8 "," NXSEQUENCE_NUMBER_SPEC "\n",
+				message_type, status, seqno);
+		}
 	}
 
 	command void MetricLogging.log_metric_deliver(
@@ -72,9 +95,21 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		simdbg("M-CD", \
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, proximate_source, ultimate_source_poss_bottom, sequence_number);
+		if (sequence_number == BOTTOM)
+		{
+			simdbg("M-CD", \
+				"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1\n",
+				message_type, proximate_source, ultimate_source_poss_bottom);
+		}
+		else
+		{
+			const SequenceNumber seqno = (SequenceNumber)sequence_number;
+			simdbg("M-CD", \
+				"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "\n",
+				message_type, proximate_source, ultimate_source_poss_bottom, seqno);
+		}
+
+		
 	}
 
 	command void MetricLogging.log_attacker_receive(
@@ -85,9 +120,19 @@ implementation
 		SequenceNumberWithBottom sequence_number
 		)
 	{
-		simdbg("A-R",
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, proximate_source, ultimate_source_poss_bottom, sequence_number);
+		if (sequence_number == BOTTOM)
+		{
+			simdbg("A-R",
+				"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1\n",
+				message_type, proximate_source, ultimate_source_poss_bottom);
+		}
+		else
+		{
+			const SequenceNumber seqno = (SequenceNumber)sequence_number;
+			simdbg("A-R",
+				"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "\n",
+				message_type, proximate_source, ultimate_source_poss_bottom, seqno);
+		}
 	}
 
 	command void MetricLogging.log_metric_node_change(
