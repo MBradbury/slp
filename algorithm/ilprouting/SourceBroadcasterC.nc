@@ -131,6 +131,9 @@ implementation
 	int16_t source_distance = BOTTOM;
 	int16_t sink_source_distance = BOTTOM;
 
+	// Source variables
+	int8_t current_message_grouping = BOTTOM;
+
 	// Sink variables
 	int sink_away_messages_to_send;
 
@@ -148,6 +151,13 @@ implementation
 		const uint16_t rnd = call Random.rand16();
 
 		return ((float)rnd) / UINT16_MAX;
+	}
+
+	int8_t max_message_grouping(void)
+	{
+		return sink_source_distance == BOTTOM
+			? BOTTOM
+			: (SLP_TARGET_LATENCY_MS - (sink_source_distance * ALPHA)) / call SourcePeriodModel.get();
 	}
 
 	event void Boot.booted()
@@ -221,6 +231,8 @@ implementation
 
 			source_distance = 0;
 			sink_source_distance = sink_distance;
+
+			current_message_grouping = max_message_grouping();
 		}
 	}
 
@@ -325,6 +337,7 @@ implementation
 	{
 		bool success;
 		message_queue_info_t* item;
+		NormalMessage* stored_normal_message;
 
 		// Check if there is already a message with this sequence number present
 		// If there is then we will just overwrite it with the current message.
@@ -361,10 +374,10 @@ implementation
 
 		memcpy(&item->msg, msg, sizeof(*item));
 
+		stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
+
 		if (switch_stage != UINT8_MAX)
 		{
-			NormalMessage* stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
-
 			stored_normal_message->stage = switch_stage;
 		}
 
@@ -376,7 +389,12 @@ implementation
 
 		if (has_enough_messages_to_send())
 		{
-			call ConsiderTimer.startOneShot(ALPHA);
+			const uint16_t to_delay = (stored_normal_message->source_distance < sink_source_distance)
+				? stored_normal_message->delay
+				: ALPHA;
+			
+
+			call ConsiderTimer.startOneShot(to_delay);
 		}
 
 		return SUCCESS;
@@ -387,7 +405,7 @@ implementation
 		if (error != SUCCESS)
 		{
 			// Failed to send the message
-			call ConsiderTimer.startOneShot(ALPHA);
+			call ConsiderTimer.startOneShot(ALPHA_RETRY);
 		}
 		else
 		{
@@ -436,7 +454,7 @@ implementation
 
 							simdbgverbose("stdout", "Failed to route message to avoid sink, giving up and routing to sink.\n");
 
-							call ConsiderTimer.startOneShot(ALPHA);
+							call ConsiderTimer.startOneShot(ALPHA_RETRY);
 						}
 						else
 						{
@@ -448,7 +466,7 @@ implementation
 					}
 					else
 					{
-						call ConsiderTimer.startOneShot(ALPHA);
+						call ConsiderTimer.startOneShot(ALPHA_RETRY);
 					}
 				}
 				else
@@ -491,6 +509,10 @@ implementation
 		message->sink_source_distance = sink_source_distance;
 		message->source_id = TOS_NODE_ID;
 
+		message->delay = ((current_message_grouping * call SourcePeriodModel.get()) + (sink_source_distance * ALPHA)) / sink_source_distance;
+
+		simdbg("stdout", "Setting message delay of cg %u/%u to %u [ssd=%d]\n",
+			current_message_grouping, max_message_grouping(), message->delay, sink_source_distance);
 
 		// After a while we want to just route directly to the sink every so often.
 		// This should improve the latency and also reduce the chances of avoidance messages
@@ -509,6 +531,15 @@ implementation
 		if (record_received_message(&msg, UINT8_MAX) == SUCCESS)
 		{
 			sequence_number_increment(&normal_sequence_counter);
+		}
+
+		if (current_message_grouping == 0)
+		{
+			current_message_grouping = max_message_grouping();
+		}
+		else
+		{
+			current_message_grouping -= 1;
 		}
 	}
 
