@@ -10,6 +10,7 @@
 #include "NormalMessage.h"
 #include "AwayMessage.h"
 #include "BeaconMessage.h"
+#include "PollMessage.h"
 
 #include <Timer.h>
 #include <TinyError.h>
@@ -17,6 +18,7 @@
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
+#define METRIC_RCV_POLL(msg) METRIC_RCV(Poll, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
 
 typedef struct
 {
@@ -72,6 +74,7 @@ module SourceBroadcasterC
 	uses interface Timer<TMilli> as ConsiderTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
+	uses interface Timer<TMilli> as ObjectDetectorStartTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -88,6 +91,9 @@ module SourceBroadcasterC
 
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
+
+	uses interface AMSend as PollSend;
+	uses interface Receive as PollReceive;
 
 	uses interface MetricLogging;
 
@@ -125,6 +131,9 @@ implementation
 	int16_t source_distance = BOTTOM;
 	int16_t sink_source_distance = BOTTOM;
 
+	// Source variables
+	int8_t current_message_grouping = BOTTOM;
+
 	// Sink variables
 	int sink_away_messages_to_send;
 
@@ -144,6 +153,13 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+	int8_t max_message_grouping(void)
+	{
+		return sink_source_distance == BOTTOM
+			? BOTTOM
+			: (SLP_TARGET_LATENCY_MS - (sink_source_distance * ALPHA)) / call SourcePeriodModel.get();
+	}
+
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
@@ -158,6 +174,7 @@ implementation
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
 		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
+		call MessageType.register_pair(POLL_CHANNEL, "Poll");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
@@ -183,7 +200,7 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
-			call ObjectDetector.start();
+			call ObjectDetectorStartTimer.startOneShot(OBJECT_DETECTOR_START_DELAY_MS);
 
 			if (call NodeType.get() == SinkNode)
 			{
@@ -213,6 +230,9 @@ implementation
 			call SourcePeriodModel.startPeriodic();
 
 			source_distance = 0;
+			sink_source_distance = sink_distance;
+
+			current_message_grouping = max_message_grouping();
 		}
 	}
 
@@ -225,12 +245,14 @@ implementation
 			call NodeType.set(NormalNode);
 
 			source_distance = BOTTOM;
+			sink_source_distance = BOTTOM;
 		}
 	}
 
 	USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(Normal);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Poll);
 
 	void print_dictionary_queue(void)
 	{
@@ -315,6 +337,7 @@ implementation
 	{
 		bool success;
 		message_queue_info_t* item;
+		NormalMessage* stored_normal_message;
 
 		// Check if there is already a message with this sequence number present
 		// If there is then we will just overwrite it with the current message.
@@ -351,10 +374,10 @@ implementation
 
 		memcpy(&item->msg, msg, sizeof(*item));
 
+		stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
+
 		if (switch_stage != UINT8_MAX)
 		{
-			NormalMessage* stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
-
 			stored_normal_message->stage = switch_stage;
 		}
 
@@ -366,7 +389,12 @@ implementation
 
 		if (has_enough_messages_to_send())
 		{
-			call ConsiderTimer.startOneShot(ALPHA);
+			const uint16_t to_delay = (stored_normal_message->source_distance < sink_source_distance)
+				? stored_normal_message->delay
+				: ALPHA;
+			
+
+			call ConsiderTimer.startOneShot(to_delay);
 		}
 
 		return SUCCESS;
@@ -377,7 +405,7 @@ implementation
 		if (error != SUCCESS)
 		{
 			// Failed to send the message
-			call ConsiderTimer.startOneShot(ALPHA);
+			call ConsiderTimer.startOneShot(ALPHA_RETRY);
 		}
 		else
 		{
@@ -404,6 +432,17 @@ implementation
 
 					info->rtx_attempts -= 1;
 
+					// When we hit this threshold, send out a query message asking for
+					// neighbours to identify themselves.
+					if (info->rtx_attempts == BAD_NEIGHBOUR_DO_SEARCH_THRESHOLD)
+					{
+						PollMessage message;
+						message.sink_distance_of_sender = sink_distance;
+						message.source_distance_of_sender = source_distance;
+
+						send_Poll_message(&message, AM_BROADCAST_ADDR);
+					}
+
 					// Give up sending this message
 					if (info->rtx_attempts == 0)
 					{
@@ -415,7 +454,7 @@ implementation
 
 							simdbgverbose("stdout", "Failed to route message to avoid sink, giving up and routing to sink.\n");
 
-							call ConsiderTimer.startOneShot(ALPHA);
+							call ConsiderTimer.startOneShot(ALPHA_RETRY);
 						}
 						else
 						{
@@ -427,7 +466,7 @@ implementation
 					}
 					else
 					{
-						call ConsiderTimer.startOneShot(ALPHA);
+						call ConsiderTimer.startOneShot(ALPHA * (RTX_ATTEMPTS - info->rtx_attempts));
 					}
 				}
 				else
@@ -470,6 +509,10 @@ implementation
 		message->sink_source_distance = sink_source_distance;
 		message->source_id = TOS_NODE_ID;
 
+		message->delay = ((current_message_grouping * call SourcePeriodModel.get()) + (sink_source_distance * ALPHA)) / sink_source_distance;
+
+		simdbg("stdout", "Setting message delay of cg %u/%u to %u [ssd=%d]\n",
+			current_message_grouping, max_message_grouping(), message->delay, sink_source_distance);
 
 		// After a while we want to just route directly to the sink every so often.
 		// This should improve the latency and also reduce the chances of avoidance messages
@@ -488,6 +531,15 @@ implementation
 		if (record_received_message(&msg, UINT8_MAX) == SUCCESS)
 		{
 			sequence_number_increment(&normal_sequence_counter);
+		}
+
+		if (current_message_grouping == 0)
+		{
+			current_message_grouping = max_message_grouping();
+		}
+		else
+		{
+			current_message_grouping -= 1;
 		}
 	}
 
@@ -870,6 +922,11 @@ implementation
 	}
 
 
+	event void ObjectDetectorStartTimer.fired()
+	{
+		call ObjectDetector.start();
+	}
+
 	event void ConsiderTimer.fired()
 	{
 		simdbgverbose("stdout", "ConsiderTimer fired. [MessageQueue.count()=%u]\n",
@@ -983,6 +1040,8 @@ implementation
 
 			if (success)
 			{
+				simdbgverbose("stdout", "Sending message to %u\n", next);
+
 				info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
 				send_Normal_message(&message, next, &info->ack_requested);
@@ -1042,6 +1101,7 @@ implementation
 		BeaconMessage message;
 		message.sink_distance_of_sender = sink_distance;
 		message.source_distance_of_sender = source_distance;
+		message.sink_source_distance = sink_source_distance;
 
 		if (!send_Beacon_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -1204,6 +1264,7 @@ implementation
 
 		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance_of_sender));
 		source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (call NodeType.get() == SourceNode)
 		{
@@ -1220,4 +1281,31 @@ implementation
 		case SourceNode:
 		case NormalNode: x_receive_Beacon(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
+
+	void x_receive_Poll(const PollMessage* const rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender);
+
+		METRIC_RCV_POLL(rcvd);
+
+		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance_of_sender));
+		source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
+
+		if (call NodeType.get() == SourceNode)
+		{
+			sink_source_distance = minbot(sink_source_distance, sink_distance);
+		}
+		if (call NodeType.get() == SinkNode)
+		{
+			sink_source_distance = minbot(sink_source_distance, source_distance);
+		}
+
+		call BeaconSenderTimer.startOneShot(BEACON_SEND_DELAY_FIXED + (call Random.rand16() % BEACON_SEND_DELAY_RANDOM));
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Poll, Receive)
+		case SinkNode:
+		case SourceNode:
+		case NormalNode: x_receive_Poll(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Poll)
 }

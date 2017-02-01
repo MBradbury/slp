@@ -18,7 +18,7 @@ def choose_platform(provided, available):
         if isinstance(available, str):
             return available
         else:
-            raise RuntimeError("Unable to choose between the available platforms {}".format(available))
+            raise RuntimeError("Unable to choose between the available platforms {}. Please specify one using --platform.".format(available))
     else:
         if provided in available:
             return provided
@@ -59,6 +59,16 @@ class Runner(object):
             a = self.parse_arguments(module, argv)
 
         module_path = module.replace(".", "/")
+
+        # Check that the topology supports the chosen platform
+        # Some topologies only support one platform type
+        configuration = Configuration.create(a.args.configuration, a.args)
+
+        if hasattr(configuration.topology, "platform"):
+            if configuration.topology.platform != self.platform:
+                raise RuntimeError("The topology's platform ({}) does not match the chosen platform ({})".format(
+                    configuration.topology.platform, self.platform))
+
 
         # Build the binary
 
