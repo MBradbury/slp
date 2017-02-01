@@ -137,36 +137,33 @@ def _parse_dict_node_to_value(indict, decompress=False):
     return result
 
 DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
-#DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 
 def _parse_dict_tuple_nodes_to_value(indict):
-    # Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
-    # but also handle the old style of "{0: 1}"
+    """Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
+    where the structure is {(source_id, attacker_id): distance}"""
 
-    # Handle two sorts of attacker distance dicts
-    # 1. {attacker_id: distance}
-    # 2. {(source_id, attacker_id): distance}}
-
-    # New style
     dict1 = {
         (int(a), int(b)): float(c)
         for (a, b, c) in DICT_TUPLE_KEY_RE.findall(indict)
     }
 
-    # Old style - assume the source is 0
-    #dict2 = {
-    #    (0, int(b)): float(c)
-    #    for (b, c) in DICT_TUPLE_KEY_OLD_RE.findall(indict)
-    #}
+    return dict1
 
-    #dict1.update(dict2)
+DICT_STRING_TUPLE_KEY_RE = re.compile(r"\('([^']+)',\s*'([^']+)'\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)")
+
+def _parse_dict_string_tuple_to_value(indict):
+
+    dict1 = {
+        (a, b): float(c)
+        for (a, b, c) in DICT_STRING_TUPLE_KEY_RE.findall(indict)
+    }
 
     return dict1
 
 def dict_mean(dict_list):
     """Dict mean using incremental averaging"""
 
-    result = dict_list[0]
+    result = next(iter(dict_list))
 
     get = result.get
 
@@ -180,7 +177,9 @@ def dict_mean(dict_list):
 def dict_var(dict_list, mean):
     """Dict variance"""
 
-    lin = {k: list() for k in dict_list[0]}
+    first = next(iter(dict_list))
+
+    lin = {k: list() for k in first}
 
     for d in dict_list:
         for (k, v) in d.iteritems():
@@ -259,6 +258,8 @@ class Analyse(object):
         "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
         #"NodeWasSource": _inf_handling_literal_eval,
+
+        "NodeTransitions": _parse_dict_string_tuple_to_value,
 
         "ReceivedFromCloserOrSameHops": _parse_dict_node_to_value,
         "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
@@ -359,7 +360,10 @@ class Analyse(object):
 
         current_length = len(df.index)
 
-        print("Removed {} out of {} rows as no Normal message was ever received at the sink".format(initial_length - current_length, initial_length))
+        self.removed_rows_due_to_no_sink_delivery_count = initial_length - current_length
+
+        print("Removed {} out of {} rows as no Normal message was ever received at the sink".format(
+            self.removed_rows_due_to_no_sink_delivery_count, initial_length))
 
         if current_length == 0:
             raise RuntimeError("When removing results where the sink never received a Normal message, all results were removed.")
@@ -370,7 +374,12 @@ class Analyse(object):
             indexes_to_remove = df[df["ReachedSimUpperBound"]].index
             df.drop(indexes_to_remove, inplace=True)
 
-            print("Removed {} out of {} rows that reached the simulation upper time bound".format(len(indexes_to_remove), current_length))
+            self.removed_rows_due_to_upper_bound = len(indexes_to_remove)
+
+            print("Removed {} out of {} rows that reached the simulation upper time bound".format(
+                self.removed_rows_due_to_upper_bound, current_length))
+        else:
+            self.removed_rows_due_to_upper_bound = 0
 
         # Remove any duplicated seeds. Their result will be the same so shouldn't be counted.
         duplicated_seeds_filter = df.duplicated(subset="Seed", keep=False)
@@ -394,7 +403,12 @@ class Analyse(object):
 
             current_length = len(df.index)
 
-            print("Removed {} out of {} rows as the seeds were duplicated".format(initial_length - current_length, initial_length))
+            self.removed_rows_due_to_duplicates = initial_length - current_length
+
+            print("Removed {} out of {} rows as the seeds were duplicated".format(
+                self.removed_rows_due_to_duplicates, initial_length))
+        else:
+            self.removed_rows_due_to_duplicates = 0
 
         del duplicated_seeds_filter
 
@@ -626,7 +640,10 @@ class Analyse(object):
     def average_of(self, header):
         values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
-        first = values[0]
+        if len(values) == 0:
+            raise RuntimeError("There are no values for {} to be able to average".format(header))
+
+        first = next(iter(values))
 
         if isinstance(first, dict):
             return dict_mean(values)
@@ -638,7 +655,10 @@ class Analyse(object):
     def variance_of(self, header, mean):
         values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
-        first = values[0]
+        if len(values) == 0:
+            raise RuntimeError("There are no values for {} to be able to find the variance".format(header))
+
+        first = next(iter(values))
 
         if isinstance(first, dict):
             return dict_var(values, mean)
@@ -650,7 +670,7 @@ class Analyse(object):
     def median_of(self, header):
         values = (self.columns if header in self.columns else self.normalised_columns)[header]
 
-        first = values[0]
+        first = next(iter(values))
 
         if isinstance(first, dict):
             raise NotImplementedError("Finding the median of dicts is not implemented")
@@ -699,6 +719,10 @@ class AnalysisResults(object):
         
         self.number_of_repeats = analysis.columns.shape[0]
 
+        self.dropped_hit_upper_bound = analysis.removed_rows_due_to_upper_bound
+        self.dropped_no_sink_delivery = analysis.removed_rows_due_to_no_sink_delivery_count
+        self.dropped_duplicates = analysis.removed_rows_due_to_duplicates
+
     def get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
                                              int(self.opts['network_size']),
@@ -712,6 +736,10 @@ class AnalyzerCommon(object):
         self.normalised_values = normalised_values if normalised_values is not None else tuple()
 
         self.normalised_values += (('time_after_first_normal', '1'),)
+
+        self.values['dropped no sink delivery'] = lambda x: str(x.dropped_no_sink_delivery)
+        self.values['dropped hit upper bound']  = lambda x: str(x.dropped_hit_upper_bound)
+        self.values['dropped duplicates']       = lambda x: str(x.dropped_duplicates)
 
     @staticmethod
     def common_results_header(local_parameter_names):
@@ -786,7 +814,7 @@ class AnalyzerCommon(object):
 
                 return str(ave)
             except KeyError:
-                if allow_missing or name in x.headers_to_skip:
+                if allow_missing or (x.headers_to_skip is not None and name in x.headers_to_skip):
                     return "None"
                 else:
                     raise

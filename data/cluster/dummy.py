@@ -22,7 +22,7 @@ def builder():
     from data.run.driver.cluster_builder import Runner as Builder
     return Builder()
 
-def copy_to():
+def copy_to(dirname):
     raise RuntimeError("Cannot copy to the dummy cluster")
 
 def copy_file(results_directory_path, filename):

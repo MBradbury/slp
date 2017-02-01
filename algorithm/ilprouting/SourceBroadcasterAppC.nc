@@ -32,7 +32,7 @@ implementation
     App.NodeType -> NodeTypeP;
     NodeTypeP.MetricLogging -> MetricLogging;
 
-    components new MessageTypeP(3);
+    components new MessageTypeP(4);
     App.MessageType -> MessageTypeP;
     MessageTypeP.MetricLogging -> MetricLogging;
 
@@ -48,10 +48,12 @@ implementation
     components new TimerMilliC() as ConsiderTimer;
     components new TimerMilliC() as AwaySenderTimer;
     components new TimerMilliC() as BeaconSenderTimer;
+    components new TimerMilliC() as ObjectDetectorStartTimer;
 
     App.ConsiderTimer -> ConsiderTimer;
     App.AwaySenderTimer -> AwaySenderTimer;
     App.BeaconSenderTimer -> BeaconSenderTimer;
+    App.ObjectDetectorStartTimer -> ObjectDetectorStartTimer;
 
     // Networking
     components
@@ -80,6 +82,13 @@ implementation
 
     App.BeaconSend -> BeaconSender;
     App.BeaconReceive -> BeaconReceiver;
+
+    components
+        new AMSenderC(POLL_CHANNEL) as PollSender,
+        new AMReceiverC(POLL_CHANNEL) as PollReceiver;
+
+    App.PollSend -> PollSender;
+    App.PollReceive -> PollReceiver;
 
 
     // Object Detector - For Source movement

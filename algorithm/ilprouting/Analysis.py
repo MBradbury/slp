@@ -20,8 +20,9 @@ class Analyzer(AnalyzerCommon):
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
         d['beacon']             = lambda x: AnalyzerCommon._format_results(x, 'BeaconSent')
+        d['poll']               = lambda x: AnalyzerCommon._format_results(x, 'PollSent')
 
-        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
+        #d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
 
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')

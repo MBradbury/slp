@@ -12,5 +12,6 @@ class Metrics(MetricsCommon):
 
         d["AwaySent"]               = lambda x: x.number_sent("Away")
         d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
+        d["PollSent"]               = lambda x: x.number_sent("Poll")
 
         return d

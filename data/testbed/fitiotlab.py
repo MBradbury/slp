@@ -5,8 +5,8 @@ def name():
 def platform():
     """The hardware platform of the testbed"""
 
-    # 1.3b has an 868MHz radio
-    # 1.4 has a 2.4GHz radio
+    # 1.3b has an 868MHz radio (cc1101)
+    # 1.4 has a 2.4GHz radio (cc2420)
     return ("wsn430v13", "wsn430v14")
 
 def log_mode():
@@ -31,3 +31,8 @@ def url():
 #
 # After you have done #2, you could just do the following locally:
 # $ ssh <login>@<site>.iot-lab.info "serial_aggregator -i <experiment_id>"
+
+# Strasbourg - 3D grid of nodes - https://www.iot-lab.info/deployment/strasbourg/
+# Rennes - Unknown - https://www.iot-lab.info/deployment/rennes/
+
+from data.testbed.info.fitiotlab import euratech, grenbole, rennes, strasbourg
