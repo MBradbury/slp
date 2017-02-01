@@ -1,3 +1,4 @@
+//improved phantom_walkabouts_origin version without specify short and long walk length.
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
