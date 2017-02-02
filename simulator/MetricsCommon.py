@@ -51,6 +51,8 @@ class MetricsCommon(object):
         self.wall_time = 0
         self.event_count = 0
 
+        self.errors = Counter()
+
         self.became_source_times = defaultdict(list)
         self.became_normal_after_source_times = defaultdict(list)
 
@@ -62,6 +64,8 @@ class MetricsCommon(object):
         self.register('M-CB', self.process_bcast_event)
         self.register('M-CR', self.process_rcv_event)
         self.register('M-CD', self.process_deliver_event)
+
+        self.register('stderr', self.process_error_event)
 
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
@@ -211,6 +215,13 @@ class MetricsCommon(object):
             self.sink_ids.add(ord_node_id)
 
         self.node_transitions[(old_name, new_name)] += 1
+
+    def process_error_event(self, d_or_e, node_id, time, detail):
+        (code, message) = detail.split(",", 1)
+
+        code = int(code)
+
+        self.errors[code] += 1
 
 
     def num_normal_sent_if_finished(self):
@@ -591,6 +602,8 @@ class MetricsCommon(object):
         d["DeliveredFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_hops_all())
         d["DeliveredFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(x.deliv_closer_or_same_meters_all())
         d["DeliveredFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_meters_all())
+
+        d["Errors"]                        = lambda x: MetricsCommon.smaller_dict_str(dict(x.errors))
 
         return d
 
