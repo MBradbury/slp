@@ -29,8 +29,8 @@ class CLI(CommandLineCommon.CLI):
             parameters.sizes, parameters.configurations,
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.max_buffer_sizes, parameters.max_walk_lengths,
-            parameters.direct_to_sink_prs, parameters.target_latencies
+            parameters.source_periods, parameters.buffer_sizes, parameters.max_walk_lengths,
+            parameters.direct_to_sink_prs, parameters.msg_group_sizes
         ))
 
         return argument_product
