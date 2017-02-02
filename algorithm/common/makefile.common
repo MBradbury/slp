@@ -15,7 +15,7 @@ endif
 
 # Setup printf library if required
 ifdef USE_SERIAL_PRINTF
-CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS -DUSE_SERIAL_PRINTF=1
+CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS
 endif
 
 
