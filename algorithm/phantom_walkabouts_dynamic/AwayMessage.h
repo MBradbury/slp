@@ -21,6 +21,10 @@ typedef nx_struct AwayMessage
 
   nx_int16_t landmark_location;
 
+  nx_int16_t node_id;
+
+  nx_int16_t neighbour_size;
+
 } AwayMessage;
 
 inline SequenceNumberWithBottom Away_get_sequence_number(const AwayMessage* msg) { return msg->sequence_number; }

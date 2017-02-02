@@ -28,16 +28,12 @@ class Arguments(ArgumentsCommon):
 
         self.add_argument("--wait-before-short", type=int, required=True)
 
-        self.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
-
         self.add_argument("--order", type=str, choices=order_choices, required=True)
 
         self.add_argument("--dynamic-period-repeat", choices=dynamic_repeat_choices, required=True)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
-
-        result["BIASED_NO"] = int(self.args.direction_bias * 100)
 
         result["BOTTOM_LEFT_NODE_ID"] = self._get_node_id("bottom_left")
         result["BOTTOM_RIGHT_NODE_ID"] = self._get_node_id("bottom_right")
