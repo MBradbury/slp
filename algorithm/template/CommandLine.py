@@ -49,6 +49,23 @@ class CLI(CommandLineCommon.CLI):
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
 
+    def _time_estimater(self, args, **kwargs):
+        """Estimates how long simulations are run for. Override this in algorithm
+        specific CommandLine if these values are too small or too big. In general
+        these have been good amounts of time to run simulations for. You might want
+        to adjust the number of repeats to get the simulation time in this range."""
+        size = args['network size']
+        if size == 11:
+            return datetime.timedelta(hours=8)
+        elif size == 15:
+            return datetime.timedelta(hours=12)
+        elif size == 21:
+            return datetime.timedelta(hours=22)
+        elif size == 25:
+            return datetime.timedelta(hours=38)
+        else:
+            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+
 
     def _run_table(self, args):
         template_results = results.Results(self.algorithm_module.result_file_path,
