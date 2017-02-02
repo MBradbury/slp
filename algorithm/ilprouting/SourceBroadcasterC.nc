@@ -153,13 +153,6 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	int8_t max_message_grouping(void)
-	{
-		return sink_source_distance == BOTTOM
-			? BOTTOM
-			: (SLP_TARGET_LATENCY_MS - (sink_source_distance * ALPHA)) / call SourcePeriodModel.get();
-	}
-
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
@@ -232,7 +225,7 @@ implementation
 			source_distance = 0;
 			sink_source_distance = sink_distance;
 
-			current_message_grouping = max_message_grouping();
+			current_message_grouping = (SLP_MESSAGE_GROUP_SIZE - 1);
 		}
 	}
 
@@ -517,7 +510,7 @@ implementation
 		message->delay = ((current_message_grouping * call SourcePeriodModel.get()) + (sink_source_distance * ALPHA)) / sink_source_distance;
 
 		simdbg("stdout", "Setting message delay of cg %u/%u to %u [ssd=%d]\n",
-			current_message_grouping, max_message_grouping(), message->delay, sink_source_distance);
+			current_message_grouping, (SLP_MESSAGE_GROUP_SIZE - 1), message->delay, sink_source_distance);
 
 		// After a while we want to just route directly to the sink every so often.
 		// This should improve the latency and also reduce the chances of avoidance messages
@@ -540,7 +533,7 @@ implementation
 
 		if (current_message_grouping == 0)
 		{
-			current_message_grouping = max_message_grouping();
+			current_message_grouping = (SLP_MESSAGE_GROUP_SIZE - 1);
 		}
 		else
 		{
