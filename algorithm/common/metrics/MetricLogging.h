@@ -24,6 +24,14 @@
 #define SEQUENCE_NUMBER_SPEC "%" PRIi64
 #define DISTANCE_SPEC "%d"
 
+// avr-libc doesn't support 64 bit format specifier
+// See: http://www.nongnu.org/avr-libc/user-manual/group__avr__stdio.html#gaa3b98c0d17b35642c0f3e4649092b9f1
+#ifdef __AVR_LIBC_VERSION__
+#undef PRIi64
+#undef PRIu64
+#undef SEQUENCE_NUMBER_SPEC
+#endif
+
 #else
 #	error "Unknown configuration"
 #endif
