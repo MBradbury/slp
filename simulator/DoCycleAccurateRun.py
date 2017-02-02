@@ -23,8 +23,8 @@ def main(module, a):
 
     # Only check dependencies on non-cluster runs
     # Cluster runs will have the dependencies checked in create.py
-    from simulator import dependency
-    dependency.check_all()
+    #from simulator import dependency
+    #dependency.check_all()
 
     target = module.replace(".", "/") + ".txt"
 
