@@ -452,13 +452,18 @@ implementation
 							normal_message->stage = NORMAL_ROUTE_TO_SINK;
 							info->rtx_attempts = RTX_ATTEMPTS;
 
-							simdbgverbose("stdout", "Failed to route message to avoid sink, giving up and routing to sink.\n");
+
+							ERROR_OCCURRED(ERROR_RTX_FAILED_TRYING_OTHER,
+								"Failed to route message " NXSEQUENCE_NUMBER_SPEC " to avoid sink, giving up and routing to sink.\n",
+								normal_message->sequence_number);
 
 							call ConsiderTimer.startOneShot(ALPHA_RETRY);
 						}
 						else
 						{
-							simdbgverbose("stdout", "Failed to send message at stage %u.\n", normal_message->stage);
+							ERROR_OCCURRED(ERROR_RTX_FAILED,
+								"Failed to send message " NXSEQUENCE_NUMBER_SPEC " at stage %u.\n",
+								normal_message->sequence_number, normal_message->stage);
 
 							// Failed to route to sink, so remove from queue.
 							put_back_in_pool(info);
