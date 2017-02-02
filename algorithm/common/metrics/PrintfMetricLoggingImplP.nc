@@ -95,7 +95,7 @@ implementation
 		)
 	{
 		// No newline here, message needs to provide it!
-		simdbgerror("stderr", "%s", message);
+		simdbgerror("stderr", "%" PRIu16 ",%s", code, message);
 	}
 
 	//##########SLP TDMA DAS##########
