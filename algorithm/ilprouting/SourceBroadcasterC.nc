@@ -247,6 +247,7 @@ implementation
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Poll);
 
+#ifdef SLP_VERBOSE_DEBUG
 	void print_dictionary_queue(void)
 	{
 		const SeqNoWithAddr* begin = call MessageQueue.beginKeys();
@@ -276,6 +277,7 @@ implementation
 
 		simdbg_clear("stdout", "}\n");
 	}
+#endif
 
 	bool has_enough_messages_to_send(void)
 	{
@@ -483,7 +485,9 @@ implementation
 				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ", %" PRIu16 ") for the message\n",
 					normal_message->sequence_number, normal_message->source_id);
 
+#ifdef SLP_VERBOSE_DEBUG
 				print_dictionary_queue();
+#endif
 			}
 		}
 	}
