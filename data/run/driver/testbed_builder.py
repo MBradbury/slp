@@ -76,6 +76,7 @@ class Runner(object):
         build_args = self.build_arguments(a)
         build_args[self.mode()] = self.testbed.name()
         build_args[self.mode() + "_" + self.testbed.name().upper()] = 1
+        build_args["PLATFORM"] = self.platform
 
         print("Building for {}".format(build_args))
 
