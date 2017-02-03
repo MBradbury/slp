@@ -5,7 +5,7 @@ CFLAGS += -I"../common" -I"../common/metrics"
 # Additional warnings
 CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable 
 
-CFLAGS += -Wsign-compare
+CFLAGS += -Wsign-compare -fdiagnostics-show-option
 
 ifndef CYCLEACCURATE
 # The micaz compiler doesn't understand these flags
