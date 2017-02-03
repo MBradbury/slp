@@ -31,6 +31,11 @@ implementation
 	components new DictionaryP(am_addr_t, NeighboursRtxInfo, MAX_SIZE) as NeighbourRtxDict;
 	App.NeighbourRtxDict -> NeighbourRtxDict;
 
+    components CommonCompareC;
+    NeighbourDict.Compare -> CommonCompareC;
+    NeighbourRtxDict.Compare -> CommonCompareC;
+
+
 	components new TimerMilliC() as BeaconSenderTimer;
 	App.BeaconSenderTimer -> BeaconSenderTimer;
 

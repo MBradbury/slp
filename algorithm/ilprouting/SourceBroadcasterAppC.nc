@@ -108,6 +108,8 @@ implementation
     App.MessagePool -> MessagePoolP;
     App.MessageQueue -> MessageQueueP;
 
+    MessageQueueP.Compare -> App;
+
     // Time
     components LocalTimeMilliC;
     
