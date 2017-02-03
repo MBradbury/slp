@@ -277,6 +277,12 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	return msg; \
 }
 
+#define RECEIVE_MESSAGE_END_NO_DEFAULT(NAME) \
+	} \
+ \
+	return msg; \
+}
+
 #define INTERCEPT_MESSAGE_BEGIN(NAME, KIND) \
 event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 { \
@@ -305,6 +311,12 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 			ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unknown node type %s. Cannot process " #NAME " message.\n", \
 				call NodeType.current_to_string()); \
 		} break; \
+	} \
+ \
+	return TRUE; \
+}
+
+#define INTERCEPT_MESSAGE_END_NO_DEFAULT(NAME) \
 	} \
  \
 	return TRUE; \
