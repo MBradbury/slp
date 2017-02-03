@@ -47,12 +47,10 @@ implementation
     // Timers
     components new TimerMilliC() as ConsiderTimer;
     components new TimerMilliC() as AwaySenderTimer;
-    components new TimerMilliC() as BeaconSenderTimer;
     components new TimerMilliC() as ObjectDetectorStartTimer;
 
     App.ConsiderTimer -> ConsiderTimer;
     App.AwaySenderTimer -> AwaySenderTimer;
-    App.BeaconSenderTimer -> BeaconSenderTimer;
     App.ObjectDetectorStartTimer -> ObjectDetectorStartTimer;
 
     // Networking
@@ -76,19 +74,15 @@ implementation
     App.AwaySend -> AwaySender;
     App.AwayReceive -> AwayReceiver;
 
-    components
-        new AMSenderC(BEACON_CHANNEL) as BeaconSender,
-        new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;
+    components new NeighboursC(
+        ni_container_t, SLP_MAX_1_HOP_NEIGHBOURHOOD,
+        BeaconMessage, BEACON_CHANNEL,
+        PollMessage, POLL_CHANNEL);
+    App.Neighbours -> NeighboursC;
 
-    App.BeaconSend -> BeaconSender;
-    App.BeaconReceive -> BeaconReceiver;
+    NeighboursC.MetricLogging -> MetricLogging;
+    NeighboursC.NodeType -> NodeTypeP;
 
-    components
-        new AMSenderC(POLL_CHANNEL) as PollSender,
-        new AMReceiverC(POLL_CHANNEL) as PollReceiver;
-
-    App.PollSend -> PollSender;
-    App.PollReceive -> PollReceiver;
 
 
     // Object Detector - For Source movement
