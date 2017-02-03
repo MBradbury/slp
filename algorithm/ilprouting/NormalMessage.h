@@ -11,7 +11,7 @@ typedef enum {
 
 } NormalMessageStages;
 
-typedef nx_struct NormalMessage {
+typedef nx_struct {
   NXSequenceNumber sequence_number;
 
   // The number of hops that this message
