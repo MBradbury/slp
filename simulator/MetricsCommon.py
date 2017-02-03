@@ -277,6 +277,12 @@ class MetricsCommon(object):
         else:
             return float('inf')
 
+    def minimum_normal_latency(self):
+        if len(self.normal_latency) != 0:
+            return min(self.normal_latency.values())
+        else:
+            return float('inf')
+
     def normal_inter_arrival_time(self):
         items = self.normal_receive_time.values()
 
