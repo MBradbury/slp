@@ -15,6 +15,6 @@ class Metrics(MetricsCommon):
         d["PollSent"]               = lambda x: x.number_sent("Poll")
 
         # 13 is ERROR_RTX_FAILED_TRYING_OTHER
-        d["FailedAvoidSink"]        = lambda x: x.errors[13] / len(x.normal_sent_time)
+        d["FailedAvoidSink"]        = lambda x: x.errors[13] / x.num_normal_sent_if_finished()
 
         return d
