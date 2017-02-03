@@ -96,6 +96,9 @@ module SourceBroadcasterC
 	// Messages that are queued to send
 	uses interface Dictionary<SeqNoWithAddr, message_queue_info_t*> as MessageQueue;
     uses interface Pool<message_queue_info_t> as MessagePool;
+
+    provides interface Compare<SeqNoWithAddr> as SeqNoWithAddrCompare;
+    provides interface Compare<SeqNoWithFlag> as SeqNoWithFlagCompare;
 }
 
 implementation
@@ -292,9 +295,9 @@ implementation
 
 	void put_back_in_pool(message_queue_info_t* info)
 	{
-		const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
+		const NormalMessage* const rcvd = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
 
-		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, 0};
+		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
 
 		call MessageQueue.remove(seq_no_lookup);
 		call MessagePool.put(info);
@@ -302,9 +305,9 @@ implementation
 
 	message_queue_info_t* find_message_queue_info(message_t* msg)
 	{
-		const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+		const NormalMessage* const rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
-		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, 0};
+		const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
 
 		return call MessageQueue.get_or_default(seq_no_lookup, NULL);
 	}
@@ -323,7 +326,7 @@ implementation
 		{
 			const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
-			const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, 0};
+			const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
 
 			item = call MessagePool.get();
 			if (!item)
@@ -387,10 +390,10 @@ implementation
 		{
 			message_queue_info_t* const info = find_message_queue_info(msg);
 
-			NormalMessage* const normal_message = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
-
 			if (info != NULL)
 			{
+				NormalMessage* const normal_message = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
+
 				const am_addr_t target = call AMPacket.destination(msg);
 
 				const bool ack_requested = info->ack_requested;
@@ -466,6 +469,8 @@ implementation
 			}
 			else
 			{
+				const NormalMessage* const normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+
 				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ", %" PRIu16 ") for the message\n",
 					normal_message->sequence_number, normal_message->source_id);
 
@@ -994,7 +999,7 @@ implementation
 
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage, 0};
+		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
@@ -1032,12 +1037,40 @@ implementation
 				// Record and switch so this message is routed towards the sink
 				record_received_message(msg, NORMAL_ROUTE_TO_SINK);
 			}
+			else if (rcvd->stage == NORMAL_ROUTE_TO_SINK)
+			{
+				// This is problematic as it indicates we have a cycle on route to the sink.
+				// The more likely explanation is that the path split and an earlier path
+				// was processed here.
+				//
+				// So we choose to do nothing.
+				simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u POSSIBLE PROBLEM CYCLE ON WAY TO SINK, OR PATH SPLIT (NO PROBLEM)\n",
+					rcvd->sequence_number, source_addr, rcvd->stage);
+			}
+			else if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
+			{
+				// Don't care
+			}
+			else if (rcvd->stage == NORMAL_ROUTE_AVOID_SINK_BACKTRACK)
+			{
+				// This is problematic as it indicates we have a cycle trying to avoid the near-sink area.
+				// Probably best to just give up and route to sink.
+
+				simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u PROBLEM CYCLE AVOIDING SINK\n",
+					rcvd->sequence_number, source_addr, rcvd->stage);
+
+				record_received_message(msg, NORMAL_ROUTE_TO_SINK);
+			}
+			else
+			{
+				assert(FALSE);
+			}
 		}
 	}
 
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage, 0};
+		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
@@ -1169,5 +1202,15 @@ implementation
 		{
 			sink_source_distance = minbot(sink_source_distance, source_distance);
 		}
+	}
+
+	command bool SeqNoWithAddrCompare.equals(const SeqNoWithAddr* a, const SeqNoWithAddr* b)
+	{
+		return a->seq_no == b->seq_no && a->addr == b->addr;
+	}
+
+	command bool SeqNoWithFlagCompare.equals(const SeqNoWithFlag* a, const SeqNoWithFlag* b)
+	{
+		return a->seq_no == b->seq_no && a->addr == b->addr && a->flag == b->flag;
 	}
 }
