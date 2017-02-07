@@ -857,10 +857,9 @@ implementation
 
 					simdbgverbose("stdout", "Found next in avoid sink route %u with %u\n", next, success);
 
-					// When we are done with avoiding the sink, we need to head to it
 					if (!success)
 					{
-						if (sink_source_distance != BOTTOM && source_distance < sink_source_distance)
+						if (sink_source_distance != BOTTOM && source_distance != BOTTOM && source_distance < sink_source_distance)
 						{
 							// We are too close to the source and it is likely that we haven't yet gone
 							// around the sink. So lets try backtracking and finding another route.
@@ -883,6 +882,7 @@ implementation
 						}
 						else
 						{
+							// When we are done with avoiding the sink, we need to head to it
 							// No neighbours left to choose from, when far from the source
 
 							message.stage = NORMAL_ROUTE_TO_SINK;
@@ -957,7 +957,7 @@ implementation
 						poll_message.sink_distance_of_sender = sink_distance;
 						poll_message.source_distance_of_sender = source_distance;
 
-						simdbgverbose("stdout", "Couldn't calculate target several times, sending poll to get more info\n");
+						simdbg("stdout", "Couldn't calculate target several times, sending poll to get more info\n");
 
 						call Neighbours.poll(&poll_message);
 					}
@@ -1096,7 +1096,7 @@ implementation
 	RECEIVE_MESSAGE_END(Normal)
 
 
-	void x_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
 
@@ -1105,13 +1105,24 @@ implementation
 
 		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
+
+		// If we snoop a normal that we have in our queue to send, should we drop attempting to send our Normal?
+		/*{
+			message_queue_info_t* const info = find_message_queue_info(msg);
+
+			if (info)
+			{
+				simdbg("stdout", "Snooped a normal from %u that we are trying to send. Dropping our normal!!!!!!!!!!!!!!\n", source_addr);
+				put_back_in_pool(info);
+			}
+		}*/
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
 		case SinkNode: Sink_receive_Normal(msg, rcvd, source_addr); break;
 
 		case SourceNode:
-		case NormalNode: x_snoop_Normal(rcvd, source_addr); break;
+		case NormalNode: x_snoop_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 
@@ -1141,6 +1152,12 @@ implementation
 			send_Away_message(&message, AM_BROADCAST_ADDR);
 
 			call Neighbours.slow_beacon();
+
+			// Do not remove the source node as a neighbour
+			if (sink_distance == 1)
+			{
+				call Neighbours.pin(rcvd->source_id);
+			}
 		}
 	}
 

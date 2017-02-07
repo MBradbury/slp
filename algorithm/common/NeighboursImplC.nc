@@ -98,12 +98,49 @@ implementation
 		return result;
 	}
 
+	command error_t Neighbours.pin(am_addr_t address)
+	{
+		NeighboursRtxInfo* stored_info = call NeighbourRtxDict.get(address);
+
+		if (!stored_info)
+		{
+			const NeighboursRtxInfo def = {0, 0, 0};
+
+			bool put_result = call NeighbourRtxDict.put(address, def);
+
+			if (!put_result)
+			{
+				return ENOMEM;
+			}
+
+			stored_info = call NeighbourRtxDict.get(address);
+		}
+
+		stored_info->flags |= NEIGHBOUR_INFO_PIN;
+
+		return SUCCESS;
+	}
+
+	command error_t Neighbours.unpin(am_addr_t address)
+	{
+		NeighboursRtxInfo* stored_info = call NeighbourRtxDict.get(address);
+
+		if (!stored_info)
+		{
+			return EALREADY;
+		}
+
+		stored_info->flags &= ~NEIGHBOUR_INFO_PIN;
+
+		return SUCCESS;
+	}
+
 	void consider_neighbour_eviction(am_addr_t address, const NeighboursRtxInfo* info)
 	{
 		const uint16_t total_tx = info->rtx_success + info->rtx_failure;
 
-		// Wait for at least 20 transmission before considering evictions
-		if (total_tx < 20)
+		// Wait for at least 12 transmission before considering evictions
+		if (total_tx < 12)
 		{
 			return;
 		}
@@ -111,11 +148,19 @@ implementation
 		// If 10% or less delivery ratio, then evict
 		if (info->rtx_success <= total_tx / 10)
 		{
-			simdbg("stdout", "Evicting %u due to %u out of %u\n",
-				address, info->rtx_success, total_tx);
+			// Neighbour is pinned, so cannot evict
+			if ((info->flags & NEIGHBOUR_INFO_PIN) != 0)
+			{
+				ERROR_OCCURRED(ERROR_UNKNOWN, "Wanted to evict pinned neighbour %u\n", address);
+			}
+			else
+			{
+				simdbg("stdout", "Evicting %u due to %u out of %u\n",
+					address, info->rtx_success, total_tx);
 
-			call NeighbourDict.remove(address);
-			call NeighbourRtxDict.remove(address);
+				call NeighbourDict.remove(address);
+				call NeighbourRtxDict.remove(address);
+			}
 		}
 	}
 
@@ -125,7 +170,7 @@ implementation
 
 		if (!stored_info)
 		{
-			const NeighboursRtxInfo def = {0, 0};
+			const NeighboursRtxInfo def = {0, 0, 0};
 
 			bool put_result = call NeighbourRtxDict.put(address, def);
 
