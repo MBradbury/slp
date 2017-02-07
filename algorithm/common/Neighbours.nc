@@ -4,6 +4,9 @@ interface Neighbours<Info, NBeaconMessage, NPollMessage>
 	command error_t record(am_addr_t address, const Info* info);
 	command error_t rtx_result(am_addr_t address, bool succeeded);
 
+	command error_t pin(am_addr_t address);
+	command error_t unpin(am_addr_t address);
+
 	event void perform_update(Info* find, const Info* given);
 
 	command uint16_t max_size();
