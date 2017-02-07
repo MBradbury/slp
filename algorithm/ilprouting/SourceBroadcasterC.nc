@@ -65,7 +65,6 @@ module SourceBroadcasterC
 
 	uses interface Timer<TMilli> as ConsiderTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
-	uses interface Timer<TMilli> as ObjectDetectorStartTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -179,7 +178,7 @@ implementation
 		{
 			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
-			call ObjectDetectorStartTimer.startOneShot(OBJECT_DETECTOR_START_DELAY_MS);
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 
 			if (call NodeType.get() == SinkNode)
 			{
@@ -815,11 +814,6 @@ implementation
 		return success;
 	}
 
-
-	event void ObjectDetectorStartTimer.fired()
-	{
-		call ObjectDetector.start();
-	}
 
 	event void ConsiderTimer.fired()
 	{
