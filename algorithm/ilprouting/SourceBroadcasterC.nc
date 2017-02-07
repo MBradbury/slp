@@ -449,6 +449,12 @@ implementation
 
 							// Failed to route to sink, so remove from queue.
 							put_back_in_pool(info);
+
+							// If we have more messages to send, lets queue them up!
+							if (has_enough_messages_to_send())
+							{
+								call ConsiderTimer.startOneShot(ALPHA_RETRY);
+							}
 						}
 					}
 					else
@@ -464,6 +470,12 @@ implementation
 					if (ack_requested & was_acked)
 					{
 						call Neighbours.rtx_result(target, TRUE);
+					}
+
+					// If we have more messages to send, lets queue them up!
+					if (has_enough_messages_to_send())
+					{
+						call ConsiderTimer.startOneShot(ALPHA_RETRY);
 					}
 				}
 			}
@@ -675,7 +687,7 @@ implementation
 		init_ni_neighbours(&local_neighbours);
 
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
-			// Do not send back to the previous node unless absolutely necessary
+			// Do not send back to the previous node
 			address != info->proximate_source &&
 
 			neighbour->sink_distance >= sink_distance
@@ -742,8 +754,7 @@ implementation
 			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
 		);
 
-		// Just pick a random neighbour that wasn't the one we just came from.
-		// Also allow potentially bad neighbours.
+		// Pick any neighbour
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(TRUE);
 
 		if (local_neighbours.size > 0)
