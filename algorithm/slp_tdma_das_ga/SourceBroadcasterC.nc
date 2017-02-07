@@ -5,7 +5,10 @@
 #include "NormalMessage.h"
 #include "EmptyNormalMessage.h"
 
-#include "ga.h"
+#define __computed_include(x) #x
+#define _computed_include(x) __computed_include(x)
+#define computed_include(x) _computed_include(x)
+#include computed_include(GENETIC_HEADER)
 
 #include <Timer.h>
 #include <TinyError.h>
