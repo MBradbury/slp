@@ -99,10 +99,12 @@ implementation {
   Setup.SetupTimer -> SetupTimer;
   Setup.ConnectTimer -> ConnectTimer;
 
+  components CommonCompareC;
   components
     new DictionaryP(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighbourRootDistances;
 
   Setup.NeighbourRootDistances -> NeighbourRootDistances;
+  NeighbourRootDistances.Compare -> CommonCompareC;
 
   components
     new SetP(am_addr_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as Connections;
