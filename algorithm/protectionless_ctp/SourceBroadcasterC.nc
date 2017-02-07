@@ -8,7 +8,7 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
 module SourceBroadcasterC
 {
@@ -49,8 +49,6 @@ implementation
 		SourceNode, SinkNode, NormalNode
 	};
 
-	unsigned int extra_to_send = 0;
-
 	bool busy = FALSE;
 	message_t packet;
 
@@ -85,7 +83,7 @@ implementation
 
 			call RoutingControl.start();
 
-			call ObjectDetector.start_later(5 * 1000);
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
@@ -167,7 +165,7 @@ implementation
 
 	void Normal_snoop_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		/*if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
@@ -175,7 +173,7 @@ implementation
 
 			simdbgverbose("stdout", "%s: Normal Snooped unseen Normal data=%u seqno=%u srcid=%u from %u.\n",
 				sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
-		}
+		}*/
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
@@ -247,6 +245,7 @@ implementation
 
 		else if (event_type == NET_C_TREE_RCV_BEACON)
 		{
+			METRIC_DELIVER(CTPBeacon, parent, BOTTOM, UNKNOWN_SEQNO);
 			METRIC_RCV(CTPBeacon, parent, BOTTOM, UNKNOWN_SEQNO, BOTTOM);
 		}
 
