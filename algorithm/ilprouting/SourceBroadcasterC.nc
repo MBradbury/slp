@@ -1163,12 +1163,6 @@ implementation
 			send_Away_message(&message, AM_BROADCAST_ADDR);
 
 			call Neighbours.slow_beacon();
-
-			// Do not remove the source node as a neighbour
-			if (sink_distance == 1)
-			{
-				call Neighbours.pin(rcvd->source_id);
-			}
 		}
 	}
 
