@@ -222,23 +222,8 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
  \
 	if (&packet == msg) \
 	{ \
-		if (extra_to_send > 0) \
-		{ \
-			if (send_##NAME##_message(NULL)) \
-			{ \
-				--extra_to_send; \
-			} \
-			else \
-			{ \
-				SEND_LED_OFF; \
-				busy = FALSE; \
-			} \
-		} \
-		else \
-		{ \
-			SEND_LED_OFF; \
-			busy = FALSE; \
-		} \
+		SEND_LED_OFF; \
+		busy = FALSE; \
 	} \
  \
 	(CALLBACK)(msg, error); \
