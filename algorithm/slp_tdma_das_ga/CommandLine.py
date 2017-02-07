@@ -43,7 +43,7 @@ class CLI(CommandLineCommon.CLI):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 11:
-            return datetime.timedelta(hours=0.5) #Assuming 100 slots and 5.5s period length
+            return datetime.timedelta(hours=4) #Assuming 100 slots and 5.5s period length
         elif size == 15:
             return datetime.timedelta(hours=12) #Assuming 100 slots and 5.5s period length
         elif size == 21:
@@ -61,7 +61,7 @@ class CLI(CommandLineCommon.CLI):
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
-            parameters.tdma_num_slots
+            parameters.tdma_num_slots, parameters.ga_headers
         ))
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
