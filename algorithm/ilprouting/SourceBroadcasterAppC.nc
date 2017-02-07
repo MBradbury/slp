@@ -47,11 +47,9 @@ implementation
     // Timers
     components new TimerMilliC() as ConsiderTimer;
     components new TimerMilliC() as AwaySenderTimer;
-    components new TimerMilliC() as ObjectDetectorStartTimer;
 
     App.ConsiderTimer -> ConsiderTimer;
     App.AwaySenderTimer -> AwaySenderTimer;
-    App.ObjectDetectorStartTimer -> ObjectDetectorStartTimer;
 
     // Networking
     components
