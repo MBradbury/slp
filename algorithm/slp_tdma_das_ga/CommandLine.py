@@ -27,7 +27,7 @@ class RunSimulations(RunSimulationsCommon):
         tdma_period_length = dissem_period + (slot_period * tdma_num_slots)
         ssd = network_size - 1                                                  #XXX Cheap fix until I find the real solution
 
-        return (1 + ssd)*tdma_period_length*1.5
+        return (1 + ssd)*tdma_period_length*2
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
