@@ -851,7 +851,8 @@ implementation
 			{
 				message.stage = NORMAL_ROUTE_TO_SINK;
 
-				simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK as max walk length has been hit\n");
+				simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK for " NXSEQUENCE_NUMBER_SPEC " as max walk length has been hit\n",
+					message.sequence_number);
 			}
 
 			switch (message.stage)
@@ -860,7 +861,8 @@ implementation
 				{
 					success = find_next_in_avoid_sink_route(info, &next);
 
-					simdbgverbose("stdout", "Found next in avoid sink route %u with %u\n", next, success);
+					simdbgverbose("stdout", "Found next for " NXSEQUENCE_NUMBER_SPEC " in avoid sink route with " TOS_NODE_ID_SPEC " ret %u\n",
+						message.sequence_number, next, success);
 
 					if (!success)
 					{
@@ -873,7 +875,7 @@ implementation
 
 							success = find_next_in_avoid_sink_backtrack_route(info, &next);
 
-							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen %u\n", next);
+							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", next);
 
 							// Couldn't work out where to backtrack to, so lets just go to the sink
 							if (!success)
@@ -882,7 +884,7 @@ implementation
 
 								success = find_next_in_to_sink_route(info, &next);
 
-								simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen %u\n", next);
+								simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen " TOS_NODE_ID_SPEC "\n", next);
 							}
 						}
 						else
@@ -894,7 +896,7 @@ implementation
 
 							success = find_next_in_to_sink_route(info, &next);
 
-							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen %u\n", next);
+							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", next);
 						}
 					}
 				} break;
@@ -933,6 +935,8 @@ implementation
 				simdbgverbose("stdout", "Sending message to %u\n", next);
 
 				info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
+
+				message.source_distance_of_sender = source_distance;
 
 				send_Normal_message(&message, next, &info->ack_requested);
 			}
@@ -1002,14 +1006,25 @@ implementation
 		}
 	}
 
+	void update_distances_from_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance_of_sender);
+
+		// When sending messages away from the sink, we cannot be sure of getting
+		// a reliable source distance gradient. So do not record it.
+		if (rcvd->stage != NORMAL_ROUTE_FROM_SINK)
+		{
+			source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
+		}
+
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+	}
+
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
-		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
-
-		source_distance = minbot(source_distance, rcvd->source_distance + 1);
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_distances_from_Normal(rcvd, source_addr);
 
 		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
@@ -1077,11 +1092,8 @@ implementation
 	{
 		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
-		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
-
-		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+		update_distances_from_Normal(rcvd, source_addr);
 		sink_source_distance = minbot(sink_source_distance, source_distance);
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
@@ -1103,10 +1115,7 @@ implementation
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance);
-
-		source_distance = minbot(source_distance, rcvd->source_distance + 1);
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		update_distances_from_Normal(rcvd, source_addr);
 
 		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
 		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
