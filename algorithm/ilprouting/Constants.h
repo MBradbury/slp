@@ -40,4 +40,12 @@ typedef struct
 	int16_t source_distance;
 } ni_container_t;
 
+enum ApplicationSLPErrorCodes
+{
+	ERROR_RTX_FAILED = 1001,
+	ERROR_RTX_FAILED_TRYING_OTHER = 1002,
+
+	ERROR_BACKTRACKING_FAILED = 1003,
+};
+
 #endif // SLP_CONSTANTS_H
