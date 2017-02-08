@@ -245,6 +245,8 @@ class Analyse(object):
         "NormalSinkSourceHops": np.float_,
         "FirstNormalSentTime": np.float_,
         "TimeBinWidth": np.float_,
+        "FailedRtx": np.uint32,
+        "FailedAvoidSink": np.float_,
     }
 
     HEADING_CONVERTERS = {
@@ -791,6 +793,8 @@ class AnalyzerCommon(object):
 
         d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
+
+        d['errors']             = lambda x: AnalyzerCommon._format_results(x, 'Errors', allow_missing=True)
 
 
     @staticmethod
