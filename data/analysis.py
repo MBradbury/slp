@@ -71,34 +71,34 @@ class EmptyDataFrameError(RuntimeError):
     def __init__(self, filename):
         super(EmptyDataFrameError, self).__init__("The DataFrame loaded from '{}' is empty.".format(filename))
 
-def _normalised_value_name(value):
+def _normalised_value_name(value, prefix):
     if isinstance(value, str):
         return value
     elif isinstance(value, Sequence) and len(value) == 2:
-        return "norm({},{})".format(_normalised_value_name(value[0]), _normalised_value_name(value[1]))
+        return "{}({},{})".format(prefix, _normalised_value_name(value[0], prefix), _normalised_value_name(value[1], prefix))
     else:
         raise RuntimeError("Unknown type or length for value '{}' of type {}".format(value, type(value)))
 
-def _dfs_names(value):
+def _dfs_names(value, prefix):
     result = []
 
     if isinstance(value, str):
         #result.append(value)
         pass
     elif isinstance(value, Sequence) and len(value) == 2:
-        result.extend(_dfs_names(value[0]))
-        result.extend(_dfs_names(value[1]))
-        result.append(_normalised_value_name(value))
+        result.extend(_dfs_names(value[0], prefix))
+        result.extend(_dfs_names(value[1], prefix))
+        result.append(_normalised_value_name(value, prefix))
     else:
         raise RuntimeError("Unknown type or length for value '{}' of type {}".format(value, type(value)))
 
     return result
 
-def _normalised_value_names(values):
+def _normalised_value_names(values, prefix):
     all_results = []
 
     for value in values:
-        all_results.extend(_dfs_names(value))
+        all_results.extend(_dfs_names(value, prefix))
 
     unique_results = tuple(unique_everseen(all_results))
 
@@ -280,7 +280,7 @@ class Analyse(object):
         "DeliveredFromFurtherMeters": _parse_dict_node_to_value,
     }
 
-    def __init__(self, infile_path, normalised_values, with_converters=True,
+    def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
                  with_normalised=True, headers_to_skip=None, keep_if_hit_upper_time_bound=False):
 
         self.opts = {}
@@ -327,10 +327,12 @@ class Analyse(object):
 
         self._unnormalised_headings_count = len(self.unnormalised_headings)
 
-        self.additional_normalised_headings = _normalised_value_names(normalised_values) if with_normalised else []
+        self.additional_normalised_headings = _normalised_value_names(normalised_values, "norm") if with_normalised else []
+        self.additional_filtered_headings = _normalised_value_names(filtered_values, "filtered") if with_normalised else []
 
         self.headings = list(self.unnormalised_headings)
         self.headings.extend(self.additional_normalised_headings)
+        self.headings.extend(self.additional_filtered_headings)
 
         converters = self.HEADING_CONVERTERS if with_converters else None
 
@@ -418,6 +420,8 @@ class Analyse(object):
         if len(df.index) == 0:
             raise EmptyDataFrameError(infile_path)
 
+        self.filtered_columns = {}
+
         if with_normalised:
             # Calculate any constants that do not change (e.g. from simulation options)
             constants = self._get_constants_from_opts()
@@ -433,14 +437,14 @@ class Analyse(object):
 
                 return cached_cols[name]
 
-            normalised_values_names = [(_normalised_value_name(num), _normalised_value_name(den)) for num, den in normalised_values]
+            normalised_values_names = [(_normalised_value_name(num, "norm"), _normalised_value_name(den, "norm")) for num, den in normalised_values]
 
             columns_to_add = OrderedDict()
 
             for (norm_head, (num, den)) in zip(self.additional_normalised_headings, normalised_values_names):
 
                 if num in self.headings and den in self.headings:
-                    print("Creating {} using ({},{}) on the fast path 1".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the fast path n1".format(norm_head, num, den))
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
                     den_col = columns_to_add[den] if den in columns_to_add else df[den]
@@ -448,24 +452,41 @@ class Analyse(object):
                     columns_to_add[norm_head] = num_col / den_col
 
                 elif num in self.headings and den in constants:
-                    print("Creating {} using ({},{}) on the fast path 2".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the fast path n2".format(norm_head, num, den))
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
 
                     columns_to_add[norm_head] = num_col / constants[den]
 
                 elif num in calc_cols and den in constants:
-                    print("Creating {} using ({},{}) on the fast path 3".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the fast path n3".format(norm_head, num, den))
 
                     columns_to_add[norm_head] = get_cached_calc_cols(num) / constants[den]
 
                 else:
-                    print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the slow path ns".format(norm_head, num, den))
 
                     #axis=1 means to apply per row
                     columns_to_add[norm_head] = df.apply(self._get_norm_value,
                                                          axis=1, raw=True, reduce=True,
                                                          args=(num, den, constants))
+
+
+            filtered_values_names = [(_normalised_value_name(num, "filtered"), _normalised_value_name(den, "filtered")) for num, den in filtered_values]
+
+            for (filtered_head, (num, den)) in zip(self.additional_filtered_headings, filtered_values_names):
+                
+                if num in self.headings and den in df:
+                    print("Creating {} using ({},{}) on the fast path f1".format(filtered_head, num, den))
+
+                    num_col = columns_to_add[num] if num in columns_to_add else df[num]
+                    den_col = df[den]
+
+                    self.filtered_columns[filtered_head] = num_col[den_col]
+
+                else:
+                    raise RuntimeError("Don't know how to calculate {}".format(filtered_head))
+
 
             if len(columns_to_add) > 0:
                 print("Merging normalised columns with the loaded data...")
@@ -640,8 +661,26 @@ class Analyse(object):
         # TODO: Call this
         pass
 
+    def find_column(self, header):
+        try:
+            return self.columns[header]
+        except KeyError:
+            pass
+
+        try:
+            return self.normalised_columns[header]
+        except KeyError:
+            pass
+
+        try:
+            return self.filtered_columns[header]
+        except KeyError:
+            pass
+
+        raise KeyError("Unable to find {}".format(header))
+
     def average_of(self, header):
-        values = (self.columns if header in self.columns else self.normalised_columns)[header]
+        values = self.find_column(header)
 
         if len(values) == 0:
             raise RuntimeError("There are no values for {} to be able to average".format(header))
@@ -656,7 +695,7 @@ class Analyse(object):
             return values.mean()
 
     def variance_of(self, header, mean):
-        values = (self.columns if header in self.columns else self.normalised_columns)[header]
+        values = self.find_column(header)
 
         if len(values) == 0:
             raise RuntimeError("There are no values for {} to be able to find the variance".format(header))
@@ -671,7 +710,7 @@ class Analyse(object):
             return values.var()
 
     def median_of(self, header):
-        values = (self.columns if header in self.columns else self.normalised_columns)[header]
+        values = self.find_column(header)
 
         first = next(iter(values))
 
@@ -733,10 +772,11 @@ class AnalysisResults(object):
                                              self.opts['node_id_order'])
 
 class AnalyzerCommon(object):
-    def __init__(self, results_directory, values, normalised_values=None):
+    def __init__(self, results_directory, values, normalised_values=None, filtered_values=None):
         self.results_directory = results_directory
         self.values = values
         self.normalised_values = normalised_values if normalised_values is not None else tuple()
+        self.filtered_values = filtered_values if filtered_values is not None else tuple()
 
         self.normalised_values += (('time_after_first_normal', '1'),)
 
@@ -826,7 +866,7 @@ class AnalyzerCommon(object):
 
     def analyse_path(self, path, **kwargs):
         #try:
-        return Analyse(path, self.normalised_values, **kwargs)
+        return Analyse(path, self.normalised_values, self.filtered_values, **kwargs)
         #except Exception as ex:
         #    raise RuntimeError("Error analysing {}".format(path), ex)
 

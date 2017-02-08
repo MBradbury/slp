@@ -5,7 +5,7 @@ algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
-        super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
+        super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters(), self.filtered_parameters())
 
     @staticmethod
     def normalised_parameters():
@@ -16,6 +16,12 @@ class Analyzer(AnalyzerCommon):
             ('energy_impact', 'num_nodes'),
             (('energy_impact', 'num_nodes'), 'TimeTaken'),
             ('daily_allowance_used', '1'),
+        )
+
+    @staticmethod
+    def filtered_parameters():
+        return (
+            ('FailedAvoidSink', 'Captured'),
         )
 
     @staticmethod
@@ -31,6 +37,8 @@ class Analyzer(AnalyzerCommon):
 
         d['failed rtx']         = lambda x: AnalyzerCommon._format_results(x, 'FailedRtx')
         d['failed avoid sink']  = lambda x: AnalyzerCommon._format_results(x, 'FailedAvoidSink')
+
+        d['failed avoid sink when captured']  = lambda x: AnalyzerCommon._format_results(x, 'filtered(FailedAvoidSink,Captured)')
 
         #d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
 
