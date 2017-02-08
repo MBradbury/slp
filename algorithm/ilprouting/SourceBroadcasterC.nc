@@ -871,6 +871,7 @@ implementation
 
 			message_queue_info_t* const info = choose_message_to_send();
 			NormalMessage message;
+			NormalMessage* info_msg;
 
 			if (info == NULL)
 			{
@@ -879,7 +880,9 @@ implementation
 				return;
 			}
 
-			message = *(NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
+			info_msg = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
+
+			message = *info_msg;
 			message.source_distance += 1;
 
 			// If we have hit the maximum walk distance, switch to routing to sink
@@ -912,22 +915,6 @@ implementation
 							success = find_next_in_avoid_sink_backtrack_route(info, &next);
 
 							simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", next);
-
-							// Couldn't work out where to backtrack to, so lets just go to the sink
-							if (!success)
-							{
-								message.stage = NORMAL_ROUTE_TO_SINK;
-
-								success = find_next_in_to_sink_route(info, &next);
-
-								ERROR_OCCURRED(ERROR_BACKTRACKING_FAILED,
-									"Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen " TOS_NODE_ID_SPEC "\n",
-									next);
-#ifdef SLP_VERBOSE_DEBUG
-								simdbg("stdout", "our dsink=%d dsrc=%d ssd=%d\n", sink_distance, source_distance, sink_source_distance);
-								print_neighbours();
-#endif
-							}
 						}
 						else
 						{
@@ -966,6 +953,16 @@ implementation
 					success = find_next_in_from_sink_route(info, &next);
 				} break;
 
+				case NORMAL_ROUTE_AVOID_SINK_1_CLOSER:
+				{
+					// We want to avoid the sink in the future,
+					// while allowing it to get 1 hop closer this time.
+					
+					message.stage = NORMAL_ROUTE_AVOID_SINK;
+
+					success = find_next_in_to_sink_route(info, &next);
+				};
+
 				default:
 				{
 					ERROR_OCCURRED(ERROR_UNKNOWN, "Unknown message stage\n");
@@ -994,11 +991,24 @@ implementation
 
 				if (info->calculate_target_attempts == 0)
 				{
-					ERROR_OCCURRED(ERROR_UNKNOWN, 
-						"Removing the message %" PRIu32 " from the pool as we have failed to work out where to send it.\n",
-						message.sequence_number);
+					// If we have failed to find somewhere to backtrack to
+					// Then allow this messages to get one hop closer to the sink
+					// before continuing to try to avoid the sink.
+					if (message.stage == NORMAL_ROUTE_AVOID_SINK_BACKTRACK)
+					{
+						info_msg->stage = NORMAL_ROUTE_AVOID_SINK_1_CLOSER;
+						info->calculate_target_attempts = CALCULATE_TARGET_ATTEMPTS;
 
-					put_back_in_pool(info);
+						call ConsiderTimer.startOneShot(ALPHA_RETRY);
+					}
+					else
+					{
+						ERROR_OCCURRED(ERROR_UNKNOWN, 
+							"Removing the message %" PRIu32 " from the pool as we have failed to work out where to send it.\n",
+							message.sequence_number);
+
+						put_back_in_pool(info);
+					}
 				}
 				else
 				{
