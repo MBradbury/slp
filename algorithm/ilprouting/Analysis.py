@@ -29,6 +29,9 @@ class Analyzer(AnalyzerCommon):
         d['beacon']             = lambda x: AnalyzerCommon._format_results(x, 'BeaconSent')
         d['poll']               = lambda x: AnalyzerCommon._format_results(x, 'PollSent')
 
+        d['failed rtx']         = lambda x: AnalyzerCommon._format_results(x, 'FailedRtx')
+        d['failed avoid sink']  = lambda x: AnalyzerCommon._format_results(x, 'FailedAvoidSink')
+
         #d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
 
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
