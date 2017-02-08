@@ -260,6 +260,7 @@ class Analyse(object):
         #"NodeWasSource": _inf_handling_literal_eval,
 
         "NodeTransitions": _parse_dict_string_tuple_to_value,
+        "Errors": _parse_dict_node_to_value,
 
         "ReceivedFromCloserOrSameHops": _parse_dict_node_to_value,
         "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
