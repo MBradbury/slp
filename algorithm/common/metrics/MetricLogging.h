@@ -88,12 +88,12 @@ enum SLPErrorCodes {
 	ERROR_NODE_NAME_TOO_LONG = 10,
 	ERROR_MESSAGE_NAME_TOO_LONG = 11,
 
-	ERROR_RTX_FAILED = 12,
-	ERROR_RTX_FAILED_TRYING_OTHER = 13,
-
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,
 	ERROR_SEND_FAKE_PERIOD_ZERO = 102,
+
+	// Do not use error codes 1xxx as they are reserved for application
+	// specific errors.
 };
 
 #endif // SLP_METRIC_LOGGING_H
