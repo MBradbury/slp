@@ -43,7 +43,7 @@ class CLI(CommandLineCommon.CLI):
         ilprouting_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'received ratio'))
+            results=('normal latency', 'ssd', 'captured', 'received ratio', 'failed avoid sink', 'failed avoid sink when captured'))
 
         result_table = fake_result.ResultTable(ilprouting_results)
 
