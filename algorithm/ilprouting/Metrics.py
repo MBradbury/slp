@@ -2,8 +2,9 @@ from __future__ import print_function, division
 
 from simulator.MetricsCommon import MetricsCommon
 
-ERROR_RTX_FAILED = 12
-ERROR_RTX_FAILED_TRYING_OTHER = 13
+ERROR_RTX_FAILED = 1001
+ERROR_RTX_FAILED_TRYING_OTHER = 1002
+ERROR_BACKTRACKING_FAILED = 1003
 
 class Metrics(MetricsCommon):
     def __init__(self, sim, configuration):
@@ -17,7 +18,8 @@ class Metrics(MetricsCommon):
         d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
         d["PollSent"]               = lambda x: x.number_sent("Poll")
 
+        d["FailedBacktrack"]        = lambda x: x.errors[ERROR_BACKTRACKING_FAILED]
         d["FailedRtx"]              = lambda x: x.errors[ERROR_RTX_FAILED] + x.errors[ERROR_RTX_FAILED_TRYING_OTHER]
-        d["FailedAvoidSink"]        = lambda x: x.errors[ERROR_RTX_FAILED_TRYING_OTHER] / x.num_normal_sent_if_finished()
+        d["FailedAvoidSink"]        = lambda x: (x.errors[ERROR_RTX_FAILED_TRYING_OTHER] + x.errors[ERROR_BACKTRACKING_FAILED]) / x.num_normal_sent_if_finished()
 
         return d

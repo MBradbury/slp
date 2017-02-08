@@ -118,6 +118,8 @@ implementation
 	int16_t source_distance = BOTTOM;
 	int16_t sink_source_distance = BOTTOM;
 
+	am_addr_t previously_sent_to = AM_BROADCAST_ADDR;
+
 	// Source variables
 	int8_t current_message_grouping = BOTTOM;
 
@@ -251,6 +253,30 @@ implementation
 			{
 				simdbg_clear("stdout", "(%" PRIu32 ",%" PRIu32 "): NULL", key.seq_no, key.addr);
 			}
+
+			if (begin + 1 != end)
+			{
+				simdbg_clear("stdout", ", ");
+			}
+		}
+
+		simdbg_clear("stdout", "}\n");
+	}
+
+	void print_neighbours(void)
+	{
+		const am_addr_t* begin = call Neighbours.beginKeys();
+		const am_addr_t* end = call Neighbours.endKeys();
+
+		simdbg("stdout", "{");
+
+		for (; begin != end; ++begin)
+		{
+			const am_addr_t key = *begin;
+			ni_container_t const* const value = call Neighbours.get_from_iter(begin);
+
+			simdbg_clear("stdout", TOS_NODE_ID_SPEC ": (dsrc=%d, dsink=%d)",
+				key, value->source_distance, value->sink_distance);
 
 			if (begin + 1 != end)
 			{
@@ -471,6 +497,8 @@ implementation
 						call Neighbours.rtx_result(target, TRUE);
 					}
 
+					previously_sent_to = target;
+
 					// If we have more messages to send, lets queue them up!
 					if (has_enough_messages_to_send())
 					{
@@ -547,9 +575,17 @@ implementation
 
 	ni_neighbour_detail_t* choose_random_neighbour(ni_neighbours_t* local_neighbours)
 	{
-		const uint16_t rnd = call Random.rand16();
-		const uint16_t neighbour_index = rnd % local_neighbours->size;
-		ni_neighbour_detail_t* const neighbour = &local_neighbours->data[neighbour_index];
+		uint16_t rnd = call Random.rand16();
+		uint16_t neighbour_index = rnd % local_neighbours->size;
+		ni_neighbour_detail_t* neighbour = &local_neighbours->data[neighbour_index];
+
+		// Try once more, to avoid always selecting the same target
+		if (local_neighbours->size > 1 && neighbour->address == previously_sent_to)
+		{
+			rnd = call Random.rand16();
+			neighbour_index = rnd % local_neighbours->size;
+			neighbour = &local_neighbours->data[neighbour_index];
+		}
 
 		return neighbour;
 	}
@@ -689,7 +725,7 @@ implementation
 			// Do not send back to the previous node
 			address != info->proximate_source &&
 
-			neighbour->sink_distance >= sink_distance
+			(neighbour->sink_distance == BOTTOM || neighbour->sink_distance >= sink_distance)
 		);
 
 		if (local_neighbours.size > 0)
@@ -875,7 +911,7 @@ implementation
 
 							success = find_next_in_avoid_sink_backtrack_route(info, &next);
 
-							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", next);
+							simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", next);
 
 							// Couldn't work out where to backtrack to, so lets just go to the sink
 							if (!success)
@@ -884,7 +920,13 @@ implementation
 
 								success = find_next_in_to_sink_route(info, &next);
 
-								simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen " TOS_NODE_ID_SPEC "\n", next);
+								ERROR_OCCURRED(ERROR_BACKTRACKING_FAILED,
+									"Switching to NORMAL_ROUTE_TO_SINK (giving up) chosen " TOS_NODE_ID_SPEC "\n",
+									next);
+#ifdef SLP_VERBOSE_DEBUG
+								simdbg("stdout", "our dsink=%d dsrc=%d ssd=%d\n", sink_distance, source_distance, sink_source_distance);
+								print_neighbours();
+#endif
 							}
 						}
 						else
@@ -896,7 +938,7 @@ implementation
 
 							success = find_next_in_to_sink_route(info, &next);
 
-							simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", next);
+							simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", next);
 						}
 					}
 				} break;
@@ -909,7 +951,7 @@ implementation
 
 					success = find_next_in_avoid_sink_route(info, &next);
 
-					simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", next);
+					simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", next);
 
 				} break;
 
