@@ -734,7 +734,7 @@ implementation
 			//dymaic period here.
 			if (dynamic_period_last <= half_sink_source_dist)
 			{
-				printf("dynamic_period\n");
+				//printf("dynamic_period\n");
 				message.random_walk_hops = long_random_walk_hops;
 				dynamic_period_last += 1;
 			}
@@ -748,11 +748,11 @@ implementation
 				short_random_walk_info.sequence_message_sent = 0;
 				dynamic_period_last = 0;
 
-				printf("reset\n");
+				//printf("reset\n");
 
 				if ( ran< get_probability(short_random_walk_info.sequence_message_sent+1))
 				{
-					printf("short random walk, probability: %d, short max probability: %d\n", ran, short_random_walk_info.probability);
+					//printf("%s: short random walk, probability: %d, short max probability: %d\n", sim_time_string(), ran, short_random_walk_info.probability);
 					message.random_walk_hops = short_random_walk_hops;
 					short_random_walk_info.message_sent += 1;
 					short_random_walk_info.sequence_message_sent += 1;
@@ -760,7 +760,7 @@ implementation
 				}
 				else
 				{
-					printf("long random walk, probability: %d, short max probability: %d\n", ran, short_random_walk_info.probability);
+					//printf("%s: long random walk, probability: %d, short max probability: %d\n", sim_time_string(), ran, short_random_walk_info.probability);
 					message.random_walk_hops = long_random_walk_hops;
 					long_random_walk_info.message_sent += 1;
 					long_random_walk_info.sequence_message_sent += 1;
@@ -780,7 +780,7 @@ implementation
 				long_random_walk_info.sequence_message_sent = 0;
 				short_random_walk_info.probability = get_probability(short_random_walk_info.sequence_message_sent+1);
 				long_random_walk_info.probability = 100 - short_random_walk_info.probability;
-				printf("short random walk, probability: %d, short max probability: %d\n", ran, short_random_walk_info.probability);
+				//printf("%s: short random walk, probability: %d, short max probability: %d\n", sim_time_string(), ran, short_random_walk_info.probability);
 			}
 			else
 			{
@@ -790,7 +790,7 @@ implementation
 				short_random_walk_info.sequence_message_sent = 0;
 				long_random_walk_info.probability = get_probability(long_random_walk_info.sequence_message_sent+1);
 				short_random_walk_info.probability = 100 - long_random_walk_info.probability;
-				printf("long random walk, probability: %d, short max probability: %d\n", ran, short_random_walk_info.probability);
+				//printf("%s: long random walk, probability: %d, short max probability: %d\n", sim_time_string(), ran, short_random_walk_info.probability);
 			}
 		}
 
@@ -829,7 +829,8 @@ implementation
 			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
 		}
 
-		if (short_random_walk_info.sequence_message_sent == 1)
+		//if last message is long random walk message, delay to send.
+		if (long_random_walk_info.sequence_message_sent == 1 && short_random_walk_info.sequence_message_sent == 0)
 		{
 			//printf("call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n");
 			call BroadcastNormalTimer.startOneShot(wait_before_short_delay_ms + source_period);
