@@ -680,6 +680,9 @@ implementation
 
 		const uint16_t lowest_num_backtracks = lowest_backtracks_from_neighbours();
 
+		static const bool FT[] = {FALSE, TRUE};
+		uint8_t i;
+
 		am_addr_t bad_neighbours[RTX_ATTEMPTS];
 		uint8_t bad_neighbours_size = 0;
 
@@ -690,57 +693,38 @@ implementation
 		// then we will try to pick a neighbour other than this one.
 		init_bad_neighbours(info, bad_neighbours, &bad_neighbours_size);
 
-		// Prefer to pick neighbours with a greater source and also greater sink distance
-		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
-			neighbour_source_distance(neighbour) > source_distance &&
-			
-			(neighbour->sink_distance != BOTTOM && sink_distance != BOTTOM &&
-				neighbour->sink_distance >= sink_distance) &&
+		// Try to pick neighbours that have not been backtracked from first.
+		// If we can't find any, then use the neighbour that has been backtracked from.
+		for (i = 0; i != ARRAY_SIZE(FT); ++i)
+		{
+			// Prefer to pick neighbours with a greater source and also greater sink distance
+			CHOOSE_NEIGHBOURS_WITH_PREDICATE(
+				neighbour_source_distance(neighbour) > source_distance &&
+				
+				(neighbour->sink_distance != BOTTOM && sink_distance != BOTTOM &&
+					neighbour->sink_distance >= sink_distance) &&
 
-			neighbour->backtracks_from == lowest_num_backtracks &&
+				(FT[i] || neighbour->backtracks_from == lowest_num_backtracks) &&
 
-			address != info->proximate_source &&
+				address != info->proximate_source &&
 
-			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
-		);
+				!neighbour_present(bad_neighbours, bad_neighbours_size, address)
+			);
 
-		// Otherwise look for neighbours with a greater source distance
-		// that are in the ssd/2 area
-		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
-			neighbour_source_distance(neighbour) > source_distance &&
+			// Otherwise look for neighbours with a greater source distance
+			// that are in the ssd/2 area
+			CHOOSE_NEIGHBOURS_WITH_PREDICATE(
+				neighbour_source_distance(neighbour) > source_distance &&
 
-			(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance * 2 > sink_source_distance) &&
+				(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance * 2 > sink_source_distance) &&
 
-			neighbour->backtracks_from == lowest_num_backtracks &&
+				(FT[i] || neighbour->backtracks_from == lowest_num_backtracks) &&
 
-			address != info->proximate_source &&
+				address != info->proximate_source &&
 
-			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
-		);
-
-		// Prefer to pick neighbours with a greater source and also greater sink distance
-		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
-			neighbour_source_distance(neighbour) > source_distance &&
-			
-			(neighbour->sink_distance != BOTTOM && sink_distance != BOTTOM &&
-				neighbour->sink_distance >= sink_distance) &&
-
-			address != info->proximate_source &&
-
-			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
-		);
-
-		// Otherwise look for neighbours with a greater source distance
-		// that are in the ssd/2 area
-		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
-			neighbour_source_distance(neighbour) > source_distance &&
-
-			(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance * 2 > sink_source_distance) &&
-
-			address != info->proximate_source &&
-
-			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
-		);
+				!neighbour_present(bad_neighbours, bad_neighbours_size, address)
+			);
+		}
 
 		// If this is the source and the sink distance and ssd are unknown, just allow everyone.
 		if (call NodeType.get() == SourceNode && (sink_distance == BOTTOM || sink_source_distance == BOTTOM))
