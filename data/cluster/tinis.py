@@ -27,10 +27,10 @@ def builder():
     from data.run.driver.cluster_builder import Runner as Builder
     return Builder()
 
-def copy_to():
+def copy_to(dirname):
     username = raw_input("Enter your {} username: ".format(name().title()))
-    subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" cluster {1}@{2}:~/slp-algorithms-tinyos".format(
-        os.environ['HOME'], username, url()), shell=True)
+    subprocess.check_call("rsync -avz -e \"ssh -i {0}/.ssh/id_rsa\" cluster/__init__.py cluster/{3} {1}@{2}:~/slp-algorithms-tinyos/cluster".format(
+        os.environ['HOME'], username, url(), dirname), shell=True)
 
 def copy_file(results_directory_path, filename):
     username = raw_input("Enter your {} username: ".format(name().title()))

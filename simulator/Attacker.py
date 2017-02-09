@@ -8,11 +8,11 @@ from data.restricted_eval import restricted_eval
 
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
-MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon', 'Inform', 'Search', 'Change', 'EmptyNormal'}
+MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon', 'Inform', 'Search', 'Change', 'EmptyNormal', 'Poll'}
 
 # An attacker can detect these are not messages to follow,
 # so the attacker will ignore these messages.
-MESSAGES_TO_IGNORE = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon', 'Inform', 'Search', 'Change'}
+MESSAGES_TO_IGNORE = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon', 'Inform', 'Search', 'Change', 'Poll'}
 
 class Attacker(object):
     def __init__(self):
@@ -430,17 +430,20 @@ class RHMAttacker(Attacker):
 
         self._started_clear_event = False
 
+        self._previous_time = 0.0
+
     def setup(self, *args, **kwargs):
         super(RHMAttacker, self).setup(*args, **kwargs)
 
         self._set_next_message_count_wait()
 
-    def _clear_messages(self, current_time):
+    def _clear_messages(self):
+        self._started_clear_event = True
         self._messages = []
         self._num_moves = 0
         self._set_next_message_count_wait()
 
-        self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
+        # self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
 
     def _set_next_message_count_wait(self):
         """Set the number of messages to wait for until next moving."""
@@ -449,9 +452,14 @@ class RHMAttacker(Attacker):
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
         # Start clear message event when first message is received
-        if not self._started_clear_event:
-            self._started_clear_event = True
-            self._sim.register_event_callback(self._clear_messages, time + self._clear_period)
+        # if not self._started_clear_event:
+            # self._started_clear_event = True
+            # self._sim.register_event_callback(self._clear_messages, time + self._clear_period)
+
+        # Assume new period if gap between messages is long enough
+        if time - self._previous_time > self._clear_period/3:
+            self._clear_messages()
+        self._previous_time = time
 
         self._messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
 

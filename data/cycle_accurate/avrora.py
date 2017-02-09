@@ -8,7 +8,12 @@ def platform():
     return "micaz"
 
 def log_mode():
-    return "disabled"
+    # Avrora has a special log mode that involves
+    # storing the address of the buffer to be printed
+    # in a variable that is watched by avrora.
+    # When that variable is changed, the address of the
+    # buffer it contains will be printed.
+    return "avrora"
 
 def url():
     return "about:blank"
