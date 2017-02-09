@@ -3,7 +3,7 @@
 
 #include "SequenceNumber.h"
 
-typedef nx_struct AwayMessage {
+typedef nx_struct {
   NXSequenceNumber sequence_number;
 
   nx_am_addr_t source_id;
@@ -13,10 +13,6 @@ typedef nx_struct AwayMessage {
   // Although not necessarily the correct distance,
   // as the known distance may be higher.
   nx_uint16_t sink_distance;
-
-  // The target buffer size that needs to be reached before messages are sent.
-  nx_uint16_t target_buffer_size;
-  nx_uint16_t target_latency_ms;
 
 } AwayMessage;
 

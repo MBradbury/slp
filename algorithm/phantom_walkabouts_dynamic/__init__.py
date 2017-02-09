@@ -8,4 +8,4 @@ def _setup():
 
 
 local_parameter_names = ('direction bias',
-                         'order', 'short count', 'long count', 'wait before short')
+                         'order', 'wait before short', 'dynamic period repeat')

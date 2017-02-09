@@ -42,13 +42,16 @@ class MetricsCommon(object):
         self.delivered_from_closer_or_same_meters = defaultdict(Counter)
         self.delivered_from_further_meters = defaultdict(Counter)
 
-        self.normal_sent_time = {}
+        self.normal_sent_time = OrderedDict()
+        self.normal_receive_time = OrderedDict()
         self.normal_latency = {}
         self.normal_hop_count = []
 
         self.total_wall_time = 0
         self.wall_time = 0
         self.event_count = 0
+
+        self.errors = Counter()
 
         self.became_source_times = defaultdict(list)
         self.became_normal_after_source_times = defaultdict(list)
@@ -61,6 +64,8 @@ class MetricsCommon(object):
         self.register('M-CB', self.process_bcast_event)
         self.register('M-CR', self.process_rcv_event)
         self.register('M-CD', self.process_deliver_event)
+
+        self.register('stderr', self.process_error_event)
 
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
@@ -166,6 +171,7 @@ class MetricsCommon(object):
             key = (top_ultimate_source_id, sequence_number)
             sent_time = self.normal_sent_time[key]
             self.normal_latency[key] = time - sent_time
+            self.normal_receive_time[key] = time
             self.normal_hop_count.append(hop_count)
 
         self._record_direction_received(kind, ord_node_id, proximate_source_id,
@@ -209,6 +215,13 @@ class MetricsCommon(object):
             self.sink_ids.add(ord_node_id)
 
         self.node_transitions[(old_name, new_name)] += 1
+
+    def process_error_event(self, d_or_e, node_id, time, detail):
+        (code, message) = detail.split(",", 1)
+
+        code = int(code)
+
+        self.errors[code] += 1
 
 
     def num_normal_sent_if_finished(self):
@@ -263,6 +276,56 @@ class MetricsCommon(object):
             return max(self.normal_latency.values())
         else:
             return float('inf')
+
+    def minimum_normal_latency(self):
+        if len(self.normal_latency) != 0:
+            return min(self.normal_latency.values())
+        else:
+            return float('inf')
+
+    def normal_inter_arrival_time(self):
+        items = self.normal_receive_time.values()
+
+        return [btime - atime for atime, btime in zip(items, items[1:])]
+
+    def normal_inter_arrival_time_average(self):
+        iat = self.normal_inter_arrival_time()
+
+        if len(iat) > 0:
+            return np.mean(iat)
+        else:
+            return float('inf')
+
+    def normal_inter_arrival_time_variance(self):
+        iat = self.normal_inter_arrival_time()
+
+        if len(iat) > 0:
+            return np.var(iat)
+        else:
+            return float('inf')
+
+    def normal_inter_generation_time(self):
+        items = self.normal_sent_time.values()
+
+        return [btime - atime for atime, btime in zip(items, items[1:])]
+
+    def normal_inter_generation_time_average(self):
+        igt = self.normal_inter_generation_time()
+
+        if len(igt) > 0:
+            return np.mean(igt)
+        else:
+            return float('inf')
+
+    def normal_inter_generation_time_variance(self):
+        igt = self.normal_inter_generation_time()
+
+        if len(igt) > 0:
+            return np.var(igt)
+        else:
+            return float('inf')
+
+
 
     def receive_ratio(self):
         # The receive ratio may be end up being lower than it actually is
@@ -491,6 +554,10 @@ class MetricsCommon(object):
         return base64.b64encode(zlib.compress(dict_result_bytes, 9))
 
     @staticmethod
+    def smaller_list_str(list_result):
+        return str(list_result).replace(", ", ",")
+
+    @staticmethod
     def items():
         d = OrderedDict()
         d["Seed"]                          = lambda x: x.seed()
@@ -515,6 +582,12 @@ class MetricsCommon(object):
         d["AttackerMinSourceDistance"]     = lambda x: x.attacker_min_source_distance()
         d["NormalLatency"]                 = lambda x: x.average_normal_latency()
         d["MaxNormalLatency"]              = lambda x: x.maximum_normal_latency()
+        d["NormalInterArrivalTimeAverage"] = lambda x: x.normal_inter_arrival_time_average()
+        d["NormalInterArrivalTimeVar"]     = lambda x: x.normal_inter_arrival_time_variance()
+        d["NormalInterArrivalTimes"]       = lambda x: MetricsCommon.smaller_list_str(["{:0.5f}".format(i) for i in x.normal_inter_arrival_time()]).replace("'", "")
+        d["NormalInterGenTimeAverage"]     = lambda x: x.normal_inter_generation_time_average()
+        d["NormalInterGenTimeVar"]         = lambda x: x.normal_inter_generation_time_variance()
+        d["NormalInterGenTimes"]           = lambda x: MetricsCommon.smaller_list_str(["{:0.5f}".format(i) for i in x.normal_inter_generation_time()]).replace("'", "")
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
@@ -535,6 +608,8 @@ class MetricsCommon(object):
         d["DeliveredFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_hops_all())
         d["DeliveredFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(x.deliv_closer_or_same_meters_all())
         d["DeliveredFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_meters_all())
+
+        d["Errors"]                        = lambda x: MetricsCommon.smaller_dict_str(dict(x.errors))
 
         return d
 

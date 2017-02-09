@@ -114,7 +114,10 @@ class TableGenerator:
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> individual result
         result = {}
 
-        indexes = [self._result_names.index(result_name) for result_name in result_names]
+        try:
+            indexes = [self._result_names.index(result_name) for result_name in result_names]
+        except ValueError as ex:
+            raise RuntimeError("The results do not contain '{}'. The available names are: '{}'".format(result_name, self._result_names), ex)
 
         for (table_key, other_items) in self._results.data.items():
             for (source_period, items) in other_items.items():
@@ -127,7 +130,7 @@ class TableGenerator:
 
     def safety_periods(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
-        return self._get_result_mapping(('time after first normal'),
+        return self._get_result_mapping(('time after first normal',),
                                         lambda tafn: self.time_after_first_normal_to_safety_period(tafn[0]))
 
     def time_taken(self):

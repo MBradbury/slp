@@ -20,13 +20,7 @@ implementation
 	App.Leds -> LedsC;
 	App.Random -> RandomC;
 
-#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
-	components PrintfMetricLoggingP as MetricLogging;
-#elif defined(USE_SERIAL_MESSAGES)
-	components SerialMetricLoggingP as MetricLogging;
-#else
-#	error "No known combination to wire up metric logging"
-#endif
+	components MetricLoggingP as MetricLogging;
 
 	App.MetricLogging -> MetricLogging;
 
@@ -38,9 +32,7 @@ implementation
 	App.MessageType -> MessageTypeP;
 	MessageTypeP.MetricLogging -> MetricLogging;
 
-#if defined(USE_SERIAL_MESSAGES)
 	MetricLogging.MessageType -> MessageTypeP;
-#endif
 
 	// Radio Control
 	components ActiveMessageC;
@@ -110,9 +102,11 @@ implementation
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 
+	components CommonCompareC; 
 	components
 		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
 	App.SourceDistances -> SourceDistances;
+	SourceDistances.Compare -> CommonCompareC;
 
 
 	components CollectionC;

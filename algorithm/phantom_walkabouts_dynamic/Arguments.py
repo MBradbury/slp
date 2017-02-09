@@ -14,9 +14,11 @@ def restricted_float(x):
 
 order_choices = ["LongShort", "ShortLong"]
 
+dynamic_repeat_choices = ["single", "multiple"]
+
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        super(Arguments, self).__init__("SLP Phantom_Walkabouts_dynamic", has_safety_period=True)
+        super(Arguments, self).__init__("SLP Phantom_Walkabouts_dynamic_rwc", has_safety_period=True)
 
         self.add_argument("--source-period",
                           type=simulator.SourcePeriodModel.eval_input, required=True)
@@ -30,9 +32,7 @@ class Arguments(ArgumentsCommon):
 
         self.add_argument("--order", type=str, choices=order_choices, required=True)
 
-        self.add_argument("--short-count", type=int, required=True)
-        self.add_argument("--long-count", type=int, required=True)
-
+        self.add_argument("--dynamic-period-repeat", choices=dynamic_repeat_choices, required=True)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
@@ -51,7 +51,9 @@ class Arguments(ArgumentsCommon):
         else:
             result["SHORT_LONG_SEQUENCE"] = 0
 
-        result["SHORT_COUNT"] = int(self.args.short_count)
-        result["LONG_COUNT"] = int(self.args.long_count)
+        if self.args.dynamic_period_repeat == "single":
+            result["DYNAMIC_PERIOD_SINGLE"] = 0
+        else:
+            result["DYNAMIC_PERIOD_MULTIPLE"] = 0
 
         return result

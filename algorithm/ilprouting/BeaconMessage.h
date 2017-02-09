@@ -1,12 +1,11 @@
 #ifndef SLP_MESSAGES_BEACONMESSAGE_H
 #define SLP_MESSAGES_BEACONMESSAGE_H
 
-typedef nx_struct BeaconMessage
+typedef nx_struct
 {
   nx_int16_t sink_distance_of_sender;
   nx_int16_t source_distance_of_sender;
-  nx_int16_t target_buffer_size_of_sender;
-  nx_int16_t target_latency_ms_of_sender;
+  nx_int16_t sink_source_distance;
 
 } BeaconMessage;
 

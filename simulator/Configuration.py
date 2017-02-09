@@ -585,7 +585,7 @@ class IndriyaOneFloorSrc31Sink15(Configuration):
     def __init__(self, *args, **kwargs):
         indriya = Indriya()
 
-        super(IndriyaSrc31Sink60, self).__init__(
+        super(IndriyaOneFloorSrc31Sink15, self).__init__(
             indriya,
             source_ids={31},
             sink_id=15,
@@ -596,7 +596,7 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
     def __init__(self, *args, **kwargs):
         indriya = Indriya()
 
-        super(IndriyaSrc31Sink60, self).__init__(
+        super(IndriyaTwoFloorsSrc31Sink60, self).__init__(
             indriya,
             source_ids={31},
             sink_id=60,

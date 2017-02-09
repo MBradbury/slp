@@ -24,27 +24,19 @@ implementation
     App.Leds -> LedsC;
     App.Random -> RandomC;
 
-#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
-    components PrintfMetricLoggingP as MetricLogging;
-#elif defined(USE_SERIAL_MESSAGES)
-    components SerialMetricLoggingP as MetricLogging;
-#else
-#   error "No known combination to wire up metric logging"
-#endif
+    components MetricLoggingP as MetricLogging;
 
     App.MetricLogging -> MetricLogging;
 
-    components new NodeTypeP(6);
+    components new NodeTypeP(3);
     App.NodeType -> NodeTypeP;
     NodeTypeP.MetricLogging -> MetricLogging;
 
-    components new MessageTypeP(6);
+    components new MessageTypeP(4);
     App.MessageType -> MessageTypeP;
     MessageTypeP.MetricLogging -> MetricLogging;
 
-#if defined(USE_SERIAL_MESSAGES)
     MetricLogging.MessageType -> MessageTypeP;
-#endif
 
     // Radio Control
     components ActiveMessageC;
@@ -55,11 +47,9 @@ implementation
     // Timers
     components new TimerMilliC() as ConsiderTimer;
     components new TimerMilliC() as AwaySenderTimer;
-    components new TimerMilliC() as BeaconSenderTimer;
 
     App.ConsiderTimer -> ConsiderTimer;
     App.AwaySenderTimer -> AwaySenderTimer;
-    App.BeaconSenderTimer -> BeaconSenderTimer;
 
     // Networking
     components
@@ -82,12 +72,15 @@ implementation
     App.AwaySend -> AwaySender;
     App.AwayReceive -> AwayReceiver;
 
-    components
-        new AMSenderC(BEACON_CHANNEL) as BeaconSender,
-        new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;
+    components new NeighboursC(
+        ni_container_t, SLP_MAX_1_HOP_NEIGHBOURHOOD,
+        BeaconMessage, BEACON_CHANNEL,
+        PollMessage, POLL_CHANNEL);
+    App.Neighbours -> NeighboursC;
 
-    App.BeaconSend -> BeaconSender;
-    App.BeaconReceive -> BeaconReceiver;
+    NeighboursC.MetricLogging -> MetricLogging;
+    NeighboursC.NodeType -> NodeTypeP;
+
 
 
     // Object Detector - For Source movement
@@ -112,6 +105,8 @@ implementation
 
     App.MessagePool -> MessagePoolP;
     App.MessageQueue -> MessageQueueP;
+
+    MessageQueueP.Compare -> App;
 
     // Time
     components LocalTimeMilliC;

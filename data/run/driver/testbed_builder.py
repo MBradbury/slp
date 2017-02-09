@@ -18,7 +18,7 @@ def choose_platform(provided, available):
         if isinstance(available, str):
             return available
         else:
-            raise RuntimeError("Unable to choose between the available platforms {}".format(available))
+            raise RuntimeError("Unable to choose between the available platforms {}. Please specify one using --platform.".format(available))
     else:
         if provided in available:
             return provided
@@ -26,7 +26,7 @@ def choose_platform(provided, available):
             raise RuntimeError("The provided platform {} is not in the available platforms {}".format(provided, available))
 
 
-class Runner:
+class Runner(object):
     def __init__(self, testbed, platform=None):
         self._progress = Progress("building file")
         self.total_job_size = None
@@ -35,7 +35,7 @@ class Runner:
         self.testbed = testbed
         self.platform = choose_platform(platform, self.testbed.platform())
 
-    def add_job(self, options, name, estimated_time):
+    def add_job(self, options, name, estimated_time=None):
         print(name)
 
         if not self._progress.has_started():
@@ -46,31 +46,37 @@ class Runner:
 
         data.util.create_dirtree(target_directory)
 
-        # Parse options
-        options = shlex.split(options)
-        module, argv = options[0], options[1:]
+        # Get the job arguments
+
+        # If options is a tuple then we have just been given the
+        # module name and the parsed arguments.
+        if isinstance(options, tuple):
+            module, a = options
+        else:
+            options = shlex.split(options)
+            module, argv = options[0], options[1:]
+
+            a = self.parse_arguments(module, argv)
+
         module_path = module.replace(".", "/")
 
-        a = self.parse_arguments(module, argv)
+        # Check that the topology supports the chosen platform
+        # Some topologies only support one platform type
+        configuration = Configuration.create(a.args.configuration, a.args)
+
+        if hasattr(configuration.topology, "platform"):
+            if configuration.topology.platform != self.platform:
+                raise RuntimeError("The topology's platform ({}) does not match the chosen platform ({})".format(
+                    configuration.topology.platform, self.platform))
+
 
         # Build the binary
 
         # These are the arguments that will be passed to the compiler
         build_args = self.build_arguments(a)
-        build_args["TESTBED"] = self.testbed.name()
-        build_args["TESTBED_" + self.testbed.name().upper()] = 1
-
-        log_mode = self.testbed.log_mode()
-        if log_mode == "printf":
-            build_args["USE_SERIAL_PRINTF"] = 1
-            build_args["SERIAL_PRINTF_BUFFERED"] = 1
-        elif log_mode == "unbuffered_printf":
-            build_args["USE_SERIAL_PRINTF"] = 1
-            build_args["SERIAL_PRINTF_UNBUFFERED"] = 1
-        elif log_mode == "serial":
-            build_args["USE_SERIAL_MESSAGES"] = 1
-        else:
-            raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
+        build_args[self.mode()] = self.testbed.name()
+        build_args[self.mode() + "_" + self.testbed.name().upper()] = 1
+        build_args["PLATFORM"] = self.platform
 
         print("Building for {}".format(build_args))
 
@@ -103,13 +109,21 @@ class Runner:
 
         # Copy any generated class files
         for file in glob.glob(os.path.join(module_path, "*.class")):
-            shutil.copy(file, target_directory)
+            try:
+                shutil.copy(file, target_directory)
+            except shutil.Error as ex:
+                if str(ex).endswith("are the same file"):
+                    continue
+                else:
+                    raise
 
         print("All Done!")
 
-        self._progress.print_progress(self._jobs_executed + 1)
+        self._progress.print_progress(self._jobs_executed)
 
         self._jobs_executed += 1
+
+        return a, module, module_path, target_directory
 
     def mode(self):
         return "TESTBED"
@@ -123,12 +137,27 @@ class Runner:
 
         return a
 
-    @staticmethod
-    def build_arguments(a):
+    def build_arguments(self, a):
         build_args = a.build_arguments()
 
         configuration = Configuration.create(a.args.configuration, a.args)
 
         build_args.update(configuration.build_arguments())
+
+        log_mode = self.testbed.log_mode()
+        if log_mode == "printf":
+            build_args["USE_SERIAL_PRINTF"] = 1
+            build_args["SERIAL_PRINTF_BUFFERED"] = 1
+        elif log_mode == "unbuffered_printf":
+            build_args["USE_SERIAL_PRINTF"] = 1
+            build_args["SERIAL_PRINTF_UNBUFFERED"] = 1
+        elif log_mode == "serial":
+            build_args["USE_SERIAL_MESSAGES"] = 1
+        elif log_mode == "disabled":
+            build_args["NO_SERIAL_OUTPUT"] = 1
+        elif log_mode == "avrora":
+            build_args["AVRORA_OUTPUT"] = 1
+        else:
+            raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
 
         return build_args

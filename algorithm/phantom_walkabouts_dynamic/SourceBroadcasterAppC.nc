@@ -14,17 +14,13 @@ implementation
 	// Low levels events such as boot and LED control
 	components DelayedBootEventMainP as MainC;
 	components LedsWhenGuiC as LedsC;
+	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
+	App.Random -> RandomC;
 
-#if defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
-	components PrintfMetricLoggingP as MetricLogging;
-#elif defined(USE_SERIAL_MESSAGES)
-	components SerialMetricLoggingP as MetricLogging;
-#else
-#	error "No known combination to wire up metric logging"
-#endif
+	components MetricLoggingP as MetricLogging;
 
 	App.MetricLogging -> MetricLogging;
 
@@ -36,9 +32,7 @@ implementation
 	App.MessageType -> MessageTypeP;
 	MessageTypeP.MetricLogging -> MetricLogging;
 
-#if defined(USE_SERIAL_MESSAGES)
 	MetricLogging.MessageType -> MessageTypeP;
-#endif
 
 	// Radio Control
 	components ActiveMessageC;
@@ -113,8 +107,4 @@ implementation
 		new SequenceNumbersP(SLP_MAX_NUM_AWAY_MESSAGES) as AwaySeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 	App.AwaySeqNos -> AwaySeqNos;
- 
-    // Random
-    components RandomC;
-    App.Random -> RandomC;
 }

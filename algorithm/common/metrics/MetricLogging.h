@@ -1,9 +1,9 @@
 #ifndef SLP_METRIC_LOGGING_H
 #define SLP_METRIC_LOGGING_H
 
-#if defined(USE_SERIAL_MESSAGES)
-
 #include "SerialMetricLoggingTypes.h"
+
+#if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 
 // These are no-ops, as we cannot just put them across the line in a serial packet
 #define simdbg(name, fmtstr, ...)
@@ -11,9 +11,11 @@
 #define simdbgerror(name, fmtstr, ...)
 #define simdbgerror_clear(name, fmtstr, ...)
 
-#elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF)
+#elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF) || defined(AVRORA_OUTPUT)
 
-#define TOS_NODE_ID_SPEC "%u"
+#include <stdio.h>
+
+#define TOS_NODE_ID_SPEC "%" PRIu16
 
 #define PROXIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
 #define ULTIMATE_SOURCE_SPEC TOS_NODE_ID_SPEC
@@ -21,6 +23,14 @@
 #define NXSEQUENCE_NUMBER_SPEC "%" PRIu32
 #define SEQUENCE_NUMBER_SPEC "%" PRIi64
 #define DISTANCE_SPEC "%d"
+
+// avr-libc doesn't support 64 bit format specifier
+// See: http://www.nongnu.org/avr-libc/user-manual/group__avr__stdio.html#gaa3b98c0d17b35642c0f3e4649092b9f1
+#ifdef __AVR_LIBC_VERSION__
+#undef PRIi64
+#undef PRIu64
+#undef SEQUENCE_NUMBER_SPEC
+#endif
 
 #else
 #	error "Unknown configuration"
@@ -48,7 +58,7 @@
 	call MetricLogging.log_metric_message_type_add(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME)
 
 // No need to format messages when using serial message as the string will not be used.
-#ifdef USE_SERIAL_MESSAGES
+#if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \
 	call MetricLogging.log_error_occurred(CODE, MESSAGE)
 #else
@@ -75,9 +85,15 @@ enum SLPErrorCodes {
 	ERROR_QUEUE_FULL = 8,
 	ERROR_DICTIONARY_KEY_NOT_FOUND = 9,
 
+	ERROR_NODE_NAME_TOO_LONG = 10,
+	ERROR_MESSAGE_NAME_TOO_LONG = 11,
+
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,
 	ERROR_SEND_FAKE_PERIOD_ZERO = 102,
+
+	// Do not use error codes 1xxx as they are reserved for application
+	// specific errors.
 };
 
 #endif // SLP_METRIC_LOGGING_H

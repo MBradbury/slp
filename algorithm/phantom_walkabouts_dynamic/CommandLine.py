@@ -36,6 +36,9 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("average-graph")
+        subparser = self._subparsers.add_parser("scatter-graph")
+        subparser = self._subparsers.add_parser("best-worst-average-graph")
 
     def _time_estimater(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -62,13 +65,13 @@ class CLI(CommandLineCommon.CLI):
             parameters.attacker_models, parameters.noise_models, parameters.communication_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.direction_bias, parameters.orders,
-            parameters.short_counts, parameters.long_counts, parameters.wait_before_short
+            parameters.wait_before_short, parameters.dynamic_period_repeat
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, nido, lnst, sp, db, o, sc, lc, wbs)
+            (s, c, am, nm, cm, d, nido, lnst, sp, db, o, wbs, dpr)
 
-            for (s, c, am, nm, cm, d, nido, lnst, sp, db, o, sc, lc, wbs) in argument_product
+            for (s, c, am, nm, cm, d, nido, lnst, sp, db, o, wbs, dpr) in argument_product
 
         ]        
 
