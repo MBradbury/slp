@@ -54,6 +54,14 @@ class TableDataFormatter(object):
                 "pre beacon periods": ("Pre Beacon", "Periods"),
                 "search distance": ("Search", "Distance"),
 
+                "buffer size": ("Buffer", "Size"),
+                "max walk length": ("Max Walk", "Length (hops)"),
+                "pr direct to sink": ("Pr Direct", "to Sink"),
+                "msg group size": ("Msg Group", "Size"),
+
+                "failed avoid sink": ("Failed Avoid", "Sink (\\%)"),
+                "failed avoid sink when captured": ("Failed Avoid", "Sink (Cap) (\\%)"),
+
 
                 "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
                 "norm(norm(sent,time taken),num_nodes)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),

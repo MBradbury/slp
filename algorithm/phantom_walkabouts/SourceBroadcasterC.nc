@@ -1,3 +1,4 @@
+//improved phantom_walkabouts_origin version without specify short and long walk length.
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
@@ -133,16 +134,17 @@ module SourceBroadcasterC
 	uses interface Receive as NormalReceive;
 	uses interface Receive as NormalSnoop;
 
+	uses interface MetricLogging;
+
+	uses interface NodeType;
+	uses interface MessageType;
+
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
 
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
-	uses interface MetricLogging;
-
-	uses interface NodeType;
-	uses interface MessageType;
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
@@ -172,9 +174,9 @@ implementation
 
 	typedef enum
 	{
-		UnknownBiasDirection, H, V 
+		UnknownBiasType, H, V 
 	}BiasedType;
-	BiasedType bias_direction = UnknownBiasDirection;
+	BiasedType bias_direction = UnknownBiasType;
 
 	typedef enum
 	{
@@ -197,12 +199,13 @@ implementation
 	int16_t srw_count = 0;	//short random walk count.
 	int16_t lrw_count = 0;	//long random walk count.
 
+	int16_t RANDOM_WALK_HOPS = BOTTOM;
+	int16_t LONG_RANDOM_WALK_HOPS = BOTTOM;
+
 	distance_neighbours_t neighbours;
 
 	bool busy = FALSE;
 	message_t packet;
-
-	unsigned int extra_to_send = 0;
 
 	uint32_t get_source_period()
 	{
@@ -230,7 +233,7 @@ implementation
 		int16_t bl_tr_dist;
 		int16_t br_tr_dist;
 
-		if (sink_bl_dist != BOTTOM && sink_br_dist != BOTTOM && sink_tr_dist != BOTTOM)
+		if (sink_bl_dist != BOTTOM && sink_br_dist !=BOTTOM && sink_tr_dist != BOTTOM)
 		{
 			bl_br_dist = abs_generic(sink_bl_dist - sink_br_dist);
 			bl_tr_dist = abs_generic(sink_bl_dist - sink_tr_dist);
@@ -253,6 +256,7 @@ implementation
 		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM)
 		{
 			uint32_t i;
+
 			uint32_t FurtherSet_neighbours = 0;
 			uint32_t CloserSideSet_neighbours = 0;
 			uint32_t CloserSet_neighbours = 0;
@@ -410,6 +414,8 @@ implementation
 		if (further_or_closer_set == UnknownSet)
 			return AM_BROADCAST_ADDR;
 
+		//simdbgverbose("stdout","<in random_walk_target()> further_or_closer_set= %d\n",further_or_closer_set);
+
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
 		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM && further_or_closer_set != UnknownSet)
@@ -451,6 +457,7 @@ implementation
 		{
 			//simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
 			//	landmark_bottom_left_distance, neighbours.size);
+
 			chosen_address = AM_BROADCAST_ADDR;
 		}
 		else
@@ -458,7 +465,7 @@ implementation
 			distance_neighbour_detail_t*  neighbour;
 
 			uint16_t rnd = call Random.rand16();
-			uint16_t neighbour_index = rnd % local_neighbours.size; ////randomly choose neighbour index
+			uint16_t neighbour_index = rnd % local_neighbours.size;  //randomly choose neighbour index
 			uint16_t brn = rnd % 100; 	//bias random number;
 
 			if (sink_location == UnknownSinkLocation)
@@ -468,21 +475,21 @@ implementation
 
 			if (sink_location == Centre && further_or_closer_set == CloserSet)	//deal with biased random walk here.
 			{
-				if (biased_direction == UnknownBiasDirection)
+				if (biased_direction == UnknownBiasType)
 				{
-					neighbour = &local_neighbours.data[neighbour_index];  //randomly choose one neighbour
+					neighbour = &local_neighbours.data[neighbour_index];   //choose one neighbour.
 
-					//determine the neighbour is V or H.
 					if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance)
 						bias_direction = V;
 					else if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance)
 						bias_direction = H;
 					else
-						simdbgerror("stdout","biased direction error!\n");
+						simdbgerror("stdout","bias_direction error!\n");
 
 					chosen_address = neighbour->address;
 				}
-				else	//bias_direction is H or bias_direction is V.
+
+				else	//bias_direction == H or bias_direction == V.
 				{
 					for (k = 0; k != local_neighbours.size; ++k)
 					{
@@ -592,9 +599,9 @@ implementation
 		return 75U + (uint32_t)(50U * random_float());
 	}
 
-	USE_MESSAGE(Normal);
-	USE_MESSAGE(Away);
-	USE_MESSAGE(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	event void Boot.booted()
 	{
@@ -634,17 +641,17 @@ implementation
 			{
 				call AwaySenderTimer.startOneShot(1 * 1000); // One second
 			}
-			if (TOS_NODE_ID == BOTTOM_LEFT_NODE_ID)
+			if (call NodeType.is_topology_node_id(BOTTOM_LEFT_NODE_ID))
 			{
 				call DelayBLSenderTimer.startOneShot(3 * 1000);	
 			}
 
-			if (TOS_NODE_ID == BOTTOM_RIGHT_NODE_ID )
+			if (call NodeType.is_topology_node_id(BOTTOM_RIGHT_NODE_ID))
 			{
 				call DelayBRSenderTimer.startOneShot(5 * 1000);	
 			}
 		
-			if (TOS_NODE_ID == TOP_RIGHT_NODE_ID )
+			if (call NodeType.is_topology_node_id(TOP_RIGHT_NODE_ID))
 			{
 				call DelayTRSenderTimer.startOneShot(7 * 1000);
 			}
@@ -751,20 +758,30 @@ implementation
 	{
 		NormalMessage message;
 		am_addr_t target;
+		uint16_t random_walk_length;
 
 		const uint32_t source_period = get_source_period();
 
-		simdbgverbose("SourceBroadcasterC", "BroadcastNormalTimer fired.\n");
+		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 #ifdef SLP_VERBOSE_DEBUG
 		print_distance_neighbours("stdout", &neighbours);
 #endif
 
+		//initialise the short sount and long count.
 		if (srw_count == 0 && lrw_count == 0)
 		{
 			srw_count = SHORT_COUNT;
 			lrw_count = LONG_COUNT;
 		}
+
+
+		random_walk_length = landmark_sink_distance/2 -1;
+		RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + 2;
+		LONG_RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + landmark_sink_distance + 2;
+		
+		
+		//simdbg("stdout","(ssd:%d,random walk length:%d)short random walk hop=%d, long random walk hop=%d\n", landmark_sink_distance, random_walk_length, RANDOM_WALK_HOPS, LONG_RANDOM_WALK_HOPS);
 
 		#ifdef SHORT_LONG_SEQUENCE
 		{
@@ -801,8 +818,8 @@ implementation
 		message.further_or_closer_set = random_walk_direction();
 
 		target = random_walk_target(message.further_or_closer_set, message.biased_direction, NULL, 0);
-
-		message.biased_direction = bias_direction;		//initialise biased_direction as UnknownBiasDirection. 
+		
+		message.biased_direction = bias_direction;		//initialise biased_direction as UnknownBiasType. 
 
 		// If we don't know who our neighbours are, then we
 		// cannot unicast to one of them.
@@ -921,13 +938,12 @@ implementation
 
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
-				
+
 				if (reach_borderline == TRUE && forwarding_message.further_or_closer_set != CloserSet)
 				{
 					forwarding_message.further_or_closer_set = CloserSet;
-					target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &source_addr, 1);
+					target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
 				}
-				//target = random_walk_target(forwarding_message.further_or_closer_set,forwarding_message.biased_direction, &source_addr, 1);
 				
 				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
 
@@ -944,8 +960,7 @@ implementation
 					return;
 				}
 
-				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
-					sim_time_string(), TOS_NODE_ID, target);
+				simdbgverbose("stdout", "Forwarding normal from %u to target = %u\n", TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
 
@@ -1082,12 +1097,12 @@ implementation
 
 		if (call NodeType.is_topology_node_id(BOTTOM_LEFT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
-			sink_bl_dist = rcvd->landmark_distance;	
+			sink_bl_dist = rcvd->landmark_distance;
 		}
 
 		if (call NodeType.is_topology_node_id(BOTTOM_RIGHT_NODE_ID) && rcvd->landmark_location == SINK)
 		{
-			sink_br_dist = rcvd->landmark_distance;
+			sink_br_dist = rcvd->landmark_distance;	
 		}
 
 		if (call NodeType.is_topology_node_id(TOP_RIGHT_NODE_ID) && rcvd->landmark_location == SINK)

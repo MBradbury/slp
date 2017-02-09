@@ -96,7 +96,6 @@ implementation
         return ((float)rnd) / UINT16_MAX;
     }
 
-	unsigned int extra_to_send = 0; //Used in the macros
 	bool busy = FALSE; //Used in the macros
 	message_t packet; //Used in the macros
     //Initialisation variables}}}
@@ -235,9 +234,9 @@ implementation
 
     //Main Logic{{{
 
-	USE_MESSAGE_WITH_CALLBACK(Normal);
-    USE_MESSAGE(Dissem);
-    USE_MESSAGE(EmptyNormal);
+	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Normal);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(Dissem);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(EmptyNormal);
 
     void init(void)
     {

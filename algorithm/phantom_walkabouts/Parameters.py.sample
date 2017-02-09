@@ -22,23 +22,17 @@ configurations = [
     #'FurtherSinkCorner3Source'
 ]
 
-random_walk_types = [
-    #'only_short_random_walk',
-    #'only_long_random_walk',
-    'phantom_walkabouts'
-]
-
 attacker_models = ['SeqNosReactiveAttacker()']
 
 latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['topology']
 
-direction_biases = [0.9]
+direction_bias = [0.9]
 
 orders = [
-	"ShortLong",
-	#"LongShort",
+    "ShortLong",
+    #"LongShort",
 ]
 
 wait_before_short = [0]
@@ -46,4 +40,4 @@ wait_before_short = [0]
 short_counts = [1]
 long_counts = [1]
 
-repeats = 300
+repeats = 1000

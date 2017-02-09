@@ -26,12 +26,14 @@ def _argument_name_to_parameter(argument_name):
     return "--" + argument_name.replace(" ", "-")
 
 class RunSimulationsCommon(object):
-    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=True, safety_periods=None):
+    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=True,
+                 safety_periods=None, safety_period_equivalence=None):
         self.driver = driver
         self.algorithm_module = algorithm_module
         self._result_path = result_path
         self._skip_completed_simulations = skip_completed_simulations
         self._safety_periods = safety_periods
+        self._safety_period_equivalence = safety_period_equivalence
 
         if not os.path.exists(self._result_path):
             raise RuntimeError("{} is not a directory".format(self._result_path))
@@ -110,10 +112,12 @@ class RunSimulationsCommon(object):
         if self._safety_periods is None:
             return None
 
+        global_parameter_names = simulator.common.global_parameter_names
+
         key = [
             self._prepare_argument_name(name, darguments)
             for name
-            in simulator.common.global_parameter_names
+            in global_parameter_names
         ]
 
         # Source period is always stored as the last item in the list
@@ -123,7 +127,32 @@ class RunSimulationsCommon(object):
         try:
             return self._safety_periods[key][source_period]
         except KeyError as ex:
-            raise MissingSafetyPeriodError(key, source_period, self._safety_periods)
+            if self._safety_period_equivalence is None:
+                raise MissingSafetyPeriodError(key, source_period, self._safety_periods)
+            else:
+                keys_to_try = []
+
+                # There exist some safety period equivalences, so lets try some
+                for (global_param, replacements) in self._safety_period_equivalence.items():
+                    global_param_index = global_parameter_names.index(global_param)
+
+                    for (search, replace) in replacements.items():
+                        if key[global_param_index] == search:
+
+                            new_key = key[:global_param_index] + (replace,) + key[global_param_index+1:]
+
+                            keys_to_try.append(new_key)
+
+                # Try each of the possible combinations
+                for key_attempt in keys_to_try:
+                    try:
+                        return self._safety_periods[key_attempt][source_period]
+                    except KeyError:
+                        pass
+
+                # If we couldn't find one, then raise the exception
+                raise MissingSafetyPeriodError([key] + keys_to_try, source_period, self._safety_periods)
+
 
     def _load_existing_results(self, argument_names):
         try:
@@ -170,6 +199,18 @@ class RunSimulationsCommon(object):
 
         return name
 
+def filter_arguments(argument_names, argument_product, to_filter):
+    # Remove indexes
+    indexes = [argument_names.index(name) for name in to_filter]
+
+    filtered_argument_names = tuple(np.delete(argument_names, indexes))
+    filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
+
+    # Remove duplicates
+    filtered_argument_product = list(unique_everseen(filtered_argument_product))
+
+    return filtered_argument_names, filtered_argument_product
+
 class RunTestbedCommon(RunSimulationsCommon):
     def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False, safety_periods=None):
         # Do all testbed tasks
@@ -179,20 +220,32 @@ class RunTestbedCommon(RunSimulationsCommon):
     def run(self, repeats, argument_names, argument_product, time_estimater=None):
 
         # Filter out invalid parameters to pass onwards
-        to_filter = ['network size', 
+        to_filter = ('network size', 
                      'attacker model', 'noise model',
                      'communication model', 'distance',
-                     'node id order', 'latest node start time']
+                     'node id order', 'latest node start time')
 
-        # Remove indexes
-        indexes = [argument_names.index(name) for name in to_filter]
-
-        filtered_argument_names = tuple(np.delete(argument_names, indexes))
-        filtered_argument_product = [tuple(np.delete(args, indexes)) for args in argument_product]
-
-        # Remove duplicates
-        filtered_argument_product = list(unique_everseen(filtered_argument_product))
+        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, to_filter)
 
         # Testbed has no notion of repeats
         # Also no need to estimate time
         super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)
+
+class RunCycleAccurateCommon(RunSimulationsCommon):
+    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False, safety_periods=None):
+        # Do all cycle accurate tasks
+        # Cycle Accurate has no notion of safety period
+        super(RunCycleAccurateCommon, self).__init__(driver, algorithm_module, result_path, False, None)
+
+    def run(self, repeats, argument_names, argument_product, time_estimater=None):
+
+        # Filter out invalid parameters to pass onwards
+        to_filter = ('attacker model', 'noise model',
+                     'communication model',
+                     'latest node start time')
+
+        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, to_filter)
+
+        # Cycle Accurate has no notion of repeats
+        # Also no need to estimate time
+        super(RunCycleAccurateCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)

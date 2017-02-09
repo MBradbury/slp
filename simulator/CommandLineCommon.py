@@ -7,13 +7,15 @@ import itertools
 import os
 import sys
 
-import simulator.common
+import algorithm
 
+import simulator.common
 import simulator.Configuration as Configuration
 
 from data import results, latex, submodule_loader
 import data.cluster
 import data.testbed
+import data.cycle_accurate
 from data.run.common import MissingSafetyPeriodError
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
@@ -24,7 +26,7 @@ class CLI(object):
 
     global_parameter_names = simulator.common.global_parameter_names
 
-    def __init__(self, package, safety_period_result_path=None, custom_run_simulation_class=None):
+    def __init__(self, package, safety_period_result_path=None, custom_run_simulation_class=None, safety_period_equivalence=None):
         super(CLI, self).__init__()
 
         self.algorithm_module = importlib.import_module(package)
@@ -32,6 +34,8 @@ class CLI(object):
 
         self.safety_period_result_path = safety_period_result_path
         self.custom_run_simulation_class = custom_run_simulation_class
+
+        self.safety_period_equivalence = safety_period_equivalence
 
         # Make sure that local_parameter_names is a tuple
         # People have run into issues where they used ('<name>') instead of ('<name>',)
@@ -78,6 +82,16 @@ class CLI(object):
 
         ###
 
+        subparser = subparsers.add_parser("cycle_accurate")
+        subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cycle_accurate), help="This is the name of the cycle accurate simulator")
+
+        testbed_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
+
+        subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
+        subparser.add_argument("--platform", type=str, default=None)
+
+        ###
+
         subparser = subparsers.add_parser("run", help="Run the parameters combination specified in Parameters.py on this local machine.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--no-skip-complete", action="store_true")
@@ -100,6 +114,8 @@ class CLI(object):
 
         subparser = subparsers.add_parser("time-taken-table", help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("--show-stddev", action="store_true")
+
+        subparser = subparsers.add_parser("error-table", help="Creates a table showing the number of simulations in which an error occurred.")
 
         subparser = subparsers.add_parser("detect-missing", help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
 
@@ -143,6 +159,8 @@ class CLI(object):
     def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
+        elif driver.mode() == "CYCLEACCURATE":
+            from data.run.common import RunCycleAccurateCommon as RunSimulations
         else:
             # Time for something very crazy...
             # Some simulations require a safety period that varies depending on
@@ -168,7 +186,8 @@ class CLI(object):
         runner = RunSimulations(
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations,
-            safety_periods=safety_periods
+            safety_periods=safety_periods,
+            safety_period_equivalence=self.safety_period_equivalence
         )
 
         try:
@@ -261,6 +280,16 @@ class CLI(object):
             self._create_table(filename, safety_period_table,
                                param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
 
+    def _run_error_table(self, args):
+        res = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=('dropped no sink delivery', 'dropped hit upper bound', 'dropped duplicates'))
+
+        result_table = fake_result.ResultTable(res)
+
+        self._create_table(self.algorithm_module.name + "-error-results", result_table)
+
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
         This can be specified by using the "notify" parameter when submitting,
@@ -293,7 +322,7 @@ class CLI(object):
             self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
 
         elif 'copy' == args.cluster_mode:
-            cluster.copy_to()
+            cluster.copy_to(self.algorithm_module.name)
 
         elif 'copy-result-summary' == args.cluster_mode:
             cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file)
@@ -316,6 +345,9 @@ class CLI(object):
         elif 'copy-back' == args.cluster_mode:
             cluster.copy_back(self.algorithm_module.name)
 
+        else:
+            raise RuntimeError("Unknown cluster mode {}".format(args.cluster_mode))
+
         sys.exit(0)
 
     def _run_testbed(self, args):
@@ -330,6 +362,21 @@ class CLI(object):
             recreate_dirtree(testbed_directory)
 
             self._execute_runner(Builder(testbed, platform=args.platform), testbed_directory, skip_completed_simulations=False)
+
+        sys.exit(0)
+
+    def _run_cycle_accurate(self, args):
+        cycle_accurate_directory = os.path.join("cycle_accurate", self.algorithm_module.name)
+
+        cycle_accurate = submodule_loader.load(data.cycle_accurate, args.name)
+
+        if 'build' == args.cycle_accurate_mode:
+            from data.run.driver.cycle_accurate_builder import Runner as Builder
+
+            print("Removing existing cycle accurate directory and creating a new one")
+            recreate_dirtree(cycle_accurate_directory)
+
+            self._execute_runner(Builder(cycle_accurate, platform=args.platform), cycle_accurate_directory, skip_completed_simulations=False)
 
         sys.exit(0)
 
@@ -434,6 +481,9 @@ class CLI(object):
         elif 'testbed' == args.mode:
             self._run_testbed(args)
 
+        elif 'cycle_accurate' == args.mode:
+            self._run_cycle_accurate(args)
+
         elif 'run' == args.mode:
             self._run_run(args)
 
@@ -445,6 +495,9 @@ class CLI(object):
 
         elif 'safety-table' == args.mode:
             self._run_safety_table(args)
+
+        elif 'error-table' == args.mode:
+            self._run_error_table(args)
 
         elif 'detect-missing' == args.mode:
             self._run_detect_missing(args)

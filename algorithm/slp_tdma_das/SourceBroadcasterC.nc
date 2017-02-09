@@ -123,7 +123,6 @@ implementation
         else return list->ids[(call Random.rand16()) % list->count];
     }
 
-	uint32_t extra_to_send = 0; //Used in the macros
 	bool busy = FALSE; //Used in the macros
 	message_t packet; //Used in the macros
     //Initialisation variables}}}
@@ -298,11 +297,11 @@ implementation
 
     //Main Logic{{{
 
-	USE_MESSAGE_WITH_CALLBACK(Normal);
-    USE_MESSAGE(Dissem);
-    USE_MESSAGE(Search);
-    USE_MESSAGE(Change);
-    USE_MESSAGE(EmptyNormal);
+	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Normal);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(Dissem);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(Search);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(Change);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(EmptyNormal);
 
     void init(void)
     {

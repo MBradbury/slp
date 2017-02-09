@@ -6,6 +6,8 @@ import os
 import subprocess
 import sys
 
+import simulator.VersionDetection as VersionDetection
+
 def main(argv):
     module = argv[1]
 
@@ -13,6 +15,11 @@ def main(argv):
 
     a = Arguments.Arguments()
     a.parse(argv[2:])
+
+    if a.args.mode == "CYCLEACCURATE":
+        from simulator.DoCycleAccurateRun import main as main_cycle_accurate
+        main_cycle_accurate(module, a)
+        sys.exit(0)
 
     # For cluster runs, the binary has already been built and the
     # topology file has been written. So do not attempt to do so again.
@@ -50,28 +57,15 @@ def main(argv):
     # When doing cluster array jobs only print out this header information on the first job
     if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
         from datetime import datetime
-        import numpy
 
         Metrics = importlib.import_module("{}.Metrics".format(module))
 
         # Print out the versions of slp-algorithms-tinyos and tinyos being used
-        try:
-            slp_algorithms_version = subprocess.check_output("hg id -n -i -b -t", shell=True)
-        except subprocess.CalledProcessError:
-            slp_algorithms_version = "<unknown hg rev>"
+        print("@version:python={}".format(VersionDetection.python_version()))
+        print("@version:numpy={}".format(VersionDetection.numpy_version()))
 
-        try:
-            tinyos_version = subprocess.check_output("git rev-parse HEAD", shell=True, cwd=os.environ["TOSROOT"])
-        except subprocess.CalledProcessError:
-            tinyos_version = "<unknown git rev>"
-        except KeyError:
-            tinyos_version = "<unknown tinyos dir>"
-
-        print("@version:python={}".format(sys.version.replace("\n", " ")))
-        print("@version:numpy={}".format(numpy.__version__))
-
-        print("@version:slp-algorithms={}".format(slp_algorithms_version.strip()))
-        print("@version:tinyos={}".format(tinyos_version.strip()))
+        print("@version:slp-algorithms={}".format(VersionDetection.slp_algorithms_version()))
+        print("@version:tinyos={}".format(VersionDetection.tinyos_version()))
 
         # Print other potentially useful meta data
         print("@date:{}".format(str(datetime.now())))
@@ -170,9 +164,10 @@ def main(argv):
         #    The process pool would stay alive.
         job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
 
-        # Always run with a seed of 44 first.
+        # Always run with a seed of 44 first and second.
         # This allows us to do compatibility checks.
-        all_args = [subprocess_args_44] + [subprocess_args] * a.args.job_size
+        # It also allows us to test the determinism of this set of parameters.
+        all_args = [subprocess_args_44, subprocess_args_44] + [subprocess_args] * a.args.job_size
 
         try:
             result = job_pool.map_async(runner, all_args)

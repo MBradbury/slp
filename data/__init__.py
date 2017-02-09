@@ -1,1 +1,1 @@
-__all__ = ["analysis", "cluster", "testbed"]
+__all__ = ["analysis", "cluster", "testbed", "cycle_accurate"]

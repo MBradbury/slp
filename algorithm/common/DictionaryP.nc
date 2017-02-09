@@ -2,6 +2,8 @@
 generic module DictionaryP(typedef Key, typedef Value, uint16_t MAX_SIZE)
 {
   provides interface Dictionary<Key, Value>;
+
+  uses interface Compare<Key>;
 }
 
 implementation
@@ -67,11 +69,11 @@ implementation
 
 	command bool Dictionary.remove(Key key)
 	{
-		int16_t i;
+		uint16_t i;
 
 		for (i = 0; i != count; ++i)
 		{
-			if (memcmp(&keys[i], &key, sizeof(Key)) == 0)
+			if (call Compare.equals(&keys[i], &key))
 			{
 				break;
 			}
@@ -93,10 +95,10 @@ implementation
 
 	command Value* Dictionary.get(Key key)
 	{
-		int16_t i;
+		uint16_t i;
 		for (i = 0; i != count; ++i)
 		{
-			if (memcmp(&keys[i], &key, sizeof(Key)) == 0)
+			if (call Compare.equals(&keys[i], &key))
 			{
 				return &values[i];
 			}

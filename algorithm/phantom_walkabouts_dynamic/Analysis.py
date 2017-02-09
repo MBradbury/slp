@@ -17,9 +17,9 @@ class Analyzer(AnalyzerCommon):
     @staticmethod
     def results_header():
         d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
-
+        
         AnalyzerCommon.common_results(d)
-
+        
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
         d['beacon']             = lambda x: AnalyzerCommon._format_results(x, 'BeaconSent')
