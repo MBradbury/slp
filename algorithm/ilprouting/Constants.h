@@ -38,6 +38,7 @@ typedef struct
 {
 	int16_t sink_distance;
 	int16_t source_distance;
+	uint16_t backtracks_from;
 } ni_container_t;
 
 enum ApplicationSLPErrorCodes
