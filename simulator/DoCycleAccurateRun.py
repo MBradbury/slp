@@ -23,8 +23,8 @@ def main(module, a):
 
     # Only check dependencies on non-cluster runs
     # Cluster runs will have the dependencies checked in create.py
-    from simulator import dependency
-    dependency.check_all()
+    #from simulator import dependency
+    #dependency.check_all()
 
     target = module.replace(".", "/") + ".txt"
 
@@ -65,12 +65,14 @@ def main(module, a):
         "platform": builder.platform,
         "simulation": "sensor-network",
         "seconds": "30",
-        "monitors": "energy",
+        "monitors": "packet,c-print,energy",
         "radio-range": a.args.distance + 0.25,
         "nodecount": str(configuration.size()),
         "topology": "static",
         "topology-file": os.path.join(target_directory, "topology.txt"),
         "random-seed": a.args.seed,
+        "max": 256, # Needed to be able to print simdbg strings longer than 30 bytes
+        "show-packets": "true",
     }
 
     target_file = os.path.join(target_directory, "main.elf")

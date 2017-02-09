@@ -3,7 +3,7 @@
 
 #include "SequenceNumber.h"
 
-typedef nx_struct AwayMessage {
+typedef nx_struct {
   NXSequenceNumber sequence_number;
 
   nx_am_addr_t source_id;

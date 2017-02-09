@@ -18,7 +18,7 @@ def choose_platform(provided, available):
         if isinstance(available, str):
             return available
         else:
-            raise RuntimeError("Unable to choose between the available platforms {}".format(available))
+            raise RuntimeError("Unable to choose between the available platforms {}. Please specify one using --platform.".format(available))
     else:
         if provided in available:
             return provided
@@ -60,12 +60,23 @@ class Runner(object):
 
         module_path = module.replace(".", "/")
 
+        # Check that the topology supports the chosen platform
+        # Some topologies only support one platform type
+        configuration = Configuration.create(a.args.configuration, a.args)
+
+        if hasattr(configuration.topology, "platform"):
+            if configuration.topology.platform != self.platform:
+                raise RuntimeError("The topology's platform ({}) does not match the chosen platform ({})".format(
+                    configuration.topology.platform, self.platform))
+
+
         # Build the binary
 
         # These are the arguments that will be passed to the compiler
         build_args = self.build_arguments(a)
         build_args[self.mode()] = self.testbed.name()
         build_args[self.mode() + "_" + self.testbed.name().upper()] = 1
+        build_args["PLATFORM"] = self.platform
 
         print("Building for {}".format(build_args))
 
@@ -144,6 +155,8 @@ class Runner(object):
             build_args["USE_SERIAL_MESSAGES"] = 1
         elif log_mode == "disabled":
             build_args["NO_SERIAL_OUTPUT"] = 1
+        elif log_mode == "avrora":
+            build_args["AVRORA_OUTPUT"] = 1
         else:
             raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
 

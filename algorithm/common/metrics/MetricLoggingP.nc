@@ -14,6 +14,8 @@ implementation
 	components SerialMetricLoggingP as ProvidedMetricLogging;
 #elif defined(NO_SERIAL_OUTPUT)
 	components NoMetricLoggingP as ProvidedMetricLogging;
+#elif defined(CYCLEACCURATE_AVRORA) && defined(AVRORA_OUTPUT)
+	components AvroraMetricLoggingP as ProvidedMetricLogging;
 #else
 #	error "No known combination to wire up metric logging"
 #endif

@@ -2,7 +2,10 @@ from __future__ import print_function
 
 import os.path
 
+import numpy as np
+
 from simulator import Configuration
+from simulator.common import global_parameter_names
 
 import data.util
 from data import latex
@@ -25,37 +28,48 @@ class Grapher(GrapherBase):
 
         print('Creating {} graph files'.format(self.result_name))
 
-        for ((size, config, attacker, noise_model, communication_model, distance), items1) in self.results.data.items():
+        print(self.results.data.keys())
+
+        for (global_params, items1) in self.results.data.items():
             for (src_period, items2) in items1.items():
                 for (params, results) in items2.items():
-                    self._create_plot(size, config, attacker, noise_model, communication_model, distance, src_period, params, results)
+                    self._create_plot(global_params, src_period, params, results)
 
         self._create_graphs(self.result_name)
 
-    def _create_plot(self, size, config, attacker, noise_model, communication_model, distance, src_period, params, results):
+    def _create_plot(self, global_params, src_period, params, results):
         def chunks(l, n):
             """ Yield successive n-sized chunks from l."""
             for i in xrange(0, len(l), n):
                 yield l[i:i+n]
 
-        size = int(size)
+        # Pop the source period off the end of the parameters
+        global_params_dict = dict(zip(global_parameter_names[:-1], global_params))
+
+        config = global_params_dict["configuration"]
+        size = int(global_params_dict["network size"])
+        distance = float(global_params_dict["distance"])
+        nido = global_params_dict["node id order"]
 
         dat = results[self.result_index]
 
+        # The dat is a (mean, var) pair, so take the mean
+        if isinstance(dat, np.ndarray):
+            dat = dat[0]
+
         if not isinstance(dat, dict):
-            raise RuntimeError("The data is not a dict")
+            raise RuntimeError("The data is not a dict. It is a {} with value {}".format(type(dat), dat))
 
         dir_name = os.path.join(
             self.output_directory,
-            self.result_name, config, attacker, noise_model, communication_model, distance,
-            str(size), str(src_period), *map(str, params))
+            self.result_name, *(global_params + (str(src_period),) + tuple(map(str, params))))
 
         print(dir_name)
 
         # Ensure that the dir we want to put the files in actually exists
         data.util.create_dirtree(dir_name)
 
-        configuration = Configuration.create_specific(config, size, float(distance))
+        configuration = Configuration.create_specific(config, size, distance, nido)
 
         (minx, miny) = configuration.minxy_coordinates()
         (maxx, maxy) = configuration.maxxy_coordinates()
@@ -99,12 +113,8 @@ class Grapher(GrapherBase):
         
         with open(os.path.join(dir_name, 'graph.caption'), 'w') as graph_caption:
             graph_caption.write('Parameters:\\newline\n')
-            graph_caption.write('Source Period: {0} second\\newline\n'.format(src_period))
-            graph_caption.write('Network Size: {0}\\newline\n'.format(size))
-            graph_caption.write('Configuration: {0}\\newline\n'.format(config))
-            graph_caption.write('Attacker Model: {0}\\newline\n'.format(attacker))
-            graph_caption.write('Noise Model: {0}\\newline\n'.format(noise_model))
-            graph_caption.write('Distance: {0}\\newline\n'.format(distance))
+            for (name, value) in global_params_dict.items():
+                graph_caption.write('{}: {}\\newline\n'.format(latex.escape(name.title()), latex.escape(value)))
             for (name, value) in zip(self.results.parameter_names, params):
                 graph_caption.write('{}: {}\\newline\n'.format(latex.escape(str(name)), latex.escape(str(value))))
 

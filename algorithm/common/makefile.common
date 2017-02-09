@@ -5,16 +5,17 @@ CFLAGS += -I"../common" -I"../common/metrics"
 # Additional warnings
 CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable 
 
-CFLAGS += -Wsign-compare
+CFLAGS += -Wsign-compare -fdiagnostics-show-option
 
-# The micax compiler doesn't understand these flags
 ifndef CYCLEACCURATE
-	CFLAGS += -Werror=pointer-sign -Werror=format
+# The micaz compiler doesn't understand these flags
+# so only enable them when not building for avrora
+CFLAGS += -Werror=pointer-sign -Werror=format
 endif
 
 # Setup printf library if required
 ifdef USE_SERIAL_PRINTF
-CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS -DUSE_SERIAL_PRINTF=1
+CFLAGS += -I$(TOSDIR)/lib/printf -DNEW_PRINTF_SEMANTICS
 endif
 
 
