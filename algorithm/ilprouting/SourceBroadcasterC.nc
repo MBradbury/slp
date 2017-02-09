@@ -24,6 +24,7 @@ void ni_update(ni_container_t* find, ni_container_t const* given)
 {
 	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
 	find->source_distance = minbot(find->source_distance, given->source_distance);
+	find->backtracks_from += given->backtracks_from;
 }
 
 void ni_print(const char* name, size_t i, am_addr_t address, ni_container_t const* contents)
@@ -34,9 +35,9 @@ void ni_print(const char* name, size_t i, am_addr_t address, ni_container_t cons
 
 DEFINE_NEIGHBOUR_DETAIL(ni_container_t, ni, ni_update, ni_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
-#define UPDATE_NEIGHBOURS(source_addr, sink_distance, source_distance) \
+#define UPDATE_NEIGHBOURS(source_addr, sink_distance, source_distance, backtracks_from) \
 { \
-	const ni_container_t dist = { sink_distance, source_distance }; \
+	const ni_container_t dist = { sink_distance, source_distance, backtracks_from }; \
 	call Neighbours.record(source_addr, &dist); \
 }
 
@@ -655,9 +656,29 @@ implementation
 					: neighbour->source_distance;
 	}
 
+	uint16_t lowest_backtracks_from_neighbours(void)
+	{
+		const am_addr_t* iter;
+		const am_addr_t* end;
+
+		uint16_t lowest = UINT16_MAX;
+
+		for (iter = call Neighbours.beginKeys(), end = call Neighbours.endKeys(); iter != end; ++iter)
+		{
+			const am_addr_t address = *iter;
+			ni_container_t const* const neighbour = call Neighbours.get_from_iter(iter);
+	
+			lowest = min(lowest, neighbour->backtracks_from);
+		}
+
+		return lowest;
+	}
+
 	bool find_next_in_avoid_sink_route(const message_queue_info_t* info, am_addr_t* next)
 	{
 		bool success = FALSE;
+
+		const uint16_t lowest_num_backtracks = lowest_backtracks_from_neighbours();
 
 		am_addr_t bad_neighbours[RTX_ATTEMPTS];
 		uint8_t bad_neighbours_size = 0;
@@ -668,6 +689,34 @@ implementation
 		// Find out if there are any bad neighbours present. If there are
 		// then we will try to pick a neighbour other than this one.
 		init_bad_neighbours(info, bad_neighbours, &bad_neighbours_size);
+
+		// Prefer to pick neighbours with a greater source and also greater sink distance
+		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
+			neighbour_source_distance(neighbour) > source_distance &&
+			
+			(neighbour->sink_distance != BOTTOM && sink_distance != BOTTOM &&
+				neighbour->sink_distance >= sink_distance) &&
+
+			neighbour->backtracks_from == lowest_num_backtracks &&
+
+			address != info->proximate_source &&
+
+			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
+		);
+
+		// Otherwise look for neighbours with a greater source distance
+		// that are in the ssd/2 area
+		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
+			neighbour_source_distance(neighbour) > source_distance &&
+
+			(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance * 2 > sink_source_distance) &&
+
+			neighbour->backtracks_from == lowest_num_backtracks &&
+
+			address != info->proximate_source &&
+
+			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
+		);
 
 		// Prefer to pick neighbours with a greater source and also greater sink distance
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
@@ -1060,7 +1109,7 @@ implementation
 
 	void update_distances_from_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance_of_sender);
+		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance_of_sender, (rcvd->stage == NORMAL_ROUTE_AVOID_SINK_BACKTRACK));
 
 		// When sending messages away from the sink, we cannot be sure of getting
 		// a reliable source distance gradient. So do not record it.
@@ -1195,7 +1244,7 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, BOTTOM);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, BOTTOM, 0);
 
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
@@ -1244,7 +1293,7 @@ implementation
 
 	event void Neighbours.rcv_poll(const PollMessage* rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender, 0);
 
 		METRIC_RCV_POLL(rcvd);
 
@@ -1263,7 +1312,7 @@ implementation
 
 	event void Neighbours.rcv_beacon(const BeaconMessage* rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender, 0);
 
 		METRIC_RCV_BEACON(rcvd);
 
