@@ -19,17 +19,21 @@ class Arguments(ArgumentsCommon):
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
 
-        self.add_argument("--max-buffer-size", type=buffer_size, required=True)
+        self.add_argument("--buffer-size", type=buffer_size, required=True)
         self.add_argument("--max-walk-length", type=self.type_positive_int, required=True)
 
         self.add_argument("--pr-direct-to-sink", type=self.type_probability, required=True)
 
+        self.add_argument("--msg-group-size", type=self.type_positive_int, required=True)
+
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        result["SLP_SEND_QUEUE_SIZE"] = self.args.max_buffer_size
+        result["SLP_SEND_QUEUE_SIZE"] = self.args.buffer_size
         result["SLP_MAX_WALK_LENGTH"] = self.args.max_walk_length
 
         result["SLP_PR_SEND_DIRECT_TO_SINK"] = self.args.pr_direct_to_sink
+
+        result["SLP_MESSAGE_GROUP_SIZE"] = self.args.msg_group_size
 
         return result

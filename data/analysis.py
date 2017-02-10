@@ -71,34 +71,34 @@ class EmptyDataFrameError(RuntimeError):
     def __init__(self, filename):
         super(EmptyDataFrameError, self).__init__("The DataFrame loaded from '{}' is empty.".format(filename))
 
-def _normalised_value_name(value):
+def _normalised_value_name(value, prefix):
     if isinstance(value, str):
         return value
     elif isinstance(value, Sequence) and len(value) == 2:
-        return "norm({},{})".format(_normalised_value_name(value[0]), _normalised_value_name(value[1]))
+        return "{}({},{})".format(prefix, _normalised_value_name(value[0], prefix), _normalised_value_name(value[1], prefix))
     else:
         raise RuntimeError("Unknown type or length for value '{}' of type {}".format(value, type(value)))
 
-def _dfs_names(value):
+def _dfs_names(value, prefix):
     result = []
 
     if isinstance(value, str):
         #result.append(value)
         pass
     elif isinstance(value, Sequence) and len(value) == 2:
-        result.extend(_dfs_names(value[0]))
-        result.extend(_dfs_names(value[1]))
-        result.append(_normalised_value_name(value))
+        result.extend(_dfs_names(value[0], prefix))
+        result.extend(_dfs_names(value[1], prefix))
+        result.append(_normalised_value_name(value, prefix))
     else:
         raise RuntimeError("Unknown type or length for value '{}' of type {}".format(value, type(value)))
 
     return result
 
-def _normalised_value_names(values):
+def _normalised_value_names(values, prefix):
     all_results = []
 
     for value in values:
-        all_results.extend(_dfs_names(value))
+        all_results.extend(_dfs_names(value, prefix))
 
     unique_results = tuple(unique_everseen(all_results))
 
@@ -137,36 +137,33 @@ def _parse_dict_node_to_value(indict, decompress=False):
     return result
 
 DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
-#DICT_TUPLE_KEY_OLD_RE = re.compile(r'(\d+):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 
 def _parse_dict_tuple_nodes_to_value(indict):
-    # Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
-    # but also handle the old style of "{0: 1}"
+    """Parse a dict like "{(0, 1): 5, (0, 3): 20, (1, 1): 40}"
+    where the structure is {(source_id, attacker_id): distance}"""
 
-    # Handle two sorts of attacker distance dicts
-    # 1. {attacker_id: distance}
-    # 2. {(source_id, attacker_id): distance}}
-
-    # New style
     dict1 = {
         (int(a), int(b)): float(c)
         for (a, b, c) in DICT_TUPLE_KEY_RE.findall(indict)
     }
 
-    # Old style - assume the source is 0
-    #dict2 = {
-    #    (0, int(b)): float(c)
-    #    for (b, c) in DICT_TUPLE_KEY_OLD_RE.findall(indict)
-    #}
+    return dict1
 
-    #dict1.update(dict2)
+DICT_STRING_TUPLE_KEY_RE = re.compile(r"\('([^']+)',\s*'([^']+)'\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)")
+
+def _parse_dict_string_tuple_to_value(indict):
+
+    dict1 = {
+        (a, b): float(c)
+        for (a, b, c) in DICT_STRING_TUPLE_KEY_RE.findall(indict)
+    }
 
     return dict1
 
 def dict_mean(dict_list):
     """Dict mean using incremental averaging"""
 
-    result = dict_list[0]
+    result = next(iter(dict_list))
 
     get = result.get
 
@@ -180,7 +177,9 @@ def dict_mean(dict_list):
 def dict_var(dict_list, mean):
     """Dict variance"""
 
-    lin = {k: list() for k in dict_list[0]}
+    first = next(iter(dict_list))
+
+    lin = {k: list() for k in first}
 
     for d in dict_list:
         for (k, v) in d.iteritems():
@@ -246,6 +245,8 @@ class Analyse(object):
         "NormalSinkSourceHops": np.float_,
         "FirstNormalSentTime": np.float_,
         "TimeBinWidth": np.float_,
+        "FailedRtx": np.uint32,
+        "FailedAvoidSink": np.float_,
     }
 
     HEADING_CONVERTERS = {
@@ -259,6 +260,9 @@ class Analyse(object):
         "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
         #"NodeWasSource": _inf_handling_literal_eval,
+
+        "NodeTransitions": _parse_dict_string_tuple_to_value,
+        "Errors": _parse_dict_node_to_value,
 
         "ReceivedFromCloserOrSameHops": _parse_dict_node_to_value,
         "ReceivedFromCloserOrSameMeters": _parse_dict_node_to_value,
@@ -276,7 +280,7 @@ class Analyse(object):
         "DeliveredFromFurtherMeters": _parse_dict_node_to_value,
     }
 
-    def __init__(self, infile_path, normalised_values, with_converters=True,
+    def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
                  with_normalised=True, headers_to_skip=None, keep_if_hit_upper_time_bound=False):
 
         self.opts = {}
@@ -323,10 +327,12 @@ class Analyse(object):
 
         self._unnormalised_headings_count = len(self.unnormalised_headings)
 
-        self.additional_normalised_headings = _normalised_value_names(normalised_values) if with_normalised else []
+        self.additional_normalised_headings = _normalised_value_names(normalised_values, "norm") if with_normalised else []
+        self.additional_filtered_headings = _normalised_value_names(filtered_values, "filtered") if with_normalised else []
 
         self.headings = list(self.unnormalised_headings)
         self.headings.extend(self.additional_normalised_headings)
+        self.headings.extend(self.additional_filtered_headings)
 
         converters = self.HEADING_CONVERTERS if with_converters else None
 
@@ -359,7 +365,10 @@ class Analyse(object):
 
         current_length = len(df.index)
 
-        print("Removed {} out of {} rows as no Normal message was ever received at the sink".format(initial_length - current_length, initial_length))
+        self.removed_rows_due_to_no_sink_delivery_count = initial_length - current_length
+
+        print("Removed {} out of {} rows as no Normal message was ever received at the sink".format(
+            self.removed_rows_due_to_no_sink_delivery_count, initial_length))
 
         if current_length == 0:
             raise RuntimeError("When removing results where the sink never received a Normal message, all results were removed.")
@@ -370,7 +379,12 @@ class Analyse(object):
             indexes_to_remove = df[df["ReachedSimUpperBound"]].index
             df.drop(indexes_to_remove, inplace=True)
 
-            print("Removed {} out of {} rows that reached the simulation upper time bound".format(len(indexes_to_remove), current_length))
+            self.removed_rows_due_to_upper_bound = len(indexes_to_remove)
+
+            print("Removed {} out of {} rows that reached the simulation upper time bound".format(
+                self.removed_rows_due_to_upper_bound, current_length))
+        else:
+            self.removed_rows_due_to_upper_bound = 0
 
         # Remove any duplicated seeds. Their result will be the same so shouldn't be counted.
         duplicated_seeds_filter = df.duplicated(subset="Seed", keep=False)
@@ -394,12 +408,19 @@ class Analyse(object):
 
             current_length = len(df.index)
 
-            print("Removed {} out of {} rows as the seeds were duplicated".format(initial_length - current_length, initial_length))
+            self.removed_rows_due_to_duplicates = initial_length - current_length
+
+            print("Removed {} out of {} rows as the seeds were duplicated".format(
+                self.removed_rows_due_to_duplicates, initial_length))
+        else:
+            self.removed_rows_due_to_duplicates = 0
 
         del duplicated_seeds_filter
 
         if len(df.index) == 0:
             raise EmptyDataFrameError(infile_path)
+
+        self.filtered_columns = {}
 
         if with_normalised:
             # Calculate any constants that do not change (e.g. from simulation options)
@@ -416,14 +437,14 @@ class Analyse(object):
 
                 return cached_cols[name]
 
-            normalised_values_names = [(_normalised_value_name(num), _normalised_value_name(den)) for num, den in normalised_values]
+            normalised_values_names = [(_normalised_value_name(num, "norm"), _normalised_value_name(den, "norm")) for num, den in normalised_values]
 
             columns_to_add = OrderedDict()
 
             for (norm_head, (num, den)) in zip(self.additional_normalised_headings, normalised_values_names):
 
                 if num in self.headings and den in self.headings:
-                    print("Creating {} using ({},{}) on the fast path 1".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the fast path n1".format(norm_head, num, den))
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
                     den_col = columns_to_add[den] if den in columns_to_add else df[den]
@@ -431,24 +452,41 @@ class Analyse(object):
                     columns_to_add[norm_head] = num_col / den_col
 
                 elif num in self.headings and den in constants:
-                    print("Creating {} using ({},{}) on the fast path 2".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the fast path n2".format(norm_head, num, den))
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
 
                     columns_to_add[norm_head] = num_col / constants[den]
 
                 elif num in calc_cols and den in constants:
-                    print("Creating {} using ({},{}) on the fast path 3".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the fast path n3".format(norm_head, num, den))
 
                     columns_to_add[norm_head] = get_cached_calc_cols(num) / constants[den]
 
                 else:
-                    print("Creating {} using ({},{}) on the slow path".format(norm_head, num, den))
+                    print("Creating {} using ({},{}) on the slow path ns".format(norm_head, num, den))
 
                     #axis=1 means to apply per row
                     columns_to_add[norm_head] = df.apply(self._get_norm_value,
                                                          axis=1, raw=True, reduce=True,
                                                          args=(num, den, constants))
+
+
+            filtered_values_names = [(_normalised_value_name(num, "filtered"), _normalised_value_name(den, "filtered")) for num, den in filtered_values]
+
+            for (filtered_head, (num, den)) in zip(self.additional_filtered_headings, filtered_values_names):
+                
+                if num in self.headings and den in df:
+                    print("Creating {} using ({},{}) on the fast path f1".format(filtered_head, num, den))
+
+                    num_col = columns_to_add[num] if num in columns_to_add else df[num]
+                    den_col = df[den]
+
+                    self.filtered_columns[filtered_head] = num_col[den_col]
+
+                else:
+                    raise RuntimeError("Don't know how to calculate {}".format(filtered_head))
+
 
             if len(columns_to_add) > 0:
                 print("Merging normalised columns with the loaded data...")
@@ -623,10 +661,31 @@ class Analyse(object):
         # TODO: Call this
         pass
 
-    def average_of(self, header):
-        values = (self.columns if header in self.columns else self.normalised_columns)[header]
+    def find_column(self, header):
+        try:
+            return self.columns[header]
+        except KeyError:
+            pass
 
-        first = values[0]
+        try:
+            return self.normalised_columns[header]
+        except KeyError:
+            pass
+
+        try:
+            return self.filtered_columns[header]
+        except KeyError:
+            pass
+
+        raise KeyError("Unable to find {}".format(header))
+
+    def average_of(self, header):
+        values = self.find_column(header)
+
+        if len(values) == 0:
+            raise RuntimeError("There are no values for {} to be able to average".format(header))
+
+        first = next(iter(values))
 
         if isinstance(first, dict):
             return dict_mean(values)
@@ -636,9 +695,12 @@ class Analyse(object):
             return values.mean()
 
     def variance_of(self, header, mean):
-        values = (self.columns if header in self.columns else self.normalised_columns)[header]
+        values = self.find_column(header)
 
-        first = values[0]
+        if len(values) == 0:
+            raise RuntimeError("There are no values for {} to be able to find the variance".format(header))
+
+        first = next(iter(values))
 
         if isinstance(first, dict):
             return dict_var(values, mean)
@@ -648,9 +710,9 @@ class Analyse(object):
             return values.var()
 
     def median_of(self, header):
-        values = (self.columns if header in self.columns else self.normalised_columns)[header]
+        values = self.find_column(header)
 
-        first = values[0]
+        first = next(iter(values))
 
         if isinstance(first, dict):
             raise NotImplementedError("Finding the median of dicts is not implemented")
@@ -699,6 +761,10 @@ class AnalysisResults(object):
         
         self.number_of_repeats = analysis.columns.shape[0]
 
+        self.dropped_hit_upper_bound = analysis.removed_rows_due_to_upper_bound
+        self.dropped_no_sink_delivery = analysis.removed_rows_due_to_no_sink_delivery_count
+        self.dropped_duplicates = analysis.removed_rows_due_to_duplicates
+
     def get_configuration(self):
         return Configuration.create_specific(self.opts['configuration'],
                                              int(self.opts['network_size']),
@@ -706,12 +772,17 @@ class AnalysisResults(object):
                                              self.opts['node_id_order'])
 
 class AnalyzerCommon(object):
-    def __init__(self, results_directory, values, normalised_values=None):
+    def __init__(self, results_directory, values, normalised_values=None, filtered_values=None):
         self.results_directory = results_directory
         self.values = values
         self.normalised_values = normalised_values if normalised_values is not None else tuple()
+        self.filtered_values = filtered_values if filtered_values is not None else tuple()
 
         self.normalised_values += (('time_after_first_normal', '1'),)
+
+        self.values['dropped no sink delivery'] = lambda x: str(x.dropped_no_sink_delivery)
+        self.values['dropped hit upper bound']  = lambda x: str(x.dropped_hit_upper_bound)
+        self.values['dropped duplicates']       = lambda x: str(x.dropped_duplicates)
 
     @staticmethod
     def common_results_header(local_parameter_names):
@@ -763,6 +834,8 @@ class AnalyzerCommon(object):
         d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
 
+        d['errors']             = lambda x: AnalyzerCommon._format_results(x, 'Errors', allow_missing=True)
+
 
     @staticmethod
     def _format_results(x, name, allow_missing=False, average_corrector=None, variance_corrector=None):
@@ -786,14 +859,14 @@ class AnalyzerCommon(object):
 
                 return str(ave)
             except KeyError:
-                if allow_missing or name in x.headers_to_skip:
+                if allow_missing or (x.headers_to_skip is not None and name in x.headers_to_skip):
                     return "None"
                 else:
                     raise
 
     def analyse_path(self, path, **kwargs):
         #try:
-        return Analyse(path, self.normalised_values, **kwargs)
+        return Analyse(path, self.normalised_values, self.filtered_values, **kwargs)
         #except Exception as ex:
         #    raise RuntimeError("Error analysing {}".format(path), ex)
 

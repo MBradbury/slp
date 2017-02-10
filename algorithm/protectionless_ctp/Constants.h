@@ -9,4 +9,6 @@ enum Channels
 #define SLP_MAX_NUM_SOURCES 20
 #define SLP_MAX_NUM_SINKS 1
 
+#define SLP_OBJECT_DETECTOR_START_DELAY_MS (5 * 1000)
+
 #endif // SLP_CONSTANTS_H

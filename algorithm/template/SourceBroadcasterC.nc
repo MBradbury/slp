@@ -59,9 +59,6 @@ implementation
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
-
-	const uint32_t away_delay = SOURCE_PERIOD_MS / 2;
-
 	int32_t sink_source_distance = BOTTOM;
 	int32_t source_distance = BOTTOM;
 	int32_t sink_distance = BOTTOM;
@@ -346,7 +343,7 @@ implementation
 
 			if (!sink_sent_away)
 			{
-				call AwaySenderTimer.startOneShot(away_delay);
+				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
 			}
 		}
 	}
@@ -460,6 +457,9 @@ implementation
 		case SinkNode: break;
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
+
+		case TempFakeNode:
+		case PermFakeNode: break;
 	RECEIVE_MESSAGE_END(Away)
 
 
@@ -497,6 +497,11 @@ implementation
 
 	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
 		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
+
+		case TempFakeNode:
+		case PermFakeNode:
+		case SinkNode:
+		case SourceNode: break;
 	RECEIVE_MESSAGE_END(Choose)
 
 

@@ -164,9 +164,10 @@ def main(argv):
         #    The process pool would stay alive.
         job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
 
-        # Always run with a seed of 44 first.
+        # Always run with a seed of 44 first and second.
         # This allows us to do compatibility checks.
-        all_args = [subprocess_args_44] + [subprocess_args] * a.args.job_size
+        # It also allows us to test the determinism of this set of parameters.
+        all_args = [subprocess_args_44, subprocess_args_44] + [subprocess_args] * a.args.job_size
 
         try:
             result = job_pool.map_async(runner, all_args)
