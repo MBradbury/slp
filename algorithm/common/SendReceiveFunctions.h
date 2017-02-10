@@ -222,23 +222,8 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
  \
 	if (&packet == msg) \
 	{ \
-		if (extra_to_send > 0) \
-		{ \
-			if (send_##NAME##_message(NULL)) \
-			{ \
-				--extra_to_send; \
-			} \
-			else \
-			{ \
-				SEND_LED_OFF; \
-				busy = FALSE; \
-			} \
-		} \
-		else \
-		{ \
-			SEND_LED_OFF; \
-			busy = FALSE; \
-		} \
+		SEND_LED_OFF; \
+		busy = FALSE; \
 	} \
  \
 	(CALLBACK)(msg, error); \
@@ -277,6 +262,12 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	return msg; \
 }
 
+#define RECEIVE_MESSAGE_END_NO_DEFAULT(NAME) \
+	} \
+ \
+	return msg; \
+}
+
 #define INTERCEPT_MESSAGE_BEGIN(NAME, KIND) \
 event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 { \
@@ -305,6 +296,12 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 			ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unknown node type %s. Cannot process " #NAME " message.\n", \
 				call NodeType.current_to_string()); \
 		} break; \
+	} \
+ \
+	return TRUE; \
+}
+
+#define INTERCEPT_MESSAGE_END_NO_DEFAULT(NAME) \
 	} \
  \
 	return TRUE; \

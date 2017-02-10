@@ -102,9 +102,11 @@ implementation
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 
+	components CommonCompareC; 
 	components
 		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
 	App.SourceDistances -> SourceDistances;
+	SourceDistances.Compare -> CommonCompareC;
 
 
 	components CollectionC;
