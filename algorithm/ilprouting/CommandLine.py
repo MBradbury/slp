@@ -1,15 +1,18 @@
 from __future__ import print_function
 
 import itertools
+import os
 
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
+import algorithm
+protectionless = algorithm.import_algorithm("protectionless")
 
 from data import results, latex
 from data.table import safety_period, direct_comparison, fake_result
 from data.graph import summary, versus
+from data.util import scalar_extractor
 
 # Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
 safety_period_equivalence = {
@@ -21,6 +24,7 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__, protectionless.result_file_path, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._subparsers.add_parser("table")
+        subparser = self._subparsers.add_parser("graph")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -38,7 +42,6 @@ class CLI(CommandLineCommon.CLI):
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
 
-
     def _run_table(self, args):
         ilprouting_results = results.Results(
             self.algorithm_module.result_file_path,
@@ -49,8 +52,68 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_table(self.algorithm_module.name + "-results", result_table)
 
+    def _run_graph(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+        }
+
+        ilprouting_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=tuple(graph_parameters.keys()))
+
+        varying = [
+            (('network size', ''), ('msg group size', '')),
+            (('network size', ''), ('source period', ' seconds')),
+            (('network size', ''), ('pr direct to sink', '')),
+        ]
+
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+            'norm(sent,time taken)': 250,
+            'captured': 9,
+            'normal latency': 4000,
+        }
+
+        for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+
+                g = versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis=xaxis, yaxis=yaxis, vary=vary,
+                    yextractor=scalar_extractor)
+
+                g.xaxis_label = xaxis.title()
+                g.yaxis_label = yaxis_label
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_units
+                g.key_position = key_position
+
+                if yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
+                g.nokey = True
+                g.generate_legend_graph = True
+
+                g.create(ilprouting_results)
+
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
+                ).run()
+
     def run(self, args):
         args = super(CLI, self).run(args)
 
         if 'table' == args.mode:
             self._run_table(args)
+
+        if 'graph' == args.mode:
+            self._run_graph(args)
+
