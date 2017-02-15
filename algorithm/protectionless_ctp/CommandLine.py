@@ -120,5 +120,5 @@ class CLI(CommandLineCommon.CLI):
         if 'graph' == args.mode:
             self._run_graph(args)
 
-        if 'table' == args.table:
+        if 'table' == args.mode:
             self._run_table(args)
