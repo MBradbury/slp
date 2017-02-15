@@ -27,6 +27,5 @@ class Arguments(ArgumentsCommon):
 
         result["BOTTOM_LEFT_NODE_ID"] = self._get_node_id("bottom_left")
         result["BOTTOM_RIGHT_NODE_ID"] = self._get_node_id("bottom_right")
-        result["TOP_LEFT_NODE_ID"] = self._get_node_id("top_left")
 
         return result

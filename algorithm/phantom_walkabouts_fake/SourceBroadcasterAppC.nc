@@ -61,10 +61,6 @@ implementation
 
 	App.BeaconSenderTimer -> BeaconSenderTimer;
 
-	components new TimerMilliC() as BroadcastFakeTimer;
-
-	App.BroadcastFakeTimer -> BroadcastFakeTimer;
-
 
 	// Networking
 	components
