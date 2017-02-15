@@ -3,6 +3,8 @@ from data.analysis import Analyse, AnalysisResults, AnalyzerCommon
 
 from simulator import SourcePeriodModel
 
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+
 class AnalyseWithOutlierDetection(Analyse):
     def detect_outlier(self, values):
         return None
