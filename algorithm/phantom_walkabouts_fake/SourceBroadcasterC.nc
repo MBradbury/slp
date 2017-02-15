@@ -140,7 +140,7 @@ implementation
 {
 	enum
 	{
-		SourceNode, SinkNode, NormalNode, FakeNode
+		SourceNode, SinkNode, NormalNode, TempFakeNode
 	};
 
 	typedef enum
@@ -225,8 +225,8 @@ implementation
 
 	uint32_t get_fs_period()
 	{
-		assert(call NodeType.get() == FakeNode);
-		return call SourcePeriodModel.get();
+		assert(call NodeType.get() == TempFakeNode);
+		return call SourcePeriodModel.get()/2;
 	}
 
 	uint32_t get_fs_duration(void)
@@ -293,12 +293,12 @@ implementation
 					possible_sets |= CloserSet;
 				}
 			}
-			simdbgverbose("stdout", "CloserSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSideSet_neighbours=%d\n",
-			CloserSet_neighbours, FurtherSet_neighbours, CloserSideSet_neighbours, FurtherSideSet_neighbours);
+			//simdbgverbose("stdout", "CloserSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSideSet_neighbours=%d\n",
+			//CloserSet_neighbours, FurtherSet_neighbours, CloserSideSet_neighbours, FurtherSideSet_neighbours);
 		}
 
-		simdbgverbose("stdout", "possible_sets=%d, bottom_left_distance=%d, bottom_right_distance=%d, sink_distance=%d\n", 
-				possible_sets, bottom_left_distance, bottom_right_distance, sink_distance);
+		//simdbgverbose("stdout", "possible_sets=%d, bottom_left_distance=%d, bottom_right_distance=%d, sink_distance=%d\n", 
+				//possible_sets, bottom_left_distance, bottom_right_distance, sink_distance);
 
 		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 		{	
@@ -387,7 +387,7 @@ implementation
 		}
 		else
 		{
-			simdbgverbose("stdout","possible set = 0, return UnknownSet.\n");
+			//simdbgverbose("stdout","possible set = 0, return UnknownSet.\n");
 			return UnknownSet;		
 		}
 	}
@@ -437,12 +437,12 @@ implementation
 		}
 		if (local_neighbours.size == 0)
 		{
-			simdbgverbose("stdout","Need change Set.\n");
+			//simdbgverbose("stdout","Need change Set.\n");
 			return CloserSet;
 		}
 		else
 		{
-			simdbgverbose("stdout", "<neighbour check>set type:%d, local neighbour size: %u\n",further_or_closer_set, local_neighbours.size);
+			//simdbgverbose("stdout", "<neighbour check>set type:%d, local neighbour size: %u\n",further_or_closer_set, local_neighbours.size);
 			return further_or_closer_set;
 		}
 	}
@@ -493,11 +493,11 @@ implementation
 				}
 			}
 		}
-		simdbgverbose("stdout","--------------neighbours size is %d-----------------\n", local_neighbours.size);
+		//simdbgverbose("stdout","--------------neighbours size is %d-----------------\n", local_neighbours.size);
 
 		if (local_neighbours.size == 0)
 		{
-			simdbgverbose("stdout", "no neighbour is chosen! so broadcast!\n");
+			//simdbgverbose("stdout", "no neighbour is chosen! so broadcast!\n");
 			chosen_address = AM_BROADCAST_ADDR;
 
 		}
@@ -505,7 +505,7 @@ implementation
 		else if (local_neighbours.size == 1)
 		{
 			chosen_address = local_neighbours.data[0].address;
-			simdbgverbose("stdout", "neighbour size 1, so choose: %d\n", chosen_address);
+			//simdbgverbose("stdout", "neighbour size 1, so choose: %d\n", chosen_address);
 		}
 
 		else
@@ -521,8 +521,8 @@ implementation
 					{
 						chosen_set_neighbours[j].address = local_neighbours.data[j].address;
 						chosen_set_neighbours[j].neighbour_size = node_neighbours[m].neighbour_size;
-						simdbgverbose("stdout", "chosen_set_neighbours: neighbour[%d], address is %d, neighbour_size is %d\n",
-							j, chosen_set_neighbours[j].address, chosen_set_neighbours[j].neighbour_size);
+						//simdbgverbose("stdout", "chosen_set_neighbours: neighbour[%d], address is %d, neighbour_size is %d\n",
+						//	j, chosen_set_neighbours[j].address, chosen_set_neighbours[j].neighbour_size);
 					}
 				}
 			}
@@ -533,12 +533,12 @@ implementation
 				const uint16_t rnd = call Random.rand16();
 				const uint16_t neighbour_index = rnd % local_neighbours.size;
 				neighbour_target = &local_neighbours.data[neighbour_index];
-				simdbgverbose("stdout","randomly pick one. Chosen:%d\n", neighbour_target->address);
+				//simdbgverbose("stdout","randomly pick one. Chosen:%d\n", neighbour_target->address);
 			}
 			else
 			{
 				neighbour_target = (chosen_set_neighbours[0].neighbour_size < chosen_set_neighbours[1].neighbour_size)? &local_neighbours.data[0]: &local_neighbours.data[1];
-				simdbgverbose("stdout", "pick smaller one: %d\n", neighbour_target->address);
+				//simdbgverbose("stdout", "pick smaller one: %d\n", neighbour_target->address);
 			} 
 
 			chosen_address = neighbour_target->address;
@@ -568,7 +568,6 @@ implementation
 	{
 
 		call NodeType.set(type);
-
 		call FakeMessageGenerator.startLimited(message, sizeof(*message), get_fs_duration());
 	}
 
@@ -588,7 +587,7 @@ implementation
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
 		call NodeType.register_pair(NormalNode, "NormalNode");
-		call NodeType.register_pair(FakeNode, "FakeNode");
+		call NodeType.register_pair(TempFakeNode, "TempFakeNode");
 
 		if (call NodeType.is_node_sink())
 		{
@@ -727,7 +726,7 @@ implementation
 			long_random_walk_info.sequence_message_sent = 0;
 			short_random_walk_info.probability = get_probability(short_random_walk_info.sequence_message_sent+1);
 			long_random_walk_info.probability = 100 - short_random_walk_info.probability;
-			printf("%s: short random walk.\n", sim_time_string());
+			//printf("%s: short random walk.\n", sim_time_string());
 		}
 		else
 		{
@@ -737,7 +736,7 @@ implementation
 			short_random_walk_info.sequence_message_sent = 0;
 			long_random_walk_info.probability = get_probability(long_random_walk_info.sequence_message_sent+1);
 			short_random_walk_info.probability = 100 - long_random_walk_info.probability;
-			printf("%s: long random walk.\n", sim_time_string());
+			//printf("%s: long random walk.\n", sim_time_string());
 		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -920,8 +919,8 @@ implementation
 				}
 					
 
-				simdbgverbose("stdout", "Forwarding normal from %u to target = %u\n",
-					TOS_NODE_ID, target);
+				//simdbgverbose("stdout", "Forwarding normal from %u to target = %u\n",
+				//	TOS_NODE_ID, target);
 
 				call Packet.clear(&packet);
 
@@ -932,16 +931,14 @@ implementation
 				if (!rcvd->broadcast && rcvd->source_distance + 1 == rcvd->random_walk_hops)
 				{
 					simdbg("Metric-PATH-END", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
-						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
-
-
+							source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 					if (sink_distance < sink_source_distance && 
 						rcvd->random_walk_hops > sink_source_distance)
 					{
-						become_Fake(rcvd, FakeNode);
+						//printf("(%d):fake here.\n", TOS_NODE_ID);
+						become_Fake(rcvd, TempFakeNode);
 
-					}
-					
+					}					
 				}
 
 				// We want other nodes to continue broadcasting
@@ -956,8 +953,6 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-
-		
 
 		process_normal(msg, rcvd, source_addr);
 	}
@@ -997,18 +992,6 @@ implementation
 		UPDATE_LANDMARK_DISTANCE_BL(rcvd, bottom_left_distance);
 		UPDATE_LANDMARK_DISTANCE_BR(rcvd, bottom_right_distance);
 		UPDATE_LANDMARK_DISTANCE_SINK(rcvd, sink_distance);
-
-		// TODO: Enable this when the sink can snoop and then correctly
-		// respond to a message being received.
-		/*if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
-		{
-			sequence_number_update(&normal_sequence_counter, rcvd->sequence_number);
-
-			METRIC_RCV_NORMAL(rcvd);
-
-			simdbgverbose("stdout", "%s: Received unseen Normal by snooping seqno=%u from %u (dsrc=%u).\n",
-				sim_time_string(), rcvd->sequence_number, source_addr, rcvd->source_distance + 1);
-		}*/
 	}
 
 	void x_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -1142,14 +1125,18 @@ implementation
 		}
 	}
 
-	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	event uint32_t FakeMessageGenerator.initialStartDelay()
 	{
-		
+		// The first fake message is to be sent half way through the period.
+		// After this message is sent, all other messages are sent with an interval
+		// of the period given. The aim here is to reduce the traffic at the start and
+		// end of the TFS duration.
+		return signal FakeMessageGenerator.calculatePeriod() / 4;
 	}
 
-	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	event uint32_t FakeMessageGenerator.calculatePeriod()
 	{
-		
+		return get_fs_period();
 	}
 
 	event void FakeMessageGenerator.sendFakeMessage()
@@ -1161,7 +1148,13 @@ implementation
 		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&fake_sequence_counter);
+			//printf("%s: %d send fake message.\n", sim_time_string(), TOS_NODE_ID);
 		}
+	}
+
+	event void FakeMessageGenerator.durationExpired(const void* original_message, uint8_t original_size)
+	{
+		become_Normal();
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
@@ -1171,8 +1164,10 @@ implementation
 	RECEIVE_MESSAGE_END(Beacon)
 
 	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
-		case SinkNode:   Sink_receive_Fake(rcvd, source_addr); break;
-		case SourceNode: Source_receive_Fake(rcvd, source_addr); break;
+		case SinkNode:   
+		case SourceNode:
 		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;
+		case TempFakeNode: break;
 	RECEIVE_MESSAGE_END(Fake)
+
 }

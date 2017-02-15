@@ -32,8 +32,6 @@ typedef nx_struct NormalMessage
 
   nx_int16_t sink_source_distance;
 
-  nx_int16_t phantom_node_id;
-
 
 } NormalMessage;
 
