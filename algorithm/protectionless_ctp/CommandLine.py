@@ -5,8 +5,10 @@ import os, itertools, datetime
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
+import algorithm
+
 from data import results, latex
-from data.table import safety_period, direct_comparison
+from data.table import safety_period, direct_comparison, fake_result
 from data.graph import summary, versus
 from data.util import scalar_extractor
 
@@ -15,6 +17,7 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__)
 
         subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("table")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -101,8 +104,21 @@ class CLI(CommandLineCommon.CLI):
                 '{}-{}'.format(self.algorithm_module.name, name)
             ).run()
 
+    def _run_table(self, args):
+        protectionless_ctp_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=('normal latency', 'ssd', 'captured', 'received ratio'))
+
+        result_table = fake_result.ResultTable(protectionless_ctp_results)
+
+        self._create_table(self.algorithm_module.name + "-results", result_table)
+
     def run(self, args):
         args = super(CLI, self).run(args)
 
         if 'graph' == args.mode:
             self._run_graph(args)
+
+        if 'table' == args.table:
+            self._run_table(args)
