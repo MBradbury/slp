@@ -275,7 +275,7 @@ class CLI(object):
 
             print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
 
-            filename = '{}-{}-{}-results'.format(self.algorithm_module.name, noise_model, comm_model)
+            filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
 
             self._create_table(filename, safety_period_table,
                                param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
