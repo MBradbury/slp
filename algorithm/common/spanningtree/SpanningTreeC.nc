@@ -110,6 +110,7 @@ implementation {
     new SetP(am_addr_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as Connections;
 
   Setup.Connections -> Connections;
+  Connections.Compare -> CommonCompareC;
 
   // Routing wiring
 

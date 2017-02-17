@@ -2,6 +2,8 @@
 generic module SetP(typedef Value, uint16_t MAX_SIZE)
 {
   provides interface Set<Value>;
+
+  uses interface Compare<Value>;
 }
 
 implementation
@@ -48,7 +50,7 @@ implementation
 
 		for (i = 0; i != count; ++i)
 		{
-			if (memcmp(&values[i], &value, sizeof(Value)) == 0)
+			if (call Compare.equals(&values[i], &value))
 			{
 				break;
 			}
