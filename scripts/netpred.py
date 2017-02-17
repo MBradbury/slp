@@ -15,8 +15,10 @@ class NetworkPredicateChecker(object):
         self.configuration = configuration
         self.with_node_id = with_node_id
 
+        print(configuration.topology.nodes)
+
         self.graph = nx.DiGraph()
-        self.graph.add_nodes_from(configuration.topology.nodes)
+        self.graph.add_nodes_from(configuration.topology.nodes.keys())
 
         # Store the coordinates
         for (nid, coord) in configuration.topology.nodes.items():
@@ -24,8 +26,9 @@ class NetworkPredicateChecker(object):
             self.graph.node[nid]['label'] = str(nid)
 
     def draw(self, show=True):
-        fig = plt.figure()
+        fig = plt.figure(figsize=(8,8))
         ax = fig.gca()
+        ax.set_axis_off()
 
         # Makes (0,0) be in the top left rather than the bottom left
         ax.invert_yaxis()
@@ -35,21 +38,49 @@ class NetworkPredicateChecker(object):
 
             neighbours = self.neighbour_predicate(nid)
 
-            print(neighbours)
+            print(nid, neighbours)
 
             self.graph.add_edges_from((nid, n) for n in neighbours)
 
-            self.graph.node[nid]['color'] = "green" if neighbours else "red"
+            self.graph.node[nid]['color'] = "white" if neighbours else "#DCDCDC"
+            self.graph.node[nid]['shape'] = 'o'
+            self.graph.node[nid]['size'] = 350
 
+        for src in configuration.source_ids:
+            self.graph.node[src]['shape'] = 'p'
+            self.graph.node[src]['size'] = 550
+
+        self.graph.node[configuration.sink_id]['shape'] = 'H'
+        self.graph.node[configuration.sink_id]['size'] = 550
+
+        node_shapes = {node[1]['shape'] for node in self.graph.nodes(data=True)}
+        
         pos = nx.get_node_attributes(self.graph, 'pos')
-
         col = nx.get_node_attributes(self.graph, 'color')
-        color = [col[nid] for nid in xrange(0, max(col.keys()))]
+        sizes = nx.get_node_attributes(self.graph, 'size')
 
-        nx.draw(self.graph, pos,
+        for shape in node_shapes:
+            nodes = [node[0] for node in self.graph.nodes(data=True) if node[1]['shape'] == shape]
+
+            color = [col[nid] for nid in nodes]
+            size = [sizes[nid] for nid in nodes]
+
+            nx.draw_networkx_nodes(self.graph, pos,
+                node_shape=shape,
                 node_color=color,
-                labels=nx.get_node_attributes(self.graph, 'label'),
-                width=2, arrows=True)
+                node_size=size,
+                nodelist=nodes,
+            )
+
+        nx.draw_networkx_edges(self.graph, pos,
+            width=2,
+            arrows=True
+        )
+
+        nx.draw_networkx_labels(self.graph, pos,
+            labels=nx.get_node_attributes(self.graph, 'label'),
+            font_size=12
+        )
 
         file = 'pred.pdf'
         plt.savefig(file)
