@@ -55,58 +55,39 @@ class CLI(CommandLineCommon.CLI):
     def _run_graph(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
-            'sent': ('Total Messages Sent', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+            #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
+            #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
         }
-
-        ilprouting_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
 
         varying = [
             (('network size', ''), ('msg group size', '')),
-            (('network size', ''), ('source period', ' seconds')),
-            (('network size', ''), ('pr direct to sink', '')),
+            #(('network size', ''), ('source period', ' seconds')),
+            #(('network size', ''), ('pr direct to sink', '')),
         ]
 
         custom_yaxis_range_max = {
             'received ratio': 100,
-            'norm(sent,time taken)': 250,
+            'norm(sent,time taken)': 300,
             'captured': 9,
             'normal latency': 4000,
         }
 
-        for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
-
-                g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
-
-                g.xaxis_label = xaxis.title()
-                g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
-                g.vary_prefix = vary_units
-                g.key_position = key_position
-
-                if yaxis in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
-
-                g.nokey = True
-                g.generate_legend_graph = True
-
-                g.create(ilprouting_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
-                ).run()
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+            xaxis_font = "',16'",
+            yaxis_font = "',16'",
+            xlabel_font = "',18'",
+            ylabel_font = "',18'",
+            line_width = 3,
+            point_size = 2,
+            nokey = True,
+            generate_legend_graph = True,
+            legend_font_size = 16,
+        )
 
     def run(self, args):
         args = super(CLI, self).run(args)

@@ -157,6 +157,40 @@ class CLI(object):
 
         latex.compile_document(filename)
 
+    def _create_versus_graph(self, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
+        algo_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=tuple(graph_parameters.keys()))
+
+        for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+
+                g = versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis=xaxis, yaxis=yaxis, vary=vary,
+                    yextractor=scalar_extractor)
+
+                g.xaxis_label = xaxis.title()
+                g.yaxis_label = yaxis_label
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_units
+                g.key_position = key_position
+
+                for (name, value) in kwargs.items():
+                    setattr(g, name, value)
+
+                if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
+                g.create(algo_results)
+
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
+                ).run()
+
     def _argument_product(self):
         raise NotImplementedError()
 
