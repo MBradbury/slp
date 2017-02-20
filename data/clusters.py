@@ -85,7 +85,7 @@ class ClusterCommon(object):
 
         prepare_command = "cd $PBS_O_WORKDIR"
 
-        return Submitter(cluster_command, prepare_command, jobs, job_repeats=1)
+        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1)
 
     def _pbs_array_submitter(self, notify_emails=None):
         from data.run.driver.cluster_submitter import Runner as Submitter
