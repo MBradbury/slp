@@ -14,13 +14,11 @@ typedef nx_struct NormalMessage
   // has travelled from the source. 
   nx_int16_t source_distance;
 
-  nx_int16_t landmark_distance_of_bottom_left_sender;
+  nx_int16_t bottom_left_distance;
 
-  nx_int16_t landmark_distance_of_bottom_right_sender;
+  nx_int16_t bottom_right_distance;
 
-  nx_int16_t landmark_distance_of_top_right_sender;
-
-  nx_int16_t landmark_distance_of_sink_sender;
+  nx_int16_t sink_distance;
 
   nx_int8_t further_or_closer_set;
 
@@ -31,6 +29,9 @@ typedef nx_struct NormalMessage
   nx_int16_t neighbour_size;
 
   nx_int16_t node_id;
+
+  nx_int16_t sink_source_distance;
+
 
 } NormalMessage;
 

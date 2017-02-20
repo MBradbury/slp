@@ -5,7 +5,8 @@ enum Channels
 {
 	NORMAL_CHANNEL = 1,
 	AWAY_CHANNEL = 2,
-	BEACON_CHANNEL = 3
+	BEACON_CHANNEL = 3,
+	FAKE_CHANNEL = 4
 };
 
 #define SLP_MAX_NUM_SINKS 1
