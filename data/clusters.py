@@ -62,6 +62,7 @@ class ClusterCommon(object):
         except (ImportError, KeyError):
             pass
 
+        # Just ask them for their username
         return raw_input("Enter your {} username: ".format(self.name().title()))
 
 
@@ -235,4 +236,4 @@ def available_names():
     return [cls.__name__ for cls in available()]
 
 def create(name):
-    return[cls for cls in available() if cls.__name__ == name][0]()
+    return [cls for cls in available() if cls.__name__ == name][0]()
