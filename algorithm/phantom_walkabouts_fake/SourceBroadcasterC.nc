@@ -187,6 +187,8 @@ implementation
 
 	uint32_t fake_sequence_counter;
 
+	bool phantom_node_found = FALSE;
+
 	bool busy = FALSE;
 	message_t packet;
 
@@ -230,7 +232,7 @@ implementation
 	uint32_t get_fs_period()
 	{
 		assert(call NodeType.get() == TempFakeNode);
-		return call SourcePeriodModel.get()/2;
+		return call SourcePeriodModel.get();
 	}
 
 	uint32_t get_fs_duration(void)
@@ -278,28 +280,6 @@ implementation
 				}
 
 				possible_sets = CloserSet|FurtherSet|CloserSideSet|FurtherSideSet;
-
-/*
-				if (FurtherSideSet_neighbours >= 1)
-				{
-					possible_sets |= FurtherSideSet;
-				}
-
-				if (CloserSideSet_neighbours >= 1)
-				{
-					possible_sets |= CloserSideSet;
-				}
-
-				if (FurtherSet_neighbours >= 1)
-				{
-					possible_sets |= FurtherSet; 
-				}
-
-				if (CloserSet_neighbours >= 1)
-				{
-					possible_sets |= CloserSet;
-				}
-*/
 			}
 			//simdbgverbose("stdout", "CloserSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSideSet_neighbours=%d\n",
 			//CloserSet_neighbours, FurtherSet_neighbours, CloserSideSet_neighbours, FurtherSideSet_neighbours);
@@ -307,104 +287,9 @@ implementation
 
 		//simdbgverbose("stdout", "possible_sets=%d, bottom_left_distance=%d, bottom_right_distance=%d, sink_distance=%d\n", 
 				//possible_sets, bottom_left_distance, bottom_right_distance, sink_distance);
-
 		
 		rnd = call Random.rand16() % bitcount(possible_sets) + 1;
-		printf("set value: %d\n", (possible_sets >> rnd) + 1);
 		return (possible_sets >> rnd) + 1;
-
-/*
-		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
-		{	
-			uint16_t rnd = call Random.rand16() % 4;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else if (rnd == 2)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}		
-		else if (possible_sets == ( FurtherSet | CloserSideSet | FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return FurtherSet;
-			else if (rnd == 1)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet  | CloserSideSet | FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet | FurtherSet  | FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet | FurtherSet | CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else					return CloserSideSet;			
-		}
-
-		else if (possible_sets == (CloserSet|CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return CloserSet;
-			else					return CloserSideSet;
-		}
-
-		else if (possible_sets == (CloserSet|FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return CloserSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (FurtherSet|FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return FurtherSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (FurtherSet|CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return FurtherSet;
-			else					return CloserSideSet;
-		}
-
-		else if (possible_sets == CloserSet)
-		{
-			return CloserSet;
-		}
-		else if (possible_sets == FurtherSet)
-		{
-			return FurtherSet;
-		}
-
-		else if (possible_sets == CloserSideSet)
-		{
-			return CloserSideSet;
-		}
-		else if (possible_sets == FurtherSideSet)
-		{
-			return FurtherSideSet;
-		}
-		else
-		{
-			//simdbgverbose("stdout","possible set = 0, return UnknownSet.\n");
-			return UnknownSet;		
-		}
-*/
 	}
 
 	SetType neighbour_check(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -724,14 +609,15 @@ implementation
 		int16_t wait_before_short_delay_ms = 3 * half_sink_source_dist * NODE_TRANSMIT_TIME;
 		int16_t ran = random_float() * 100;
 
-
 		const uint32_t source_period = get_source_period();
 
-		printf("ran=%d, ",ran);
+		//printf("ran=%d, ",ran);
 
 		simdbgverbose("stdout", "call BroadcastNormalTimer.fired, source_period: %u\n", source_period);
 
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
+
+		
 
 		short_random_walk_hops = call Random.rand16() % half_sink_source_dist + 2;
 		long_random_walk_hops = call Random.rand16() % half_sink_source_dist + sink_distance + 2;
@@ -793,16 +679,26 @@ implementation
 			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
 		}
 
-		//if last message is long random walk message, delay to send.
-		if (long_random_walk_info.sequence_message_sent == 1 && short_random_walk_info.sequence_message_sent == 0)
+		printf("phantom_node_found:%d, ", phantom_node_found);
+		if (phantom_node_found == TRUE)
 		{
-			//printf("call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n");
-			call BroadcastNormalTimer.startOneShot(wait_before_short_delay_ms + source_period);
+			phantom_node_found = FALSE;
+			printf("%s:source node stop send message.\n",sim_time_string());
+			call BroadcastNormalTimer.startOneShot(sink_distance * source_period);
 		}
 		else
 		{
-			//printf("call startOneShot(source_period)\n");
-			call BroadcastNormalTimer.startOneShot(source_period);
+			//if last message is long random walk message, delay to send.
+			if (long_random_walk_info.sequence_message_sent == 1 && short_random_walk_info.sequence_message_sent == 0)
+			{
+				printf("%s:call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n", sim_time_string());
+				call BroadcastNormalTimer.startOneShot(wait_before_short_delay_ms + source_period);
+			}
+			else
+			{
+				printf("%s:call startOneShot(source_period)\n",sim_time_string());
+				call BroadcastNormalTimer.startOneShot(source_period);
+			}
 		}
 	}
 
@@ -934,9 +830,7 @@ implementation
 				if (call NodeType.get() == SinkNode)
 				{
 					return;
-				}
-					
-
+				}					
 				//simdbgverbose("stdout", "Forwarding normal from %u to target = %u\n",
 				//	TOS_NODE_ID, target);
 
@@ -950,12 +844,11 @@ implementation
 				{
 					simdbg("Metric-PATH-END", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
 							source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
-					if (sink_distance < sink_source_distance && 
-						rcvd->random_walk_hops > sink_source_distance)
-					{
-						//printf("(%d):fake here.\n", TOS_NODE_ID);
-						become_Fake(rcvd, TempFakeNode);
 
+					if (sink_distance < sink_source_distance && rcvd->random_walk_hops > sink_source_distance)
+					{
+						printf("(%d):send fake message.\n", TOS_NODE_ID);
+						become_Fake(rcvd, TempFakeNode);
 					}					
 				}
 
@@ -971,7 +864,6 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-
 		process_normal(msg, rcvd, source_addr);
 	}
 
@@ -1129,6 +1021,20 @@ implementation
 		}
 	}
 
+	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	{
+		phantom_node_found = rcvd->phantom_node_found;
+		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		{
+			FakeMessage forwarding_message = *rcvd;
+
+			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV_FAKE(rcvd);
+
+			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
+		}
+	}
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
@@ -1163,6 +1069,16 @@ implementation
 
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 
+		printf("%s:send #%d fake message.\n",sim_time_string(),fake_sequence_counter);
+
+		if (message.sequence_number == 1)
+		{
+			printf("set flag to TRUE.\n");
+			message.phantom_node_found = TRUE;
+		}
+		else
+			message.phantom_node_found = FALSE;
+
 		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&fake_sequence_counter);
@@ -1183,7 +1099,7 @@ implementation
 
 	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
 		case SinkNode:   
-		case SourceNode:
+		case SourceNode: Source_receive_Fake(rcvd, source_addr); break;
 		case TempFakeNode:
 		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
