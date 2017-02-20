@@ -152,33 +152,32 @@ class CLI(CommandLineCommon.CLI):
             #'energy allowance used': 100,
         }
 
-        def filter_psrc_0_125(all_params):
-            return all_params['source period'] == '0.125'
+        def filter_params(all_params):
+            return all_params['source period'] == '0.125' and all_params['noise model'] == 'meyer_heavy'
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
             parameters=protectionless.local_parameter_names,
             results=list(set(graph_parameters.keys()) & set(protectionless.Analysis.Analyzer.results_header().keys())),
-            results_filter=filter_psrc_0_125
-        )
+            results_filter=filter_params)
 
         adaptive_spr_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=graph_parameters.keys(),
-            results_filter=filter_psrc_0_125)
+            results_filter=filter_params)
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
             parameters=adaptive.local_parameter_names,
             results=graph_parameters.keys(),
-            results_filter=filter_psrc_0_125)
+            results_filter=filter_params)
 
         template_results = results.Results(
             template.result_file_path,
             parameters=template.local_parameter_names,
             results=graph_parameters.keys(),
-            results_filter=filter_psrc_0_125)
+            results_filter=filter_params)
 
         def graph_min_max_versus(result_name, xaxis):
             name = 'min-max-{}-versus-{}-{}'.format(adaptive.name, result_name, xaxis)

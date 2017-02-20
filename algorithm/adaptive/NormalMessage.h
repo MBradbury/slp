@@ -13,7 +13,7 @@ typedef nx_struct NormalMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
-  nx_uint16_t max_hop;
+  nx_int16_t max_hop;
 
   nx_int16_t sink_source_distance;
 
