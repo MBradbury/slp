@@ -28,7 +28,7 @@ def extract_average_and_stddev(value):
     return np.array((mean, stddev))
 
 class Results(object):
-    def __init__(self, result_file, parameters, results, source_period_normalisation=None, network_size_normalisation=None):
+    def __init__(self, result_file, parameters, results, results_filter=None, source_period_normalisation=None, network_size_normalisation=None):
         self.parameter_names = tuple(parameters)
         self.result_names = tuple(results)
         self.result_file_name = result_file
@@ -41,7 +41,7 @@ class Results(object):
         for param in self.global_parameter_names:
             setattr(self, _name_to_attr(param), set())
 
-        self._read_results(result_file, source_period_normalisation, network_size_normalisation)
+        self._read_results(result_file, results_filter, source_period_normalisation, network_size_normalisation)
 
     def parameters(self):
         return [
@@ -81,7 +81,7 @@ class Results(object):
         return network_size
 
 
-    def _read_results(self, result_file, source_period_normalisation, network_size_normalisation):
+    def _read_results(self, result_file, results_filter, source_period_normalisation, network_size_normalisation):
         with open(result_file, 'r') as f:
 
             reader = csv.reader(f, delimiter='|')
@@ -104,6 +104,15 @@ class Results(object):
 
                 params = tuple([self._process(name, dvalues) for name in self.parameter_names])
                 results = tuple([self._process(name, dvalues) for name in self.result_names])
+
+                # Check if we should not process this result
+                if results_filter is not None:
+                    all_params = dict(zip(self.parameter_names, params))
+                    all_params.update(dvalues)
+
+                    if results_filter(all_params):
+                        #print("Filtering from ", result_file , ": ", all_params)
+                        continue
 
                 for param in self.global_parameter_names:
                     getattr(self, _name_to_attr(param)).add(dvalues[param])
