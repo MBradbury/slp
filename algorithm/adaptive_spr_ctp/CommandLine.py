@@ -7,7 +7,7 @@ from simulator import CommandLineCommon
 
 import algorithm
 
-protectionless = algorithm.import_algorithm("protectionless")
+protectionless_ctp = algorithm.import_algorithm("protectionless_ctp")
 adaptive_spr = algorithm.import_algorithm("adaptive_spr")
 
 from data import results
@@ -18,7 +18,7 @@ from data.util import useful_log10, scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+        super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
@@ -81,12 +81,10 @@ class CLI(CommandLineCommon.CLI):
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
             name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
-
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
                 xaxis='network size', yaxis=yaxis, vary='source period',
-                yextractor=yextractor)
+                yextractor=scalar_extractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = yaxis_label
@@ -171,11 +169,9 @@ class CLI(CommandLineCommon.CLI):
         def graph_min_max_versus(result_name):
             name = 'min-max-{}-versus-{}'.format(adaptive.name, result_name)
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if result_name == 'attacker distance' else scalar_extractor(x)
-
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=result_name, vary='approach', yextractor=yextractor)
+                xaxis='network size', yaxis=result_name, vary='approach', yextractor=scalar_extractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = graph_parameters[result_name][0]
