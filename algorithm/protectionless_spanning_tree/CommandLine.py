@@ -77,12 +77,10 @@ class CLI(CommandLineCommon.CLI):
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
             name = '{}-v-configuration'.format(yaxis.replace(" ", "_"))
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
-
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
                 xaxis='network size', yaxis=yaxis, vary='configuration',
-                yextractor=yextractor)
+                yextractor=scalar_extractor)
 
             g.generate_legend_graph = True
 

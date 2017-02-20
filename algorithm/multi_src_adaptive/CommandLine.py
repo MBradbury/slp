@@ -82,12 +82,10 @@ class CLI(CommandLineCommon.CLI):
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
 
-                yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
-
                 g = versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=yextractor)
+                    yextractor=scalar_extractor)
 
                 g.xaxis_label = 'Network Size'
                 g.yaxis_label = yaxis_label
