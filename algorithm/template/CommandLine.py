@@ -75,11 +75,11 @@ class CLI(CommandLineCommon.CLI):
 
         result_table = fake_result.ResultTable(template_results)
 
-        self._create_table("template-results", result_table,
-                           lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
+        self._create_table(self.algorithm_module.name + "-results", result_table,
+                           param_filter=lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
 
-        self._create_table("template-results-low-prob", result_table,
-                            lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
+        self._create_table(self.algorithm_module.name + "-results-low-prob", result_table,
+                           param_filter=lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
 
     def _run_graph(self, args):
         def extract(x):
