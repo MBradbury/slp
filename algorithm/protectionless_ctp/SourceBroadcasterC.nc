@@ -34,10 +34,6 @@ module SourceBroadcasterC
 	uses interface SourcePeriodModel;
 
 	uses interface SequenceNumbers as NormalSeqNos;
-
-	//uses interface CollectionPacket;
-	//uses interface CtpInfo;
-	//uses interface CtpCongestion;
 }
 
 implementation
