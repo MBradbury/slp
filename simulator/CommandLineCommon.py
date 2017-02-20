@@ -61,8 +61,14 @@ class CLI(object):
         subparser.add_argument("--no-skip-complete", action="store_true")
 
         subparser = cluster_subparsers.add_parser("copy", help="Copy the built binaries for this algorithm to the cluster.")
+        subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
+
         subparser = cluster_subparsers.add_parser("copy-result-summary", help="Copy the result summary for this algorithm obtained by using the 'analyse' command to the cluster.")
+        subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
+
         subparser = cluster_subparsers.add_parser("copy-parameters", help="Copy this algorithm's Parameters.py file to the cluster.")
+        subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
+
         subparser = cluster_subparsers.add_parser("submit", help="Use this command to submit the cluster jobs. Run this on the cluster.")
         subparser.add_argument("--array", action="store_true", help="Submit multiple arrays jobs (experimental).")
         subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
@@ -323,13 +329,13 @@ class CLI(object):
             self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
 
         elif 'copy' == args.cluster_mode:
-            cluster.copy_to(self.algorithm_module.name)
+            cluster.copy_to(self.algorithm_module.name, user=args.user)
 
         elif 'copy-result-summary' == args.cluster_mode:
-            cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file)
+            cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file, user=args.user)
 
         elif 'copy-parameters' == args.cluster_mode:
-            cluster.copy_file(os.path.join('algorithm', self.algorithm_module.name), 'Parameters.py')
+            cluster.copy_file(os.path.join('algorithm', self.algorithm_module.name), 'Parameters.py', user=args.user)
 
         elif 'submit' == args.cluster_mode:
             emails_to_notify = self._get_emails_to_notify(args)
