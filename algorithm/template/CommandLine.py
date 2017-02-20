@@ -82,26 +82,30 @@ class CLI(CommandLineCommon.CLI):
                            param_filter=lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
 
     def _run_graph(self, args):
-        def extract(x):
-            if numpy.isscalar(x):
-                return x
-            else:
-                (val, stddev) = x
-                return val
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'fake': ('Total Fake Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+            'tfs': ('Number of TFS created', 'left top'),
+            'pfs': ('Number of PFS created', 'left top'),
+        }
 
-        versus_results = ('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs')
+        varying = [
+            (('network size', ''), ('source period', ' seconds')),
+        ]
 
-        template_results = results.Results(self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=versus_results)
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+            #'norm(sent,time taken)': 300,
+            #'captured': 9,
+            #'normal latency': 4000,
+        }
 
-        #for yaxis in versus_results:
-        #    name = '{}-v-fake-period'.format(yaxis.replace(" ", "_"))
-        #
-        #    versus.Grapher(self.algorithm_module.graphs_path, name,
-        #        xaxis='network size', yaxis=yaxis, vary='fake period', yextractor=extract).create(template_results)
-        #
-        #    summary.GraphSummary(os.path.join(self.algorithm_module.graphs_path, name), 'template-' + name).run()
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max)
 
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults 
