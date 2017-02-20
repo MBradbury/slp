@@ -13,14 +13,18 @@ import simulator.common
 import simulator.Configuration as Configuration
 
 from data import results, latex, submodule_loader
-import data.clusters as clusters
-import data.testbed
-import data.cycle_accurate
 from data.run.common import MissingSafetyPeriodError
+
+import data.clusters as clusters
+import data.cycle_accurate
+import data.testbed
+
+from data.graph import versus, heatmap, summary
+
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
-from data.graph import heatmap, summary
-from data.util import recreate_dirtree, touch
+
+from data.util import recreate_dirtree, touch, scalar_extractor
 
 class CLI(object):
 
