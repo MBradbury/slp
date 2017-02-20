@@ -116,7 +116,9 @@ implementation
 	//App.CtpInfo -> CollectionC;
 	//App.CtpCongestion -> CollectionC;
 
-	CollectionC.CollectionDebug -> App;
+	components CTPMetricsP;
+	CTPMetricsP.MetricLogging -> MetricLogging;
+	CollectionC.CollectionDebug -> CTPMetricsP;
 
 	components new CollectionSenderC(NORMAL_CHANNEL);
 

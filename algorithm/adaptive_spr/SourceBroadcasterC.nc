@@ -143,7 +143,7 @@ implementation
 		return SOURCE_PERIOD_MS / 2;
 	}
 
-	uint32_t get_dist_to_pull_back(void)
+	uint16_t get_dist_to_pull_back(void)
 	{
 #if defined(PB_FIXED2_APPROACH)
 		return 2;
@@ -161,10 +161,7 @@ implementation
 
 	uint32_t get_tfs_num_msg_to_send(void)
 	{
-		const uint32_t distance = get_dist_to_pull_back();
-
-		//simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
-		//	distance, source_distance, sink_distance, sink_source_distance);
+		const uint16_t distance = get_dist_to_pull_back();
 
 		return distance;
 	}
@@ -432,16 +429,12 @@ implementation
 	event void BeaconSenderTimer.fired()
 	{
 		BeaconMessage message;
-		unsigned int i;
 
 		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
 		message.source_distance_of_sender = first_source_distance;
-
-		for (i = 0; i < sizeof(message.padding); ++i)
-		{
-			message.padding[i] = call Random.rand16() % UINT8_MAX;
-		}
+		//message.sink_distance_of_sender = sink_distance;
+		//message.sink_source_distance = sink_source_distance;
 
 		call Packet.clear(&packet);
 
@@ -828,7 +821,6 @@ implementation
 		FakeMessage message;
 
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
-		message.sink_distance = sink_distance;
 		message.message_type = call NodeType.get();
 		message.source_id = TOS_NODE_ID;
 		message.sender_first_source_distance = first_source_distance;
@@ -850,7 +842,6 @@ implementation
 
 		// When finished sending fake messages from a TFS
 
-		//message.sink_source_distance = sink_source_distance;
 		message.sink_distance += 1;
 
 		extra_to_send = 1;

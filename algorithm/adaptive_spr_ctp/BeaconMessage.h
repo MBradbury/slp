@@ -6,9 +6,9 @@
 
 typedef nx_struct BeaconMessage
 {
-	nx_int16_t neighbour_min_source_distance;
-
-	nx_int16_t sink_distance;
+	nx_int16_t source_distance_of_sender;
+    nx_int16_t sink_distance_of_sender;
+//    nx_int16_t sink_source_distance;
 
 } BeaconMessage;
 
