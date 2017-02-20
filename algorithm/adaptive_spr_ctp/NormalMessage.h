@@ -6,12 +6,17 @@
 typedef nx_struct NormalMessage {
   NXSequenceNumber sequence_number;
 
+  NXSequenceNumber fake_sequence_number;
+  nx_uint32_t fake_sequence_increments;
+
   // The number of hops that this message
   // has travelled from the source. 
   nx_uint16_t source_distance;
 
   // The id of the node that sent this message
   nx_am_addr_t source_id;
+
+  //nx_int16_t sink_source_distance;
 
 } NormalMessage;
 
