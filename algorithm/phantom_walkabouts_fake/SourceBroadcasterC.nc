@@ -127,10 +127,10 @@ module SourceBroadcasterC
 
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
+	uses interface FakeMessageGenerator;
 
 	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
-	uses interface FakeMessageGenerator;
 
 	uses interface SequenceNumbers as NormalSeqNos;
 	uses interface SequenceNumbers as AwaySeqNos;
@@ -180,8 +180,6 @@ implementation
 	int16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
 	int16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
 
-	int16_t dynamic_period_last = 0; //number of messages that node send during dynamic period
-
 	int16_t short_random_walk_hops = BOTTOM;
 	int16_t long_random_walk_hops = BOTTOM;
 
@@ -212,10 +210,16 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	int16_t random_number(int16_t num)
+	// return how many 1 in a number
+	int16_t bitcount(int16_t n)
 	{
-		uint16_t rnd = call Random.rand16();
-		return rnd % num;
+		int16_t count = 0;
+		while(n)
+		{
+			count++;
+			n &= (n-1);
+		}
+		return count;
 	}
 
 	int16_t get_probability(int16_t t)
@@ -234,10 +238,10 @@ implementation
 		return sink_source_distance * get_fs_period();
 	}
 
-
 	SetType random_walk_direction()
 	{
 		uint32_t possible_sets = UnknownSet;
+		uint16_t rnd;
 
 		if (bottom_left_distance != BOTTOM && bottom_right_distance != BOTTOM)
 		{
@@ -273,6 +277,9 @@ implementation
 					FurtherSideSet_neighbours ++;
 				}
 
+				possible_sets = CloserSet|FurtherSet|CloserSideSet|FurtherSideSet;
+
+/*
 				if (FurtherSideSet_neighbours >= 1)
 				{
 					possible_sets |= FurtherSideSet;
@@ -292,6 +299,7 @@ implementation
 				{
 					possible_sets |= CloserSet;
 				}
+*/
 			}
 			//simdbgverbose("stdout", "CloserSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSideSet_neighbours=%d\n",
 			//CloserSet_neighbours, FurtherSet_neighbours, CloserSideSet_neighbours, FurtherSideSet_neighbours);
@@ -300,6 +308,12 @@ implementation
 		//simdbgverbose("stdout", "possible_sets=%d, bottom_left_distance=%d, bottom_right_distance=%d, sink_distance=%d\n", 
 				//possible_sets, bottom_left_distance, bottom_right_distance, sink_distance);
 
+		
+		rnd = call Random.rand16() % bitcount(possible_sets) + 1;
+		printf("set value: %d\n", (possible_sets >> rnd) + 1);
+		return (possible_sets >> rnd) + 1;
+
+/*
 		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
 		{	
 			uint16_t rnd = call Random.rand16() % 4;
@@ -390,6 +404,7 @@ implementation
 			//simdbgverbose("stdout","possible set = 0, return UnknownSet.\n");
 			return UnknownSet;		
 		}
+*/
 	}
 
 	SetType neighbour_check(SetType further_or_closer_set, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -707,9 +722,12 @@ implementation
 		am_addr_t target;
 		int16_t half_sink_source_dist = sink_distance/2 -1;
 		int16_t wait_before_short_delay_ms = 3 * half_sink_source_dist * NODE_TRANSMIT_TIME;
-		int16_t ran = random_number(100);
+		int16_t ran = random_float() * 100;
+
 
 		const uint32_t source_period = get_source_period();
+
+		printf("ran=%d, ",ran);
 
 		simdbgverbose("stdout", "call BroadcastNormalTimer.fired, source_period: %u\n", source_period);
 
@@ -726,7 +744,7 @@ implementation
 			long_random_walk_info.sequence_message_sent = 0;
 			short_random_walk_info.probability = get_probability(short_random_walk_info.sequence_message_sent+1);
 			long_random_walk_info.probability = 100 - short_random_walk_info.probability;
-			//printf("%s: short random walk.\n", sim_time_string());
+			//printf("%s: short random walk, short probability:%d.\n", sim_time_string(), short_random_walk_info.probability);
 		}
 		else
 		{
@@ -736,7 +754,7 @@ implementation
 			short_random_walk_info.sequence_message_sent = 0;
 			long_random_walk_info.probability = get_probability(long_random_walk_info.sequence_message_sent+1);
 			short_random_walk_info.probability = 100 - long_random_walk_info.probability;
-			//printf("%s: long random walk.\n", sim_time_string());
+			//printf("%s: long random walk, long probability:%d.\n", sim_time_string(), long_random_walk_info.probability);
 		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -1166,8 +1184,8 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
 		case SinkNode:   
 		case SourceNode:
+		case TempFakeNode:
 		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;
-		case TempFakeNode: break;
 	RECEIVE_MESSAGE_END(Fake)
 
 }
