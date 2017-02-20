@@ -13,7 +13,7 @@ import simulator.common
 import simulator.Configuration as Configuration
 
 from data import results, latex, submodule_loader
-import data.cluster
+import data.clusters as clusters
 import data.testbed
 import data.cycle_accurate
 from data.run.common import MissingSafetyPeriodError
@@ -53,7 +53,7 @@ class CLI(object):
         ###
 
         subparser = subparsers.add_parser("cluster")
-        subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cluster), help="This is the name of the cluster")
+        subparser.add_argument("name", type=str, choices=clusters.available_names(), help="This is the name of the cluster")
 
         cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
 
@@ -69,6 +69,7 @@ class CLI(object):
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
 
         subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
+        subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         ###
 
@@ -309,7 +310,7 @@ class CLI(object):
     def _run_cluster(self, args):
         cluster_directory = os.path.join("cluster", self.algorithm_module.name)
 
-        cluster = submodule_loader.load(data.cluster, args.name)
+        cluster = clusters.create(args.name)
 
         if 'build' == args.cluster_mode:
             print("Removing existing cluster directory and creating a new one")
@@ -343,7 +344,7 @@ class CLI(object):
             self._execute_runner(submitter, cluster_directory, skip_completed_simulations=skip_complete)
 
         elif 'copy-back' == args.cluster_mode:
-            cluster.copy_back(self.algorithm_module.name)
+            cluster.copy_back(self.algorithm_module.name, user=args.user)
 
         else:
             raise RuntimeError("Unknown cluster mode {}".format(args.cluster_mode))
