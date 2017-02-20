@@ -17,7 +17,7 @@
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
-#define METRIC_RCV_INFORM(msg) METRIC_RCV(Inform, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
+#define METRIC_RCV_INFORM(msg) METRIC_RCV(Inform, source_addr, msg->source_id, UNKNOWN_SEQNO, msg->source_distance + 1)
 
 #define AWAY_DELAY_MS (SOURCE_PERIOD_MS / 4)
 
