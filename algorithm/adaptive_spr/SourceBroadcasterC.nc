@@ -436,13 +436,27 @@ implementation
 	event void BeaconSenderTimer.fired()
 	{
 		BeaconMessage message;
-		message.source_distance_of_sender = first_source_distance;
+		bool result;
 
 		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
+		if (busy)
+		{
+			simdbgverbose("stdout", "Device is busy rescheduling beacon\n");
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+			return;
+		}
+
+		message.source_distance_of_sender = first_source_distance;
+
 		call Packet.clear(&packet);
 
-		send_Beacon_message(&message, AM_BROADCAST_ADDR);
+		result = send_Beacon_message(&message, AM_BROADCAST_ADDR);
+		if (!result)
+		{
+			simdbgverbose("stdout", "Send failed rescheduling beacon\n");
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+		}
 	}
 
 
@@ -842,7 +856,6 @@ implementation
 		FakeMessage message;
 
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
-		message.sink_distance = sink_distance;
 		message.message_type = call NodeType.get();
 		message.source_id = TOS_NODE_ID;
 		message.sender_first_source_distance = first_source_distance;
