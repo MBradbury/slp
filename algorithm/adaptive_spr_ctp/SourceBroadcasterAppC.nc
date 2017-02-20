@@ -39,6 +39,7 @@ implementation
 
 	App.RadioControl -> ActiveMessageC;
 	App.AMPacket -> ActiveMessageC;
+	App.Packet -> ActiveMessageC;
 
 
 	// Timers
@@ -102,13 +103,6 @@ implementation
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 
-	components CommonCompareC; 
-	components
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
-	App.SourceDistances -> SourceDistances;
-	SourceDistances.Compare -> CommonCompareC;
-
-
 	components CollectionC;
 	App.RoutingControl -> CollectionC;
 	App.RootControl -> CollectionC;
@@ -119,6 +113,7 @@ implementation
 	components CTPMetricsP;
 	CTPMetricsP.MetricLogging -> MetricLogging;
 	CollectionC.CollectionDebug -> CTPMetricsP;
+
 
 	components new CollectionSenderC(NORMAL_CHANNEL);
 
