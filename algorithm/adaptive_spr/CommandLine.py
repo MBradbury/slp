@@ -5,7 +5,6 @@ import os.path, itertools
 from simulator import CommandLineCommon
 
 import algorithm
-
 protectionless = algorithm.import_algorithm("protectionless")
 adaptive = algorithm.import_algorithm("adaptive")
 template = algorithm.import_algorithm("template")
@@ -80,12 +79,10 @@ class CLI(CommandLineCommon.CLI):
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
             name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if yaxis == 'attacker distance' else scalar_extractor(x)
-
             g = versus.Grapher(
                 self.algorithm_module.graphs_path, name,
                 xaxis='network size', yaxis=yaxis, vary='source period',
-                yextractor=yextractor)
+                yextractor=scalar_extractor)
 
             g.xaxis_label = 'Network Size'
             g.yaxis_label = yaxis_label
@@ -129,14 +126,14 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
 #            'tfs': ('Number of TFS Created', 'left top'),
 #            'pfs': ('Number of PFS Created', 'left top'),
-#            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
-#            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-#            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
+            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
 #            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
 #            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
 #            #'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
-#            'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
-#            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
+            'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
+            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
         }
 
         custom_yaxis_range_max = {
@@ -151,39 +148,44 @@ class CLI(CommandLineCommon.CLI):
             'norm(fake,time taken)': 12000,
             'norm(normal,time taken)': 3500,
             'ssd': 30,
-            'energy impact per node per second': 0.0003,
-            'energy allowance used': 100,
+            #'energy impact per node per second': 0.0003,
+            #'energy allowance used': 100,
         }
+
+        def filter_psrc_0_125(all_params):
+            return all_params['source period'] == '0.125'
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
             parameters=protectionless.local_parameter_names,
-            results=list(set(graph_parameters.keys()) & set(protectionless.Analysis.Analyzer.results_header().keys()))
+            results=list(set(graph_parameters.keys()) & set(protectionless.Analysis.Analyzer.results_header().keys())),
+            results_filter=filter_psrc_0_125
         )
 
         adaptive_spr_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=graph_parameters.keys())
+            results=graph_parameters.keys(),
+            results_filter=filter_psrc_0_125)
 
         adaptive_results = results.Results(
             adaptive.result_file_path,
             parameters=adaptive.local_parameter_names,
-            results=graph_parameters.keys())
+            results=graph_parameters.keys(),
+            results_filter=filter_psrc_0_125)
 
         template_results = results.Results(
             template.result_file_path,
             parameters=template.local_parameter_names,
-            results=graph_parameters.keys())
+            results=graph_parameters.keys(),
+            results_filter=filter_psrc_0_125)
 
         def graph_min_max_versus(result_name, xaxis):
             name = 'min-max-{}-versus-{}-{}'.format(adaptive.name, result_name, xaxis)
 
-            yextractor = lambda x: scalar_extractor(x.get((0, 0), None)) if result_name == 'attacker distance' else scalar_extractor(x)
-
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis=xaxis, yaxis=result_name, vary='approach', yextractor=yextractor)
+                xaxis=xaxis, yaxis=result_name, vary='approach', yextractor=scalar_extractor)
 
             g.xaxis_label = xaxis.title()
             g.yaxis_label = graph_parameters[result_name][0]
@@ -191,7 +193,7 @@ class CLI(CommandLineCommon.CLI):
 
             g.yaxis_font = g.xaxis_font = "',15'"
 
-            g.nokey = True
+            #g.nokey = True
             #g.key_font = "',20'"
             #g.key_spacing = "2"
             #g.key_width = "+6"
@@ -231,13 +233,13 @@ class CLI(CommandLineCommon.CLI):
             graph_min_max_versus(result_name, 'network size')
 
 
-        custom_yaxis_range_max = {
-            #'energy impact per node per second': 0.00025,
-            #'energy allowance used': 350,
-        }
+        #custom_yaxis_range_max = {
+        #    #'energy impact per node per second': 0.00025,
+        #    #'energy allowance used': 350,
+        #}
 
-        for result_name in graph_parameters.keys():
-            graph_min_max_versus(result_name, 'source period')
+        #for result_name in graph_parameters.keys():
+        #    graph_min_max_versus(result_name, 'source period')
 
 
     def _run_dual_min_max_versus(self, args):

@@ -33,7 +33,6 @@
 typedef struct
 {
 	int16_t min_source_distance;
-
 } distance_container_t;
 
 static void distance_update(distance_container_t* __restrict find, distance_container_t const* __restrict given)
@@ -48,10 +47,14 @@ static void distance_print(const char* name, size_t n, am_addr_t address, distan
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
+#define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
+{ \
+	const distance_container_t dist = { rcvd->name }; \
+	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+}
+
 module SourceBroadcasterC
 {
-	provides interface CollectionDebug;
-
 	uses interface Boot;
 	uses interface Leds;
 	uses interface Random;
@@ -196,14 +199,17 @@ implementation
 		const uint16_t est_num_sources = estimated_number_of_sources();
 		const uint32_t result = distance * est_num_sources;
 
-		simdbg("stdout", "get_tfs_num_msg_to_send=%u (distance=%u, est_num_sources=%u)\n", result, distance, est_num_sources);
-
 		return result;
 	}
 
 	uint32_t get_tfs_duration(void)
 	{
 		uint32_t duration = SOURCE_PERIOD_MS;
+
+		if (sink_distance == BOTTOM || sink_distance <= 1)
+		{
+			duration -= get_away_delay();
+		}
 
 		simdbg("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
@@ -214,13 +220,11 @@ implementation
 	{
 		const uint32_t duration = get_tfs_duration();
 		const uint32_t msg = get_tfs_num_msg_to_send();
-		const double period = duration / (double)msg;
+		const uint32_t period = duration / msg;
 
-		const double fake_rcv_ratio_at_src_estimate = 1.0;
+		const uint32_t result_period = period;
 
-		const uint32_t result_period = (uint32_t)ceil(period * fake_rcv_ratio_at_src_estimate);
-
-		simdbg("stdout", "get_tfs_period=%u\n", result_period);
+		simdbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -307,13 +311,6 @@ implementation
 		return result;
 	}
 
-	void update_neighbours_beacon(const BeaconMessage* rcvd, am_addr_t source_addr)
-	{
-		distance_container_t dist;
-		dist.min_source_distance = rcvd->neighbour_min_source_distance;
-		insert_distance_neighbour(&neighbours, source_addr, &dist);
-	}
-
 	bool update_source_distance(am_addr_t source_id, uint16_t source_distance)
 	{
 		const uint16_t* distance = call SourceDistances.get(source_id);
@@ -342,12 +339,6 @@ implementation
 	{
 		return update_source_distance(rcvd->source_id, rcvd->source_distance + 1);
 	}
-
-	void update_sink_distance(const AwayChooseMessage* rcvd, am_addr_t source_addr)
-	{
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
-	}
-
 
 	bool busy = FALSE;
 	message_t packet;
@@ -532,9 +523,8 @@ implementation
 			return;
 		}
 
-		message.neighbour_min_source_distance = min_source_distance;
-
-		message.sink_distance = sink_distance;
+		message.source_distance_of_sender = min_source_distance;
+		message.sink_distance_of_sender = sink_distance;
 
 		result = send_Beacon_message(&message, AM_BROADCAST_ADDR);
 		if (!result)
@@ -683,7 +673,7 @@ implementation
 
 			METRIC_RCV_AWAY(rcvd);
 
-			update_sink_distance(rcvd, source_addr);
+			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
@@ -716,7 +706,7 @@ implementation
 
 			METRIC_RCV_AWAY(rcvd);
 
-			update_sink_distance(rcvd, source_addr);
+			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
@@ -759,7 +749,7 @@ implementation
 
 			METRIC_RCV_CHOOSE(rcvd);
 
-			update_sink_distance(rcvd, source_addr);
+			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
 			find_neighbours_further_from_source(&local_neighbours);
 
@@ -885,11 +875,11 @@ implementation
 
 	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		update_neighbours_beacon(rcvd, source_addr);
+		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
 
-		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance));
+		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance_of_sender));
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
@@ -935,7 +925,7 @@ implementation
 
 	event uint32_t FakeMessageGenerator.initialStartDelay()
 	{
-		return signal FakeMessageGenerator.calculatePeriod() / 2;
+		return signal FakeMessageGenerator.calculatePeriod() / 4;
 	}
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
@@ -971,7 +961,7 @@ implementation
 		}
 	}
 
-	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t size)
+	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size)
 	{
 		ChooseMessage message;
 		const am_addr_t target = fake_walk_target();
@@ -998,49 +988,5 @@ implementation
 		else //if (call NodeType.get() == TailFakeNode)
 		{
 		}
-	}
-
-
-	// The following is simply for metric gathering.
-	// The CTP debug events are hooked into so we have correctly record when a message has been sent.
-
-	command error_t CollectionDebug.logEvent(uint8_t event_type) {
-		//simdbg("stdout", "logEvent %u\n", event_type);
-		return SUCCESS;
-	}
-	command error_t CollectionDebug.logEventSimple(uint8_t event_type, uint16_t arg) {
-		//simdbg("stdout", "logEventSimple %u %u\n", event_type, arg);
-		return SUCCESS;
-	}
-	command error_t CollectionDebug.logEventDbg(uint8_t event_type, uint16_t arg1, uint16_t arg2, uint16_t arg3) {
-		//simdbg("stdout", "logEventDbg %u %u %u %u\n", event_type, arg1, arg2, arg3);
-		return SUCCESS;
-	}
-	command error_t CollectionDebug.logEventMsg(uint8_t event_type, uint16_t msg, am_addr_t origin, am_addr_t node) {
-		//simdbg("stdout", "logEventMessage %u %u %u %u\n", event_type, msg, origin, node);
-
-		if (event_type == NET_C_FE_SENDDONE_WAITACK || event_type == NET_C_FE_SENT_MSG || event_type == NET_C_FE_FWD_MSG)
-		{
-			// TODO: FIXME
-			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
-			METRIC_BCAST(Normal, SUCCESS, UNKNOWN_SEQNO);
-		}
-
-		return SUCCESS;
-	}
-	command error_t CollectionDebug.logEventRoute(uint8_t event_type, am_addr_t parent, uint8_t hopcount, uint16_t metric) {
-		//simdbg("stdout", "logEventRoute %u %u %u %u\n", event_type, parent, hopcount, metric);
-
-		if (event_type == NET_C_TREE_SENT_BEACON)
-		{
-			METRIC_BCAST(CTPBeacon, SUCCESS, UNKNOWN_SEQNO);
-		}
-
-		else if (event_type == NET_C_TREE_RCV_BEACON)
-		{
-			METRIC_RCV(CTPBeacon, parent, BOTTOM, UNKNOWN_SEQNO, BOTTOM);
-		}
-
-		return SUCCESS;
 	}
 }
