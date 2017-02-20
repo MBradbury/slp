@@ -26,7 +26,7 @@ class NetworkPredicateChecker(object):
             self.graph.node[nid]['label'] = str(nid)
 
     def draw(self, show=True):
-        fig = plt.figure(figsize=(8,8))
+        fig = plt.figure(figsize=(8, 8))
         ax = fig.gca()
         ax.set_axis_off()
 
@@ -48,19 +48,19 @@ class NetworkPredicateChecker(object):
 
         for src in configuration.source_ids:
             self.graph.node[src]['shape'] = 'p'
-            self.graph.node[src]['size'] = 550
+            self.graph.node[src]['size'] = 900
 
         self.graph.node[configuration.sink_id]['shape'] = 'H'
-        self.graph.node[configuration.sink_id]['size'] = 550
+        self.graph.node[configuration.sink_id]['size'] = 900
 
-        node_shapes = {node[1]['shape'] for node in self.graph.nodes(data=True)}
+        node_shapes = {node_data['shape'] for (node, node_data) in self.graph.nodes(data=True)}
         
         pos = nx.get_node_attributes(self.graph, 'pos')
         col = nx.get_node_attributes(self.graph, 'color')
         sizes = nx.get_node_attributes(self.graph, 'size')
 
         for shape in node_shapes:
-            nodes = [node[0] for node in self.graph.nodes(data=True) if node[1]['shape'] == shape]
+            nodes = [node for (node, node_data) in self.graph.nodes(data=True) if node_data['shape'] == shape]
 
             color = [col[nid] for nid in nodes]
             size = [sizes[nid] for nid in nodes]
@@ -73,7 +73,7 @@ class NetworkPredicateChecker(object):
             )
 
         nx.draw_networkx_edges(self.graph, pos,
-            width=2,
+            width=4,
             arrows=True
         )
 
