@@ -12,9 +12,18 @@ except ImportError:
     #Python 3
     from itertools import zip_longest as izip_longest
 
+from itertools import tee
+
 import numpy as np
 
 import simulator.Attacker
+
+# From: https://docs.python.org/3/library/itertools.html#recipes
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable, 2)
+    next(b, None)
+    return zip(a, b)
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration):
@@ -286,7 +295,7 @@ class MetricsCommon(object):
     def normal_inter_arrival_time(self):
         items = self.normal_receive_time.values()
 
-        return [btime - atime for atime, btime in zip(items, items[1:])]
+        return [btime - atime for atime, btime in pairwise(items)]
 
     def normal_inter_arrival_time_average(self):
         iat = self.normal_inter_arrival_time()
@@ -307,7 +316,7 @@ class MetricsCommon(object):
     def normal_inter_generation_time(self):
         items = self.normal_sent_time.values()
 
-        return [btime - atime for atime, btime in zip(items, items[1:])]
+        return [btime - atime for atime, btime in pairwise(items)]
 
     def normal_inter_generation_time_average(self):
         igt = self.normal_inter_generation_time()
