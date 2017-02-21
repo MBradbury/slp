@@ -7,15 +7,15 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
    You may need to prefix commands with "sudo" to install using admin privileges.
 
         :::bash
-        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make
+        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev
 
    Python 2 or 3 is supported, but python 2 is recommended as it is faster.
 
 2. Install python libraries
 
         :::bash
-        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip --upgrade
-        pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade
+        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip --upgrade -v
+        pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade -v
 
    Make sure to prefix these commands with ```sudo``` if installing for the system python.
 
@@ -23,6 +23,10 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
 
 If you do not have python installed, or have an install that requires
 admin permissions to use pip install, then pyenv is a good alternative.
+
+```bash
+sudo apt-get install lzma-dev tk-dev
+```
 
 ```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
