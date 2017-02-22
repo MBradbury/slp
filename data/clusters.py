@@ -66,7 +66,7 @@ class ClusterCommon(object):
         return raw_input("Enter your {} username: ".format(self.name().title()))
 
 
-    def _ram_to_ask_for(self, ram_for_os_mb=2 * 1024):
+    def _ram_to_ask_for(self, ram_for_os_mb=4 * 1024):
         return int(math.floor(((self.ram_per_node * self.ppn) - ram_for_os_mb) / self.ppn)) * self.ppn
 
     def _pbs_submitter(self, notify_emails=None):
