@@ -30,8 +30,8 @@ sudo apt-get install lzma-dev tk-dev
 
 ```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
-pyenv global 2.7.12
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.13 -v
+pyenv global 2.7.13
 ```
 
 ## Using pyenv (on flux)
@@ -40,8 +40,8 @@ To install on flux there is a slightly different procedure:
 
 ```bash
 module load flux-installers && pyenv-install.sh && source ~/.bashrc
-CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.12 -v
-pyenv global 2.7.12
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.13 -v
+pyenv global 2.7.13
 ```
 
 Please ensure that you install the python packages using pip after setting up python in this way.
