@@ -13,8 +13,8 @@ class ClusterCommon(object):
         self.threads_per_processor = tpp
         self.ram_per_node = rpn
 
-    def submitter(notify_emails=None): raise NotImplementedError
-    def array_submitter(notify_emails=None): raise NotImplementedError
+    def submitter(self, notify_emails=None): raise NotImplementedError
+    def array_submitter(self, notify_emails=None): raise NotImplementedError
 
     def name(self):
         return type(self).__name__
@@ -66,18 +66,18 @@ class ClusterCommon(object):
         return raw_input("Enter your {} username: ".format(self.name().title()))
 
 
-    def _ram_to_ask_for(self, ram_for_os_mb=4 * 1024):
+    def _ram_to_ask_for(self, ram_for_os_mb=2 * 1024):
         return int(math.floor(((self.ram_per_node * self.ppn) - ram_for_os_mb) / self.ppn)) * self.ppn
 
     def _pbs_submitter(self, notify_emails=None):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
-        ram_per_node_mb = self._ram_to_ask_for()
+        ram_to_ask_for_mb = self._ram_to_ask_for()
 
         # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
         # Don't provide a queue, as the job will be routed to the correct place.
         cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
-            self.ppn, self.ppn * ram_per_node_mb)
+            self.ppn, ram_to_ask_for_mb)
 
         if notify_emails is not None and len(notify_emails) > 0:
             print("Warning: flux does not currently have email notification setup")
@@ -138,18 +138,22 @@ class ClusterCommon(object):
 
 class dummy(ClusterCommon):
     def __init__(self):
-        super(dummy, self).__init__("dummy", None, None, ppn=4, tpp=1, rpn=1 * 1024)
+        super(dummy, self).__init__("dummy", None, None,
+            ppn=12,
+            tpp=1, # HT is disabled
+            rpn=(32 * 1024) / 12 # 32GB per node
+        )
 
-    def copy_to(dirname, user=None):
+    def copy_to(self, dirname, user=None):
         raise RuntimeError("Cannot copy to the dummy cluster")
 
-    def copy_file(results_directory_path, filename, user=None):
+    def copy_file(self, results_directory_path, filename, user=None):
         raise RuntimeError("Cannot copy to the dummy cluster")
 
-    def copy_back(dirname, user=None):
+    def copy_back(self, dirname, user=None):
         raise RuntimeError("Cannot copy back from the dummy cluster")
 
-    def submitter(notify_emails=None):
+    def submitter(self, notify_emails=None):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         class DummySubmitter(Submitter):
@@ -157,20 +161,19 @@ class dummy(ClusterCommon):
             def _submit_job(self, command):
                 print(command)
 
-        ram_per_job_mb = self.ram_per_node
-        num_jobs = self.ppn
+        ram_to_ask_for_mb = self._ram_to_ask_for()
 
         cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
-            num_jobs, num_jobs * ram_per_job_mb)
+            self.ppn, ram_to_ask_for_mb)
 
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
         prepare_command = " <prepare> "
 
-        return DummySubmitter(cluster_command, prepare_command, num_jobs)
+        return DummySubmitter(cluster_command, prepare_command, self.ppn)
 
-    def array_submitter(notify_emails=None):
+    def array_submitter(self, notify_emails=None):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         class DummySubmitter(Submitter):
