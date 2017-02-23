@@ -247,7 +247,7 @@ implementation
 		}
 		else
 		{
-			printf("source message send:%d, ssd: %d, source delay time:%f\n", message->source_message_send_no, sink_source_distance, 1.5*sink_distance * get_fs_period());
+			//printf("source message send:%d, ssd: %d, source delay time:%f\n", message->source_message_send_no, sink_source_distance, 1.5*sink_distance * get_fs_period());
 			return 1.5*sink_source_distance *get_fs_period();
 		}
 	}
@@ -631,7 +631,7 @@ implementation
 			long_random_walk_info.sequence_message_sent = 0;
 			short_random_walk_info.probability = get_probability(short_random_walk_info.sequence_message_sent+1);
 			long_random_walk_info.probability = 100 - short_random_walk_info.probability;
-			printf("%s: short random walk, short probability:%d.\n", sim_time_string(), short_random_walk_info.probability);
+			//printf("%s: short random walk, short probability:%d.\n", sim_time_string(), short_random_walk_info.probability);
 		}
 		else
 		{
@@ -641,7 +641,7 @@ implementation
 			short_random_walk_info.sequence_message_sent = 0;
 			long_random_walk_info.probability = get_probability(long_random_walk_info.sequence_message_sent+1);
 			short_random_walk_info.probability = 100 - long_random_walk_info.probability;
-			printf("%s: long random walk, long probability:%d.\n", sim_time_string(), long_random_walk_info.probability);
+			//printf("%s: long random walk, long probability:%d.\n", sim_time_string(), long_random_walk_info.probability);
 		}
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
@@ -858,7 +858,7 @@ implementation
 
 					if (sink_distance < sink_source_distance && rcvd->random_walk_hops > sink_source_distance)
 					{
-						printf("(%d):send fake message.\n", TOS_NODE_ID);					
+						//printf("(%d):send fake message.\n", TOS_NODE_ID);					
 						source_node_delay_ms = get_fs_duration(rcvd);
 						become_Fake(rcvd, TempFakeNode);
 					}					
@@ -1089,11 +1089,11 @@ implementation
 		message.fake_source_message_send_no = fake_source_message_send_no;
 		message.source_node_delay_ms = source_node_delay_ms;
 
-		printf("%s:send #%d fake message.\n",sim_time_string(),fake_source_message_send_no);
+		//printf("%s:send #%d fake message.\n",sim_time_string(),fake_source_message_send_no);
 
 		if (message.fake_source_message_send_no == 1)
 		{
-			printf("set flag to TRUE.\n");
+			//printf("set flag to TRUE.\n");
 			message.phantom_node_found = TRUE;
 		}
 		else
