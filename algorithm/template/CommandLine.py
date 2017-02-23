@@ -17,11 +17,13 @@ from data.table import safety_period, fake_result, direct_comparison
 from data.graph import summary, bar
 from data.util import useful_log10
 
-import numpy
+safety_period_equivalence = {
+    "attacker model": {"SeqNoReactiveAttacker()": "SeqNosReactiveAttacker()"}
+}
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
