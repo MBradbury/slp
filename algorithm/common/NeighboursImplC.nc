@@ -25,6 +25,7 @@ generic module NeighboursImplC(
 
 	uses interface Leds;
 	uses interface Random;
+	uses interface LocalTime<TMilli>;
 
 	uses interface AMPacket;
 
