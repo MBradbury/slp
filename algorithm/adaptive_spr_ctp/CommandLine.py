@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import itertools
-import os.path
 
 from simulator import CommandLineCommon
 

@@ -53,21 +53,34 @@ class CLI(CommandLineCommon.CLI):
         return tafn * 2.0
 
     def _time_estimater(self, args, **kwargs):
-        """Estimates how long simulations are run for. Override this in algorithm
-        specific CommandLine if these values are too small or too big. In general
-        these have been good amounts of time to run simulations for. You might want
-        to adjust the number of repeats to get the simulation time in this range."""
-        size = args['network size']
-        if size == 11:
-            return datetime.timedelta(hours=8)
-        elif size == 15:
-            return datetime.timedelta(hours=12)
-        elif size == 21:
-            return datetime.timedelta(hours=22)
-        elif size == 25:
-            return datetime.timedelta(hours=38)
-        else:
-            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+        historical_key_names = ('network size', 'source period')
+
+        historical = {
+            (11, 0.125): timedelta(seconds=6),
+            (11, 0.25): timedelta(seconds=9),
+            (11, 0.5): timedelta(seconds=10),
+            (11, 1.0): timedelta(seconds=12),
+            (11, 2.0): timedelta(seconds=12),
+            (15, 0.125): timedelta(seconds=29),
+            (15, 0.25): timedelta(seconds=52),
+            (15, 0.5): timedelta(seconds=54),
+            (15, 1.0): timedelta(seconds=49),
+            (15, 2.0): timedelta(seconds=46),
+            (21, 0.125): timedelta(seconds=174),
+            (21, 0.25): timedelta(seconds=334),
+            (21, 0.5): timedelta(seconds=440),
+            (21, 1.0): timedelta(seconds=356),
+            (21, 2.0): timedelta(seconds=319),
+            (25, 0.125): timedelta(seconds=609),
+            (25, 0.25): timedelta(seconds=1140),
+            (25, 0.5): timedelta(seconds=1277),
+            (25, 1.0): timedelta(seconds=1247),
+            (25, 2.0): timedelta(seconds=974),
+        }
+
+        return self._time_estimater_from_historical(
+            historical_key_names, historical, 0.25, args, **kwargs
+        )
 
 
     def _run_table(self, args):
