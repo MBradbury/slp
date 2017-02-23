@@ -98,12 +98,12 @@ implementation
 		switch (algorithm)
 		{
 		case GenericAlgorithm:
-			return !(sink_source_distance != BOTTOM &&
-				source_distance <= (3 * sink_source_distance) / 4);
+			return sink_source_distance == BOTTOM || source_distance == BOTTOM ||
+				source_distance > (3 * sink_source_distance) / 4;
 
 		case FurtherAlgorithm:
-			return !seen_pfs && !(sink_source_distance != BOTTOM &&
-				source_distance <= ((1 * sink_source_distance) / 2) - 1);
+			return !seen_pfs && (sink_source_distance == BOTTOM || source_distance == BOTTOM ||
+				source_distance > ((1 * sink_source_distance) / 2) - 1);
 
 		default:
 			return TRUE;
