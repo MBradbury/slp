@@ -21,10 +21,10 @@ class MobilityModel(object):
     def _validate_times(self):
         """Checks if the list of time intervals is valid"""
 
-        num_nodes = len(self.configuration.topology.nodes)
+        nodes = self.configuration.topology.nodes
 
         for (node_id, intervals) in self.active_times.items():
-            if node_id > num_nodes:
+            if node_id not in nodes:
                 raise RuntimeError("Invalid node id {}.".format(node_id))
 
             if node_id == self.configuration.sink_id:

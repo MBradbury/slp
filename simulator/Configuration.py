@@ -19,15 +19,15 @@ class Configuration(object):
         if any(source_id < 0 for source_id in self.source_ids):
             raise RuntimeError("All source ids must be positive")
 
-        if self.sink_id >= len(topology.nodes):
+        if self.sink_id not in topology.nodes:
             raise RuntimeError(
-                "There are not enough nodes ({}) to have a sink id of {}".format(
-                    len(topology.nodes), self.sink_id))
+                "The sink id {} is not present in the available node ids {}".format(
+                    self.sink_id, topology,nodes))
 
-        if any(source_id >= len(topology.nodes) for source_id in self.source_ids):
+        if any(source_id not in topology.nodes for source_id in self.source_ids):
             raise RuntimeError(
-                "There are not enough nodes ({}) to have a source id of {}".format(
-                    len(topology.nodes), self.source_ids))
+                "The a source id {} is not present in the available node ids {}".format(
+                    self.source_ids, topology.nodes))
 
         self._dist_matrix = None
         self._predecessors = None
@@ -607,7 +607,7 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
 class EuratechSmall5by10Top(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.fitiotlab import Euratech
-        euratech = Euratech()
+        euratech = Euratech(subset=[(96, 146)]) # 96-145
 
         super(EuratechSmall5by10Top, self).__init__(
             euratech,
