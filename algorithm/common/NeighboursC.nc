@@ -25,8 +25,10 @@ implementation
 	components RandomC;
 	App.Random -> RandomC;
 
+#ifdef USE_SERIAL_PRINTF
 	components LocalTimeMilliC;
 	App.LocalTime -> LocalTimeMilliC;
+#endif
 
 	components new DictionaryC(am_addr_t, Info, MAX_SIZE) as NeighbourDict;
 	App.NeighbourDict -> NeighbourDict;

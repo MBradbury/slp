@@ -22,15 +22,15 @@ implementation
 
 	App.MetricLogging -> MetricLogging;
 
-	components new NodeTypeP(6);
-	App.NodeType -> NodeTypeP;
-	NodeTypeP.MetricLogging -> MetricLogging;
+	components new NodeTypeC(6);
+	App.NodeType -> NodeTypeC;
+	NodeTypeC.MetricLogging -> MetricLogging;
 
-	components new MessageTypeP(6);
-	App.MessageType -> MessageTypeP;
-	MessageTypeP.MetricLogging -> MetricLogging;
+	components new MessageTypeC(6);
+	App.MessageType -> MessageTypeC;
+	MessageTypeC.MetricLogging -> MetricLogging;
 
-	MetricLogging.MessageType -> MessageTypeP;
+	MetricLogging.MessageType -> MessageTypeC;
 
 	// Radio Control
 	components ActiveMessageC;
@@ -78,7 +78,7 @@ implementation
 	// Object Detector - For Source movement
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
-	ObjectDetectorP.NodeType -> NodeTypeP;
+	ObjectDetectorP.NodeType -> NodeTypeC;
 
 	// SourcePeriodModel - for source periods
 	components SourcePeriodModelP;

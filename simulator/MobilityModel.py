@@ -35,7 +35,7 @@ class MobilityModel(object):
 
         def to_tinyos_format(time):
             if math.isinf(time):
-                return "-1"
+                return "(uint32_t)-1"
             else:
                 return "{}U".format(int(time * 1000))
 
@@ -61,7 +61,7 @@ class MobilityModel(object):
         build_arguments["SOURCE_DETECTED_INDEXES"] = "{ " + ", ".join(indexes) + " }"
         build_arguments["SOURCE_DETECTED_PERIODS"] = "{ " + ", ".join(periods) + " }"
         build_arguments["SOURCE_DETECTED_PERIODS_LENGTHS"] = "{ " + ", ".join(periods_lengths) + " }"
-        build_arguments["SOURCE_DETECTED_NUM_NODES"] = len(indexes)
+        build_arguments["SOURCE_DETECTED_NUM_NODES"] = "{}U".format(len(indexes))
         build_arguments["SOURCE_DETECTED_NUM_CHANGES"] = max(periods_lengths)
 
         return build_arguments
