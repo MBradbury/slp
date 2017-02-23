@@ -19,11 +19,14 @@ implementation
 	App.MetricLogging = MetricLogging;
 	App.NodeType = NodeType;
 
-	components LedsC;
-	App.Leds -> LedsC;
+	components LedsWhenGuiC;
+	App.Leds -> LedsWhenGuiC;
 
 	components RandomC;
 	App.Random -> RandomC;
+
+	components LocalTimeMilliC;
+	App.LocalTime -> LocalTimeMilliC;
 
 	components new DictionaryP(am_addr_t, Info, MAX_SIZE) as NeighbourDict;
 	App.NeighbourDict -> NeighbourDict;
