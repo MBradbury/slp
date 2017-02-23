@@ -353,8 +353,16 @@ class MetricsCommon(object):
         # the last message was sent (because it takes time to receive a message),
         # so a small tolerance value is used.
 
+        if len(set(self.normal_receive_time.keys()) - set(self.normal_sent_time.keys())) > 0:
+            raise RuntimeError("We received a message that was not set (sent: {}) (received {})!".format(
+                self.normal_sent_time, self.normal_receive_time
+            ))
+
         if len(self.normal_sent_time) == 0:
             return float('NaN')
+
+        if len(self.normal_receive_time) == len(self.normal_sent_time):
+            return 1.0
 
         end_time = self.sim_time()
         send_modifier = 0
@@ -362,7 +370,7 @@ class MetricsCommon(object):
         if len(self.normal_sent_time) > 1 and np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
             send_modifier = 1
         
-        return len(self.normal_latency) / (len(self.normal_sent_time) - send_modifier)
+        return len(self.normal_receive_time) / (len(self.normal_sent_time) - send_modifier)
 
     def average_sink_source_hops(self):
         # It is possible that the sink has received no Normal messages
