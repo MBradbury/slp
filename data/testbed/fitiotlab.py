@@ -15,6 +15,11 @@ def log_mode():
 def url():
     return "https://www.iot-lab.info"
 
+def submitter():
+	from data.run.driver.testbed_iotlab_submitter import Runner as Submitter
+
+	return Submitter()
+
 # Resources:
 # - https://github.com/iot-lab/wsn430/tree/master/OS/TinyOS
 # - https://www.iot-lab.info/hardware/wsn430/ (Difference between the two hardware types)
