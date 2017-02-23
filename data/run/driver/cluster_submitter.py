@@ -1,6 +1,7 @@
 from __future__ import print_function
 
-import os, subprocess
+import os
+import subprocess
 
 class Runner(object):
     executable = 'python -OO run.py'
