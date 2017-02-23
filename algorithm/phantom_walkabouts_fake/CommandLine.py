@@ -33,7 +33,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._subparsers.add_parser("scatter-graph")
         subparser = self._subparsers.add_parser("best-worst-average-graph")
 
-    def _time_estimater(self, args, **kwargs):
+    def _time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want

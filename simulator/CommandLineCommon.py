@@ -243,7 +243,7 @@ class CLI(object):
             runner.run(self.algorithm_module.Parameters.repeats,
                        self.parameter_names(),
                        self._argument_product(),
-                       self._time_estimater)
+                       self._time_estimator)
         except MissingSafetyPeriodError as ex:
             from pprint import pprint
             import traceback
@@ -275,7 +275,7 @@ class CLI(object):
 
         return [process(*args) for args in argument_product]
 
-    def _time_estimater(self, args, **kwargs):
+    def _time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
@@ -292,7 +292,7 @@ class CLI(object):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _time_estimater_from_historical(self, historical_key_names, historical, allowance, args, **kwargs):
+    def _time_estimator_from_historical(self, historical_key_names, historical, allowance, args, **kwargs):
         key = tuple(args[name] for name in historical_key_names)
 
         try:
@@ -313,7 +313,7 @@ class CLI(object):
 
         except KeyError:
             print("Unable to find historical time for {}, so using default time estimator.".format(key))
-            return self._time_estimater(args, **kwargs)
+            return self._time_estimator(args, **kwargs)
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
