@@ -607,12 +607,24 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
 class EuratechSmall5by10Top(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.fitiotlab import Euratech
-        euratech = Euratech(subset=[(96, 146)]) # 96-145
+        euratech = Euratech(subset=[(96, 145)])
 
         super(EuratechSmall5by10Top, self).__init__(
             euratech,
             source_ids={96},
             sink_id=123,
+            space_behind_sink=False
+        )
+
+class GrenobleSmall(Configuration):
+    def __init__(self, *args, **kwargs):
+        from data.testbed.fitiotlab import Grenoble
+        grenoble = Grenoble(subset=[(86, 93), (129, 137), (160, 168), (186, 193)])
+
+        super(GrenobleSmall, self).__init__(
+            grenoble,
+            source_ids={187},
+            sink_id=134,
             space_behind_sink=False
         )
 
