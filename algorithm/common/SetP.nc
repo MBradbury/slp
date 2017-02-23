@@ -2,6 +2,7 @@
 generic module SetP(typedef Value, uint16_t MAX_SIZE)
 {
   provides interface Set<Value>;
+  uses interface Init;
 
   uses interface Compare<Value>;
 }
@@ -9,7 +10,13 @@ generic module SetP(typedef Value, uint16_t MAX_SIZE)
 implementation
 {
 	Value values[MAX_SIZE];
-	uint16_t count = 0;
+	uint16_t count;
+
+	command error_t Init.init()
+	{
+		count = 0;
+		return SUCCESS;
+	}
 
 	command uint16_t Set.count()
 	{

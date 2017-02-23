@@ -4,14 +4,21 @@
 
 generic module SequenceNumbersP(uint16_t MAX_SIZE)
 {
-  provides interface SequenceNumbers;
+	provides interface SequenceNumbers;
+	provides interface Init;
 }
 
 implementation
 {
 	SequenceNumber sequence_numbers[MAX_SIZE];
 	am_addr_t sources[MAX_SIZE];
-	uint16_t sources_count = 0;
+	uint16_t sources_count;
+
+	command error_t Init.init()
+	{
+		sources_count = 0;
+		return SUCCESS;
+	}
 
 	command uint16_t SequenceNumbers.max_size()
 	{

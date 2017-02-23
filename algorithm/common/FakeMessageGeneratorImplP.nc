@@ -26,6 +26,7 @@ implementation
 
 	command void FakeMessageGenerator.start(const void* original, uint8_t size)
 	{
+		call Packet.clear(&message);
 		call Packet.setPayloadLength(&message, size);
 		memcpy(call Packet.getPayload(&message, size), original, size);
 
