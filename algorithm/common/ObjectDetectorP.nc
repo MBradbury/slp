@@ -8,9 +8,7 @@ configuration ObjectDetectorP
 implementation
 {
 	components ObjectDetectorImplP as App;
-
 	ObjectDetector = App;
-
 	App.NodeType = NodeType;
 
 	// Timers
@@ -25,4 +23,7 @@ implementation
 	
 	App.LocalTime -> LocalTimeMilliC;
 #endif
+
+	components MainC;
+	MainC.SoftwareInit -> App;
 }

@@ -3,6 +3,8 @@ module ObjectDetectorImplP
 {
 	provides interface ObjectDetector;
 
+	provides interface Init;
+
 	uses interface Timer<TMilli> as DetectionTimer;
 	uses interface Timer<TMilli> as ExpireTimer;
 
@@ -14,11 +16,11 @@ module ObjectDetectorImplP
 }
 implementation
 {
-	bool detected = FALSE;
+	bool detected;
 
-	uint32_t start_delay = 0;
+	uint32_t start_delay;
 
-	uint32_t current_index = 0; 
+	uint32_t current_index; 
 
 
 	typedef struct {
@@ -30,6 +32,14 @@ implementation
 	const am_addr_t indexes[] = SOURCE_DETECTED_INDEXES;
 	const slp_period_t periods[SOURCE_DETECTED_NUM_NODES][SOURCE_DETECTED_NUM_CHANGES] = SOURCE_DETECTED_PERIODS;
 	const uint32_t periods_lengths[] = SOURCE_DETECTED_PERIODS_LENGTHS;
+
+	command error_t Init.init()
+	{
+		detected = FALSE;
+		start_delay = 0;
+		current_index = 0;
+		return SUCCESS;
+	}
 
 	bool get_index_from_address(uint32_t* idx)
 	{

@@ -24,15 +24,15 @@ implementation
 
 	App.MetricLogging -> MetricLogging;
 
-	components new NodeTypeP(4);
-	App.NodeType -> NodeTypeP;
-	NodeTypeP.MetricLogging -> MetricLogging;
+	components new NodeTypeC(4);
+	App.NodeType -> NodeTypeC;
+	NodeTypeC.MetricLogging -> MetricLogging;
 
-	components new MessageTypeP(6);
-	App.MessageType -> MessageTypeP;
-	MessageTypeP.MetricLogging -> MetricLogging;
+	components new MessageTypeC(6);
+	App.MessageType -> MessageTypeC;
+	MessageTypeC.MetricLogging -> MetricLogging;
 
-	MetricLogging.MessageType -> MessageTypeP;
+	MetricLogging.MessageType -> MessageTypeC;
 
 	// Radio Control
 	components ActiveMessageC;
@@ -67,7 +67,7 @@ implementation
 
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
-	ObjectDetectorP.NodeType -> NodeTypeP;
+	ObjectDetectorP.NodeType -> NodeTypeC;
 
 	components
 		new SequenceNumbersP(SLP_MAX_NUM_SOURCES) as NormalSeqNos;

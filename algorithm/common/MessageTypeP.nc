@@ -4,6 +4,7 @@
 generic module MessageTypeP(uint8_t maximum_message_types)
 {
 	provides interface MessageType;
+	provides interface Init;
 
 	uses interface MetricLogging;
 }
@@ -12,7 +13,14 @@ implementation
 	uint8_t idents[maximum_message_types];
 	const char* names[maximum_message_types];
 
-	uint8_t size = 0;
+	uint8_t size;
+
+	command error_t Init.init()
+	{
+		size = 0;
+
+		return SUCCESS;
+	}
 
 	command bool MessageType.register_pair(uint8_t ident, const char* name)
 	{

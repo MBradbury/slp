@@ -6,6 +6,7 @@
 generic module NodeTypeP(uint8_t maximum_node_types)
 {
 	provides interface NodeType;
+	provides interface Init;
 
 	uses interface MetricLogging;
 }
@@ -14,9 +15,18 @@ implementation
 	uint8_t idents[maximum_node_types];
 	const char* names[maximum_node_types];
 
-	uint8_t size = 0;
+	uint8_t size;
 
-	uint8_t current_type = UNKNOWN_NODE_TYPE;
+	uint8_t current_type;
+
+	command error_t Init.init()
+	{
+		size = 0;
+
+		current_type = UNKNOWN_NODE_TYPE;
+
+		return SUCCESS;
+	}
 
 	command bool NodeType.register_pair(uint8_t ident, const char* name)
 	{
