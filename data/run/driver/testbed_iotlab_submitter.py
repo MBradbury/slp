@@ -35,8 +35,6 @@ class Runner(object):
 
     def _submit_job(self, a, target_directory):
 
-        executable = os.path.join(target_directory, "main.ihex")
-
         name = target_directory.replace("/", "_").replace("-", "_")
 
         configuration = Configuration.create(a.args.configuration, a.args)
@@ -46,17 +44,22 @@ class Runner(object):
         options = {
             "testbed_name": type(configuration.topology).__name__.lower(),
             "platform": self._get_platform(configuration.topology.platform),
-            "nodes": configuration.topology.node_ids(),
-            "executable": executable,
-            "profile": "wsn430_with_power_1s",
+            #"nodes": configuration.topology.node_ids(),
+            #"executable": executable,
+            "profile": "Basic", #"wsn430_with_power_1s",
         }
 
         command = [
             "experiment-cli", "submit",
-            "--name", '"{}"'.format(name),
-            "--duration", str(duration_min),
-            "--list", "{testbed_name},{platform},{nodes},{executable},{profile}".format(**options)
+            "--name \"{}\"".format(name),
+            "--duration {}".format(duration_min),
         ]
+
+        for node in configuration.topology.nodes:
+            executable = os.path.join(target_directory, "main-{}.ihex".format(node))
+
+            command.append("--list {testbed_name},{platform},{nodes},{executable},{profile}".format(executable=executable, nodes=node, **options))
+
 
         print(" ".join(command))
         subprocess.check_call(" ".join(command), shell=True)
