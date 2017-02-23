@@ -42,6 +42,8 @@ module SerialMetricLoggingImplP
 {
 	provides interface MetricLogging;
 
+	uses interface Init;
+
 	uses interface MessageType;
 
 	uses interface LocalTime<TMilli>;
@@ -57,7 +59,12 @@ module SerialMetricLoggingImplP
 }
 implementation
 {
-	bool locked = FALSE;
+	bool locked;
+
+	event error_t Init.init()
+	{
+		locked = FALSE;
+	}
 
 	event void SerialControl.startDone(error_t err)
 	{

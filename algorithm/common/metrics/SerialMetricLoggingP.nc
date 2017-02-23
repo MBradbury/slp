@@ -23,8 +23,11 @@ implementation
 	App.MessageType = MessageType;
 
 	components SerialStartC;
-	components LocalTimeMilliC;
 
+	components MainC;
+	MainC.SoftwareInit -> App;
+
+	components LocalTimeMilliC;
 	App.LocalTime -> LocalTimeMilliC;
 
 	// Message Queue
