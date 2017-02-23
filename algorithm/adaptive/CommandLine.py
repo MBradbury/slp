@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+from datetime import timedelta
 import itertools
 import os.path
 
@@ -43,6 +44,36 @@ class CLI(CommandLineCommon.CLI):
 
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
+
+    def _time_estimater(self, args, **kwargs):
+        historical_key_names = ('network size', 'source period')
+
+        historical = {
+            (11, 0.125): timedelta(seconds=6),
+            (11, 0.25): timedelta(seconds=8),
+            (11, 0.5): timedelta(seconds=9),
+            (11, 1.0): timedelta(seconds=10),
+            (11, 2.0): timedelta(seconds=11),
+            (15, 0.125): timedelta(seconds=25),
+            (15, 0.25): timedelta(seconds=35),
+            (15, 0.5): timedelta(seconds=46),
+            (15, 1.0): timedelta(seconds=57),
+            (15, 2.0): timedelta(seconds=62),
+            (21, 0.125): timedelta(seconds=173),
+            (21, 0.25): timedelta(seconds=446),
+            (21, 0.5): timedelta(seconds=580),
+            (21, 1.0): timedelta(seconds=513),
+            (21, 2.0): timedelta(seconds=548),
+            (25, 0.125): timedelta(seconds=747),
+            (25, 0.25): timedelta(seconds=755),
+            (25, 0.5): timedelta(seconds=2177),
+            (25, 1.0): timedelta(seconds=1877),
+            (25, 2.0): timedelta(seconds=1909),
+        }
+
+        return self._time_estimater_from_historical(
+            historical_key_names, historical, 0.25, args, **kwargs
+        )
 
 
     def _run_table(self, args):

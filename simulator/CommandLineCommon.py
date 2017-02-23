@@ -1,9 +1,11 @@
 from __future__ import print_function, division
 
 import argparse
-import datetime
+from collections import defaultdict
+from datetime import timedelta
 import importlib
 import itertools
+import math
 import os
 import sys
 
@@ -143,6 +145,8 @@ class CLI(object):
 
         ###
 
+        subparser = subparsers.add_parser('historical-time-estimator')
+
         # Store any of the parsers that we need
         self._parser = parser
         self._subparsers = subparsers
@@ -278,15 +282,38 @@ class CLI(object):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 11:
-            return datetime.timedelta(hours=9)
+            return timedelta(hours=9)
         elif size == 15:
-            return datetime.timedelta(hours=21)
+            return timedelta(hours=21)
         elif size == 21:
-            return datetime.timedelta(hours=42)
+            return timedelta(hours=42)
         elif size == 25:
-            return datetime.timedelta(hours=71)
+            return timedelta(hours=71)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+
+    def _time_estimater_from_historical(self, historical_key_names, historical, allowance, args, **kwargs):
+        key = tuple(args[name] for name in historical_key_names)
+
+        try:
+            hist_time = historical[key]
+
+            job_size = kwargs["job_size"]
+            thread_count = kwargs["thread_count"]
+
+            total_time = hist_time * job_size
+            time_per_proc = total_time // thread_count
+            time_per_proc_with_allowance = timedelta(seconds=time_per_proc.total_seconds() * (1 + allowance))
+
+            # To count for python process start up and shutdown
+            extra_time_per_proc = timedelta(seconds=2)
+            extra_time = (extra_time_per_proc * job_size) // thread_count
+
+            return time_per_proc_with_allowance + extra_time
+
+        except KeyError:
+            print("Unable to find historical time for {}, so using default time estimator.".format(key))
+            return self._time_estimater(args, **kwargs)
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
@@ -516,6 +543,38 @@ class CLI(object):
             os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, args.grapher))
         ).run()
 
+    def _run_historical_time_estimator(self, args):
+        result = results.Results(self.algorithm_module.result_file_path,
+                                 parameters=self.algorithm_module.local_parameter_names,
+                                 results=('total wall time',))
+
+        max_wall_times = defaultdict(int)
+
+        # For each network size and source period find the maximum total wall time
+
+        for (global_params, values1) in result.data.items():
+
+            network_size = int(global_params[self.global_parameter_names.index("network size")])
+
+            for (source_period, values2) in values1.items():
+
+                source_period = float(source_period)
+
+                key = (network_size, source_period)
+
+                for (local_params, values3) in values2.items():
+
+                    (total_wall_time, total_wall_time_stddev) = values3[0]
+
+                    total_wall_time += total_wall_time_stddev
+
+                    max_wall_times[key] = int(math.ceil(max(max_wall_times[key], total_wall_time)))
+
+        print(max_wall_times)
+
+        for key in sorted(max_wall_times):
+            print("{}: timedelta(seconds={}),".format(key, max_wall_times[key]))
+
 
     def run(self, args):
         args = self._parser.parse_args(args)
@@ -552,5 +611,8 @@ class CLI(object):
 
         elif 'per-parameter-grapher' == args.mode:
             self._run_per_parameter_grapher(args)
+
+        elif 'historical-time-estimator' == args.mode:
+            self._run_historical_time_estimator(args)
 
         return args
