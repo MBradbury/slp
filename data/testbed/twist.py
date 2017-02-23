@@ -15,5 +15,8 @@ def url():
 def submitter():
     raise RuntimeError("{} does not support automatic submission".format(name()))
 
+def build_arguments():
+    return {}
+
 # Resources:
 # - https://www.twist.tu-berlin.de/tutorials/twist-getting-started.html#prerequisites

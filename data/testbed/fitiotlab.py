@@ -16,9 +16,16 @@ def url():
     return "https://www.iot-lab.info"
 
 def submitter():
-	from data.run.driver.testbed_iotlab_submitter import Runner as Submitter
+    from data.run.driver.testbed_iotlab_submitter import Runner as Submitter
 
-	return Submitter()
+    return Submitter()
+
+def build_arguments():
+    return {
+        # Wait for a short amount of time before running the boot event
+        # Runner will need to be quick to capture the output.
+        "DELAYED_BOOT_TIME_MINUTES": 2
+    }
 
 # Resources:
 # - https://github.com/iot-lab/wsn430/tree/master/OS/TinyOS
