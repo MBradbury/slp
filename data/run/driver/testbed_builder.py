@@ -169,6 +169,7 @@ class Runner(object):
         configuration = Configuration.create(a.args.configuration, a.args)
 
         build_args.update(configuration.build_arguments())
+        build_args.update(self.testbed.build_arguments())
 
         log_mode = self.testbed.log_mode()
         if log_mode == "printf":

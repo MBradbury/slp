@@ -19,6 +19,9 @@ def url():
 def submitter():
     raise RuntimeError("{} does not support automatic submission".format(name()))
 
+def build_arguments():
+    return {}
+
 # Resources:
 # - https://indriya.comp.nus.edu.sg/motelab/html/faq.php
 

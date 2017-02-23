@@ -16,6 +16,9 @@ def log_mode():
 def submitter():
     raise RuntimeError("{} does not support automatic submission".format(name()))
 
+def build_arguments():
+    return {}
+
 class DCSWarwick(Topology):
     """The layout of the nodes in DCS Warwick."""
     def __init__(self):
