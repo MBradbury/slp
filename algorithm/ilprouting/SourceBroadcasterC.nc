@@ -108,21 +108,21 @@ implementation
 		SourceNode, SinkNode, NormalNode
 	};
 
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	// All node variables
 	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
 
-	int16_t sink_distance = BOTTOM;
-	int16_t source_distance = BOTTOM;
-	int16_t sink_source_distance = BOTTOM;
+	int16_t sink_distance;
+	int16_t source_distance;
+	int16_t sink_source_distance;
 
-	am_addr_t previously_sent_to = AM_BROADCAST_ADDR;
+	am_addr_t previously_sent_to;
 
 	// Source variables
-	int8_t current_message_grouping = BOTTOM;
+	int8_t current_message_grouping;
 
 	// Sink variables
 	int sink_away_messages_to_send;
@@ -146,6 +146,17 @@ implementation
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		busy = FALSE;
+		sink_distance = BOTTOM;
+		source_distance = BOTTOM;
+		sink_source_distance = BOTTOM;
+
+		previously_sent_to = AM_BROADCAST_ADDR;
+
+		current_message_grouping = BOTTOM;
+
+		call Packet.clear(&packet);
 
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
