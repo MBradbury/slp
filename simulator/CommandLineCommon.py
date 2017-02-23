@@ -99,9 +99,9 @@ class CLI(object):
         subparser = subparsers.add_parser("cycle_accurate")
         subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cycle_accurate), help="This is the name of the cycle accurate simulator")
 
-        testbed_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
+        cycleaccurate_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
 
-        subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
+        subparser = cycleaccurate_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
 
         ###
