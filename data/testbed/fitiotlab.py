@@ -35,4 +35,7 @@ def url():
 # Strasbourg - 3D grid of nodes - https://www.iot-lab.info/deployment/strasbourg/
 # Rennes - Unknown - https://www.iot-lab.info/deployment/rennes/
 
-from data.testbed.info.fitiotlab import euratech, grenbole, rennes, strasbourg
+from data.testbed.info.fitiotlab.euratech import Euratech
+from data.testbed.info.fitiotlab.grenoble import Grenoble
+from data.testbed.info.fitiotlab.rennes import Rennes
+from data.testbed.info.fitiotlab.strasbourg import Strasbourg

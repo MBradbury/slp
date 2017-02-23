@@ -4,8 +4,6 @@ from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
 from data.memoize import memoize
-from data.testbed.dcswarwick import DCSWarwick
-from data.testbed.indriya import Indriya
 from simulator.Topology import Line, Grid, Circle, Random, SimpleTree, Ring
 
 class Configuration(object):
@@ -572,6 +570,7 @@ class RandomConnected(Configuration):
 
 class DCSWarwickSrc201Sink208(Configuration):
     def __init__(self, *args, **kwargs):
+        from data.testbed.dcswarwick import DCSWarwick
         dcs_warwick = DCSWarwick()
 
         super(DCSWarwickSrc201Sink208, self).__init__(
@@ -583,6 +582,7 @@ class DCSWarwickSrc201Sink208(Configuration):
 
 class IndriyaOneFloorSrc31Sink15(Configuration):
     def __init__(self, *args, **kwargs):
+        from data.testbed.indriya import Indriya
         indriya = Indriya()
 
         super(IndriyaOneFloorSrc31Sink15, self).__init__(
@@ -594,6 +594,7 @@ class IndriyaOneFloorSrc31Sink15(Configuration):
 
 class IndriyaTwoFloorsSrc31Sink60(Configuration):
     def __init__(self, *args, **kwargs):
+        from data.testbed.indriya import Indriya
         indriya = Indriya()
 
         super(IndriyaTwoFloorsSrc31Sink60, self).__init__(
@@ -601,6 +602,18 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
             source_ids={31},
             sink_id=60,
             space_behind_sink=True
+        )
+
+class EuratechSmall5by10Top(Configuration):
+    def __init__(self, *args, **kwargs):
+        from data.testbed.fitiotlab import Euratech
+        euratech = Euratech()
+
+        super(EuratechSmall5by10Top, self).__init__(
+            euratech,
+            source_ids={96},
+            sink_id=123,
+            space_behind_sink=False
         )
 
 def configurations():
