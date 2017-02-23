@@ -235,7 +235,7 @@ implementation
 
 	uint32_t get_fs_period()
 	{
-		return call SourcePeriodModel.get();
+		return call SourcePeriodModel.get()/2;
 	}
 
 	uint32_t get_fs_duration(const NormalMessage* message)
@@ -611,17 +611,21 @@ implementation
 	{
 		NormalMessage message;
 		am_addr_t target;
-		int16_t half_sink_source_dist = sink_distance/2 -1;
-		int16_t wait_before_short_delay_ms = 3 * half_sink_source_dist * NODE_TRANSMIT_TIME;
-		int16_t ran = random_float() * 100;
 		const uint32_t source_period = get_source_period();
+		int16_t half_sink_source_dist = sink_distance/2 -1;
+		int16_t wait_before_short_delay_ms = 3*sink_source_distance*NODE_TRANSMIT_TIME - source_period;
+		int16_t ran = random_float() * 100;
 
 		simdbgverbose("stdout", "call BroadcastNormalTimer.fired, source_period: %u\n", source_period);
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		short_random_walk_hops = call Random.rand16() % half_sink_source_dist + 2;
-		long_random_walk_hops = call Random.rand16() % half_sink_source_dist + sink_distance + 2;
+		//long_random_walk_hops = call Random.rand16() % half_sink_source_dist + sink_distance + 2;
+		long_random_walk_hops = call Random.rand16() % sink_distance + sink_distance + 2;
 		source_message_send_no += 1;
+
+		if (wait_before_short_delay_ms <= 0)
+			wait_before_short_delay_ms = 0;
 		
 		if (ran < short_random_walk_info.probability)
 		{
