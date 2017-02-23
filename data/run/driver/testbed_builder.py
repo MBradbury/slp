@@ -5,6 +5,7 @@ import importlib
 import os
 import shlex
 import shutil
+import subprocess
 import time
 
 import data.util
@@ -27,13 +28,15 @@ def choose_platform(provided, available):
 
 
 class Runner(object):
-    def __init__(self, testbed, platform=None):
+    def __init__(self, testbed, platform=None, generate_per_node_id_binary=False):
         self._progress = Progress("building file")
         self.total_job_size = None
         self._jobs_executed = 0
 
         self.testbed = testbed
         self.platform = choose_platform(platform, self.testbed.platform())
+
+        self.generate_per_node_id_binary = generate_per_node_id_binary
 
     def add_job(self, options, name, estimated_time=None):
         print(name)
@@ -117,6 +120,14 @@ class Runner(object):
                 else:
                     raise
 
+        if self.generate_per_node_id_binary:
+            print("Creating per node id binaries...")
+
+            target_ihex = os.path.join(target_directory, "main.ihex")
+            for node_id in configuration.topology.nodes:
+                output_ihex = os.path.join(target_directory, "main-{}.ihex".format(node_id))
+                self.create_tos_node_id_ihex(target_ihex, output_ihex, node_id)
+
         print("All Done!")
 
         self._progress.print_progress(self._jobs_executed)
@@ -127,6 +138,21 @@ class Runner(object):
 
     def mode(self):
         return "TESTBED"
+
+    @staticmethod
+    def create_tos_node_id_ihex(source, target, node_id):
+        command = " ".join([
+            "tos-set-symbols",
+            "--objcopy msp430-objcopy",
+            "--objdump msp430-objdump",
+            "--target ihex",
+            source, target,
+            "TOS_NODE_ID={}".format(node_id),
+            "ActiveMessageAddressC__addr={}".format(node_id)
+        ])
+
+        #print(command)
+        subprocess.check_call(command, shell=True)
 
     @staticmethod
     def parse_arguments(module, argv):

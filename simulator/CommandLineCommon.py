@@ -93,6 +93,7 @@ class CLI(object):
 
         subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
+        subparser.add_argument("-g", "--generate-per-node-id-binary", default=False, action="store_true", help="Also create a per node id binary that can be used in deployment")
 
         subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
@@ -444,7 +445,13 @@ class CLI(object):
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            self._execute_runner(Builder(testbed, platform=args.platform), testbed_directory, skip_completed_simulations=False)
+            builder = Builder(
+                testbed,
+                platform=args.platform,
+                generate_per_node_id_binary=args.generate_per_node_id_binary
+            )
+
+            self._execute_runner(builder, testbed_directory, skip_completed_simulations=False)
 
         elif 'submit' == args.testbed_mode:
             submitter = testbed.submitter()
