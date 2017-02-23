@@ -40,7 +40,7 @@ class RunSimulationsCommon(object):
 
         self._existing_results = {}
 
-    def run(self, repeats, argument_names, argument_product, time_estimater=None):
+    def run(self, repeats, argument_names, argument_product, time_estimator=None):
         if self._skip_completed_simulations:
             self._load_existing_results(argument_names)
         
@@ -86,8 +86,8 @@ class RunSimulationsCommon(object):
             )
 
             estimated_time = None
-            if time_estimater is not None:
-                estimated_time = time_estimater(
+            if time_estimator is not None:
+                estimated_time = time_estimator(
                     darguments,
                     safety_period=opts.get("--safety-period"),
                     job_size=opts.get("--job-size"),
@@ -217,7 +217,7 @@ class RunTestbedCommon(RunSimulationsCommon):
         # Testbed has no notion of safety period
         super(RunTestbedCommon, self).__init__(driver, algorithm_module, result_path, False, None)
 
-    def run(self, repeats, argument_names, argument_product, time_estimater=None):
+    def run(self, repeats, argument_names, argument_product, time_estimator=None):
 
         # Filter out invalid parameters to pass onwards
         to_filter = ('network size', 
@@ -237,7 +237,7 @@ class RunCycleAccurateCommon(RunSimulationsCommon):
         # Cycle Accurate has no notion of safety period
         super(RunCycleAccurateCommon, self).__init__(driver, algorithm_module, result_path, False, None)
 
-    def run(self, repeats, argument_names, argument_product, time_estimater=None):
+    def run(self, repeats, argument_names, argument_product, time_estimator=None):
 
         # Filter out invalid parameters to pass onwards
         to_filter = ('attacker model', 'noise model',
