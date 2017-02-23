@@ -46,7 +46,7 @@ class Runner(object):
             "platform": self._get_platform(configuration.topology.platform),
             #"nodes": configuration.topology.node_ids(),
             #"executable": executable,
-            "profile": "Basic", #"wsn430_with_power_1s",
+            "profile": "wsn430_with_power_1s", #"Basic",
         }
 
         command = [
