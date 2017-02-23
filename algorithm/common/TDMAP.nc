@@ -8,17 +8,14 @@ configuration TDMAP
 implementation
 {
 	components TDMAImplP as App;
-
 	App.TDMA = TDMA;
 
 	App.MetricLogging = MetricLogging;
 
     components MainC;
-
-    App.Init <- MainC;
+    Main.SoftwareInit -> App;
 
 	components LocalTimeMilliC;
-    
     App.LocalTime -> LocalTimeMilliC;
 
 	// Timers
