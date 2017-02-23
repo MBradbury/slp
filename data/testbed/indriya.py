@@ -16,6 +16,9 @@ def log_mode():
 def url():
     return "https://indriya.comp.nus.edu.sg/motelab/html/index.php"
 
+def submitter():
+    raise RuntimeError("{} does not support automatic submission".format(name()))
+
 # Resources:
 # - https://indriya.comp.nus.edu.sg/motelab/html/faq.php
 

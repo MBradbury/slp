@@ -94,6 +94,10 @@ class CLI(object):
         subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
 
+        subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
+        subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
+
+
         ###
 
         subparser = subparsers.add_parser("cycle_accurate")
@@ -441,6 +445,13 @@ class CLI(object):
             recreate_dirtree(testbed_directory)
 
             self._execute_runner(Builder(testbed, platform=args.platform), testbed_directory, skip_completed_simulations=False)
+
+        elif 'submit' == args.testbed_mode:
+            submitter = testbed.submitter()
+
+            skip_complete = not args.no_skip_complete
+
+            self._execute_runner(submitter, testbed_directory, skip_completed_simulations=skip_complete)
 
         sys.exit(0)
 
