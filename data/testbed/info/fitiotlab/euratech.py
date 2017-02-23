@@ -231,7 +231,7 @@ class Euratech(Topology):
         self.nodes[224] = np.array((3.7, 2.2, 11.32), dtype=np.float64)
         
         if subset is not None:
-            to_keep = {x for l in (range(start, end) for (start, end) in subset) for x in l}
+            to_keep = {x for l in (range(start, end+1) for (start, end) in subset) for x in l}
             for key in set(self.nodes) - to_keep:
                 del self.nodes[key]
         

@@ -243,7 +243,7 @@ class Grenoble(Topology):
         self.nodes[255] = np.array((10.13, 42.95, 3.66), dtype=np.float64)
         
         if subset is not None:
-            to_keep = {x for l in (range(start, end) for (start, end) in subset) for x in l}
+            to_keep = {x for l in (range(start, end+1) for (start, end) in subset) for x in l}
             for key in set(self.nodes) - to_keep:
                 del self.nodes[key]
         

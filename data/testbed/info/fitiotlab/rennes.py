@@ -104,6 +104,7 @@ class Rennes(Topology):
         self.nodes[95] = np.array((-2.148, 13.431, 2.905), dtype=np.float64)
         self.nodes[96] = np.array((-2.148, 14.035, 2.905), dtype=np.float64)
         self.nodes[97] = np.array((-1.324, 0.14, 2.912), dtype=np.float64)
+        self.nodes[99] = np.array((-1.324, 1.348, 2.911), dtype=np.float64)
         self.nodes[101] = np.array((-1.324, 2.556, 2.911), dtype=np.float64)
         self.nodes[102] = np.array((-1.324, 3.161, 2.91), dtype=np.float64)
         self.nodes[104] = np.array((-1.324, 4.369, 2.91), dtype=np.float64)
@@ -245,7 +246,7 @@ class Rennes(Topology):
         self.nodes[256] = np.array((6.38, 10.41, 2.905), dtype=np.float64)
         
         if subset is not None:
-            to_keep = {x for l in (range(start, end) for (start, end) in subset) for x in l}
+            to_keep = {x for l in (range(start, end+1) for (start, end) in subset) for x in l}
             for key in set(self.nodes) - to_keep:
                 del self.nodes[key]
         
