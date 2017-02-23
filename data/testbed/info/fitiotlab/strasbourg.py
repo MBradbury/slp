@@ -254,7 +254,7 @@ class Strasbourg(Topology):
         self.nodes[240] = np.array((7.0, 0.0, 2.5), dtype=np.float64)
         
         if subset is not None:
-            to_keep = {x for l in (range(start, end) for (start, end) in subset) for x in l}
+            to_keep = {x for l in (range(start, end+1) for (start, end) in subset) for x in l}
             for key in set(self.nodes) - to_keep:
                 del self.nodes[key]
         
