@@ -74,16 +74,19 @@ class GraphSummary:
             self._write_latex_footer(output_latex)
 
 
-    def compile(self):
-        latex.compile_document('{}.tex'.format(self._name))
+    def compile(self, show=False):
+        filename_pdf = latex.compile_document('{}.tex'.format(self._name))
+
+        if show:
+            subprocess.call(["xdg-open", filename_pdf])
 
     def clean(self):
         extensions = ['.pdf', '.tex']
         for extension in extensions:
             data.util.silent_remove(self._name + extension)
 
-    def run(self):
+    def run(self, show=False):
         self._graph_count = 0
         self.clean()
         self.create()
-        self.compile()
+        self.compile(show=show)

@@ -7,6 +7,7 @@ import importlib
 import itertools
 import math
 import os
+import subprocess
 import sys
 
 import algorithm
@@ -127,8 +128,10 @@ class CLI(object):
 
         subparser = subparsers.add_parser("time-taken-table", help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("--show-stddev", action="store_true")
+        subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = subparsers.add_parser("error-table", help="Creates a table showing the number of simulations in which an error occurred.")
+        subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = subparsers.add_parser("detect-missing", help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
 
@@ -139,6 +142,7 @@ class CLI(object):
         subparser = subparsers.add_parser("per-parameter-grapher")
         subparser.add_argument("--grapher", required=True)
         subparser.add_argument("--metric-name", required=True)
+        subparser.add_argument("--show", action="store_true", default=False)
 
         subparser.add_argument("--without-converters", action="store_true", default=False)
         subparser.add_argument("--without-normalised", action="store_true", default=False)
@@ -155,7 +159,7 @@ class CLI(object):
         return self.global_parameter_names + self.algorithm_module.local_parameter_names
 
     @staticmethod
-    def _create_table(name, result_table, directory="results", param_filter=lambda x: True, orientation='portrait'):
+    def _create_table(name, result_table, directory="results", param_filter=lambda x: True, orientation='portrait', show=False):
         filename = os.path.join(directory, name + ".tex")
 
         with open(filename, 'w') as result_file:
@@ -163,7 +167,10 @@ class CLI(object):
             result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
-        latex.compile_document(filename)
+        filename_pdf = latex.compile_document(filename)
+
+        if show:
+            subprocess.call(["xdg-open", filename_pdf])
 
     def _create_versus_graph(self, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
         algo_results = results.Results(
@@ -360,7 +367,7 @@ class CLI(object):
 
         result_table = fake_result.ResultTable(res)
 
-        self._create_table(self.algorithm_module.name + "-error-results", result_table)
+        self._create_table(self.algorithm_module.name + "-error-results", result_table, show=args.show)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
@@ -463,7 +470,7 @@ class CLI(object):
 
         result_table = fake_result.ResultTable(result, fmt)
 
-        self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape")
+        self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape", show=args.show)
 
     def _run_detect_missing(self, args):
         
@@ -541,7 +548,7 @@ class CLI(object):
         summary.GraphSummary(
             os.path.join(self.algorithm_module.graphs_path, args.grapher),
             os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, args.grapher))
-        ).run()
+        ).run(show=args.show)
 
     def _run_historical_time_estimator(self, args):
         result = results.Results(self.algorithm_module.result_file_path,

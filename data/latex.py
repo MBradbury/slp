@@ -46,7 +46,9 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
     if not path:
         path = "."
 
-    data.util.silent_remove(os.path.join(path, name_without_ext + ".pdf"))
+    pdf_name = os.path.join(path, name_without_ext + ".pdf")
+
+    data.util.silent_remove(pdf_name)
 
     try:
         command = "{} -output-directory=\"{}\" \"{}\"".format(executable, path, path_and_name)
@@ -58,6 +60,8 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
 
         for ext_to_remove in exts_to_remove:
             data.util.silent_remove(os.path.join(path, name_without_ext + ext_to_remove))
+
+    return pdf_name
 
 def escape(text):
     """
