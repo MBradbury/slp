@@ -101,7 +101,7 @@ implementation {
 
   components CommonCompareC;
   components
-    new DictionaryP(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighbourRootDistances;
+    new DictionaryC(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighbourRootDistances;
 
   Setup.NeighbourRootDistances -> NeighbourRootDistances;
   NeighbourRootDistances.Compare -> CommonCompareC;

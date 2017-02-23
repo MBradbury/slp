@@ -28,10 +28,10 @@ implementation
 	components LocalTimeMilliC;
 	App.LocalTime -> LocalTimeMilliC;
 
-	components new DictionaryP(am_addr_t, Info, MAX_SIZE) as NeighbourDict;
+	components new DictionaryC(am_addr_t, Info, MAX_SIZE) as NeighbourDict;
 	App.NeighbourDict -> NeighbourDict;
 
-	components new DictionaryP(am_addr_t, NeighboursRtxInfo, MAX_SIZE) as NeighbourRtxDict;
+	components new DictionaryC(am_addr_t, NeighboursRtxInfo, MAX_SIZE) as NeighbourRtxDict;
 	App.NeighbourRtxDict -> NeighbourRtxDict;
 
     components CommonCompareC;

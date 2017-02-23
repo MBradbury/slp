@@ -110,11 +110,11 @@ implementation
 
 
 	components
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as Sources;
+		new DictionaryC(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as Sources;
 	App.Sources -> Sources;
 
 
 	components
-		new DictionaryP(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighboursMinSourceDistance;
+		new DictionaryC(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighboursMinSourceDistance;
 	App.NeighboursMinSourceDistance -> NeighboursMinSourceDistance;
 }

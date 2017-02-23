@@ -2,6 +2,7 @@
 generic module DictionaryP(typedef Key, typedef Value, uint16_t MAX_SIZE)
 {
   provides interface Dictionary<Key, Value>;
+  provides interface Init;
 
   uses interface Compare<Key>;
 }
@@ -10,7 +11,13 @@ implementation
 {
 	Key keys[MAX_SIZE];
 	Value values[MAX_SIZE];
-	uint16_t count = 0;
+	uint16_t count;
+
+	command error_t Init.init()
+	{
+		count = 0;
+		return SUCCESS;
+	}
 
 	command uint16_t Dictionary.max_size()
 	{
