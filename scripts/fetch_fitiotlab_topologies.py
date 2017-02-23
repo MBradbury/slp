@@ -113,7 +113,7 @@ for site in site_names:
         print('        ', file=out_file)
 
         print('        if subset is not None:', file=out_file)
-        print('            to_keep = {x for l in (range(start, end) for (start, end) in subset) for x in l}', file=out_file)
+        print('            to_keep = {x for l in (range(start, end+1) for (start, end) in subset) for x in l}', file=out_file)
         print('            for key in set(self.nodes) - to_keep:', file=out_file)
         print('                del self.nodes[key]', file=out_file)
 
