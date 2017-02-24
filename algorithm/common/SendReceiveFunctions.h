@@ -54,7 +54,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 	} \
 	else \
 	{ \
-		LOG_STDOUT_VERBOSE("Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n"); \
+		LOG_STDOUT_VERBOSE("Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
 		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
  \
@@ -110,7 +110,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 	} \
 	else \
 	{ \
-		LOG_STDOUT_VERBOSE("Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n"); \
+		LOG_STDOUT_VERBOSE("Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
 		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
  \
@@ -160,7 +160,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 	} \
 	else \
 	{ \
-		LOG_STDOUT_VERBOSE("Broadcast" #NAME "Timer busy, not sending " #NAME " message.\n"); \
+		LOG_STDOUT_VERBOSE("Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
 		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
  \
@@ -244,7 +244,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 		return msg; \
 	} \
  \
-	LOG_STDOUT_VERBOSE(#KIND "ed valid " #NAME ".\n"); \
+	LOG_STDOUT_VERBOSE(#KIND "'ed valid " #NAME ".\n"); \
  \
 	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
@@ -283,7 +283,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 		return FALSE; \
 	} \
  \
-	LOG_STDOUT_VERBOSE(#KIND "ed valid " #NAME ".\n"); \
+	LOG_STDOUT_VERBOSE(#KIND "'ed valid " #NAME ".\n"); \
  \
 	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
  \
