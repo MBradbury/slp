@@ -39,12 +39,15 @@ implementation
 		SourceNode, SinkNode, NormalNode
 	};
 
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		busy = FALSE;
+		call Packet.clear(&packet);
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 
@@ -60,8 +63,6 @@ implementation
 		{
 			call NodeType.init(NormalNode);
 		}
-
-		busy = FALSE;
 
 		call RadioControl.start();
 	}

@@ -59,18 +59,18 @@ implementation
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
-	int32_t sink_source_distance = BOTTOM;
-	int32_t source_distance = BOTTOM;
-	int32_t sink_distance = BOTTOM;
+	int32_t sink_source_distance;
+	int32_t source_distance;
+	int32_t sink_distance;
 
-	bool sink_sent_away = FALSE;
-	bool seen_pfs = FALSE;
-	bool is_pfs_candidate = FALSE;
+	bool sink_sent_away;
+	bool seen_pfs;
+	bool is_pfs_candidate;
 
-	uint32_t first_source_distance = 0;
-	bool first_source_distance_set = FALSE;
+	uint32_t first_source_distance;
+	bool first_source_distance_set;
 
-	unsigned int extra_to_send = 0;
+	unsigned int extra_to_send;
 
 	typedef enum
 	{
@@ -120,12 +120,28 @@ implementation
 		}
 	}
 
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		busy = FALSE;
+		call Packet.clear(&packet);
+
+		sink_source_distance = BOTTOM;
+		source_distance = BOTTOM;
+		sink_distance = BOTTOM;
+
+		sink_sent_away = FALSE;
+		seen_pfs = FALSE;
+		is_pfs_candidate = FALSE;
+
+		first_source_distance = 0;
+		first_source_distance_set = FALSE;
+
+		extra_to_send = 0;
 
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
