@@ -98,6 +98,14 @@ implementation
 		simdbgerror("stderr", "%" PRIu16 ",%s", code, message);
 	}
 
+	command void MetricLogging.log_stdout(
+		const char* message
+		)
+	{
+		// No newline here, message needs to provide it!
+		simdbg("stdout", "%s", message);
+	}
+
 	//##########SLP TDMA DAS##########
 	command void MetricLogging.log_metric_node_slot_change(
 		uint16_t old_slot,

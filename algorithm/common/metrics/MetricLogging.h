@@ -70,6 +70,25 @@
 	} while (FALSE)
 #endif
 
+// No need to format messages when using serial message as the string will not be used.
+#if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
+#define LOG_STDOUT(MESSAGE, ...) \
+	call MetricLogging.log_stdout(MESSAGE)
+#else
+#define LOG_STDOUT(MESSAGE, ...) \
+	do { \
+		char stdout_message[256]; \
+		snprintf(stdout_message, ARRAY_SIZE(stdout_message), MESSAGE, ##__VA_ARGS__); \
+		call MetricLogging.log_stdout(stdout_message); \
+	} while (FALSE)
+#endif
+
+#ifdef SLP_VERBOSE_DEBUG
+#	define LOG_STDOUT_VERBOSE LOG_STDOUT
+#else
+#	define LOG_STDOUT_VERBOSE(MESSAGE, ...)
+#endif
+
 // Error codes for events that need to be passed on over a serial connection
 enum SLPErrorCodes {
 	ERROR_UNKNOWN = 0,

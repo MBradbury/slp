@@ -75,6 +75,12 @@ implementation
 	{
 	}
 
+	command void MetricLogging.log_stdout(
+		const char* message
+		)
+	{
+	}
+
 	//##########SLP TDMA DAS##########
 	command void MetricLogging.log_metric_node_slot_change(
 		uint16_t old_slot,
