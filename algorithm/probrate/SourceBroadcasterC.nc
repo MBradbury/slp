@@ -98,14 +98,15 @@ implementation
 
 	}
 
-	unsigned int extra_to_send = 0;
-
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		busy = FALSE;
+		call Packet.clear(&packet);
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(DUMMY_NORMAL_CHANNEL, "DummyNormal");
@@ -169,8 +170,8 @@ implementation
 		}
 	}
 
-	USE_MESSAGE(Normal);
-	USE_MESSAGE(DummyNormal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(DummyNormal);
 
 	event void SourcePeriodModel.fired()
 	{

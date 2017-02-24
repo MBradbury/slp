@@ -32,14 +32,15 @@ implementation
 		SourceNode, SinkNode, NormalNode
 	};
 
-	unsigned int extra_to_send = 0;
-
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		busy = FALSE;
+		call Packet.clear(&packet);
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");

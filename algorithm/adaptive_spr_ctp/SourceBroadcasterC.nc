@@ -109,15 +109,15 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
 
-	int32_t sink_distance = BOTTOM;
+	int32_t sink_distance;
 
-	bool sink_received_away_reponse = FALSE;
+	bool sink_received_away_reponse;
 
-	int32_t first_source_distance = BOTTOM;
+	int32_t first_source_distance;
 
-	unsigned int away_messages_to_send = 2;
+	unsigned int away_messages_to_send;
 
-	unsigned int extra_to_send = 0;
+	unsigned int extra_to_send;
 
 	typedef enum
 	{
@@ -269,12 +269,25 @@ implementation
 		return chosen_address;
 	}
 
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		busy = FALSE;
+		call Packet.clear(&packet);
+
+		sink_distance = BOTTOM;
+
+		sink_received_away_reponse = FALSE;
+
+		first_source_distance = BOTTOM;
+
+		away_messages_to_send = 2;
+
+		extra_to_send = 0;
 
 		init_distance_neighbours(&neighbours);
 

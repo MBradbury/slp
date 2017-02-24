@@ -49,8 +49,6 @@ implementation
 
 	SequenceNumber fake_sequence_counter;
 
-	unsigned int extra_to_send = 0;
-
 	// Produces a random float between 0 and 1
 	float random_float(void)
 	{
@@ -65,12 +63,15 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		busy = FALSE;
+		call Packet.clear(&packet);
 
 		sequence_number_init(&fake_sequence_counter);
 
@@ -136,8 +137,8 @@ implementation
 		}
 	}
 
-	USE_MESSAGE(Normal);
-	USE_MESSAGE(Fake);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Fake);
 
 	void become_Normal(void)
 	{

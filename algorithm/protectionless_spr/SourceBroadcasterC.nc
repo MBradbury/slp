@@ -89,7 +89,7 @@ implementation
 		SourceNode, SinkNode, NormalNode
 	};
 
-	int32_t sink_distance = BOTTOM;
+	int32_t sink_distance;
 
 	distance_neighbours_t neighbours;
 
@@ -107,14 +107,23 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
-	unsigned int extra_to_send = 0;
+	unsigned int extra_to_send;
 
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		busy = FALSE;
+		call Packet.clear(&packet);
+
+		sink_distance = BOTTOM;
+
+		extra_to_send = 0;
+
+		init_distance_neighbours(&neighbours);
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
@@ -240,9 +249,9 @@ implementation
 		return 75U + (uint32_t)(50U * random_float());
 	}
 
-	USE_MESSAGE(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 	USE_MESSAGE(Away);
-	USE_MESSAGE(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	event void SourcePeriodModel.fired()
 	{
