@@ -33,6 +33,9 @@ def build_arguments():
 # - https://github.com/iot-lab/iot-lab/wiki/Hardware_Wsn430-node
 # - https://www.iot-lab.info/tutorials/nodes-serial-link-aggregation/
 
+# - https://gist.github.com/cladmi/268a84e2998d34a22b4e
+# - https://lists.gforge.inria.fr/mailman/private/senslab-users/2013-March/000391.html
+
 # To gather results:
 # 1. Log into the correct site
 #    $ ssh <login>@<site>.iot-lab.info (site = euratech, grenoble, lille, rennes, saclay, strasbourg)
