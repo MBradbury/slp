@@ -628,6 +628,18 @@ class GrenobleSmall(Configuration):
             space_behind_sink=False
         )
 
+class TwistGuess(Configuration):
+    def __init__(self, *args, **kwargs):
+        from data.testbed.twist import Twist
+        twist = Twist()
+
+        super(TwistGuess, self).__init__(
+            twist,
+            source_ids={11},
+            sink_id=210,
+            space_behind_sink=False
+        )
+
 def configurations():
     """A list of the available configuration classes."""
     return [cls for cls in Configuration.__subclasses__()] # pylint: disable=no-member
