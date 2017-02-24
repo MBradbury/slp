@@ -30,6 +30,8 @@ class Indriya(Topology):
     def __init__(self):
         super(Indriya, self).__init__()
 
+        self.platform = "telosb"
+
         floor_distance = 20.0
 
         for nid in xrange(1, 139):

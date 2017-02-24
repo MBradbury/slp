@@ -24,6 +24,8 @@ class DCSWarwick(Topology):
     def __init__(self):
         super(DCSWarwick, self).__init__()
 
+        self.platform = "telosb"
+
         floor_distance = 20.0
 
         self.nodes[1] = np.array((floor_distance * 2 + 0, 0),   dtype=np.float64),  # CS2.01
