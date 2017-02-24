@@ -482,7 +482,8 @@ class CLI(object):
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('time taken', 'first normal sent time',
                                           'total wall time', 'wall time', 'event count',
-                                          'repeats', 'captured', 'reached upper bound'))
+                                          'repeats', 'captured', 'reached upper bound',
+                                          'memory rss', 'memory vms'))
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
