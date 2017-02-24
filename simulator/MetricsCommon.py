@@ -5,6 +5,12 @@ import base64
 import math
 import zlib
 
+# Allow missing psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
 try:
     # Python 2
     from itertools import izip_longest
@@ -578,6 +584,8 @@ class MetricsCommon(object):
     def items():
         d = OrderedDict()
         d["Seed"]                          = lambda x: x.seed()
+
+        # Core metrics
         d["Sent"]                          = lambda x: x.total_sent()
         d["Received"]                      = lambda x: x.total_received()
         d["Delivered"]                     = lambda x: x.total_delivered()
@@ -587,9 +595,15 @@ class MetricsCommon(object):
         d["ReceiveRatio"]                  = lambda x: x.receive_ratio()
         d["FirstNormalSentTime"]           = lambda x: x.first_normal_sent_time()
         d["TimeTaken"]                     = lambda x: x.sim_time()
+
+        # Performance metrics of the simulator
         d["WallTime"]                      = lambda x: x.wall_time
         d["TotalWallTime"]                 = lambda x: x.total_wall_time
         d["EventCount"]                    = lambda x: x.event_count
+        d["MemoryRSS"]                     = lambda x: str(x.memory_info("rss"))
+        d["MemoryVMS"]                     = lambda x: str(x.memory_info("vms"))
+
+        # Attacker metrics
         d["AttackerDistance"]              = lambda x: x.attacker_source_distance()
         d["AttackerSinkDistance"]          = lambda x: x.attacker_sink_distance()
         d["AttackerMoves"]                 = lambda x: x.attacker_moves()
@@ -597,6 +611,7 @@ class MetricsCommon(object):
         d["AttackerStepsTowards"]          = lambda x: x.attacker_steps_towards()
         d["AttackerStepsAway"]             = lambda x: x.attacker_steps_away()
         d["AttackerMinSourceDistance"]     = lambda x: x.attacker_min_source_distance()
+
         d["NormalLatency"]                 = lambda x: x.average_normal_latency()
         d["MaxNormalLatency"]              = lambda x: x.maximum_normal_latency()
         d["NormalInterArrivalTimeAverage"] = lambda x: x.normal_inter_arrival_time_average()
@@ -608,8 +623,10 @@ class MetricsCommon(object):
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
+
         d["NodeWasSource"]                 = lambda x: MetricsCommon.smaller_dict_str(x.node_was_source())
         d["NodeTransitions"]               = lambda x: MetricsCommon.smaller_dict_str(dict(x.node_transitions))
+
         d["SentHeatMap"]                   = lambda x: MetricsCommon.compressed_dict_str(x.sent_heat_map())
         d["ReceivedHeatMap"]               = lambda x: MetricsCommon.compressed_dict_str(x.received_heat_map())
 
@@ -664,3 +681,10 @@ class MetricsCommon(object):
             print("Reached Upper Bound:", file=stream)
             print("\tSimulation reached the upper bound, likely because the safety period was not triggered.", file=stream)
             print("\tEnsure that a Normal message is sent in your simulation.", file=stream)
+
+    def memory_info(self, attr):
+        """Memory usage of the current process in bytes."""
+        if psutil is None:
+            return None
+        else:
+            return getattr(psutil.Process().memory_info(), attr)

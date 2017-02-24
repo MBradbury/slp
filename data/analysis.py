@@ -241,6 +241,8 @@ class Analyse(object):
         "WallTime": np.float_,
         "TotalWallTime": np.float_,
         "EventCount": np.int64,
+        "MemoryRSS": np.uint64,
+        "MemoryVMS": np.uint64,
         "NormalLatency": np.float_,
         "NormalSinkSourceHops": np.float_,
         "FirstNormalSentTime": np.float_,
@@ -821,6 +823,8 @@ class AnalyzerCommon(object):
         d['total wall time']    = lambda x: AnalyzerCommon._format_results(x, 'TotalWallTime')
         d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
         d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
+        d['memory rss']         = lambda x: AnalyzerCommon._format_results(x, 'MemoryRSS', allow_missing=True)
+        d['memory vms']         = lambda x: AnalyzerCommon._format_results(x, 'MemoryVMS', allow_missing=True)
 
         d['captured']           = lambda x: str(x.average_of['Captured'])
         d['reached upper bound']= lambda x: str(x.average_of['ReachedSimUpperBound'])
