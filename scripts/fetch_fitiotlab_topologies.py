@@ -14,10 +14,7 @@ platform_mapping = {
     "wsn430v14": "wsn430:cc2420",
 }
 
-archi_mapping = {
-    "wsn430:cc1101": "wsn430v13",
-    "wsn430:cc2420": "wsn430v14",
-}
+archi_mapping = {v: k for (k, v) in platform_mapping.items()}
 
 supported_platforms = platform_mapping.keys()
 supported_hardware = platform_mapping.values()
