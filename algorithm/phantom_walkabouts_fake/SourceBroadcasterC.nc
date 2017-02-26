@@ -235,21 +235,24 @@ implementation
 
 	uint32_t get_fs_period()
 	{
-		return call SourcePeriodModel.get()/2;
+		return call SourcePeriodModel.get();
 	}
 
 	uint32_t get_fs_duration(const NormalMessage* message)
 	{
+		return 2.0*sink_source_distance *get_fs_period();
+/*	
 		if (message->source_message_send_no < sink_source_distance)
 		{
-			//printf("source message send:%d, ssd: %d, source delay time:%d\n", message->source_message_send_no, sink_source_distance, sink_distance * get_fs_period());
+			printf("source message send:%d, ssd: %d, fs period:%d, source delay time:%d\n", message->source_message_send_no, sink_source_distance, get_fs_period(), sink_distance * get_fs_period());
 			return sink_distance * get_fs_period();
 		}
 		else
 		{
-			//printf("source message send:%d, ssd: %d, source delay time:%f\n", message->source_message_send_no, sink_source_distance, 1.5*sink_distance * get_fs_period());
+			printf("source message send:%d, ssd: %d, source delay time:%f\n", message->source_message_send_no, sink_source_distance, 1.5*sink_distance * get_fs_period());
 			return 1.5*sink_source_distance *get_fs_period();
 		}
+*/
 	}
 
 	SetType random_walk_direction()
@@ -620,8 +623,7 @@ implementation
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
 
 		short_random_walk_hops = call Random.rand16() % half_sink_source_dist + 2;
-		//long_random_walk_hops = call Random.rand16() % half_sink_source_dist + sink_distance + 2;
-		long_random_walk_hops = call Random.rand16() % sink_distance + sink_distance + 2;
+		long_random_walk_hops = call Random.rand16() % half_sink_source_dist + sink_distance + 2;
 		source_message_send_no += 1;
 
 		if (wait_before_short_delay_ms <= 0)
