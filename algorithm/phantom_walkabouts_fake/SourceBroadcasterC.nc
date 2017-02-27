@@ -134,6 +134,8 @@ module SourceBroadcasterC
 
 	uses interface SequenceNumbers as NormalSeqNos;
 	uses interface SequenceNumbers as AwaySeqNos;
+
+	uses interface ParameterInit<uint16_t> as SeedInit;
 }
 
 implementation 
@@ -174,6 +176,8 @@ implementation
 
 	int16_t source_message_send_no;
 	int16_t fake_source_message_send_no;
+
+	uint32_t random_seed;
 
 	bool busy;
 	message_t packet;
@@ -478,8 +482,6 @@ implementation
 		short_random_walk_hops = BOTTOM;
 		long_random_walk_hops = BOTTOM;
 
-		fake_sequence_counter;
-
 		phantom_node_found = FALSE;
 		source_node_delay_ms = BOTTOM;
 
@@ -510,7 +512,11 @@ implementation
 			call NodeType.init(NormalNode);
 		}
 
+		random_seed = (uint32_t)sim_time();
+		call SeedInit.init(random_seed);
+
 		call RadioControl.start();
+
 	}
 
 	event void RadioControl.startDone(error_t err)

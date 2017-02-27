@@ -109,4 +109,6 @@ implementation
     // Random
     components RandomC;
     App.Random -> RandomC;
+
+    App.SeedInit -> RandomC.SeedInit;
 }
