@@ -101,11 +101,6 @@ class ArgumentsCommon(object):
         parser_offline.add_argument("--merged-log", type=str, required=True)
 
         parser_offline.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
-        
-        #if has_safety_period:
-        #    parser_offline.add_argument("-safety", "--safety-period", type=float, required=True)
-
-        #parser_offline.add_argument("--seed", type=int, required=False)
 
         ###
 
