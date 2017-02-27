@@ -217,7 +217,7 @@ class CLI(object):
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
 
-    def _execute_runner(self, driver, result_path, skip_completed_simulations=True):
+    def _execute_runner(self, driver, result_path, time_estimator=None, skip_completed_simulations=True):
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
         elif driver.mode() == "CYCLEACCURATE":
@@ -255,7 +255,7 @@ class CLI(object):
             runner.run(self.algorithm_module.Parameters.repeats,
                        self.parameter_names(),
                        self._argument_product(),
-                       self._time_estimator)
+                       time_estimator)
         except MissingSafetyPeriodError as ex:
             from pprint import pprint
             import traceback
@@ -287,7 +287,7 @@ class CLI(object):
 
         return [process(*args) for args in argument_product]
 
-    def _time_estimator(self, args, **kwargs):
+    def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
@@ -304,7 +304,7 @@ class CLI(object):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _time_estimator_from_historical(self, historical_key_names, historical, allowance, args, **kwargs):
+    def _cluster_time_estimator_from_historical(self, historical_key_names, historical, allowance, args, **kwargs):
         key = tuple(args[name] for name in historical_key_names)
 
         try:
@@ -325,7 +325,7 @@ class CLI(object):
 
         except KeyError:
             print("Unable to find historical time for {}, so using default time estimator.".format(key))
-            return self._time_estimator(args, **kwargs)
+            return self._cluster_time_estimator(args, **kwargs)
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
@@ -339,7 +339,7 @@ class CLI(object):
 
         skip_complete = not args.no_skip_complete
 
-        self._execute_runner(driver, self.algorithm_module.results_path, skip_completed_simulations=skip_complete)
+        self._execute_runner(driver, self.algorithm_module.results_path, time_estimator=None, skip_completed_simulations=skip_complete)
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
@@ -403,7 +403,7 @@ class CLI(object):
 
             skip_complete = not args.no_skip_complete
 
-            self._execute_runner(cluster.builder(), cluster_directory, skip_completed_simulations=skip_complete)
+            self._execute_runner(cluster.builder(), cluster_directory, time_estimator=None, skip_completed_simulations=skip_complete)
 
         elif 'copy' == args.cluster_mode:
             cluster.copy_to(self.algorithm_module.name, user=args.user)
@@ -424,7 +424,7 @@ class CLI(object):
 
             skip_complete = not args.no_skip_complete
 
-            self._execute_runner(submitter, cluster_directory, skip_completed_simulations=skip_complete)
+            self._execute_runner(submitter, cluster_directory, time_estimator=self._cluster_time_estimator, skip_completed_simulations=skip_complete)
 
         elif 'copy-back' == args.cluster_mode:
             cluster.copy_back(self.algorithm_module.name, user=args.user)
@@ -451,14 +451,14 @@ class CLI(object):
                 generate_per_node_id_binary=args.generate_per_node_id_binary
             )
 
-            self._execute_runner(builder, testbed_directory, skip_completed_simulations=False)
+            self._execute_runner(builder, testbed_directory, time_estimator=None, skip_completed_simulations=False)
 
         elif 'submit' == args.testbed_mode:
             submitter = testbed.submitter()
 
             skip_complete = not args.no_skip_complete
 
-            self._execute_runner(submitter, testbed_directory, skip_completed_simulations=skip_complete)
+            self._execute_runner(submitter, testbed_directory, time_estimator=None, skip_completed_simulations=skip_complete)
 
         sys.exit(0)
 
@@ -473,7 +473,9 @@ class CLI(object):
             print("Removing existing cycle accurate directory and creating a new one")
             recreate_dirtree(cycle_accurate_directory)
 
-            self._execute_runner(Builder(cycle_accurate, platform=args.platform), cycle_accurate_directory, skip_completed_simulations=False)
+            builder = Builder(cycle_accurate, platform=args.platform)
+
+            self._execute_runner(builder, cycle_accurate_directory, time_estimator=None, skip_completed_simulations=False)
 
         sys.exit(0)
 
