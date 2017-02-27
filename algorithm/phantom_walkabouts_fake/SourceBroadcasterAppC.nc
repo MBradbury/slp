@@ -116,4 +116,6 @@ implementation
 		new SequenceNumbersC(SLP_MAX_NUM_AWAY_MESSAGES) as AwaySeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 	App.AwaySeqNos -> AwaySeqNos;
+
+	App.SeedInit -> RandomC.SeedInit;
 }
