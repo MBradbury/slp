@@ -96,16 +96,16 @@ class ArgumentsCommon(object):
         ###
         ###
 
-        parser_offline = subparsers.add_parser("OFFLINE", add_help=False, parents=(parser_testbed,))
+        parser_offline = subparsers.add_parser("OFFLINE", add_help=False, parents=(parser_cycle,))
 
         parser_offline.add_argument("--merged-log", type=str, required=True)
 
         parser_offline.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
         
-        if has_safety_period:
-            parser_offline.add_argument("-safety", "--safety-period", type=float, required=True)
+        #if has_safety_period:
+        #    parser_offline.add_argument("-safety", "--safety-period", type=float, required=True)
 
-        parser_offline.add_argument("--seed", type=int, required=False)
+        #parser_offline.add_argument("--seed", type=int, required=False)
 
         ###
 

@@ -336,7 +336,7 @@ class OfflineSimulation(object):
 
         self._log_file = open(log_filename, 'r')
 
-        self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+):(\d+):(.+)')
+        self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+):(\d+):(.+)\s*')
 
     def __enter__(self):
         return self
@@ -409,7 +409,7 @@ class OfflineSimulation(object):
         # Example line:
         #2016/07/27 14:47:34.418:Metric-COMM:2:D:42202:DELIVER:Normal,4,1,1,22
 
-        date_string, rest = line[0: len("2016/07/27 15:09:53.687")], line[len("2016/07/27 15:09:53.687")+1:]
+        date_string, rest = line.split("|", 1)
 
         current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f")
 

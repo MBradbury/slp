@@ -17,7 +17,7 @@ AM_METRIC_NODE_TYPE_ADD_MSG = 55
 AM_METRIC_MESSAGE_TYPE_ADD_MSG = 56
 
 def catter_header(row, d_or_e, channel):
-    return "{}:{}:{}:{}:{}:".format(row["date_time"], channel, d_or_e, row["node_id"], row["local_time"])
+    return "{}|{}:{}:{}:{}:".format(row["date_time"], channel, d_or_e, row["node_id"], row["local_time"])
 
 def catter_metric_receive_msg(row, channel):
     return catter_header(row, "D", channel) + "{},{},{},{},{}".format(
