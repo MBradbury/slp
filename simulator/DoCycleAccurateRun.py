@@ -77,6 +77,8 @@ def main(module, a):
         "random-seed": a.args.seed,
         "max": 256, # Needed to be able to print simdbg strings longer than 30 bytes
         "show-packets": "true",
+        "report-seconds": "true",
+        "seconds-precision": "9"
     }
 
     target_file = os.path.join(target_directory, "main.elf")
