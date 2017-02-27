@@ -9,6 +9,25 @@ enum Channels
 	FAKE_CHANNEL = 4
 };
 
+typedef struct
+{
+	int16_t address;
+	int16_t neighbour_size;
+}neighbour_info;
+
+typedef struct
+{
+	int16_t address;
+	int16_t neighbour_size;
+}chosen_set_neighbour;
+	
+typedef struct
+{
+	int16_t message_sent;
+	int16_t sequence_message_sent;
+	int16_t probability;
+}RandomWalk;
+
 #define SLP_MAX_NUM_SINKS 1
 #define SLP_MAX_NUM_SOURCES 20
 

@@ -148,52 +148,34 @@ implementation
 		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1), CloserSideSet = (1 << 2), FurtherSideSet = (1 << 3)
 	} SetType;
 
-	typedef struct
-	{
-		int16_t address;
-		int16_t neighbour_size;
-	}neighbour_info;
-	neighbour_info node_neighbours[SLP_MAX_1_HOP_NEIGHBOURHOOD]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
-
-	typedef struct
-	{
-		int16_t address;
-		int16_t neighbour_size;
-	}chosen_set_neighbour;
-	chosen_set_neighbour chosen_set_neighbours[SLP_MAX_SET_NEIGHBOURS]={{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
-
-	typedef struct
-	{
-		int16_t message_sent;
-		int16_t sequence_message_sent;
-		int16_t probability;
-	}RandomWalk;
+	neighbour_info node_neighbours[SLP_MAX_1_HOP_NEIGHBOURHOOD] = {{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM},{BOTTOM,BOTTOM} };;
+	chosen_set_neighbour chosen_set_neighbours[SLP_MAX_SET_NEIGHBOURS] = {{BOTTOM,BOTTOM},{BOTTOM,BOTTOM}};
 	RandomWalk short_random_walk_info = {0, 0, 50};
 	RandomWalk long_random_walk_info = {0, 0, 50};
 
-	int16_t bottom_left_distance = BOTTOM;
-	int16_t bottom_right_distance = BOTTOM;
-	int16_t sink_distance = BOTTOM;
+	int16_t bottom_left_distance;
+	int16_t bottom_right_distance;
+	int16_t sink_distance;
 
-	uint16_t sink_source_distance = BOTTOM; 
+	uint16_t sink_source_distance; 
 
-	int16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
-	int16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
+	int16_t sink_bl_dist;		//sink-bottom_left distance.
+	int16_t sink_br_dist;		//sink-bottom_right distance.
 
-	int16_t short_random_walk_hops = BOTTOM;
-	int16_t long_random_walk_hops = BOTTOM;
+	int16_t short_random_walk_hops;
+	int16_t long_random_walk_hops;
 
 	distance_neighbours_t neighbours;
 
 	uint32_t fake_sequence_counter;
 
-	bool phantom_node_found = FALSE;
-	int16_t source_node_delay_ms = BOTTOM;
+	bool phantom_node_found;
+	int16_t source_node_delay_ms;
 
-	int16_t source_message_send_no = 0;
-	int16_t fake_source_message_send_no = 0;
+	int16_t source_message_send_no;
+	int16_t fake_source_message_send_no;
 
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	uint32_t get_source_period()
@@ -240,7 +222,7 @@ implementation
 
 	uint32_t get_fs_duration(const NormalMessage* message)
 	{
-		return 2.0*sink_source_distance*get_fs_period();
+		return long_random_walk_hops*get_fs_period();
 /*	
 		if (message->source_message_send_no < sink_source_distance)
 		{
@@ -484,10 +466,29 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		bottom_left_distance = BOTTOM;
+		bottom_right_distance = BOTTOM;
+		sink_distance = BOTTOM;
+
+		sink_source_distance = BOTTOM; 
+
+		sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
+		sink_br_dist = BOTTOM;		//sink-bottom_right distance.
+
+		short_random_walk_hops = BOTTOM;
+		long_random_walk_hops = BOTTOM;
+
+		fake_sequence_counter;
+
+		phantom_node_found = FALSE;
+		source_node_delay_ms = BOTTOM;
+
+		source_message_send_no = 0;
+		fake_source_message_send_no = 0;
+
+		busy = FALSE;
 
 		init_distance_neighbours(&neighbours);
-
 		sequence_number_init(&fake_sequence_counter);
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
@@ -864,7 +865,8 @@ implementation
 
 					if (sink_distance < sink_source_distance && rcvd->random_walk_hops > sink_source_distance)
 					{
-						//printf("(%d):send fake message.\n", TOS_NODE_ID);					
+						//printf("(%d):send fake message.\n", TOS_NODE_ID);
+						long_random_walk_hops = rcvd->random_walk_hops;	//record the distance			
 						source_node_delay_ms = get_fs_duration(rcvd);
 						become_Fake(rcvd, TempFakeNode);
 					}					
