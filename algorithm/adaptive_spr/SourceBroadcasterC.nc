@@ -31,8 +31,10 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 
 void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
+#ifdef TOSSIM
 	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
 		i, address, contents->distance);
+#endif
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
