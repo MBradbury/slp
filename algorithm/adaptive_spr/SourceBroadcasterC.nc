@@ -68,6 +68,7 @@ module SourceBroadcasterC
 
 	uses interface AMSend as ChooseSend;
 	uses interface Receive as ChooseReceive;
+	uses interface Receive as ChooseSnoop;
 
 	uses interface AMSend as FakeSend;
 	uses interface Receive as FakeReceive;
@@ -696,11 +697,11 @@ implementation
 		}
 	}
 
-
 	void Sink_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_received_away_reponse = TRUE;
 	}
+
 
 	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -736,8 +737,38 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
 		case SinkNode: Sink_receive_Choose(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
+
+		case SourceNode:
+		case PermFakeNode:
+		case TempFakeNode:
+		case TailFakeNode: break;
 	RECEIVE_MESSAGE_END(Choose)
 
+
+	void Sink_snoop_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
+	{
+		sink_received_away_reponse = TRUE;
+	}
+
+	void x_snoop_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
+	{
+		if (algorithm == UnknownAlgorithm)
+		{
+			algorithm = (Algorithm)rcvd->algorithm;
+		}
+
+		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Choose, Snoop)
+		case SinkNode: Sink_snoop_Choose(rcvd, source_addr); break;
+
+		case SourceNode:
+		case NormalNode:
+		case PermFakeNode:
+		case TempFakeNode:
+		case TailFakeNode: x_snoop_Choose(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Choose)
 
 
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)

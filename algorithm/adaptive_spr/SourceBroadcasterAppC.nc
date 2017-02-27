@@ -70,10 +70,12 @@ implementation
 
 	components
 		new AMSenderC(CHOOSE_CHANNEL) as ChooseSender,
-		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver;
+		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver,
+		new AMSnooperC(CHOOSE_CHANNEL) as ChooseSnooper;
 
 	App.ChooseSend -> ChooseSender;
 	App.ChooseReceive -> ChooseReceiver;
+	App.ChooseSnoop -> ChooseSnooper;
 
 	components
 		new AMSenderC(FAKE_CHANNEL) as FakeSender,
