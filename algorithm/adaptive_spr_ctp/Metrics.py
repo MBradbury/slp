@@ -32,5 +32,7 @@ class Metrics(MetricsCommon):
         d["TailFS"]                 = lambda x: x.times_node_changed_to("TailFakeNode")
         d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=("TempFakeNode", "PermFakeNode", "TailFakeNode"))
         d["FakeToFake"]             = lambda x: x.times_fake_node_changed_to_fake()
+        d["FakeNodesAtEnd"]         = lambda x: x.times_node_changed_to(("TempFakeNode", "PermFakeNode", "TailFakeNode"), from_types="NormalNode") - \
+                                                x.times_node_changed_to("NormalNode", from_types=("TempFakeNode", "PermFakeNode", "TailFakeNode"))
 
         return d
