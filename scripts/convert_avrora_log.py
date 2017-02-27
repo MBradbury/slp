@@ -12,7 +12,7 @@ def convert_avrora_log(result_file, output_file):
 	results_start = "------------------------------------------------------------------------------"
 	results_end = "=============================================================================="
 
-	RESULT_LINE_RE = re.compile(r'\s*(\d+)\s*(\d+)\s*(.+)\s*')
+	RESULT_LINE_RE = re.compile(r'\s*(\d+)\s*(\d+:\d+:\d+\.\d+)\s*(.+)\s*')
 	TX_LINE_RE = re.compile(r'---->\s+((?:[0-9A-F][0-9A-F]\.)*[0-9A-F][0-9A-F])\s+(\d+\.\d+)\s+ms\s*')
 	RX_LINE_RE = re.compile(r'<====\s+((?:[0-9A-F][0-9A-F]\.)*[0-9A-F][0-9A-F])\s+(\d+\.\d+)\s+ms\s*')
 
@@ -45,7 +45,7 @@ def convert_avrora_log(result_file, output_file):
 				match = RESULT_LINE_RE.match(line)
 
 				node = int(match.group(1))
-				time = int(match.group(2))
+				node_time = datetime.strptime(match.group(2)[:-3], "%H:%M:%S.%f")
 
 				log = match.group(3)
 
@@ -64,8 +64,7 @@ def convert_avrora_log(result_file, output_file):
 					average_rx_length, average_rx_count = _incremental_ave(average_rx_length, time_length_ms, average_rx_count)
 
 				else:
-					dtime = datetime.fromtimestamp(time)
-					dtime_str = dtime.strftime("%Y/%m/%d %H:%M:%S.%f")
+					dtime_str = node_time.strftime("%Y/%m/%d %H:%M:%S.%f")
 
 					# Then its one of our debug log messages
 					print(dtime_str + "|" + log, file=output)
