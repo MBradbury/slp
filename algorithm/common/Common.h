@@ -41,10 +41,11 @@ inline double rad2deg(double r)
 }
 
 // Disable using assert when running on real hardware 
-#ifndef TESTBED
-#	include <assert.h>
+#if defined(TESTBED) || defined(CYCLEACCURATE)
+#	define assert(cond) do { if(!(cond)) { ERROR_OCCURRED(ERROR_ASSERT, "Assert: " STRINGIFY(cond)); } } while(FALSE)
+#	define __builtin_unreachable() ERROR_OCCURRED(ERROR_REACHED_UNREACHABLE, "In " __FILE__ " at " STRINGIFY(__LINE__))
 #else
-#	define assert(...)
+#	include <assert.h>
 #endif
 
 // Compiling for testbeds, so need to route the simdbg to the printf library
