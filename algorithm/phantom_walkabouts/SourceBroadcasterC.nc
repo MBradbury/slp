@@ -166,45 +166,32 @@ implementation
 		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1), CloserSideSet = (1 << 2), FurtherSideSet = (1 << 3)
 	} SetType;
 
-	typedef enum
-	{
-		UnknownSinkLocation, Centre, Others 
-	}SinkLocation;
 	SinkLocation sink_location = UnknownSinkLocation;
-
-	typedef enum
-	{
-		UnknownBiasType, H, V 
-	}BiasedType;
 	BiasedType bias_direction = UnknownBiasType;
 
-	typedef enum
-	{
-		UnknownMessageType, ShortRandomWalk, LongRandomWalk
-	}WalkType;
 	WalkType messagetype = UnknownMessageType;
 	WalkType nextmessagetype = UnknownMessageType;
 
-	bool reach_borderline = FALSE;
+	bool reach_borderline;
 
-	int16_t landmark_bottom_left_distance = BOTTOM;
-	int16_t landmark_bottom_right_distance = BOTTOM;
-	int16_t landmark_top_right_distance = BOTTOM;
-	int16_t landmark_sink_distance = BOTTOM;
+	int16_t landmark_bottom_left_distance;
+	int16_t landmark_bottom_right_distance;
+	int16_t landmark_top_right_distance;
+	int16_t landmark_sink_distance;
 
-	int16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
-	int16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
-	int16_t sink_tr_dist = BOTTOM;		//sink-top_right distance.
+	int16_t sink_bl_dist;		//sink-bottom_left distance.
+	int16_t sink_br_dist;		//sink-bottom_right distance.
+	int16_t sink_tr_dist;		//sink-top_right distance.
 
-	int16_t srw_count = 0;	//short random walk count.
-	int16_t lrw_count = 0;	//long random walk count.
+	int16_t srw_count;	//short random walk count.
+	int16_t lrw_count;	//long random walk count.
 
-	int16_t RANDOM_WALK_HOPS = BOTTOM;
-	int16_t LONG_RANDOM_WALK_HOPS = BOTTOM;
+	int16_t RANDOM_WALK_HOPS ;
+	int16_t LONG_RANDOM_WALK_HOPS;
 
 	distance_neighbours_t neighbours;
 
-	bool busy = FALSE;
+	bool busy;
 	message_t packet;
 
 	uint32_t get_source_period()
@@ -605,7 +592,24 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		reach_borderline = FALSE;
+
+		landmark_bottom_left_distance = BOTTOM;
+		landmark_bottom_right_distance = BOTTOM;
+		landmark_top_right_distance = BOTTOM;
+		landmark_sink_distance = BOTTOM;
+
+		sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
+		sink_br_dist = BOTTOM;		//sink-bottom_right distance.
+		sink_tr_dist = BOTTOM;		//sink-top_right distance.
+
+		srw_count = 0;	//short random walk count.
+		lrw_count = 0;	//long random walk count.
+
+		RANDOM_WALK_HOPS = BOTTOM;
+		LONG_RANDOM_WALK_HOPS = BOTTOM;
+
+		busy = FALSE;
 
 		init_distance_neighbours(&neighbours);
 
