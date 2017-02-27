@@ -45,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
 
-    def _time_estimator(self, args, **kwargs):
+    def _cluster_time_estimator(self, args, **kwargs):
         historical_key_names = ('network size', 'source period')
 
         historical = {
@@ -71,7 +71,7 @@ class CLI(CommandLineCommon.CLI):
             (25, 2.0): timedelta(seconds=1909),
         }
 
-        return self._time_estimator_from_historical(
+        return self._cluster_time_estimator_from_historical(
             historical_key_names, historical, 0.25, args, **kwargs
         )
 
