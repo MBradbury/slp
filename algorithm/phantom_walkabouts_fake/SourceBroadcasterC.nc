@@ -235,12 +235,12 @@ implementation
 
 	uint32_t get_fs_period()
 	{
-		return call SourcePeriodModel.get();
+		return call SourcePeriodModel.get()/2;
 	}
 
 	uint32_t get_fs_duration(const NormalMessage* message)
 	{
-		return 2.0*sink_source_distance *get_fs_period();
+		return 2.0*sink_source_distance*get_fs_period();
 /*	
 		if (message->source_message_send_no < sink_source_distance)
 		{
