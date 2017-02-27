@@ -520,7 +520,10 @@ class MetricsCommon(object):
         return total_count
 
     def reached_sim_upper_bound(self):
-        return self.sim_time() >= self.sim.upper_bound_safety_period
+        if not hasattr(self.sim, "upper_bound_safety_period"):
+            return False
+        else:
+            return self.sim_time() >= self.sim.upper_bound_safety_period
 
     def rcvd_closer_or_same_hops_all(self):
         return dict(sum(self.received_from_closer_or_same_hops.values(), Counter()))
