@@ -204,7 +204,7 @@ implementation
 	USE_MESSAGE(Choose);
 	USE_MESSAGE_WITH_CALLBACK(Fake);
 
-	void become_Normal()
+	void become_Normal(void)
 	{
 		call NodeType.set(NormalNode);
 
@@ -215,10 +215,9 @@ implementation
 	{
 		float rndFloat;
 
-		if (perm_type != PermFakeNode && perm_type != TempFakeNode)
-		{
-			assert("The perm type is not correct");
-		}
+#ifdef SLP_VERBOSE_DEBUG
+		assert(fake_type == PermFakeNode || fake_type == TempFakeNode);
+#endif
 
 		rndFloat = random_float();
 

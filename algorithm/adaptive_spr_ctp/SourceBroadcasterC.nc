@@ -393,10 +393,9 @@ implementation
 
 	void become_Fake(const AwayChooseMessage* message, uint8_t fake_type)
 	{
-		if (fake_type != PermFakeNode && fake_type != TempFakeNode && fake_type != TailFakeNode)
-		{
-			assert("The perm type is not correct");
-		}
+#ifdef SLP_VERBOSE_DEBUG
+		assert(fake_type == PermFakeNode || fake_type == TempFakeNode || fake_type == TailFakeNode);
+#endif
 
 		// Stop any existing fake message generation.
 		// This is necessary when transitioning from TempFS to TailFS.
@@ -419,7 +418,7 @@ implementation
 			break;
 
 		default:
-			assert(FALSE);
+			__builtin_unreachable();
 		}
 	}
 
