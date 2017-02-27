@@ -9,8 +9,6 @@
 
 #define simdbg(name, fmtstr, ...) \
 	do { \
-		memset(error_message, 0, ARRAY_SIZE(error_message)); \
- \
 		snprintf(error_message, ARRAY_SIZE(error_message), \
 			"%s:D:%" PRIu16 ":%" PRIu32 ":" fmtstr, \
 			name, TOS_NODE_ID, call LocalTime.get(), ##__VA_ARGS__); \
@@ -20,8 +18,6 @@
 
 #define simdbgerror(name, fmtstr, ...) \
 	do { \
-		memset(error_message, 0, ARRAY_SIZE(error_message)); \
- \
 		snprintf(error_message, ARRAY_SIZE(error_message), \
 			"%s:E:%" PRIu16 ":%" PRIu32 ":" fmtstr, \
 			name, TOS_NODE_ID, call LocalTime.get(), ##__VA_ARGS__); \
