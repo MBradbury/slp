@@ -16,6 +16,9 @@
 
 #define CHAR_BIT 8
 
+#define STRINGIFY(a) STRINGIFY_IMPL(a)
+#define STRINGIFY_IMPL(a) #a
+
 #ifndef STATIC_ASSERT_MSG
 #	include "slp_static_assert.h"
 #endif
