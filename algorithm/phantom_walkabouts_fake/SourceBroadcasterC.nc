@@ -175,7 +175,7 @@ implementation
 	int16_t bottom_right_distance = BOTTOM;
 	int16_t sink_distance = BOTTOM;
 
-	int16_t sink_source_distance = BOTTOM; 
+	uint16_t sink_source_distance = BOTTOM; 
 
 	int16_t sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
 	int16_t sink_br_dist = BOTTOM;		//sink-bottom_right distance.
@@ -188,6 +188,10 @@ implementation
 	uint32_t fake_sequence_counter;
 
 	bool phantom_node_found = FALSE;
+	int16_t source_node_delay_ms = BOTTOM;
+
+	int16_t source_message_send_no = 0;
+	int16_t fake_source_message_send_no = 0;
 
 	bool busy = FALSE;
 	message_t packet;
@@ -231,13 +235,24 @@ implementation
 
 	uint32_t get_fs_period()
 	{
-		assert(call NodeType.get() == TempFakeNode);
-		return call SourcePeriodModel.get();
+		return call SourcePeriodModel.get()/2;
 	}
 
-	uint32_t get_fs_duration(void)
+	uint32_t get_fs_duration(const NormalMessage* message)
 	{
-		return sink_source_distance * get_fs_period();
+		return 2.0*sink_source_distance*get_fs_period();
+/*	
+		if (message->source_message_send_no < sink_source_distance)
+		{
+			printf("source message send:%d, ssd: %d, fs period:%d, source delay time:%d\n", message->source_message_send_no, sink_source_distance, get_fs_period(), sink_distance * get_fs_period());
+			return sink_distance * get_fs_period();
+		}
+		else
+		{
+			printf("source message send:%d, ssd: %d, source delay time:%f\n", message->source_message_send_no, sink_source_distance, 1.5*sink_distance * get_fs_period());
+			return 1.5*sink_source_distance *get_fs_period();
+		}
+*/
 	}
 
 	SetType random_walk_direction()
@@ -393,13 +408,10 @@ implementation
 				}
 			}
 		}
-		//simdbgverbose("stdout","--------------neighbours size is %d-----------------\n", local_neighbours.size);
-
 		if (local_neighbours.size == 0)
 		{
 			//simdbgverbose("stdout", "no neighbour is chosen! so broadcast!\n");
 			chosen_address = AM_BROADCAST_ADDR;
-
 		}
 
 		else if (local_neighbours.size == 1)
@@ -407,7 +419,6 @@ implementation
 			chosen_address = local_neighbours.data[0].address;
 			//simdbgverbose("stdout", "neighbour size 1, so choose: %d\n", chosen_address);
 		}
-
 		else
 		{
 			int16_t m,j;
@@ -443,7 +454,6 @@ implementation
 
 			chosen_address = neighbour_target->address;
 		}
-
 		return chosen_address;
 	}
 
@@ -459,6 +469,7 @@ implementation
 
 	void become_Normal()
 	{
+		fake_source_message_send_no = 0;
 		call NodeType.set(NormalNode);
 
 		call FakeMessageGenerator.stop();
@@ -468,7 +479,7 @@ implementation
 	{
 
 		call NodeType.set(type);
-		call FakeMessageGenerator.startLimited(message, sizeof(*message), get_fs_duration());
+		call FakeMessageGenerator.startLimited(message, sizeof(*message), get_fs_duration(message));
 	}
 
 	event void Boot.booted()
@@ -527,7 +538,6 @@ implementation
 		else
 		{
 			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
-
 			call RadioControl.start();
 		}
 	}
@@ -543,7 +553,6 @@ implementation
 		if (call NodeType.get() != SinkNode)
 		{
 			call NodeType.set(SourceNode);
-
 			call BroadcastNormalTimer.startOneShot(7 * 1000);	//wait till beacon messages send finished.
 		}
 	}
@@ -605,22 +614,20 @@ implementation
 	{
 		NormalMessage message;
 		am_addr_t target;
+		const uint32_t source_period = get_source_period();
 		int16_t half_sink_source_dist = sink_distance/2 -1;
-		int16_t wait_before_short_delay_ms = 3 * half_sink_source_dist * NODE_TRANSMIT_TIME;
+		int16_t wait_before_short_delay_ms = 3*sink_source_distance*NODE_TRANSMIT_TIME - source_period;
 		int16_t ran = random_float() * 100;
 
-		const uint32_t source_period = get_source_period();
-
-		//printf("ran=%d, ",ran);
-
 		simdbgverbose("stdout", "call BroadcastNormalTimer.fired, source_period: %u\n", source_period);
-
 		simdbgverbose("SourceBroadcasterC", "%s: BroadcastNormalTimer fired.\n", sim_time_string());
-
-		
 
 		short_random_walk_hops = call Random.rand16() % half_sink_source_dist + 2;
 		long_random_walk_hops = call Random.rand16() % half_sink_source_dist + sink_distance + 2;
+		source_message_send_no += 1;
+
+		if (wait_before_short_delay_ms <= 0)
+			wait_before_short_delay_ms = 0;
 		
 		if (ran < short_random_walk_info.probability)
 		{
@@ -646,6 +653,7 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
+		message.source_message_send_no = source_message_send_no;
 
 		message.sink_source_distance = sink_distance; 
 
@@ -679,27 +687,39 @@ implementation
 			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
 		}
 
-		printf("phantom_node_found:%d, ", phantom_node_found);
+		//if last message is long random walk message, delay to send.
+		if (long_random_walk_info.sequence_message_sent == 1 && short_random_walk_info.sequence_message_sent == 0)
+		{
+			//printf("%s:call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n", sim_time_string());
+			call BroadcastNormalTimer.startOneShot(wait_before_short_delay_ms + source_period);
+		}
+		else
+		{
+			//printf("%s:call startOneShot(source_period)\n",sim_time_string());
+			call BroadcastNormalTimer.startOneShot(source_period);
+		}
+/*
 		if (phantom_node_found == TRUE)
 		{
 			phantom_node_found = FALSE;
-			printf("%s:source node stop send message.\n",sim_time_string());
-			call BroadcastNormalTimer.startOneShot(sink_distance * source_period);
+			//call BroadcastNormalTimer.startOneShot(sink_distance * source_period);
+			call BroadcastNormalTimer.startOneShot(source_node_delay_ms);
 		}
 		else
 		{
 			//if last message is long random walk message, delay to send.
 			if (long_random_walk_info.sequence_message_sent == 1 && short_random_walk_info.sequence_message_sent == 0)
 			{
-				printf("%s:call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n", sim_time_string());
+				//printf("%s:call startOneShot(WAIT_BEFORE_SHORT_MS + source_period)\n", sim_time_string());
 				call BroadcastNormalTimer.startOneShot(wait_before_short_delay_ms + source_period);
 			}
 			else
 			{
-				printf("%s:call startOneShot(source_period)\n",sim_time_string());
+				//printf("%s:call startOneShot(source_period)\n",sim_time_string());
 				call BroadcastNormalTimer.startOneShot(source_period);
 			}
 		}
+*/
 	}
 
 	event void AwaySenderTimer.fired()
@@ -748,7 +768,6 @@ implementation
 
 		send_Beacon_message(&message, AM_BROADCAST_ADDR);
 	}
-
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -808,14 +827,12 @@ implementation
 					forwarding_message.further_or_closer_set = random_walk_direction();
 				}
 
-
 				//if chosen size is 0, choose the other set.
 				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);
 
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
-
-				
+			
 				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
 
 				// A node on the path away from, or towards the landmark node
@@ -847,7 +864,8 @@ implementation
 
 					if (sink_distance < sink_source_distance && rcvd->random_walk_hops > sink_source_distance)
 					{
-						printf("(%d):send fake message.\n", TOS_NODE_ID);
+						//printf("(%d):send fake message.\n", TOS_NODE_ID);					
+						source_node_delay_ms = get_fs_duration(rcvd);
 						become_Fake(rcvd, TempFakeNode);
 					}					
 				}
@@ -889,6 +907,7 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
 		case SourceNode: Source_receieve_Normal(msg, rcvd, source_addr); break;
 		case SinkNode: Sink_receieve_Normal(msg, rcvd, source_addr); break;
+		case TempFakeNode: Normal_receieve_Normal(msg, rcvd, source_addr); break;
 		case NormalNode: Normal_receieve_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
@@ -923,12 +942,13 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Normal, Snoop)
 		case SourceNode: x_snoop_Normal(msg, rcvd, source_addr); break;
 		case SinkNode: Sink_snoop_Normal(msg, rcvd, source_addr); break;
+		case TempFakeNode: x_snoop_Normal(msg, rcvd, source_addr); break;
 		case NormalNode: x_snoop_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
-	{		
-		if (rcvd->landmark_location == BOTTOMLEFT)
+	{
+  		if (rcvd->landmark_location == BOTTOMLEFT)
 		{
 			sink_bl_dist = rcvd->sink_bl_dist;
 			UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance);
@@ -1024,6 +1044,8 @@ implementation
 	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		phantom_node_found = rcvd->phantom_node_found;
+		source_node_delay_ms = rcvd->source_node_delay_ms;
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
@@ -1068,12 +1090,16 @@ implementation
 		FakeMessage message;
 
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
+		fake_source_message_send_no += 1;
 
-		printf("%s:send #%d fake message.\n",sim_time_string(),fake_sequence_counter);
+		message.fake_source_message_send_no = fake_source_message_send_no;
+		message.source_node_delay_ms = source_node_delay_ms;
 
-		if (message.sequence_number == 1)
+		//printf("%s:send #%d fake message.\n",sim_time_string(),fake_source_message_send_no);
+
+		if (message.fake_source_message_send_no == 1)
 		{
-			printf("set flag to TRUE.\n");
+			//printf("set flag to TRUE.\n");
 			message.phantom_node_found = TRUE;
 		}
 		else
@@ -1082,7 +1108,6 @@ implementation
 		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&fake_sequence_counter);
-			//printf("%s: %d send fake message.\n", sim_time_string(), TOS_NODE_ID);
 		}
 	}
 
