@@ -75,8 +75,17 @@ def main(module, a):
         "topology": "static",
         "topology-file": os.path.join(target_directory, "topology.txt"),
         "random-seed": a.args.seed,
-        "max": 256, # Needed to be able to print simdbg strings longer than 30 bytes
+
+        # Needed to be able to print simdbg strings longer than 30 bytes
+        "max": 256,
+
+        # Show the messages sent and received
         "show-packets": "true",
+
+        # Need to disable the simulator showing colors
+        "colors": "false",
+
+        # Report time in seconds and not cycles
         "report-seconds": "true",
         "seconds-precision": "9"
     }
