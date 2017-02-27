@@ -176,7 +176,7 @@ implementation
 		const char* message
 		)
 	{
-		simdbg("stdout", message);
+		simdbg("stdout", "%s", message);
 	}
 
 	//##########SLP TDMA DAS##########
