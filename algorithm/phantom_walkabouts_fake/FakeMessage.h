@@ -11,8 +11,6 @@ typedef nx_struct FakeMessage {
 
   nx_int8_t phantom_node_found;
 
-  nx_int16_t source_node_delay_ms;
-
   nx_int16_t fake_source_message_send_no;
 
 } FakeMessage;
