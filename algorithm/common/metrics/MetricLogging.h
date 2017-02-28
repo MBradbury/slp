@@ -13,7 +13,7 @@
 
 #elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF) || defined(AVRORA_OUTPUT)
 
-#include <stdio.h>
+#include "printf.h"
 
 #define TOS_NODE_ID_SPEC "%" PRIu16
 
