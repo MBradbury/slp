@@ -6,6 +6,7 @@ from simulator import CommandLineCommon
 
 import algorithm
 
+protectionless = algorithm.import_algorithm("protectionless")
 protectionless_ctp = algorithm.import_algorithm("protectionless_ctp")
 adaptive_spr = algorithm.import_algorithm("adaptive_spr")
 
@@ -21,6 +22,8 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("graph-baseline")
+        subparser = self._subparsers.add_parser("graph-min-max")
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -56,6 +59,14 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_table(self.algorithm_module.name + "-results", result_table)
 
+    @staticmethod
+    def vvalue_converter(name):
+        return {
+            "PB_FIXED1_APPROACH": "Fixed1",
+            "PB_FIXED2_APPROACH": "Fixed2",
+            "PB_RND_APPROACH": "Rnd",
+        }[name]
+
     def _run_graph(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
@@ -78,6 +89,57 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max)
 
+    def _run_graph_baseline(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+            #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
+            #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
+        }
+
+        varying = [
+            #(('network size', ''), ('source period', ' seconds')),
+            (('network size', ''), ('approach', '')),
+        ]
+
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
+
+        self._create_baseline_versus_graph(adaptive_spr, graph_parameters, varying, custom_yaxis_range_max)
+
+    def _run_graph_min_max(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            #'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+            #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
+            #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
+        }
+
+        varying = [
+            #(('network size', ''), ('source period', ' seconds')),
+            (('network size', ''), ('approach', '')),
+        ]
+
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
+
+        self._create_min_max_versus_graph(
+            [protectionless_ctp, protectionless, adaptive_spr], None, graph_parameters, varying, custom_yaxis_range_max,
+            min_label=['CTP - Lowest', 'Flooding - Lowest', "SPR - Lowest"],
+            max_label=['CTP - Highest', 'Flooding - Highest', "SPR - Highest"],
+            comparison_label='SPR CTP',
+            vvalue_label_converter=self.vvalue_converter,
+        )
 
     def run(self, args):
         args = super(CLI, self).run(args)
@@ -87,3 +149,9 @@ class CLI(CommandLineCommon.CLI):
 
         if 'graph' == args.mode:
             self._run_graph(args)
+
+        if 'graph-baseline' == args.mode:
+            self._run_graph_baseline(args)
+
+        if 'graph-min-max' == args.mode:
+            self._run_graph_min_max(args)
