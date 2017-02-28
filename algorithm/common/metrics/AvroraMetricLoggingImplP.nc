@@ -4,27 +4,6 @@
 #	error "Must only be used by Avrora"
 #endif
 
-// If we are using Avrora, then we need to switch to using its special printf technique
-#include "avrora/AvroraPrint.h"
-
-#define simdbg(name, fmtstr, ...) \
-	do { \
-		snprintf(error_message, ARRAY_SIZE(error_message), \
-			"%s:D:%" PRIu16 ":%" PRIu32 ":" fmtstr, \
-			name, TOS_NODE_ID, call LocalTime.get(), ##__VA_ARGS__); \
- \
- 		printStr(error_message); \
-	} while (FALSE)
-
-#define simdbgerror(name, fmtstr, ...) \
-	do { \
-		snprintf(error_message, ARRAY_SIZE(error_message), \
-			"%s:E:%" PRIu16 ":%" PRIu32 ":" fmtstr, \
-			name, TOS_NODE_ID, call LocalTime.get(), ##__VA_ARGS__); \
- \
- 		printStr(error_message); \
-	} while (FALSE)
-
 // Note that GCC doesn't support a 64 bit print specifier for the AVR libc.
 // So we need to specially handle those values.
 
@@ -35,11 +14,11 @@ module AvroraMetricLoggingImplP
 	uses interface MessageType;
 
 	uses interface LocalTime<TMilli>;
+
+	uses interface AvroraPrintf;
 }
 implementation
 {
-	char error_message[256];
-
 	command void MetricLogging.log_metric_receive(
 		const char* message_type,
 		am_addr_t proximate_source,
