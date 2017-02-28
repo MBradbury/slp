@@ -87,7 +87,7 @@ def main(module, a):
 
         # Report time in seconds and not cycles
         "report-seconds": "true",
-        "seconds-precision": "9"
+        "seconds-precision": "6"
     }
 
     target_file = os.path.join(target_directory, "main.elf")
