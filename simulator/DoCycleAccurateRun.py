@@ -30,7 +30,7 @@ def main(module, a):
 
     cycle_accurate = submodule_loader.load(data.cycle_accurate, a.args.simulator)
 
-    builder = Builder(cycle_accurate)
+    builder = Builder(cycle_accurate, max_buffer_size=256)
     builder.total_job_size = 1
     a, module, module_path, target_directory = builder.add_job((module, a), target)
 
@@ -77,7 +77,7 @@ def main(module, a):
         "random-seed": a.args.seed,
 
         # Needed to be able to print simdbg strings longer than 30 bytes
-        "max": 256,
+        "max": builder.max_buffer_size,
 
         # Show the messages sent and received
         "show-packets": "true",
