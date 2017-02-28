@@ -226,7 +226,10 @@ implementation
 
 	uint32_t get_fs_duration(const NormalMessage* message)
 	{
-		return long_random_walk_hops*get_fs_period();
+		if (sink_distance == 1)
+			return sink_source_distance * get_fs_period();
+		else
+			return long_random_walk_hops*get_fs_period();
 /*	
 		if (message->source_message_send_no < sink_source_distance)
 		{
@@ -807,6 +810,7 @@ implementation
 		}
 
 		sink_source_distance = rcvd->sink_source_distance; //let every node knows the sink_source_distance.
+		source_message_send_no = rcvd->source_message_send_no;
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -890,6 +894,10 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		if (source_message_send_no == sink_source_distance && sink_distance == 1 && phantom_node_found == FALSE)
+		{
+			become_Fake(rcvd, TempFakeNode);
+		}
 		process_normal(msg, rcvd, source_addr);
 	}
 
@@ -1067,6 +1075,7 @@ implementation
 	}
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		phantom_node_found = rcvd->phantom_node_found;
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
@@ -1105,13 +1114,31 @@ implementation
 
 		//printf("%s:send #%d fake message.\n",sim_time_string(),fake_source_message_send_no);
 
-		if (message.fake_source_message_send_no == 1)
+
+		if (message.fake_source_message_send_no == 1 && sink_distance != 1)
 		{
 			//printf("set flag to TRUE.\n");
 			message.phantom_node_found = TRUE;
 		}
+/*
+		if (message.fake_source_message_send_no == 1)
+		{
+			if (sink_distance == 1)
+			{
+
+			}
+			else
+			{
+				printf("set flag to TRUE.\n");
+				message.phantom_node_found = TRUE;
+			}
+		}
 		else
+		{
+			printf("set flag to FALSE.\n");
 			message.phantom_node_found = FALSE;
+		}
+*/
 
 		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
 		{
