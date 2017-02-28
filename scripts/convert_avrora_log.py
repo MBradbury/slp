@@ -79,8 +79,8 @@ if __name__ == "__main__":
     import sys
 
     parser = argparse.ArgumentParser(description="Avrora Result Converter", add_help=True)
-    parser.add_argument("--result-file", type=str, required=True, help="The location of the result file.")
-    parser.add_argument("--output-file", type=str, required=True, help="The location of the converted result file.")
+    parser.add_argument("-in", "--result-file", type=str, required=True, help="The location of the result file.")
+    parser.add_argument("-out", "--output-file", type=str, required=True, help="The location of the converted result file.")
 
     args = parser.parse_args(sys.argv[1:])
     

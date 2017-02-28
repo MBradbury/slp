@@ -163,8 +163,8 @@ if __name__ == "__main__":
     import sys
 
     parser = argparse.ArgumentParser(description="Indriya Result Converter", add_help=True)
-    parser.add_argument("--result-dir", type=str, required=True, help="The location of the main results files.")
-    parser.add_argument("--output-file", type=str, required=True, help="The location of the merged result file.")
+    parser.add_argument("-in", "--result-dir", type=str, required=True, help="The location of the main results files.")
+    parser.add_argument("-out", "--output-file", type=str, required=True, help="The location of the merged result file.")
 
     args = parser.parse_args(sys.argv[1:])
     
