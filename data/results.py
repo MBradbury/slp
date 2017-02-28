@@ -13,11 +13,17 @@ from simulator import Configuration, SourcePeriodModel
 def _name_to_attr(name):
     return name.replace(" ", "_") + "s"
 
+def literal_eval_with_nan(value):
+    if value.lower() == "nan":
+        return float('NaN')
+    else:
+        return ast.literal_eval(value)
+
 def extract_average_and_stddev(value):
     (mean, var) = value.split(';', 1)
 
-    mean = ast.literal_eval(mean)
-    var = ast.literal_eval(var)
+    mean = literal_eval_with_nan(mean)
+    var = literal_eval_with_nan(var)
 
     # The variance can be a dict, so we need to handle square rooting those values
     if isinstance(var, dict):
