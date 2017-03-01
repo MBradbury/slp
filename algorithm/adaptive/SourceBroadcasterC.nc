@@ -489,6 +489,17 @@ implementation
 
 			if (!sink_received_away_reponse)
 			{
+				// Forward on the normal message to help set up
+				// good distances for nodes around the source
+				NormalMessage forwarding_message = *rcvd;
+				forwarding_message.sink_source_distance = sink_source_distance;
+				forwarding_message.source_distance += 1;
+				forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+				forwarding_message.fake_sequence_number = source_fake_sequence_counter;
+				forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
+
+				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+
 				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
 			}
 		}
@@ -790,7 +801,7 @@ implementation
 				)
 				)
 			{
-				become_Normal();
+				call FakeMessageGenerator.expireDuration();
 			}
 		}
 	}
@@ -811,7 +822,7 @@ implementation
 			{
 				if (call NodeType.get() == PermFakeNode && !is_pfs_candidate)
 				{
-					become_Normal();
+					call FakeMessageGenerator.expireDuration();
 				}
 			}
 		}
