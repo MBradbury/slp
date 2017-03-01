@@ -773,8 +773,7 @@ implementation
 				continue;
 		}
 
-		sink_source_distance = rcvd->sink_source_distance; //let every node knows the sink_source_distance.
-		source_message_send_no = rcvd->source_message_send_no;
+		
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -803,7 +802,7 @@ implementation
 				}
 
 				//if chosen size is 0, choose the other set.
-				//forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);
+				forwarding_message.further_or_closer_set = neighbour_check(rcvd->further_or_closer_set, &source_addr, 1);
 
 				// Get a target, ignoring the node that sent us this message
 				target = random_walk_target(forwarding_message.further_or_closer_set, &source_addr, 1);
@@ -817,12 +816,6 @@ implementation
 				{
 					//TODO: decide whether message choose new direction or broadcast.
 					//return;
-					if (sink_distance <= 1.5*sink_source_distance && rcvd->random_walk_hops > sink_source_distance)
-					{
-						//printf("(%d):send fake message.\n", TOS_NODE_ID);
-						long_random_walk_hops = rcvd->random_walk_hops;	//record the distance			
-						become_Fake(rcvd, TempFakeNode);
-					}
 				}
 				// if the message reach the sink, do not need flood.
 				if (call NodeType.get() == SinkNode)
@@ -843,12 +836,12 @@ implementation
 					simdbg("Metric-PATH-END", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
 							source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 
-					//if (sink_distance <= 1.5*sink_source_distance && rcvd->random_walk_hops > sink_source_distance)
-					//{
+					if (sink_distance < sink_source_distance && rcvd->random_walk_hops > sink_source_distance)
+					{
 						//printf("(%d):send fake message.\n", TOS_NODE_ID);
-					//	long_random_walk_hops = rcvd->random_walk_hops;	//record the distance			
-					//	become_Fake(rcvd, TempFakeNode);
-					//}					
+						long_random_walk_hops = rcvd->random_walk_hops;	//record the distance			
+						become_Fake(rcvd, TempFakeNode);
+					}					
 				}
 
 				// We want other nodes to continue broadcasting
@@ -863,7 +856,10 @@ implementation
 
 	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (source_message_send_no == sink_source_distance && sink_distance == 1 && phantom_node_found == FALSE)
+		sink_source_distance = rcvd->sink_source_distance; //let every node knows the sink_source_distance.
+		source_message_send_no = (rcvd->source_message_send_no > source_message_send_no ) ? rcvd->source_message_send_no : source_message_send_no;
+
+		if (source_message_send_no == sink_source_distance-2 && sink_distance == 1 && phantom_node_found == FALSE)
 		{
 			become_Fake(rcvd, TempFakeNode);
 		}
