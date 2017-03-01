@@ -343,6 +343,15 @@ implementation
 
 			if (!sink_sent_away)
 			{
+				// Forward on the normal message to help set up
+				// good distances for nodes around the source
+				NormalMessage forwarding_message = *rcvd;
+				forwarding_message.sink_source_distance = sink_source_distance;
+				forwarding_message.source_distance += 1;
+				forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+
+				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+
 				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
 			}
 		}
@@ -662,11 +671,10 @@ implementation
 		}
 	}
 
-	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t size)
+	event void FakeMessageGenerator.durationExpired(const void* original_message, uint8_t original_size)
 	{
 		ChooseMessage message;
-
-		memcpy(&message, original, sizeof(message));
+		memcpy(&message, original_message, sizeof(original_size));
 
 		simdbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
