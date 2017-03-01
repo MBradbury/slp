@@ -23,10 +23,21 @@ set yrange [-25:-105]
 
 set ylabel "Decibels (dB)"
 
-set output "box-graph.pdf"
-
+set output "box-graph-2500.pdf"
 plot "<(head -n 2500 ../meyer-heavy.txt)" using (1):1 title "meyer-heavy", \
-     "<(head -n 2500 ../casino-lab.txt)" using (2):1 title "casino-lab", \
+     "<(head -n 2500 ../casino-lab.txt)" using (2):1 title "casino-lab"
+
+set output "box-graph-1000.pdf"
+plot "<(head -n 1000 ../meyer-heavy.txt)" using (1):1 title "meyer-heavy", \
+     "<(head -n 1000 ../casino-lab.txt)" using (2):1 title "casino-lab"
+
+set output "box-graph-10000.pdf"
+plot "<(head -n 10000 ../meyer-heavy.txt)" using (1):1 title "meyer-heavy", \
+     "<(head -n 10000 ../casino-lab.txt)" using (2):1 title "casino-lab"
+
+set output "box-graph-all.pdf"
+plot "../meyer-heavy.txt" using (1):1 title "meyer-heavy", \
+     "../casino-lab.txt" using (2):1 title "casino-lab"
 
 #plot "<(head -n 2000 ../meyer-heavy.txt)" using (1):1 title "meyer-heavy-1k", \
 #     "<(head -n 10000 ../meyer-heavy.txt)" using (2):1 title "meyer-heavy-10k", \
