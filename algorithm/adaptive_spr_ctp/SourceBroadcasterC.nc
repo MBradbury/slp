@@ -761,6 +761,10 @@ implementation
 				}
 			}
 		}
+		else
+		{
+			call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
+		}
 	}
 
 
