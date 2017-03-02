@@ -695,6 +695,10 @@ implementation
 				}
 			}
 		}
+		else
+		{
+			call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
+		}
 	}
 
 	void Sink_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
