@@ -400,7 +400,7 @@ class CLI(object):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _cluster_time_estimator_from_historical(self, historical_key_names, historical, allowance, args, **kwargs):
+    def _cluster_time_estimator_from_historical(self, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
         key = tuple(args[name] for name in historical_key_names)
 
         try:
@@ -417,7 +417,14 @@ class CLI(object):
             extra_time_per_proc = timedelta(seconds=2)
             extra_time = (extra_time_per_proc * job_size) // thread_count
 
-            return time_per_proc_with_allowance + extra_time
+            calculated_time = time_per_proc_with_allowance + extra_time
+
+            if max_time is not None:
+                if calculated_time > max_time:
+                    print("Warning: The estimated cluster time is {}, overriding this with the maximum {}".format(calculated_time, max_time))
+                    calculated_time = max_time
+
+            return calculated_time
 
         except KeyError:
             print("Unable to find historical time for {}, so using default time estimator.".format(key))

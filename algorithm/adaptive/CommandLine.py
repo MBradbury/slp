@@ -72,7 +72,9 @@ class CLI(CommandLineCommon.CLI):
         }
 
         return self._cluster_time_estimator_from_historical(
-            historical_key_names, historical, 0.25, args, **kwargs
+            args, kwargs, historical_key_names, historical,
+            allowance=0.25,
+            max_time=timedelta(days=5)
         )
 
 
@@ -80,7 +82,8 @@ class CLI(CommandLineCommon.CLI):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=('captured', 'received ratio', 'ssd', 'attacker distance'))
+            results=('captured', 'received ratio', #'ssd', 'attacker distance',
+                     'fake nodes at end', 'fake nodes at end when captured'))
 
         result_table = fake_result.ResultTable(adaptive_results)
 
