@@ -334,7 +334,7 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (first_source_distance = BOTTOM)
+			if (first_source_distance == BOTTOM)
 			{
 				first_source_distance = rcvd->source_distance + 1;
 				is_pfs_candidate = TRUE;
@@ -346,7 +346,7 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
-			forwarding_message.max_hop = new_max_hop(rcvd->max_hop)
+			forwarding_message.max_hop = new_max_hop(rcvd->max_hop);
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -369,7 +369,7 @@ implementation
 				NormalMessage forwarding_message = *rcvd;
 				forwarding_message.sink_source_distance = sink_source_distance;
 				forwarding_message.source_distance += 1;
-				forwarding_message.max_hop = new_max_hop(rcvd->max_hop)
+				forwarding_message.max_hop = new_max_hop(rcvd->max_hop);
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 
@@ -393,7 +393,7 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
-			forwarding_message.max_hop = new_max_hop(rcvd->max_hop)
+			forwarding_message.max_hop = new_max_hop(rcvd->max_hop);
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -470,7 +470,7 @@ implementation
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
-			forwarding_message.max_hop = new_max_hop(rcvd->max_hop)
+			forwarding_message.max_hop = new_max_hop(rcvd->max_hop);
 
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
