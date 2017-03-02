@@ -50,7 +50,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
                 print("For parameters:", file=sys.stderr)
                 print(all_args, file=sys.stderr)
 
-                return 1
+                return 51
 
             try:
                 sim.metrics.print_results()
@@ -64,7 +64,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
                 print("For parameters:", file=sys.stderr)
                 print(all_args, file=sys.stderr)
                 
-                return 2
+                return 52
 
             if print_warnings:
                 sim.metrics.print_warnings()
