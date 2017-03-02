@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import datetime
+from datetime import timedelta
 import itertools
 import os
 
