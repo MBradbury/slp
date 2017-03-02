@@ -14,6 +14,8 @@
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, BOTTOM, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM);
 
+#define AWAY_DELAY_MS (SOURCE_PERIOD_MS / 2)
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -67,8 +69,7 @@ implementation
 	bool seen_pfs;
 	bool is_pfs_candidate;
 
-	uint32_t first_source_distance;
-	bool first_source_distance_set;
+	int32_t first_source_distance;
 
 	unsigned int extra_to_send;
 
@@ -138,8 +139,7 @@ implementation
 		seen_pfs = FALSE;
 		is_pfs_candidate = FALSE;
 
-		first_source_distance = 0;
-		first_source_distance_set = FALSE;
+		first_source_distance = BOTTOM;
 
 		extra_to_send = 0;
 
@@ -162,10 +162,15 @@ implementation
 		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
+
+			sink_distance = 0;
 		}
 		else if (call NodeType.get_topology_node_id() == SOURCE_NODE_ID)
 		{
 			call NodeType.init(SourceNode);
+
+			first_source_distance = 0;
+			source_distance = 0;
 		}
 		else
 		{
@@ -202,7 +207,7 @@ implementation
 	USE_MESSAGE(Normal);
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Choose);
-	USE_MESSAGE_WITH_CALLBACK(Fake);
+	USE_MESSAGE(Fake);
 
 	void become_Normal(void)
 	{
@@ -257,6 +262,27 @@ implementation
 		}
 	}
 
+	void decide_not_pfs_candidate(uint16_t max_hop)
+	{
+		if (first_source_distance != BOTTOM && max_hop > first_source_distance + 1)
+		{
+			is_pfs_candidate = FALSE;
+			call Leds.led1Off();
+		}
+	}
+
+	uint16_t new_max_hop(uint16_t max_hop)
+	{
+		if (first_source_distance == BOTTOM)
+		{
+			return max_hop;
+		}
+		else
+		{
+			return max(first_source_distance, max_hop);
+		}
+	}
+
 	event void BroadcastNormalTimer.fired()
 	{
 		NormalMessage message;
@@ -265,7 +291,7 @@ implementation
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
-		message.max_hop = first_source_distance;
+		message.max_hop = (sink_source_distance != BOTTOM) ? sink_source_distance : 0;
 		message.source_id = TOS_NODE_ID;
 		message.sink_source_distance = sink_source_distance;
 
@@ -281,7 +307,7 @@ implementation
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.sink_distance = 0;
 		message.sink_source_distance = sink_source_distance;
-		message.max_hop = sink_source_distance;
+		message.max_hop = new_max_hop((sink_source_distance != BOTTOM) ? sink_source_distance : 0);
 		message.algorithm = ALGORITHM;
 
 		sequence_number_increment(&away_sequence_counter);
@@ -296,11 +322,7 @@ implementation
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		decide_not_pfs_candidate(rcvd->max_hop);
 
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
@@ -312,11 +334,10 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (!first_source_distance_set)
+			if (first_source_distance = BOTTOM)
 			{
 				first_source_distance = rcvd->source_distance + 1;
 				is_pfs_candidate = TRUE;
-				first_source_distance_set = TRUE;
 				call Leds.led1On();
 			}
 
@@ -325,7 +346,7 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
-			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+			forwarding_message.max_hop = new_max_hop(rcvd->max_hop)
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -348,7 +369,7 @@ implementation
 				NormalMessage forwarding_message = *rcvd;
 				forwarding_message.sink_source_distance = sink_source_distance;
 				forwarding_message.source_distance += 1;
-				forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+				forwarding_message.max_hop = new_max_hop(rcvd->max_hop)
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 
@@ -372,7 +393,7 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.source_distance += 1;
-			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+			forwarding_message.max_hop = new_max_hop(rcvd->max_hop)
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -412,7 +433,6 @@ implementation
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
 
-			// TODO: repeat 2
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -420,11 +440,7 @@ implementation
 
 	void Normal_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		decide_not_pfs_candidate(rcvd->max_hop);
 
 		if (algorithm == UnknownAlgorithm)
 		{
@@ -454,9 +470,8 @@ implementation
 			forwarding_message.sink_source_distance = sink_source_distance;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
-			forwarding_message.max_hop = max(first_source_distance, rcvd->max_hop);
+			forwarding_message.max_hop = new_max_hop(rcvd->max_hop)
 
-			// TODO: repeat 2
 			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -474,11 +489,7 @@ implementation
 
 	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		decide_not_pfs_candidate(rcvd->max_hop);
 
 		if (algorithm == UnknownAlgorithm)
 		{
@@ -549,11 +560,7 @@ implementation
 
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		decide_not_pfs_candidate(rcvd->max_hop);
 
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
@@ -570,7 +577,7 @@ implementation
 			// TODO: Remind myself why source_distance isn't changed here!
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
+			forwarding_message.max_hop = new_max_hop(rcvd->max_hop);
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -578,11 +585,7 @@ implementation
 
 	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (!first_source_distance_set || rcvd->max_hop > first_source_distance + 1)
-		{
-			is_pfs_candidate = FALSE;
-			call Leds.led1Off();
-		}
+		decide_not_pfs_candidate(rcvd->max_hop);
 
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
@@ -597,7 +600,7 @@ implementation
 			seen_pfs |= rcvd->from_pfs;
 
 			forwarding_message.sink_source_distance = sink_source_distance;
-			forwarding_message.max_hop = max(first_source_distance, forwarding_message.max_hop);
+			forwarding_message.max_hop = new_max_hop(rcvd->max_hop);
 
 			send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 
@@ -624,20 +627,6 @@ implementation
 		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
-	void send_Fake_done(message_t* msg, error_t error)
-	{
-		if (error == SUCCESS)
-		{
-			if (pfs_can_become_normal())
-			{
-				if (call NodeType.get() == PermFakeNode && !is_pfs_candidate)
-				{
-					call FakeMessageGenerator.expireDuration();
-				}
-			}
-		}
-	}
-
 	event uint32_t FakeMessageGenerator.initialStartDelay()
 	{
 		// Note: This causes problem if the period is a factor of the duration.
@@ -660,7 +649,7 @@ implementation
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.sink_source_distance = sink_source_distance;
 		message.source_distance = source_distance;
-		message.max_hop = first_source_distance;
+		message.max_hop = new_max_hop(0);
 		message.sink_distance = sink_distance;
 		message.from_pfs = (call NodeType.get() == PermFakeNode);
 		message.source_id = TOS_NODE_ID;
@@ -683,7 +672,6 @@ implementation
 		message.sink_source_distance = sink_source_distance;
 		message.sink_distance += 1;
 
-		// TODO: repeat 3
 		extra_to_send = 2;
 		send_Choose_message(&message, AM_BROADCAST_ADDR);
 

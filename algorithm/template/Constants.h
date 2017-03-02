@@ -9,6 +9,4 @@ enum Channels
 	FAKE_CHANNEL = 4
 };
 
-#define AWAY_DELAY_MS (SOURCE_PERIOD_MS / 2)
-
 #endif // SLP_CONSTANTS_H
