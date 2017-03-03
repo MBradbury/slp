@@ -224,7 +224,7 @@ class CLI(object):
         baseline_results = results.Results(
             baseline_module.result_file_path,
             parameters=baseline_module.local_parameter_names,
-            results=tuple(set(graph_parameters.keys()) & set(baseline_module.Analysis.Analyzer.results_header().keys())))
+            results=tuple(graph_parameters.keys()))
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -266,7 +266,7 @@ class CLI(object):
             results.Results(
                 comparion_module.result_file_path,
                 parameters=comparion_module.local_parameter_names,
-                results=tuple(set(graph_parameters.keys()) & set(comparion_module.Analysis.Analyzer.results_header().keys())))
+                results=tuple(graph_parameters.keys()))
 
             for comparion_module in comparison_modules
         ]
@@ -275,7 +275,7 @@ class CLI(object):
             baseline_results = results.Results(
                 baseline_module.result_file_path,
                 parameters=baseline_module.local_parameter_names,
-                results=tuple(set(graph_parameters.keys()) & set(baseline_module.Analysis.Analyzer.results_header().keys())))
+                results=tuple(graph_parameters.keys()))
         else:
             baseline_results = None
 
