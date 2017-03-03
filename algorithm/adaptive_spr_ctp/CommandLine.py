@@ -115,13 +115,11 @@ class CLI(CommandLineCommon.CLI):
     def _run_graph_min_max(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
             #'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            #'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
-            #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
-            #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
+            'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
         }
 
         varying = [
@@ -137,6 +135,7 @@ class CLI(CommandLineCommon.CLI):
             [protectionless_ctp, protectionless, adaptive_spr], None, graph_parameters, varying, custom_yaxis_range_max,
             min_label=['CTP - Lowest', 'Flooding - Lowest', "SPR - Lowest"],
             max_label=['CTP - Highest', 'Flooding - Highest', "SPR - Highest"],
+            vary_label="",
             comparison_label='SPR CTP',
             vvalue_label_converter=self.vvalue_converter,
         )
