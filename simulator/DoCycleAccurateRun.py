@@ -70,7 +70,7 @@ def main(module, a):
         "simulation": "sensor-network",
         "seconds": seconds_to_run,
         "monitors": "packet,c-print,energy",
-        "radio-range": a.args.distance + 0.25,
+        "radio-range": a.args.distance + 0.1,
         "nodecount": str(configuration.size()),
         "topology": "static",
         "topology-file": os.path.join(target_directory, "topology.txt"),
