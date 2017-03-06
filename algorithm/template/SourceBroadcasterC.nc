@@ -245,7 +245,7 @@ implementation
  					"The node %u has not become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
 			}
 		}
-		else
+		else if (perm_type == TempFakeNode)
 		{
 			if (rndFloat <= PR_TFS)
 			{
@@ -261,6 +261,10 @@ implementation
 				simdbgverbose("Fake-Probability-Decision",
 					"The node %u has not become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
 			}
+		}
+		else
+		{
+			__builtin_unreachable();
 		}
 	}
 
@@ -281,7 +285,7 @@ implementation
 		}
 		else
 		{
-			return max(first_source_distance, max_hop);
+			return max((uint16_t)first_source_distance, max_hop);
 		}
 	}
 
@@ -482,10 +486,10 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
 		case SinkNode: break;
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
-		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
 
+		case NormalNode:
 		case TempFakeNode:
-		case PermFakeNode: break;
+		case PermFakeNode: Normal_receive_Away(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
@@ -539,6 +543,8 @@ implementation
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
+
+			seen_pfs |= rcvd->from_pfs;
 
 			message.sink_source_distance = sink_source_distance;
 
@@ -649,13 +655,16 @@ implementation
 		FakeMessage message;
 
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
-		message.sink_source_distance = sink_source_distance;
-		message.source_distance = source_distance;
-		message.max_hop = new_max_hop(0);
-		message.sink_distance = sink_distance;
-		message.from_pfs = (call NodeType.get() == PermFakeNode);
 		message.source_id = TOS_NODE_ID;
 
+		message.source_distance = source_distance;
+		message.sink_distance = sink_distance;
+		message.sink_source_distance = sink_source_distance;
+		
+		message.max_hop = new_max_hop(0);
+		
+		message.from_pfs = (call NodeType.get() == PermFakeNode);
+		
 		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&fake_sequence_counter);
@@ -665,7 +674,7 @@ implementation
 	event void FakeMessageGenerator.durationExpired(const void* original_message, uint8_t original_size)
 	{
 		ChooseMessage message;
-		memcpy(&message, original_message, sizeof(original_size));
+		memcpy(&message, original_message, sizeof(message));
 
 		simdbgverbose("SourceBroadcasterC", "Finished sending Fake from TFS, now sending Choose.\n");
 
