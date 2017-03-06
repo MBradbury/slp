@@ -182,16 +182,18 @@ class Grapher(GrapherBase):
 
             column_count = len(vvalues)
 
-            if self.error_bars:
-                for x in range(1, column_count + 1):
-                    plots.append('"graph.dat" using 1:{ycol}:{errcol} with errorbars title \'{} {}{}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
-                        self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
-                        x=x, ycol=x * 2, errcol=x * 2 + 1, line_width=self.line_width))
-            else:
-                for x in range(1, column_count + 1):
-                    plots.append('"graph.dat" using 1:{ycol} with lp title \'{} {}{}\' linewidth {line_width}'.format(
-                        self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
-                        ycol=x + 1, line_width=self.line_width))
+            for x in range(1, column_count + 1):
+                if self.vary_label:
+                    vary_title = "{} {}{}".format(self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix)
+                else:
+                    vary_title = "{}{}".format(latex.escape(vvalues[ x - 1 ]), self.vary_prefix)
+
+                if self.error_bars:
+                    plots.append('"graph.dat" using 1:{ycol}:{errcol} with errorbars title \'{title}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
+                        title=vary_title, x=x, ycol=x * 2, errcol=x * 2 + 1, line_width=self.line_width))
+                else:
+                    plots.append('"graph.dat" using 1:{ycol} with lp title \'{title}\' linewidth {line_width}'.format(
+                        title=vary_title, ycol=x + 1, line_width=self.line_width))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
@@ -229,12 +231,12 @@ class Grapher(GrapherBase):
             if self.error_bars:
                 for x in range(1, column_count + 1):
                     plots.append('NaN with errorbars title \'{} {}{}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
-                        self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
+                        self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix,
                         x=x, ycol=x * 2, line_width=self.line_width))
             else:
                 for x in range(1, column_count + 1):
                     plots.append('NaN with lp title \'{} {}{}\' linewidth {line_width}'.format(
-                        self.vary_label, vvalues[ x - 1 ], self.vary_prefix,
+                        self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix,
                         line_width=self.line_width))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))

@@ -5,7 +5,7 @@ algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
-        super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
+        super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters(), self.filtered_parameters())
 
     @staticmethod
     def normalised_parameters():
@@ -22,6 +22,12 @@ class Analyzer(AnalyzerCommon):
         )
 
     @staticmethod
+    def filtered_parameters():
+        return (
+            ('FakeNodesAtEnd', 'Captured'),
+        )
+
+    @staticmethod
     def results_header():
         d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
 
@@ -34,9 +40,13 @@ class Analyzer(AnalyzerCommon):
         d['tfs']                = lambda x: AnalyzerCommon._format_results(x, 'TFS')
         d['pfs']                = lambda x: AnalyzerCommon._format_results(x, 'PFS')
         d['fake to normal']     = lambda x: AnalyzerCommon._format_results(x, 'FakeToNormal')
+        d['fake nodes at end']  = lambda x: AnalyzerCommon._format_results(x, 'FakeNodesAtEnd')
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+
+        d['fake nodes at end when captured']  = lambda x: AnalyzerCommon._format_results(x, 'filtered(FakeNodesAtEnd,Captured)')
+
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),num_nodes)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')

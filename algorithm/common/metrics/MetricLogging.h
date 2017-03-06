@@ -13,7 +13,7 @@
 
 #elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF) || defined(AVRORA_OUTPUT)
 
-#include <stdio.h>
+#include "printf.h"
 
 #define TOS_NODE_ID_SPEC "%" PRIu16
 
@@ -106,6 +106,9 @@ enum SLPErrorCodes {
 
 	ERROR_NODE_NAME_TOO_LONG = 10,
 	ERROR_MESSAGE_NAME_TOO_LONG = 11,
+
+	ERROR_REACHED_UNREACHABLE = 12,
+	ERROR_ASSERT = 13,
 
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,

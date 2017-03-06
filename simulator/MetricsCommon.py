@@ -500,6 +500,13 @@ class MetricsCommon(object):
     def times_node_changed_to(self, node_type, from_types=None):
         total_count = 0
 
+        if not isinstance(node_type, (tuple, list)):
+            node_type = (node_type,)
+
+        if from_types is not None:
+            if not isinstance(from_types, (tuple, list)):
+                from_types = (from_types,) 
+
         for ((old_type, new_type), count) in self.node_transitions.items():
 
             # Ignore some source types
@@ -507,13 +514,16 @@ class MetricsCommon(object):
                 if old_type not in from_types:
                     continue
 
-            if new_type == node_type:
+            if new_type in node_type:
                 total_count += count
 
         return total_count
 
     def reached_sim_upper_bound(self):
-        return self.sim_time() >= self.sim.upper_bound_safety_period
+        if not hasattr(self.sim, "upper_bound_safety_period"):
+            return False
+        else:
+            return self.sim_time() >= self.sim.upper_bound_safety_period
 
     def rcvd_closer_or_same_hops_all(self):
         return dict(sum(self.received_from_closer_or_same_hops.values(), Counter()))

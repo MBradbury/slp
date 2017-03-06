@@ -18,6 +18,9 @@ def log_mode():
 def url():
     return "about:blank"
 
+def build_arguments():
+    return {}
+
 def post_build_actions(target_directory, a):
     import os.path
     import shutil

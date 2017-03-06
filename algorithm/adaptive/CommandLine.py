@@ -72,7 +72,9 @@ class CLI(CommandLineCommon.CLI):
         }
 
         return self._cluster_time_estimator_from_historical(
-            historical_key_names, historical, 0.25, args, **kwargs
+            args, kwargs, historical_key_names, historical,
+            allowance=0.25,
+            max_time=timedelta(days=2)
         )
 
 
@@ -80,7 +82,8 @@ class CLI(CommandLineCommon.CLI):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=('captured', 'received ratio', 'ssd', 'attacker distance'))
+            results=('captured', 'received ratio', #'ssd', 'attacker distance',
+                     'fake nodes at end', 'fake nodes at end when captured'))
 
         result_table = fake_result.ResultTable(adaptive_results)
 
@@ -97,34 +100,19 @@ class CLI(CommandLineCommon.CLI):
             'tfs': ('Number of TFS Created', 'left top'),
             'pfs': ('Number of PFS Created', 'left top'),
             'attacker distance': ('Meters', 'left top'),
+            'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
         }
 
-        adaptive_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+        varying = [
+            (('network size', ''), ('source period', ' seconds')),
+            #(('network size', ''), ('communication model', '~')),
+        ]
 
-        for (vary, vary_prefix) in [("source period", " seconds"), ("communication model", "~")]:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
 
-                g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
-
-                g.xaxis_label = 'Network Size'
-                g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
-                g.vary_prefix = vary_prefix
-                g.key_position = key_position
-
-                g.create(adaptive_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
-                ).run()
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max)
 
 
     def _run_comparison_table(self, args):
