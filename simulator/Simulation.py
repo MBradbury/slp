@@ -72,7 +72,12 @@ class Simulation(object):
             # time it would have otherwise taken the attacker to scan the whole network.
             self.safety_period = self.upper_bound_safety_period
 
-        self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
+        if hasattr(args, "safety_factor"):
+            self.safety_factor = args.safety_factor
+        else:
+            self.safety_factor = 1.0
+
+        self.safety_period_value = float('inf') if self.safety_period is None else (self.safety_period * self.safety_factor)
 
         if args.mode == "GUI" or args.verbose:
             self.tossim.addChannel("stdout", sys.stdout)
@@ -309,7 +314,12 @@ class OfflineSimulation(object):
         else:
             self.safety_period = None
 
-        self.safety_period_value = float('inf') if self.safety_period is None else self.safety_period
+        if hasattr(args, "safety_factor"):
+            self.safety_factor = args.safety_factor
+        else:
+            self.safety_factor = 1.0
+
+        self.safety_period_value = float('inf') if self.safety_period is None else (self.safety_period * self.safety_factor)
 
         self._line_handlers = {}
 
