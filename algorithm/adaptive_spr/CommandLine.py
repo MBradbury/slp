@@ -73,7 +73,7 @@ class CLI(CommandLineCommon.CLI):
         return self._cluster_time_estimator_from_historical(
             args, kwargs, historical_key_names, historical,
             allowance=0.25,
-            max_time=timedelta(days=5)
+            max_time=timedelta(days=2)
         )
 
 
