@@ -322,6 +322,11 @@ class Analyse(object):
         if line_number == 0:
             raise EmptyFileError(infile_path)
 
+        if headers_to_skip is not None:
+            for header in headers_to_skip:
+                if header not in all_headings:
+                    raise RuntimeError("The heading {} is not a valid heading to skip".format(header))
+
         self.unnormalised_headings = [
             heading for heading in all_headings
             if heading not in (tuple() if headers_to_skip is None else headers_to_skip)
