@@ -3,14 +3,17 @@ from __future__ import print_function, division
 import datetime
 import itertools
 import math
-import os
+import os.path
 
 import numpy as np
 
 from simulator import CommandLineCommon
 from simulator import Configuration
 
-import algorithm.protectionless as protectionless
+import algorithm
+
+#import algorithm.protectionless as protectionless
+protectionless = algorithm.import_algorithm("protectionless")
 
 from data import results
 
@@ -20,22 +23,15 @@ from data.util import scalar_extractor
 
 from data.run.common import RunSimulationsCommon
 
-class RunSimulations(RunSimulationsCommon):
-
-    def _get_safety_period(self, darguments):
-        time_taken = super(RunSimulations, self)._get_safety_period(darguments)
-
-        if time_taken is None:
-            return None
-
-        return 1.3 * time_taken
-
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.result_file_path, RunSimulations)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
+        subparser = self._subparsers.add_parser("average-graph")
+        subparser = self._subparsers.add_parser("scatter-graph")
+        subparser = self._subparsers.add_parser("best-worst-average-graph")
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -75,6 +71,9 @@ class CLI(CommandLineCommon.CLI):
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         return argument_product
+
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 1.3
 
     def _run_table(self, args):
         phantom_results = results.Results(
