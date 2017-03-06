@@ -78,10 +78,10 @@ implementation
 		UnknownAlgorithm, GenericAlgorithm, FurtherAlgorithm
 	} Algorithm;
 
-	Algorithm algorithm = UnknownAlgorithm;
+	Algorithm algorithm;
 
 	// Produces a random float between 0 and 1
-	float random_float()
+	float random_float(void)
 	{
 		// There appears to be problem with the 32 bit random number generator
 		// in TinyOS that means it will not generate numbers in the full range
@@ -142,6 +142,8 @@ implementation
 		first_source_distance = BOTTOM;
 
 		extra_to_send = 0;
+
+		algorithm = UnknownAlgorithm;
 
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
