@@ -17,7 +17,7 @@ AM_METRIC_NODE_TYPE_ADD_MSG = 55
 AM_METRIC_MESSAGE_TYPE_ADD_MSG = 56
 
 def catter_header(row, d_or_e, channel):
-    return "{}:{}:{}:{}:{}:".format(row["date_time"], channel, d_or_e, row["node_id"], row["local_time"])
+    return "{}|{}:{}:{}:{}:".format(row["date_time"], channel, d_or_e, row["node_id"], row["local_time"])
 
 def catter_metric_receive_msg(row, channel):
     return catter_header(row, "D", channel) + "{},{},{},{},{}".format(
@@ -163,8 +163,8 @@ if __name__ == "__main__":
     import sys
 
     parser = argparse.ArgumentParser(description="Indriya Result Converter", add_help=True)
-    parser.add_argument("--result-dir", type=str, required=True, help="The location of the main results files.")
-    parser.add_argument("--output-file", type=str, required=True, help="The location of the merged result file.")
+    parser.add_argument("-in", "--result-dir", type=str, required=True, help="The location of the main results files.")
+    parser.add_argument("-out", "--output-file", type=str, required=True, help="The location of the merged result file.")
 
     args = parser.parse_args(sys.argv[1:])
     

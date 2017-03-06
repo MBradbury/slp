@@ -22,7 +22,7 @@ import data.clusters as clusters
 import data.cycle_accurate
 import data.testbed
 
-from data.graph import versus, heatmap, summary
+from data.graph import heatmap, summary
 
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
@@ -178,6 +178,8 @@ class CLI(object):
             subprocess.call(["xdg-open", filename_pdf])
 
     def _create_versus_graph(self, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
+        from data.graph import versus
+
         algo_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
@@ -198,8 +200,8 @@ class CLI(object):
                 g.vary_prefix = vary_units
                 g.key_position = key_position
 
-                for (name, value) in kwargs.items():
-                    setattr(g, name, value)
+                for (attr_name, attr_value) in kwargs.items():
+                    setattr(g, attr_name, attr_value)
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
@@ -208,7 +210,101 @@ class CLI(object):
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
+                    os.path.join(algorithm.results_directory_name, 'v-{}-{}'.format(self.algorithm_module.name, name))
+                ).run()
+
+    def _create_baseline_versus_graph(self, baseline_module, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
+        from data.graph import baseline_versus
+
+        algo_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=tuple(graph_parameters.keys()))
+
+        baseline_results = results.Results(
+            baseline_module.result_file_path,
+            parameters=baseline_module.local_parameter_names,
+            results=tuple(graph_parameters.keys()))
+
+        for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = 'baseline-{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+
+                g = baseline_versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis=xaxis, yaxis=yaxis, vary=vary,
+                    yextractor=scalar_extractor)
+
+                g.xaxis_label = xaxis.title()
+                g.yaxis_label = yaxis_label
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_units
+                g.key_position = key_position
+
+                for (attr_name, attr_value) in kwargs.items():
+                    setattr(g, attr_name, attr_value)
+
+                if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
+                g.create(algo_results, baseline_results)
+
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(algorithm.results_directory_name, 'bl-{}_{}-{}'.format(self.algorithm_module.name, baseline_module.name, name))
+                ).run()
+
+    def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
+        from data.graph import min_max_versus
+
+        algo_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=tuple(graph_parameters.keys()))
+
+        all_comparion_results = [
+            results.Results(
+                comparion_module.result_file_path,
+                parameters=comparion_module.local_parameter_names,
+                results=tuple(graph_parameters.keys()))
+
+            for comparion_module in comparison_modules
+        ]
+
+        if baseline_module is not None:
+            baseline_results = results.Results(
+                baseline_module.result_file_path,
+                parameters=baseline_module.local_parameter_names,
+                results=tuple(graph_parameters.keys()))
+        else:
+            baseline_results = None
+
+        for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
+            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+
+                g = min_max_versus.Grapher(
+                    self.algorithm_module.graphs_path, name,
+                    xaxis=xaxis, yaxis=yaxis, vary=vary,
+                    yextractor=scalar_extractor)
+
+                g.xaxis_label = xaxis.title()
+                g.yaxis_label = yaxis_label
+                g.vary_label = vary.title()
+                g.vary_prefix = vary_units
+                g.key_position = key_position
+
+                for (attr_name, attr_value) in kwargs.items():
+                    setattr(g, attr_name, attr_value)
+
+                if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
+                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
+                g.create(all_comparion_results, algo_results, baseline_results=baseline_results)
+
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(algorithm.results_directory_name, 'mmv-{}_{}-{}'.format(self.algorithm_module.name, "_".join(mod.name for mod in comparison_modules), name))
                 ).run()
 
     def _argument_product(self):
@@ -304,7 +400,7 @@ class CLI(object):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _cluster_time_estimator_from_historical(self, historical_key_names, historical, allowance, args, **kwargs):
+    def _cluster_time_estimator_from_historical(self, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
         key = tuple(args[name] for name in historical_key_names)
 
         try:
@@ -321,7 +417,14 @@ class CLI(object):
             extra_time_per_proc = timedelta(seconds=2)
             extra_time = (extra_time_per_proc * job_size) // thread_count
 
-            return time_per_proc_with_allowance + extra_time
+            calculated_time = time_per_proc_with_allowance + extra_time
+
+            if max_time is not None:
+                if calculated_time > max_time:
+                    print("Warning: The estimated cluster time is {}, overriding this with the maximum {}".format(calculated_time, max_time))
+                    calculated_time = max_time
+
+            return calculated_time
 
         except KeyError:
             print("Unable to find historical time for {}, so using default time estimator.".format(key))

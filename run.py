@@ -3,7 +3,6 @@ from __future__ import print_function, division
 
 import importlib
 import os
-import subprocess
 import sys
 
 import simulator.VersionDetection as VersionDetection
@@ -93,6 +92,11 @@ def main(argv):
         import multiprocessing.pool
         from threading import Lock
         import traceback
+
+        try:
+            import subprocess32 as subprocess
+        except ImportError:
+            import subprocess
 
         print_lock = Lock()
 
@@ -203,6 +207,7 @@ def main(argv):
             else:
                 raise RuntimeError("Unknown job type of {}".format(a.args.mode))
 
+            sys.stdout.flush()
             sys.stderr.flush()
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import datetime
+from datetime import timedelta
 import itertools
 import os
 
@@ -79,7 +79,9 @@ class CLI(CommandLineCommon.CLI):
         }
 
         return self._cluster_time_estimator_from_historical(
-            historical_key_names, historical, 0.25, args, **kwargs
+            args, kwargs, historical_key_names, historical,
+            allowance=0.25,
+            max_time=timedelta(days=2)
         )
 
 

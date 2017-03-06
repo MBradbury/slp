@@ -27,7 +27,7 @@ def _secure_random():
     return rno
 
 class ArgumentsCommon(object):
-    def __init__(self, description, has_safety_period=False):
+    def __init__(self, description, has_safety_period=False, has_safety_factor=False):
         parser = argparse.ArgumentParser(description=description, add_help=False)
 
         subparsers = parser.add_subparsers(title="mode", dest="mode")
@@ -51,6 +51,12 @@ class ArgumentsCommon(object):
 
         parser_cycle.add_argument("--node-id-order", choices=("topology", "randomised"), default="topology")
 
+        if has_safety_period:
+            parser_cycle.add_argument("-safety", "--safety-period", type=float, required=True)
+
+            if has_safety_factor:
+                parser_cycle.add_argument("--safety-factor", type=float, required=False, default=1.0)
+
         ###
 
         parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=(parser_cycle,))
@@ -62,9 +68,6 @@ class ArgumentsCommon(object):
 
         parser_single.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0,
                                    help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
-
-        if has_safety_period:
-            parser_single.add_argument("-safety", "--safety-period", type=float, required=True)
 
         ###
 
@@ -96,16 +99,11 @@ class ArgumentsCommon(object):
         ###
         ###
 
-        parser_offline = subparsers.add_parser("OFFLINE", add_help=False, parents=(parser_testbed,))
+        parser_offline = subparsers.add_parser("OFFLINE", add_help=False, parents=(parser_cycle,))
 
         parser_offline.add_argument("--merged-log", type=str, required=True)
 
         parser_offline.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
-        
-        if has_safety_period:
-            parser_offline.add_argument("-safety", "--safety-period", type=float, required=True)
-
-        parser_offline.add_argument("--seed", type=int, required=False)
 
         ###
 

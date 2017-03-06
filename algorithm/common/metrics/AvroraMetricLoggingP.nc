@@ -18,8 +18,10 @@ implementation
 
 	App.MessageType = MessageType;
 
+	components AvroraPrintfC;
+	App.AvroraPrintf -> AvroraPrintfC;
+
 	// Time
 	components LocalTimeMilliC;
-	
 	App.LocalTime -> LocalTimeMilliC;
 }

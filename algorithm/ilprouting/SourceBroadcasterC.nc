@@ -1179,7 +1179,7 @@ implementation
 			}
 			else
 			{
-				assert(FALSE);
+				__builtin_unreachable();
 			}
 		}
 	}

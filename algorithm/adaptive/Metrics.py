@@ -17,7 +17,9 @@ class Metrics(MetricsCommon):
         d["TFS"]                    = lambda x: x.times_node_changed_to("TempFakeNode")
         d["PFS"]                    = lambda x: x.times_node_changed_to("PermFakeNode")
         d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=("TempFakeNode", "PermFakeNode"))
-        
+        d["FakeNodesAtEnd"]         = lambda x: x.times_node_changed_to(("TempFakeNode", "PermFakeNode"), from_types="NormalNode") - \
+                                                x.times_node_changed_to("NormalNode", from_types=("TempFakeNode", "PermFakeNode"))
+
         d["ReceivedFromCloserOrSameHopsFake"]  = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_closer_or_same_hops("Fake"))
         d["ReceivedFromFurtherHopsFake"]       = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_further_hops("Fake"))
         d["ReceivedFromCloserOrSameMetersFake"]= lambda x: MetricsCommon.smaller_dict_str(x.rcvd_closer_or_same_meters("Fake"))

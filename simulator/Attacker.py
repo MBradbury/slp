@@ -137,13 +137,11 @@ class Attacker(object):
         # Update the simulator, informing them that an attacker has found the source
         self._sim.attacker_found_source |= self._has_found_source
 
-        self._draw(time, self.position)
+        if hasattr(self._sim, "gui"):
+            self._draw(time, self.position)
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
-        if not hasattr(self._sim, "gui"):
-            return
-
         (x, y) = self._sim.gui.node_location(node_id)
 
         shape_id = "attacker{}".format(self.ident)

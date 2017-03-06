@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 
+import ast
 import argparse
 import subprocess
 import sys
@@ -11,22 +12,31 @@ import networkx as nx
 import simulator.Configuration as Configuration
 
 class NetworkPredicateChecker(object):
-    def __init__(self, configuration, with_node_id=False):
+    def __init__(self, configuration, with_node_id=False, nodes_to_show=None):
         self.configuration = configuration
         self.with_node_id = with_node_id
 
-        print(configuration.topology.nodes)
+        self.nodes = configuration.topology.nodes
+
+        if nodes_to_show is not None:
+            self.nodes_to_show = {x for l in (list(range(a, b+1)) for a, b in nodes_to_show) for x in l}
+
+            self.nodes = {nid: coord for (nid, coord) in self.nodes.items() if nid in self.nodes_to_show}
+        else:
+            self.nodes_to_show = set(self.nodes.keys())
+
+        print("Nodes:", self.nodes)
 
         self.graph = nx.DiGraph()
-        self.graph.add_nodes_from(configuration.topology.nodes.keys())
+        self.graph.add_nodes_from(self.nodes.keys())
 
         # Store the coordinates
-        for (nid, coord) in configuration.topology.nodes.items():
+        for (nid, coord) in self.nodes.items():
             self.graph.node[nid]['pos'] = coord
             self.graph.node[nid]['label'] = str(nid)
 
     def draw(self, show=True):
-        fig = plt.figure(figsize=(8, 8))
+        fig = plt.figure(figsize=(11, 8))
         ax = fig.gca()
         ax.set_axis_off()
 
@@ -34,17 +44,17 @@ class NetworkPredicateChecker(object):
         ax.invert_yaxis()
 
         # Add edges
-        for nid in configuration.topology.nodes:
+        for nid in self.nodes:
 
             neighbours = self.neighbour_predicate(nid)
 
             print(nid, neighbours)
 
-            self.graph.add_edges_from((nid, n) for n in neighbours)
+            self.graph.add_edges_from((nid, n) for n in neighbours if n in self.nodes_to_show)
 
             self.graph.node[nid]['color'] = "white" if neighbours else "#DCDCDC"
             self.graph.node[nid]['shape'] = 'o'
-            self.graph.node[nid]['size'] = 350
+            self.graph.node[nid]['size'] = 550
 
         for src in configuration.source_ids:
             self.graph.node[src]['shape'] = 'p'
@@ -134,6 +144,8 @@ parser.add_argument("-ns", "--network-size", type=int, required=True)
 parser.add_argument("-d", "--distance", type=float, default=4.5)
 parser.add_argument("--node-id-order", choices=("topology", "randomised"), default="topology")
 
+parser.add_argument("--nodes", type=ast.literal_eval, default=None, help="Show a subset of nodes")
+
 parser.add_argument("--with-node-id", action='store_true', default=False)
 parser.add_argument("--no-show", action='store_true', default=False)
 
@@ -143,6 +155,6 @@ configuration = Configuration.create_specific(args.configuration, args.network_s
 
 print("Creating graph for ", configuration)
 
-drawer = NetworkPredicateChecker(configuration, with_node_id=args.with_node_id)
+drawer = NetworkPredicateChecker(configuration, with_node_id=args.with_node_id, nodes_to_show=args.nodes)
 
 drawer.draw(show=not args.no_show)
