@@ -75,7 +75,7 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def time_after_first_normal_to_safety_period(self, tafn):
-        return tafn * 1.3
+        return tafn * 1.0
 
     def _run_table(self, args):
         phantom_results = results.Results(
@@ -108,7 +108,7 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         custom_yaxis_range_max = {
-            'captured': 50,
+            'captured': 100,
             'sent': 30000
         }
 
