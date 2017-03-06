@@ -27,7 +27,7 @@ def _secure_random():
     return rno
 
 class ArgumentsCommon(object):
-    def __init__(self, description, has_safety_period=False):
+    def __init__(self, description, has_safety_period=False, has_safety_factor=False):
         parser = argparse.ArgumentParser(description=description, add_help=False)
 
         subparsers = parser.add_subparsers(title="mode", dest="mode")
@@ -53,6 +53,9 @@ class ArgumentsCommon(object):
 
         if has_safety_period:
             parser_cycle.add_argument("-safety", "--safety-period", type=float, required=True)
+
+            if has_safety_factor:
+                parser_cycle.add_argument("--safety-factor", type=float, required=False, default=1.0)
 
         ###
 

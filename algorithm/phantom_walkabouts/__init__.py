@@ -7,5 +7,7 @@ def _setup():
 (name, results_path, result_file, result_file_path, graphs_path) = _setup()
 
 
-local_parameter_names = ('direction bias',
-                         'order', 'short count', 'long count', 'wait before short')
+local_parameter_names = (
+	'safety factor', 'direction bias', 'order',
+	'short count', 'long count', 'wait before short'
+)

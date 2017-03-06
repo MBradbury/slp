@@ -1,22 +1,14 @@
-import argparse
-import math
 
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
-import simulator.Configuration as Configuration
-
-def restricted_float(x):
-    x = float(x)
-    if x < 0.0 or x > 1.0:
-        raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]".format(x))
-    return x
 
 order_choices = ["LongShort", "ShortLong"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        super(Arguments, self).__init__("SLP Phantom_Walkabouts_dynamic", has_safety_period=True)
+        super(Arguments, self).__init__("SLP Phantom_Walkabouts_dynamic",
+            has_safety_period=True, has_safety_factor=True)
 
         self.add_argument("--source-period",
                           type=simulator.SourcePeriodModel.eval_input, required=True)
@@ -24,14 +16,14 @@ class Arguments(ArgumentsCommon):
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
 
-        self.add_argument("--wait-before-short", type=int, required=True)
+        self.add_argument("--wait-before-short", type=self.type_positive_int, required=True)
 
-        self.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
+        self.add_argument("--direction-bias", type=self.type_probability, required=False, default=0.9)
 
         self.add_argument("--order", type=str, choices=order_choices, required=True)
 
-        self.add_argument("--short-count", type=int, required=True)
-        self.add_argument("--long-count", type=int, required=True)
+        self.add_argument("--short-count", type=self.type_positive_int, required=True)
+        self.add_argument("--long-count", type=self.type_positive_int, required=True)
 
 
     def build_arguments(self):

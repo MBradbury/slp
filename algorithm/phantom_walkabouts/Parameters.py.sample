@@ -40,4 +40,6 @@ wait_before_short = [0]
 short_counts = [1]
 long_counts = [1]
 
+safety_factors = [1, 2, 3, 4, 5]
+
 repeats = 1000
