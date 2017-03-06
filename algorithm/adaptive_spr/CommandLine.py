@@ -23,11 +23,11 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path, safety_period_equivalence=safety_period_equivalence)
 
-        subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("comparison-table")
-        subparser = self._subparsers.add_parser("min-max-versus")
-        subparser = self._subparsers.add_parser("dual-min-max-versus")
+        subparser = self._add_argument("table", self._run_table)
+        subparser = self._add_argument("graph", self._run_graph)
+        subparser = self._add_argument("comparison-table", self._run_comparison_table)
+        subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
+        subparser = self._add_argument("dual-min-max-versus", self._run_dual_min_max_versus)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -360,22 +360,3 @@ class CLI(CommandLineCommon.CLI):
 
         for (result_name1, result_name2) in graph_parameters.keys():
             graph_dual_min_max_versus(result_name1, result_name2, 'network size')
-
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
-
-        if 'comparison-table' == args.mode:
-            self._run_comparison_table(args)
-
-        if 'min-max-versus' == args.mode:
-            self._run_min_max_versus(args)
-
-        if 'dual-min-max-versus' == args.mode:
-            self._run_dual_min_max_versus(args)

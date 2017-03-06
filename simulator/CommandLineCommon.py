@@ -54,12 +54,14 @@ class CLI(object):
         except ImportError:
             print("Failed to import Parameters. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
-        parser = argparse.ArgumentParser(add_help=True)
-        subparsers = parser.add_subparsers(title="mode", dest="mode")
+        self._argument_handlers = {}
+
+        self._parser = argparse.ArgumentParser(add_help=True)
+        self._subparsers = self._parser.add_subparsers(title="mode", dest="mode")
 
         ###
 
-        subparser = subparsers.add_parser("cluster")
+        subparser = self._add_argument("cluster", self._run_cluster)
         subparser.add_argument("name", type=str, choices=clusters.available_names(), help="This is the name of the cluster")
 
         cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
@@ -86,7 +88,7 @@ class CLI(object):
 
         ###
 
-        subparser = subparsers.add_parser("testbed")
+        subparser = self._add_argument("testbed", self._run_testbed)
         subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
 
         testbed_subparsers = subparser.add_subparsers(title="testbed mode", dest="testbed_mode")
@@ -101,7 +103,7 @@ class CLI(object):
 
         ###
 
-        subparser = subparsers.add_parser("cycle_accurate")
+        subparser = self._add_argument("cycle_accurate", self._run_cycle_accurate)
         subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cycle_accurate), help="This is the name of the cycle accurate simulator")
 
         cycleaccurate_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
@@ -111,13 +113,13 @@ class CLI(object):
 
         ###
 
-        subparser = subparsers.add_parser("run", help="Run the parameters combination specified in Parameters.py on this local machine.")
+        subparser = self._add_argument("run", self._run_run, help="Run the parameters combination specified in Parameters.py on this local machine.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--no-skip-complete", action="store_true")
 
         ###
 
-        subparser = subparsers.add_parser("analyse", help="Analyse the results of this algorithm.")
+        subparser = self._add_argument("analyse", self._run_analyse, help="Analyse the results of this algorithm.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
@@ -128,23 +130,23 @@ class CLI(object):
             if isinstance(safety_period_result_path, bool):
                 pass
             else:
-                subparser = subparsers.add_parser("safety-table", help="Output protectionless information along with the safety period to be used for those parameter combinations.")
+                subparser = self._add_argument("safety-table", self._run_safety_table, help="Output protectionless information along with the safety period to be used for those parameter combinations.")
                 subparser.add_argument("--show-stddev", action="store_true")
 
-        subparser = subparsers.add_parser("time-taken-table", help="Creates a table showing how long simulations took in real and virtual time.")
+        subparser = self._add_argument("time-taken-table", self._run_time_taken_table, help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("--show-stddev", action="store_true")
         subparser.add_argument("--show", action="store_true", default=False)
 
-        subparser = subparsers.add_parser("error-table", help="Creates a table showing the number of simulations in which an error occurred.")
+        subparser = self._add_argument("error-table", self._run_error_table, help="Creates a table showing the number of simulations in which an error occurred.")
         subparser.add_argument("--show", action="store_true", default=False)
 
-        subparser = subparsers.add_parser("detect-missing", help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
+        subparser = self._add_argument("detect-missing", self._run_detect_missing, help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
 
-        subparser = subparsers.add_parser("graph-heatmap", help="Graph the sent and received heatmaps.")
+        subparser = self._add_argument("graph-heatmap", self._run_graph_heatmap, help="Graph the sent and received heatmaps.")
 
         ###
 
-        subparser = subparsers.add_parser("per-parameter-grapher")
+        subparser = self._add_argument("per-parameter-grapher", self._run_per_parameter_grapher)
         subparser.add_argument("--grapher", required=True)
         subparser.add_argument("--metric-name", required=True)
         subparser.add_argument("--show", action="store_true", default=False)
@@ -154,11 +156,13 @@ class CLI(object):
 
         ###
 
-        subparser = subparsers.add_parser('historical-time-estimator')
+        subparser = self._add_argument('historical-time-estimator', self._run_historical_time_estimator)
 
-        # Store any of the parsers that we need
-        self._parser = parser
-        self._subparsers = subparsers
+        ###
+
+    def _add_argument(self, name, fn, **kwargs):
+        self._argument_handlers[name] = fn
+        return self._subparsers.add_parser(name, **kwargs)
 
     def parameter_names(self):
         return self.global_parameter_names + self.algorithm_module.local_parameter_names
@@ -710,40 +714,6 @@ class CLI(object):
     def run(self, args):
         args = self._parser.parse_args(args)
 
-        if 'cluster' == args.mode:
-            self._run_cluster(args)
-
-        elif 'testbed' == args.mode:
-            self._run_testbed(args)
-
-        elif 'cycle_accurate' == args.mode:
-            self._run_cycle_accurate(args)
-
-        elif 'run' == args.mode:
-            self._run_run(args)
-
-        elif 'analyse' == args.mode:
-            self._run_analyse(args)
-
-        elif 'time-taken-table' == args.mode:
-            self._run_time_taken_table(args)
-
-        elif 'safety-table' == args.mode:
-            self._run_safety_table(args)
-
-        elif 'error-table' == args.mode:
-            self._run_error_table(args)
-
-        elif 'detect-missing' == args.mode:
-            self._run_detect_missing(args)
-
-        elif 'graph-heatmap' == args.mode:
-            self._run_graph_heatmap(args)
-
-        elif 'per-parameter-grapher' == args.mode:
-            self._run_per_parameter_grapher(args)
-
-        elif 'historical-time-estimator' == args.mode:
-            self._run_historical_time_estimator(args)
+        self._argument_handlers[args.mode](args)
 
         return args
