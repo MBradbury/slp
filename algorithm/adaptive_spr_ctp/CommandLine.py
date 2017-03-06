@@ -20,10 +20,10 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
 
-        subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("graph-baseline")
-        subparser = self._subparsers.add_parser("graph-min-max")
+        subparser = self._add_argument("table", self._run_table)
+        subparser = self._add_argument("graph", self._run_graph)
+        subparser = self._add_argument("graph-baseline", self._run_graph_baseline)
+        subparser = self._add_argument("graph-min-max", self._run_graph_min_max)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -139,18 +139,3 @@ class CLI(CommandLineCommon.CLI):
             comparison_label='SPR CTP',
             vvalue_label_converter=self.vvalue_converter,
         )
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
-
-        if 'graph-baseline' == args.mode:
-            self._run_graph_baseline(args)
-
-        if 'graph-min-max' == args.mode:
-            self._run_graph_min_max(args)
