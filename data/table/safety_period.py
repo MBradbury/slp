@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import itertools
+from functools import partial
 
 from simulator.Configuration import configuration_rank
 
@@ -10,7 +11,7 @@ from data import latex, results
 
 class TableGenerator:
 
-    def __init__(self, result_file, time_after_first_normal_to_safety_period, fmt=None):
+    def __init__(self, result_file, tafn_to_safety_period, fmt=None):
         self._result_names = ('received ratio',
                               'normal latency', 'ssd', 'captured',
                               'time after first normal')
@@ -21,12 +22,18 @@ class TableGenerator:
             results=self._result_names
         )
 
-        self.time_after_first_normal_to_safety_period = time_after_first_normal_to_safety_period
+        self.tafn_to_safety_period = tafn_to_safety_period
 
         self.fmt = fmt
         if fmt is None:
             from data_formatter import TableDataFormatter
             self.fmt = TableDataFormatter()
+
+    def _get_name_and_value(self, result, name):
+        return name, result[self._result_names.index(name)]
+
+    def _get_just_value(self, result, name):
+        return result[self._result_names.index(name)][0]
 
     def write_tables(self, stream, param_filter=lambda x: True):
 
@@ -79,26 +86,23 @@ class TableGenerator:
 
                     result = self._results.data[data_key][src_period][tuple()]
 
-                    def _get_name_and_value(name):
-                        return name, result[self._result_names.index(name)]
+                    get_name_and_value = partial(self._get_name_and_value, result)
+                    get_just_value = partial(self._get_just_value, result)
 
-                    def _get_just_value(name):
-                        return result[self._result_names.index(name)][0]
-
-                    safety_period = self.time_after_first_normal_to_safety_period(
-                        _get_just_value('time after first normal'))
+                    safety_period = self.tafn_to_safety_period(
+                        get_just_value('time after first normal'))
                 
                     print('{} & {} & {} & {}'
                           ' & {} & {}'
                           ' & {:0.2f} & {} \\tabularnewline'.format(
                             size,
                             src_period,
-                            self.fmt.format_value(*_get_name_and_value('received ratio')),
-                            self.fmt.format_value(*_get_name_and_value('ssd')),
-                            self.fmt.format_value(*_get_name_and_value('normal latency')),
-                            self.fmt.format_value(*_get_name_and_value('time after first normal')),
+                            self.fmt.format_value(*get_name_and_value('received ratio')),
+                            self.fmt.format_value(*get_name_and_value('ssd')),
+                            self.fmt.format_value(*get_name_and_value('normal latency')),
+                            self.fmt.format_value(*get_name_and_value('time after first normal')),
                             safety_period,
-                            self.fmt.format_value(*_get_name_and_value('captured'))),
+                            self.fmt.format_value(*get_name_and_value('captured'))),
                           file=stream)
                     
                 print('\\hline', file=stream)
@@ -131,7 +135,7 @@ class TableGenerator:
     def safety_periods(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
         return self._get_result_mapping(('time after first normal',),
-                                        lambda tafn: self.time_after_first_normal_to_safety_period(tafn[0]))
+                                        lambda tafn: self.tafn_to_safety_period(tafn[0]))
 
     def time_taken(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> time taken
