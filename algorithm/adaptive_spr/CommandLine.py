@@ -1,6 +1,8 @@
 from __future__ import print_function
 
-import os.path, itertools
+from datetime import timedelta
+import itertools
+import os.path
 
 from simulator import CommandLineCommon
 
@@ -11,9 +13,9 @@ template = algorithm.import_algorithm("template")
 
 from data import results
 
-from data.table import safety_period, fake_result, comparison
-from data.graph import summary, versus, bar, min_max_versus, dual_min_max_versus
-from data.util import useful_log10, scalar_extractor
+from data.table import fake_result, comparison
+from data.graph import summary, versus, min_max_versus, dual_min_max_versus
+from data.util import scalar_extractor
 
 safety_period_equivalence = {
     "attacker model": {"SeqNoReactiveAttacker()": "SeqNosReactiveAttacker()"}
@@ -169,7 +171,7 @@ class CLI(CommandLineCommon.CLI):
 #            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
 #            #'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
             'energy impact per node per second': ('Energy Impact per Node per second (mAh s^{-1})', 'left top'),
-            'energy allowance used': ('Energy Allowance Used (\%)', 'left top'),
+            'energy allowance used': ('Energy Allowance Used (\\%)', 'left top'),
         }
 
         custom_yaxis_range_max = {
