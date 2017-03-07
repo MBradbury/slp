@@ -4,6 +4,7 @@
 module CTPMetricsP
 {
 	provides interface CollectionDebug;
+	uses interface CtpInfo;
 
 	uses interface MetricLogging;
 }
@@ -15,6 +16,29 @@ implementation
 
 	command error_t CollectionDebug.logEvent(uint8_t event_type) {
 		//simdbg("stdout", "logEvent %u\n", event_type);
+
+		switch (event_type)
+		{
+		case NET_C_FE_PUT_MSGPOOL_ERR:
+			ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message (NET_C_FE_PUT_MSGPOOL_ERR).\n");
+			break;
+		case NET_C_FE_PUT_QEPOOL_ERR:
+			ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message (NET_C_FE_PUT_QEPOOL_ERR).\n");
+			break;
+		case NET_C_FE_SEND_QUEUE_FULL:
+			ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message (NET_C_FE_SEND_QUEUE_FULL).\n");
+			break;
+		case NET_C_FE_MSG_POOL_EMPTY:
+			ERROR_OCCURRED(ERROR_POOL_EMPTY, "The pool is empty (NET_C_FE_MSG_POOL_EMPTY).\n");
+			break;
+		case NET_C_FE_QENTRY_POOL_EMPTY:
+			ERROR_OCCURRED(ERROR_POOL_EMPTY, "The pool is empty (NET_C_FE_QENTRY_POOL_EMPTY).\n");
+			break;
+		case NET_C_FE_SENDQUEUE_EMPTY:
+			ERROR_OCCURRED(ERROR_QUEUE_EMPTY, "The queue is empty (NET_C_FE_SENDQUEUE_EMPTY).\n");
+			break;
+		}
+		
 		return SUCCESS;
 	}
 	command error_t CollectionDebug.logEventSimple(uint8_t event_type, uint16_t arg) {
@@ -23,6 +47,24 @@ implementation
 	}
 	command error_t CollectionDebug.logEventDbg(uint8_t event_type, uint16_t arg1, uint16_t arg2, uint16_t arg3) {
 		//simdbg("stdout", "logEventDbg %u %u %u %u\n", event_type, arg1, arg2, arg3);
+
+		if (event_type == NET_C_TREE_NEW_PARENT)
+		{
+			am_addr_t current_parent;
+			const am_addr_t new_parent = arg1;
+
+			error_t result = call CtpInfo.getParent(&current_parent);
+
+			if (result == SUCCESS)
+			{
+				call MetricLogging.log_metric_parent_change(current_parent, new_parent);
+			}
+			else
+			{
+				call MetricLogging.log_metric_parent_change(AM_BROADCAST_ADDR, new_parent);
+			}
+		}
+
 		return SUCCESS;
 	}
 	command error_t CollectionDebug.logEventMsg(uint8_t event_type, uint16_t msg, am_addr_t origin, am_addr_t node) {

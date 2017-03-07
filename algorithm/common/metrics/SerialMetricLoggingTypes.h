@@ -14,8 +14,10 @@ enum {
 	AM_METRIC_NODE_CHANGE_MSG = 54,
 	AM_METRIC_NODE_TYPE_ADD_MSG = 55,
 	AM_METRIC_MESSAGE_TYPE_ADD_MSG = 56,
-	//SLP TDMA DAS
+	// SLP TDMA DAS
 	AM_METRIC_NODE_SLOT_CHANGE_MSG = 57,
+	// Tree based routing
+	AM_METRIC_PARENT_CHANGE_MSG = 58,
 };
 
 #define MAXIMUM_NODE_TYPE_NAME_LENGTH 20
@@ -104,5 +106,13 @@ typedef nx_struct metric_node_slot_change_msg {
 	nx_uint16_t old_slot;
 	nx_uint16_t new_slot;
 } metric_node_slot_change_msg_t;
+
+//##########Tree based routing##########
+typedef nx_struct metric_parent_change_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_am_addr_t old_parent;
+	nx_am_addr_t new_parent;
+} metric_parent_change_msg_t;
 
 #endif // SLP_SERIAL_METRIC_LOGGING_H
