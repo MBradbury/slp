@@ -6,7 +6,7 @@ approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        super(Arguments, self).__init__("SLP Source Angle Adaptive SPR", has_safety_period=True)
+        super(Arguments, self).__init__("SLP Adaptive SPR CTP", has_safety_period=True)
 
         self.add_argument("--source-period", type=float, required=True)
         self.add_argument("--source-mobility",
