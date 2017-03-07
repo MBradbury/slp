@@ -1,18 +1,14 @@
 from __future__ import print_function
 
 import itertools
-import os
 
-from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 
-from data import results, latex
-from data.table import safety_period, direct_comparison, fake_result
-from data.graph import summary, versus
-from data.util import scalar_extractor
+from data import results
+from data.table import fake_result
 
 # Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
 safety_period_equivalence = {
@@ -23,8 +19,8 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path, safety_period_equivalence=safety_period_equivalence)
 
-        subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("graph")
+        subparser = self._add_argument("table", self._run_table)
+        subparser = self._add_argument("graph", self._run_graph)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -43,14 +39,13 @@ class CLI(CommandLineCommon.CLI):
         return tafn * 2.0
 
     def _run_table(self, args):
-        ilprouting_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'received ratio', 'failed avoid sink', 'failed avoid sink when captured'))
+        parameters = [
+            'normal latency', 'ssd', 'captured',
+            'received ratio', 'failed avoid sink',
+            'failed avoid sink when captured',
+        ]
 
-        result_table = fake_result.ResultTable(ilprouting_results)
-
-        self._create_table(self.algorithm_module.name + "-results", result_table)
+        self._create_results_table(parameters)
 
     def _run_graph(self, args):
         graph_parameters = {
@@ -88,13 +83,3 @@ class CLI(CommandLineCommon.CLI):
             generate_legend_graph = True,
             legend_font_size = 16,
         )
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
-
