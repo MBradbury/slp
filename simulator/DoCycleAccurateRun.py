@@ -61,7 +61,7 @@ def main(module, a):
     try:
         seconds_to_run = a.args.safety_period
     except AttributeError:
-        slowest_source_period = args.source_period if isinstance(args.source_period, float) else args.source_period.slowest()
+        slowest_source_period = a.args.source_period if isinstance(a.args.source_period, float) else a.args.source_period.slowest()
         seconds_to_run = configuration.size() * 4.0 * slowest_source_period
 
     # See: http://compilers.cs.ucla.edu/avrora/help/sensor-network.html
