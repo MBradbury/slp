@@ -248,6 +248,7 @@ class Analyse(object):
         "TimeBinWidth": np.float_,
         "FailedRtx": np.uint32,
         "FailedAvoidSink": np.float_,
+        "TotalParentChanges": np.uint32,
     }
 
     HEADING_CONVERTERS = {
@@ -279,6 +280,8 @@ class Analyse(object):
         "DeliveredFromCloserOrSameMeters": _parse_dict_node_to_value,
         "DeliveredFromFurtherHops": _parse_dict_node_to_value,
         "DeliveredFromFurtherMeters": _parse_dict_node_to_value,
+
+        "ParentChangeHeatMap": partial(_parse_dict_node_to_value, decompress=True),
     }
 
     def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
