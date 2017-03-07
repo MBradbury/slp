@@ -110,6 +110,7 @@ class CLI(object):
 
         subparser = cycleaccurate_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
+        subparser.add_argument("--max-buffer-size", type=int, default=256)
 
         ###
 
@@ -580,7 +581,7 @@ class CLI(object):
             print("Removing existing cycle accurate directory and creating a new one")
             recreate_dirtree(cycle_accurate_directory)
 
-            builder = Builder(cycle_accurate, platform=args.platform)
+            builder = Builder(cycle_accurate, platform=args.platform, max_buffer_size=args.max_buffer_size)
 
             self._execute_runner(builder, cycle_accurate_directory, time_estimator=None, skip_completed_simulations=False)
 

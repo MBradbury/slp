@@ -157,7 +157,7 @@ class ArgumentsCommon(object):
         if hasattr(self.args, 'source_mobility'):
             configuration = Configuration.create(self.args.configuration, self.args)
             self.args.source_mobility.setup(configuration)
-        
+
         return self.args
 
     def build_arguments(self):
@@ -216,7 +216,7 @@ class ArgumentsCommon(object):
 
                 # See SystemLowPowerListeningP.nc for how this macro is used
                 if self.args.lpl_delay_after_receive >= 0:
-                    results["DELAY_AFTER_RECEIVE"] = self.args.lpl_delay_after_receive
+                    result["DELAY_AFTER_RECEIVE"] = self.args.lpl_delay_after_receive
 
         return result
 
