@@ -1,7 +1,7 @@
 # Author: Matthew Bradbury
 from __future__ import print_function
 
-import sys, itertools
+import itertools
 
 from simulator.Configuration import configuration_rank
 

@@ -3,7 +3,6 @@ from __future__ import print_function, division
 import ast
 import base64
 from collections import OrderedDict, Sequence
-import copy
 import fnmatch
 from functools import partial
 import gc

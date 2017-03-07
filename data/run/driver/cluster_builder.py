@@ -9,7 +9,7 @@ import data.util
 from data.progress import Progress
 
 from simulator import Builder
-from simulator import Configuration, Simulation
+from simulator import Configuration
 
 class Runner:
     def __init__(self):
