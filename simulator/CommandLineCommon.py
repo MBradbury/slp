@@ -639,7 +639,12 @@ class CLI(object):
                 print()
 
     def _run_graph_heatmap(self, args):
-        heatmap_results = ('sent heatmap', 'received heatmap')
+        heatmap_results = [
+            header
+            for header
+            in self.algorithm_module.Analysis.Analyzer.results_header().keys()
+            if header.endswith('heatmap')
+        ]
 
         results_summary = results.Results(
             self.algorithm_module.result_file_path,
