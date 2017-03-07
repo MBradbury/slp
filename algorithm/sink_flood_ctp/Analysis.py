@@ -1,7 +1,7 @@
 
-from data.analysis import Analyse, AnalysisResults, AnalyzerCommon
+from data.analysis import AnalyzerCommon
 
-from simulator import SourcePeriodModel
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
@@ -23,7 +23,7 @@ class Analyzer(AnalyzerCommon):
 
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
 
-        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
+        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')

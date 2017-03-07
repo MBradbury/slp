@@ -5,16 +5,13 @@ import itertools
 from simulator import CommandLineCommon
 
 import algorithm
-
 protectionless = algorithm.import_algorithm("protectionless")
 protectionless_ctp = algorithm.import_algorithm("protectionless_ctp")
 adaptive_spr = algorithm.import_algorithm("adaptive_spr")
 
 from data import results
 
-from data.table import safety_period, fake_result, comparison
-from data.graph import summary, versus, bar, min_max_versus
-from data.util import useful_log10, scalar_extractor
+from data.table import fake_result
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):

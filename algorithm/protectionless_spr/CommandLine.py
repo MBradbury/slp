@@ -1,12 +1,8 @@
 from __future__ import print_function
 
-import os, itertools
+import itertools
 
 from simulator import CommandLineCommon
-
-from data import results, latex
-from data.table import safety_period, direct_comparison
-from data.graph import summary, versus
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
@@ -25,6 +21,3 @@ class CLI(CommandLineCommon.CLI):
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         return argument_product
-
-    def run(self, args):
-        args = super(CLI, self).run(args)

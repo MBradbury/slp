@@ -1,19 +1,20 @@
 from __future__ import print_function
 
-import os.path, itertools
+import itertools
+import os.path
 
 from simulator import CommandLineCommon
 
 import algorithm
-
 protectionless = algorithm.import_algorithm("protectionless")
+adaptive = algorithm.import_algorithm("adaptive")
 adaptive_spr = algorithm.import_algorithm("adaptive_spr")
 
 from data import results
 
-from data.table import safety_period, fake_result, comparison
-from data.graph import summary, versus, bar, min_max_versus
-from data.util import useful_log10, scalar_extractor
+from data.table import fake_result, comparison
+from data.graph import summary, versus, min_max_versus
+from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):

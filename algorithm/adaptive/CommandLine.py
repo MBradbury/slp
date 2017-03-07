@@ -13,7 +13,7 @@ template = algorithm.import_algorithm("template")
 
 from data import results
 from data.table import fake_result, comparison
-from data.graph import summary, versus, bar, min_max_versus
+from data.graph import summary, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor
 
 safety_period_equivalence = {
