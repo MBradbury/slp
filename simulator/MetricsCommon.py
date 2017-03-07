@@ -737,28 +737,42 @@ class TreeMetricsCommon(MetricsCommon):
         super(TreeMetricsCommon, self).__init__(sim, configuration)
 
         self.parent_changes = Counter()
+        self.true_parent_changes = Counter()
 
         self.register('M-PC', self.process_parent_change_event)
 
     def process_parent_change_event(self, d_or_e, node_id, time, detail):
         (current_parent, new_parent) = detail.split(',')
 
+        current_parent = int(current_parent)
+
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
         self.parent_changes[top_node_id] += 1
 
+        # 65535 is AM_BROADCAST_ADDR
+        if current_parent != 65535:
+            self.true_parent_changes[top_node_id] += 1
+
     def total_parent_changes(self):
         return sum(self.parent_changes.values())
 
+    def total_true_parent_changes(self):
+        return sum(self.true_parent_changes.values())
+
     def parent_change_heat_map(self):
         return dict(self.parent_changes)
+
+    def true_parent_change_heat_map(self):
+        return dict(self.true_parent_changes)
 
     @staticmethod
     def items():
         d = OrderedDict()
 
         d["TotalParentChanges"]            = lambda x: x.total_parent_changes()
+        d["TotalTrueParentChanges"]        = lambda x: x.total_true_parent_changes()
 
-        d["ParentChangeHeatMap"]           = lambda x: MetricsCommon.compressed_dict_str(x.parent_change_heat_map())
+        d["ParentChangeHeatMap"]           = lambda x: MetricsCommon.compressed_dict_str(x.true_parent_change_heat_map())
 
         return d
