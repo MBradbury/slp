@@ -38,9 +38,13 @@ class Analyzer(AnalyzerCommon):
         d['tailfs']             = lambda x: AnalyzerCommon._format_results(x, 'TailFS')
         d['fake to normal']     = lambda x: AnalyzerCommon._format_results(x, 'FakeToNormal')
         d['fake to fake']       = lambda x: AnalyzerCommon._format_results(x, 'FakeToFake')
+
+        d['parent changes']     = lambda x: AnalyzerCommon._format_results(x, 'TotalParentChanges')
+        d['true parent changes']= lambda x: AnalyzerCommon._format_results(x, 'TotalTrueParentChanges')
         
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+        d['parent change heatmap']= lambda x: AnalyzerCommon._format_results(x, 'ParentChangeHeatMap')
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')

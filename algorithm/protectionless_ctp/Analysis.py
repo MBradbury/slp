@@ -30,8 +30,12 @@ class Analyzer(AnalyzerCommon):
 
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
 
+        d['parent changes']     = lambda x: AnalyzerCommon._format_results(x, 'TotalParentChanges')
+        d['true parent changes']= lambda x: AnalyzerCommon._format_results(x, 'TotalTrueParentChanges')
+        
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+        d['parent change heatmap']= lambda x: AnalyzerCommon._format_results(x, 'ParentChangeHeatMap')
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),num_nodes)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')

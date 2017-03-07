@@ -18,9 +18,8 @@ class Runner(testbed_builder.Runner):
         return "CYCLEACCURATE"
 
     def build_arguments(self, a):
-    	args = super(Runner, self).build_arguments(a)
+        args = super(Runner, self).build_arguments(a)
 
-    	args["AVRORA_MAX_BUFFER_SIZE"] = self.max_buffer_size
+        args["AVRORA_MAX_BUFFER_SIZE"] = self.max_buffer_size
 
-    	return args
-
+        return args
