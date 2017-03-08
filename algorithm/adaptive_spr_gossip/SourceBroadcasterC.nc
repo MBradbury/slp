@@ -782,17 +782,21 @@ implementation
 
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		error_t result;
+
+		FakeMessage forwarding_message = *rcvd;
+
+		result = call Gossip.receive(&forwarding_message);
+
 		sink_received_away_reponse = TRUE;
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
-			FakeMessage forwarding_message = *rcvd;
-
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
 
-			if (call Gossip.receive(&forwarding_message) != SUCCESS)
+			if (result != SUCCESS)
 			{
 				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
@@ -812,15 +816,19 @@ implementation
 
 	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		error_t result;
+
+		FakeMessage forwarding_message = *rcvd;
+
+		result = call Gossip.receive(&forwarding_message);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
-			FakeMessage forwarding_message = *rcvd;
-
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
 
-			if (call Gossip.receive(&forwarding_message) != SUCCESS)
+			if (result != SUCCESS)
 			{
 				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
@@ -831,15 +839,19 @@ implementation
 	{
 		const uint8_t type = call NodeType.get();
 
+		error_t result;
+
+		FakeMessage forwarding_message = *rcvd;
+
+		result = call Gossip.receive(&forwarding_message);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
-			FakeMessage forwarding_message = *rcvd;
-
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
 
-			if (call Gossip.receive(&forwarding_message) != SUCCESS)
+			if (result != SUCCESS)
 			{
 				send_Fake_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
