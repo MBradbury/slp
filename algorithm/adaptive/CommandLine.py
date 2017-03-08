@@ -7,7 +7,6 @@ import os.path
 from simulator import CommandLineCommon
 
 import algorithm
-
 protectionless = algorithm.import_algorithm("protectionless")
 template = algorithm.import_algorithm("template")
 

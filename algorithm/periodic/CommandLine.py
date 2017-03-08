@@ -4,9 +4,8 @@ import itertools
 
 from simulator import CommandLineCommon
 
-import algorithm.protectionless as protectionless
-
-from data.table import safety_period
+import algorithm
+protectionless = algorithm.import_algorithm("protectionless")
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
@@ -32,7 +31,3 @@ class CLI(CommandLineCommon.CLI):
 
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
-
-
-    def run(self, args):
-        args = super(CLI, self).run(args)

@@ -19,12 +19,12 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-        subparser = self._subparsers.add_parser("table")
+        subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("--show-stddev", action="store_true")
 
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("ccpe-comparison-table")
-        subparser = self._subparsers.add_parser("ccpe-comparison-graph")
+        subparser = self._add_argument("graph", self._run_graph)
+        subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
+        subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graphs)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -74,13 +74,12 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            #'safety period': ('Safety Period (seconds)', 'left top'),
-            #'time taken': ('Time Taken (seconds)', 'left top'),
-            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'time taken': ('Time Taken (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
-            #'sent': ('Total Messages Sent', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'good move ratio': ('Good Move Ratio (%)', 'right top'),
+            #'good move ratio': ('Good Move Ratio (%)', 'right top'),
             'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
@@ -179,18 +178,3 @@ class CLI(CommandLineCommon.CLI):
         for result_name in result_names:
             create_ccpe_comp_versus(result_name, pc=True)
             create_ccpe_comp_versus(result_name, pc=False)
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
-
-        elif 'graph' == args.mode:
-            self._run_graph(args)
-
-        elif 'ccpe-comparison-table' == args.mode:
-            self._run_ccpe_comparison_table(args)
-
-        elif 'ccpe-comparison-graph' == args.mode:
-            self._run_ccpe_comparison_graphs(args)
