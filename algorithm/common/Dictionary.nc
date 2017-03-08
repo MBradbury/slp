@@ -5,6 +5,7 @@ interface Dictionary<Key, Value>
 	command Value* get(Key key);
 	command Value* get_from_iter(const Key* iter);
 	command Value get_or_default(Key key, Value default_value);
+	command const Key* key_iter_from_key(Key key);
 	command bool remove(Key key);
 
 	command bool contains_key(Key key);
@@ -17,4 +18,7 @@ interface Dictionary<Key, Value>
 
 	command const Key* beginKeys();
 	command const Key* endKeys();
+
+	command const Key* beginKeysReverse();
+	command const Key* endKeysReverse();
 }

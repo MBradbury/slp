@@ -2,6 +2,8 @@ generic module CircularBufferP(typedef value_t, uint8_t BUFFER_SIZE)
 {
 	provides interface Cache<value_t>;
 	provides interface Init;
+
+	uses interface Compare<value_t>;
 }
 implementation
 {
@@ -29,7 +31,7 @@ implementation
 		uint8_t i;
 		for (i = 0; i != size; ++i)
 		{
-			if (memcmp(&values[i], &item, sizeof(value_t)) == 0)
+			if (call Compare.equals(&values[i], &item))
 			{
 				return TRUE;
 			}
