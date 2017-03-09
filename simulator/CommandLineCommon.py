@@ -706,7 +706,7 @@ class CLI(object):
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('total wall time',))
 
-        max_wall_times = defaultdict(int)
+        max_wall_times = defaultdict(float)
 
         # For each network size and source period find the maximum total wall time
 
@@ -731,14 +731,15 @@ class CLI(object):
 
                     (total_wall_time, total_wall_time_stddev) = values3[0]
 
+                    # Add in the deviation to ensure we consider the extreme cases
                     total_wall_time += total_wall_time_stddev
 
-                    max_wall_times[key] = int(math.ceil(max(max_wall_times[key], total_wall_time)))
+                    max_wall_times[key] = max(max_wall_times[key], total_wall_time)
 
         print("historical_key_names = {}".format(tuple(args.key)))
         print("historical = {")
-        for key in sorted(max_wall_times):
-            print("    {}: timedelta(seconds={}),".format(key, max_wall_times[key]))
+        for key, value in sorted(max_wall_times.items(), key=lambda x: x[0]):
+            print("    {}: timedelta(seconds={}),".format(key, int(math.ceil(value))))
         print("}")
 
 
