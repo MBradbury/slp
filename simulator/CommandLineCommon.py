@@ -158,6 +158,7 @@ class CLI(object):
         ###
 
         subparser = self._add_argument('historical-time-estimator', self._run_historical_time_estimator)
+        subparser.add_argument("--key", nargs="+", metavar="P", default=('network size', 'source period'))
 
         ###
 
@@ -420,7 +421,12 @@ class CLI(object):
         key = tuple(args[name] for name in historical_key_names)
 
         try:
-            hist_time = historical[key]
+            try:
+                hist_time = historical[key]
+            except KeyError:
+                # Try with every item as a string instead
+                key = tuple(str(x) for x in key)
+                hist_time = historical[key]
 
             job_size = kwargs["job_size"]
             thread_count = kwargs["thread_count"]
@@ -706,15 +712,22 @@ class CLI(object):
 
         for (global_params, values1) in result.data.items():
 
-            network_size = int(global_params[self.global_parameter_names.index("network size")])
+            global_params = dict(zip(self.global_parameter_names, global_params))
 
             for (source_period, values2) in values1.items():
 
-                source_period = float(source_period)
-
-                key = (network_size, source_period)
+                source_period_params = {'source period': source_period}
 
                 for (local_params, values3) in values2.items():
+
+                    local_params = dict(zip(self.algorithm_module.local_parameter_names, local_params))
+
+                    params = {}
+                    params.update(global_params)
+                    params.update(source_period_params)
+                    params.update(local_params)
+
+                    key = tuple(params[name] for name in args.key)
 
                     (total_wall_time, total_wall_time_stddev) = values3[0]
 
@@ -722,10 +735,11 @@ class CLI(object):
 
                     max_wall_times[key] = int(math.ceil(max(max_wall_times[key], total_wall_time)))
 
-        print(max_wall_times)
-
+        print("historical_key_names = {}".format(tuple(args.key)))
+        print("historical = {")
         for key in sorted(max_wall_times):
-            print("{}: timedelta(seconds={}),".format(key, max_wall_times[key]))
+            print("    {}: timedelta(seconds={}),".format(key, max_wall_times[key]))
+        print("}")
 
 
     def run(self, args):
