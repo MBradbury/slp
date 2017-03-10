@@ -89,4 +89,4 @@ def escape(text):
                                 for key
                                 in sorted(conv.keys(), key=lambda item: - len(item))))
 
-    return regex.sub(lambda match: conv[match.group()], text)
+    return regex.sub(lambda match: conv[match.group()], str(text))
