@@ -1,7 +1,7 @@
 
-from simulator.MetricsCommon import MetricsCommon
+from simulator.MetricsCommon import MetricsCommon, FakeMetricsCommon
 
-class Metrics(MetricsCommon):
+class Metrics(FakeMetricsCommon):
 
     def __init__(self, sim, configuration):
         super(Metrics, self).__init__(sim, configuration)
@@ -9,13 +9,9 @@ class Metrics(MetricsCommon):
     @staticmethod
     def items():
         d = MetricsCommon.items()
-        d["FakeSent"]               = lambda x: x.number_sent("Fake")
         d["ChooseSent"]             = lambda x: x.number_sent("Choose")
         d["AwaySent"]               = lambda x: x.number_sent("Away")
-        d["TFS"]                    = lambda x: x.times_node_changed_to("TempFakeNode")
-        d["PFS"]                    = lambda x: x.times_node_changed_to("PermFakeNode")
-        d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=("TempFakeNode", "PermFakeNode"))
-        d["FakeNodesAtEnd"]         = lambda x: x.times_node_changed_to(("TempFakeNode", "PermFakeNode"), from_types="NormalNode") - \
-                                                x.times_node_changed_to("NormalNode", from_types=("TempFakeNode", "PermFakeNode"))
+
+        d.update(FakeMetricsCommon.items({"TFS": "TempFakeNode", "PFS": "PermFakeNode"}))
 
         return d

@@ -13,8 +13,11 @@ class ClusterCommon(object):
         self.threads_per_processor = tpp
         self.ram_per_node = rpn
 
-    def submitter(self, notify_emails=None): raise NotImplementedError
-    def array_submitter(self, notify_emails=None): raise NotImplementedError
+    def submitter(self, notify_emails=None):
+        raise NotImplementedError
+
+    def array_submitter(self, notify_emails=None):
+        raise NotImplementedError
 
     def name(self):
         return type(self).__name__

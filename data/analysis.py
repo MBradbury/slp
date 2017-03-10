@@ -3,7 +3,6 @@ from __future__ import print_function, division
 import ast
 import base64
 from collections import OrderedDict, Sequence
-import copy
 import fnmatch
 from functools import partial
 import gc
@@ -249,6 +248,7 @@ class Analyse(object):
         "TimeBinWidth": np.float_,
         "FailedRtx": np.uint32,
         "FailedAvoidSink": np.float_,
+        "TotalParentChanges": np.uint32,
     }
 
     HEADING_CONVERTERS = {
@@ -280,6 +280,8 @@ class Analyse(object):
         "DeliveredFromCloserOrSameMeters": _parse_dict_node_to_value,
         "DeliveredFromFurtherHops": _parse_dict_node_to_value,
         "DeliveredFromFurtherMeters": _parse_dict_node_to_value,
+
+        "ParentChangeHeatMap": partial(_parse_dict_node_to_value, decompress=True),
     }
 
     def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
@@ -321,6 +323,11 @@ class Analyse(object):
 
         if line_number == 0:
             raise EmptyFileError(infile_path)
+
+        if headers_to_skip is not None:
+            for header in headers_to_skip:
+                if header not in all_headings:
+                    raise RuntimeError("The heading {} is not a valid heading to skip".format(header))
 
         self.unnormalised_headings = [
             heading for heading in all_headings

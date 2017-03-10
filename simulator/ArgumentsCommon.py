@@ -46,16 +46,16 @@ class ArgumentsCommon(object):
 
         parser_cycle.add_argument("--seed", type=int, required=False)
 
-        parser_cycle.add_argument("-ns", "--network-size", type=int, required=True)
-        parser_cycle.add_argument("-d", "--distance", type=float, default=4.5)
+        parser_cycle.add_argument("-ns", "--network-size", type=self.type_positive_int, required=True)
+        parser_cycle.add_argument("-d", "--distance", type=self.type_positive_float, default=4.5)
 
         parser_cycle.add_argument("--node-id-order", choices=("topology", "randomised"), default="topology")
 
         if has_safety_period:
-            parser_cycle.add_argument("-safety", "--safety-period", type=float, required=True)
+            parser_cycle.add_argument("-safety", "--safety-period", type=self.type_positive_float, required=True)
 
             if has_safety_factor:
-                parser_cycle.add_argument("--safety-factor", type=float, required=False, default=1.0)
+                parser_cycle.add_argument("--safety-factor", type=self.type_positive_float, required=False, default=1.0)
 
         ###
 
@@ -66,7 +66,7 @@ class ArgumentsCommon(object):
 
         parser_single.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
 
-        parser_single.add_argument("-st", "--latest-node-start-time", type=float, required=False, default=1.0,
+        parser_single.add_argument("-st", "--latest-node-start-time", type=self.type_positive_float, required=False, default=1.0,
                                    help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
 
         ###
@@ -80,20 +80,20 @@ class ArgumentsCommon(object):
         parser_gui = subparsers.add_parser("GUI", add_help=False, parents=(parser_single,))
 
         parser_gui.add_argument("--gui-node-label", type=str, required=False, default=None)
-        parser_gui.add_argument("--gui-scale", type=int, required=False, default=6)
+        parser_gui.add_argument("--gui-scale", type=self.type_positive_int, required=False, default=6)
 
         ###
 
         parser_parallel = subparsers.add_parser("PARALLEL", add_help=False, parents=(parser_single,))
 
-        parser_parallel.add_argument("--job-size", type=int, required=True)
-        parser_parallel.add_argument("--thread-count", type=int, default=None)
+        parser_parallel.add_argument("--job-size", type=self.type_positive_int, required=True)
+        parser_parallel.add_argument("--thread-count", type=self.type_positive_int, default=None)
 
         ###
 
         parser_cluster = subparsers.add_parser("CLUSTER", add_help=False, parents=(parser_parallel,))
 
-        parser_cluster.add_argument("--job-id", type=int, default=None,
+        parser_cluster.add_argument("--job-id", type=self.type_positive_int, default=None,
                                     help="Used to pass the array id when this job has been submitted as a job array to the cluster.")
 
         ###
@@ -109,7 +109,7 @@ class ArgumentsCommon(object):
 
         parser_offline_gui = subparsers.add_parser("OFFLINE_GUI", add_help=False, parents=(parser_offline,))
 
-        parser_offline_gui.add_argument("--gui-scale", type=int, required=False, default=6)
+        parser_offline_gui.add_argument("--gui-scale", type=self.type_positive_int, required=False, default=6)
 
         ###
         ###
@@ -119,9 +119,9 @@ class ArgumentsCommon(object):
         # Testbed and cycle accurate simulators can work with LowPowerListening, but TOSSIM doesn't
         for sub_parser in (parser_testbed, parser_cycle):
             sub_parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), required=False, default="disabled")
-            sub_parser.add_argument("--lpl-local-wakeup", type=int, required=False, default=-1)
-            sub_parser.add_argument("--lpl-remote-wakeup", type=int, required=False, default=-1)
-            sub_parser.add_argument("--lpl-delay-after-receive", type=int, required=False, default=-1)
+            sub_parser.add_argument("--lpl-local-wakeup", type=self.type_positive_int, required=False, default=-1)
+            sub_parser.add_argument("--lpl-remote-wakeup", type=self.type_positive_int, required=False, default=-1)
+            sub_parser.add_argument("--lpl-delay-after-receive", type=self.type_positive_int, required=False, default=-1)
 
         parser_cycle.add_argument("simulator", type=str, choices=submodule_loader.list_available(data.cycle_accurate))
 
@@ -157,7 +157,7 @@ class ArgumentsCommon(object):
         if hasattr(self.args, 'source_mobility'):
             configuration = Configuration.create(self.args.configuration, self.args)
             self.args.source_mobility.setup(configuration)
-        
+
         return self.args
 
     def build_arguments(self):
@@ -216,7 +216,7 @@ class ArgumentsCommon(object):
 
                 # See SystemLowPowerListeningP.nc for how this macro is used
                 if self.args.lpl_delay_after_receive >= 0:
-                    results["DELAY_AFTER_RECEIVE"] = self.args.lpl_delay_after_receive
+                    result["DELAY_AFTER_RECEIVE"] = self.args.lpl_delay_after_receive
 
         return result
 

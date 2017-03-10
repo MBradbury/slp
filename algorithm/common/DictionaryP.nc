@@ -49,6 +49,16 @@ implementation
 		return keys + count;
 	}
 
+	command const Key* Dictionary.beginKeysReverse()
+	{
+		return keys + count - 1;
+	}
+
+	command const Key* Dictionary.endKeysReverse()
+	{
+		return keys - 1;
+	}
+
 	command bool Dictionary.put(Key key, Value value)
 	{
 		Value* stored_value = call Dictionary.get(key);
@@ -125,6 +135,23 @@ implementation
 		Value* stored_value = call Dictionary.get(key);
 
 		return stored_value == NULL ? default_value : *stored_value;
+	}
+
+	command const Key* Dictionary.key_iter_from_key(Key key)
+	{
+		const Key* const iter_start = call Dictionary.beginKeys();
+		const Key* const iter_end = call Dictionary.endKeys();
+		const Key* iter;
+
+		for (iter = iter_start; iter != iter_end; ++iter)
+		{
+			if (call Compare.equals(iter, &key))
+			{
+				return iter;
+			}
+		}
+
+		return NULL;
 	}
 
 	command bool Dictionary.contains_key(Key key)

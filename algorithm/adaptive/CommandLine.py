@@ -7,13 +7,12 @@ import os.path
 from simulator import CommandLineCommon
 
 import algorithm
-
 protectionless = algorithm.import_algorithm("protectionless")
 template = algorithm.import_algorithm("template")
 
 from data import results
 from data.table import fake_result, comparison
-from data.graph import summary, versus, bar, min_max_versus
+from data.graph import summary, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor
 
 safety_period_equivalence = {
@@ -24,11 +23,11 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path, safety_period_equivalence=safety_period_equivalence)
 
-        subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("comparison-table")
-        subparser = self._subparsers.add_parser("comparison-graph")
-        subparser = self._subparsers.add_parser("min-max-versus")
+        subparser = self._add_argument("table", self._run_table)
+        subparser = self._add_argument("graph", self._run_graph)
+        subparser = self._add_argument("comparison-table", self._run_comparison_table)
+        subparser = self._add_argument("comparison-graph", self._run_comparison_graph)
+        subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -283,21 +282,3 @@ class CLI(CommandLineCommon.CLI):
 
         for result_name in graph_parameters.keys():
             graph_min_max_versus(result_name)
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
-
-        if 'comparison-table' == args.mode:
-            self._run_comparison_table(args)
-
-        if 'comparison-graph' == args.mode:
-            self._run_comparison_graph(args)
-
-        if 'min-max-versus' == args.mode:
-            self._run_min_max_versus(args)

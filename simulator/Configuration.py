@@ -22,7 +22,7 @@ class Configuration(object):
         if self.sink_id not in topology.nodes:
             raise RuntimeError(
                 "The sink id {} is not present in the available node ids {}".format(
-                    self.sink_id, topology,nodes))
+                    self.sink_id, topology.nodes))
 
         if any(source_id not in topology.nodes for source_id in self.source_ids):
             raise RuntimeError(

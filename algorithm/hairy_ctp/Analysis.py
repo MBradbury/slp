@@ -1,7 +1,7 @@
 
-from data.analysis import Analyse, AnalysisResults, AnalyzerCommon
+from data.analysis import AnalyzerCommon
 
-from simulator import SourcePeriodModel
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):

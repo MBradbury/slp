@@ -1,14 +1,15 @@
 from __future__ import print_function
 
-import os, itertools, datetime
+import datetime
+import itertools
+import os
 
-from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
-import algorithm.protectionless_ctp as protectionless_ctp
+import algorithm
+protectionless_ctp = algorithm.import_algorithm("protectionless_ctp")
 
-from data import results, latex
-from data.table import safety_period, direct_comparison
+from data import results
 from data.graph import summary, versus
 from data.util import scalar_extractor
 
@@ -16,7 +17,6 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
 
-        subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
 
     def _argument_product(self):

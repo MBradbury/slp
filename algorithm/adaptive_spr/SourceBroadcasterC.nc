@@ -117,7 +117,7 @@ implementation
 		UnknownAlgorithm, GenericAlgorithm, FurtherAlgorithm
 	} Algorithm;
 
-	Algorithm algorithm = UnknownAlgorithm;
+	Algorithm algorithm;
 
 	// Produces a random float between 0 and 1
 	float random_float(void)
@@ -281,6 +281,8 @@ implementation
 		away_messages_to_send = 2;
 
 		extra_to_send = 0;
+
+		algorithm = UnknownAlgorithm;
 
 		init_distance_neighbours(&neighbours);
 

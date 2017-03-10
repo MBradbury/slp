@@ -15,4 +15,4 @@ def load(parent, name):
     return modules[name].find_module(name).load_module(name)
 
 def list_available(parent):
-	return [modname for (importer, modname, ispkg) in pkgutil.iter_modules(parent.__path__)]
+    return [modname for (importer, modname, ispkg) in pkgutil.iter_modules(parent.__path__)]

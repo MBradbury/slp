@@ -297,4 +297,20 @@ implementation
 
 		SERIAL_END_SEND(metric_node_slot_change_msg_t)
 	}
+
+	//##########Tree based routing##########
+	command void MetricLogging.log_metric_parent_change(
+		am_addr_t old_parent,
+		am_addr_t new_parent
+		)
+	{
+		SERIAL_START_SEND(metric_parent_change_msg_t)
+
+		msg->type = AM_METRIC_PARENT_CHANGE_MSG;
+		
+		msg->old_parent = old_parent;
+		msg->new_parent = new_parent;
+
+		SERIAL_END_SEND(metric_parent_change_msg_t)
+	}
 }

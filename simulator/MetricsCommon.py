@@ -698,3 +698,81 @@ class MetricsCommon(object):
             return None
         else:
             return getattr(psutil.Process().memory_info(), attr)
+
+
+class FakeMetricsCommon(MetricsCommon):
+    """Contains fake message techniques specified metrics."""
+    def __init__(self, sim, configuration):
+        super(FakeMetricsCommon, self).__init__(sim, configuration)
+
+    def times_fake_node_changed_to_fake(self):
+        total_count = 0
+
+        for ((old_type, new_type), count) in self.node_transitions.items():
+
+            if "FakeNode" in old_type and "FakeNode" in new_type:
+                total_count += count
+
+        return total_count
+
+    @staticmethod
+    def items(fake_node_types):
+        d = OrderedDict()
+        
+        d["FakeSent"]               = lambda x: x.number_sent("Fake")
+
+        for (short, long) in sorted(fake_node_types.items(), key=lambda x: x[0]):
+            d[short]                    = lambda x: x.times_node_changed_to(long)
+
+        d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=fake_node_types.values())
+        d["FakeToFake"]             = lambda x: x.times_fake_node_changed_to_fake()
+        d["FakeNodesAtEnd"]         = lambda x: x.times_node_changed_to(fake_node_types.values(), from_types="NormalNode") - \
+                                                x.times_node_changed_to("NormalNode", from_types=fake_node_types.values())
+
+        return d
+
+class TreeMetricsCommon(MetricsCommon):
+    """Contains tree routing specific metrics."""
+    def __init__(self, sim, configuration):
+        super(TreeMetricsCommon, self).__init__(sim, configuration)
+
+        self.parent_changes = Counter()
+        self.true_parent_changes = Counter()
+
+        self.register('M-PC', self.process_parent_change_event)
+
+    def process_parent_change_event(self, d_or_e, node_id, time, detail):
+        (current_parent, new_parent) = detail.split(',')
+
+        current_parent = int(current_parent)
+
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self.parent_changes[top_node_id] += 1
+
+        # 65535 is AM_BROADCAST_ADDR
+        if current_parent != 65535:
+            self.true_parent_changes[top_node_id] += 1
+
+    def total_parent_changes(self):
+        return sum(self.parent_changes.values())
+
+    def total_true_parent_changes(self):
+        return sum(self.true_parent_changes.values())
+
+    def parent_change_heat_map(self):
+        return dict(self.parent_changes)
+
+    def true_parent_change_heat_map(self):
+        return dict(self.true_parent_changes)
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+
+        d["TotalParentChanges"]            = lambda x: x.total_parent_changes()
+        d["TotalTrueParentChanges"]        = lambda x: x.total_true_parent_changes()
+
+        d["ParentChangeHeatMap"]           = lambda x: MetricsCommon.compressed_dict_str(x.true_parent_change_heat_map())
+
+        return d

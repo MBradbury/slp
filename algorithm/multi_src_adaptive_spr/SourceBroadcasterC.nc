@@ -121,7 +121,7 @@ implementation
 		UnknownAlgorithm, GenericAlgorithm, FurtherAlgorithm
 	} Algorithm;
 
-	Algorithm algorithm = UnknownAlgorithm;
+	Algorithm algorithm;
 
 	// Produces a random float between 0 and 1
 	float random_float(void)
@@ -391,6 +391,8 @@ implementation
 
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
+
+		algorithm = UnknownAlgorithm;
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
