@@ -1,14 +1,14 @@
 from __future__ import print_function
 
-import os, itertools, datetime
+import datetime
+import itertools
+import os.path
 
-from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
 import algorithm
 
-from data import results, latex
-from data.table import safety_period, direct_comparison, fake_result
+from data import results
 from data.graph import summary, versus
 from data.util import scalar_extractor
 
@@ -16,8 +16,8 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__)
 
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("table")
+        subparser = self._add_argument("table", self._run_table)
+        subparser = self._add_argument("graph", self._run_graph)
 
     def _argument_product(self):
         parameters = self.algorithm_module.Parameters
@@ -103,20 +103,8 @@ class CLI(CommandLineCommon.CLI):
             ).run()
 
     def _run_table(self, args):
-        protectionless_ctp_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'received ratio'))
+        parameters = [
+            'normal latency', 'ssd', 'captured', 'sent', 'received ratio'
+        ]
 
-        result_table = fake_result.ResultTable(protectionless_ctp_results)
-
-        self._create_table(self.algorithm_module.name + "-results", result_table)
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
+        self._create_results_table(parameters)

@@ -111,9 +111,9 @@ class Runner(object):
                     print("Not copying {} due to {}".format(name, ex))
 
         # Copy any generated class files
-        for file in glob.glob(os.path.join(module_path, "*.class")):
+        for class_file in glob.glob(os.path.join(module_path, "*.class")):
             try:
-                shutil.copy(file, target_directory)
+                shutil.copy(class_file, target_directory)
             except shutil.Error as ex:
                 if str(ex).endswith("are the same file"):
                     continue

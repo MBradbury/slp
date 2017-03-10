@@ -32,7 +32,7 @@ class Analyzer(AnalyzerCommon):
         d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
 
         AnalyzerCommon.common_results(d)
-        
+
         d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
         d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
         d['choose']             = lambda x: AnalyzerCommon._format_results(x, 'ChooseSent')
@@ -41,7 +41,7 @@ class Analyzer(AnalyzerCommon):
         d['pfs']                = lambda x: AnalyzerCommon._format_results(x, 'PFS')
         d['fake to normal']     = lambda x: AnalyzerCommon._format_results(x, 'FakeToNormal')
         d['fake nodes at end']  = lambda x: AnalyzerCommon._format_results(x, 'FakeNodesAtEnd')
-        
+
         d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
 
@@ -50,7 +50,7 @@ class Analyzer(AnalyzerCommon):
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),num_nodes)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
-       
+
         d['norm(fake,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(FakeSent,TimeTaken)')
         d['norm(norm(fake,time taken),source rate)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(FakeSent,TimeTaken),source_rate)')
 

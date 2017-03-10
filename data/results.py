@@ -82,7 +82,7 @@ class Results(object):
         elif strategy == "UseNumNodes":
             network_size = dvalues['num nodes']
         else:
-            raise RuntimeError("Unknown network size normalisation strategy '{}'".format(network_size_normalisation))
+            raise RuntimeError("Unknown network size normalisation strategy '{}'".format(strategy))
 
         return network_size
 

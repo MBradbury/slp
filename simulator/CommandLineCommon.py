@@ -54,12 +54,14 @@ class CLI(object):
         except ImportError:
             print("Failed to import Parameters. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
-        parser = argparse.ArgumentParser(add_help=True)
-        subparsers = parser.add_subparsers(title="mode", dest="mode")
+        self._argument_handlers = {}
+
+        self._parser = argparse.ArgumentParser(add_help=True)
+        self._subparsers = self._parser.add_subparsers(title="mode", dest="mode")
 
         ###
 
-        subparser = subparsers.add_parser("cluster")
+        subparser = self._add_argument("cluster", self._run_cluster)
         subparser.add_argument("name", type=str, choices=clusters.available_names(), help="This is the name of the cluster")
 
         cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
@@ -86,7 +88,7 @@ class CLI(object):
 
         ###
 
-        subparser = subparsers.add_parser("testbed")
+        subparser = self._add_argument("testbed", self._run_testbed)
         subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
 
         testbed_subparsers = subparser.add_subparsers(title="testbed mode", dest="testbed_mode")
@@ -101,23 +103,24 @@ class CLI(object):
 
         ###
 
-        subparser = subparsers.add_parser("cycle_accurate")
+        subparser = self._add_argument("cycle_accurate", self._run_cycle_accurate)
         subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cycle_accurate), help="This is the name of the cycle accurate simulator")
 
         cycleaccurate_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
 
         subparser = cycleaccurate_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
+        subparser.add_argument("--max-buffer-size", type=int, default=256)
 
         ###
 
-        subparser = subparsers.add_parser("run", help="Run the parameters combination specified in Parameters.py on this local machine.")
+        subparser = self._add_argument("run", self._run_run, help="Run the parameters combination specified in Parameters.py on this local machine.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--no-skip-complete", action="store_true")
 
         ###
 
-        subparser = subparsers.add_parser("analyse", help="Analyse the results of this algorithm.")
+        subparser = self._add_argument("analyse", self._run_analyse, help="Analyse the results of this algorithm.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
@@ -128,23 +131,23 @@ class CLI(object):
             if isinstance(safety_period_result_path, bool):
                 pass
             else:
-                subparser = subparsers.add_parser("safety-table", help="Output protectionless information along with the safety period to be used for those parameter combinations.")
+                subparser = self._add_argument("safety-table", self._run_safety_table, help="Output protectionless information along with the safety period to be used for those parameter combinations.")
                 subparser.add_argument("--show-stddev", action="store_true")
 
-        subparser = subparsers.add_parser("time-taken-table", help="Creates a table showing how long simulations took in real and virtual time.")
+        subparser = self._add_argument("time-taken-table", self._run_time_taken_table, help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("--show-stddev", action="store_true")
         subparser.add_argument("--show", action="store_true", default=False)
 
-        subparser = subparsers.add_parser("error-table", help="Creates a table showing the number of simulations in which an error occurred.")
+        subparser = self._add_argument("error-table", self._run_error_table, help="Creates a table showing the number of simulations in which an error occurred.")
         subparser.add_argument("--show", action="store_true", default=False)
 
-        subparser = subparsers.add_parser("detect-missing", help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
+        subparser = self._add_argument("detect-missing", self._run_detect_missing, help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
 
-        subparser = subparsers.add_parser("graph-heatmap", help="Graph the sent and received heatmaps.")
+        subparser = self._add_argument("graph-heatmap", self._run_graph_heatmap, help="Graph the sent and received heatmaps.")
 
         ###
 
-        subparser = subparsers.add_parser("per-parameter-grapher")
+        subparser = self._add_argument("per-parameter-grapher", self._run_per_parameter_grapher)
         subparser.add_argument("--grapher", required=True)
         subparser.add_argument("--metric-name", required=True)
         subparser.add_argument("--show", action="store_true", default=False)
@@ -154,11 +157,14 @@ class CLI(object):
 
         ###
 
-        subparser = subparsers.add_parser('historical-time-estimator')
+        subparser = self._add_argument('historical-time-estimator', self._run_historical_time_estimator)
+        subparser.add_argument("--key", nargs="+", metavar="P", default=('network size', 'source period'))
 
-        # Store any of the parsers that we need
-        self._parser = parser
-        self._subparsers = subparsers
+        ###
+
+    def _add_argument(self, name, fn, **kwargs):
+        self._argument_handlers[name] = fn
+        return self._subparsers.add_parser(name, **kwargs)
 
     def parameter_names(self):
         return self.global_parameter_names + self.algorithm_module.local_parameter_names
@@ -176,6 +182,17 @@ class CLI(object):
 
         if show:
             subprocess.call(["xdg-open", filename_pdf])
+
+    def _create_results_table(self, parameters, **kwargs):
+        res = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=parameters)
+
+        result_table = fake_result.ResultTable(res)
+
+        self._create_table(self.algorithm_module.name + "-results", result_table, **kwargs)
+
 
     def _create_versus_graph(self, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
         from data.graph import versus
@@ -404,7 +421,12 @@ class CLI(object):
         key = tuple(args[name] for name in historical_key_names)
 
         try:
-            hist_time = historical[key]
+            try:
+                hist_time = historical[key]
+            except KeyError:
+                # Try with every item as a string instead
+                key = tuple(str(x) for x in key)
+                hist_time = historical[key]
 
             job_size = kwargs["job_size"]
             thread_count = kwargs["thread_count"]
@@ -576,7 +598,7 @@ class CLI(object):
             print("Removing existing cycle accurate directory and creating a new one")
             recreate_dirtree(cycle_accurate_directory)
 
-            builder = Builder(cycle_accurate, platform=args.platform)
+            builder = Builder(cycle_accurate, platform=args.platform, max_buffer_size=args.max_buffer_size)
 
             self._execute_runner(builder, cycle_accurate_directory, time_estimator=None, skip_completed_simulations=False)
 
@@ -634,7 +656,12 @@ class CLI(object):
                 print()
 
     def _run_graph_heatmap(self, args):
-        heatmap_results = ('sent heatmap', 'received heatmap')
+        heatmap_results = [
+            header
+            for header
+            in self.algorithm_module.Analysis.Analyzer.results_header().keys()
+            if header.endswith('heatmap')
+        ]
 
         results_summary = results.Results(
             self.algorithm_module.result_file_path,
@@ -679,71 +706,46 @@ class CLI(object):
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('total wall time',))
 
-        max_wall_times = defaultdict(int)
+        max_wall_times = defaultdict(float)
 
         # For each network size and source period find the maximum total wall time
 
         for (global_params, values1) in result.data.items():
 
-            network_size = int(global_params[self.global_parameter_names.index("network size")])
+            global_params = dict(zip(self.global_parameter_names, global_params))
 
             for (source_period, values2) in values1.items():
 
-                source_period = float(source_period)
-
-                key = (network_size, source_period)
+                source_period_params = {'source period': source_period}
 
                 for (local_params, values3) in values2.items():
 
+                    local_params = dict(zip(self.algorithm_module.local_parameter_names, local_params))
+
+                    params = {}
+                    params.update(global_params)
+                    params.update(source_period_params)
+                    params.update(local_params)
+
+                    key = tuple(params[name] for name in args.key)
+
                     (total_wall_time, total_wall_time_stddev) = values3[0]
 
+                    # Add in the deviation to ensure we consider the extreme cases
                     total_wall_time += total_wall_time_stddev
 
-                    max_wall_times[key] = int(math.ceil(max(max_wall_times[key], total_wall_time)))
+                    max_wall_times[key] = max(max_wall_times[key], total_wall_time)
 
-        print(max_wall_times)
-
-        for key in sorted(max_wall_times):
-            print("{}: timedelta(seconds={}),".format(key, max_wall_times[key]))
+        print("historical_key_names = {}".format(tuple(args.key)))
+        print("historical = {")
+        for key, value in sorted(max_wall_times.items(), key=lambda x: x[0]):
+            print("    {}: timedelta(seconds={}),".format(key, int(math.ceil(value))))
+        print("}")
 
 
     def run(self, args):
         args = self._parser.parse_args(args)
 
-        if 'cluster' == args.mode:
-            self._run_cluster(args)
-
-        elif 'testbed' == args.mode:
-            self._run_testbed(args)
-
-        elif 'cycle_accurate' == args.mode:
-            self._run_cycle_accurate(args)
-
-        elif 'run' == args.mode:
-            self._run_run(args)
-
-        elif 'analyse' == args.mode:
-            self._run_analyse(args)
-
-        elif 'time-taken-table' == args.mode:
-            self._run_time_taken_table(args)
-
-        elif 'safety-table' == args.mode:
-            self._run_safety_table(args)
-
-        elif 'error-table' == args.mode:
-            self._run_error_table(args)
-
-        elif 'detect-missing' == args.mode:
-            self._run_detect_missing(args)
-
-        elif 'graph-heatmap' == args.mode:
-            self._run_graph_heatmap(args)
-
-        elif 'per-parameter-grapher' == args.mode:
-            self._run_per_parameter_grapher(args)
-
-        elif 'historical-time-estimator' == args.mode:
-            self._run_historical_time_estimator(args)
+        self._argument_handlers[args.mode](args)
 
         return args

@@ -21,12 +21,13 @@ class Attacker(object):
         self._has_found_source = None
         self.moves = None
         self.ident = None
+        self._has_gui = False
 
         # Metric initialisation from here onwards
         self.steps_towards = Counter()
         self.steps_away = Counter()
 
-        self.moves_in_response_to = {}
+        self.moves_in_response_to = Counter()
 
         self.min_source_distance = {}
 
@@ -40,7 +41,10 @@ class Attacker(object):
         self._has_found_source = self.found_source_slow()
         self.moves = 0
 
-        self.moves_in_response_to = Counter()
+        self._has_gui = hasattr(sim, "gui")
+
+        if self._has_gui:
+            self._draw(0, self.position)
 
     def _source_ids(self):
         return self._sim.metrics.source_ids
@@ -54,7 +58,7 @@ class Attacker(object):
     def process_attacker_rcv_event(self, d_or_e, node_id, time, detail):
         # Don't want to move if the source has been found
         if self._has_found_source:
-            return
+            return False
 
         (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
 
@@ -63,7 +67,7 @@ class Attacker(object):
         # Doesn't want to process this message if we are not on the correct node,
         # or if this is a message the attacker knows to ignore
         if self.position != node_id or msg_type in MESSAGES_TO_IGNORE:
-            return
+            return False
 
         time = float(time)
         prox_from_id = int(prox_from_id)
@@ -90,6 +94,8 @@ class Attacker(object):
             self._move(time, prox_from_id, msg_type=msg_type)
 
             self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
+
+        return should_move
 
     def found_source_slow(self):
         """Checks if the source has been found using the attacker's position."""
@@ -120,9 +126,10 @@ class Attacker(object):
         if msg_type is not None:
             self.moves_in_response_to[msg_type] += 1
 
+        ndm = self._sim.node_distance_meters
         for ord_source in self._source_ids():
-            new_distance = self._sim.node_distance_meters(ord_source, node_id)
-            old_distance = self._sim.node_distance_meters(ord_source, self.position)
+            new_distance = ndm(ord_source, node_id)
+            old_distance = ndm(ord_source, self.position)
 
             if new_distance > old_distance:
                 self.steps_away[ord_source] += 1
@@ -136,8 +143,8 @@ class Attacker(object):
 
         # Update the simulator, informing them that an attacker has found the source
         self._sim.attacker_found_source |= self._has_found_source
-
-        if hasattr(self._sim, "gui"):
+    
+        if self._has_gui:
             self._draw(time, self.position)
 
     def _draw(self, time, node_id):

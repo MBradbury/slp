@@ -16,14 +16,6 @@ try:
 except ImportError:
     from shutilwhich import which
 
-def get_gnuplot_binary_name():
-    possible_names = ('gnuplot-nox', 'gnuplot')
-    for name in possible_names:
-        if which(name) is not None:
-            return name
-
-    raise RuntimeError("Could not find gnuplot binary")
-
 def test_gnuplot_version(name):
     result = subprocess.check_output([name, "--version"]).strip()
 
@@ -32,8 +24,45 @@ def test_gnuplot_version(name):
     version = float(match.group(1))
     patchlevel = match.group(2)
 
-    if version < 5:
-        raise RuntimeError("The gnuplot binary ({}) is too old ({}). You need to install gnuplot 5 by doing something like 'sudo apt-get install gnuplot5-nox'.".format(name, result))
+    return version >= 5
+    
+def test_gnuplot_pdfterm_support(name):
+    try:
+        result = subprocess.check_output([name, "-e", "set terminal pdf"]).strip()
+
+        # As long as result is empty everything was fine
+        return result == ""
+
+    except subprocess.CalledProcessError:
+        return False
+
+def get_gnuplot_binary_name():
+    possible_names = ('gnuplot5-nox', 'gnuplot-nox', 'gnuplot')
+
+    no_pdf_support = False
+    version_too_old = False
+
+    for name in possible_names:
+        if which(name) is not None:
+
+            if not test_gnuplot_pdfterm_support(name):
+                version_too_old = True
+                continue
+
+            if not test_gnuplot_pdfterm_support(name):
+                no_pdf_support = True
+                continue
+
+            return name
+
+    if no_pdf_support:
+        raise RuntimeError("No gnuplot binary could be found that supports the pdf terminal.".format(name)) 
+
+    elif version_too_old:
+        raise RuntimeError("Could not find gnuplot 5 or later. You need to install it by doing something like 'sudo apt-get install gnuplot5-nox' and adding 'non-free' to your /etc/apt/sources.list.".format(name, result))
+
+    else:
+        raise RuntimeError("Could not find the gnuplot binary")
 
 class GrapherBase(object):
     def __init__(self, output_directory):
@@ -41,8 +70,6 @@ class GrapherBase(object):
 
     def _create_graphs(self, subdir):
         gnuplot = get_gnuplot_binary_name()
-
-        test_gnuplot_version(gnuplot)
 
         walk_dir = os.path.abspath(os.path.join(self.output_directory, subdir))
 

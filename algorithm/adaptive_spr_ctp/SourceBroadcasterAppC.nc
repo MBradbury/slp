@@ -112,16 +112,16 @@ implementation
 	//App.CtpInfo -> CollectionC;
 	//App.CtpCongestion -> CollectionC;
 
-	components CTPMetricsP;
-	CTPMetricsP.MetricLogging -> MetricLogging;
-	CollectionC.CollectionDebug -> CTPMetricsP;
-
-
 	components new CollectionSenderC(NORMAL_CHANNEL);
 
-	// Networking
 	App.NormalSend -> CollectionSenderC;
 	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
 	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
 	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
+
+
+	components CTPMetricsP;
+	CTPMetricsP.MetricLogging -> MetricLogging;
+	CTPMetricsP.CtpInfo -> CollectionC;
+	CollectionC.CollectionDebug -> CTPMetricsP;
 }
