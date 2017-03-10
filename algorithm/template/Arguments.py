@@ -1,4 +1,3 @@
-import argparse
 
 from simulator.ArgumentsCommon import ArgumentsCommon
 
