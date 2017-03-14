@@ -15,7 +15,7 @@ class Grapher(GrapherBase):
     _key_names_base = simulator.common.global_parameter_names
 
     def __init__(self, output_directory, result_name,
-                 xaxis, yaxis, vary, yextractor=None):
+                 xaxis, yaxis, vary, yextractor=None, xextractor=None):
 
         super(Grapher, self).__init__(output_directory)
 
@@ -49,6 +49,9 @@ class Grapher(GrapherBase):
         self.point_size = 1
 
         self.yextractor = yextractor
+        self.xextractor = xextractor if xextractor is not None else float
+
+        self.xvalues_padding = None
 
         self.error_bars = False
 
@@ -162,8 +165,11 @@ class Grapher(GrapherBase):
                 xvalues_as_num = map(int, xvalues)
                 xvalues_padding = int(min(xvalues_as_num) / 10)
             else:
-                xvalues_as_num = map(float, xvalues)
+                xvalues_as_num = map(self.xextractor, xvalues)
                 xvalues_padding = 0.1
+
+            if self.xvalues_padding is not None:
+                xvalues_padding = self.xvalues_padding
 
             # Should remain the same as we are testing with
             # a limited sized grid of nodes
