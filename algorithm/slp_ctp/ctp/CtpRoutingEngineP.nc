@@ -125,7 +125,7 @@ generic module CtpRoutingEngineP(uint8_t routingTableSize, uint32_t minInterval,
         interface CollectionDebug;
         interface CtpCongestion;
 
-	interface CompareBit;
+        interface CompareBit;
 
     }
 }
@@ -227,10 +227,10 @@ implementation {
       my_ll_addr = call AMPacket.address();
       //start will (re)start the sending of messages
       if (!running) {
-	running = TRUE;
-	resetInterval();
-	call RouteTimer.startPeriodic(BEACON_INTERVAL);
-	dbg("TreeRoutingCtl","%s running: %d radioOn: %d\n", __FUNCTION__, running, radioOn);
+        running = TRUE;
+        resetInterval();
+        call RouteTimer.startPeriodic(BEACON_INTERVAL);
+        dbg("TreeRoutingCtl","%s running: %d radioOn: %d\n", __FUNCTION__, running, radioOn);
       }     
       return SUCCESS;
     }
@@ -307,8 +307,8 @@ implementation {
                 dbg("TreeRouting", "   already parent.\n");
                 currentEtx = pathEtx;
                 /* update routeInfo with parent's current info */
-		routeInfo.etx = entry->info.etx;
-		routeInfo.congested = entry->info.congested;
+                routeInfo.etx = entry->info.etx;
+                routeInfo.congested = entry->info.congested;
                 continue;
             }
             /* Ignore links that are congested */
@@ -321,7 +321,7 @@ implementation {
             }
             
             if (pathEtx < minEtx) {
-	      dbg("TreeRouting", "   best is %d, setting to %d\n", pathEtx, entry->neighbor);
+                dbg("TreeRouting", "   best is %d, setting to %d\n", pathEtx, entry->neighbor);
                 minEtx = pathEtx;
                 best = entry;
             }  
@@ -356,12 +356,12 @@ implementation {
                 call LinkEstimator.pinNeighbor(best->neighbor);
                 call LinkEstimator.clearDLQ(best->neighbor);
 
-		routeInfo.parent = best->neighbor;
-		routeInfo.etx = best->info.etx;
-		routeInfo.congested = best->info.congested;
-		if (currentEtx - minEtx > 20) {
-		  call CtpInfo.triggerRouteUpdate();
-		}
+                routeInfo.parent = best->neighbor;
+                routeInfo.etx = best->info.etx;
+                routeInfo.congested = best->info.congested;
+                if (currentEtx - minEtx > 20) {
+                  call CtpInfo.triggerRouteUpdate();
+                }
             }
         }    
 
@@ -550,11 +550,11 @@ implementation {
             return FAIL;
         if (routeInfo.parent == INVALID_ADDR)    
             return FAIL;
-	if (state_is_root == 1) {
-	  *etx = 0;
-	} else {
-	  *etx = routeInfo.etx + call LinkEstimator.getLinkQuality(routeInfo.parent);
-	}
+        if (state_is_root == 1) {
+          *etx = 0;
+        } else {
+          *etx = routeInfo.etx + call LinkEstimator.getLinkQuality(routeInfo.parent);
+        }
         return SUCCESS;
     }
 
@@ -603,9 +603,9 @@ implementation {
     command error_t RootControl.setRoot() {
         bool route_found = FALSE;
         route_found = (routeInfo.parent == INVALID_ADDR);
-	state_is_root = 1;
-	routeInfo.parent = my_ll_addr; //myself
-	routeInfo.etx = 0;
+        state_is_root = 1;
+        routeInfo.parent = my_ll_addr; //myself
+        routeInfo.etx = 0;
 
         if (route_found) 
             signal Routing.routeFound();
@@ -728,23 +728,23 @@ implementation {
         else if (idx == routingTableActive) {
             //not found and there is space
             if (passLinkEtxThreshold(linkEtx)) {
-	      routingTable[idx].neighbor = from;
-	      routingTable[idx].info.parent = parent;
-	      routingTable[idx].info.etx = etx;
-	      routingTable[idx].info.haveHeard = 1;
-	      routingTable[idx].info.congested = FALSE;
-	      routingTableActive++;
-	      dbg("TreeRouting", "%s OK, new entry\n", __FUNCTION__);
+              routingTable[idx].neighbor = from;
+              routingTable[idx].info.parent = parent;
+              routingTable[idx].info.etx = etx;
+              routingTable[idx].info.haveHeard = 1;
+              routingTable[idx].info.congested = FALSE;
+              routingTableActive++;
+              dbg("TreeRouting", "%s OK, new entry\n", __FUNCTION__);
             } else {
                 dbg("TreeRouting", "%s Fail, link quality (%hu) below threshold\n", __FUNCTION__, linkEtx);
             }
         } else {
             //found, just update
-	  routingTable[idx].neighbor = from;
-	  routingTable[idx].info.parent = parent;
-	  routingTable[idx].info.etx = etx;
-	  routingTable[idx].info.haveHeard = 1;
-	  dbg("TreeRouting", "%s OK, updated entry\n", __FUNCTION__);
+          routingTable[idx].neighbor = from;
+          routingTable[idx].info.parent = parent;
+          routingTable[idx].info.etx = etx;
+          routingTable[idx].info.haveHeard = 1;
+          dbg("TreeRouting", "%s OK, updated entry\n", __FUNCTION__);
         }
         return SUCCESS;
     }
