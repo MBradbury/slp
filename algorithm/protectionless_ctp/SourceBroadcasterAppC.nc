@@ -36,6 +36,7 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.Packet -> ActiveMessageC;
 	App.AMPacket -> ActiveMessageC;
 
 	// Timers
@@ -59,11 +60,6 @@ implementation
 	//App.CtpInfo -> CollectionC;
 	//App.CtpCongestion -> CollectionC;
 
-	components CTPMetricsP;
-	CTPMetricsP.MetricLogging -> MetricLogging;
-	CollectionC.CollectionDebug -> CTPMetricsP;
-
-
 	components new CollectionSenderC(NORMAL_CHANNEL);
 
 	// Networking
@@ -71,4 +67,9 @@ implementation
 	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
 	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
 	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
+
+	components CTPMetricsP;
+	CTPMetricsP.MetricLogging -> MetricLogging;
+	CTPMetricsP.CtpInfo -> CollectionC;
+	CollectionC.CollectionDebug -> CTPMetricsP;
 }
