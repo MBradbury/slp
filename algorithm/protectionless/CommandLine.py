@@ -83,45 +83,18 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation="NumSources")
-
         varying = [
-            ("source period", " seconds"),
-            ("communication model", "~")
+            (('network size', ''), ('source period', ' seconds')),
+            (('network size', ''), ('communication model', '~')),
         ]
 
-        error_bars = set() # {'received ratio', 'good move ratio', 'norm(norm(sent,time taken),num_nodes)'}
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
 
-        for (vary, vary_prefix) in varying:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "_"))
-
-                g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
-
-                #g.generate_legend_graph = True
-
-                g.xaxis_label = 'Network Size'
-                g.vary_label = vary.title()
-                g.vary_prefix = vary_prefix
-
-                g.error_bars = yaxis in error_bars
-
-                #g.nokey = True
-                g.key_position = key_position
-
-                g.create(protectionless_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
-                ).run()
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+            source_period_normalisation="NumSources"
+        )
 
     def _run_ccpe_comparison_table(self, args):
         from data.old_results import OldResults

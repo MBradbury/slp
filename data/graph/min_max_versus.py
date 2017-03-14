@@ -116,11 +116,7 @@ class Grapher(GrapherBase):
                     if baseline_results is not None:
                         dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
 
-
-        for ((key_names, key_values), values) in dat.items():
-            self._create_plot(key_names, key_values, values)
-
-        self._create_graphs(self.result_name)
+        return self._build_plots_from_dat(dat)
 
     def _order_keys(self, keys):
         """Order the keys alphabetically, except for the baseline label.
