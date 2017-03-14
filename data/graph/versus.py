@@ -49,7 +49,14 @@ class Grapher(GrapherBase):
         self.point_size = 1
 
         self.yextractor = yextractor
-        self.xextractor = xextractor if xextractor is not None else float
+
+        if xextractor is not None:
+            self.xextractor = xextractor
+        else:
+            if self.xaxis == "network size":
+                self.xextractor = int
+            else:
+                self.xextractor = float
 
         self.xvalues_padding = None
 
@@ -108,7 +115,7 @@ class Grapher(GrapherBase):
                 table.append([ '#' ] + vvalues)
 
             for xvalue in sorted(xvalues):
-                row = [ xvalue ]
+                row = [ self.xextractor(xvalue) ]
                 for vvalue in vvalues:
                     yvalue = values.get((xvalue, vvalue), None)
 
@@ -161,20 +168,20 @@ class Grapher(GrapherBase):
                 if self.key_height is not None:
                     graph_p.write('set key height {}\n'.format(self.key_height))
 
-            if self.xaxis == "network size":
-                xvalues_as_num = map(int, xvalues)
-                xvalues_padding = int(min(xvalues_as_num) / 10)
-            else:
-                xvalues_as_num = map(self.xextractor, xvalues)
-                xvalues_padding = 0.1
+            xvalues_as_num = map(self.xextractor, xvalues)
 
             if self.xvalues_padding is not None:
                 xvalues_padding = self.xvalues_padding
+            else:
+                if self.xaxis == "network size":
+                    xvalues_padding = int(min(xvalues_as_num) / 10)
+                else:
+                    xvalues_padding = 0.1
 
             # Should remain the same as we are testing with
             # a limited sized grid of nodes
             graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_num) - xvalues_padding, max(xvalues_as_num) + xvalues_padding))
-            graph_p.write('set xtics ({})\n'.format(",".join(sorted(xvalues))))
+            graph_p.write('set xtics ({})\n'.format(",".join(map(str, sorted(xvalues_as_num)))))
 
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
