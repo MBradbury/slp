@@ -48,7 +48,7 @@ class Grapher(GrapherBase):
         self.line_width = 1
         self.point_size = 1
 
-        self.yextractor = yextractor if yextractor is not None else lambda x: x
+        self.yextractor = yextractor
 
         self.error_bars = False
 
@@ -59,7 +59,10 @@ class Grapher(GrapherBase):
         if self.error_bars:
             return yvalue
         else:
-            return self.yextractor(yvalue)
+            if self.yextractor is None:
+                return yvalue
+            else:
+                return self.yextractor(yvalue)
 
     def create(self, simulation_results):
         print('Removing existing directories')

@@ -8,7 +8,7 @@ from data.graph.versus import Grapher as GrapherBase
 
 class Grapher(GrapherBase):
     def __init__(self, output_directory,
-                 result_name, xaxis, yaxis, vary, yextractor=lambda x: x):
+                 result_name, xaxis, yaxis, vary, yextractor=None):
 
         super(Grapher, self).__init__(
             output_directory, result_name, xaxis, yaxis, vary, yextractor
@@ -55,7 +55,7 @@ class Grapher(GrapherBase):
                     for (params, results) in items2.items():
                         yvalue_index = comparison_result.result_names.index(self.yaxis)
                         yvalue = results[yvalue_index]
-                        yvalue = self.yextractor(yvalue)
+                        yvalue = self._value_extractor(yvalue)
 
                         local_min = yvalue if local_min is None else min(local_min, yvalue)
                         local_max = yvalue if local_max is None else max(local_max, yvalue)
@@ -73,7 +73,7 @@ class Grapher(GrapherBase):
 
                     yvalue_index = baseline_results.result_names.index(self.yaxis)
                     yvalue = results[yvalue_index]
-                    yvalue = self.yextractor(yvalue)
+                    yvalue = self._value_extractor(yvalue)
 
                     baseline_comparison_results.setdefault(data_key, {})[src_period] = yvalue
 
@@ -99,7 +99,7 @@ class Grapher(GrapherBase):
 
                     yvalue_index = actual_results.result_names.index(self.yaxis)
                     yvalue = results[yvalue_index]
-                    yvalue = self.yextractor(yvalue)
+                    yvalue = self._value_extractor(yvalue)
 
                     comp_label = "{} ({})".format(self.comparison_label, self.vvalue_label_converter(vvalue))
 
