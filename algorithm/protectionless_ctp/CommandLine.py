@@ -63,44 +63,29 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            'safety period': ('Safety Period (seconds)', 'left top'),
             'time taken': ('Time Taken (seconds)', 'left top'),
-            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            #'captured': ('Capture Ratio (%)', 'left top'),
-            #'sent': ('Total Messages Sent', 'left top'),
-            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            #'good move ratio': ('Good Move Ratio (%)', 'right top'),
+            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation="NumSources")
+        varying = [
+            (('network size', ''), ('source period', ' seconds')),
+            (('network size', ''), ('communication model', '~')),
+            (('network size', ''), ('configuration', '~')),
+        ]
 
-        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-            name = '{}-v-configuration'.format(yaxis.replace(" ", "_"))
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
 
-            g = versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yaxis, vary='configuration',
-                yextractor=scalar_extractor)
-
-            g.generate_legend_graph = True
-
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = yaxis_label
-            g.vary_label = ''
-            g.vary_prefix = ''
-
-            g.nokey = True
-            g.key_position = key_position
-
-            g.create(protectionless_results)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name)
-            ).run()
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+            source_period_normalisation="NumSources",
+            enerate_legend_graph=True
+        )
 
     def _run_table(self, args):
         parameters = [
