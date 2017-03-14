@@ -69,7 +69,4 @@ class Grapher(GrapherBase):
                 newdat[(key_names, values)][(xvalue, self.max_label)] = max(results)
                 newdat[(key_names, values)][(xvalue, self.average_label)] = np.mean(results)
                     
-        for ((key_names, key_values), values) in newdat.items():
-            self._create_plot(key_names, key_values, values)
-
-        self._create_graphs(self.result_name)
+        return self._build_plots_from_dat(newdat)

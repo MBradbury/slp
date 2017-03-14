@@ -194,13 +194,19 @@ class CLI(object):
         self._create_table(self.algorithm_module.name + "-results", result_table, **kwargs)
 
 
-    def _create_versus_graph(self, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
+    def _create_versus_graph(self, graph_parameters, varying,
+                             custom_yaxis_range_max=None,
+                             source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
+                             **kwargs):
         from data.graph import versus
 
         algo_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation=source_period_normalisation,
+            network_size_normalisation=network_size_normalisation,
+            results_filter=results_filter)
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -223,25 +229,33 @@ class CLI(object):
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
-                g.create(algo_results)
+                if g.create(algo_results):
+                    summary.GraphSummary(
+                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(algorithm.results_directory_name, 'v-{}-{}'.format(self.algorithm_module.name, name))
+                    ).run()
 
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, 'v-{}-{}'.format(self.algorithm_module.name, name))
-                ).run()
-
-    def _create_baseline_versus_graph(self, baseline_module, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
+    def _create_baseline_versus_graph(self, baseline_module, graph_parameters, varying,
+                                      custom_yaxis_range_max=None,
+                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
+                                      **kwargs):
         from data.graph import baseline_versus
 
         algo_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation=source_period_normalisation,
+            network_size_normalisation=network_size_normalisation,
+            results_filter=results_filter)
 
         baseline_results = results.Results(
             baseline_module.result_file_path,
             parameters=baseline_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation=source_period_normalisation,
+            network_size_normalisation=network_size_normalisation,
+            results_filter=results_filter)
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -264,26 +278,34 @@ class CLI(object):
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
-                g.create(algo_results, baseline_results)
+                if g.create(algo_results, baseline_results):
+                    summary.GraphSummary(
+                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(algorithm.results_directory_name, 'bl-{}_{}-{}'.format(self.algorithm_module.name, baseline_module.name, name))
+                    ).run()
 
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, 'bl-{}_{}-{}'.format(self.algorithm_module.name, baseline_module.name, name))
-                ).run()
-
-    def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying, custom_yaxis_range_max=None, **kwargs):
+    def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying,
+                                     custom_yaxis_range_max=None,
+                                     source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
+                                     **kwargs):
         from data.graph import min_max_versus
 
         algo_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+            results=tuple(graph_parameters.keys()),
+            source_period_normalisation=source_period_normalisation,
+            network_size_normalisation=network_size_normalisation,
+            results_filter=results_filter)
 
         all_comparion_results = [
             results.Results(
                 comparion_module.result_file_path,
                 parameters=comparion_module.local_parameter_names,
-                results=tuple(graph_parameters.keys()))
+                results=tuple(graph_parameters.keys()),
+                source_period_normalisation=source_period_normalisation,
+                network_size_normalisation=network_size_normalisation,
+                results_filter=results_filter)
 
             for comparion_module in comparison_modules
         ]
@@ -317,12 +339,11 @@ class CLI(object):
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
-                g.create(all_comparion_results, algo_results, baseline_results=baseline_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, 'mmv-{}_{}-{}'.format(self.algorithm_module.name, "_".join(mod.name for mod in comparison_modules), name))
-                ).run()
+                if g.create(all_comparion_results, algo_results, baseline_results=baseline_results):
+                    summary.GraphSummary(
+                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(algorithm.results_directory_name, 'mmv-{}_{}-{}'.format(self.algorithm_module.name, "_".join(mod.name for mod in comparison_modules), name))
+                    ).run()
 
     def _argument_product(self):
         raise NotImplementedError()

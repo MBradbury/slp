@@ -62,7 +62,4 @@ class Grapher(GrapherBase):
 
                         dat.setdefault((key_names, values), {})[baseline_gkey] = self._value_extractor(baseline_yvalue)
 
-        for ((key_names, key_values), values) in dat.items():
-            self._create_plot(key_names, key_values, values)
-
-        self._create_graphs(self.result_name)
+        return self._build_plots_from_dat(dat)

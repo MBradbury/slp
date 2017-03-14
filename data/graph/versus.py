@@ -74,6 +74,20 @@ class Grapher(GrapherBase):
             else:
                 return self.yextractor(yvalue)
 
+    def _build_plots_from_dat(self, dat):
+        plot_created = False
+
+        for ((key_names, key_values), values) in dat.items():
+            plot_created |= self._create_plot(key_names, key_values, values)
+
+        if plot_created:
+            self._create_graphs(self.result_name)
+        else:
+            print("No plots created so not building any graphs")
+
+        return plot_created
+
+
     def create(self, simulation_results):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
@@ -99,10 +113,7 @@ class Grapher(GrapherBase):
 
                     dat.setdefault((key_names, values), {})[(xvalue, vvalue)] = self._value_extractor(yvalue)
 
-        for ((key_names, key_values), values) in dat.items():
-            self._create_plot(key_names, key_values, values)
-
-        self._create_graphs(self.result_name)
+        return self._build_plots_from_dat(dat)
 
     def _write_plot_data(self, dir_name, values, xvalues, vvalues):
         with open(os.path.join(dir_name, 'graph.dat'), 'w') as graph_dat:
@@ -260,7 +271,7 @@ class Grapher(GrapherBase):
     def _create_plot(self, key_names, key_values, values):
         dir_name = os.path.join(self.output_directory, self.result_name, *map(str, key_values))
 
-        print("Currently in " + dir_name)
+        print("Currently in {}".format(dir_name))
 
         # Ensure that the dir we want to put the files in actually exists
         data.util.create_dirtree(dir_name)
@@ -268,15 +279,21 @@ class Grapher(GrapherBase):
         xvalues = list({x[0] for x in values.keys()})
         vvalues = list(self._order_keys({x[1] for x in values.keys()}))
 
-        # Write our data
-        self._write_plot_data(dir_name, values, xvalues, vvalues)
+        if len(vvalues) == 0:
+            print("WARNING no values to graph for '{}'".format(dir_name))
+            return False
+        else:
+            # Write our data
+            self._write_plot_data(dir_name, values, xvalues, vvalues)
 
-        self._write_plot_graph(dir_name, xvalues, vvalues)
+            self._write_plot_graph(dir_name, xvalues, vvalues)
 
-        self._write_plot_caption(dir_name, key_names, key_values)
+            self._write_plot_caption(dir_name, key_names, key_values)
 
-        if self.generate_legend_graph:
-            self._write_legend_plot(dir_name, vvalues)
+            if self.generate_legend_graph:
+                self._write_legend_plot(dir_name, vvalues)
+
+            return True
 
     def _order_keys(self, keys):
         """Sort the keys in the order in which they should be displayed in the graph.
