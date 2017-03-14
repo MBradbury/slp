@@ -122,5 +122,8 @@ implementation
 		)
 	{
 		simdbg("M-PC", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "\n", old_parent, new_parent);
+
+		simdbg("G-A", "arrow,-," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",(0,0,0)\n", TOS_NODE_ID, old_parent);
+		simdbg("G-A", "arrow,+," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",(0,0,0)\n", TOS_NODE_ID, new_parent);
 	}
 }
