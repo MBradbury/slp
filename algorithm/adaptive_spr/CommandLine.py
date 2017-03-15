@@ -14,7 +14,7 @@ template = algorithm.import_algorithm("template")
 from data import results
 
 from data.table import fake_result, comparison
-from data.graph import summary, versus, min_max_versus, dual_min_max_versus
+from data.graph import summary, min_max_versus, dual_min_max_versus
 from data.util import scalar_extractor
 
 safety_period_equivalence = {
@@ -109,31 +109,16 @@ class CLI(CommandLineCommon.CLI):
             'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
         }
 
-        adaptive_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+        varying = [
+            (('network size', ''), ('source period', ' seconds')),
+            #(('network size', ''), ('communication model', '~')),
+        ]
 
-        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-            name = '{}-v-source-period'.format(yaxis.replace(" ", "_"))
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
 
-            g = versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yaxis, vary='source period',
-                yextractor=scalar_extractor)
-
-            g.xaxis_label = 'Network Size'
-            g.yaxis_label = yaxis_label
-            g.vary_label = 'Source Period'
-            g.vary_prefix = ' seconds'
-            g.key_position = key_position
-
-            g.create(adaptive_results)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
-            ).run()
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max)
 
     def _run_comparison_table(self, args):
         results_to_compare = ('normal latency', 'ssd', 'captured',
@@ -166,7 +151,9 @@ class CLI(CommandLineCommon.CLI):
 #            'pfs': ('Number of PFS Created', 'left top'),
             'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-            'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
+            #'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent er second per node', 'left top'),
+            #'norm(norm(fake,time taken),network size)': ('Fake Messages Sent er second per node', 'left top'),
 #            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
 #            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
 #            #'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
@@ -191,7 +178,7 @@ class CLI(CommandLineCommon.CLI):
         }
 
         def filter_params(all_params):
-            return all_params['source period'] == '0.125' and all_params['noise model'] == 'meyer_heavy'
+            return all_params['source period'] == '0.125' or all_params['noise model'] == 'casino-lab'
 
         protectionless_results = results.Results(
             protectionless.result_file_path,
