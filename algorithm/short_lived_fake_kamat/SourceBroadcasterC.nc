@@ -186,7 +186,7 @@ implementation
 		}
 		else
 		{
-			simdbgerror("slp-debug", "Failed to send fake message. Retrying...\n");
+			simdbgerror("stdout", "Failed to send fake message. Retrying...\n");
 			call BroadcastFakeTimer.startOneShot(FAKE_SEND_DELAY_MS);
 		}
 
