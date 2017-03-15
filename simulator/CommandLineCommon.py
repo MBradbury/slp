@@ -197,6 +197,7 @@ class CLI(object):
     def _create_versus_graph(self, graph_parameters, varying,
                              custom_yaxis_range_max=None,
                              source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
+                             yextractor=scalar_extractor, xextractor=None,
                              **kwargs):
         from data.graph import versus
 
@@ -215,7 +216,7 @@ class CLI(object):
                 g = versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
+                    yextractor=yextractor, xextractor=xextractor)
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
@@ -224,7 +225,8 @@ class CLI(object):
                 g.key_position = key_position
 
                 for (attr_name, attr_value) in kwargs.items():
-                    setattr(g, attr_name, attr_value)
+                    if hasattr(g, attr_name):
+                        setattr(g, attr_name, attr_value)
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
