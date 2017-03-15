@@ -666,7 +666,7 @@ implementation
 #ifdef SLP_VERBOSE_DEBUG
 		if (!should_process_choose())
 		{
-			simdbgverbose("slp-debug", "Dropping choose and not becoming FS because of should_process_choose() (dss=%d, ds=%d)\n",
+			simdbgverbose("stdout", "Dropping choose and not becoming FS because of should_process_choose() (dss=%d, ds=%d)\n",
 				min_sink_source_distance, min_source_distance);
 		}
 #endif
