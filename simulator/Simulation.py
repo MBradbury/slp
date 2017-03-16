@@ -82,7 +82,6 @@ class Simulation(object):
         if args.mode == "GUI" or args.verbose:
             self.tossim.addChannel("stdout", sys.stdout)
             self.tossim.addChannel("stderr", sys.stderr)
-            self.tossim.addChannel("slp-debug", sys.stdout)
 
 
         self.attackers = []
