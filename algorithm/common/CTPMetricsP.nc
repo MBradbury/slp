@@ -34,9 +34,9 @@ implementation
 		case NET_C_FE_QENTRY_POOL_EMPTY:
 			ERROR_OCCURRED(ERROR_POOL_EMPTY, "The pool is empty (NET_C_FE_QENTRY_POOL_EMPTY).\n");
 			break;
-		case NET_C_FE_SENDQUEUE_EMPTY:
-			ERROR_OCCURRED(ERROR_QUEUE_EMPTY, "The queue is empty (NET_C_FE_SENDQUEUE_EMPTY).\n");
-			break;
+		//case NET_C_FE_SENDQUEUE_EMPTY:
+		//	ERROR_OCCURRED(ERROR_QUEUE_EMPTY, "The queue is empty (NET_C_FE_SENDQUEUE_EMPTY).\n");
+		//	break;
 		}
 		
 		return SUCCESS;
