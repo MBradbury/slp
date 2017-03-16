@@ -293,19 +293,20 @@ class GuiSimulation(Simulation):
 
 
     def _during_run(self, event_count):
-        if event_count % 10 == 0 and self._node_label is not None and self.nesc_app is not None:
+        if event_count % 10 == 0:
             time = self.sim_time()
 
             self.gui.scene.execute(time, "updateText('events', text='events: {}')".format(event_count))
 
-            for node in self.nodes:
-                var = node.tossim_node.getVariable(self._node_label)
-                value = var.getData()
+            if self._node_label is not None and self.nesc_app is not None:
+                for node in self.nodes:
+                    var = node.tossim_node.getVariable(self._node_label)
+                    value = var.getData()
 
-                if value == "<no such variable>":
-                    raise RuntimeError("Tossim was unable to find the variable '{}'.".format(self._node_label))
+                    if value == "<no such variable>":
+                        raise RuntimeError("Tossim was unable to find the variable '{}'.".format(self._node_label))
 
-                self.gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
+                    self.gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 
 ###############################################
 
