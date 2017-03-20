@@ -29,6 +29,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)
+        subparser = self._add_argument("graph-sf", self._run_graph_safety_factor)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -111,4 +112,25 @@ class CLI(CommandLineCommon.CLI):
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
             source_period_normalisation="NumSources",
             results_filter=filter_params
+        )
+
+    def _run_graph_safety_factor(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+        }
+
+        varying = [
+            (('safety factor', ''), ('network size', '')),
+        ]
+
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+            'capture ratio': 100,
+        }
+
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+            source_period_normalisation="NumSources"
         )
