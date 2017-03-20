@@ -13,7 +13,7 @@ implementation
 	App.MetricLogging = MetricLogging;
 
     components MainC;
-    Main.SoftwareInit -> App;
+    MainC.SoftwareInit -> App;
 
 	components LocalTimeMilliC;
     App.LocalTime -> LocalTimeMilliC;
