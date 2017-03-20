@@ -27,7 +27,7 @@ class Grapher(GrapherBase):
 
         self.xaxis_label = xaxis
         self.yaxis_label = yaxis
-        self.vary_label =  vary if not isinstance(vary, collections.Sequence) else "/".join(vary)
+        self.vary_label =  vary.title() if not isinstance(vary, collections.Sequence) else "/".join(x.title() for x in vary)
         self.vary_prefix = ''
 
         self.yaxis_range_max = '*'
@@ -216,11 +216,11 @@ class Grapher(GrapherBase):
                     vary_title = "{}{}".format(latex.escape(vvalues[ x - 1 ]), self.vary_prefix)
 
                 if self.error_bars:
-                    plots.append('"graph.dat" using 1:{ycol}:{errcol} with errorbars title \'{title}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
-                        title=vary_title, x=x, ycol=x * 2, errcol=x * 2 + 1, line_width=self.line_width))
+                    plots.append('"graph.dat" using 1:{ycol}:{errcol} with errorbars title "{title}" linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
+                        title=latex.escape(vary_title), x=x, ycol=x * 2, errcol=x * 2 + 1, line_width=self.line_width))
                 else:
-                    plots.append('"graph.dat" using 1:{ycol} with lp title \'{title}\' linewidth {line_width}'.format(
-                        title=vary_title, ycol=x + 1, line_width=self.line_width))
+                    plots.append('"graph.dat" using 1:{ycol} with lp title "{title}" linewidth {line_width}'.format(
+                        title=latex.escape(vary_title), ycol=x + 1, line_width=self.line_width))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
