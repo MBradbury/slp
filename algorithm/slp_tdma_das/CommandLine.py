@@ -18,7 +18,7 @@ from data.util import scalar_extractor
 
 class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
-        tafn = super(RunSimulations, self)._get_safety_period(darguments)
+        # tafn = super(RunSimulations, self)._get_safety_period(darguments)
 
         network_size = darguments["network size"]
         search_distance = darguments["search distance"]
