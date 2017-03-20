@@ -27,11 +27,8 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
-        subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("average-graph")
-        subparser = self._subparsers.add_parser("scatter-graph")
-        subparser = self._subparsers.add_parser("best-worst-average-graph")
+        subparser = self._add_argument("table", self._run_table)
+        subparser = self._add_argument("graph", self._run_graph)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -90,59 +87,28 @@ class CLI(CommandLineCommon.CLI):
     def _run_graph(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
-            'sent': ('Total Messages Sent', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'utility equal': ('Utility (Equal)', 'left top'),
+            'utility animal': ('Utility (Animal)', 'left top'),
+            'utility battle': ('Utility (Battle)', 'left top'),
         }
 
-        phantom_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation="NumSources"
-        )
-
-        parameters = [
-            ('source period', ' seconds')
+        varying = [
+            (('network size', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
 
         custom_yaxis_range_max = {
-            'captured': 100,
-            'sent': 30000
+            'received ratio': 100,
         }
 
-        for (parameter_name, parameter_unit) in parameters:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
+        def filter_params(all_params):
+            return all_params['safety factor'] != '1.4'
 
-                g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=parameter_name,
-                    yextractor=scalar_extractor
-                )
 
-                g.xaxis_label = 'Network Size'
-                g.yaxis_label = yaxis_label
-                g.vary_label = parameter_name.title()
-                g.vary_prefix = parameter_unit
-                g.key_position = key_position
-
-                if yaxis in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
-
-                g.create(phantom_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    self.algorithm_module.name + '-' + name
-                ).run()
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+            source_period_normalisation="NumSources",
+            results_filter=filter_params
+        )
