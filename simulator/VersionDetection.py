@@ -1,14 +1,13 @@
 
 import os
 import subprocess
-import sys
-
-import numpy
 
 def python_version():
+    import sys
     return sys.version.replace("\n", " ")
 
 def numpy_version():
+    import numpy
     return numpy.__version__
 
 def java_version():
