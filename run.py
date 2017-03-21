@@ -70,6 +70,9 @@ def main(argv):
         print("@date:{}".format(str(datetime.now())))
         print("@host:{}".format(os.uname()))
 
+        # Record what algorithm is being run
+        print("@module:{}".format(module))
+
         # Print out the argument settings
         for (k, v) in vars(a.args).items():
             if k not in a.arguments_to_hide:
