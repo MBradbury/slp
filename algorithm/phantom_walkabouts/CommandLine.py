@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-import ast
 import datetime
 import itertools
 import math
@@ -121,9 +120,9 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'utility equal': ('Utility (Equal)', 'left top'),
-            'utility animal': ('Utility (Animal)', 'left top'),
-            'utility battle': ('Utility (Battle)', 'left top'),
+            'utility equal': ('Utility (Equal)', 'right top'),
+            'utility animal': ('Utility (Animal)', 'right top'),
+            'utility battle': ('Utility (Battle)', 'right top'),
         }
 
         varying = [
@@ -133,15 +132,21 @@ class CLI(CommandLineCommon.CLI):
         custom_yaxis_range_max = {
             'received ratio': 100,
             'capture ratio': 100,
+            'utility equal': 0.8,
+            'utility animal': 0.8,
+            'utility battle': 0.8,
+
         }
 
         def vvalue_converter(name):
-            print(ast.literal_eval(name))
-            raise RuntimeError()
-            (bias, order, short_count, long_count, wait) = ast.literal_eval(name)
+            (bias, order, short_count, long_count, wait) = name
 
             if short_count == 1 and long_count == 0:
                 return "PW(1, 0)"
+            elif short_count == 1 and long_count == 1:
+                return "PW(1, 1)"
+            elif short_count == 1 and long_count == 2:
+                return "PW(1, 2)"
             else:
                 return name
 
