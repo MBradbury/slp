@@ -109,7 +109,7 @@ implementation {
 
   components ActiveMessageC;
   components new CtpForwardingEngineP() as Forwarder;
-  components MainC, LedsC;
+  components MainC;
   
   Send = Forwarder;
   StdControl = Forwarder;
@@ -182,7 +182,6 @@ implementation {
   Forwarder.RadioControl -> ActiveMessageC;
   Forwarder.PacketAcknowledgements -> AMSenderC.Acks;
   Forwarder.AMPacket -> AMSenderC;
-  Forwarder.Leds -> LedsC;
   
   components new AMSenderC(AM_CTP_ROUTING) as SendControl;
   components new AMReceiverC(AM_CTP_ROUTING) as ReceiveControl;
