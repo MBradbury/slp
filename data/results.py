@@ -34,7 +34,8 @@ def extract_average_and_stddev(value):
     return np.array((mean, stddev))
 
 class Results(object):
-    def __init__(self, result_file, parameters, results, results_filter=None, source_period_normalisation=None, network_size_normalisation=None):
+    def __init__(self, result_file, parameters, results, results_filter=None,
+                 source_period_normalisation=None, network_size_normalisation=None):
         self.parameter_names = tuple(parameters)
         self.result_names = tuple(results)
         self.result_file_name = result_file
