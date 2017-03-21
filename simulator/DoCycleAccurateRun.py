@@ -86,6 +86,7 @@ def main(module, a):
         "colors": "false",
 
         # Report time in seconds and not cycles
+        # Only need a precision of 6 as python cannot handle more than that
         "report-seconds": "true",
         "seconds-precision": "6"
     }
