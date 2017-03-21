@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import ast
 import datetime
 import itertools
 import math
@@ -120,10 +121,13 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'right top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'utility equal': ('Utility (Equal)', 'left top'),
+            'utility animal': ('Utility (Animal)', 'left top'),
+            'utility battle': ('Utility (Battle)', 'left top'),
         }
 
         varying = [
-            (('safety factor', ''), ('network size', '')),
+            (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
 
         custom_yaxis_range_max = {
@@ -131,6 +135,18 @@ class CLI(CommandLineCommon.CLI):
             'capture ratio': 100,
         }
 
+        def vvalue_converter(name):
+            print(ast.literal_eval(name))
+            raise RuntimeError()
+            (bias, order, short_count, long_count, wait) = ast.literal_eval(name)
+
+            if short_count == 1 and long_count == 0:
+                return "PW(1, 0)"
+            else:
+                return name
+
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
-            source_period_normalisation="NumSources"
+            source_period_normalisation="NumSources",
+            vary_label='',
+            vvalue_label_converter=vvalue_converter,
         )
