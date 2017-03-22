@@ -26,8 +26,9 @@ def _argument_name_to_parameter(argument_name):
     return "--" + argument_name.replace(" ", "-")
 
 class RunSimulationsCommon(object):
-    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=True,
+    def __init__(self, sim, driver, algorithm_module, result_path, skip_completed_simulations=True,
                  safety_periods=None, safety_period_equivalence=None):
+        self.sim = sim
         self.driver = driver
         self.algorithm_module = algorithm_module
         self._result_path = result_path
@@ -78,7 +79,8 @@ class RunSimulationsCommon(object):
 
             opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
 
-            options = 'algorithm.{} {} '.format(self.algorithm_module.name, self.driver.mode()) + " ".join(opt_items)
+            options = 'algorithm.{} {} {} '.format(self.algorithm_module.name, self.sim, self._mode())
+            options +=" ".join(opt_items)
 
             filename = os.path.join(
                 self._result_path,
@@ -95,6 +97,14 @@ class RunSimulationsCommon(object):
                 )
 
             self.driver.add_job(options, filename, estimated_time)
+
+    def _mode(self):
+        mode = self.driver.mode()
+
+        if mode in ("TESTBED", "CYCLEACCURATE"):
+            return "SINGLE"
+        else:
+            return mode
 
     def _prepare_argument_name(self, name, darguments):
         value = darguments[name]
@@ -216,7 +226,7 @@ class RunTestbedCommon(RunSimulationsCommon):
                  safety_periods=None, safety_period_equivalence=None):
         # Do all testbed tasks
         # Testbed has no notion of safety period
-        super(RunTestbedCommon, self).__init__(driver, algorithm_module, result_path, False, None, safety_period_equivalence)
+        super(RunTestbedCommon, self).__init__("real", driver, algorithm_module, result_path, False, None, safety_period_equivalence)
 
     def run(self, repeats, argument_names, argument_product, time_estimator=None):
 
@@ -233,11 +243,11 @@ class RunTestbedCommon(RunSimulationsCommon):
         super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)
 
 class RunCycleAccurateCommon(RunSimulationsCommon):
-    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False,
+    def __init__(self, sim, driver, algorithm_module, result_path, skip_completed_simulations=False,
                  safety_periods=None, safety_period_equivalence=None):
         # Do all cycle accurate tasks
         # Cycle Accurate has no notion of safety period
-        super(RunCycleAccurateCommon, self).__init__(driver, algorithm_module, result_path, False, None, safety_period_equivalence)
+        super(RunCycleAccurateCommon, self).__init__(sim, driver, algorithm_module, result_path, False, None, safety_period_equivalence)
 
     def run(self, repeats, argument_names, argument_product, time_estimator=None):
 
