@@ -84,7 +84,7 @@ class RunSimulationsCommon(object):
 
             filename = os.path.join(
                 self._result_path,
-                '-'.join(map(self._sanitize_job_name, arguments)) + ".txt"
+                '-'.join(map(self._sanitize_job_name, arguments)) + "-{}.txt".format(self.sim)
             )
 
             estimated_time = None
