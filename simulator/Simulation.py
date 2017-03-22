@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import ast
 from datetime import datetime
 from collections import namedtuple
 import heapq
@@ -346,7 +347,7 @@ class OfflineSimulation(object):
 
         self._event_log = event_log
 
-        self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+):(\d+):(.+)\s*')
+        self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.+)\s*')
 
     def __enter__(self):
 
@@ -432,14 +433,14 @@ class OfflineSimulation(object):
 
         date_string, rest = line.split("|", 1)
 
-        current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f")
+        current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f") if date_string != "None" else None
 
         match = self.LINE_RE.match(rest)
         if match is not None:
             kind = match.group(1)
             log_type = match.group(2)
-            node_id = int(match.group(3))
-            node_local_time = int(match.group(4))
+            node_id = ast.literal_eval(match.group(3))
+            node_local_time = ast.literal_eval(match.group(4))
             message_line = match.group(5)
 
             return (current_time, kind, node_local_time, log_type, node_id, message_line)
@@ -468,10 +469,11 @@ class OfflineSimulation(object):
                 (current_time, kind, node_local_time, log_type, node_id, message_line) = result
 
                 # Record the start and stop time
-                if self._real_start_time is None:
+                if self._real_start_time is None and current_time is not None:
                     self._real_start_time = current_time
 
-                self._real_end_time = current_time
+                if current_time is not None:
+                    self._real_end_time = current_time
 
                 # Run any callbacks that happened before now
                 while len(self._callbacks) > 0:
@@ -490,7 +492,7 @@ class OfflineSimulation(object):
                     break
 
                 # Stop if the safety period has expired
-                if self._duration_start_time is not None and \
+                if self._duration_start_time is not None and current_time is not None and \
                    (current_time - self._duration_start_time).total_seconds() >= self.safety_period_value:
                     break
 
