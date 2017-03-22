@@ -290,7 +290,7 @@ class Simulation(object):
 
 
 class OfflineSimulation(object):
-    def __init__(self, module_name, configuration, args, log_filename):
+    def __init__(self, module_name, configuration, args, event_log):
 
         # Record the seed we are using
         self.seed = args.seed
@@ -334,6 +334,7 @@ class OfflineSimulation(object):
 
         # Record the current user's time this script started executing at
         self.start_time = None
+        self.enter_start_time = None
 
         # The times that the actual execution started and ended.
         # They are used to emulate sim_time and calculate the execution length.
@@ -343,15 +344,18 @@ class OfflineSimulation(object):
 
         self.attacker_found_source = False
 
-        self._log_file = open(log_filename, 'r')
+        self._event_log = event_log
 
         self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+):(\d+):(.+)\s*')
 
     def __enter__(self):
+
+        self.enter_start_time = timeit.default_timer()
+
         return self
 
     def __exit__(self, tp, value, tb):
-        self._log_file.close()
+        pass
 
     def register_output_handler(self, name, function):
         self._line_handlers[name] = function
@@ -397,11 +401,19 @@ class OfflineSimulation(object):
     def _post_run(self, event_count):
         """Called after the simulator run loop finishes"""
 
+        current_time = timeit.default_timer()
+
         # Set the number of seconds this simulation run took.
         # It is possible that we will reach here without setting
         # start_time, so we need to look out for this.
+
         try:
-            self.metrics.wall_time = timeit.default_timer() - self.start_time
+            self.metrics.total_wall_time = current_time - self.enter_start_time
+        except TypeError:
+            self.metrics.total_wall_time = None
+
+        try:
+            self.metrics.wall_time = current_time - self.start_time
         except TypeError:
             self.metrics.wall_time = None
 
@@ -445,7 +457,7 @@ class OfflineSimulation(object):
         try:
             self._pre_run()
 
-            for line in self._log_file:
+            for line in self._event_log:
 
                 result = self._parse_line(line)
 

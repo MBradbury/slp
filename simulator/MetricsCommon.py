@@ -62,9 +62,9 @@ class MetricsCommon(object):
         self.normal_latency = {}
         self.normal_hop_count = []
 
-        self.total_wall_time = 0
-        self.wall_time = 0
-        self.event_count = 0
+        self.total_wall_time = None
+        self.wall_time = None
+        self.event_count = None
 
         self.errors = Counter()
 
