@@ -6,6 +6,7 @@ import os
 import sys
 
 import simulator.sim
+import simulator.MetricsCommon as MetricsCommon
 import simulator.VersionDetection as VersionDetection
 
 from data import submodule_loader
@@ -37,7 +38,7 @@ def main(argv):
     if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
         from datetime import datetime
 
-        Metrics = importlib.import_module("{}.Metrics".format(module))
+        metrics_class = MetricsCommon.import_algorithm_metrics(module, a.args.sim)
 
         # Print out the versions of slp-algorithms-tinyos and tinyos being used
         print("@version:python={}".format(VersionDetection.python_version()))
@@ -61,7 +62,7 @@ def main(argv):
                 print("{}={}".format(k, v))
 
         # Print the header for the results
-        Metrics.Metrics.print_header()
+        metrics_class.print_header()
 
         # Make sure this header has been written
         sys.stdout.flush()

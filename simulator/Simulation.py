@@ -14,7 +14,8 @@ import timeit
 
 import numpy as np
 
-import simulator.CommunicationModel
+import simulator.CommunicationModel as CommunicationModel
+import simulator.MetricsCommon as MetricsCommon
 
 Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
@@ -87,9 +88,9 @@ class Simulation(object):
 
         self.attackers = []
 
-        metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
+        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
 
-        self.metrics = metrics_module.Metrics(self, configuration)
+        self.metrics = metrics_class(self, configuration)
 
         self.start_time = None
         self.enter_start_time = None
@@ -225,7 +226,7 @@ class Simulation(object):
 
     def setup_radio(self):
         """Creates radio links for node pairs that are in range."""
-        model = simulator.CommunicationModel.eval_input(self.communication_model)
+        model = CommunicationModel.eval_input(self.communication_model)
 
         cm = model()
         cm.setup(self)
@@ -329,9 +330,9 @@ class OfflineSimulation(object):
 
         self.configuration = configuration
 
-        metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
+        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
 
-        self.metrics = metrics_module.Metrics(self, configuration)
+        self.metrics = metrics_class(self, configuration)
 
         # Record the current user's time this script started executing at
         self.start_time = None
