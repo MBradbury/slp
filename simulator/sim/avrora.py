@@ -237,10 +237,12 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
     configuration = Configuration.create(a.args.configuration, a.args)
 
-    command = shlex.split(avrora_command(module, a, configuration))
+    command = avrora_command(module, a, configuration)
 
     print("@command:{}".format(command))
     sys.stdout.flush()
+
+    command = shlex.split(command)    
 
     if a.args.mode == "RAW":
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True)
@@ -373,7 +375,14 @@ class NodeEnergy:
         return sum(joules for (joules, details) in self.components.values())
 
     def cpu_active_percent(self):
-        return self.components["CPU"][1]["active"].cycles / self.node_lifetime_cycles
+        return self.components["CPU"][1]["Active"].cycles / self.node_lifetime_cycles
+
+    def cpu_idle_percent(self):
+        return self.components["CPU"][1]["Idle"].cycles / self.node_lifetime_cycles
+
+    def cpu_low_power_percent(self):
+        cpu =  self.components["CPU"][1]
+        return (self.node_lifetime_cycles - (cpu["Active"].cycles + cpu["Idle"].cycles)) / self.node_lifetime_cycles
 
     def radio_active_percent(self):
         radio =  self.components["Radio"][1]
