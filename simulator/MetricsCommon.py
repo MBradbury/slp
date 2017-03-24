@@ -764,20 +764,23 @@ class AvroraMetricsCommon(MetricsCommon):
     def total_component_joules(self, component):
         return sum(energy.components[component][0] for energy in self.avrora_energy_summary.values())
 
-    def average_cpu_active(self):
-        return np.mean([energy.cpu_active_percent() for energy in self.avrora_energy_summary.values()])
-
-    def average_cpu_idle(self):
-        return np.mean([energy.cpu_idle_percent() for energy in self.avrora_energy_summary.values()])
+    def average_cpu_state(self, state):
+        return np.mean([energy.cpu_state_percent(state) for energy in self.avrora_energy_summary.values()])
 
     def average_cpu_low_power(self):
         return np.mean([energy.cpu_low_power_percent() for energy in self.avrora_energy_summary.values()])
 
-    def average_radio_active(self):
-        return np.mean([energy.radio_active_percent() for energy in self.avrora_energy_summary.values()])
+    def average_radio_state(self, state):
+        return np.mean([energy.radio_state_percent(state) for energy in self.avrora_energy_summary.values()])
 
-    def average_radio_inactive(self):
-        return np.mean([1 - energy.radio_active_percent() for energy in self.avrora_energy_summary.values()])
+    def average_cpu_state_joules(self, state):
+        return np.mean([energy.cpu_state_joules(state) for energy in self.avrora_energy_summary.values()])
+
+    def average_cpu_low_power_joules(self):
+        return np.mean([energy.cpu_low_power_joules() for energy in self.avrora_energy_summary.values()])
+
+    def average_radio_state_joules(self, state):
+        return np.mean([energy.radio_state_joules(state) for energy in self.avrora_energy_summary.values()])
 
     @staticmethod
     def items():
@@ -790,12 +793,29 @@ class AvroraMetricsCommon(MetricsCommon):
         for component in ["CPU", "Yellow", "Green", "Red", "Radio", "SensorBoard", "flash"]:
             d["Total{}Joules".format(component)] = lambda x, component=component: x.total_component_joules(component)
 
-        d["AverageCPUActive"]              = lambda x: x.average_cpu_active()
-        d["AverageCPUIdle"]                = lambda x: x.average_cpu_idle()
-        d["AverageCPULowPower"]            = lambda x: x.average_cpu_low_power()
-        d["AverageRadioActive"]            = lambda x: x.average_radio_active()
-        d["AverageRadioInactive"]          = lambda x: x.average_radio_inactive()
+        # CPU and radio percent
+        d["AverageCPUActivePC"]            = lambda x: x.average_cpu_state("Active")
+        d["AverageCPUIdlePC"]              = lambda x: x.average_cpu_state("Idle")
+        d["AverageCPULowPowerPC"]          = lambda x: x.average_cpu_low_power()
 
+        d["AverageRadioTXPC"]              = lambda x: x.average_radio_state("Transmit (Tx)")
+        d["AverageRadioRXPC"]              = lambda x: x.average_radio_state("Receive (Rx)")
+        d["AverageRadioPowerIdlePC"]       = lambda x: x.average_radio_state("Idle")
+        d["AverageRadioPowerOffPC"]        = lambda x: x.average_radio_state("Power Off")
+        d["AverageRadioPowerDownPC"]       = lambda x: x.average_radio_state("Power Down")
+
+        # CPU and radio energy
+        d["AverageCPUActiveJoules"]        = lambda x: x.average_cpu_state_joules("Active")
+        d["AverageCPUIdleJoules"]          = lambda x: x.average_cpu_state_joules("Idle")
+        d["AverageCPULowPowerJoules"]      = lambda x: x.average_cpu_low_power_joules()
+
+        d["AverageRadioTXJoules"]          = lambda x: x.average_radio_state_joules("Transmit (Tx)")
+        d["AverageRadioRXJoules"]          = lambda x: x.average_radio_state_joules("Receive (Rx)")
+        d["AverageRadioPowerIdleJoules"]   = lambda x: x.average_radio_state_joules("Idle")
+        d["AverageRadioPowerOffJoules"]    = lambda x: x.average_radio_state_joules("Power Off")
+        d["AverageRadioPowerDownJoules"]   = lambda x: x.average_radio_state_joules("Power Down")
+
+        # Packet Info
         d["TotalSentBytes"]                = lambda x: x.total_packet_stat("sent_bytes")
         d["TotalSentPackets"]              = lambda x: x.total_packet_stat("sent_packets")
         d["TotalRecvBytes"]                = lambda x: x.total_packet_stat("recv_bytes")

@@ -368,7 +368,10 @@ class OfflineSimulation(object):
 
     def sim_time(self):
         """Returns the current simulation time in seconds"""
-        return (self._real_end_time - self._real_start_time).total_seconds()
+        try:
+            return (self._real_end_time - self._real_start_time).total_seconds()
+        except TypeError:
+            return None
 
     def register_event_callback(self, callback, call_at_time):
         heapq.heappush(self._callbacks, (call_at_time, callback))
