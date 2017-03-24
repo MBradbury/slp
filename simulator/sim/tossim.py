@@ -13,6 +13,10 @@ def parsers():
         ("CLUSTER", "PARALLEL", ["job id"]),
     ]
 
+# TOSSIM can be run in parallel as it only uses a single thread
+def supports_parallel():
+    return True
+
 def build(module, a):
     import os
 
