@@ -273,11 +273,11 @@ class Scene:
         registered plotters about the updated time so that a label or window
         title can be updated accordingly.
         """
+        if time is None:
+            return
+
         if time < self.time:
-            raise RuntimeError(
-                    'Time cannot flow backward: current = %.5f, new = %.5f'
-                    % (self.time, time)
-                    )
+            raise RuntimeError('Time cannot flow backward: current = {}, new = {}'.format(self.time, time))
 
         if not self.realtime:
             sleep((time-self.time) * self.timescale)

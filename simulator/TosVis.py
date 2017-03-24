@@ -85,10 +85,12 @@ class DebugAnalyzer:
             state = int(match.group(1))
             return (self.DAS, (state,))
 
+        print("Unable to process:", detail)
+
         return None
 
 class Gui:
-    def __init__(self, sim, node_position_scale_factor=None):
+    def __init__(self, sim, sim_tool, node_position_scale_factor=None):
 
         from simulator.topovis.TopoVis import Scene
         from simulator.topovis.TkPlotter import Plotter
@@ -116,8 +118,13 @@ class Gui:
         self._debug_analyzer = DebugAnalyzer()
 
         # Setup a pipe for monitoring dbg messages
-        self._sim.register_output_handler('LedsC', self._process_message)
-        self._sim.register_output_handler('AM', self._process_message)
+        if sim_tool == "tossim":
+            self._sim.register_output_handler('LedsC', self._process_message)
+            self._sim.register_output_handler('AM', self._process_message)
+        elif sim_tool == "avrora":
+            self._sim.register_output_handler('AVRORA-TX', self._process_avrora_tx)
+            self._sim.register_output_handler('AVRORA-RX', self._process_avrora_rx)
+
         self._sim.register_output_handler('Fake-Notification', self._process_message)
         self._sim.register_output_handler('G-NC', self._process_message)
         self._sim.register_output_handler('G-A', self._process_message)
@@ -273,6 +280,32 @@ class Gui:
 
         }[event_type](time, node_id, detail)
 
+    def _process_avrora_tx(self, d_or_e, node_id, time, without_dbg):
+        radio_bytes, radio_time = without_dbg.split(',')
+
+        node_id = int(node_id)
+
+        radio_bytes = bytearray.fromhex(radio_bytes.replace(".", " "))
+        radio_time = float(radio_time)
+
+        # (amtype, amlen, amdst)
+        detail = (None, len(radio_bytes), None)
+
+        return self._animate_am_send(time, node_id, detail)
+
+    def _process_avrora_rx(self, d_or_e, node_id, time, without_dbg):
+        radio_bytes, radio_time = without_dbg.split(',')
+
+        node_id = int(node_id)
+
+        radio_bytes = bytearray.fromhex(radio_bytes.replace(".", " "))
+        radio_time = float(radio_time)
+
+        # (amtype, amlen)
+        detail = (None, len(radio_bytes))
+
+        return self._animate_am_receive(time, node_id, detail)
+
 ###############################################
 class GuiSimulation(Simulation):
     def __init__(self, module_name, configuration, args):
@@ -284,7 +317,7 @@ class GuiSimulation(Simulation):
 
         self._node_label = args.gui_node_label
 
-        self.gui = Gui(self, node_position_scale_factor=args.gui_scale)
+        self.gui = Gui(self, args.sim, node_position_scale_factor=args.gui_scale)
 
         if self._node_label is not None:
             variables = self.nesc_app.variables.variables()[0::3]
@@ -311,11 +344,11 @@ class GuiSimulation(Simulation):
 ###############################################
 
 class GuiOfflineSimulation(OfflineSimulation):
-    def __init__(self, module_name, configuration, args, log_filename):
+    def __init__(self, module_name, configuration, args, event_log):
         super(GuiOfflineSimulation, self).__init__(
             module_name=module_name,
             configuration=configuration,
             args=args,
-            log_filename=log_filename)
+            event_log=event_log)
         
-        self.gui = Gui(self, node_position_scale_factor=args.gui_scale)
+        self.gui = Gui(self, args.sim, node_position_scale_factor=args.gui_scale)
