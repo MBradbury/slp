@@ -374,19 +374,42 @@ class NodeEnergy:
     def total_joules(self):
         return sum(joules for (joules, details) in self.components.values())
 
-    def cpu_active_percent(self):
-        return self.components["CPU"][1]["Active"].cycles / self.node_lifetime_cycles
+    def cpu_state_joules(self, state):
+        cpu = self.components["CPU"][1]
+        return cpu[state].joule
 
-    def cpu_idle_percent(self):
-        return self.components["CPU"][1]["Idle"].cycles / self.node_lifetime_cycles
+    def cpu_low_power_joules(self):
+        (total_joules, cpu) = self.components["CPU"]
+        return total_joules - (cpu["Active"].joule + cpu["Idle"].joule)
+
+    def radio_state_joules(self, state):
+        radio = self.components["Radio"][1]
+
+        # Some radio states can potentially be missing
+        # if they were not used
+        try:
+            return radio[state].joule
+        except KeyError:
+            return 0
+
+
+    def cpu_state_percent(self, state):
+        cpu = self.components["CPU"][1]
+        return cpu[state].cycles / self.node_lifetime_cycles
 
     def cpu_low_power_percent(self):
-        cpu =  self.components["CPU"][1]
+        cpu = self.components["CPU"][1]
         return (self.node_lifetime_cycles - (cpu["Active"].cycles + cpu["Idle"].cycles)) / self.node_lifetime_cycles
 
-    def radio_active_percent(self):
-        radio =  self.components["Radio"][1]
-        return (self.node_lifetime_cycles - (radio["Power Off"].cycles + radio["Power Down"].cycles)) / self.node_lifetime_cycles
+    def radio_state_percent(self, state):
+        radio = self.components["Radio"][1]
+
+        # Some radio states can potentially be missing
+        # if they were not used
+        try:
+            return (radio[state].cycles) / self.node_lifetime_cycles
+        except KeyError:
+            return 0
 
     def encode(self):
         return base64.b64encode(pickle.dumps(self, pickle.HIGHEST_PROTOCOL))
