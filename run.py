@@ -29,10 +29,9 @@ def main(argv):
         a.args.mode = "SINGLE"
 
     # Set the thread count, but only for jobs that need it
-    if a.args.mode in ("CLUSTER", "PARALLEL"):
-        if a.args.thread_count is None:
-            import multiprocessing
-            a.args.thread_count = multiprocessing.cpu_count()
+    if hasattr(a.args, "thread_count") and a.args.thread_count is None:
+        import multiprocessing
+        a.args.thread_count = multiprocessing.cpu_count()
 
     # When doing cluster array jobs only print out this header information on the first job
     if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
@@ -81,7 +80,13 @@ def convert_parallel_args_to_single(argv, sim):
     new_args[2] = "SINGLE"
 
     # Remove any CLUSTER or PARALLEL parameters
-    parsers = ["--" + x.replace(" ", "-") for (name, parent, opts) in sim.parsers() if name in ("CLUSTER", "PARALLEL") for x in opts]
+    parsers = [
+        "--" + x.replace(" ", "-")
+        for (name, parent, opts)
+        in sim.parsers()
+        if name in ("CLUSTER", "PARALLEL")
+        for x in opts
+    ]
 
     indexes_to_delete = []
 
@@ -105,6 +110,13 @@ def _run_parallel(sim, module, a, argv):
         import subprocess32 as subprocess
     except ImportError:
         import subprocess
+
+    # Some simulators don't support running in parallel
+    # only allow parallel instances for those that do
+    if sim.supports_parallel():
+        parallel_instances = a.args.thread_count
+    else:
+        parallel_instances = 1
 
     print_lock = Lock()
 
@@ -168,7 +180,7 @@ def _run_parallel(sim, module, a, argv):
     else:
         raise RuntimeError("Unknown job type of {}".format(a.args.mode))
 
-    print("Creating a process pool with {} processes.".format(a.args.thread_count), file=sys.stderr)
+    print("Creating a process pool with {} processes.".format(parallel_instances), file=sys.stderr)
 
     sys.stderr.flush()
 
@@ -176,7 +188,7 @@ def _run_parallel(sim, module, a, argv):
     # 1. We don't need the GIL-free nature of a process pool as our work is done is subprocesses
     # 2. If this process hangs the threads will terminate when this process is killed.
     #    The process pool would stay alive.
-    job_pool = multiprocessing.pool.ThreadPool(processes=a.args.thread_count)
+    job_pool = multiprocessing.pool.ThreadPool(processes=parallel_instances)
 
     # Always run with a seed of 44 first and second.
     # This allows us to do compatibility checks.

@@ -21,9 +21,16 @@ def parsers():
         ("SINGLE", None, raw_single_common + ["attacker model"]),
         ("RAW", None, raw_single_common),
         ("GUI", "SINGLE", ["gui scale"]),
-        #("PARALLEL", "SINGLE", ["job size", "thread count"]),
-        #("CLUSTER", "PARALLEL", ["job id"]),
+        ("PARALLEL", "SINGLE", ["job size"]),
+        ("CLUSTER", "PARALLEL", ["job id"]),
     ]
+
+# Avrora doesn't support running multiple instances in parallel
+# as it uses a thread per sensor node model.
+# So as long as the entire resources of the cluster node
+# are requested everything will be fine.
+def supports_parallel():
+    return False
 
 def build(module, a):
     import data.cycle_accurate
@@ -91,6 +98,9 @@ def avrora_command(module, a, configuration):
         "report-seconds": "true",
         "seconds-precision": "6"
     }
+
+    for (key, value) in options.items():
+        print("@avrora_parameter:{}={}".format(key, value))
 
     target_file = os.path.join(target_directory, "main.elf")
 
@@ -174,8 +184,6 @@ def avrora_iter(iterable):
             else:
                 fullstr = "{}|{}".format(stime_str, log)
 
-            print(fullstr)
-
             yield fullstr
 
         else:
@@ -245,6 +253,9 @@ def run_simulation(module, a, count=1, print_warnings=False):
     command = shlex.split(command)    
 
     if a.args.mode == "RAW":
+        if count != 1:
+            raise RuntimeError("Cannot run avrora multiple times in RAW mode")
+
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True)
 
         proc_iter = iter(proc.stdout.readline, '')
@@ -269,56 +280,57 @@ def run_simulation(module, a, count=1, print_warnings=False):
         else:
             raise RuntimeError("Unknown mode {}".format(a.args.mode))
 
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True)
+        for n in range(count):
+            proc = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True)
 
-        proc_iter = iter(proc.stdout.readline, '')
+            proc_iter = iter(proc.stdout.readline, '')
 
-        with OfflineSimulation(module, configuration, a.args, event_log=avrora_iter(proc_iter)) as sim:
-            # Create a copy of the provided attacker model
-            attacker = copy.deepcopy(a.args.attacker_model)
+            with OfflineSimulation(module, configuration, a.args, event_log=avrora_iter(proc_iter)) as sim:
+                # Create a copy of the provided attacker model
+                attacker = copy.deepcopy(a.args.attacker_model)
 
-            # Setup each attacker model
-            attacker.setup(sim, configuration.sink_id, ident=0)
+                # Setup each attacker model
+                attacker.setup(sim, configuration.sink_id, ident=0)
 
-            sim.add_attacker(attacker)
+                sim.add_attacker(attacker)
 
-            try:
-                sim.run()
-            except Exception as ex:
-                import traceback
-                
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+                try:
+                    sim.run()
+                except Exception as ex:
+                    import traceback
+                    
+                    all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
 
-                print("Killing run due to {}".format(ex), file=sys.stderr)
-                print(traceback.format_exc(), file=sys.stderr)
-                print("For parameters:", file=sys.stderr)
-                print(all_args, file=sys.stderr)
+                    print("Killing run due to {}".format(ex), file=sys.stderr)
+                    print(traceback.format_exc(), file=sys.stderr)
+                    print("For parameters:", file=sys.stderr)
+                    print(all_args, file=sys.stderr)
 
-                return 51
+                    return 51
 
-            proc.stdout.close()
+                proc.stdout.close()
 
-            return_code = proc.wait()
+                return_code = proc.wait()
 
-            if return_code:
-                raise subprocess.CalledProcessError(return_code, command)
+                if return_code:
+                    raise subprocess.CalledProcessError(return_code, command)
 
-            try:
-                sim.metrics.print_results()
-            except Exception as ex:
-                import traceback
+                try:
+                    sim.metrics.print_results()
+                except Exception as ex:
+                    import traceback
 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+                    all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
 
-                print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
-                print(traceback.format_exc(), file=sys.stderr)
-                print("For parameters:", file=sys.stderr)
-                print(all_args, file=sys.stderr)
-                
-                return 52
+                    print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
+                    print(traceback.format_exc(), file=sys.stderr)
+                    print("For parameters:", file=sys.stderr)
+                    print(all_args, file=sys.stderr)
+                    
+                    return 52
 
-            if print_warnings:
-                sim.metrics.print_warnings()
+                if print_warnings:
+                    sim.metrics.print_warnings()
 
 BLOCK0_RE = re.compile(r"=={ Energy consumption results for node (\d+) }=*\nNode lifetime: (\d+) cycles,\s*(.+) seconds")
 BLOCKN_NAME_RE = re.compile(r"([A-Za-z]+): (.+) Joule")
