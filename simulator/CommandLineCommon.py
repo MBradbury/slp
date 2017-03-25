@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import argparse
 from collections import defaultdict
 from datetime import timedelta
+import functools
 import importlib
 import itertools
 import math
@@ -13,6 +14,7 @@ import sys
 import algorithm
 
 import simulator.common
+import simulator.sim
 import simulator.Configuration as Configuration
 
 from data import results, latex, submodule_loader
@@ -67,6 +69,7 @@ class CLI(object):
         cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
 
         subparser = cluster_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cluster. One set of binaries will be created per parameter combination you request.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
         subparser.add_argument("--no-skip-complete", action="store_true")
 
         subparser = cluster_subparsers.add_parser("copy", help="Copy the built binaries for this algorithm to the cluster.")
@@ -79,6 +82,7 @@ class CLI(object):
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         subparser = cluster_subparsers.add_parser("submit", help="Use this command to submit the cluster jobs. Run this on the cluster.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
         subparser.add_argument("--array", action="store_true", help="Submit multiple arrays jobs (experimental).")
         subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
@@ -109,12 +113,14 @@ class CLI(object):
         cycleaccurate_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
 
         subparser = cycleaccurate_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
         subparser.add_argument("--platform", type=str, default=None)
         subparser.add_argument("--max-buffer-size", type=int, default=256)
 
         ###
 
         subparser = self._add_argument("run", self._run_run, help="Run the parameters combination specified in Parameters.py on this local machine.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--no-skip-complete", action="store_true")
 
@@ -220,7 +226,7 @@ class CLI(object):
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
+                g.vary_label = "/".join(x.title() for x in vary) if isinstance(vary, tuple) else vary.title()
                 g.vary_prefix = vary_units
                 g.key_position = key_position
 
@@ -353,11 +359,12 @@ class CLI(object):
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
 
-    def _execute_runner(self, driver, result_path, time_estimator=None, skip_completed_simulations=True):
+    def _execute_runner(self, sim, driver, result_path, time_estimator=None, skip_completed_simulations=True):
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
         elif driver.mode() == "CYCLEACCURATE":
             from data.run.common import RunCycleAccurateCommon as RunSimulations
+            RunSimulations = functools.partial(RunSimulations, sim)
         else:
             # Time for something very crazy...
             # Some simulations require a safety period that varies depending on
@@ -366,8 +373,9 @@ class CLI(object):
             # So this custom RunSimulationsCommon class gets overridden and provided.
             if self.custom_run_simulation_class is None:
                 from data.run.common import RunSimulationsCommon as RunSimulations
+                RunSimulations = functools.partial(RunSimulations, sim)
             else:
-                RunSimulations = self.custom_run_simulation_class
+                RunSimulations = functools.partial(self.custom_run_simulation_class, sim)
 
         if self.safety_period_result_path is True:
             safety_periods = True
@@ -487,12 +495,16 @@ class CLI(object):
 
         skip_complete = not args.no_skip_complete
 
-        self._execute_runner(driver, self.algorithm_module.results_path, time_estimator=None, skip_completed_simulations=skip_complete)
+        self._execute_runner(args.sim, driver, self.algorithm_module.results_path,
+                             time_estimator=None,
+                             skip_completed_simulations=skip_complete)
 
     def _run_analyse(self, args):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
-        analyzer.run(self.algorithm_module.result_file, args.thread_count,
-                     headers_to_skip=args.headers_to_skip, keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
+        analyzer.run(self.algorithm_module.result_file,
+                     nprocs=args.thread_count,
+                     headers_to_skip=args.headers_to_skip,
+                     keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
 
     def _run_safety_table(self, args):
 
@@ -551,7 +563,9 @@ class CLI(object):
 
             skip_complete = not args.no_skip_complete
 
-            self._execute_runner(cluster.builder(), cluster_directory, time_estimator=None, skip_completed_simulations=skip_complete)
+            self._execute_runner(args.sim, cluster.builder(), cluster_directory,
+                                 time_estimator=None,
+                                 skip_completed_simulations=skip_complete)
 
         elif 'copy' == args.cluster_mode:
             cluster.copy_to(self.algorithm_module.name, user=args.user)
@@ -572,7 +586,9 @@ class CLI(object):
 
             skip_complete = not args.no_skip_complete
 
-            self._execute_runner(submitter, cluster_directory, time_estimator=self._cluster_time_estimator, skip_completed_simulations=skip_complete)
+            self._execute_runner(args.sim, submitter, cluster_directory,
+                                 time_estimator=self._cluster_time_estimator,
+                                 skip_completed_simulations=skip_complete)
 
         elif 'copy-back' == args.cluster_mode:
             cluster.copy_back(self.algorithm_module.name, user=args.user)
@@ -599,14 +615,18 @@ class CLI(object):
                 generate_per_node_id_binary=args.generate_per_node_id_binary
             )
 
-            self._execute_runner(builder, testbed_directory, time_estimator=None, skip_completed_simulations=False)
+            self._execute_runner("real", builder, testbed_directory,
+                                 time_estimator=None,
+                                 skip_completed_simulations=False)
 
         elif 'submit' == args.testbed_mode:
             submitter = testbed.submitter()
 
             skip_complete = not args.no_skip_complete
 
-            self._execute_runner(submitter, testbed_directory, time_estimator=None, skip_completed_simulations=skip_complete)
+            self._execute_runner("real", submitter, testbed_directory,
+                                 time_estimator=None,
+                                 skip_completed_simulations=skip_complete)
 
         sys.exit(0)
 
@@ -623,7 +643,9 @@ class CLI(object):
 
             builder = Builder(cycle_accurate, platform=args.platform, max_buffer_size=args.max_buffer_size)
 
-            self._execute_runner(builder, cycle_accurate_directory, time_estimator=None, skip_completed_simulations=False)
+            self._execute_runner(args.sim, builder, cycle_accurate_directory,
+                                 time_estimator=None,
+                                 skip_completed_simulations=False)
 
         sys.exit(0)
 

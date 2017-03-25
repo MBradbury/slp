@@ -113,6 +113,11 @@ class Grapher(GrapherBase):
 
                             dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_comparison_result[data_key].get(src_period)
 
+                        else:
+                            print("Not processing {} as it is not in the min/max data:".format(data_key))
+                            for key in sorted(max_comparison_result):
+                                print("\t{}".format(key))
+
                     if baseline_results is not None:
                         dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
 

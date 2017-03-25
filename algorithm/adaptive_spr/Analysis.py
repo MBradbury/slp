@@ -17,6 +17,7 @@ class Analyzer(AnalyzerCommon):
             (('FakeSent', 'TimeTaken'), 'source_rate'),
             ('NormalSent', 'TimeTaken'),
 
+            ('energy_impact', '1'),
             ('energy_impact', 'num_nodes'),
             (('energy_impact', 'num_nodes'), 'TimeTaken'),
             ('daily_allowance_used', '1'),
@@ -51,6 +52,7 @@ class Analyzer(AnalyzerCommon):
 
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
 
+        d['energy impact']      = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,1)')
         d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,num_nodes)')
         d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
         d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
