@@ -194,6 +194,7 @@ def _energy_impact(columns, cached_cols, constants):
     cost_per_bcast_nah = 20.0
     cost_per_deliver_nah = 8.0
 
+    # Convert to mAh in result
     return (columns["Sent"] * cost_per_bcast_nah + columns["Delivered"] * cost_per_deliver_nah) / 1000000.0
 
 def _daily_allowance_used(columns, cached_cols, constants):
@@ -249,6 +250,12 @@ class Analyse(object):
         "FailedRtx": np.uint32,
         "FailedAvoidSink": np.float_,
         "TotalParentChanges": np.uint32,
+        "TFS": np.uint32,
+        "PFS": np.uint32,
+        "TailFS": np.uint32,
+        "FakeToNormal": np.uint32,
+        "FakeToFake": np.uint32,
+        "FakeNodesAtEnd": np.uint32,
     }
 
     HEADING_CONVERTERS = {
@@ -446,7 +453,11 @@ class Analyse(object):
 
                 return cached_cols[name]
 
-            normalised_values_names = [(_normalised_value_name(num, "norm"), _normalised_value_name(den, "norm")) for num, den in normalised_values]
+            normalised_values_names = [
+                (_normalised_value_name(num, "norm"), _normalised_value_name(den, "norm"))
+                for num, den
+                in normalised_values
+            ]
 
             columns_to_add = OrderedDict()
 
@@ -481,7 +492,11 @@ class Analyse(object):
                                                          args=(num, den, constants))
 
 
-            filtered_values_names = [(_normalised_value_name(num, "filtered"), _normalised_value_name(den, "filtered")) for num, den in filtered_values]
+            filtered_values_names = [
+                (_normalised_value_name(num, "filtered"), _normalised_value_name(den, "filtered"))
+                for num, den
+                in filtered_values
+            ]
 
             for (filtered_head, (num, den)) in zip(self.additional_filtered_headings, filtered_values_names):
                 
@@ -499,8 +514,14 @@ class Analyse(object):
 
             if len(columns_to_add) > 0:
                 print("Merging normalised columns with the loaded data...")
-                self.normalised_columns = pd.concat(columns_to_add, axis=1, ignore_index=True, copy=False)
-                self.normalised_columns.columns = list(columns_to_add.iterkeys())
+                self.normalised_columns = pd.DataFrame.from_dict(columns_to_add)
+
+                if __debug__:
+                    # Lets do a sanity check that the columns were merged correctly
+                    for (name, col) in columns_to_add.items():
+                        if self.normalised_columns[name][0] != col[0]:
+                            raise RuntimeError("Mismatch between {} expected {} obtained {}".format(name, col[0], self.normalised_columns[name][0]))
+
 
         print("Columns:", df.info(memory_usage='deep'))
 
@@ -827,6 +848,7 @@ class AnalyzerCommon(object):
         d['first normal sent time']= lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
         d['time after first normal']= lambda x: AnalyzerCommon._format_results(x, 'norm(time_after_first_normal,1)')
         
+        # Metrics used for profiling simulation
         d['total wall time']    = lambda x: AnalyzerCommon._format_results(x, 'TotalWallTime')
         d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
         d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')

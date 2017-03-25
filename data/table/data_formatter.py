@@ -62,6 +62,9 @@ class TableDataFormatter(object):
                 "failed avoid sink": ("Failed Avoid", "Sink (\\%)"),
                 "failed avoid sink when captured": ("Failed Avoid", "Sink (Cap) (\\%)"),
 
+                "energy impact": ("Energy", ""),
+                "energy impact per node": ("Energy", "$\\Sigma^{-1}$"),
+                "energy impact per node per second": ("Energy", "$\\Sigma^{-1}$ $s^{-1}$"),
 
                 "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
                 "norm(norm(sent,time taken),num_nodes)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
@@ -93,6 +96,8 @@ class TableDataFormatter(object):
             return latex.escape(value.replace("_APPROACH", ""))
         elif name in {"landmark node"}:
             return latex.escape(value)
+        elif name.startswith("energy impact"):
+            return "${:.5f}$".format(value[0])
         elif name in {"received ratio", "ssd", "paths reached end"}:
             return "${:.1f} \\pm {:.1f}$".format(value[0], self._convert_variance(value[1]))
         elif name in {"sent", "received", "delivered",

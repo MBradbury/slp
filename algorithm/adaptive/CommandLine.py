@@ -24,6 +24,8 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__, protectionless.result_file_path, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("--show", action="store_true", default=False)
+
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("comparison-table", self._run_comparison_table)
         subparser = self._add_argument("comparison-graph", self._run_comparison_graph)
@@ -81,12 +83,18 @@ class CLI(CommandLineCommon.CLI):
         adaptive_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=('captured', 'received ratio', #'ssd', 'attacker distance',
-                     'fake nodes at end', 'fake nodes at end when captured'))
+            results=(
+                'sent', 'delivered', 'time taken',
+                #'energy impact',
+                #'energy impact per node',
+                'energy impact per node per second',
+                'captured', 'received ratio', #'ssd', 'attacker distance',
+                'fake nodes at end', 'fake nodes at end when captured'
+            ))
 
         result_table = fake_result.ResultTable(adaptive_results)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table)
+        self._create_table(self.algorithm_module.name + "-results", result_table, show=args.show)
 
     def _run_graph(self, args):
         graph_parameters = {

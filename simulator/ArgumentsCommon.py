@@ -6,15 +6,9 @@ import simulator.Attacker as Attacker
 import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
+import simulator.sim
 
 from data import submodule_loader
-import data.cycle_accurate
-
-# Inheritance diagram for different modes:
-# TESTBED < CYCLEACCURATE
-#         < SINGLE  < PARALLEL    < CLUSTER
-#                   < GUI
-#         < OFFLINE < OFFLINE_GUI
 
 def _secure_random():
     """Returns a random 32 bit (4 byte) signed integer"""
@@ -26,112 +20,136 @@ def _secure_random():
 
     return rno
 
+def _add_safety_period(parser, **kwargs):
+    if kwargs["has_safety_period"]:
+        parser.add_argument("-safety", "--safety-period",
+                            type=ArgumentsCommon.type_positive_float,
+                            required=True)
+
+        if kwargs["has_safety_factor"]:
+            parser.add_argument("--safety-factor",
+                                type=ArgumentsCommon.type_positive_float,
+                                required=False,
+                                default=1.0)
+
+def _add_low_powered_listening(parser, **kwargs):
+    parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), required=False, default="disabled")
+    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
+    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
+    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
+
+OPTS = {
+    "configuration":       lambda x, **kwargs: x.add_argument("-c", "--configuration",
+                                                              type=str,
+                                                              required=True,
+                                                              choices=Configuration.names()),
+
+    "verbose":             lambda x, **kwargs: x.add_argument("-v", "--verbose",
+                                                              action="store_true"),
+
+    "seed":                lambda x, **kwargs: x.add_argument("--seed",
+                                                              type=int,
+                                                              required=False),
+
+    "network size":        lambda x, **kwargs: x.add_argument("-ns", "--network-size",
+                                                              type=ArgumentsCommon.type_positive_int,
+                                                              required=True),
+
+    "distance":            lambda x, **kwargs: x.add_argument("-d", "--distance",
+                                                              type=ArgumentsCommon.type_positive_float,
+                                                              default=4.5),
+
+    "node id order":       lambda x, **kwargs: x.add_argument("-nido", "--node-id-order",
+                                                              choices=("topology", "randomised"),
+                                                              default="topology"),
+
+    "safety period":       _add_safety_period,
+        
+
+    "communication model": lambda x, **kwargs: x.add_argument("-cm", "--communication-model",
+                                                              type=str,
+                                                              choices=simulator.common.available_communication_models(),
+                                                              required=True),
+
+    "noise model":         lambda x, **kwargs: x.add_argument("-nm", "--noise-model",
+                                                              type=str,
+                                                              choices=simulator.common.available_noise_models(),
+                                                              required=True),
+
+    "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
+                                                              type=Attacker.eval_input,
+                                                              required=True),
+
+    "start time":          lambda x, **kwargs: x.add_argument("-st", "--latest-node-start-time",
+                                                              type=ArgumentsCommon.type_positive_float,
+                                                              required=False,
+                                                              default=1.0,
+                                                              help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified."),
+
+    "gui node label":      lambda x, **kwargs: x.add_argument("--gui-node-label",
+                                                              type=str,
+                                                              required=False,
+                                                              default=None),
+
+    "gui scale":           lambda x, **kwargs: x.add_argument("--gui-scale",
+                                                              type=ArgumentsCommon.type_positive_int,
+                                                              required=False,
+                                                              default=6),
+
+    "job size":            lambda x, **kwargs: x.add_argument("--job-size",
+                                                              type=ArgumentsCommon.type_positive_int,
+                                                              required=True),
+
+    "thread count":        lambda x, **kwargs: x.add_argument("--thread-count",
+                                                              type=ArgumentsCommon.type_positive_int,
+                                                              default=None),
+
+    "job id":              lambda x, **kwargs: x.add_argument("--job-id",
+                                                              type=ArgumentsCommon.type_positive_int,
+                                                              default=None,
+                                                              help="Used to pass the array id when this job has been submitted as a job array to the cluster."),
+
+    "log file":            lambda x, **kwargs: x.add_argument("--log-file",
+                                                              type=str,
+                                                              required=True),
+
+    "low powered listening": _add_low_powered_listening,
+
+    "max buffer size":     lambda x, **kwargs: x.add_argument("--max-buffer-size",
+                                                              type=ArgumentsCommon.type_positive_int,
+                                                              default=255),
+}
+
 class ArgumentsCommon(object):
     def __init__(self, description, has_safety_period=False, has_safety_factor=False):
-        parser = argparse.ArgumentParser(description=description, add_help=False)
+        self._parser = argparse.ArgumentParser(description=description, add_help=False)
 
-        subparsers = parser.add_subparsers(title="mode", dest="mode")
+        self._subparsers = {}
 
-        ###
+        simparsers = self._parser.add_subparsers(title="sim", dest="sim",
+                                                 help="The tool you wish to use to run your algorithm.")
 
-        parser_testbed = subparsers.add_parser("TESTBED", add_help=True)
+        for sim in submodule_loader.list_available(simulator.sim):
 
-        parser_testbed.add_argument("-c", "--configuration", type=str, required=True, choices=Configuration.names())
+            self._subparsers[sim] = {}
 
-        parser_testbed.add_argument("-v", "--verbose", action="store_true")
+            parser_sim = simparsers.add_parser(sim, add_help=False)
 
-        ###
+            subparsers = parser_sim.add_subparsers(title="mode", dest="mode")
 
-        parser_cycle = subparsers.add_parser("CYCLEACCURATE", add_help=False, parents=(parser_testbed,))
+            sim_mode = submodule_loader.load(simulator.sim, sim)
+            for (mode, inherit, opts) in sim_mode.parsers():
 
-        parser_cycle.add_argument("--seed", type=int, required=False)
+                parents = (self._subparsers[sim][inherit],) if inherit is not None else tuple()
 
-        parser_cycle.add_argument("-ns", "--network-size", type=self.type_positive_int, required=True)
-        parser_cycle.add_argument("-d", "--distance", type=self.type_positive_float, default=4.5)
+                parser_sub = subparsers.add_parser(mode, add_help=False, parents=parents)
 
-        parser_cycle.add_argument("--node-id-order", choices=("topology", "randomised"), default="topology")
+                self._subparsers[sim][mode] = parser_sub
 
-        if has_safety_period:
-            parser_cycle.add_argument("-safety", "--safety-period", type=self.type_positive_float, required=True)
-
-            if has_safety_factor:
-                parser_cycle.add_argument("--safety-factor", type=self.type_positive_float, required=False, default=1.0)
-
-        ###
-
-        parser_single = subparsers.add_parser("SINGLE", add_help=False, parents=(parser_cycle,))
-
-        parser_single.add_argument("-cm", "--communication-model", type=str, choices=simulator.common.available_communication_models(), required=True)
-        parser_single.add_argument("-nm", "--noise-model", type=str, choices=simulator.common.available_noise_models(), required=True)
-
-        parser_single.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
-
-        parser_single.add_argument("-st", "--latest-node-start-time", type=self.type_positive_float, required=False, default=1.0,
-                                   help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified.")
-
-        ###
-
-        # The profile parser is the same as the single parser
-        # The only difference is that the code will not be rebuilt.
-        parser_profile = subparsers.add_parser("PROFILE", add_help=False, parents=(parser_single,))
-
-        ###
-
-        parser_gui = subparsers.add_parser("GUI", add_help=False, parents=(parser_single,))
-
-        parser_gui.add_argument("--gui-node-label", type=str, required=False, default=None)
-        parser_gui.add_argument("--gui-scale", type=self.type_positive_int, required=False, default=6)
-
-        ###
-
-        parser_parallel = subparsers.add_parser("PARALLEL", add_help=False, parents=(parser_single,))
-
-        parser_parallel.add_argument("--job-size", type=self.type_positive_int, required=True)
-        parser_parallel.add_argument("--thread-count", type=self.type_positive_int, default=None)
-
-        ###
-
-        parser_cluster = subparsers.add_parser("CLUSTER", add_help=False, parents=(parser_parallel,))
-
-        parser_cluster.add_argument("--job-id", type=self.type_positive_int, default=None,
-                                    help="Used to pass the array id when this job has been submitted as a job array to the cluster.")
-
-        ###
-        ###
-
-        parser_offline = subparsers.add_parser("OFFLINE", add_help=False, parents=(parser_cycle,))
-
-        parser_offline.add_argument("--merged-log", type=str, required=True)
-
-        parser_offline.add_argument("-am", "--attacker-model", type=Attacker.eval_input, required=True)
-
-        ###
-
-        parser_offline_gui = subparsers.add_parser("OFFLINE_GUI", add_help=False, parents=(parser_offline,))
-
-        parser_offline_gui.add_argument("--gui-scale", type=self.type_positive_int, required=False, default=6)
-
-        ###
-        ###
-
-        # Add extra parameters that we did not want being inherited
-
-        # Testbed and cycle accurate simulators can work with LowPowerListening, but TOSSIM doesn't
-        for sub_parser in (parser_testbed, parser_cycle):
-            sub_parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), required=False, default="disabled")
-            sub_parser.add_argument("--lpl-local-wakeup", type=self.type_positive_int, required=False, default=-1)
-            sub_parser.add_argument("--lpl-remote-wakeup", type=self.type_positive_int, required=False, default=-1)
-            sub_parser.add_argument("--lpl-delay-after-receive", type=self.type_positive_int, required=False, default=-1)
-
-        parser_cycle.add_argument("simulator", type=str, choices=submodule_loader.list_available(data.cycle_accurate))
-
-        ###
-        ###
-
-        # Store any of the parsers that we need
-        self._parser = parser
-        self._online_subparsers = (parser_testbed, parser_cycle, parser_single, parser_profile, parser_gui, parser_parallel, parser_cluster)
-        self._offline_subparsers = (parser_offline, parser_offline_gui)
+                for opt in opts:
+                    OPTS[opt](parser_sub,
+                              has_safety_period=has_safety_period,
+                              has_safety_factor=has_safety_factor)
 
         # Haven't parsed anything yet
         self.args = None
@@ -140,12 +158,12 @@ class ArgumentsCommon(object):
         self.arguments_to_hide = {"job_id", "verbose", "gui_node_label", "gui_scale", "mode", "seed", "thread_count"}
 
     def add_argument(self, *args, **kwargs):
+        for sim in self._subparsers:
+            if sim == "offline":
+                continue
 
-        # TODO: Work out a way to just add this to a single subparser and let the argument
-        # trickle down to the other subparsers.
-
-        for parser in self._online_subparsers:
-            parser.add_argument(*args, **kwargs)
+            for parser in self._subparsers[sim].values():
+                parser.add_argument(*args, **kwargs)
 
     def parse(self, argv):
         self.args = self._parser.parse_args(argv)

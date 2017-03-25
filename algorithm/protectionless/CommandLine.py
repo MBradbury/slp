@@ -21,6 +21,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("--show-stddev", action="store_true")
+        subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
@@ -64,13 +65,20 @@ class CLI(CommandLineCommon.CLI):
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=('sent', 'norm(norm(sent,time taken),num_nodes)', 'normal latency', 'ssd', 'attacker distance'))
+            results=(
+                'sent', 'delivered', 'time taken',
+                #'energy impact',
+                #'energy impact per node',
+                'energy impact per node per second',
+                'norm(norm(sent,time taken),num_nodes)',
+                'normal latency', 'ssd', 'attacker distance',
+            ))
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
         result_table = fake_result.ResultTable(protectionless_results, fmt)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table)
+        self._create_table(self.algorithm_module.name + "-results", result_table, show=args.show)
 
     def _run_graph(self, args):
         graph_parameters = {

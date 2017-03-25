@@ -166,14 +166,22 @@ class GrapherBase(object):
         names = list(names)
         values = list(values)
 
-        idx = names.index(index_name)
+        if not isinstance(index_name, (tuple, list)):
+            index_name = (index_name,)
 
-        value = values[idx]
+        value = []
 
-        del names[idx]
-        del values[idx]
+        for name in index_name:
+
+            idx = names.index(name)
+
+            value.append(values[idx])
+
+            del names[idx]
+            del values[idx]
 
         names = tuple(names)
         values = tuple(values)
+        value = value[0] if len(value) == 1 else tuple(value)
 
         return (names, values, value)
