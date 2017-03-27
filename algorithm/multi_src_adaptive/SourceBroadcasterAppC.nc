@@ -94,8 +94,12 @@ implementation
 	App.NormalSeqNos -> NormalSeqNos;
 
 	components
-		new DictionaryC(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances,
-		new DictionaryC(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
+		new DictionaryC(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SourceDistances;
+		//new DictionaryC(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as SinkSourceDistances;
 	App.SourceDistances -> SourceDistances;
-	App.SinkSourceDistances -> SinkSourceDistances;
+	//App.SinkSourceDistances -> SinkSourceDistances;
+
+	components CommonCompareC;
+	SourceDistances.Compare -> CommonCompareC;
+	//SinkSourceDistances.Compare -> CommonCompareC;
 }
