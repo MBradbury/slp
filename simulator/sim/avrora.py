@@ -13,7 +13,7 @@ except ImportError:
 
 def parsers():
     raw_single_common = ["verbose", "seed", "configuration", "network size", "distance",
-                         "node id order", "safety period",
+                         "node id order", "safety period", "start time",
                          "low powered listening",
                          "max buffer size"]
 
@@ -72,6 +72,10 @@ def avrora_command(module, a, configuration):
         slowest_source_period = a.args.source_period if isinstance(a.args.source_period, float) else a.args.source_period.slowest()
         seconds_to_run = configuration.size() * 4.0 * slowest_source_period
 
+    # The clock speed of the micaz platform being simulated
+    # See: https://github.com/ibr-cm/avrora/blob/e69e1aff28d5ab16ae41e554ddb39b7770f16373/src/avrora/sim/platform/MicaZ.java
+    micaz_clock_speed_hz = 7372800
+
     # See: http://compilers.cs.ucla.edu/avrora/help/sensor-network.html
     options = {
         "platform": "micaz",
@@ -83,6 +87,10 @@ def avrora_command(module, a, configuration):
         "topology": "static",
         "topology-file": os.path.join(target_directory, "topology.txt"),
         "random-seed": a.args.seed,
+
+        # Random start is in terms of cpu cycles,
+        # so we need to convert the seconds provided by the arguments into cycles.
+        "random-start": "[0,{}]".format(int(micaz_clock_speed_hz * a.args.latest_node_start_time)),
 
         # Needed to be able to print simdbg strings longer than 30 bytes
         "max": a.args.max_buffer_size,
@@ -96,7 +104,10 @@ def avrora_command(module, a, configuration):
         # Report time in seconds and not cycles
         # Only need a precision of 6 as python cannot handle more than that
         "report-seconds": "true",
-        "seconds-precision": "6"
+        "seconds-precision": "6",
+
+        # Performance stats, such as total cpu cycles executed
+        #"throughput": "true",
     }
 
     for (key, value) in options.items():
