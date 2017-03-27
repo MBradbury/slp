@@ -115,7 +115,7 @@ def avrora_command(module, a, configuration):
 
     target_file = os.path.join(target_directory, "main.elf")
 
-    options_string = " ".join("-{}={}".format(k,v) for (k,v) in options.items())
+    options_string = " ".join("-{}='{}'".format(k,v) for (k,v) in options.items())
 
     # Avrora is a bit crazy as it uses a one thread per node architecture
     # This is a problem when running on a cluster as we need a way to limit the number of cores being used.
@@ -123,7 +123,7 @@ def avrora_command(module, a, configuration):
     # For the time being we just use a niceness to prevent a system from freezing.
 
     # Give a niceness to allow system to continue to respond
-    command = "nice -15 java -jar {} {} {}".format(avrora_path, options_string, target_file)
+    command = "nice -15 java -jar '{}' {} {}".format(avrora_path, options_string, target_file)
 
     return command
 
