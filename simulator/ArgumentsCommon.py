@@ -37,6 +37,7 @@ def _add_low_powered_listening(parser, **kwargs):
     parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
     parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
     parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
+    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
 
 OPTS = {
     "configuration":       lambda x, **kwargs: x.add_argument("-c", "--configuration",
@@ -235,6 +236,14 @@ class ArgumentsCommon(object):
                 # See SystemLowPowerListeningP.nc for how this macro is used
                 if self.args.lpl_delay_after_receive >= 0:
                     result["DELAY_AFTER_RECEIVE"] = self.args.lpl_delay_after_receive
+
+                # See DefaultLpl.h for definition
+                #
+                # Other values than the default might be good.
+                # The following link recommends 1600
+                # See http://mail.millennium.berkeley.edu/pipermail/tinyos-help/2011-June/051478.html
+                if self.args.lpl_max_cca_checks >= 0:
+                    result["MAX_LPL_CCA_CHECKS"] = self.args.lpl_max_cca_checks
 
         return result
 
