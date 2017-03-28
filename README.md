@@ -206,14 +206,14 @@ The directories in the results directory should have names that match the algori
 
 See the options that can be provided to an algorithm:
 ```bash
-./run.py algorithm.protectionless GUI -h
+./run.py algorithm.protectionless tossim GUI -h
 ```
 
 Some example runs
 ```bash
-./run.py algorithm.protectionless GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy  -am "SeqNosReactiveAttacker()" --source-period 1
-./run.py algorithm.adaptive_spr GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy  -am "SeqNosReactiveAttacker()" --source-period 1 -safety 50 --approach PB_FIXED1_APPROACH
-./run.py algorithm.phantom GUI -c SourceCorner -ns 11 -cm ideal -nm casino-lab  -am "SeqNosReactiveAttacker()" --source-period 1 -safety 50 --walk-length 8
+./run.py algorithm.protectionless tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy  -am "SeqNosReactiveAttacker()" --source-period 1
+./run.py algorithm.adaptive_spr tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy  -am "SeqNosReactiveAttacker()" --source-period 1 -safety 50 --approach PB_FIXED1_APPROACH
+./run.py algorithm.phantom tossim GUI -c SourceCorner -ns 11 -cm ideal -nm casino-lab  -am "SeqNosReactiveAttacker()" --source-period 1 -safety 50 --walk-length 8
 ```
 
 # Running on the cluster
