@@ -85,6 +85,8 @@ class Simulation(object):
             self.tossim.addChannel("stdout", sys.stdout)
             self.tossim.addChannel("stderr", sys.stderr)
 
+        self.fault_model = args.fault_model
+        self.fault_model.setup(self)
 
         self.attackers = []
 
