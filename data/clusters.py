@@ -100,6 +100,9 @@ class ClusterCommon(object):
 
         # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
         # Don't provide a queue, as the job will be routed to the correct place.
+        
+        # %1 ensures that only a single array job will be running at a given time
+
         cluster_command = "qsub -j oe -h -t 1-{}%1 -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
             num_array_jobs, num_jobs, num_jobs * ram_per_node_mb)
 
@@ -233,6 +236,9 @@ class tinis(ClusterCommon):
 
     def submitter(self, notify_emails=None):
         return self._pbs_submitter(notify_emails=notify_emails)
+
+    def array_submitter(self, notify_emails=None):
+        return self._pbs_array_submitter(notify_emails=notify_emails)
 
 def available():
     """A list of the names of the available clusters."""
