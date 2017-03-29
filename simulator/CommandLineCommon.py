@@ -395,10 +395,21 @@ class CLI(object):
             safety_period_equivalence=self.safety_period_equivalence
         )
 
+        argument_product = self._argument_product()
+
+        argument_product_duplicates = _duplicates_in_iterable(argument_product)
+
+        if len(argument_product_duplicates) > 0:
+            from pprint import pprint
+            print("There are duplicates in your argument product, check your Parameters.py file.")
+            print("The following parameters have duplicates of them:")
+            pprint(argument_product_duplicates)
+            raise RuntimeError("There are duplicates in your argument product, check your Parameters.py file.")
+
         try:
             runner.run(self.algorithm_module.Parameters.repeats,
                        self.parameter_names(),
-                       self._argument_product(),
+                       argument_product,
                        time_estimator)
         except MissingSafetyPeriodError as ex:
             from pprint import pprint
@@ -794,3 +805,16 @@ class CLI(object):
         self._argument_handlers[args.mode](args)
 
         return args
+
+
+def _duplicates_in_iterable(iterable):
+    seen = set()
+    seen2 = set()
+    seen_add = seen.add
+    seen2_add = seen2.add
+    for item in iterable:
+        if item in seen:
+            seen2_add(item)
+        else:
+            seen_add(item)
+    return list(seen2)
