@@ -6,6 +6,7 @@ import simulator.Attacker as Attacker
 import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
+import simulator.FaultModel as FaultModel
 import simulator.sim
 
 from data import submodule_loader
@@ -80,6 +81,11 @@ OPTS = {
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
                                                               type=Attacker.eval_input,
                                                               required=True),
+
+    "fault model":         lambda x, **kwargs: x.add_argument("-fm", "--fault-model",
+                                                              type=FaultModel.eval_input,
+                                                              required=False,
+                                                              default=FaultModel.ReliableFaultModel()),
 
     "start time":          lambda x, **kwargs: x.add_argument("-st", "--latest-node-start-time",
                                                               type=ArgumentsCommon.type_positive_float,
@@ -253,25 +259,7 @@ class ArgumentsCommon(object):
         or it could be an attribute of the topology or configuration (e.g., 'sink_id')."""
         configuration = Configuration.create(self.args.configuration, self.args)
 
-        try:
-            topo_node_id = int(topo_node_id_str)
-
-            ord_node_id = configuration.topology.to_ordered_nid(topo_node_id)
-
-            if ord_node_id not in configuration.topology.nodes:
-                raise RuntimeError("The node id {} is not a valid node id".format(topo_node_id))
-
-            return topo_node_id
-
-        except ValueError:
-            attr_sources = (configuration, configuration.topology)
-            for attr_source in attr_sources:
-                if hasattr(attr_source, topo_node_id_str):
-                    ord_node_id = int(getattr(attr_source, topo_node_id_str))
-
-                    return configuration.topology.to_topo_nid(ord_node_id)
-
-            raise RuntimeError("No way to work out node from {}.".format(topo_node_id_str))
+        return configuration.get_node_id(topo_node_id_str)
 
     @staticmethod
     def type_probability(x):
