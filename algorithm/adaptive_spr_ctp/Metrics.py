@@ -9,6 +9,7 @@ class Metrics(FakeMetricsCommon, TreeMetricsCommon):
     @staticmethod
     def items():
         d = MetricsCommon.items()
+
         d["ChooseSent"]             = lambda x: x.number_sent("Choose")
         d["AwaySent"]               = lambda x: x.number_sent("Away")
         d["BeaconSent"]             = lambda x: x.number_sent("Beacon")
