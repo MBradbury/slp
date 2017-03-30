@@ -84,6 +84,10 @@ module SourceBroadcasterC
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
+
+#ifdef LOW_POWER_LISTENING
+	uses interface LowPowerListening; 
+#endif
 }
 
 implementation
@@ -310,6 +314,11 @@ implementation
 		{
 			call NodeType.init(SinkNode);
 			sink_distance = 0;
+
+			// Sink always listens
+#ifdef LOW_POWER_LISTENING
+			call LowPowerListening.setLocalWakeupInterval(0); 
+#endif
 		}
 		else
 		{

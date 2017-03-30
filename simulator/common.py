@@ -5,8 +5,8 @@ from simulator import CommunicationModel
 # The source period must come last
 global_parameter_names = ('network size', 'configuration',
                           'attacker model', 'noise model',
-                          'communication model', 'distance',
-                          'node id order',
+                          'communication model', 'fault model',
+                          'distance', 'node id order',
                           'latest node start time',
                           'source period')
 
