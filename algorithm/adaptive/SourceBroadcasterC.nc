@@ -20,7 +20,7 @@ module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
-	uses interface Random;	
+	uses interface Random;
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
@@ -355,10 +355,10 @@ implementation
 		}
 	}
 
-	USE_MESSAGE(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 	USE_MESSAGE_WITH_CALLBACK(Away);
 	USE_MESSAGE(Choose);
-	USE_MESSAGE(Fake);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Fake);
 
 	void become_Normal(void)
 	{
@@ -396,7 +396,7 @@ implementation
 
 	void decide_not_pfs_candidate(uint16_t max_hop)
 	{
-		if (first_source_distance != BOTTOM && max_hop > first_source_distance + 1)
+		if (is_pfs_candidate && first_source_distance != BOTTOM && max_hop > first_source_distance + 1)
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -710,6 +710,14 @@ implementation
 		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
+#ifdef SLP_VERBOSE_DEBUG
+		if (!should_process_choose())
+		{
+			simdbgverbose("stdout", "Dropping choose and not becoming FS because of should_process_choose() (dss=%d, ds=%d)\n",
+				min_sink_source_distance, min_source_distance);
+		}
+#endif
+
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && should_process_choose())
 		{
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
@@ -842,7 +850,7 @@ implementation
 
 	event uint32_t FakeMessageGenerator.initialStartDelay()
 	{
-		// The first fake message is to be sent a quarter way through the period.
+		// The first fake message is to be sent half way through the period.
 		// After this message is sent, all other messages are sent with an interval
 		// of the period given. The aim here is to reduce the traffic at the start and
 		// end of the TFS duration.

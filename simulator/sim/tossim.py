@@ -4,7 +4,7 @@ def parsers():
     return [
         ("SINGLE", None, ["verbose", "seed", "configuration", "network size", "distance",
                           "node id order", "safety period",
-                          "communication model", "noise model", "attacker model",
+                          "communication model", "noise model", "attacker model", "fault model",
                           "start time"]),
         ("PROFILE", "SINGLE", []),
         #("RAW", "SINGLE", ["log file"]),

@@ -186,6 +186,30 @@ class Configuration(object):
 
         return (maxx, maxy)
 
+    def get_node_id(self, topo_node_id_str):
+        """Gets the topology node id from a node id string.
+        This value could either be the topology node id as an integer,
+        or it could be an attribute of the topology or configuration (e.g., 'sink_id')."""
+        try:
+            topo_node_id = int(topo_node_id_str)
+
+            ord_node_id = self.topology.to_ordered_nid(topo_node_id)
+
+            if ord_node_id not in self.topology.nodes:
+                raise RuntimeError("The node id {} is not a valid node id".format(topo_node_id))
+
+            return topo_node_id
+
+        except ValueError:
+            attr_sources = (self, self.topology)
+            for attr_source in attr_sources:
+                if hasattr(attr_source, topo_node_id_str):
+                    ord_node_id = int(getattr(attr_source, topo_node_id_str))
+
+                    return self.topology.to_topo_nid(ord_node_id)
+
+            raise RuntimeError("No way to work out node from {}.".format(topo_node_id_str))
+
 # Coordinates are specified in topology format below
 
 class LineSinkCentre(Configuration):

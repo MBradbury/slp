@@ -854,6 +854,11 @@ class FakeMetricsCommon(MetricsCommon):
         d["FakeNodesAtEnd"]         = lambda x: x.times_node_changed_to(fake_node_types.values(), from_types="NormalNode") - \
                                                 x.times_node_changed_to("NormalNode", from_types=fake_node_types.values())
 
+        d["ReceivedFromCloserOrSameHopsFake"]  = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_closer_or_same_hops("Fake"))
+        d["ReceivedFromFurtherHopsFake"]       = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_further_hops("Fake"))
+        d["ReceivedFromCloserOrSameMetersFake"]= lambda x: MetricsCommon.smaller_dict_str(x.rcvd_closer_or_same_meters("Fake"))
+        d["ReceivedFromFurtherMetersFake"]     = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_further_meters("Fake"))
+
         return d
 
 class TreeMetricsCommon(MetricsCommon):

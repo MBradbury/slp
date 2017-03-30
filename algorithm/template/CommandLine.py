@@ -34,15 +34,16 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            parameters.attacker_models, parameters.noise_models,
+            parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.periods, parameters.temp_fake_durations,
             parameters.prs_tfs, parameters.prs_pfs
         )
 
         argument_product = [
-            (size, config, attacker, nm, cm, distance, nido, lnst, src_period, fake_period, fake_dur, pr_tfs, pr_pfs)
-            for (size, config, attacker, nm, cm, distance, nido, lnst, (src_period, fake_period), fake_dur, pr_tfs, pr_pfs)
+            (size, config, attacker, nm, cm, fm, distance, nido, lnst, src_period, fake_period, fake_dur, pr_tfs, pr_pfs)
+            for (size, config, attacker, nm, cm, fm, distance, nido, lnst, (src_period, fake_period), fake_dur, pr_tfs, pr_pfs)
             in argument_product
         ]
 
