@@ -37,8 +37,8 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
 
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("graph-versus-baseline")
+        subparser = self._add_argument("graph", self._run_graph)
+        subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -177,13 +177,3 @@ class CLI(CommandLineCommon.CLI):
                     os.path.join(self.algorithm_module.graphs_path, name),
                     os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
-
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
-
-        if 'graph-versus-baseline' == args.mode:
-            self._run_graph_versus_baseline(args)
