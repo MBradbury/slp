@@ -134,36 +134,36 @@ def _run_parallel(sim, module, a, argv):
 
 
     def runner(args):
-        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
-            try:
-                (stdoutdata, stderrdata) = process.communicate()
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            (stdoutdata, stderrdata) = process.communicate()
 
-                # Multiple processes may be attempting to write out at the same
-                # time, so this needs to be protected with a lock.
-                #
-                # Also the streams write method needs to be called directly,
-                # as print has issues with newline printing and multithreading.
+            # Multiple processes may be attempting to write out at the same
+            # time, so this needs to be protected with a lock.
+            #
+            # Also the streams write method needs to be called directly,
+            # as print has issues with newline printing and multithreading.
+            with print_lock:
+                sys.stdout.write(stdoutdata)
+                sys.stdout.flush()
+
+                sys.stderr.write(stderrdata)
+                sys.stderr.flush()
+
+            if process.returncode != 0:
+                error_message = "Bad return code {}".format(process.returncode)
                 with print_lock:
-                    sys.stdout.write(stdoutdata)
-                    sys.stdout.flush()
-
-                    sys.stderr.write(stderrdata)
+                    print(error_message, file=sys.stderr)
                     sys.stderr.flush()
+                raise RuntimeError(error_message)
 
-                if process.returncode != 0:
-                    error_message = "Bad return code {}".format(process.returncode)
-                    with print_lock:
-                        print(error_message, file=sys.stderr)
-                        sys.stderr.flush()
-                    raise RuntimeError(error_message)
-
-            except (KeyboardInterrupt, SystemExit) as ex:
-                with print_lock:
-                    print("Killing process due to {}".format(ex), file=sys.stderr)
-                    sys.stdout.flush()
-                    sys.stderr.flush()
-                process.kill()
-                raise
+        except (KeyboardInterrupt, SystemExit) as ex:
+            with print_lock:
+                print("Killing process due to {}".format(ex), file=sys.stderr)
+                sys.stdout.flush()
+                sys.stderr.flush()
+            process.kill()
+            raise
 
     new_args = convert_parallel_args_to_single(argv, sim)
 
