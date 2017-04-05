@@ -41,8 +41,12 @@ configurations = [
 
 repeats = 2000
 
+fault_models = ["ReliableFaultModel()"]
+
 attacker_models = ['SeqNosReactiveAttacker()']
 
 latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
+
+gossip_periods = [200]

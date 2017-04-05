@@ -31,9 +31,11 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            parameters.attacker_models, parameters.noise_models,
+            parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods
+            parameters.source_periods,
+            parameters.gossip_periods
         )
 
         # Factor in the number of sources when selecting the source period.

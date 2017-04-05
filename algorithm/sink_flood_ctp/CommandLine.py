@@ -21,7 +21,8 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            parameters.attacker_models, parameters.noise_models,
+            parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods
         )
@@ -33,8 +34,8 @@ class CLI(CommandLineCommon.CLI):
 
         # Provide the argument to the attacker model
         argument_product = [
-            (s, c, am.format(source_period=sp), nm, cm, d, nido, lnst, sp)
-            for (s, c, am, nm, cm, d, nido, lnst, sp)
+            (s, c, am.format(source_period=sp), nm, cm, fm, d, nido, lnst, sp)
+            for (s, c, am, nm, cm, fm, d, nido, lnst, sp)
             in argument_product
         ]
 

@@ -123,16 +123,17 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = itertools.product(
             parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+            parameters.attacker_models, parameters.noise_models,
+            parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.direction_biases, parameters.orders,
             parameters.short_counts, parameters.long_counts, parameters.wait_before_short
         )
 
         argument_product = [
-            (s, c, am, nm, cm, d, nido, lnst, sp, swl, lwl, db, o, sc, lc, wbs)
+            (s, c, am, nm, cm, fm, d, nido, lnst, sp, swl, lwl, db, o, sc, lc, wbs)
 
-            for (s, c, am, nm, cm, d, nido, lnst, sp, db, o, sc, lc, wbs) in argument_product
+            for (s, c, am, nm, cm, fm, d, nido, lnst, sp, db, o, sc, lc, wbs) in argument_product
 
             for (swl,lwl) in self._short_long_walk_lengths(s, c, am, nm, d, sp, wbs)
         ]        
