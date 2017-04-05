@@ -145,7 +145,6 @@ generic module CtpForwardingEngineP() {
     interface RootControl;
     interface CollectionId[uint8_t client];
     interface AMPacket;
-    interface Leds;
     interface Random;
 
     // This implementation has extensive debugging instrumentation.

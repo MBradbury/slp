@@ -12,7 +12,8 @@ def numpy_version():
 
 def java_version():
     try:
-        ver = subprocess.check_output("java -version 2>&1 | awk '/version/ {print $3}' | egrep -o '[^\"]*'", shell=True).strip()
+        ver = subprocess.check_output("java -version 2>&1 | awk '/version/ {print $3}' | egrep -o '[^\"]*'", shell=True)
+        ver = ver.decode("utf-8").strip()
     except subprocess.CalledProcessError:
         ver = "<unknown java version>"
 
@@ -20,7 +21,8 @@ def java_version():
 
 def slp_algorithms_version():
     try:
-        ver = subprocess.check_output("hg id -n -i -b -t", shell=True).strip()
+        ver = subprocess.check_output("hg id -n -i -b -t", shell=True)
+        ver = ver.decode("utf-8").strip()
     except subprocess.CalledProcessError:
         ver = "<unknown hg rev>"
 
@@ -28,7 +30,8 @@ def slp_algorithms_version():
 
 def tinyos_version():
     try:
-        ver = subprocess.check_output("git rev-parse HEAD", shell=True, cwd=os.environ["TOSROOT"]).strip()
+        ver = subprocess.check_output("git rev-parse HEAD", shell=True, cwd=os.environ["TOSROOT"])
+        ver = ver.decode("utf-8").strip()
     except subprocess.CalledProcessError:
         ver = "<unknown git rev>"
     except KeyError:
@@ -39,7 +42,8 @@ def tinyos_version():
 def avrora_version():
     try:
         ver = subprocess.check_output("java -jar {} -version -colors=false".format(os.environ["AVRORA_JAR_PATH"]), shell=True)
-        ver = ver.split("\n")[0].strip()
+        ver = ver.decode("utf-8").strip()
+        ver = ver.split("\n")[0]
     except subprocess.CalledProcessError:
         ver = "<unknown avrora version>"
     except KeyError:

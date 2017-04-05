@@ -1,8 +1,9 @@
 from __future__ import print_function, division
 
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict, namedtuple
 import base64
 import math
+import pickle
 import zlib
 
 # Allow missing psutil
@@ -62,9 +63,9 @@ class MetricsCommon(object):
         self.normal_latency = {}
         self.normal_hop_count = []
 
-        self.total_wall_time = 0
-        self.wall_time = 0
-        self.event_count = 0
+        self.total_wall_time = None
+        self.wall_time = None
+        self.event_count = None
 
         self.errors = Counter()
 
@@ -699,6 +700,130 @@ class MetricsCommon(object):
         else:
             return getattr(psutil.Process().memory_info(), attr)
 
+AvroraPacketSummary = namedtuple(
+    'AvroraPacketSummary',
+    ('sent_bytes', 'sent_packets', 'recv_bytes', 'recv_packets', 'corrupted_bytes', 'lost_in_middle_bytes'),
+    verbose=False)
+
+class AvroraMetricsCommon(MetricsCommon):
+    """Contains metrics specific to the Avrora simulator."""
+    def __init__(self, sim, configuration):
+        super(AvroraMetricsCommon, self).__init__(sim, configuration)
+
+        self.avrora_sim_cycles = None
+        self.avrora_packet_summary = {}
+        self.avrora_energy_summary = {}
+
+        # With colours on we can find out the bytes that got corrupted
+        # and so work out some of the summary stats on the fly.
+        # However, I'm not sure how lost_in_middle bytes are calculated.
+        # So for now, lets just ignore these metrics and use the
+        # packet summary instead
+        #self.register('AVRORA-TX', self.process_avrora_tx)
+        #self.register('AVRORA-RX', self.process_avrora_rx)
+
+        self.register('AVRORA-SIM-CYCLES', self.process_avrora_sim_cycles)
+        self.register('AVRORA-PACKET-SUMMARY', self.process_avrora_packet_summary)
+        self.register('AVRORA-ENERGY-STATS', self.process_avrora_energy_summary)
+
+    def process_avrora_tx(self, d_or_e, node_id, time, detail):
+        radio_bytes, radio_time = detail.split(',')
+
+        radio_bytes = bytearray.fromhex(radio_bytes.replace(".", " "))
+        radio_time = float(radio_time)
+
+    def process_avrora_rx(self, d_or_e, node_id, time, detail):
+        radio_bytes, radio_time = detail.split(',')
+
+        radio_bytes = bytearray.fromhex(radio_bytes.replace(".", " "))
+        radio_time = float(radio_time)
+
+    def process_avrora_sim_cycles(self, d_or_e, node_id, time, detail):
+        self.avrora_sim_cycles = int(detail)
+
+    def process_avrora_packet_summary(self, d_or_e, node_id, time, detail):
+        summary = AvroraPacketSummary(*tuple(map(int, detail.split(','))))
+
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self.avrora_packet_summary[top_node_id] = summary
+
+    def process_avrora_energy_summary(self, d_or_e, node_id, time, detail):
+        summary = pickle.loads(base64.b64decode(detail))
+
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self.avrora_energy_summary[top_node_id] = summary
+
+    def total_packet_stat(self, name):
+        return sum(getattr(stat, name) for stat in self.avrora_packet_summary.values())
+
+    def total_joules(self):
+        return sum(energy.total_joules() for energy in self.avrora_energy_summary.values())
+
+    def total_component_joules(self, component):
+        return sum(energy.components[component][0] for energy in self.avrora_energy_summary.values())
+
+    def average_cpu_state(self, state):
+        return np.mean([energy.cpu_state_percent(state) for energy in self.avrora_energy_summary.values()])
+
+    def average_cpu_low_power(self):
+        return np.mean([energy.cpu_low_power_percent() for energy in self.avrora_energy_summary.values()])
+
+    def average_radio_state(self, state):
+        return np.mean([energy.radio_state_percent(state) for energy in self.avrora_energy_summary.values()])
+
+    def average_cpu_state_joules(self, state):
+        return np.mean([energy.cpu_state_joules(state) for energy in self.avrora_energy_summary.values()])
+
+    def average_cpu_low_power_joules(self):
+        return np.mean([energy.cpu_low_power_joules() for energy in self.avrora_energy_summary.values()])
+
+    def average_radio_state_joules(self, state):
+        return np.mean([energy.radio_state_joules(state) for energy in self.avrora_energy_summary.values()])
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+
+        d["AvroraSimCycles"]               = lambda x: x.avrora_sim_cycles
+
+        d["TotalJoules"]                   = lambda x: x.total_joules()
+
+        for component in ["CPU", "Yellow", "Green", "Red", "Radio", "SensorBoard", "flash"]:
+            d["Total{}Joules".format(component)] = lambda x, component=component: x.total_component_joules(component)
+
+        # CPU and radio percent
+        d["AverageCPUActivePC"]            = lambda x: x.average_cpu_state("Active")
+        d["AverageCPUIdlePC"]              = lambda x: x.average_cpu_state("Idle")
+        d["AverageCPULowPowerPC"]          = lambda x: x.average_cpu_low_power()
+
+        d["AverageRadioTXPC"]              = lambda x: x.average_radio_state("Transmit (Tx)")
+        d["AverageRadioRXPC"]              = lambda x: x.average_radio_state("Receive (Rx)")
+        d["AverageRadioPowerIdlePC"]       = lambda x: x.average_radio_state("Idle")
+        d["AverageRadioPowerOffPC"]        = lambda x: x.average_radio_state("Power Off")
+        d["AverageRadioPowerDownPC"]       = lambda x: x.average_radio_state("Power Down")
+
+        # CPU and radio energy
+        d["AverageCPUActiveJoules"]        = lambda x: x.average_cpu_state_joules("Active")
+        d["AverageCPUIdleJoules"]          = lambda x: x.average_cpu_state_joules("Idle")
+        d["AverageCPULowPowerJoules"]      = lambda x: x.average_cpu_low_power_joules()
+
+        d["AverageRadioTXJoules"]          = lambda x: x.average_radio_state_joules("Transmit (Tx)")
+        d["AverageRadioRXJoules"]          = lambda x: x.average_radio_state_joules("Receive (Rx)")
+        d["AverageRadioPowerIdleJoules"]   = lambda x: x.average_radio_state_joules("Idle")
+        d["AverageRadioPowerOffJoules"]    = lambda x: x.average_radio_state_joules("Power Off")
+        d["AverageRadioPowerDownJoules"]   = lambda x: x.average_radio_state_joules("Power Down")
+
+        # Packet Info
+        d["TotalSentBytes"]                = lambda x: x.total_packet_stat("sent_bytes")
+        d["TotalSentPackets"]              = lambda x: x.total_packet_stat("sent_packets")
+        d["TotalRecvBytes"]                = lambda x: x.total_packet_stat("recv_bytes")
+        d["TotalRecvPackets"]              = lambda x: x.total_packet_stat("recv_packets")
+        d["TotalCorruptedBytes"]           = lambda x: x.total_packet_stat("corrupted_bytes")
+        d["TotalLostInMiddleBytes"]        = lambda x: x.total_packet_stat("lost_in_middle_bytes")
+
+        return d
 
 class FakeMetricsCommon(MetricsCommon):
     """Contains fake message techniques specified metrics."""
@@ -728,6 +853,11 @@ class FakeMetricsCommon(MetricsCommon):
         d["FakeToFake"]             = lambda x: x.times_fake_node_changed_to_fake()
         d["FakeNodesAtEnd"]         = lambda x: x.times_node_changed_to(fake_node_types.values(), from_types="NormalNode") - \
                                                 x.times_node_changed_to("NormalNode", from_types=fake_node_types.values())
+
+        d["ReceivedFromCloserOrSameHopsFake"]  = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_closer_or_same_hops("Fake"))
+        d["ReceivedFromFurtherHopsFake"]       = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_further_hops("Fake"))
+        d["ReceivedFromCloserOrSameMetersFake"]= lambda x: MetricsCommon.smaller_dict_str(x.rcvd_closer_or_same_meters("Fake"))
+        d["ReceivedFromFurtherMetersFake"]     = lambda x: MetricsCommon.smaller_dict_str(x.rcvd_further_meters("Fake"))
 
         return d
 
@@ -776,3 +906,33 @@ class TreeMetricsCommon(MetricsCommon):
         d["ParentChangeHeatMap"]           = lambda x: MetricsCommon.compressed_dict_str(x.true_parent_change_heat_map())
 
         return d
+
+
+def import_algorithm_metrics(module_name, simulator):
+    """Get the class to be used to gather metrics on the simulation.
+    This will mixin metric gathering for certain simulator tools if necessary.
+    If not, the regular metrics class will be provided."""
+    import importlib
+
+    simulator_to_mixin = {
+        "avrora": AvroraMetricsCommon,
+    }
+
+    mixin_class = simulator_to_mixin.get(simulator, None)
+
+    algo_module = importlib.import_module("{}.Metrics".format(module_name))
+
+    if mixin_class is None:
+        return algo_module.Metrics
+
+    class Metrics(algo_module.Metrics, mixin_class):
+        def __init__(self, sim, configuration):
+            super(Metrics, self).__init__(sim, configuration)
+
+        @staticmethod
+        def items():
+            d = algo_module.Metrics.items()
+            d.update(mixin_class.items())
+            return d
+
+    return Metrics

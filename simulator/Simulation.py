@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import ast
 from datetime import datetime
 from collections import namedtuple
 import heapq
@@ -13,7 +14,8 @@ import timeit
 
 import numpy as np
 
-import simulator.CommunicationModel
+import simulator.CommunicationModel as CommunicationModel
+import simulator.MetricsCommon as MetricsCommon
 
 Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
 
@@ -83,12 +85,14 @@ class Simulation(object):
             self.tossim.addChannel("stdout", sys.stdout)
             self.tossim.addChannel("stderr", sys.stderr)
 
+        self.fault_model = args.fault_model
+        self.fault_model.setup(self)
 
         self.attackers = []
 
-        metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
+        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
 
-        self.metrics = metrics_module.Metrics(self, configuration)
+        self.metrics = metrics_class(self, configuration)
 
         self.start_time = None
         self.enter_start_time = None
@@ -224,7 +228,7 @@ class Simulation(object):
 
     def setup_radio(self):
         """Creates radio links for node pairs that are in range."""
-        model = simulator.CommunicationModel.eval_input(self.communication_model)
+        model = CommunicationModel.eval_input(self.communication_model)
 
         cm = model()
         cm.setup(self)
@@ -290,7 +294,7 @@ class Simulation(object):
 
 
 class OfflineSimulation(object):
-    def __init__(self, module_name, configuration, args, log_filename):
+    def __init__(self, module_name, configuration, args, event_log):
 
         # Record the seed we are using
         self.seed = args.seed
@@ -328,12 +332,13 @@ class OfflineSimulation(object):
 
         self.configuration = configuration
 
-        metrics_module = importlib.import_module('{}.Metrics'.format(module_name))
+        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
 
-        self.metrics = metrics_module.Metrics(self, configuration)
+        self.metrics = metrics_class(self, configuration)
 
         # Record the current user's time this script started executing at
         self.start_time = None
+        self.enter_start_time = None
 
         # The times that the actual execution started and ended.
         # They are used to emulate sim_time and calculate the execution length.
@@ -343,15 +348,18 @@ class OfflineSimulation(object):
 
         self.attacker_found_source = False
 
-        self._log_file = open(log_filename, 'r')
+        self._event_log = event_log
 
-        self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+):(\d+):(.+)\s*')
+        self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.+)\s*')
 
     def __enter__(self):
+
+        self.enter_start_time = timeit.default_timer()
+
         return self
 
     def __exit__(self, tp, value, tb):
-        self._log_file.close()
+        pass
 
     def register_output_handler(self, name, function):
         self._line_handlers[name] = function
@@ -362,7 +370,10 @@ class OfflineSimulation(object):
 
     def sim_time(self):
         """Returns the current simulation time in seconds"""
-        return (self._real_end_time - self._real_start_time).total_seconds()
+        try:
+            return (self._real_end_time - self._real_start_time).total_seconds()
+        except TypeError:
+            return None
 
     def register_event_callback(self, callback, call_at_time):
         heapq.heappush(self._callbacks, (call_at_time, callback))
@@ -397,11 +408,19 @@ class OfflineSimulation(object):
     def _post_run(self, event_count):
         """Called after the simulator run loop finishes"""
 
+        current_time = timeit.default_timer()
+
         # Set the number of seconds this simulation run took.
         # It is possible that we will reach here without setting
         # start_time, so we need to look out for this.
+
         try:
-            self.metrics.wall_time = timeit.default_timer() - self.start_time
+            self.metrics.total_wall_time = current_time - self.enter_start_time
+        except TypeError:
+            self.metrics.total_wall_time = None
+
+        try:
+            self.metrics.wall_time = current_time - self.start_time
         except TypeError:
             self.metrics.wall_time = None
 
@@ -420,14 +439,14 @@ class OfflineSimulation(object):
 
         date_string, rest = line.split("|", 1)
 
-        current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f")
+        current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f") if date_string != "None" else None
 
         match = self.LINE_RE.match(rest)
         if match is not None:
             kind = match.group(1)
             log_type = match.group(2)
-            node_id = int(match.group(3))
-            node_local_time = int(match.group(4))
+            node_id = ast.literal_eval(match.group(3))
+            node_local_time = ast.literal_eval(match.group(4))
             message_line = match.group(5)
 
             return (current_time, kind, node_local_time, log_type, node_id, message_line)
@@ -445,7 +464,7 @@ class OfflineSimulation(object):
         try:
             self._pre_run()
 
-            for line in self._log_file:
+            for line in self._event_log:
 
                 result = self._parse_line(line)
 
@@ -456,10 +475,11 @@ class OfflineSimulation(object):
                 (current_time, kind, node_local_time, log_type, node_id, message_line) = result
 
                 # Record the start and stop time
-                if self._real_start_time is None:
+                if self._real_start_time is None and current_time is not None:
                     self._real_start_time = current_time
 
-                self._real_end_time = current_time
+                if current_time is not None:
+                    self._real_end_time = current_time
 
                 # Run any callbacks that happened before now
                 while len(self._callbacks) > 0:
@@ -478,7 +498,7 @@ class OfflineSimulation(object):
                     break
 
                 # Stop if the safety period has expired
-                if self._duration_start_time is not None and \
+                if self._duration_start_time is not None and current_time is not None and \
                    (current_time - self._duration_start_time).total_seconds() >= self.safety_period_value:
                     break
 
