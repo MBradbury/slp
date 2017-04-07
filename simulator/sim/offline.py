@@ -14,6 +14,7 @@ def print_version():
 
 def run_simulation(module, a, count=1, print_warnings=False):
     import copy
+    import sys
 
     import simulator.Configuration as Configuration
 
@@ -42,7 +43,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
                 sim.run()
             except Exception as ex:
                 import traceback
-                
+
                 all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
 
                 print("Killing run due to {}".format(ex), file=sys.stderr)
