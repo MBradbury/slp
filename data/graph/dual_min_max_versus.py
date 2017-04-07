@@ -3,7 +3,6 @@ from __future__ import print_function
 import os
 
 import data.util
-from data import latex
 from data.graph.dual_versus import Grapher as GrapherBase
 
 class Grapher(GrapherBase):
