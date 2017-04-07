@@ -7,7 +7,6 @@ from collections import defaultdict
 import numpy as np
 
 import data.util
-from data import latex
 from data.graph.versus import Grapher as GrapherBase
 
 class Grapher(GrapherBase):
