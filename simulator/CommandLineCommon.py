@@ -533,7 +533,7 @@ class CLI(object):
             filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
 
             self._create_table(filename, safety_period_table,
-                               param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
+                               param_filter=lambda (cm, nm, am, fm, c, d, nido, lst): nm == noise_model and cm == comm_model)
 
     def _run_error_table(self, args):
         res = results.Results(
@@ -732,10 +732,9 @@ class CLI(object):
             ).run()
 
     def _run_per_parameter_grapher(self, args):
-        import data.graph
-        from data import submodule_loader
+        import data.graph as data_graph
 
-        graph_type = submodule_loader.load(data.graph, args.grapher)
+        graph_type = submodule_loader.load(data_graph, args.grapher)
 
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
 
