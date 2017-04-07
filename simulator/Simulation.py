@@ -24,7 +24,7 @@ class Simulation(object):
 
         tossim_module = importlib.import_module('{}.TOSSIM'.format(module_name))
 
-        if load_nesc_variables:
+        if load_nesc_variables or args.fault_model.requires_nesc_variables:
             from tinyos.tossim.TossimApp import NescApp
 
             app_path = os.path.join('.', module_name.replace('.', os.sep), 'app.xml')
