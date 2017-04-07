@@ -56,10 +56,10 @@ def get_gnuplot_binary_name():
             return name
 
     if no_pdf_support:
-        raise RuntimeError("No gnuplot binary could be found that supports the pdf terminal.".format(name)) 
+        raise RuntimeError("No gnuplot binary could be found that supports the pdf terminal.") 
 
     elif version_too_old:
-        raise RuntimeError("Could not find gnuplot 5 or later. You need to install it by doing something like 'sudo apt-get install gnuplot5-nox' and adding 'non-free' to your /etc/apt/sources.list.".format(name, result))
+        raise RuntimeError("Could not find gnuplot 5 or later. You need to install it by doing something like 'sudo apt-get install gnuplot5-nox' and adding 'non-free' to your /etc/apt/sources.list.")
 
     else:
         raise RuntimeError("Could not find the gnuplot binary")
