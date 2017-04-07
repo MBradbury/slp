@@ -21,7 +21,7 @@ def main(argv):
 
     sim = submodule_loader.load(simulator.sim, a.args.sim)
 
-    if a.args.mode in ("SINGLE", "RAW", "PARALLEL"):
+    if a.args.mode in ("SINGLE", "GUI", "RAW", "PARALLEL"):
         sim.build(module, a)
 
     # Make the mode SINGLE, as PROFILE is SINGLE except for not building the code
