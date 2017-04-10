@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 
+#import sys
+
 from data.restricted_eval import restricted_eval
 
 class FaultModel(object):
@@ -46,6 +48,8 @@ class NodeCrashFaultModel(FaultModel):
     def _crash_event(self, current_time):
         node = self.sim.node_from_topology_nid(self.topo_converted_node_id)
 
+        #print("Turning off node (topo: {}, ord: {}) to simulate a crash".format(self.node_id, node.nid), file=sys.stderr)
+
         # Turn off the mote to simulate a crash
         node.tossim_node.turnOff()
 
@@ -82,9 +86,6 @@ class BitFlipFaultModel(FaultModel):
         node = self.sim.node_from_topology_nid(self.topo_converted_node_id)
         self.variable = node.tossim_node.getVariable(self.variable_name)
 
-        if self.variable.getData() == "<no such variable>":
-            raise RuntimeError("Tossim was unable to find the variable '{}'.".format(self.variable_name))
-
         # Add an event to be called
         self.sim.register_event_callback(self._flip_event, self.flip_time)
 
@@ -93,10 +94,13 @@ class BitFlipFaultModel(FaultModel):
         data = self.variable.getData()
 
         # Flip a bit in the data
-        data ^= 1
+        new_data = data ^ 1
 
         # Reassign the data
-        self.variable.setData(data)
+        self.variable.setData(new_data)
+
+        #print("Setting variable {} on {} to {} from {} simulate a bit flip".format(
+        #    self.variable_name, self.node_id, new_data, data), file=sys.stderr)
 
     def __str__(self):
         return "{}(node_id={!r}, variable_name={!r}, flip_time={})".format(
