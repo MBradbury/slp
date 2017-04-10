@@ -69,7 +69,7 @@ class CLI(object):
         cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
 
         subparser = cluster_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cluster. One set of binaries will be created per parameter combination you request.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--no-skip-complete", action="store_true")
 
         subparser = cluster_subparsers.add_parser("copy", help="Copy the built binaries for this algorithm to the cluster.")
@@ -82,7 +82,7 @@ class CLI(object):
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         subparser = cluster_subparsers.add_parser("submit", help="Use this command to submit the cluster jobs. Run this on the cluster.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--array", action="store_true", help="Submit multiple arrays jobs (experimental).")
         subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
@@ -113,14 +113,14 @@ class CLI(object):
         cycleaccurate_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
 
         subparser = cycleaccurate_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--platform", type=str, default=None)
         subparser.add_argument("--max-buffer-size", type=int, default=256)
 
         ###
 
         subparser = self._add_argument("run", self._run_run, help="Run the parameters combination specified in Parameters.py on this local machine.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--no-skip-complete", action="store_true")
 
