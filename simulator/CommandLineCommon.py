@@ -354,7 +354,46 @@ class CLI(object):
                     ).run()
 
     def _argument_product(self):
-        raise NotImplementedError()
+        # Lets do our best to implement an argument product that we can expect
+        # an algorithm to need.
+        # If they want to do special things, then they should override this argument product.
+
+        parameters = self.algorithm_module.Parameters
+
+        product_argument = []
+
+        # Some arguments are non-plural
+        non_plural_global_parameters = ["distance", "latest node start time"]
+
+        synonyms = {
+            "network size": "sizes"
+        }
+
+        def _get_global_plural_name(global_name):
+            plural_name = synonyms.get(global_name, None)
+            if plural_name is not None:
+                return plural_name
+            return global_name.replace(" ", "_") + "s"
+
+        # First lets sort out the global parameters
+        for global_name in self.global_parameter_names:
+            if global_name in non_plural_global_parameters:
+                product_argument.append([getattr(parameters, global_name.replace(" ", "_"))])
+            else:
+                product_argument.append(getattr(parameters, _get_global_plural_name(global_name)))
+
+        # Now lets process the algorithm specific parameters
+        for local_name in self.algorithm_module.local_parameter_names:
+            product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "s"))
+
+        argument_product = itertools.product(*product_argument)
+
+        # Factor in the number of sources when selecting the source period.
+        # This is done so that regardless of the number of sources the overall
+        # network's normal message generation rate is the same.
+        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+
+        return argument_product
 
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
