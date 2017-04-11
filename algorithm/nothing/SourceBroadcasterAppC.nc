@@ -36,6 +36,8 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.Packet -> ActiveMessageC;
+	App.AMPacket -> ActiveMessageC;
 
 
 	// Timers
