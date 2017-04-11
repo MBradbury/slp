@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import datetime
-import itertools
 import os
 
 import algorithm
@@ -25,25 +24,6 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
         subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graphs)
-
-    def _argument_product(self):
-        parameters = self.algorithm_module.Parameters
-
-        argument_product = itertools.product(
-            parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models,
-            parameters.communication_models, parameters.fault_models,
-            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods,
-            parameters.gossip_periods
-        )
-
-        # Factor in the number of sources when selecting the source period.
-        # This is done so that regardless of the number of sources the overall
-        # network's normal message generation rate is the same.
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
-
-        return argument_product
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm

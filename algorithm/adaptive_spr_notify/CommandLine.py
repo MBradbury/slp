@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os.path, itertools
+import os.path
 
 from simulator import CommandLineCommon
 
@@ -25,19 +25,6 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._subparsers.add_parser("comparison-table")
         subparser = self._subparsers.add_parser("min-max-versus")
         subparser = self._subparsers.add_parser("dual-min-max-versus")
-
-    def _argument_product(self):
-        parameters = self.algorithm_module.Parameters
-
-        argument_product = list(itertools.product(
-            parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models,
-            parameters.communication_models, parameters.fault_models,
-            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.approaches
-        ))
-
-        return argument_product
 
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0

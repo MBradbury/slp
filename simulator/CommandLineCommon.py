@@ -354,9 +354,11 @@ class CLI(object):
                     ).run()
 
     def _argument_product(self):
-        # Lets do our best to implement an argument product that we can expect
-        # an algorithm to need.
-        # If they want to do special things, then they should override this argument product.
+        """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
+
+        Algorithms that do anything special will need to implement this themselves.
+        """
+        # Lets do our best to implement an argument product that we can expect an algorithm to need.
 
         parameters = self.algorithm_module.Parameters
 
@@ -365,6 +367,7 @@ class CLI(object):
         # Some arguments are non-plural
         non_plural_global_parameters = ["distance", "latest node start time"]
 
+        # Some arguments are not properly named
         synonyms = {
             "network size": "sizes"
         }
