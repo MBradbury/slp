@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from collections import defaultdict
 import os
 
 import data.util
@@ -62,7 +63,8 @@ class Grapher(GrapherBase):
 
                     for (params, results) in items2.items():
 
-                        (params_names, params, xvalue) = self.remove_index(comparison_result.parameter_names, params, self.xaxis, allow_missing=True)
+                        (params_names, params, xvalue) = self.remove_index(
+                            comparison_result.parameter_names, params, self.xaxis, allow_missing=True)
 
                         yvalue_index = comparison_result.result_names.index(self.yaxis)
                         yvalue = results[yvalue_index]
@@ -89,6 +91,10 @@ class Grapher(GrapherBase):
 
                     baseline_comparison_results.setdefault(data_key, {})[src_period] = yvalue
 
+        min_max_merge_consider = defaultdict(set)
+
+        xvalues = set()
+
         # Extract the data we want to display
         for (data_key, items1) in actual_results.data.items():
             for (src_period, items2) in items1.items():
@@ -102,6 +108,8 @@ class Grapher(GrapherBase):
 
                     (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
                     (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
+
+                    xvalues.add(xvalue)
 
                     #if self.xaxis == 'network size':
                     #    xvalue = xvalue ** 2
@@ -124,13 +132,12 @@ class Grapher(GrapherBase):
                             max_value = self._get_compairson_result(max_comparison_result, data_key, src_period, xvalue)
                             min_value = self._get_compairson_result(min_comparison_result, data_key, src_period, xvalue)
 
-                            if not np.isclose(min_value, max_value):
-                                dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_value
+                            dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_value
 
-                                dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
+                            dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
 
-                            else:
-                                dat.setdefault((key_names, values), {})[(xvalue, self.min_max_same_label[i])] = min_value
+                            if np.isclose(min_value, max_value):
+                                min_max_merge_consider[(key_names, values, self.max_label[i], self.min_label[i], i)].add(xvalue)
 
                         else:
                             print("Not processing {} as it is not in the min/max data:".format(data_key))
@@ -139,6 +146,35 @@ class Grapher(GrapherBase):
 
                     if baseline_results is not None:
                         dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
+
+        # If every min/max value are close to each other, then remove both and replace with one "same" line
+        for ((key_names, values, max_label, min_label, i), this_xvalues) in min_max_merge_consider.items():
+
+            # If all xvalues are the same
+            if this_xvalues == xvalues:
+                local_dat = dat[(key_names, values)]
+
+                # The values to add using the same label
+                same_to_add = {
+                    (xvalue, self.min_max_same_label[i]): max_value
+                    for (xvalue, max_label_i), max_value in local_dat.items()
+                    if max_label == max_label_i
+                }
+
+                # The values without min or max results
+                local_dat = {
+                    (xvalue, label): value
+                    for (xvalue, label), value in local_dat.items()
+                    if label not in (max_label, min_label)
+                }
+
+                # Add back in the same labels
+                local_dat.update(same_to_add)
+
+                # Update dat
+                dat[(key_names, values)] = local_dat
+
+        #raise RuntimeError()
 
         return self._build_plots_from_dat(dat)
 
