@@ -5,6 +5,8 @@ import os
 import data.util
 from data.graph.versus import Grapher as GrapherBase
 
+import numpy as np
+
 class Grapher(GrapherBase):
     def __init__(self, output_directory,
                  result_name, xaxis, yaxis, vary, yextractor=None):
@@ -15,6 +17,7 @@ class Grapher(GrapherBase):
 
         self.max_label = 'Maximum'
         self.min_label = 'Minimum'
+        self.min_max_same_label = 'Same'
         self.comparison_label = 'Comparison'
         self.baseline_label = 'Baseline'
 
@@ -33,11 +36,17 @@ class Grapher(GrapherBase):
         baseline_comparison_results = {}
 
         # Handle the case where a single comparison result is provided
-        if not isinstance(comparison_results, list):
+        if not isinstance(comparison_results, (list, tuple)):
             comparison_results = [comparison_results]
 
+        if not isinstance(self.max_label, (list, tuple)):
             self.max_label = [self.max_label]
+
+        if not isinstance(self.min_label, (list, tuple)):
             self.min_label = [self.min_label]
+
+        if not isinstance(self.min_max_same_label, (list, tuple)):
+            self.min_max_same_label = [self.min_max_same_label]
 
         for comparison_result in comparison_results:
 
@@ -115,9 +124,13 @@ class Grapher(GrapherBase):
                             max_value = self._get_compairson_result(max_comparison_result, data_key, src_period, xvalue)
                             min_value = self._get_compairson_result(min_comparison_result, data_key, src_period, xvalue)
 
-                            dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_value
+                            if not np.isclose(min_value, max_value):
+                                dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_value
 
-                            dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
+                                dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
+
+                            else:
+                                dat.setdefault((key_names, values), {})[(xvalue, self.min_max_same_label[i])] = min_value
 
                         else:
                             print("Not processing {} as it is not in the min/max data:".format(data_key))
