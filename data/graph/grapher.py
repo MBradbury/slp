@@ -162,7 +162,7 @@ class GrapherBase(object):
             stream.write('\n')
 
     @staticmethod
-    def remove_index(names, values, index_name):
+    def remove_index(names, values, index_name, allow_missing=False):
         names = list(names)
         values = list(values)
 
@@ -173,12 +173,16 @@ class GrapherBase(object):
 
         for name in index_name:
 
-            idx = names.index(name)
+            try:
+                idx = names.index(name)
 
-            value.append(values[idx])
+                value.append(values[idx])
 
-            del names[idx]
-            del values[idx]
+                del names[idx]
+                del values[idx]
+            except:
+                if not allow_missing:
+                    raise
 
         names = tuple(names)
         values = tuple(values)

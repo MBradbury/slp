@@ -48,19 +48,23 @@ class Grapher(GrapherBase):
             for (data_key, items1) in comparison_result.data.items():
                 for (src_period, items2) in items1.items():
 
-                    local_min = None
-                    local_max = None
+                    local_min = {}
+                    local_max = {}
 
                     for (params, results) in items2.items():
+
+                        (params_names, params, xvalue) = self.remove_index(comparison_result.parameter_names, params, self.xaxis, allow_missing=True)
+
                         yvalue_index = comparison_result.result_names.index(self.yaxis)
                         yvalue = results[yvalue_index]
                         yvalue = self._value_extractor(yvalue)
 
-                        local_min = yvalue if local_min is None else min(local_min, yvalue)
-                        local_max = yvalue if local_max is None else max(local_max, yvalue)
+                        local_min[xvalue] = yvalue if xvalue not in local_min else min(local_min[xvalue], yvalue)
+                        local_max[xvalue] = yvalue if xvalue not in local_max else max(local_max[xvalue], yvalue)
 
-                    min_comparison_result.setdefault(data_key, {})[src_period] = local_min
-                    max_comparison_result.setdefault(data_key, {})[src_period] = local_max
+                    for xvalue in local_min:
+                        min_comparison_result.setdefault(data_key, {}).setdefault(src_period, {})[xvalue] = local_min[xvalue]
+                        max_comparison_result.setdefault(data_key, {}).setdefault(src_period, {})[xvalue] = local_max[xvalue]
 
             min_comparison_results.append(min_comparison_result)
             max_comparison_results.append(max_comparison_result)
@@ -108,9 +112,12 @@ class Grapher(GrapherBase):
 
                         if data_key in max_comparison_result and data_key in min_comparison_result:
 
-                            dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_comparison_result[data_key].get(src_period)
+                            max_value = self._get_compairson_result(max_comparison_result, data_key, src_period, xvalue)
+                            min_value = self._get_compairson_result(min_comparison_result, data_key, src_period, xvalue)
 
-                            dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_comparison_result[data_key].get(src_period)
+                            dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_value
+
+                            dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
 
                         else:
                             print("Not processing {} as it is not in the min/max data:".format(data_key))
@@ -121,6 +128,18 @@ class Grapher(GrapherBase):
                         dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
 
         return self._build_plots_from_dat(dat)
+
+    def _get_compairson_result(self, comparison_result, data_key, src_period, xvalue):
+        res = comparison_result[data_key].get(src_period)
+
+        # If no result for the source period, allow it to be missing
+        if res is None:
+            return None
+
+        if xvalue in res:
+            return res[xvalue]
+        else:
+            return res[tuple()]
 
     def _order_keys(self, keys):
         """Order the keys alphabetically, except for the baseline label.
