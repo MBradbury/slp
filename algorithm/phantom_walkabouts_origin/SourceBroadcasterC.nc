@@ -200,6 +200,8 @@ implementation
 
 	distance_neighbours_t neighbours;
 
+	unsigned int extra_to_send = 0;
+
 	bool busy = FALSE;
 	message_t packet;
 
@@ -592,7 +594,7 @@ implementation
 	}
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
-	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
+	USE_MESSAGE(Away);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	event void Boot.booted()
