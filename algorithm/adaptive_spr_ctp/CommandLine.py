@@ -16,6 +16,8 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("--show", action="store_true", default=False)
+
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-baseline", self._run_graph_baseline)
         subparser = self._add_argument("graph-min-max", self._run_graph_min_max)
@@ -31,14 +33,14 @@ class CLI(CommandLineCommon.CLI):
             results=(
                 #'sent', 'time taken',
                 'normal latency', 'ssd', 'captured',
-                'fake', 'received ratio', 'tfs', 'pfs', 'tailfs'
+                'fake', 'received ratio', 'tfs', 'pfs', 'tailfs',
                 #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
-                #'norm(norm(norm(sent,time taken),network size),source rate)'
+                'norm(norm(sent,time taken),network size)'
             ))
 
         result_table = fake_result.ResultTable(algo_results)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table)
+        self._create_table(self.algorithm_module.name + "-results", result_table, show=args.show)
 
     @staticmethod
     def vvalue_converter(name):
