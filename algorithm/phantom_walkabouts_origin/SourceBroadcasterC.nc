@@ -695,7 +695,6 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -715,7 +714,6 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -735,7 +733,6 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -855,7 +852,6 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -1112,7 +1108,6 @@ implementation
 
 			call Packet.clear(&packet);
 			
-			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
