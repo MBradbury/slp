@@ -12,8 +12,14 @@ class Analyzer(AnalyzerCommon):
         return (
             ('Sent', 'TimeTaken'),
             (('Sent', 'TimeTaken'), 'num_nodes'),
+            (('Sent', 'TimeTaken'), 'source_rate'),
+            ((('Sent', 'TimeTaken'), 'num_nodes'), 'source_rate'),
+
             ('FakeSent', 'TimeTaken'),
+            (('FakeSent', 'TimeTaken'), 'num_nodes'),
             (('FakeSent', 'TimeTaken'), 'source_rate'),
+            ((('FakeSent', 'TimeTaken'), 'num_nodes'), 'source_rate'),
+
             ('NormalSent', 'TimeTaken'),
 
             ('energy_impact', '1'),
@@ -48,12 +54,15 @@ class Analyzer(AnalyzerCommon):
 
         d['fake nodes at end when captured']  = lambda x: AnalyzerCommon._format_results(x, 'filtered(FakeNodesAtEnd,Captured)')
 
-
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
+        d['norm(norm(sent,time taken),source rate)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),source_rate)')
+        d['norm(norm(norm(sent,time taken),network size),source rate)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(norm(Sent,TimeTaken),num_nodes),source_rate)')
 
         d['norm(fake,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(FakeSent,TimeTaken)')
+        d['norm(norm(fake,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(FakeSent,TimeTaken),num_nodes)')
         d['norm(norm(fake,time taken),source rate)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(FakeSent,TimeTaken),source_rate)')
+        d['norm(norm(norm(fake,time taken),network size),source rate)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(norm(FakeSent,TimeTaken),num_nodes),source_rate)')
 
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
 
