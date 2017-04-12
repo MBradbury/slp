@@ -276,7 +276,7 @@ class CLI(object):
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
+                g.vary_label = "/".join(x.title() for x in vary) if isinstance(vary, tuple) else vary.title()
                 g.vary_prefix = vary_units
                 g.key_position = key_position
 
@@ -337,7 +337,7 @@ class CLI(object):
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
+                g.vary_label = "/".join(x.title() for x in vary) if isinstance(vary, tuple) else vary.title()
                 g.vary_prefix = vary_units
                 g.key_position = key_position
 
