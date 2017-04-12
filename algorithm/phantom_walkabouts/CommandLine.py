@@ -31,8 +31,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)
-        subparser = self._add_argument("graph-sf", self._run_graph_safety_factor)
-        subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
+        subparser = self._add_argument("graph-min-max", self._run_min_max_versus)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -89,6 +88,22 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_table("{}-results".format(self.algorithm_module.name), result_table)
 
+    @staticmethod
+    def vvalue_converter(name):
+        try:
+            (bias, order, short_count, long_count, wait) = name
+
+            if short_count == 1 and long_count == 0:
+                return "PW(1, 0)"
+            elif short_count == 1 and long_count == 1:
+                return "PW(1, 1)"
+            elif short_count == 1 and long_count == 2:
+                return "PW(1, 2)"
+            else:
+                return name
+        except ValueError:
+            return name
+
     def _run_graph(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
@@ -103,23 +118,12 @@ class CLI(CommandLineCommon.CLI):
 
         varying = [
             (('network size', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
+            (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
 
         custom_yaxis_range_max = {
             'received ratio': 100,
         }
-
-        def vvalue_converter(name):
-            (bias, order, short_count, long_count, wait) = name
-
-            if short_count == 1 and long_count == 0:
-                return "PW(1, 0)"
-            elif short_count == 1 and long_count == 1:
-                return "PW(1, 1)"
-            elif short_count == 1 and long_count == 2:
-                return "PW(1, 2)"
-            else:
-                return name
 
         def filter_params(all_params):
             return all_params['safety factor'] != '1.4'
@@ -129,10 +133,10 @@ class CLI(CommandLineCommon.CLI):
             source_period_normalisation="NumSources",
             results_filter=filter_params,
             vary_label='',
-            vvalue_label_converter=vvalue_converter,
+            vvalue_label_converter=self.vvalue_converter,
         )
 
-    def _run_graph_safety_factor(self, args):
+    def _run_min_max_versus(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
@@ -146,121 +150,22 @@ class CLI(CommandLineCommon.CLI):
         varying = [
             (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
-
+        
         custom_yaxis_range_max = {
-            'normal latency': 500,
-            'norm(sent,time taken)': 600,
+            #'normal latency': 500,
+            #'norm(sent,time taken)': 600,
             'received ratio': 100,
             'capture ratio': 100,
-            'utility equal': 0.8,
-            'utility animal': 0.8,
-            'utility battle': 0.8,
-
+            #'utility equal': 0.8,
+            #'utility animal': 0.8,
+            #'utility battle': 0.8,
         }
 
-        def vvalue_converter(name):
-            (bias, order, short_count, long_count, wait) = name
-
-            if short_count == 1 and long_count == 0:
-                return "PW(1, 0)"
-            elif short_count == 1 and long_count == 1:
-                return "PW(1, 1)"
-            elif short_count == 1 and long_count == 2:
-                return "PW(1, 2)"
-            else:
-                return name
-
-        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
-            source_period_normalisation="NumSources",
-            vary_label='',
-            vvalue_label_converter=vvalue_converter,
+        self._create_min_max_versus_graph(
+            [phantom_chen], None, graph_parameters, varying, custom_yaxis_range_max,
+            min_label=["Phantom - Min"],
+            max_label=["Phantom - Max"],
+            vary_label="",
+            comparison_label="PW",
+            vvalue_label_converter=self.vvalue_converter,
         )
-
-    def _run_min_max_versus(self, args):
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'utility equal': ('Utility (Equal)', 'right top'),
-            'utility animal': ('Utility (Animal)', 'right top'),
-            'utility battle': ('Utility (Battle)', 'right top'),
-        }
-        custom_yaxis_range_max = {
-            'normal latency': 500,
-            'norm(sent,time taken)': 600,
-            'received ratio': 100,
-            'capture ratio': 100,
-            'utility equal': 0.8,
-            'utility animal': 0.8,
-            'utility battle': 0.8,
-
-        }
-
-        phantom_walkabouts_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=graph_parameters.keys())
-
-        phantom_chen_results = results.Results(
-            phantom_chen.result_file_path,
-            parameters=phantom_chen.local_parameter_names,
-            results=graph_parameters.keys())
-
-        def graph_min_max_versus(result_name):
-            name = 'min-max-{}-versus-{}'.format(phantom_chen.name, result_name)
-
-            g = min_max_versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='safety factor', yaxis=result_name, vary=('direction bias', 'order', 'short count', 'long count', 'wait before short'), yextractor=scalar_extractor)
-
-            g.xaxis_label = 'Safety Factor'
-            g.yaxis_label = 'Utility'
-
-            g.key_position = graph_parameters[result_name][1]
-
-            g.yaxis_font = g.xaxis_font = "',15'"
-
-            g.nokey = True
-            #g.key_font = "',20'"
-            #g.key_spacing = "2"
-            #g.key_width = "-5.5"
-
-            g.point_size = '2'
-            g.line_width = 2
-
-            #g.min_label = 'Static - Lowest'
-            #g.max_label = 'Static - Highest'
-            #g.comparison_label = 'Dynamic'
-            g.vary_label = ''
-
-            if result_name in custom_yaxis_range_max:
-                g.yaxis_range_max = custom_yaxis_range_max[result_name]
-
-            '''
-            def vvalue_converter(name):
-                (bias, order, short_count, long_count, wait) = name
-
-            if short_count == 1 and long_count == 0:
-                return "PW(1, 0)"
-            elif short_count == 1 and long_count == 1:
-                return "PW(1, 1)"
-            elif short_count == 1 and long_count == 2:
-                return "PW(1, 2)"
-            else:
-                return name
-            '''
-
-            #g.vvalue_label_converter = vvalue_converter
-
-            g.generate_legend_graph = True
-
-            g.create(phantom_chen_results, phantom_walkabouts_results)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
-            ).run()
-
-        for result_name in graph_parameters.keys():
-            graph_min_max_versus(result_name)
