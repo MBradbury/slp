@@ -81,7 +81,6 @@ module SourceBroadcasterC
 
 	uses interface AMSend as NotifySend;
 	uses interface Receive as NotifyReceive;
-	uses interface PacketAcknowledgements as NotifyPacketAcknowledgements;
 
 	uses interface MetricLogging;
 
