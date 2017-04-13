@@ -459,13 +459,13 @@ class RHMAttacker(Attacker):
 
         self._set_next_message_count_wait()
 
-    def _clear_messages(self):
+    def _clear_messages(self, current_time):
         self._started_clear_event = True
         self._messages = []
         self._num_moves = 0
         self._set_next_message_count_wait()
 
-        # self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
+        self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
 
     def _set_next_message_count_wait(self):
         """Set the number of messages to wait for until next moving."""
@@ -474,14 +474,14 @@ class RHMAttacker(Attacker):
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
         # Start clear message event when first message is received
-        # if not self._started_clear_event:
-            # self._started_clear_event = True
-            # self._sim.register_event_callback(self._clear_messages, time + self._clear_period)
+        if not self._started_clear_event:
+            self._started_clear_event = True
+            self._sim.register_event_callback(self._clear_messages, time + self._clear_period)
 
         # Assume new period if gap between messages is long enough
-        if time - self._previous_time > self._clear_period/3:
-            self._clear_messages()
-        self._previous_time = time
+        # if time - self._previous_time > self._clear_period/3:
+            # self._clear_messages()
+        # self._previous_time = time
 
         self._messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
 
