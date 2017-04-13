@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from datetime import timedelta
 import os.path
 
 from simulator import CommandLineCommon
