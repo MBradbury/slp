@@ -320,7 +320,7 @@ class GuiSimulation(Simulation):
         self.gui = Gui(self, args.sim, node_position_scale_factor=args.gui_scale)
 
         if self._node_label is not None:
-            variables = self.nesc_app.variables.variables()[0::3]
+            variables = self.nesc_app.variables.variables()
             if self._node_label not in variables:
                 raise RuntimeError("The variable {} was not present in the list known to python {}".format(self._node_label, variables))
 
