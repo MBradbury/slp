@@ -97,7 +97,6 @@ implementation
 
 	App.NotifySend -> NotifySender;
 	App.NotifyReceive -> NotifyReceiver;
-	App.NotifyPacketAcknowledgements -> NotifySender.Acks;
 
 	components FakeMessageGeneratorP;
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
