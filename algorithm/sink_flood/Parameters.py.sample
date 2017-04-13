@@ -48,6 +48,4 @@ latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
 
-approaches = ["NO_INTERFERENCE_APPROACH", "MIN_VALID_APPROACH"] #"ALWAYS_FURTHER_APPORACH", "ALWAYS_CLOSER_APPORACH", "ALWAYS_SIDE_APPORACH",
-
 repeats = 1000

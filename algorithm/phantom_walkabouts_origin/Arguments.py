@@ -6,12 +6,6 @@ import simulator.SourcePeriodModel
 import simulator.MobilityModel
 import simulator.Configuration as Configuration
 
-def restricted_float(x):
-    x = float(x)
-    if x < 0.0 or x > 1.0:
-        raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]".format(x))
-    return x
-
 order_choices = ["LongShort", "ShortLong"]
 
 class Arguments(ArgumentsCommon):
@@ -24,23 +18,23 @@ class Arguments(ArgumentsCommon):
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
 
-        self.add_argument("--short-walk-length", type=int, required=True)
-        self.add_argument("--long-walk-length", type=int, required=True)
+        self.add_argument("--short-walk-length", type=self.type_positive_int, required=True)
+        self.add_argument("--long-walk-length", type=self.type_positive_int, required=True)
 
         self.add_argument("--wait-before-short", type=int, required=True)
 
-        self.add_argument("--direction-bias", type=restricted_float, required=False, default=0.9)
+        self.add_argument("--direction-bias", type=self.type_probability, required=False, default=0.9)
 
         self.add_argument("--order", type=str, choices=order_choices, required=True)
 
-        self.add_argument("--short-count", type=int, required=True)
-        self.add_argument("--long-count", type=int, required=True)
+        self.add_argument("--short-count", type=self.type_positive_int, required=True)
+        self.add_argument("--long-count", type=self.type_positive_int, required=True)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        result["RANDOM_WALK_HOPS"] = int(self.args.short_walk_length)
-        result["LONG_RANDOM_WALK_HOPS"] = int(self.args.long_walk_length)
+        result["RANDOM_WALK_HOPS"] = self.args.short_walk_length
+        result["LONG_RANDOM_WALK_HOPS"] = self.args.long_walk_length
 
         result["BIASED_NO"] = int(self.args.direction_bias *100)
 
@@ -56,7 +50,7 @@ class Arguments(ArgumentsCommon):
         else:
             result["SHORT_LONG_SEQUENCE"] = 0
 
-        result["SHORT_COUNT"] = int(self.args.short_count)
-        result["LONG_COUNT"] = int(self.args.long_count)
+        result["SHORT_COUNT"] = self.args.short_count
+        result["LONG_COUNT"] = self.args.long_count
 
         return result

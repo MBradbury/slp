@@ -56,10 +56,10 @@ def get_gnuplot_binary_name():
             return name
 
     if no_pdf_support:
-        raise RuntimeError("No gnuplot binary could be found that supports the pdf terminal.".format(name)) 
+        raise RuntimeError("No gnuplot binary could be found that supports the pdf terminal.") 
 
     elif version_too_old:
-        raise RuntimeError("Could not find gnuplot 5 or later. You need to install it by doing something like 'sudo apt-get install gnuplot5-nox' and adding 'non-free' to your /etc/apt/sources.list.".format(name, result))
+        raise RuntimeError("Could not find gnuplot 5 or later. You need to install it by doing something like 'sudo apt-get install gnuplot5-nox' and adding 'non-free' to your /etc/apt/sources.list.")
 
     else:
         raise RuntimeError("Could not find the gnuplot binary")
@@ -162,7 +162,7 @@ class GrapherBase(object):
             stream.write('\n')
 
     @staticmethod
-    def remove_index(names, values, index_name):
+    def remove_index(names, values, index_name, allow_missing=False):
         names = list(names)
         values = list(values)
 
@@ -173,12 +173,16 @@ class GrapherBase(object):
 
         for name in index_name:
 
-            idx = names.index(name)
+            try:
+                idx = names.index(name)
 
-            value.append(values[idx])
+                value.append(values[idx])
 
-            del names[idx]
-            del values[idx]
+                del names[idx]
+                del values[idx]
+            except:
+                if not allow_missing:
+                    raise
 
         names = tuple(names)
         values = tuple(values)

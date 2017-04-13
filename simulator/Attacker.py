@@ -8,11 +8,18 @@ from data.restricted_eval import restricted_eval
 
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
-MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon', 'Inform', 'Search', 'Change', 'EmptyNormal', 'Poll'}
+MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {
+    'DummyNormal', 'Move', 'Beacon', 'CTPBeacon',
+    'Inform', 'Search', 'Change', 'EmptyNormal', 'Poll',
+}
 
 # An attacker can detect these are not messages to follow,
 # so the attacker will ignore these messages.
-MESSAGES_TO_IGNORE = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon', 'Inform', 'Search', 'Change', 'Poll'}
+MESSAGES_TO_IGNORE = {
+    'Beacon', 'Away', 'Move', 'Choose', 'Dissem',
+    'CTPBeacon', 'Inform', 'Search', 'Change',
+    'Poll', 'Notify',
+}
 
 class Attacker(object):
     def __init__(self):
@@ -26,6 +33,8 @@ class Attacker(object):
         # Metric initialisation from here onwards
         self.steps_towards = Counter()
         self.steps_away = Counter()
+
+        self.normal_receive_time = {}
 
         self.moves_in_response_to = Counter()
 
@@ -60,19 +69,27 @@ class Attacker(object):
         if self._has_found_source:
             return False
 
-        (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
-
         node_id = int(node_id)
 
-        # Doesn't want to process this message if we are not on the correct node,
-        # or if this is a message the attacker knows to ignore
-        if self.position != node_id or msg_type in MESSAGES_TO_IGNORE:
+        # Don't want to process this message if we are not on the correct node
+        if self.position != node_id:
+            return False
+
+        (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
+
+        # Doesn't want to process this message if this is a message the attacker knows to ignore
+        if msg_type in MESSAGES_TO_IGNORE:
             return False
 
         time = float(time)
         prox_from_id = int(prox_from_id)
         ult_from_id = int(ult_from_id)
         sequence_number = int(sequence_number)
+
+        # Record the time we received this message to allow calculation
+        # of the attacker receive ratio
+        if msg_type == "Normal":
+            self.normal_receive_time[(ult_from_id, sequence_number)] = time
 
         # We get called any time a message is received anywhere,
         # so first of all filter out messages being received by any node

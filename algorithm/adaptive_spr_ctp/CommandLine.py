@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import itertools
-
 from simulator import CommandLineCommon
 
 import algorithm
@@ -18,24 +16,11 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("--show", action="store_true", default=False)
+
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-baseline", self._run_graph_baseline)
         subparser = self._add_argument("graph-min-max", self._run_graph_min_max)
-
-    def _argument_product(self):
-        parameters = self.algorithm_module.Parameters
-
-        argument_product = list(itertools.product(
-            parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models,
-            parameters.communication_models, parameters.fault_models,
-            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.approaches
-        ))
-
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
-
-        return argument_product
 
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
@@ -48,14 +33,14 @@ class CLI(CommandLineCommon.CLI):
             results=(
                 #'sent', 'time taken',
                 'normal latency', 'ssd', 'captured',
-                'fake', 'received ratio', 'tfs', 'pfs', 'tailfs'
+                'fake', 'received ratio', 'tfs', 'pfs', 'tailfs',
                 #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
-                #'norm(norm(norm(sent,time taken),network size),source rate)'
+                'norm(norm(sent,time taken),network size)'
             ))
 
         result_table = fake_result.ResultTable(algo_results)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table)
+        self._create_table(self.algorithm_module.name + "-results", result_table, show=args.show)
 
     @staticmethod
     def vvalue_converter(name):

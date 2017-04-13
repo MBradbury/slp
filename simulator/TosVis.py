@@ -336,9 +336,6 @@ class GuiSimulation(Simulation):
                     var = node.tossim_node.getVariable(self._node_label)
                     value = var.getData()
 
-                    if value == "<no such variable>":
-                        raise RuntimeError("Tossim was unable to find the variable '{}'.".format(self._node_label))
-
                     self.gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
 
 ###############################################

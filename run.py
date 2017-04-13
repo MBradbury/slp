@@ -12,7 +12,18 @@ import simulator.VersionDetection as VersionDetection
 from data import submodule_loader
 
 def main(argv):
+
+    if __debug__:
+        if len(argv) <= 1:
+            print("Please provide the algorithm module as the first parameter. (e.g., algorithm.protectionless)", file=sys.stderr)
+            return 1
+
     module = argv[1]
+
+    if __debug__:
+        if not (module.startswith('algorithm.') or module.startswith('cluster.')):
+            print("You can only run algorithms in the algorithm or cluster module.", file=sys.stderr)
+            return 2
 
     Arguments = importlib.import_module("{}.Arguments".format(module))
 
@@ -21,7 +32,7 @@ def main(argv):
 
     sim = submodule_loader.load(simulator.sim, a.args.sim)
 
-    if a.args.mode in ("SINGLE", "RAW", "PARALLEL"):
+    if a.args.mode in ("SINGLE", "GUI", "RAW", "PARALLEL"):
         sim.build(module, a)
 
     # Make the mode SINGLE, as PROFILE is SINGLE except for not building the code
@@ -235,5 +246,5 @@ def _run_parallel(sim, module, a, argv):
     return 0
 
 if __name__ == "__main__":
-    main(sys.argv)
-    sys.exit(0)
+    result = main(sys.argv)
+    sys.exit(result)

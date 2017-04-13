@@ -379,6 +379,20 @@ class MetricsCommon(object):
         
         return len(self.normal_receive_time) / (len(self.normal_sent_time) - send_modifier)
 
+    def attacker_receive_ratio(self, attacker):
+
+        if len(self.normal_sent_time) == 0:
+            return float('NaN')
+
+        return len(attacker.normal_receive_time) / len(self.normal_sent_time)
+
+    def attackers_receive_ratio(self):
+        return {
+            attacker.ident: self.attacker_receive_ratio(attacker)
+            for attacker
+            in self.sim.attackers
+        }
+
     def average_sink_source_hops(self):
         # It is possible that the sink has received no Normal messages
         if len(self.normal_hop_count) != 0:
@@ -622,6 +636,7 @@ class MetricsCommon(object):
         d["AttackerStepsTowards"]          = lambda x: x.attacker_steps_towards()
         d["AttackerStepsAway"]             = lambda x: x.attacker_steps_away()
         d["AttackerMinSourceDistance"]     = lambda x: x.attacker_min_source_distance()
+        d["AttackerReceiveRatio"]          = lambda x: x.attackers_receive_ratio()
 
         d["NormalLatency"]                 = lambda x: x.average_normal_latency()
         d["MaxNormalLatency"]              = lambda x: x.maximum_normal_latency()

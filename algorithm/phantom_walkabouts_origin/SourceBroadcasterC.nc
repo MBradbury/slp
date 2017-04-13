@@ -200,6 +200,8 @@ implementation
 
 	distance_neighbours_t neighbours;
 
+	unsigned int extra_to_send = 0;
+
 	bool busy = FALSE;
 	message_t packet;
 
@@ -592,7 +594,7 @@ implementation
 	}
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
-	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
+	USE_MESSAGE(Away);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	event void Boot.booted()
@@ -695,7 +697,6 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -715,7 +716,6 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -735,7 +735,6 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -855,7 +854,6 @@ implementation
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -1112,7 +1110,6 @@ implementation
 
 			call Packet.clear(&packet);
 			
-			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());

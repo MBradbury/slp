@@ -74,10 +74,10 @@ class CLI(CommandLineCommon.CLI):
         }
 
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
-            xaxis_font = "',16'",
-            yaxis_font = "',16'",
-            xlabel_font = "',18'",
-            ylabel_font = "',18'",
+            xaxis_font = "',18'",
+            yaxis_font = "',18'",
+            xlabel_font = "',17'",
+            ylabel_font = "',17'",
             line_width = 3,
             point_size = 2,
             nokey = True,

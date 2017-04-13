@@ -375,11 +375,11 @@ implementation
 		return 75U + (uint32_t)(50U * random_float());
 	}
 
-	USE_MESSAGE(Normal);
-	USE_MESSAGE_WITH_CALLBACK(Away);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
+	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Away);
 	USE_MESSAGE(Choose);
-	USE_MESSAGE(Fake);
-	USE_MESSAGE(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Fake);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	void become_Normal(void)
 	{
@@ -906,7 +906,8 @@ implementation
 			return get_tfs_period();
 
 		default:
-			ERROR_OCCURRED(ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE, "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
+			ERROR_OCCURRED(ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE,
+				"Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
 			return 0;
 		}
 	}

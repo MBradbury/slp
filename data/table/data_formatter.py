@@ -67,8 +67,8 @@ class TableDataFormatter(object):
                 "energy impact per node per second": ("Energy", "$\\Sigma^{-1}$ $s^{-1}$"),
 
                 "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
-                "norm(norm(sent,time taken),num_nodes)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
-                "norm(norm(norm(sent,time taken),num_nodes),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
+                "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
+                "norm(norm(norm(sent,time taken),network size),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
             }[name]
         except KeyError as ex:
             print("Failed to find the name '{}'. Using default. : {}".format(name, ex), file=sys.stderr)
