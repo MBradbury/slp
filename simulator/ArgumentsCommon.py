@@ -129,7 +129,7 @@ OPTS = {
 
 class ArgumentsCommon(object):
     def __init__(self, description, has_safety_period=False, has_safety_factor=False):
-        self._parser = argparse.ArgumentParser(description=description, add_help=False)
+        self._parser = argparse.ArgumentParser(description=description, add_help=True)
 
         self._subparsers = {}
 
@@ -140,9 +140,10 @@ class ArgumentsCommon(object):
 
             self._subparsers[sim] = {}
 
-            parser_sim = simparsers.add_parser(sim, add_help=False)
+            parser_sim = simparsers.add_parser(sim, add_help=True)
 
-            subparsers = parser_sim.add_subparsers(title="mode", dest="mode")
+            subparsers = parser_sim.add_subparsers(title="mode", dest="mode",
+                                                   help="The mode you wish to run the simulation in.")
 
             sim_mode = submodule_loader.load(simulator.sim, sim)
             for (mode, inherit, opts) in sim_mode.parsers():

@@ -33,9 +33,9 @@ def tinyos_version():
         ver = subprocess.check_output("git rev-parse HEAD", shell=True, cwd=os.environ["TOSROOT"])
         ver = ver.decode("utf-8").strip()
     except subprocess.CalledProcessError:
-        ver = "<unknown git rev>"
+        ver = "<unknown tinyos git rev>"
     except KeyError:
-        ver = "<unknown tinyos dir>"
+        ver = "<unknown tinyos path>"
 
     return ver
 
@@ -48,5 +48,16 @@ def avrora_version():
         ver = "<unknown avrora version>"
     except KeyError:
         ver = "<unknown avrora path>"
+
+    return ver
+
+def contiki_version():
+    try:
+        ver = subprocess.check_output("git describe --tags --always ; git rev-parse HEAD", shell=True, cwd=os.environ["CONTIKI"])
+        ver = ver.decode("utf-8").strip().replace("\n", " ")
+    except subprocess.CalledProcessError:
+        ver = "<unknown contiki git rev>"
+    except KeyError:
+        ver = "<unknown contiki path>"
 
     return ver

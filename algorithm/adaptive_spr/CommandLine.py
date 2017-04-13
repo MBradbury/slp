@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 from datetime import timedelta
-import itertools
 import os.path
 
 from simulator import CommandLineCommon
@@ -32,19 +31,6 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("comparison-table", self._run_comparison_table)
         subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
         subparser = self._add_argument("dual-min-max-versus", self._run_dual_min_max_versus)
-
-    def _argument_product(self):
-        parameters = self.algorithm_module.Parameters
-
-        argument_product = list(itertools.product(
-            parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models,
-            parameters.communication_models, parameters.fault_models,
-            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.approaches
-        ))
-
-        return argument_product
 
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
@@ -144,7 +130,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-#            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
 #            'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
 #            'normal': ('Normal Messages Sent', 'left top'),
@@ -154,10 +140,10 @@ class CLI(CommandLineCommon.CLI):
 #            'tfs': ('Number of TFS Created', 'left top'),
 #            'pfs': ('Number of PFS Created', 'left top'),
             'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            #'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             #'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
-            #'norm(norm(fake,time taken),network size)': ('Fake Messages Sent er second per node', 'left top'),
+            'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
 #            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
 #            'norm(norm(fake,time taken),source rate)': ('~', 'left top'),
 #            #'energy impact per node': ('Energy Impact per Node (mAh)', 'left top'),
@@ -166,17 +152,12 @@ class CLI(CommandLineCommon.CLI):
         }
 
         custom_yaxis_range_max = {
-            'fake': 600000,
-            'captured': 20,
+            'captured': 10,
             'received ratio': 100,
-            'attacker distance': 120,
+            'attacker distance': 140,
             'normal latency': 200,
-            'pfs': 30,
-            'tfs': 500,
-            'norm(sent,time taken)': 12000,
-            'norm(fake,time taken)': 12000,
-            'norm(normal,time taken)': 3500,
-            'ssd': 30,
+            'norm(norm(sent,time taken),network size)': 15,
+            'norm(norm(fake,time taken),network size)': 15,
             #'energy impact per node per second': 0.0003,
             #'energy allowance used': 100,
         }
@@ -211,9 +192,17 @@ class CLI(CommandLineCommon.CLI):
         def graph_min_max_versus(result_name, xaxis):
             name = 'min-max-{}-versus-{}-{}'.format(adaptive.name, result_name, xaxis)
 
+            if result_name == "attacker distance":
+                # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
+                def yextractor(yvalue):
+                    print(yvalue)
+                    return scalar_extractor(yvalue)[(0, 0)]
+            else:
+                yextractor = scalar_extractor
+
             g = min_max_versus.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis=xaxis, yaxis=result_name, vary='approach', yextractor=scalar_extractor)
+                xaxis=xaxis, yaxis=result_name, vary='approach', yextractor=yextractor)
 
             g.xaxis_label = xaxis.title()
             g.yaxis_label = graph_parameters[result_name][0]
@@ -221,7 +210,7 @@ class CLI(CommandLineCommon.CLI):
 
             g.yaxis_font = g.xaxis_font = "',15'"
 
-            #g.nokey = True
+            g.nokey = True
             #g.key_font = "',20'"
             #g.key_spacing = "2"
             #g.key_width = "+6"

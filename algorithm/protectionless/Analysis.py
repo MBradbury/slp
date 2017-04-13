@@ -43,8 +43,11 @@ class Analyzer(AnalyzerCommon):
         return (
             ('Sent', 'TimeTaken'),
             (('Sent', 'TimeTaken'), 'num_nodes'),
+            (('Sent', 'TimeTaken'), 'source_rate'),
+            ((('Sent', 'TimeTaken'), 'num_nodes'), 'source_rate'),
 
             ('NormalSent', 'TimeTaken'),
+
             ('TimeTaken', 'source_period'),
 
             ('energy_impact', '1'),
@@ -89,6 +92,8 @@ class Analyzer(AnalyzerCommon):
 
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
+        d['norm(norm(sent,time taken),source rate)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),source_rate)')
+        d['norm(norm(norm(sent,time taken),network size),source rate)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(norm(Sent,TimeTaken),num_nodes),source_rate)')
 
         d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
         d['norm(time taken,source period)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(TimeTaken,source_period)')

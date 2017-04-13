@@ -1,10 +1,10 @@
 from __future__ import print_function
 
 import datetime
-import itertools
 import os
 
 import algorithm
+protectionless = algorithm.import_algorithm("protectionless")
 
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
@@ -21,29 +21,10 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("--show-stddev", action="store_true")
+        subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("graph", self._run_graph)
-        subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
-        subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graphs)
-
-    def _argument_product(self):
-        parameters = self.algorithm_module.Parameters
-
-        argument_product = itertools.product(
-            parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models,
-            parameters.communication_models, parameters.fault_models,
-            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods,
-            parameters.gossip_periods
-        )
-
-        # Factor in the number of sources when selecting the source period.
-        # This is done so that regardless of the number of sources the overall
-        # network's normal message generation rate is the same.
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
-
-        return argument_product
+        subparser = self._add_argument("graph-baseline", self._run_graph_baseline)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -66,117 +47,55 @@ class CLI(CommandLineCommon.CLI):
         protectionless_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=('sent', 'norm(norm(sent,time taken),num_nodes)', 'normal latency', 'ssd', 'attacker distance'))
+            results=('sent', 'norm(norm(sent,time taken),network size)', 'normal latency', 'captured', 'received ratio'))
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
         result_table = fake_result.ResultTable(protectionless_results, fmt)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table)
+        self._create_table(self.algorithm_module.name + "-results", result_table, show=args.show)
 
     def _run_graph(self, args):
         graph_parameters = {
-            'time taken': ('Time Taken (seconds)', 'left top'),
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            #'good move ratio': ('Good Move Ratio (%)', 'right top'),
-            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
+            'attacker distance': ('Meters', 'left top'),
+            'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per node per second', 'right top'),
         }
 
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation="NumSources")
-
         varying = [
-            ("source period", " seconds"),
-            ("communication model", "~")
+            (('network size', ''), ('source period', ' seconds')),
+            #(('network size', ''), ('communication model', '~')),
         ]
 
-        error_bars = set() # {'received ratio', 'good move ratio', 'norm(norm(sent,time taken),num_nodes)'}
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
 
-        for (vary, vary_prefix) in varying:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "_"))
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max)
 
-                g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
+    def _run_graph_baseline(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'attacker distance': ('Meters', 'left top'),
+            'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per node per second', 'right top'),
+        }
 
-                #g.generate_legend_graph = True
+        varying = [
+            (('network size', ''), ('source period', ' seconds')),
+        ]
 
-                g.xaxis_label = 'Network Size'
-                g.vary_label = vary.title()
-                g.vary_prefix = vary_prefix
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
 
-                g.error_bars = yaxis in error_bars
-
-                #g.nokey = True
-                g.key_position = key_position
-
-                g.create(protectionless_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
-                ).run()
-
-    def _run_ccpe_comparison_table(self, args):
-        from data.old_results import OldResults
-
-        old_results = OldResults(
-            'results/CCPE/protectionless-results.csv',
-            parameters=tuple(),
-            results=('time taken', 'received ratio', 'safety period')
-        )
-
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=('time taken', 'received ratio', 'safety period')
-        )
-
-        result_table = direct_comparison.ResultTable(old_results, protectionless_results)
-
-        self._create_table('{}-ccpe-comparison'.format(self.algorithm_module.name), result_table)
-
-    def _run_ccpe_comparison_graphs(self, args):
-        from data.old_results import OldResults
-
-        result_names = ('time taken', 'received ratio', 'safety period')
-
-        old_results = OldResults(
-            'results/CCPE/protectionless-results.csv',
-            parameters=self.algorithm_module.local_parameter_names,
-            results=result_names
-        )
-
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=result_names
-        )
-
-        result_table = direct_comparison.ResultTable(old_results, protectionless_results)
-
-        def create_ccpe_comp_versus(yxaxis, pc=False):
-            name = 'ccpe-comp-{}-{}'.format(yxaxis, "pcdiff" if pc else "diff")
-
-            versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yxaxis, vary='source period',
-                yextractor=lambda (diff, pcdiff): pcdiff if pc else diff
-            ).create(result_table)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
-            ).run()
-
-        for result_name in result_names:
-            create_ccpe_comp_versus(result_name, pc=True)
-            create_ccpe_comp_versus(result_name, pc=False)
+        self._create_baseline_versus_graph(protectionless, graph_parameters, varying, custom_yaxis_range_max)

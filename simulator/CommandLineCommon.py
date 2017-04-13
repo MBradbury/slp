@@ -69,7 +69,7 @@ class CLI(object):
         cluster_subparsers = subparser.add_subparsers(title="cluster mode", dest="cluster_mode")
 
         subparser = cluster_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cluster. One set of binaries will be created per parameter combination you request.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--no-skip-complete", action="store_true")
 
         subparser = cluster_subparsers.add_parser("copy", help="Copy the built binaries for this algorithm to the cluster.")
@@ -82,7 +82,7 @@ class CLI(object):
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         subparser = cluster_subparsers.add_parser("submit", help="Use this command to submit the cluster jobs. Run this on the cluster.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--array", action="store_true", help="Submit multiple arrays jobs (experimental).")
         subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
@@ -113,14 +113,14 @@ class CLI(object):
         cycleaccurate_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
 
         subparser = cycleaccurate_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--platform", type=str, default=None)
         subparser.add_argument("--max-buffer-size", type=int, default=256)
 
         ###
 
         subparser = self._add_argument("run", self._run_run, help="Run the parameters combination specified in Parameters.py on this local machine.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim))
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("--no-skip-complete", action="store_true")
 
@@ -276,7 +276,7 @@ class CLI(object):
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
+                g.vary_label = "/".join(x.title() for x in vary) if isinstance(vary, tuple) else vary.title()
                 g.vary_prefix = vary_units
                 g.key_position = key_position
 
@@ -337,7 +337,7 @@ class CLI(object):
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
+                g.vary_label = "/".join(x.title() for x in vary) if isinstance(vary, tuple) else vary.title()
                 g.vary_prefix = vary_units
                 g.key_position = key_position
 
@@ -354,7 +354,52 @@ class CLI(object):
                     ).run()
 
     def _argument_product(self):
-        raise NotImplementedError()
+        """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
+
+        Algorithms that do anything special will need to implement this themselves.
+        """
+        # Lets do our best to implement an argument product that we can expect an algorithm to need.
+
+        parameters = self.algorithm_module.Parameters
+
+        product_argument = []
+
+        # Some arguments are non-plural
+        non_plural_global_parameters = ["distance", "latest node start time"]
+
+        # Some arguments are not properly named
+        synonyms = {
+            "network size": "sizes"
+        }
+
+        def _get_global_plural_name(global_name):
+            plural_name = synonyms.get(global_name, None)
+            if plural_name is not None:
+                return plural_name
+            return global_name.replace(" ", "_") + "s"
+
+        # First lets sort out the global parameters
+        for global_name in self.global_parameter_names:
+            if global_name in non_plural_global_parameters:
+                product_argument.append([getattr(parameters, global_name.replace(" ", "_"))])
+            else:
+                product_argument.append(getattr(parameters, _get_global_plural_name(global_name)))
+
+        # Now lets process the algorithm specific parameters
+        for local_name in self.algorithm_module.local_parameter_names:
+            try:
+                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "s"))
+            except AttributeError:
+                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "es"))
+
+        argument_product = itertools.product(*product_argument)
+
+        # Factor in the number of sources when selecting the source period.
+        # This is done so that regardless of the number of sources the overall
+        # network's normal message generation rate is the same.
+        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+
+        return argument_product
 
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
@@ -533,7 +578,7 @@ class CLI(object):
             filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
 
             self._create_table(filename, safety_period_table,
-                               param_filter=lambda (cm, nm, am, c, d, nido, lst): nm == noise_model and cm == comm_model)
+                               param_filter=lambda (cm, nm, am, fm, c, d, nido, lst): nm == noise_model and cm == comm_model)
 
     def _run_error_table(self, args):
         res = results.Results(
@@ -732,10 +777,9 @@ class CLI(object):
             ).run()
 
     def _run_per_parameter_grapher(self, args):
-        import data.graph
-        from data import submodule_loader
+        import data.graph as data_graph
 
-        graph_type = submodule_loader.load(data.graph, args.grapher)
+        graph_type = submodule_loader.load(data_graph, args.grapher)
 
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
 

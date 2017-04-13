@@ -1,10 +1,13 @@
 from __future__ import division, print_function
 
+#import sys
+
 from data.restricted_eval import restricted_eval
 
 class FaultModel(object):
-    def __init__(self):
+    def __init__(self, requires_nesc_variables=False):
         self.sim = None
+        self.requires_nesc_variables = requires_nesc_variables
 
     def setup(self, sim):
         self.sim = sim
@@ -45,13 +48,63 @@ class NodeCrashFaultModel(FaultModel):
     def _crash_event(self, current_time):
         node = self.sim.node_from_topology_nid(self.topo_converted_node_id)
 
+        #print("Turning off node (topo: {}, ord: {}) to simulate a crash".format(self.node_id, node.nid), file=sys.stderr)
+
         # Turn off the mote to simulate a crash
         node.tossim_node.turnOff()
 
-        #print("M-FM:{},{},{}".format(self.topo_converted_node_id, node.nid, current_time))
+    def __str__(self):
+        return "{}(node_id={!r}, crash_time={})".format(type(self).__name__, self.node_id, self.crash_time)
+
+class BitFlipFaultModel(FaultModel):
+    """This model will flip a bit in the specified variable on the specified node at the specified time."""
+    def __init__(self, node_id, variable_name, flip_time):
+        super(BitFlipFaultModel, self).__init__(requires_nesc_variables=True)
+
+        # The node on which to flip a bit, this may be a string representing a landmark node
+        self.node_id = node_id
+
+        self.variable_name = variable_name
+
+        # The node converted to a topology node id
+        self.topo_converted_node_id = None
+
+        self.variable = None
+
+        # The time at which to flip the bit
+        self.flip_time = flip_time
+
+    def setup(self, sim):
+        super(BitFlipFaultModel, self).setup(sim)
+
+        # convert the provided node id to a topology node id.
+        # For example the node_id might be 'sink_id', this will convert it
+        # to the correct id.
+        self.topo_converted_node_id = sim.configuration.get_node_id(self.node_id)
+
+        # Check the variable name is correct
+        node = self.sim.node_from_topology_nid(self.topo_converted_node_id)
+        self.variable = node.tossim_node.getVariable(self.variable_name)
+
+        # Add an event to be called
+        self.sim.register_event_callback(self._flip_event, self.flip_time)
+
+    def _flip_event(self, current_time):
+        # Get the data
+        data = self.variable.getData()
+
+        # Flip a bit in the data
+        new_data = data ^ 1
+
+        # Reassign the data
+        self.variable.setData(new_data)
+
+        #print("Setting variable {} on {} to {} from {} simulate a bit flip".format(
+        #    self.variable_name, self.node_id, new_data, data), file=sys.stderr)
 
     def __str__(self):
-        return type(self).__name__ + "(node_id={!r}, crash_time={})".format(self.node_id, self.crash_time)
+        return "{}(node_id={!r}, variable_name={!r}, flip_time={})".format(
+            type(self).__name__, self.node_id, self.variable_name, self.flip_time)
 
 def models():
     """A list of the available models."""

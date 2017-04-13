@@ -88,10 +88,10 @@ class Results(object):
         return network_size
 
 
-    def _read_results(self, result_file, results_filter, source_period_normalisation, network_size_normalisation):
-        with open(result_file, 'r') as f:
+    def _read_results(self, result_path, results_filter, source_period_normalisation, network_size_normalisation):
+        with open(result_path, 'r') as result_file:
 
-            reader = csv.reader(f, delimiter='|')
+            reader = csv.reader(result_file, delimiter='|')
             
             reader_iter = iter(reader)
 
@@ -118,7 +118,7 @@ class Results(object):
                     all_params.update(dvalues)
 
                     if results_filter(all_params):
-                        #print("Filtering from ", result_file , ": ", all_params)
+                        #print("Filtering from ", result_path , ": ", all_params)
                         continue
 
                 for param in self.global_parameter_names:

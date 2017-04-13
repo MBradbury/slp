@@ -216,6 +216,20 @@ Some example runs
 ./run.py algorithm.phantom tossim GUI -c SourceCorner -ns 11 -cm ideal -nm casino-lab  -am "SeqNosReactiveAttacker()" --source-period 1 -safety 50 --walk-length 8
 ```
 
+An example run with a bit flip fault model. Note that we expect the simulation to do nothing after
+this point, as the source node has its busy flag flipped to true.
+```bash
+./run.py algorithm.protectionless tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy --source-period 1 -am "SeqNosReactiveAttacker()" -nido randomised -fm "BitFlipFaultModel(0, 'SourceBroadcasterC.busy', 2)"
+```
+
+We might also want to test with crashes that can be done like so.
+Note that in this example we have used the string 'top_right' to specify the top right node's id.
+Other landmark node names can be used in this fashion.
+```bash
+run.py algorithm.protectionless tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy --source-period 1 -am "SeqNosReactiveAttacker()" -nido randomised -fm "NodeCrashFaultModel(12, 5)"
+run.py algorithm.protectionless tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy --source-period 1 -am "SeqNosReactiveAttacker()" -nido randomised -fm "NodeCrashFaultModel('top_right', 5)"
+```
+
 # Running on the cluster
 
 In order to run your code on the cluster you will first need to checkout the files as described above.

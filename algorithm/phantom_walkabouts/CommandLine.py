@@ -13,12 +13,14 @@ from simulator import Configuration
 import algorithm
 
 #import algorithm.protectionless as protectionless
+import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
+phantom_chen = algorithm.import_algorithm("phantom_chen")
 
 from data import results
 
 from data.table import safety_period, fake_result
-from data.graph import summary, versus
+from data.graph import summary, versus, min_max_versus
 from data.util import scalar_extractor
 
 from data.run.common import RunSimulationsCommon
@@ -29,7 +31,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)
-        subparser = self._add_argument("graph-sf", self._run_graph_safety_factor)
+        subparser = self._add_argument("graph-min-max", self._run_min_max_versus)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -86,6 +88,22 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_table("{}-results".format(self.algorithm_module.name), result_table)
 
+    @staticmethod
+    def vvalue_converter(name):
+        try:
+            (bias, order, short_count, long_count, wait) = name
+
+            if short_count == 1 and long_count == 0:
+                return "PW(1, 0)"
+            elif short_count == 1 and long_count == 1:
+                return "PW(1, 1)"
+            elif short_count == 1 and long_count == 2:
+                return "PW(1, 2)"
+            else:
+                return name
+        except ValueError:
+            return name
+
     def _run_graph(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
@@ -100,6 +118,7 @@ class CLI(CommandLineCommon.CLI):
 
         varying = [
             (('network size', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
+            (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
 
         custom_yaxis_range_max = {
@@ -112,26 +131,41 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
             source_period_normalisation="NumSources",
-            results_filter=filter_params
+            results_filter=filter_params,
+            vary_label='',
+            vvalue_label_converter=self.vvalue_converter,
         )
 
-    def _run_graph_safety_factor(self, args):
+    def _run_min_max_versus(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (seconds)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'utility equal': ('Utility (Equal)', 'right top'),
+            'utility animal': ('Utility (Animal)', 'right top'),
+            'utility battle': ('Utility (Battle)', 'right top'),
         }
 
         varying = [
-            (('safety factor', ''), ('network size', '')),
+            (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
-
+        
         custom_yaxis_range_max = {
+            #'normal latency': 500,
+            #'norm(sent,time taken)': 600,
             'received ratio': 100,
             'capture ratio': 100,
+            #'utility equal': 0.8,
+            #'utility animal': 0.8,
+            #'utility battle': 0.8,
         }
 
-        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
-            source_period_normalisation="NumSources"
+        self._create_min_max_versus_graph(
+            [phantom_chen], None, graph_parameters, varying, custom_yaxis_range_max,
+            min_label=["Phantom - Min"],
+            max_label=["Phantom - Max"],
+            vary_label="",
+            comparison_label="PW",
+            vvalue_label_converter=self.vvalue_converter,
         )
