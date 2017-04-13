@@ -387,7 +387,10 @@ class CLI(object):
 
         # Now lets process the algorithm specific parameters
         for local_name in self.algorithm_module.local_parameter_names:
-            product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "s"))
+            try:
+                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "s"))
+            except AttributeError:
+                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "es"))
 
         argument_product = itertools.product(*product_argument)
 
