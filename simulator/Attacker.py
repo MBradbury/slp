@@ -482,7 +482,7 @@ class RHMAttacker(Attacker):
         can_move = self._num_moves < self._moves_per_period
 
         # Have we waited for enough messages
-        choose_move = len(self._messages) == self._next_message_count_wait
+        choose_move = len(self._messages) >= self._next_message_count_wait
 
         if can_move and choose_move:
             filtered_message = [
@@ -490,7 +490,7 @@ class RHMAttacker(Attacker):
                 for (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
                 in self._messages
 
-                if node_id not in self._history
+                if prox_from_id not in self._history
             ]
 
             # If there are no possible moves, then do not move
