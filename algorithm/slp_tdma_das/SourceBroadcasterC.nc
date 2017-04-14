@@ -589,6 +589,7 @@ implementation
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         const uint32_t now = call LocalTime.get();
+        METRIC_START_PERIOD();
         period_counter++;
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(period_counter == get_search_period_count())
