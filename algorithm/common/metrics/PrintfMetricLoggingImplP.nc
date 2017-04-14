@@ -115,6 +115,11 @@ implementation
 		simdbg("M-NSC", "%" PRIu16 ",%" PRIu16 "\n", old_slot, new_slot);
 	}
 
+    command void MetricLogging.log_metric_start_period()
+    {
+        simdbg("M-SP", "\n");
+    }
+
 	//##########Tree based routing##########
 	command void MetricLogging.log_metric_parent_change(
 		am_addr_t old_parent,
