@@ -268,6 +268,7 @@ implementation
     event bool TDMA.dissem_fired()
     {
         const uint32_t now = call LocalTime.get();
+        METRIC_START_PERIOD();
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_slot_period() * random_float()));
         return TRUE;
