@@ -26,6 +26,36 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbgverbose("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
+#define SIMULATED_CRASH 0
+#if TOSSIM && SIMULATED_CRASH
+char simulated_crash_search_or_change = ' ';
+uint16_t simulated_crash_node_index = UINT16_MAX;
+#define SETUP_SIMULATE_CRASH() \
+    if(call NodeType.is_node_sink()) { \
+        simulated_crash_search_or_change = (random_float() < ((float)get_search_dist()/(float)(get_search_dist()+get_change_length()))) ? 's' : 'c'; \
+        simulated_crash_node_index = (simulated_crash_search_or_change == 's') ? (int)(1 + random_float()*(get_search_dist()-1)) : (int)(random_float()*(get_change_length())); \
+    }
+
+#define SIMULATE_CRASH_SEARCH() \
+    if(simulated_crash_search_or_change == 's') { \
+        if(rcvd->dist == simulated_crash_node_index) { \
+            simulated_crash = TRUE; \
+        } \
+    }
+
+#define SIMULATE_CRASH_CHANGE() \
+    if(simulated_crash_search_or_change == 'c') { \
+        if(rcvd->len_d == simulated_crash_node_index) { \
+            simulated_crash = TRUE; \
+        } \
+    }
+#else
+#define SETUP_SIMULATE_CRASH()
+#define SIMULATE_CRASH_SEARCH()
+#define SIMULATE_CRASH_CHANGE()
+#endif /* SIMULATED_CRASH */
+
+
 //Distance search messages travel from sink
 //Search + Change < Sink-Source Distance - 2
 
@@ -79,6 +109,10 @@ module SourceBroadcasterC
 
 implementation
 {
+#if SIMULATED_CRASH
+    bool simulated_crash = FALSE;
+#endif
+
     //Initialisation variables{{{
     IDList neighbours; // List of one-hop neighbours
     IDList potential_parents;
@@ -321,6 +355,7 @@ implementation
 
         IDList_add(&neighbours, TOS_NODE_ID);
         set_dissem_timer();
+        SETUP_SIMULATE_CRASH();
     }
 
     void process_dissem(void)
@@ -868,6 +903,7 @@ implementation
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
             call NodeType.set(SearchNode);
+            SIMULATE_CRASH_SEARCH();
         }
         else if(rcvd->dist > 0)
         {
@@ -889,6 +925,7 @@ implementation
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
             call NodeType.set(SearchNode);
+            SIMULATE_CRASH_SEARCH();
         }
     }
 
@@ -930,6 +967,7 @@ implementation
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
             simdbgverbose("stdout", "Next a_node is %u\n", msg.a_node);
+            SIMULATE_CRASH_CHANGE();
         }
         else if(rcvd->len_d == 0 && npar.count != 0)
         {
@@ -939,6 +977,7 @@ implementation
             set_dissem_timer(); //Restart sending dissem messages
             simdbgverbose("stdout", "Change messages ended\n");
             call NodeType.set(ChangeNode);
+            SIMULATE_CRASH_CHANGE();
         }
         simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
     }
