@@ -57,6 +57,9 @@
 #define METRIC_MESSAGE_TYPE_ADD(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME) \
 	call MetricLogging.log_metric_message_type_add(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME)
 
+#define METRIC_START_PERIOD() \
+    call MetricLogging.log_metric_start_period()
+
 // No need to format messages when using serial message as the string will not be used.
 #if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \
