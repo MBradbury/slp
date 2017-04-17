@@ -56,6 +56,49 @@ class NodeCrashFaultModel(FaultModel):
     def __str__(self):
         return "{}(node_id={!r}, crash_time={})".format(type(self).__name__, self.node_id, self.crash_time)
 
+class NodeCrashVariableFaultModel(FaultModel):
+    """This model will crash any node with a specified variable set to the given value."""
+    def __init__(self, variable_name, variable_value):
+        super(NodeCrashVariableFaultModel, self).__init__()
+
+        # The name of the variable to watch
+        self.variable_name = variable_name
+
+        # Set the value the variable must be for the node to crash
+        self.variable_value = variable_value
+
+        # The interval between checking each node's specified variable
+        self.check_interval = 1
+
+        # Dict of (Variable object, node id) for all nodes
+        self.variables = None
+
+    def setup(self, sim):
+        super(NodeCrashVariableFaultModel, self).setup(sim)
+
+        # Create the dict of variables and node ids
+        self.variables = {}
+        for node in self.sim.nodes:
+            self.variables[node.tossim_node.getVariable(self.variable_name)] = sim.configuration.get_node_id(node.nid)
+
+        # Add first event
+        self.sim.register_event_callback(self._check_variables, self.check_interval)
+
+    def _check_variables(self, current_time):
+        # Check each variable to see if it is equal to the failure value
+        for v in self.variables.keys():
+            if v.getData() == self.variable_value:
+                node = self.sim.node_from_topology_nid(self.variables[v])
+                #print("Turning off node {} to simulate a crash because variable {}={}".format(node.nid, self.variable_name, self.variable_value), file=sys.stderr)
+                node.tossim_node.turnOff()
+                del self.variables[v]
+
+        # Add next event
+        self.sim.register_event_callback(self._check_variables, current_time + self.check_interval)
+
+    def __str__(self):
+        return "{}(variable_name={},variable_value={})".format(type(self).__name__, self.variable_name, self.variable_value)
+
 class BitFlipFaultModel(FaultModel):
     """This model will flip a bit in the specified variable on the specified node at the specified time."""
     def __init__(self, node_id, variable_name, flip_time):
