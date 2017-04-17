@@ -63,6 +63,8 @@ interface MetricLogging
 		uint16_t new_slot
 		);
 
+    command void log_metric_start_period();
+
 	//##########Tree based routing##########
 	command void log_metric_parent_change(
 		am_addr_t old_parent,
