@@ -23,7 +23,6 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbgverbose("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
-#define SIMULATED_CRASH 0
 #if TOSSIM && SIMULATED_CRASH
 uint16_t simulated_crash_node = UINT16_MAX;
 #define SIMULATE_CRASH() \
