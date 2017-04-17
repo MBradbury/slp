@@ -23,6 +23,21 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbgverbose("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
+#define SIMULATED_CRASH 0
+#if TOSSIM && SIMULATED_CRASH
+uint16_t simulated_crash_node = UINT16_MAX;
+#define SIMULATE_CRASH() \
+    if(call NodeType.is_node_sink()) { \
+        int i = (int)(random_float()*ga_slp_ids_length); \
+        simulated_crash_node = ga_slp_ids[i]; \
+    } \
+    if(simulated_crash_node == TOS_NODE_ID) { \
+        simulated_crash = TRUE; \
+    }
+#else
+#define SIMULATE_CRASH()
+#endif /* SIMULATED_CRASH */
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -79,6 +94,10 @@ implementation
 
         return ((float)rnd) / UINT16_MAX;
     }
+
+#if SIMULATED_CRASH
+    bool simulated_crash = FALSE;
+#endif
 
 	bool busy = FALSE; //Used in the macros
 	message_t packet; //Used in the macros
@@ -198,6 +217,7 @@ implementation
         {
             call TDMA.set_slot(ga_slot_assignments[TOS_NODE_ID]);
         }
+        SIMULATE_CRASH();
     }
 
     event void DissemTimerSender.fired()
