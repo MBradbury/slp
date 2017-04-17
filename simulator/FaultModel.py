@@ -79,7 +79,8 @@ class NodeCrashVariableFaultModel(FaultModel):
         # Create the dict of variables and node ids
         self.variables = {}
         for node in self.sim.nodes:
-            self.variables[node.tossim_node.getVariable(self.variable_name)] = sim.configuration.get_node_id(node.nid)
+            # self.variables[node.tossim_node.getVariable(self.variable_name)] = sim.configuration.get_node_id(node.nid)
+            self.variables[node.tossim_node.getVariable(self.variable_name)] = node.nid
 
         # Add first event
         self.sim.register_event_callback(self._check_variables, self.check_interval)
@@ -88,7 +89,8 @@ class NodeCrashVariableFaultModel(FaultModel):
         # Check each variable to see if it is equal to the failure value
         for v in self.variables.keys():
             if v.getData() == self.variable_value:
-                node = self.sim.node_from_topology_nid(self.variables[v])
+                # node = self.sim.node_from_topology_nid(self.variables[v])
+                node = self.sim.node_from_ordered_nid(self.variables[v])
                 #print("Turning off node {} to simulate a crash because variable {}={}".format(node.nid, self.variable_name, self.variable_value), file=sys.stderr)
                 node.tossim_node.turnOff()
                 del self.variables[v]
