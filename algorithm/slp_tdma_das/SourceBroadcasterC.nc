@@ -26,6 +26,39 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbgverbose("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
+#if TOSSIM && SIMULATED_CRASH
+char simulated_crash_search_or_change = ' ';
+uint16_t simulated_crash_node_index = UINT16_MAX;
+        /*simdbg("stdout", "%c:%u\n", simulated_crash_search_or_change, simulated_crash_node_index); \*/
+        /*simdbg("stdout", "%u==%d\n", simulated_crash_node_index, ((SearchMessage*)msg->data)->dist); \*/
+        /*simdbg("stdout", "%u==%d\n", simulated_crash_node_index, ((ChangeMessage*)msg->data)->len_d); \*/
+            /*simdbg("stdout", "Setting crash node type...\n"); \*/
+#define SETUP_SIMULATE_CRASH() \
+    if(call NodeType.is_node_sink()) { \
+        simulated_crash_search_or_change = (random_float() < ((float)get_search_dist()/(float)(get_search_dist()+get_change_length()))) ? 's' : 'c'; \
+        simulated_crash_node_index = (simulated_crash_search_or_change == 's') ? (int)(1 + random_float()*(get_search_dist()-2)) : (int)(random_float()*(get_change_length())); \
+    }
+
+#define SIMULATE_CRASH_SEARCH() \
+    if(simulated_crash_search_or_change == 's') { \
+        if(((SearchMessage*)msg->data)->dist == simulated_crash_node_index) { \
+            call NodeType.set(CrashNode); \
+        } \
+    }
+
+#define SIMULATE_CRASH_CHANGE() \
+    if(simulated_crash_search_or_change == 'c') { \
+        if(((ChangeMessage*)msg->data)->len_d == simulated_crash_node_index) { \
+            call NodeType.set(CrashNode); \
+        } \
+    }
+#else
+#define SETUP_SIMULATE_CRASH()
+#define SIMULATE_CRASH_SEARCH()
+#define SIMULATE_CRASH_CHANGE()
+#endif /* SIMULATED_CRASH */
+
+
 //Distance search messages travel from sink
 //Search + Change < Sink-Source Distance - 2
 
@@ -100,7 +133,14 @@ implementation
 
     enum
 	{
-		SourceNode, SinkNode, NormalNode, SearchNode, ChangeNode
+		SourceNode,
+        SinkNode,
+        NormalNode,
+        SearchNode,
+        ChangeNode,
+#if SIMULATED_CRASH
+        CrashNode
+#endif /* SIMULATED_CRASH */
 	};
 
     // Produces a random float between 0 and 1
@@ -235,6 +275,9 @@ implementation
         call NodeType.register_pair(NormalNode, "NormalNode");
         call NodeType.register_pair(SearchNode, "SearchNode");
         call NodeType.register_pair(ChangeNode, "ChangeNode");
+#if SIMULATED_CRASH
+        call NodeType.register_pair(CrashNode, "CrashNode");
+#endif /* SIMULATED_CRASH */
 
         if (call NodeType.is_node_sink())
         {
@@ -299,8 +342,8 @@ implementation
 
 	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Normal);
     USE_MESSAGE_NO_EXTRA_TO_SEND(Dissem);
-    USE_MESSAGE_NO_EXTRA_TO_SEND(Search);
-    USE_MESSAGE_NO_EXTRA_TO_SEND(Change);
+    USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Search);
+    USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Change);
     USE_MESSAGE_NO_EXTRA_TO_SEND(EmptyNormal);
 
     void init(void)
@@ -321,6 +364,7 @@ implementation
 
         IDList_add(&neighbours, TOS_NODE_ID);
         set_dissem_timer();
+        SETUP_SIMULATE_CRASH();
     }
 
     void process_dissem(void)
@@ -570,6 +614,16 @@ implementation
         }
     }
 
+    void send_Search_done(message_t* msg, error_t error)
+    {
+        SIMULATE_CRASH_SEARCH();
+    }
+
+    void send_Change_done(message_t* msg, error_t error)
+    {
+        SIMULATE_CRASH_CHANGE();
+    }
+
     void MessageQueue_clear()
     {
         NormalMessage* message;
@@ -589,6 +643,7 @@ implementation
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         const uint32_t now = call LocalTime.get();
+        METRIC_START_PERIOD();
         period_counter++;
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(period_counter == get_search_period_count())
@@ -699,6 +754,9 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
         case SearchNode:
@@ -829,6 +887,9 @@ implementation
 
 
     RECEIVE_MESSAGE_BEGIN(Dissem, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode:
         case SearchNode:
         case ChangeNode:
@@ -892,6 +953,9 @@ implementation
     }
 
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode: break;
         case SearchNode:
         case ChangeNode:
@@ -1001,6 +1065,9 @@ implementation
     /*}*/
 
     RECEIVE_MESSAGE_BEGIN(Change, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode: break;
         case SearchNode:
         case ChangeNode:
@@ -1014,6 +1081,9 @@ implementation
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode:
         case SearchNode:
         case ChangeNode:

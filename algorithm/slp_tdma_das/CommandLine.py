@@ -18,7 +18,7 @@ from data.util import scalar_extractor
 
 class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
-        tafn = super(RunSimulations, self)._get_safety_period(darguments)
+        # tafn = super(RunSimulations, self)._get_safety_period(darguments)
 
         network_size = darguments["network size"]
         search_distance = darguments["search distance"]
@@ -67,7 +67,8 @@ class CLI(CommandLineCommon.CLI):
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
-            parameters.pre_beacon_periods, parameters.dissem_timeout, parameters.search_distance
+            parameters.pre_beacon_periods, parameters.dissem_timeout, parameters.search_distance,
+            parameters.simulate_crash
         ))
 
         # argument_product = list(itertools.product(
