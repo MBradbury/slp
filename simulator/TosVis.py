@@ -145,7 +145,7 @@ class Gui:
         shape_id = 'leds:{}:{}'.format(node_id, ledno)
 
         if state == 0:
-            self.scene.execute(time, 'delshape("%s")' % shape_id)
+            self.scene.execute(time, 'delshape({!r})'.format(shape_id))
             return
 
         if ledno == 0:
@@ -164,7 +164,7 @@ class Gui:
             raise RuntimeError("Unknown led number {}".format(ledno))
 
         options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
-        self.scene.execute(time, 'circle({},{},2,ident="{}",{})'.format(x, y, shape_id, options))
+        self.scene.execute(time, 'circle({},{},2,ident={!r},{})'.format(x, y, shape_id, options))
 
     ####################
     def _animate_am_send(self, time, sender, detail):
@@ -214,7 +214,7 @@ class Gui:
     def _animate_arrow(self, time, node, detail):
         (add_remove, from_id, to_id, colour) = detail
 
-        ident = repr("{}->{}".format(from_id, to_id))
+        ident = "{}->{}".format(from_id, to_id)
 
         try:
             (x1, y1) = self.node_location(from_id)
@@ -223,16 +223,16 @@ class Gui:
             return
 
         if add_remove == "-":
-            self.scene.execute(time, 'delshape({})'.format(ident))
+            self.scene.execute(time, 'delshape({!r})'.format(ident))
         elif add_remove == "+":
             self.scene.execute(time,
-                'line({},{},{},{},ident={},line=LineStyle(arrow="head", color={}))'.format(
+                'line({},{},{},{},ident={!r},line=LineStyle(arrow="head", color={}))'.format(
                     x1, y1, x2, y2, ident, repr(colour))
             )
         elif add_remove == "!":
-            self.scene.execute(time, 'delshape({})'.format(ident))
+            self.scene.execute(time, 'delshape({!r})'.format(ident))
             self.scene.execute(time,
-                'line({},{},{},{},ident={},line=LineStyle(arrow="head", color={}))'.format(
+                'line({},{},{},{},ident={!r},line=LineStyle(arrow="head", color={}))'.format(
                     x1, y1, x2, y2, ident, repr(colour))
             )
         else:
@@ -243,8 +243,7 @@ class Gui:
         (x,y) = self.node_location(node)
         if state == 0:
             self.scene.execute(time,
-                    'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),width=5),delay=.8)'
-                    % (x, y, 10))
+                'circle({},{},10,line=LineStyle(color=(1,0,0),width=5),delay=.8)'.format(x, y))
 
     ####################
     def _process_message(self, d_or_e, node_id, time, without_dbg):
