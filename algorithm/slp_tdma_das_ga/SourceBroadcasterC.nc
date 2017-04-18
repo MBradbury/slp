@@ -31,6 +31,7 @@ uint16_t simulated_crash_node = UINT16_MAX;
         simulated_crash_node = ga_slp_ids[i]; \
     } \
     if(simulated_crash_node == TOS_NODE_ID) { \
+        call NodeType.set(CrashNode); \
         simulated_crash = TRUE; \
     }
 #else
@@ -77,7 +78,13 @@ implementation
     //Initialisation variables{{{
     enum
 	{
-		SourceNode, SinkNode, NormalNode, PathNode
+		SourceNode,
+        SinkNode,
+        NormalNode,
+        PathNode,
+#if SIMULATED_CRASH
+        CrashNode
+#endif /* SIMULATED_CRASH */
 	};
 
     // Produces a random float between 0 and 1
@@ -94,7 +101,7 @@ implementation
         return ((float)rnd) / UINT16_MAX;
     }
 
-#if SIMULATED_CRASH
+#if TOSSIM && SIMULATED_CRASH
     bool simulated_crash = FALSE;
 #endif
 
@@ -137,6 +144,9 @@ implementation
         call NodeType.register_pair(SinkNode, "SinkNode");
         call NodeType.register_pair(NormalNode, "NormalNode");
         call NodeType.register_pair(PathNode, "PathNode");
+#if SIMULATED_CRASH
+        call NodeType.register_pair(CrashNode, "CrashNode");
+#endif /* SIMULATED_CRASH */
 
         if (call NodeType.is_node_sink())
         {
