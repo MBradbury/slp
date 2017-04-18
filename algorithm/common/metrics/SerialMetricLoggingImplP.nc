@@ -298,6 +298,15 @@ implementation
 		SERIAL_END_SEND(metric_node_slot_change_msg_t)
 	}
 
+    command void MetricLogging.log_metric_start_period()
+    {
+        SERIAL_START_SEND(metric_start_period_msg_t)
+
+        msg->type = AM_METRIC_START_PERIOD_MSG;
+
+        SERIAL_END_SEND(metric_start_period_msg_t)
+    }
+
 	//##########Tree based routing##########
 	command void MetricLogging.log_metric_parent_change(
 		am_addr_t old_parent,

@@ -199,6 +199,7 @@ class Gui:
             "SearchNode":   (196, 196, 37),
             "ChangeNode":   (225, 41, 41),
             "PathNode":     (196, 196, 37),
+            "CrashNode":    (255, 255, 255),
             "NormalNode":   (0, 0, 0),
             "SourceNode":   (64, 168, 73),
             "SinkNode":     (36, 160, 201),
