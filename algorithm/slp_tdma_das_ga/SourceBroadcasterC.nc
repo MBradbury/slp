@@ -400,7 +400,7 @@ implementation
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
-#if SIMUlATED_CRASH
+#if SIMULATED_CRASH
         case CrashNode: break;
 #endif /* SIMULATED_CRASH */
         case SourceNode:
