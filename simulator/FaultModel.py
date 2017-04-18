@@ -2,6 +2,7 @@ from __future__ import division, print_function
 
 #import sys
 
+import re
 from data.restricted_eval import restricted_eval
 
 class FaultModel(object):
@@ -100,6 +101,30 @@ class NodeCrashVariableFaultModel(FaultModel):
 
     def __str__(self):
         return "{}(variable_name={},variable_value={})".format(type(self).__name__, self.variable_name, self.variable_value)
+
+class NodeCrashTypeFaultModel(FaultModel):
+    """This model will listen for a node change event changing to 'CrashNode' in order to crash that node."""
+
+    CHANGE_RE = re.compile(r'([a-zA-Z]+Node|<unknown>),([a-zA-Z]+Node)')
+
+    def __init__(self):
+        super(NodeCrashTypeFaultModel, self).__init__()
+
+    def setup(self, sim):
+        super(NodeCrashTypeFaultModel, self).setup(sim)
+
+        # Register a listener for node change events
+        sim.register_output_handler("M-NC", self._crash_node_listener)
+
+    def _crash_node_listener(self, log_type, node_id, current_time, detail):
+        match = self.CHANGE_RE.match(detail)
+        if(match.group(2) == "CrashNode"):
+            node = self.sim.node_from_ordered_nid(int(node_id))
+            #print("Turning off node {} to simulate crash because node_type=CrashNode".format(int(node_id)), file=sys.stderr)
+            node.tossim_node.turnOff()
+
+    def __str__(self):
+        return "{}()".format(type(self).__name__)
 
 class BitFlipFaultModel(FaultModel):
     """This model will flip a bit in the specified variable on the specified node at the specified time."""
