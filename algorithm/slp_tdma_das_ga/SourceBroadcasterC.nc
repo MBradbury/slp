@@ -385,6 +385,9 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
         case PathNode:
@@ -397,6 +400,9 @@ implementation
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
+#if SIMUlATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode:
         case PathNode:
         case NormalNode:
