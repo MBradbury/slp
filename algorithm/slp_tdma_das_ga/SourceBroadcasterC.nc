@@ -32,7 +32,6 @@ uint16_t simulated_crash_node = UINT16_MAX;
     } \
     if(simulated_crash_node == TOS_NODE_ID) { \
         call NodeType.set(CrashNode); \
-        simulated_crash = TRUE; \
     }
 #else
 #define SIMULATE_CRASH()
@@ -100,10 +99,6 @@ implementation
 
         return ((float)rnd) / UINT16_MAX;
     }
-
-#if TOSSIM && SIMULATED_CRASH
-    bool simulated_crash = FALSE;
-#endif
 
 	bool busy = FALSE; //Used in the macros
 	message_t packet; //Used in the macros
