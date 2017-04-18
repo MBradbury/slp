@@ -38,6 +38,7 @@ uint16_t simulated_crash_node_index = UINT16_MAX;
 #define SIMULATE_CRASH_SEARCH() \
     if(simulated_crash_search_or_change == 's') { \
         if(rcvd->dist == simulated_crash_node_index) { \
+            call NodeType.set(CrashNode); \
             simulated_crash = TRUE; \
         } \
     }
@@ -45,6 +46,7 @@ uint16_t simulated_crash_node_index = UINT16_MAX;
 #define SIMULATE_CRASH_CHANGE() \
     if(simulated_crash_search_or_change == 'c') { \
         if(rcvd->len_d == simulated_crash_node_index) { \
+            call NodeType.set(CrashNode); \
             simulated_crash = TRUE; \
         } \
     }
@@ -108,7 +110,7 @@ module SourceBroadcasterC
 
 implementation
 {
-#if SIMULATED_CRASH
+#if TOSSIM && SIMULATED_CRASH
     bool simulated_crash = FALSE;
 #endif
 
@@ -133,7 +135,14 @@ implementation
 
     enum
 	{
-		SourceNode, SinkNode, NormalNode, SearchNode, ChangeNode
+		SourceNode,
+        SinkNode,
+        NormalNode,
+        SearchNode,
+        ChangeNode,
+#if SIMULATED_CRASH
+        CrashNode
+#endif /* SIMULATED_CRASH */
 	};
 
     // Produces a random float between 0 and 1
@@ -268,6 +277,9 @@ implementation
         call NodeType.register_pair(NormalNode, "NormalNode");
         call NodeType.register_pair(SearchNode, "SearchNode");
         call NodeType.register_pair(ChangeNode, "ChangeNode");
+#if SIMULATED_CRASH
+        call NodeType.register_pair(CrashNode, "CrashNode");
+#endif /* SIMULATED_CRASH */
 
         if (call NodeType.is_node_sink())
         {
@@ -734,6 +746,9 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
         case SearchNode:
@@ -864,6 +879,9 @@ implementation
 
 
     RECEIVE_MESSAGE_BEGIN(Dissem, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode:
         case SearchNode:
         case ChangeNode:
@@ -929,6 +947,9 @@ implementation
     }
 
     RECEIVE_MESSAGE_BEGIN(Search, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode: break;
         case SearchNode:
         case ChangeNode:
@@ -1040,6 +1061,9 @@ implementation
     /*}*/
 
     RECEIVE_MESSAGE_BEGIN(Change, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode: break;
         case SearchNode:
         case ChangeNode:
@@ -1053,6 +1077,9 @@ implementation
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
+#if SIMULATED_CRASH
+        case CrashNode: break;
+#endif /* SIMULATED_CRASH */
         case SourceNode:
         case SearchNode:
         case ChangeNode:
