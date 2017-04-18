@@ -176,8 +176,8 @@ class Attacker(object):
 
         time = self._sim.sim_time()
 
-        self._sim.gui.scene.execute(time, 'delshape("{}")'.format(shape_id))
-        self._sim.gui.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
+        self._sim.gui.scene.execute(time, 'delshape({!r})'.format(shape_id))
+        self._sim.gui.scene.execute(time, 'circle({},{},5,ident={!r},{})'.format(x, y, shape_id, options))
 
     def __str__(self):
         return type(self).__name__ + "()"
