@@ -61,19 +61,19 @@ class Analyzer(AnalyzerCommon):
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
-        d['utility equal']      = lambda x: str(utility(x, [("Captured",               0.1,  0.25),        # Ranges from [0, 1]
-                                                            ("ReceiveRatio",           0.75, 0.25),        # Ranges from [0, 1]
-                                                            ("NormalLatency",          1,    0.25),        # Scale is in seconds
-                                                            ("norm(Sent,TimeTaken)", 200,    0.25)]))
+        d['utility equal']      = lambda x: str(utility(x, [("Captured",               0.5,  0.25),        # Ranges from [0, 1]
+                                                            ("ReceiveRatio",           0.5, 0.25),        # Ranges from [0, 1]
+                                                            ("NormalLatency",          0.5,    0.25),        # Scale is in seconds
+                                                            ("norm(Sent,TimeTaken)", 500,    0.25)]))
 
-        d['utility animal']     = lambda x: str(utility(x, [("Captured",               0.1,  0.33),        # Ranges from [0, 1]
-                                                            ("ReceiveRatio",           0.75, 0.33),        # Ranges from [0, 1]
-                                                            ("NormalLatency",          1,    0),           # Scale is in seconds
-                                                            ("norm(Sent,TimeTaken)", 200,    0.33)]))
+        d['utility animal']     = lambda x: str(utility(x, [("Captured",               0.5,  0.3),        # Ranges from [0, 1]
+                                                            ("ReceiveRatio",           0.5, 0.3),        # Ranges from [0, 1]
+                                                            ("NormalLatency",          0.5,    0.1),           # Scale is in seconds
+                                                            ("norm(Sent,TimeTaken)", 500,    0.3)]))
 
         d['utility battle']     = lambda x: str(utility(x, [("Captured",               0.1,  0.25),        # Ranges from [0, 1]
-                                                            ("ReceiveRatio",           0.75, 0.25),        # Ranges from [0, 1]
-                                                            ("NormalLatency",          1,    0.4),         # Scale is in seconds
+                                                            ("ReceiveRatio",           0.8, 0.25),        # Ranges from [0, 1]
+                                                            ("NormalLatency",          0.2,    0.4),         # Scale is in seconds
                                                             ("norm(Sent,TimeTaken)", 200,    0.1)]))
 
         return d
