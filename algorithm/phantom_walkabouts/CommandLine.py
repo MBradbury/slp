@@ -138,10 +138,10 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left bottom'),
+            'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
             'captured': ('Capture Ratio (%)', 'left top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left bottom'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'norm(sent,time taken)': ('Messages Transmission (messages)', 'left bottom'),
+            'received ratio': ('Delivery Ratio (%)', 'left bottom'),
             'utility equal': ('Utility (Equal)', 'right top'),
             'utility animal': ('Utility (Animal)', 'right top'),
             'utility battle': ('Utility (Battle)', 'right top'),
