@@ -40,17 +40,23 @@ class TableGenerator:
         communication_models = sorted(self._results.communication_models)
         noise_models = sorted(self._results.noise_models)
         attacker_models = sorted(self._results.attacker_models)
+        fault_models = sorted(self._results.fault_models)
         configurations = sorted(self._results.configurations, key=configuration_rank)
         sizes = sorted(self._results.network_sizes)
         distances = sorted(self._results.distances)
         node_id_orders = sorted(self._results.node_id_orders)
         latest_start_times = sorted(self._results.latest_node_start_times)
 
-        product_all = list(itertools.product(sizes, configurations, attacker_models, noise_models, communication_models, distances, node_id_orders, latest_start_times))
+        product_all = list(itertools.product(
+            sizes, configurations,
+            attacker_models, noise_models, communication_models, fault_models,
+            distances, node_id_orders, latest_start_times
+        ))
 
         product_three = list(itertools.ifilter(
-            lambda x: x in {(cm, n, a, c, d, nido, lst) for (s, c, a, n, cm, d, nido, lst) in self._results.data.keys()},
-            itertools.product(communication_models, noise_models, attacker_models, configurations, distances, node_id_orders, latest_start_times)
+            lambda x: x in {(cm, nm, am, fm, c, d, nido, lst) for (s, c, am, nm, cm, fm, d, nido, lst) in self._results.data.keys()},
+            itertools.product(communication_models, noise_models, attacker_models, fault_models,
+                              configurations, distances, node_id_orders, latest_start_times)
         ))
 
         if not any(table_key in self._results.data for table_key in product_all):
@@ -58,14 +64,15 @@ class TableGenerator:
 
         for product_three_key in product_three:
             if not param_filter(product_three_key):
+                #print("Skipping {}".format(product_three_key))
                 continue
 
-            (communication_model, noise_model, attacker_model, config, distance, node_id_order, latest_start_time) = product_three_key
+            (communication_model, noise_model, attacker_model, fault_model, config, distance, node_id_order, latest_start_time) = product_three_key
 
             print('\\begin{table}[H]', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
-            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model and \\textbf{{{}}} distance and \\textbf{{{}}} node id order and \\textbf{{{}}} latest start time}}'.format(
-                config, latex.escape(attacker_model), noise_model, communication_model, distance, node_id_order, latest_start_time), file=stream)
+            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model and \\textbf{{{}}} fault model and \\textbf{{{}}} distance and \\textbf{{{}}} node id order and \\textbf{{{}}} latest start time}}'.format(
+                config, latex.escape(attacker_model), noise_model, communication_model, fault_model, distance, node_id_order, latest_start_time), file=stream)
             print('\\centering', file=stream)
             print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
@@ -76,7 +83,7 @@ class TableGenerator:
 
             for size in sizes:
 
-                data_key = (size, config, attacker_model, noise_model, communication_model, distance, node_id_order, latest_start_time)
+                data_key = (size, config, attacker_model, noise_model, communication_model, fault_model, distance, node_id_order, latest_start_time)
 
                 if data_key not in self._results.data:
                     #print("Skipping {} as it could not be found in the results".format(data_key))
@@ -115,13 +122,14 @@ class TableGenerator:
 
 
     def _get_result_mapping(self, result_names, accessor):
-        # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> individual result
+        # (size, configuration, attacker model, noise model, communication model, fault model, distance) -> source period -> individual result
         result = {}
 
         try:
             indexes = [self._result_names.index(result_name) for result_name in result_names]
         except ValueError as ex:
-            raise RuntimeError("The results do not contain '{}'. The available names are: '{}'".format(result_name, self._result_names), ex)
+            raise RuntimeError("The results do not contain '{}'. The available names are: '{}'".format(
+                result_name, self._result_names), ex)
 
         for (table_key, other_items) in self._results.data.items():
             for (source_period, items) in other_items.items():

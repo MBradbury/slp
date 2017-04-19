@@ -62,7 +62,7 @@ class CLI(CommandLineCommon.CLI):
             parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
-            parameters.tdma_num_slots, parameters.ga_headers
+            parameters.tdma_num_slots, parameters.ga_headers, parameters.simulate_crash
         ))
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)

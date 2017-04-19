@@ -30,7 +30,8 @@ class Simulation(object):
             app_path = os.path.join('.', module_name.replace('.', os.sep), 'app.xml')
 
             self.nesc_app = NescApp(xmlFile=app_path)
-            self.tossim = tossim_module.Tossim(self.nesc_app.variables.variables())
+            variables = self.nesc_app.variables.variables()
+            self.tossim = tossim_module.Tossim(variables)
 
         else:
             self.nesc_app = None
