@@ -68,6 +68,19 @@ implementation
 	{
 	}
 
+    command void MetricLogging.log_metric_fault_point_type_add(
+            uint8_t fault_point_id,
+            const char* fault_point_name
+            )
+    {
+    }
+
+    command void MetricLogging.log_metric_fault_point(
+            uint8_t fault_point_id
+            )
+    {
+    }
+
 	command void MetricLogging.log_error_occurred(
 		uint16_t code,
 		const char* message

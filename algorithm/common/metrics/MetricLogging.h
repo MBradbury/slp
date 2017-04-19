@@ -57,6 +57,12 @@
 #define METRIC_MESSAGE_TYPE_ADD(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME) \
 	call MetricLogging.log_metric_message_type_add(MESSAGE_TYPE_ID, MESSAGE_TYPE_NAME)
 
+#define METRIC_FAULT_POINT_TYPE_ADD(FAULT_POINT_ID, FAULT_POINT_NAME) \
+    call MetricLogging.log_metric_fault_point_type_add(FAULT_POINT_ID, FAULT_POINT_NAME)
+
+#define METRIC_FAULT_POINT(FAULT_POINT_ID) \
+    call MetricLogging.log_metric_fault_point(FAULT_POINT_ID)
+
 #define METRIC_START_PERIOD() \
     call MetricLogging.log_metric_start_period()
 
@@ -115,6 +121,9 @@ enum SLPErrorCodes {
 
 	ERROR_POOL_EMPTY = 14,
 	ERROR_QUEUE_EMPTY = 15,
+
+    ERROR_TOO_MANY_FAULT_POINT_TYPES = 16,
+    ERROR_FAULT_POINT_NAME_TOO_LONG = 17,
 
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,
