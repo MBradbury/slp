@@ -94,11 +94,11 @@ class CLI(CommandLineCommon.CLI):
             (bias, order, short_count, long_count, wait) = name
 
             if short_count == 1 and long_count == 0:
-                return "PW(1, 0)"
+                return "1, 0"
             elif short_count == 1 and long_count == 1:
-                return "PW(1, 1)"
+                return "1, 1"
             elif short_count == 1 and long_count == 2:
-                return "PW(1, 2)"
+                return "1, 2"
             else:
                 return name
         except ValueError:
@@ -132,7 +132,7 @@ class CLI(CommandLineCommon.CLI):
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
             source_period_normalisation="NumSources",
             results_filter=filter_params,
-            vary_label='',
+            vary_label='PW',
             vvalue_label_converter=self.vvalue_converter,
         )
 
@@ -156,15 +156,16 @@ class CLI(CommandLineCommon.CLI):
             #'norm(sent,time taken)': 600,
             'received ratio': 100,
             'capture ratio': 100,
-            #'utility equal': 0.8,
-            #'utility animal': 0.8,
-            #'utility battle': 0.8,
+            'utility equal': 0.8,
+            'utility animal': 0.8,
+            'utility battle': 0.8,
         }
 
         self._create_min_max_versus_graph(
             [phantom_chen], None, graph_parameters, varying, custom_yaxis_range_max,
             min_label=["Phantom - Min"],
             max_label=["Phantom - Max"],
+            min_max_same_label=["Phantom"],
             vary_label="",
             comparison_label="PW",
             vvalue_label_converter=self.vvalue_converter,
