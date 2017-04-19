@@ -32,6 +32,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-min-max", self._run_min_max_versus)
+        subparser = self._add_argument("graph-multi", self._run_multi_versus)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -169,4 +170,21 @@ class CLI(CommandLineCommon.CLI):
             vary_label="",
             comparison_label="PW",
             vvalue_label_converter=self.vvalue_converter,
+        )
+
+    def _run_multi_versus(self, args):
+        graph_parameters = [
+            ('utility equal', 'Utility (Equal)'),
+            ('utility animal', 'Utility (Animal)'),
+            ('utility battle', 'Utility (Battle)'),
+        ]
+
+        varying = [
+            ('safety factor', ''),
+        ]
+        
+        custom_yaxis_range_max = 1.0
+
+        self._create_multi_versus_graph(
+            graph_parameters, varying, "Utility (\\%)", custom_yaxis_range_max
         )
