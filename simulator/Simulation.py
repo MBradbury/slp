@@ -2,7 +2,6 @@ from __future__ import print_function, division
 
 import ast
 from datetime import datetime
-from collections import namedtuple
 import heapq
 import importlib
 from itertools import islice
@@ -17,7 +16,13 @@ import numpy as np
 import simulator.CommunicationModel as CommunicationModel
 import simulator.MetricsCommon as MetricsCommon
 
-Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
+class Node(object):
+    __slots__ = ('nid', 'location', 'tossim_node')
+
+    def __init__(self, nid, location, tossim_node):
+        self.nid = nid
+        self.location = location
+        self.tossim_node = tossim_node
 
 class Simulation(object):
     def __init__(self, module_name, configuration, args, load_nesc_variables=False):
