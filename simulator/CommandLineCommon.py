@@ -383,8 +383,6 @@ class CLI(object):
             g.xaxis_label = xaxis.title()
             g.yaxis_label = yaxis_label
             g.vary_label = ""
-            #g.vary_prefix = vary_units
-            #g.key_position = key_position
 
             for (attr_name, attr_value) in kwargs.items():
                 if hasattr(g, attr_name):
