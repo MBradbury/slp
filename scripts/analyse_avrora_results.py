@@ -2,7 +2,6 @@
 
 from __future__ import print_function, division
 
-from collections import namedtuple
 import re
 
 NODE_RESULT_RE = re.compile(r"""
@@ -50,8 +49,12 @@ flash: (.+) Joule
 """)
 
 
-JouleAndCycles = namedtuple('JouleAndCycles', ('joule', 'cycles'), verbose=False)
+class JouleAndCycles(object):
+    __slots__ = ('joule', 'cycles')
 
+    def __init__(self, joule, cycles):
+        self.joule = joule
+        self.cycles = cycles
 
 class NodeEnergy:
     def __init__(self, match):

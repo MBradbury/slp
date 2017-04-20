@@ -4,8 +4,8 @@
 typedef nx_struct BeaconMessage
 {
   nx_int16_t source_distance_of_sender;
-  nx_int16_t sink_distance_of_sender;
-  nx_uint8_t padding[20];
+//  nx_int16_t sink_distance_of_sender;
+//  nx_int16_t sink_source_distance;
 
 } BeaconMessage;
 

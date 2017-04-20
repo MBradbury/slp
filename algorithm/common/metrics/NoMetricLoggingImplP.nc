@@ -89,6 +89,10 @@ implementation
 	{
 	}
 
+    command void MetricLogging.log_metric_start_period()
+    {
+    }
+
 	//##########Tree based routing##########
 	command void MetricLogging.log_metric_parent_change(
 		am_addr_t old_parent,

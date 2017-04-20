@@ -2,13 +2,11 @@ from __future__ import print_function, division
 
 import ast
 from datetime import datetime
-from collections import namedtuple
 import heapq
 import importlib
 from itertools import islice
 import os
 import random
-import re
 import sys
 import timeit
 
@@ -17,7 +15,13 @@ import numpy as np
 import simulator.CommunicationModel as CommunicationModel
 import simulator.MetricsCommon as MetricsCommon
 
-Node = namedtuple('Node', ('nid', 'location', 'tossim_node'), verbose=False)
+class Node(object):
+    __slots__ = ('nid', 'location', 'tossim_node')
+
+    def __init__(self, nid, location, tossim_node):
+        self.nid = nid
+        self.location = location
+        self.tossim_node = tossim_node
 
 class Simulation(object):
     def __init__(self, module_name, configuration, args, load_nesc_variables=False):
@@ -30,11 +34,12 @@ class Simulation(object):
             app_path = os.path.join('.', module_name.replace('.', os.sep), 'app.xml')
 
             self.nesc_app = NescApp(xmlFile=app_path)
-            self.tossim = tossim_module.Tossim(self.nesc_app.variables.variables())
+            variables = self.nesc_app.variables.variables()
+            self.tossim = tossim_module.Tossim(variables)
 
         else:
             self.nesc_app = None
-            self.tossim = tossim_module.Tossim([])
+            self.tossim = tossim_module.Tossim({})
 
         self.radio = self.tossim.radio()
 
@@ -350,6 +355,7 @@ class OfflineSimulation(object):
 
         self._event_log = event_log
 
+        import re
         self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.+)\s*')
 
     def __enter__(self):

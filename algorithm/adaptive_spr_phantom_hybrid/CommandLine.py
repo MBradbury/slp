@@ -48,7 +48,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
             'fake': ('Fake Messages Sent', 'left top'),
@@ -106,7 +106,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-#            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+#            'normal latency': ('Normal Message Latency (ms)', 'left top'),
 #            'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
 #            'normal': ('Normal Messages Sent', 'left top'),

@@ -224,7 +224,7 @@ class Scene:
         self.plotters.remove(plotter)
 
     ###################
-    def execute(self, time, cmd = None, *args, **kwargs):
+    def execute(self, time, cmd=None, *args, **kwargs):
         """
         Execute the scene scripting command, cmd, with specified
         variable-length and keyword arguments

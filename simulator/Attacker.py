@@ -8,11 +8,18 @@ from data.restricted_eval import restricted_eval
 
 # When an attacker receives any of these messages,
 # do not check the seqno just move.
-MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {'DummyNormal', 'Move', 'Beacon', 'CTPBeacon', 'Inform', 'Search', 'Change', 'EmptyNormal', 'Poll'}
+MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {
+    'DummyNormal', 'Move', 'Beacon', 'CTPBeacon',
+    'Inform', 'Search', 'Change', 'EmptyNormal', 'Poll',
+}
 
 # An attacker can detect these are not messages to follow,
 # so the attacker will ignore these messages.
-MESSAGES_TO_IGNORE = {'Beacon', 'Away', 'Move', 'Choose', 'Dissem', 'CTPBeacon', 'Inform', 'Search', 'Change', 'Poll'}
+MESSAGES_TO_IGNORE = {
+    'Beacon', 'Away', 'Move', 'Choose', 'Dissem',
+    'CTPBeacon', 'Inform', 'Search', 'Change',
+    'Poll', 'Notify',
+}
 
 class Attacker(object):
     def __init__(self):
@@ -26,6 +33,8 @@ class Attacker(object):
         # Metric initialisation from here onwards
         self.steps_towards = Counter()
         self.steps_away = Counter()
+
+        self.normal_receive_time = {}
 
         self.moves_in_response_to = Counter()
 
@@ -60,19 +69,27 @@ class Attacker(object):
         if self._has_found_source:
             return False
 
-        (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
-
         node_id = int(node_id)
 
-        # Doesn't want to process this message if we are not on the correct node,
-        # or if this is a message the attacker knows to ignore
-        if self.position != node_id or msg_type in MESSAGES_TO_IGNORE:
+        # Don't want to process this message if we are not on the correct node
+        if self.position != node_id:
+            return False
+
+        (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
+
+        # Doesn't want to process this message if this is a message the attacker knows to ignore
+        if msg_type in MESSAGES_TO_IGNORE:
             return False
 
         time = float(time)
         prox_from_id = int(prox_from_id)
         ult_from_id = int(ult_from_id)
         sequence_number = int(sequence_number)
+
+        # Record the time we received this message to allow calculation
+        # of the attacker receive ratio
+        if msg_type == "Normal":
+            self.normal_receive_time[(ult_from_id, sequence_number)] = time
 
         # We get called any time a message is received anywhere,
         # so first of all filter out messages being received by any node
@@ -159,8 +176,8 @@ class Attacker(object):
 
         time = self._sim.sim_time()
 
-        self._sim.gui.scene.execute(time, 'delshape("{}")'.format(shape_id))
-        self._sim.gui.scene.execute(time, 'circle(%d,%d,5,ident="%s",%s)' % (x, y, shape_id, options))
+        self._sim.gui.scene.execute(time, 'delshape({!r})'.format(shape_id))
+        self._sim.gui.scene.execute(time, 'circle({},{},5,ident={!r},{})'.format(x, y, shape_id, options))
 
     def __str__(self):
         return type(self).__name__ + "()"
@@ -435,20 +452,18 @@ class RHMAttacker(Attacker):
 
         self._started_clear_event = False
 
-        self._previous_time = 0.0
-
     def setup(self, *args, **kwargs):
         super(RHMAttacker, self).setup(*args, **kwargs)
 
         self._set_next_message_count_wait()
 
-    def _clear_messages(self):
+    def _clear_messages(self, current_time):
         self._started_clear_event = True
         self._messages = []
         self._num_moves = 0
         self._set_next_message_count_wait()
 
-        # self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
+        self._sim.register_event_callback(self._clear_messages, current_time + self._clear_period)
 
     def _set_next_message_count_wait(self):
         """Set the number of messages to wait for until next moving."""
@@ -457,14 +472,9 @@ class RHMAttacker(Attacker):
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
 
         # Start clear message event when first message is received
-        # if not self._started_clear_event:
-            # self._started_clear_event = True
-            # self._sim.register_event_callback(self._clear_messages, time + self._clear_period)
-
-        # Assume new period if gap between messages is long enough
-        if time - self._previous_time > self._clear_period/3:
-            self._clear_messages()
-        self._previous_time = time
+        if not self._started_clear_event:
+            self._started_clear_event = True
+            self._sim.register_event_callback(self._clear_messages, time + self._clear_period)
 
         self._messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
 
@@ -472,7 +482,7 @@ class RHMAttacker(Attacker):
         can_move = self._num_moves < self._moves_per_period
 
         # Have we waited for enough messages
-        choose_move = len(self._messages) == self._next_message_count_wait
+        choose_move = len(self._messages) >= self._next_message_count_wait
 
         if can_move and choose_move:
             filtered_message = [
@@ -480,7 +490,7 @@ class RHMAttacker(Attacker):
                 for (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
                 in self._messages
 
-                if node_id not in self._history
+                if prox_from_id not in self._history
             ]
 
             # If there are no possible moves, then do not move
@@ -503,6 +513,94 @@ class RHMAttacker(Attacker):
     def __str__(self):
         return type(self).__name__ + "(clear_period={},history_window_size={},moves_per_period={})".format(
             self._clear_period, self._history_window_size, self._moves_per_period)
+
+class RHMPeriodAttacker(Attacker):
+    def __init__(self, dissem_period_length, clear_periods, history_window_size, moves_per_period):
+        super(RHMPeriodAttacker, self).__init__()
+
+        self._dissem_period_length = dissem_period_length
+        self._clear_periods = clear_periods
+        self._moves_per_period = moves_per_period
+        self._history_window_size = history_window_size
+
+        self._history = [None] * self._history_window_size
+        self._history_index = 0
+
+        self._messages = []
+        self._num_moves = 0
+
+        self._next_message_count_wait = None
+
+        self._during_dissem = False
+        self._period_count = 0;
+
+    def setup(self, *args, **kwargs):
+        super(RHMPeriodAttacker, self).setup(*args, **kwargs)
+
+        self._sim.register_output_handler('M-SP', self.process_start_period)
+
+        self._set_next_message_count_wait()
+
+    def process_start_period(self, log_type, node_id, current_time, detail):
+        if self._during_dissem:
+            return
+        self._sim.register_event_callback(self.process_end_dissem, float(current_time) + self._dissem_period_length)
+        self._during_dissem = True
+        self._period_count += 1
+        if self._period_count >= self._clear_periods:
+            self._clear_messages()
+            self._period_count = 0
+
+    def process_end_dissem(self, current_time):
+        self._during_dissem = False
+
+    def _clear_messages(self):
+        self._messages = []
+        self._num_moves = 0
+        self._set_next_message_count_wait()
+
+    def _set_next_message_count_wait(self):
+        """Set the number of messages to wait for until next moving."""
+        self._next_message_count_wait = self._sim.rng.randint(1, max(1, self._moves_per_period - self._num_moves))
+
+    def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        self._messages.append((time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number))
+
+        # Have made fewer moves than allowed
+        can_move = self._num_moves < self._moves_per_period
+
+        # Have we waited for enough messages
+        choose_move = len(self._messages) >= self._next_message_count_wait
+
+        if can_move and choose_move:
+            filtered_message = [
+                (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
+                for (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
+                in self._messages
+
+                if prox_from_id not in self._history
+            ]
+
+            # If there are no possible moves, then do not move
+            if len(filtered_message) == 0:
+                return False
+
+            # Randomly pick a previous message to follow
+            return self._sim.rng.choice(filtered_message)
+
+        return False
+
+    def update_state(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
+        if len(self._history) > 0:
+            self._history[self._history_index] = node_id
+            self._history_index = (self._history_index + 1) % self._history_window_size
+
+        self._num_moves += 1
+        self._set_next_message_count_wait()
+
+    def __str__(self):
+        return type(self).__name__ + "(dissem_period_length={},clear_periods={},history_window_size={},moves_per_period={})".format(
+            self._dissem_period_length, self._clear_periods, self._history_window_size, self._moves_per_period)
 
 def models():
     """A list of the the available attacker models."""
