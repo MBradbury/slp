@@ -189,6 +189,9 @@ class ArgumentsCommon(object):
     def build_arguments(self):
         result = {}
 
+        if hasattr(self.args, 'seed'):
+          result["SLP_SEED"] = "UINT32_C({})".format(self.args.seed)
+
         if self.args.verbose:
             result["SLP_VERBOSE_DEBUG"] = 1
 
