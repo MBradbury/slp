@@ -21,13 +21,13 @@ def _secure_random():
 
     return rno
 
-def _add_safety_period(parser, **kwargs):
-    if kwargs["has_safety_period"]:
+def _add_safety_period(parser, has_safety_period=False, has_safety_factor=False, **kwargs):
+    if has_safety_period:
         parser.add_argument("-safety", "--safety-period",
                             type=ArgumentsCommon.type_positive_float,
                             required=True)
 
-        if kwargs["has_safety_factor"]:
+        if has_safety_factor:
             parser.add_argument("--safety-factor",
                                 type=ArgumentsCommon.type_positive_float,
                                 required=False,
