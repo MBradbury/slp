@@ -20,10 +20,14 @@ enum {
 	AM_METRIC_PARENT_CHANGE_MSG = 58,
     //SLP TDMA DAS
     AM_METRIC_START_PERIOD_MSG = 59,
+
+    AM_METRIC_FAULT_POINT_TYPE_ADD_MSG = 60,
+    AM_METRIC_FAULT_POINT_MSG = 61,
 };
 
 #define MAXIMUM_NODE_TYPE_NAME_LENGTH 20
 #define MAXIMUM_MESSAGE_TYPE_NAME_LENGTH 20
+#define MAXIMUM_FAULT_POINT_TYPE_NAME_LENGTH 20
 
 #define METRIC_LOGGING_HEADER \
 	nx_am_id_t type; /* This is the type of debug/metric message*/ \
@@ -94,6 +98,20 @@ typedef nx_struct metric_message_type_add_msg {
 	nx_uint8_t message_type_name[MAXIMUM_MESSAGE_TYPE_NAME_LENGTH];
 
 } metric_message_type_add_msg_t;
+
+typedef nx_struct metric_fault_point_type_add_msg {
+    METRIC_LOGGING_HEADER
+
+    nx_uint8_t fault_point_id;
+    nx_uint8_t fault_point_name[MAXIMUM_FAULT_POINT_TYPE_NAME_LENGTH];
+
+} metric_fault_point_type_add_msg_t;
+
+typedef nx_struct metric_fault_point_msg {
+    METRIC_LOGGING_HEADER
+
+    nx_uint8_t fault_point_id;
+} metric_fault_point_msg_t;
 
 typedef nx_struct error_occurred_msg {
 	METRIC_LOGGING_HEADER
