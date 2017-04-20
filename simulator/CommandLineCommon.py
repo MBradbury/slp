@@ -353,6 +353,50 @@ class CLI(object):
                         os.path.join(algorithm.results_directory_name, 'mmv-{}_{}-{}'.format(self.algorithm_module.name, "_".join(mod.name for mod in comparison_modules), name))
                     ).run()
 
+    def _create_multi_versus_graph(self, graph_parameters, xaxes, yaxis_label,
+                                   custom_yaxis_range_max=None,
+                                   source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
+                                   yextractor=scalar_extractor, xextractor=None,
+                                   **kwargs):
+        from data.graph import multi_versus
+
+        vary = tuple(x[0] for x in graph_parameters)
+
+        algo_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names,
+            results=vary,
+            source_period_normalisation=source_period_normalisation,
+            network_size_normalisation=network_size_normalisation,
+            results_filter=results_filter)
+
+        for (xaxis, xaxis_units) in xaxes:
+
+            name = '{}-mv-{}'.format(xaxis, "-".join(vary)).replace(" ", "_")
+
+            g = multi_versus.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis=xaxis, varying=graph_parameters,
+                yaxis_label=yaxis_label,
+                yextractor=yextractor, xextractor=xextractor)
+
+            g.xaxis_label = xaxis.title()
+            g.yaxis_label = yaxis_label
+            g.vary_label = ""
+
+            for (attr_name, attr_value) in kwargs.items():
+                if hasattr(g, attr_name):
+                    setattr(g, attr_name, attr_value)
+
+            if custom_yaxis_range_max is not None:
+                g.yaxis_range_max = custom_yaxis_range_max
+
+            if g.create(algo_results):
+                summary.GraphSummary(
+                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(algorithm.results_directory_name, 'mv-{}-{}'.format(self.algorithm_module.name, name))
+                ).run()
+
     def _argument_product(self):
         """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
 
@@ -387,7 +431,10 @@ class CLI(object):
 
         # Now lets process the algorithm specific parameters
         for local_name in self.algorithm_module.local_parameter_names:
-            product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "s"))
+            try:
+                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "s"))
+            except AttributeError:
+                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "es"))
 
         argument_product = itertools.product(*product_argument)
 

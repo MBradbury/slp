@@ -9,6 +9,8 @@ typedef nx_struct NotifyMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
+  nx_uint16_t source_distance;
+
 } NotifyMessage;
 
 inline SequenceNumberWithBottom Notify_get_sequence_number(const NotifyMessage* msg) { return msg->sequence_number; }

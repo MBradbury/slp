@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from collections import Counter, OrderedDict, defaultdict, namedtuple
+from collections import Counter, OrderedDict, defaultdict
 import base64
 import math
 import pickle
@@ -379,6 +379,20 @@ class MetricsCommon(object):
         
         return len(self.normal_receive_time) / (len(self.normal_sent_time) - send_modifier)
 
+    def attacker_receive_ratio(self, attacker):
+
+        if len(self.normal_sent_time) == 0:
+            return float('NaN')
+
+        return len(attacker.normal_receive_time) / len(self.normal_sent_time)
+
+    def attackers_receive_ratio(self):
+        return {
+            attacker.ident: self.attacker_receive_ratio(attacker)
+            for attacker
+            in self.sim.attackers
+        }
+
     def average_sink_source_hops(self):
         # It is possible that the sink has received no Normal messages
         if len(self.normal_hop_count) != 0:
@@ -622,6 +636,7 @@ class MetricsCommon(object):
         d["AttackerStepsTowards"]          = lambda x: x.attacker_steps_towards()
         d["AttackerStepsAway"]             = lambda x: x.attacker_steps_away()
         d["AttackerMinSourceDistance"]     = lambda x: x.attacker_min_source_distance()
+        d["AttackerReceiveRatio"]          = lambda x: x.attackers_receive_ratio()
 
         d["NormalLatency"]                 = lambda x: x.average_normal_latency()
         d["MaxNormalLatency"]              = lambda x: x.maximum_normal_latency()
@@ -700,10 +715,16 @@ class MetricsCommon(object):
         else:
             return getattr(psutil.Process().memory_info(), attr)
 
-AvroraPacketSummary = namedtuple(
-    'AvroraPacketSummary',
-    ('sent_bytes', 'sent_packets', 'recv_bytes', 'recv_packets', 'corrupted_bytes', 'lost_in_middle_bytes'),
-    verbose=False)
+class AvroraPacketSummary(object):
+    __slots__ = ('sent_bytes', 'sent_packets', 'recv_bytes', 'recv_packets', 'corrupted_bytes', 'lost_in_middle_bytes')
+
+    def __init__(self, sent_bytes, sent_packets, recv_bytes, recv_packets, corrupted_bytes, lost_in_middle_bytes):
+        self.sent_bytes = sent_bytes
+        self.sent_packets = sent_packets
+        self.recv_bytes = recv_bytes
+        self.recv_packets = recv_packets
+        self.corrupted_bytes = corrupted_bytes
+        self.lost_in_middle_bytes = lost_in_middle_bytes
 
 class AvroraMetricsCommon(MetricsCommon):
     """Contains metrics specific to the Avrora simulator."""
