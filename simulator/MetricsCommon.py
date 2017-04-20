@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from collections import Counter, OrderedDict, defaultdict, namedtuple
+from collections import Counter, OrderedDict, defaultdict
 import base64
 import math
 import pickle
@@ -715,10 +715,16 @@ class MetricsCommon(object):
         else:
             return getattr(psutil.Process().memory_info(), attr)
 
-AvroraPacketSummary = namedtuple(
-    'AvroraPacketSummary',
-    ('sent_bytes', 'sent_packets', 'recv_bytes', 'recv_packets', 'corrupted_bytes', 'lost_in_middle_bytes'),
-    verbose=False)
+class AvroraPacketSummary(object):
+    __slots__ = ('sent_bytes', 'sent_packets', 'recv_bytes', 'recv_packets', 'corrupted_bytes', 'lost_in_middle_bytes')
+
+    def __init__(self, sent_bytes, sent_packets, recv_bytes, recv_packets, corrupted_bytes, lost_in_middle_bytes):
+        self.sent_bytes = sent_bytes
+        self.sent_packets = sent_packets
+        self.recv_bytes = recv_bytes
+        self.recv_packets = recv_packets
+        self.corrupted_bytes = corrupted_bytes
+        self.lost_in_middle_bytes = lost_in_middle_bytes
 
 class AvroraMetricsCommon(MetricsCommon):
     """Contains metrics specific to the Avrora simulator."""

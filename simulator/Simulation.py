@@ -7,7 +7,6 @@ import importlib
 from itertools import islice
 import os
 import random
-import re
 import sys
 import timeit
 
@@ -356,6 +355,7 @@ class OfflineSimulation(object):
 
         self._event_log = event_log
 
+        import re
         self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.+)\s*')
 
     def __enter__(self):
