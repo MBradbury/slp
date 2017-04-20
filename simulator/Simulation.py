@@ -40,7 +40,7 @@ class Simulation(object):
 
         else:
             self.nesc_app = None
-            self.tossim = tossim_module.Tossim([])
+            self.tossim = tossim_module.Tossim({})
 
         self.radio = self.tossim.radio()
 
