@@ -107,14 +107,19 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
+<<<<<<< working copy
             'normal latency': ('Normal Message Latency (ms)', 'left top'),
             'captured': ('Capture Ratio (%)', 'right top'),
+=======
+            'normal latency': ('Normal Message Latency (seconds)', 'left bottom'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+>>>>>>> merge rev
             #'sent': ('Total Messages Sent', 'left top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left bottom'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'utility equal': ('Utility (Equal)', 'left top'),
-            'utility animal': ('Utility (Animal)', 'left top'),
-            'utility battle': ('Utility (Battle)', 'left top'),
+            'utility animal': ('Utility (Habitat)', 'left top'),
+            'utility battle': ('Utility (Military)', 'left top'),
         }
 
         varying = [
@@ -139,13 +144,13 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (ms)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'norm(sent,time taken)': ('Messages Transmission (messages)', 'left bottom'),
+            'received ratio': ('Delivery Ratio (%)', 'left bottom'),
             'utility equal': ('Utility (Equal)', 'right top'),
-            'utility animal': ('Utility (Animal)', 'right top'),
-            'utility battle': ('Utility (Battle)', 'right top'),
+            'utility animal': ('Utility (Habitat)', 'right top'),
+            'utility battle': ('Utility (Military)', 'right top'),
         }
 
         varying = [
