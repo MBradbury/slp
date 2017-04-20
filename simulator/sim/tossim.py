@@ -18,7 +18,7 @@ def supports_parallel():
     return True
 
 def build(module, a):
-    import os
+    import os.path
 
     import simulator.Builder as Builder
     import simulator.Configuration as Configuration

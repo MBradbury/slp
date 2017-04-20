@@ -1,15 +1,9 @@
 from __future__ import print_function, division
 
-import base64
-from collections import namedtuple
-import pickle
-import re
-import sys
-
-try:
-    import subprocess32 as subprocess
-except ImportError:
-    import subprocess
+# Lets try to avoid importing these modules
+base64 = None
+pickle = None
+re = None
 
 def parsers():
     raw_single_common = ["verbose", "seed", "configuration", "network size", "distance",
@@ -126,6 +120,7 @@ def avrora_command(module, a, configuration):
     command = "nice -15 java -jar '{}' {} {}".format(avrora_path, options_string, target_file)
 
     return command
+
 
 def avrora_iter(iterable):
     from datetime import datetime
@@ -250,7 +245,18 @@ def avrora_iter(iterable):
 
 
 def run_simulation(module, a, count=1, print_warnings=False):
+    global base64, pickle, re
+
+    import base64
+    import pickle
+    import re
     import shlex
+    import sys
+
+    try:
+        import subprocess32 as subprocess
+    except ImportError:
+        import subprocess
 
     from simulator import Configuration
 
@@ -343,19 +349,34 @@ def run_simulation(module, a, count=1, print_warnings=False):
                 if print_warnings:
                     sim.metrics.print_warnings()
 
-BLOCK0_RE = re.compile(r"=={ Energy consumption results for node (\d+) }=*\nNode lifetime: (\d+) cycles,\s*(.+) seconds")
-BLOCKN_NAME_RE = re.compile(r"([A-Za-z]+): (.+) Joule")
-JOULE_AND_CYCLES_RE = re.compile(r"(.+) Joule, (\d+) cycles")
+class JouleAndCycles(object):
+    __slots__ = ('joule', 'cycles')
 
-JouleAndCycles = namedtuple('JouleAndCycles', ('joule', 'cycles'), verbose=False)
+    def __init__(self, joule, cycles):
+        self.joule = joule
+        self.cycles = cycles
 
 class NodeEnergy:
+
+    BLOCK0_RE = None
+    BLOCKN_NAME_RE = None
+    JOULE_AND_CYCLES_RE = None
+
     def __init__(self, text):
+
+        if self.BLOCK0_RE is None:
+            self.BLOCK0_RE = re.compile(r"=={ Energy consumption results for node (\d+) }=*\nNode lifetime: (\d+) cycles,\s*(.+) seconds")
+        
+        if self.BLOCKN_NAME_RE is None:
+            self.BLOCKN_NAME_RE = re.compile(r"([A-Za-z]+): (.+) Joule")
+        
+        if self.JOULE_AND_CYCLES_RE is None:
+            self.JOULE_AND_CYCLES_RE = re.compile(r"(.+) Joule, (\d+) cycles")
 
         blocks = text.strip().split("\n\n")
 
         # Block 0 should be the node id and lifetime stats
-        match = BLOCK0_RE.match(blocks[0])
+        match = self.BLOCK0_RE.match(blocks[0])
         if match is not None:
             self.nid = int(match.group(1))
             self.node_lifetime_cycles = int(match.group(2))
@@ -370,7 +391,7 @@ class NodeEnergy:
         for block in blocks[1:]:
             lines = block.split("\n")
 
-            match = BLOCKN_NAME_RE.match(lines[0].strip())
+            match = self.BLOCKN_NAME_RE.match(lines[0].strip())
             if match is not None:
                 name = match.group(1)
                 name_total_joules = float(match.group(2))
@@ -384,7 +405,7 @@ class NodeEnergy:
 
                 detail_name, detail_energy = split_line[0], split_line[-1]
 
-                match = JOULE_AND_CYCLES_RE.match(detail_energy)
+                match = self.JOULE_AND_CYCLES_RE.match(detail_energy)
                 if match is not None:
                     jc = JouleAndCycles(float(match.group(1)), float(match.group(2)))
                 else:
