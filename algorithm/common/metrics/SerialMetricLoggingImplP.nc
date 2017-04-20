@@ -262,6 +262,35 @@ implementation
 		SERIAL_END_SEND(metric_message_type_add_msg_t)
 	}
 
+    command void MetricLogging.log_metric_fault_point_type_add(
+            uint8_t fault_point_id,
+            const char* fault_point_name
+            )
+    {
+        SERIAL_START_SEND(metric_fault_point_type_add_msg_t)
+
+        msg->type = AM_METRIC_FAULT_POINT_TYPE_ADD_MSG;
+
+        msg->fault_point_id = fault_point_id;
+
+        strncpy((char*)msg->fault_point_name, fault_point_name, ARRAY_SIZE(msg->fault_point_name));
+
+        SERIAL_END_SEND(metric_fault_point_type_add_msg_t)
+    }
+
+    command void MetricLogging.log_metric_fault_point(
+            uint8_t fault_point_id
+            )
+    {
+        SERIAL_START_SEND(metric_fault_point_msg_t)
+
+        msg->type = AM_METRIC_FAULT_POINT_MSG;
+
+        msg->fault_point_id = fault_point_id;
+
+        SERIAL_END_SEND(metric_fault_point_msg_t)
+    }
+
 	command void MetricLogging.log_error_occurred(
 		uint16_t code,
 		const char* message
