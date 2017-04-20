@@ -2,7 +2,6 @@ from __future__ import division, print_function
 
 #import sys
 
-import re
 from data.restricted_eval import restricted_eval
 
 class FaultModel(object):
@@ -105,8 +104,6 @@ class NodeCrashVariableFaultModel(FaultModel):
 class NodeCrashTypeFaultModel(FaultModel):
     """This model will listen for a node change event changing to 'CrashNode' in order to crash that node."""
 
-    CHANGE_RE = re.compile(r'([a-zA-Z]+Node|<unknown>),([a-zA-Z]+Node)')
-
     def __init__(self):
         super(NodeCrashTypeFaultModel, self).__init__()
 
@@ -117,8 +114,9 @@ class NodeCrashTypeFaultModel(FaultModel):
         sim.register_output_handler("M-NC", self._crash_node_listener)
 
     def _crash_node_listener(self, log_type, node_id, current_time, detail):
-        match = self.CHANGE_RE.match(detail)
-        if(match.group(2) == "CrashNode"):
+        (from_node_type, to_node_type) = detail.split(",")
+
+        if to_node_type == "CrashNode":
             node = self.sim.node_from_ordered_nid(int(node_id))
             #print("Turning off node {} to simulate crash because node_type=CrashNode".format(int(node_id)), file=sys.stderr)
             node.tossim_node.turnOff()
