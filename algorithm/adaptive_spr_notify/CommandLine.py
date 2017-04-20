@@ -132,12 +132,12 @@ class CLI(CommandLineCommon.CLI):
         }
 
         custom_yaxis_range_max = {
-            'captured': 10,
+            'captured': 6,
             'received ratio': 100,
             'attacker distance': 140,
             'normal latency': 200,
-            'norm(norm(sent,time taken),network size)': 8,
-            'norm(norm(fake,time taken),network size)': 8,
+            'norm(norm(sent,time taken),network size)': 7,
+            'norm(norm(fake,time taken),network size)': 7,
             #'energy impact per node per second': 0.0003,
             #'energy allowance used': 100,
         }
