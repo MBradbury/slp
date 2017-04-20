@@ -58,8 +58,8 @@ class NodeCrashFaultModel(FaultModel):
 
 class NodeCrashVariableFaultModel(FaultModel):
     """This model will crash any node with a specified variable set to the given value."""
-    def __init__(self, variable_name, variable_value):
-        super(NodeCrashVariableFaultModel, self).__init__()
+    def __init__(self, variable_name, variable_value, check_interval=1):
+        super(NodeCrashVariableFaultModel, self).__init__(requires_nesc_variables=True)
 
         # The name of the variable to watch
         self.variable_name = variable_name
@@ -68,7 +68,7 @@ class NodeCrashVariableFaultModel(FaultModel):
         self.variable_value = variable_value
 
         # The interval between checking each node's specified variable
-        self.check_interval = 1
+        self.check_interval = check_interval
 
         # Dict of (Variable object, node id) for all nodes
         self.variables = None
@@ -99,7 +99,8 @@ class NodeCrashVariableFaultModel(FaultModel):
         self.sim.register_event_callback(self._check_variables, current_time + self.check_interval)
 
     def __str__(self):
-        return "{}(variable_name={},variable_value={})".format(type(self).__name__, self.variable_name, self.variable_value)
+        return "{}(variable_name={}, variable_value={}, check_interval)".format(
+            type(self).__name__, self.variable_name, self.variable_value, self.check_interval)
 
 class NodeCrashTypeFaultModel(FaultModel):
     """This model will listen for a node change event changing to 'CrashNode' in order to crash that node."""
