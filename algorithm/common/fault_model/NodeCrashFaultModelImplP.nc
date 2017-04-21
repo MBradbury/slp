@@ -1,10 +1,14 @@
 
-module NoFaultModelP
+#include "MetricLogging.h"
+
+module NodeCrashFaultModelImplP
 {
     provides interface FaultModel;
 
     uses interface MetricLogging;
     uses interface FaultModelTypes;
+
+    uses interface McuSleep;
 }
 implementation
 {
@@ -25,5 +29,7 @@ implementation
 
     command void FaultModel.fault_point(uint8_t ident)
     {
+        METRIC_FAULT_POINT(ident);
+        call McuSleep.sleep();
     }
 }
