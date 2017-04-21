@@ -12,6 +12,11 @@ class FaultModel(object):
     def setup(self, sim):
         self.sim = sim
 
+    def build_arguments(self):
+        return {
+            "SLP_NO_FAULT_MODEL": 1
+        }
+
     def __str__(self):
         return type(self).__name__ + "()"
 
@@ -174,6 +179,23 @@ class BitFlipFaultModel(FaultModel):
     def __str__(self):
         return "{}(node_id={!r}, variable_name={!r}, flip_time={})".format(
             type(self).__name__, self.node_id, self.variable_name, self.flip_time)
+
+class NescFaultModel(FaultModel):
+    """Wires up a NesC Fault Model."""
+    def __init__(self, fault_model_name):
+        super(NescFaultModel, self).__init__()
+
+        self.fault_model_name = fault_model_name
+
+    def build_arguments(self):
+        return {
+            "SLP_NESC_FAULT_MODEL": self.fault_model_name
+        }
+
+    def __str__(self):
+        return "{}(fault_model_name={!r})".format(
+            type(self).__name__, self.fault_model_name)
+
 
 def models():
     """A list of the available models."""

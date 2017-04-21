@@ -189,8 +189,8 @@ class ArgumentsCommon(object):
     def build_arguments(self):
         result = {}
 
-        if hasattr(self.args, 'seed'):
-          result["SLP_SEED"] = "UINT32_C({})".format(self.args.seed)
+        #if hasattr(self.args, 'seed'):
+        #  result["SLP_SEED"] = "UINT32_C({})".format(self.args.seed)
 
         if self.args.verbose:
             result["SLP_VERBOSE_DEBUG"] = 1
@@ -228,6 +228,9 @@ class ArgumentsCommon(object):
             (source_id,) = configuration.source_ids
 
             result["SOURCE_NODE_ID"] = configuration.topology.to_topo_nid(source_id)
+
+        if hasattr(self.args, 'fault_model'):
+          result.update(self.args.fault_model.build_arguments())
 
         if hasattr(self.args, 'low_power_listening'):
             # Negative indicates disabled
