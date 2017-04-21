@@ -1,6 +1,6 @@
 
 # Additional Includes
-CFLAGS += -I"../common" -I"../common/metrics"
+CFLAGS += -I"../common" -I"../common/metrics" -I"../common/fault_model"
 
 # Additional warnings
 CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable 
