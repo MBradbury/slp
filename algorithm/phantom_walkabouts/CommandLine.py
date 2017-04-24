@@ -112,8 +112,8 @@ class CLI(CommandLineCommon.CLI):
             'norm(sent,time taken)': ('Messages Sent per Second', 'left bottom'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'utility equal': ('Utility (Equal)', 'left top'),
-            'utility animal': ('Utility (Animal)', 'left top'),
-            'utility battle': ('Utility (Battle)', 'left top'),
+            'utility animal': ('Utility (Habitat)', 'left top'),
+            'utility battle': ('Utility (Military)', 'left top'),
         }
 
         varying = [
@@ -143,8 +143,8 @@ class CLI(CommandLineCommon.CLI):
             'norm(sent,time taken)': ('Messages Transmission (messages)', 'left bottom'),
             'received ratio': ('Delivery Ratio (%)', 'left bottom'),
             'utility equal': ('Utility (Equal)', 'right top'),
-            'utility animal': ('Utility (Animal)', 'right top'),
-            'utility battle': ('Utility (Battle)', 'right top'),
+            'utility animal': ('Utility (Habitat)', 'right top'),
+            'utility battle': ('Utility (Military)', 'right top'),
         }
 
         varying = [
