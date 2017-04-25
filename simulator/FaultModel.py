@@ -104,7 +104,7 @@ class NodeCrashVariableFaultModel(FaultModel):
         self.sim.register_event_callback(self._check_variables, current_time + self.check_interval)
 
     def __str__(self):
-        return "{}(variable_name={}, variable_value={}, check_interval)".format(
+        return "{}(variable_name={}, variable_value={}, check_interval={})".format(
             type(self).__name__, self.variable_name, self.variable_value, self.check_interval)
 
 class NodeCrashTypeFaultModel(FaultModel):
@@ -126,9 +126,6 @@ class NodeCrashTypeFaultModel(FaultModel):
             node = self.sim.node_from_ordered_nid(int(node_id))
             #print("Turning off node {} to simulate crash because node_type=CrashNode".format(int(node_id)), file=sys.stderr)
             node.tossim_node.turnOff()
-
-    def __str__(self):
-        return "{}()".format(type(self).__name__)
 
 class BitFlipFaultModel(FaultModel):
     """This model will flip a bit in the specified variable on the specified node at the specified time."""
