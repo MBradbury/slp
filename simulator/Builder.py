@@ -19,14 +19,14 @@ def build_sim(directory, platform="micaz", **kwargs):
     max_nodes = kwargs["MAX_TOSSIM_NODES"]
     del kwargs["MAX_TOSSIM_NODES"]
 
-    flags = " ".join("-D{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
+    flags = " ".join("-D{}={!r}".format(k, v) for (k, v) in kwargs.items())
 
     make_options = {
         "SLP_PARAMETER_CFLAGS": flags,
         "MAX_TOSSIM_NODES": max_nodes
     }
 
-    make_options_string = " ".join('{}={}'.format(k, repr(v)) for (k, v) in make_options.items())
+    make_options_string = " ".join('{}={!r}'.format(k, v) for (k, v) in make_options.items())
 
     command = 'make {} sim {}'.format(platform, make_options_string)
 
@@ -49,7 +49,7 @@ def build_actual(directory, platform, **kwargs):
 
     del kwargs["MAX_TOSSIM_NODES"]
 
-    flags = " ".join("-D{}={}".format(k, repr(v)) for (k, v) in kwargs.items())
+    flags = " ".join("-D{}={!r}".format(k, v) for (k, v) in kwargs.items())
 
     make_options = {
         "SLP_PARAMETER_CFLAGS": flags,
@@ -69,7 +69,7 @@ def build_actual(directory, platform, **kwargs):
     if "CYCLEACCURATE" in kwargs:
         make_options["CYCLEACCURATE"] = kwargs["CYCLEACCURATE"]
 
-    make_options_string = " ".join('{}={}'.format(k, repr(v)) for (k, v) in make_options.items())
+    make_options_string = " ".join('{}={!r}'.format(k, v) for (k, v) in make_options.items())
 
     command = 'make {} fastserial {}'.format(platform, make_options_string)
 
