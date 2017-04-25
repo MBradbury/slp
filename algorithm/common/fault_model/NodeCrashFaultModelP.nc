@@ -13,6 +13,6 @@ implementation
     ProvidedFaultModel.FaultModelTypes = FaultModelTypes;
     ProvidedFaultModel.MetricLogging = MetricLogging;
 
-    components McuSleepC;
-    ProvidedFaultModel.McuSleep = McuSleepC;
+    components ActiveMessageC;
+    ProvidedFaultModel.RadioControl -> ActiveMessageC;
 }

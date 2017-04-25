@@ -1,3 +1,4 @@
+
 generic configuration FaultModelC(uint8_t maximum_fault_point_types)
 {
     provides interface FaultModel;
@@ -6,13 +7,17 @@ generic configuration FaultModelC(uint8_t maximum_fault_point_types)
 }
 implementation
 {
-    components new FaultModelTypes(maximum_fault_point_types);
+    components new FaultModelTypesP(maximum_fault_point_types);
 
 #if defined(SLP_NO_FAULT_MODEL)
+#   warning "Using NoFaultModelP as the fault model"
+
     components NoFaultModelP as ProvidedFaultModel;
 
 #elif defined(SLP_TOSSIM_FAULT_MODEL)
 #   if defined(TOSSIM)
+#      warning "Using TossimFaultModelP as the fault model"
+
     components TossimFaultModelP as ProvidedFaultModel;
 #   else
 #       error "Cannot use SLP_TOSSIM_FAULT_MODEL if not using TOSSIM"
@@ -27,10 +32,12 @@ implementation
 #   error "Not sure which fault model to use"
 #endif
 
+#warning "*** FaultModelC is present"
+
     FaultModel = ProvidedFaultModel;
-    ProvidedFaultModel.FaultModelTypes = FaultModelTypes;
+    ProvidedFaultModel.FaultModelTypes -> FaultModelTypesP;
     ProvidedFaultModel.MetricLogging = MetricLogging;
 
     components MainC;
-    MainC.SoftwareInit -> FaultModelTypes;
+    MainC.SoftwareInit -> FaultModelTypesP;
 }
