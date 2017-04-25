@@ -8,7 +8,7 @@ module NodeCrashFaultModelImplP
     uses interface MetricLogging;
     uses interface FaultModelTypes;
 
-    uses interface McuSleep;
+    uses interface SplitControl as RadioControl;
 }
 implementation
 {
@@ -29,7 +29,15 @@ implementation
 
     command void FaultModel.fault_point(uint8_t ident)
     {
-        METRIC_FAULT_POINT(ident);
-        call McuSleep.sleep();
+        //METRIC_FAULT_POINT(ident);
+        call RadioControl.stop();
+    }
+
+    event void RadioControl.startDone(error_t error)
+    {
+    }
+
+    event void RadioControl.stopDone(error_t error)
+    {
     }
 }
