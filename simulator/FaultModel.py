@@ -2,6 +2,8 @@ from __future__ import division, print_function
 
 #import sys
 
+import re
+import random
 from data.restricted_eval import restricted_eval
 
 class FaultModel(object):
@@ -19,6 +21,50 @@ class FaultModel(object):
 
     def __str__(self):
         return type(self).__name__ + "()"
+
+class FaultPointModel(FaultModel):
+    ADD_RE = re.compile(r'([0-9]+),([a-zA-Z]+FaultPoint)')
+    OCCUR_RE = re.compile(r'([0-9]+)')
+    def __init__(self, fault_point_probs, base_probability=0.0, requires_nesc_variables=False):
+        super(FaultPointModel, self).__init__(requires_nesc_variables=requires_nesc_variables)
+        self.fault_points = {}
+        if not fault_point_probs == None:
+            self.fault_point_probs = fault_point_probs
+        else:
+            self.fault_point_probs = {}
+        self.base_probability = base_probability
+
+    def setup(self, sim):
+        super(FaultPointModel).setup(sim)
+        sim.register_output_handler("M-FPA", self._fault_point_add)
+        sim.register_output_handler("M-FP", self._fault_point_occurred)
+
+    def _fault_point_add(self, log_type, node_id, current_time, detail):
+        match = self.ADD_RE.match(detail)
+        fault_point_id = int(match.group(1))
+        fault_point_name = match.group(2)
+        self.fault_points[fault_point_id] = fault_point_name
+        if not self.fault_point_probs.has_key(fault_point_name):
+            self.fault_point_probs[fault_point_name] = self.base_probability
+
+    def _fault_point_occurred(self, log_type, node_id, current_time, detail):
+        fault_point_id = int(self.OCCUR_RE.match(detail).group(1))
+        try:
+            fault_point_name = self.fault_points[fault_point_id]
+            probability = self.fault_point_probs[fault_point_name]
+        except KeyError:
+            fault_point_name = "<unknown>"
+            probability = self.base_probability
+
+        if random.random() < probability:
+            node = self.sim.node_from_ordered_nid(int(node_id))
+            self.fault_occurred(fault_point_name, node)
+
+    def fault_occurred(self, fault_point_name, node):
+        raise NotImplementedError("FaultPointModel subclass must implement fault_occurred function")
+
+    def __str__(self):
+        return "{}(fault_point_probs={},base_probability={})".format(type(self).__name__, self.fault_point_probs, self.base_probability)
 
 class ReliableFaultModel(FaultModel):
     """The default fault mobility model, nothing bad happens."""
@@ -177,6 +223,44 @@ class BitFlipFaultModel(FaultModel):
         return "{}(node_id={!r}, variable_name={!r}, flip_time={})".format(
             type(self).__name__, self.node_id, self.variable_name, self.flip_time)
 
+class NodeCrashFaultPointModel(FaultPointModel):
+    """This model will crash a node at the fault point."""
+    def __init__(self, fault_point_probs, base_probability=0.0):
+        super(NodeCrashFaultPointModel, self).__init__(fault_point_probs, base_probability=base_probability)
+
+    def fault_occurred(self, fault_point_name, node):
+        # On fault, turn node off to simulate crash
+        node.tossim_node.turnOff()
+
+class BitFlipFaultPointModel(FaultPointModel):
+    """This model will flip a bit in a specified variable at the fault point."""
+    def __init__(self, fault_point_probs, variable, base_probability=0.0):
+        super(BitFlipFaultPointModel, self).__init__(fault_point_probs, base_probability=base_probability, requires_nesc_variables=True)
+        self.variable = variable
+
+    def setup(self, sim):
+        super(BitFlipFaultModel, self).setup(sim)
+
+        # Check variable actually exists before starting
+        sim.node_from_ordered_nid(0).tossim_node.getVariable(self.variable)
+
+    def fault_occurred(self, fault_point_name, node):
+        # Get the node's variable
+        variable = node.tossim_node.getVariable(self.variable)
+
+        # Get the data
+        data = variable.getData()
+
+        # Flip a bit in the data
+        new_data = data ^ 1
+
+        # Reassign the data
+        variable.setData(new_data)
+
+    def __str__(self):
+        return "{}(fault_point_probs={},variable={},base_probability={})".format(type(self).__name__,
+                self.fault_point_probs, self.variable, self.base_probability)
+
 class NescFaultModel(FaultModel):
     """Wires up a NesC Fault Model."""
     def __init__(self, fault_model_name):
@@ -196,7 +280,8 @@ class NescFaultModel(FaultModel):
 
 def models():
     """A list of the available models."""
-    return FaultModel.__subclasses__() # pylint: disable=no-member
+    return [f for f in FaultModel.__subclasses__() + FaultPointModel.__subclasses__() # pylint: disable=no-member
+                if not type(f).__name__ == "FaultPointModel"]
 
 def eval_input(source):
     result = restricted_eval(source, models())
