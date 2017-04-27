@@ -2,8 +2,6 @@ from __future__ import division, print_function
 
 #import sys
 
-import re
-import random
 from data.restricted_eval import restricted_eval
 
 class FaultModel(object):
@@ -23,8 +21,6 @@ class FaultModel(object):
         return type(self).__name__ + "()"
 
 class FaultPointModel(FaultModel):
-    ADD_RE = re.compile(r'([0-9]+),([a-zA-Z]+FaultPoint)')
-    OCCUR_RE = re.compile(r'([0-9]+)')
     def __init__(self, fault_point_probs, base_probability=0.0, requires_nesc_variables=False):
         super(FaultPointModel, self).__init__(requires_nesc_variables=requires_nesc_variables)
         self.fault_points = {}
@@ -40,23 +36,22 @@ class FaultPointModel(FaultModel):
         sim.register_output_handler("M-FP", self._fault_point_occurred)
 
     def _fault_point_add(self, log_type, node_id, current_time, detail):
-        match = self.ADD_RE.match(detail)
-        fault_point_id = int(match.group(1))
-        fault_point_name = match.group(2)
+        match = detail.split(",")
+        fault_point_id = int(match[0])
+        fault_point_name = match[1]
         self.fault_points[fault_point_id] = fault_point_name
         if not self.fault_point_probs.has_key(fault_point_name):
             self.fault_point_probs[fault_point_name] = self.base_probability
 
     def _fault_point_occurred(self, log_type, node_id, current_time, detail):
-        fault_point_id = int(self.OCCUR_RE.match(detail).group(1))
+        fault_point_id = int(detail)
         try:
             fault_point_name = self.fault_points[fault_point_id]
             probability = self.fault_point_probs[fault_point_name]
         except KeyError:
-            fault_point_name = "<unknown>"
-            probability = self.base_probability
+            return
 
-        if random.random() < probability:
+        if self.sim.rnd.random() < probability:
             node = self.sim.node_from_ordered_nid(int(node_id))
             self.fault_occurred(fault_point_name, node)
 
