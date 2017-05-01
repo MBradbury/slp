@@ -15,7 +15,7 @@ from simulator import Attacker
 
 class MissingSafetyPeriodError(RuntimeError):
     def __init__(self, key, source_period, safety_periods):
-        super(MissingSafetyPeriodError).__init__()
+        super(MissingSafetyPeriodError, self).__init__()
         self.key = key
         self.source_period = source_period
         self.safety_periods = safety_periods
