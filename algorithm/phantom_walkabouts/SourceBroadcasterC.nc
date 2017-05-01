@@ -1,4 +1,17 @@
-//improved phantom_walkabouts_origin version without specify short and long walk length.
+/*
+The codes are used for SRDS17 paper.
+Key features include:
+- node divides neighbours into 4 sets.
+- use three landmark nodes to decide network topology (SinkCorner or SourceCorner).
+- specify the short and long random walk counts.
+- specify the order of ShortLong or LongShort.
+- short random walk messages delay after a long random walk message.
+- use a direction bias factor for bias random walk.
+- bias random walk could choose H or V direction.
+- the length of short and long random walks are chosen from S and L.
+*/
+
+
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
