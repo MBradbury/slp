@@ -36,6 +36,7 @@ implementation
 
     FaultModel = ProvidedFaultModel;
     ProvidedFaultModel.FaultModelTypes -> FaultModelTypesP;
+    FaultModelTypesP.MetricLogging = MetricLogging;
     ProvidedFaultModel.MetricLogging = MetricLogging;
 
     components MainC;
