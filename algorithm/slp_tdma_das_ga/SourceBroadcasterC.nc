@@ -23,20 +23,6 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbgverbose("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
-#if TOSSIM && SIMULATED_CRASH
-uint16_t simulated_crash_node = UINT16_MAX;
-#define SIMULATE_CRASH() \
-    if(call NodeType.is_node_sink()) { \
-        int i = (int)(random_float()*ga_slp_ids_length); \
-        simulated_crash_node = ga_slp_ids[i]; \
-    } \
-    if(simulated_crash_node == TOS_NODE_ID) { \
-        call NodeType.set(CrashNode); \
-    }
-#else
-#define SIMULATE_CRASH()
-#endif /* SIMULATED_CRASH */
-
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -70,6 +56,8 @@ module SourceBroadcasterC
 	uses interface SourcePeriodModel;
 
 	uses interface SequenceNumbers as NormalSeqNos;
+
+    uses interface FaultModel;
 }
 
 implementation
@@ -81,10 +69,13 @@ implementation
         SinkNode,
         NormalNode,
         PathNode,
-#if SIMULATED_CRASH
-        CrashNode
-#endif /* SIMULATED_CRASH */
 	};
+
+    enum
+    {
+        UnknownFaultPoint = 0,
+        InitFaultPoint,
+    };
 
     // Produces a random float between 0 and 1
     float random_float(void)
@@ -139,9 +130,7 @@ implementation
         call NodeType.register_pair(SinkNode, "SinkNode");
         call NodeType.register_pair(NormalNode, "NormalNode");
         call NodeType.register_pair(PathNode, "PathNode");
-#if SIMULATED_CRASH
-        call NodeType.register_pair(CrashNode, "CrashNode");
-#endif /* SIMULATED_CRASH */
+        call FaultModel.register_pair(InitFaultPoint, "InitFaultPoint");
 
         if (call NodeType.is_node_sink())
         {
@@ -221,7 +210,10 @@ implementation
         {
             call TDMA.set_slot(ga_slot_assignments[TOS_NODE_ID]);
         }
-        SIMULATE_CRASH();
+
+        if(ga_is_in_slp_path(TOS_NODE_ID)) {
+            call FaultModel.fault_point(InitFaultPoint);
+        }
     }
 
     event void DissemTimerSender.fired()
@@ -380,9 +372,6 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
-#if SIMULATED_CRASH
-        case CrashNode: break;
-#endif /* SIMULATED_CRASH */
         case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
         case PathNode:
@@ -395,9 +384,6 @@ implementation
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
-#if SIMULATED_CRASH
-        case CrashNode: break;
-#endif /* SIMULATED_CRASH */
         case SourceNode:
         case PathNode:
         case NormalNode:

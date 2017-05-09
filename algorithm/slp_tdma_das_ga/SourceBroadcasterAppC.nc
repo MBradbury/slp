@@ -90,4 +90,8 @@ implementation
     components
         new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
     App.NormalSeqNos -> NormalSeqNos;
+
+    components new FaultModelC(6);
+    App.FaultModel -> FaultModelC;
+    FaultModelC.MetricLogging -> MetricLogging;
 }
