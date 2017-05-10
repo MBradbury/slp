@@ -31,9 +31,14 @@ class FaultPointModel(FaultModel):
         self.base_probability = base_probability
 
     def setup(self, sim):
-        super(FaultPointModel).setup(sim)
+        super(FaultPointModel, self).setup(sim)
         sim.register_output_handler("M-FPA", self._fault_point_add)
         sim.register_output_handler("M-FP", self._fault_point_occurred)
+
+    def build_arguments(self):
+        return {
+            "SLP_TOSSIM_FAULT_MODEL": 1
+        }
 
     def _fault_point_add(self, log_type, node_id, current_time, detail):
         match = detail.split(",")
@@ -51,7 +56,7 @@ class FaultPointModel(FaultModel):
         except KeyError:
             return
 
-        if self.sim.rnd.random() < probability:
+        if self.sim.rng.random() < probability:
             node = self.sim.node_from_ordered_nid(int(node_id))
             self.fault_occurred(fault_point_name, node)
 
