@@ -91,7 +91,7 @@ class Simulation(object):
             self.tossim.addChannel("stderr", sys.stderr)
 
         self.fault_model = args.fault_model
-        self.fault_model.setup(self)
+        self.fault_model.setup(self, gui=(args.mode == "GUI"))
 
         self.attackers = []
 
