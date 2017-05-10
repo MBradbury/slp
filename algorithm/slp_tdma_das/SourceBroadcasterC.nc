@@ -587,7 +587,10 @@ implementation
 
     void send_Search_done(message_t* msg, error_t error)
     {
-        call FaultModel.fault_point(PathFaultPoint);
+        if(!call NodeType.is_node_sink())
+        {
+            call FaultModel.fault_point(PathFaultPoint);
+        }
     }
 
     void send_Change_done(message_t* msg, error_t error)
