@@ -74,7 +74,7 @@ implementation
     enum
     {
         UnknownFaultPoint = 0,
-        InitFaultPoint,
+        PathFaultPoint,
     };
 
     // Produces a random float between 0 and 1
@@ -130,7 +130,8 @@ implementation
         call NodeType.register_pair(SinkNode, "SinkNode");
         call NodeType.register_pair(NormalNode, "NormalNode");
         call NodeType.register_pair(PathNode, "PathNode");
-        call FaultModel.register_pair(InitFaultPoint, "InitFaultPoint");
+
+        call FaultModel.register_pair(PathFaultPoint, "PathFaultPoint");
 
         if (call NodeType.is_node_sink())
         {
@@ -212,7 +213,7 @@ implementation
         }
 
         if(ga_is_in_slp_path(TOS_NODE_ID)) {
-            call FaultModel.fault_point(InitFaultPoint);
+            call FaultModel.fault_point(PathFaultPoint);
         }
     }
 

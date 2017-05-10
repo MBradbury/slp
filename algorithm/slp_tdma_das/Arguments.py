@@ -21,7 +21,6 @@ class Arguments(ArgumentsCommon):
         self.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
         # self.add_argument("-tsp", "--tdma-safety-periods", type=int, required=True, help="Safety period (in TDMA periods)")
         self.add_argument("-sd", "--search-distance", type=int, required=True, help="Distance search messages travel from the sink")
-        self.add_argument("--simulate-crash", type=int, required=False, default=0, help="Simulate a node crash with the NodeCrashTypeFaultModel() fault model")
         self.add_argument("--source-mobility",
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
@@ -48,6 +47,5 @@ class Arguments(ArgumentsCommon):
         # result["SAFETY_PERIOD"] = ssd_hops
         result["SEARCH_DIST"] = self.args.search_distance
         result["CHANGE_LENGTH"] = ssd_hops - self.args.search_distance
-        result["SIMULATED_CRASH"] = self.args.simulate_crash
 
         return result
