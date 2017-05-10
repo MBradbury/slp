@@ -8,14 +8,19 @@ class FaultModel(object):
     def __init__(self, requires_nesc_variables=False):
         self.sim = None
         self.requires_nesc_variables = requires_nesc_variables
+        self._has_gui = False
 
-    def setup(self, sim):
+    def setup(self, sim, gui=False):
         self.sim = sim
+        self._has_gui = gui
 
     def build_arguments(self):
         return {
             "SLP_NO_FAULT_MODEL": 1
         }
+
+    def _draw(self):
+        return
 
     def __str__(self):
         return type(self).__name__ + "()"
@@ -30,8 +35,8 @@ class FaultPointModel(FaultModel):
             self.fault_point_probs = {}
         self.base_probability = base_probability
 
-    def setup(self, sim):
-        super(FaultPointModel, self).setup(sim)
+    def setup(self, sim, gui=False):
+        super(FaultPointModel, self).setup(sim, gui=gui)
         sim.register_output_handler("M-FPA", self._fault_point_add)
         sim.register_output_handler("M-FP", self._fault_point_occurred)
 
@@ -59,9 +64,22 @@ class FaultPointModel(FaultModel):
         if self.sim.rng.random() < probability:
             node = self.sim.node_from_ordered_nid(int(node_id))
             self.fault_occurred(fault_point_name, node)
+            if self._has_gui:
+                self._draw(int(node_id))
 
     def fault_occurred(self, fault_point_name, node):
         raise NotImplementedError("FaultPointModel subclass must implement fault_occurred function")
+
+    def _draw(self, node_id):
+        """Marks all nodes that have faulted in the GUI."""
+        (x, y) = self.sim.gui.node_location(node_id)
+        shape_id = "faultednode{}".format(node_id)
+        color = "0,0,0"
+        options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
+        time = self.sim.sim_time()
+
+        self.sim.gui.scene.execute(time, 'delshape({!r})'.format(shape_id))
+        self.sim.gui.scene.execute(time, 'circle({},{},5,ident={!r},{})'.format(x, y, shape_id, options))
 
     def __str__(self):
         return "{}(fault_point_probs={},base_probability={})".format(type(self).__name__, self.fault_point_probs, self.base_probability)
@@ -238,8 +256,8 @@ class BitFlipFaultPointModel(FaultPointModel):
         super(BitFlipFaultPointModel, self).__init__(fault_point_probs, base_probability=base_probability, requires_nesc_variables=True)
         self.variable = variable
 
-    def setup(self, sim):
-        super(BitFlipFaultModel, self).setup(sim)
+    def setup(self, sim, gui=False):
+        super(BitFlipFaultModel, self).setup(sim, gui=gui)
 
         # Check variable actually exists before starting
         sim.node_from_ordered_nid(0).tossim_node.getVariable(self.variable)
