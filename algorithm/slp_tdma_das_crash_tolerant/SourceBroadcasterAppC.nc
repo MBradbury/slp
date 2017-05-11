@@ -98,6 +98,13 @@ implementation
     App.EmptyNormalSend -> EmptyNormalSender;
     App.EmptyNormalReceive -> EmptyNormalReceiver;
 
+    components
+        new AMSenderC(REPAIR_CHANNEL) as RepairSender,
+        new AMReceiverC(REPAIR_CHANNEL) as RepairReceiver;
+
+    App.RepairSend -> RepairSender;
+    App.RepairReceive -> RepairReceiver;
+
     // Message Queue
     components
         new PoolC(NormalMessage, MESSAGE_QUEUE_SIZE) as MessagePool,
