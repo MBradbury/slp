@@ -36,23 +36,23 @@
 
 module SourceBroadcasterC
 {
-	uses interface Boot;
-	uses interface Leds;
+    uses interface Boot;
+    uses interface Leds;
     uses interface Random;
     uses interface LocalTime<TMilli>;
 
     uses interface Timer<TMilli> as DissemTimerSender;
 
-	uses interface Pool<NormalMessage> as MessagePool;
-	uses interface Queue<NormalMessage*> as MessageQueue;
+    uses interface Pool<NormalMessage> as MessagePool;
+    uses interface Queue<NormalMessage*> as MessageQueue;
 
-	uses interface Packet;
-	uses interface AMPacket;
+    uses interface Packet;
+    uses interface AMPacket;
 
-	uses interface SplitControl as RadioControl;
+    uses interface SplitControl as RadioControl;
 
-	uses interface AMSend as NormalSend;
-	uses interface Receive as NormalReceive;
+    uses interface AMSend as NormalSend;
+    uses interface Receive as NormalReceive;
 
     uses interface AMSend as DissemSend;
     uses interface Receive as DissemReceive;
@@ -71,11 +71,11 @@ module SourceBroadcasterC
     uses interface TDMA;
 
     uses interface NodeType;
-	uses interface MessageType;
-	uses interface ObjectDetector;
-	uses interface SourcePeriodModel;
+    uses interface MessageType;
+    uses interface ObjectDetector;
+    uses interface SourcePeriodModel;
 
-	uses interface SequenceNumbers as NormalSeqNos;
+    uses interface SequenceNumbers as NormalSeqNos;
 
     uses interface FaultModel;
 }
@@ -102,13 +102,13 @@ implementation
     uint32_t redir_length = 0;
 
     enum
-	{
-		SourceNode,
+    {
+        SourceNode,
         SinkNode,
         NormalNode,
         SearchNode,
         ChangeNode,
-	};
+    };
 
     enum
     {
@@ -136,8 +136,8 @@ implementation
         else return list->ids[(call Random.rand16()) % list->count];
     }
 
-	bool busy = FALSE; //Used in the macros
-	message_t packet; //Used in the macros
+    bool busy = FALSE; //Used in the macros
+    message_t packet; //Used in the macros
     //Initialisation variables}}}
 
     //Getter Functions{{{
@@ -181,11 +181,6 @@ implementation
         return SEARCH_DIST;
     }
 
-    /*uint32_t get_pr_length()*/
-    /*{*/
-        /*return PR_LENGTH;*/
-    /*}*/
-
     uint32_t get_search_period_count()
     {
         return get_minimum_setup_periods() - 2;
@@ -195,11 +190,6 @@ implementation
     {
         return get_minimum_setup_periods() - 1;
     }
-
-    /*uint32_t get_safety_period()*/
-    /*{*/
-        /*return SAFETY_PERIOD;*/
-    /*}*/
 
     uint32_t get_change_length()
     {
@@ -226,8 +216,8 @@ implementation
     //###################}}}
 
     //Startup Events
-	event void Boot.booted()
-	{
+    event void Boot.booted()
+    {
         neighbours = IDList_new();
         potential_parents = IDList_new();
         others = OtherList_new();
@@ -235,7 +225,7 @@ implementation
         children = IDList_new();
         from = IDList_new();
 
-		simdbgverbose("Boot", "Application booted.\n");
+        simdbgverbose("Boot", "Application booted.\n");
 
         call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
         call MessageType.register_pair(DISSEM_CHANNEL, "Dissem");
@@ -260,32 +250,32 @@ implementation
             call NodeType.init(NormalNode);
         }
 
-		call RadioControl.start();
-	}
+        call RadioControl.start();
+    }
 
     void init();
-	event void RadioControl.startDone(error_t err)
-	{
-		if (err == SUCCESS)
-		{
-			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
+    event void RadioControl.startDone(error_t err)
+    {
+        if (err == SUCCESS)
+        {
+            simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
 
             init();
             call ObjectDetector.start();
             call TDMA.start();
-		}
-		else
-		{
-			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
+        }
+        else
+        {
+            ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
-			call RadioControl.start();
-		}
-	}
+            call RadioControl.start();
+        }
+    }
 
-	event void RadioControl.stopDone(error_t err)
-	{
-		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
-	}
+    event void RadioControl.stopDone(error_t err)
+    {
+        simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
+    }
 
     event void ObjectDetector.detect()
     {
@@ -312,7 +302,7 @@ implementation
 
     //Main Logic{{{
 
-	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Normal);
+    USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Normal);
     USE_MESSAGE_NO_EXTRA_TO_SEND(Dissem);
     USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Search);
     USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Change);
@@ -502,13 +492,6 @@ implementation
                     msg.a_node = child->id;
                 }
             }
-            /*for(i=0; i<children.count; i++) {*/
-                /*if(rank(&children, children.ids[i]) == children.count) //TODO: Should this be the same conditional as in x_receive_Search?*/
-                /*{*/
-                    /*msg.a_node = children.ids[i];*/
-                    /*break;*/
-                /*}*/
-            /*}*/
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbgverbose("stdout", "Sent search message to %u\n", msg.a_node);
         }
@@ -540,9 +523,9 @@ implementation
         }
     }
 
-	task void send_normal(void)
-	{
-		NormalMessage* message;
+    task void send_normal(void)
+    {
+        NormalMessage* message;
 
         // This task may be delayed, such that it is scheduled when the slot is active,
         // but called after the slot is no longer active.
@@ -552,28 +535,28 @@ implementation
             return;
         }
 
-		simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
+        simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
 
-		message = call MessageQueue.dequeue();
+        message = call MessageQueue.dequeue();
 
-		if (message != NULL)
-		{
+        if (message != NULL)
+        {
             error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
-			if (send_result == SUCCESS)
-			{
-				call MessagePool.put(message);
-			}
-			else
-			{
-				simdbgerrorverbose("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
-			}
-		}
+            if (send_result == SUCCESS)
+            {
+                call MessagePool.put(message);
+            }
+            else
+            {
+                simdbgerrorverbose("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
+            }
+        }
         else
         {
             EmptyNormalMessage msg;
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
         }
-	}
+    }
 
     void send_Normal_done(message_t* msg, error_t error)
     {
@@ -640,7 +623,7 @@ implementation
             process_dissem();
             process_collision();
         }
-        
+
         return TRUE;
     }
 
@@ -687,53 +670,53 @@ implementation
     //}}} Timers.fired()
 
     //Receivers{{{
-	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
-	{
+    void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+    {
         /*simdbgverbose("stdout", "Received normal.\n");*/
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
-		{
-			NormalMessage* forwarding_message;
+        if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+        {
+            NormalMessage* forwarding_message;
 
             call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
-			METRIC_RCV_NORMAL(rcvd);
+            METRIC_RCV_NORMAL(rcvd);
 
-			forwarding_message = call MessagePool.get();
-			if (forwarding_message != NULL)
-			{
-				*forwarding_message = *rcvd;
-				forwarding_message->source_distance += 1;
+            forwarding_message = call MessagePool.get();
+            if (forwarding_message != NULL)
+            {
+                *forwarding_message = *rcvd;
+                forwarding_message->source_distance += 1;
 
-				if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
-				{
-					ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
-				}
-			}
-			else
-			{
-				ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another Normal message.\n");
-			}
-		}
-	}
+                if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
+                {
+                    ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
+                }
+            }
+            else
+            {
+                ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another Normal message.\n");
+            }
+        }
+    }
 
-	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
-	{
+    void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+    {
         simdbgverbose("stdout", "SINK RECEIVED NORMAL.\n");
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
-		{
+        if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+        {
             call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
-			METRIC_RCV_NORMAL(rcvd);
-		}
-	}
+            METRIC_RCV_NORMAL(rcvd);
+        }
+    }
 
-	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+    RECEIVE_MESSAGE_BEGIN(Normal, Receive)
         case SourceNode: break;
-		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
+        case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
         case SearchNode:
         case ChangeNode:
-		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
-	RECEIVE_MESSAGE_END(Normal)
+        case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
+    RECEIVE_MESSAGE_END(Normal)
 
     void x_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
@@ -745,12 +728,6 @@ implementation
 
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
-
-        /*if(period_counter >= get_pre_beacon_periods() && source->hop == BOT)*/
-        /*{*/
-            /*IDList_add(&children, source_addr);*/
-            /*simdbgverbose("stdout", "Added child to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");*/
-        /*}*/
 
         // Record that the sender is in our 1-hop neighbourhood
         IDList_add(&neighbours, source_addr);
@@ -795,19 +772,6 @@ implementation
                     }
                 }
             }
-
-            /*for(i = 0; i<rcvd->N.count; i++)*/
-            /*{*/
-                /*if(rcvd->N.info[i].slot != BOT && rcvd->N.info[i].id != TOS_NODE_ID) //XXX Collision fix is here*/
-                /*{*/
-                    /*NeighbourInfo* oldinfo = NeighbourList_get(&n_info, rcvd->N.info[i].id);*/
-                    /*if(oldinfo == NULL || (rcvd->N.info[i].slot != oldinfo->slot && rcvd->N.info[i].slot < oldinfo->slot)) //XXX Stops stale data?*/
-                    /*{*/
-                        /*set_dissem_timer();*/
-                        /*NeighbourList_add_info(&n_info, &rcvd->N.info[i]);*/
-                    /*}*/
-                /*}*/
-            /*}*/
         }
         else
         {
@@ -970,64 +934,6 @@ implementation
         }
         simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
     }
-
-    /*void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)*/
-    /*{*/
-        /*IDList npar;*/
-        /*METRIC_RCV_CHANGE(rcvd);*/
-        /*if(rcvd->a_node != TOS_NODE_ID) return;*/
-        /*npar = IDList_minus_parent(&potential_parents, parent);*/
-        /*npar = IDList_minus_parent(&npar, source_addr); //TODO: Check if this is necessary*/
-        /*if(rcvd->len_d > 0)*/
-        /*{*/
-            /*ChangeMessage msg;*/
-            /*OnehopList onehop;*/
-            /*simdbgverbose("stdout", "Received change\n");*/
-            /*set_slot(rcvd->n_slot - 1);*/
-            /*//NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing*/
-            /*NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information*/
-            /*NeighbourList_select(&n_info, &neighbours, &onehop);*/
-            /*set_dissem_timer(); //Restart sending dissem messages*/
-            /*msg.n_slot = OnehopList_min_slot(&onehop);*/
-            /*msg.a_node = BOT;*/
-            /*if(npar.count != 0)*/
-            /*{*/
-                /*msg.a_node = choose(&npar);*/
-            /*}*/
-            /*else*/
-            /*{*/
-                /*int i;*/
-                /*OnehopList potential_receivers_list;*/
-                /*IDList potential_receivers = IDList_minus_parent(&neighbours, source_addr);*/
-                /*potential_receivers = IDList_minus_parent(&potential_receivers, parent);*/
-                /*NeighbourList_select(&n_info, &potential_receivers, &potential_receivers_list);*/
-                /*for(i = 0; i < potential_receivers_list.count; i++)*/
-                /*{*/
-                    /*if(potential_receivers_list.info[i].hop < hop)*/
-                    /*{*/
-                        /*IDList_minus_parent(&potential_receivers, potential_receivers_list.info[i].id);*/
-                    /*}*/
-                /*}*/
-                /*[>assert(potential_receivers.count != 0);<]*/
-                /*msg.a_node = choose(&potential_receivers);*/
-            /*}*/
-            /*msg.len_d = rcvd->len_d - 1;*/
-            /*send_Change_message(&msg, AM_BROADCAST_ADDR);*/
-            /*call NodeType.set(ChangeNode);*/
-            /*simdbgverbose("stdout", "Next a_node is %u\n", msg.a_node);*/
-            /*normal = FALSE; //TODO: Testing this*/
-        /*}*/
-        /*else if(rcvd->len_d == 0)*/
-        /*{*/
-            /*normal = FALSE;*/
-            /*set_slot(rcvd->n_slot - 1);*/
-            /*//NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);*/
-            /*set_dissem_timer(); //Restart sending dissem messages*/
-            /*simdbgverbose("stdout", "Change messages ended\n");*/
-            /*call NodeType.set(ChangeNode);*/
-        /*}*/
-        /*simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);*/
-    /*}*/
 
     RECEIVE_MESSAGE_BEGIN(Change, Receive)
         case SourceNode: break;
