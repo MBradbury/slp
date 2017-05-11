@@ -7,6 +7,7 @@
 #include "SearchMessage.h"
 #include "ChangeMessage.h"
 #include "EmptyNormalMessage.h"
+#include "RepairMessage.h"
 
 #include "utils.h"
 
@@ -65,6 +66,9 @@ module SourceBroadcasterC
 
     uses interface AMSend as EmptyNormalSend;
     uses interface Receive as EmptyNormalReceive;
+
+    uses interface AMSend as RepairSend;
+    uses interface Receive as RepairReceive;
 
     uses interface MetricLogging;
 
@@ -307,6 +311,7 @@ implementation
     USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Search);
     USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Change);
     USE_MESSAGE_NO_EXTRA_TO_SEND(EmptyNormal);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(Repair);
 
     void init(void)
     {
@@ -955,4 +960,12 @@ implementation
         case NormalNode:
         case SinkNode:   x_receive_EmptyNormal(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(EmptyNormal)
+
+    RECEIVE_MESSAGE_BEGIN(Repair, Receive)
+        case SourceNode:
+        case SearchNode:
+        case ChangeNode:
+        case NormalNode:
+        case SinkNode:      break;
+    RECEIVE_MESSAGE_END(Repair)
 }
