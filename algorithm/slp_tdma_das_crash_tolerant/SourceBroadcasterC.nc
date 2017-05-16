@@ -21,6 +21,7 @@
 #define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_REPAIR(msg) METRIC_RCV(Repair, source_addr, msg->source_id, BOTTOM, msg->distance + 1)
 
 #define BOT UINT16_MAX
 
@@ -103,6 +104,16 @@ implementation
     uint32_t period_counter = 0;
     bool start_node = FALSE;
     uint32_t redir_length = 0;
+
+    //The position of the node along the critical path
+    uint16_t path_order = BOT;
+    //Keep track of the two connected nodes on the critical path
+    uint16_t path_child = BOT;
+    uint16_t path_parent = BOT;
+
+#define PATH_STILL_ALIVE 4
+    uint8_t path_child_alive = PATH_STILL_ALIVE;
+    uint8_t path_parent_alive = PATH_STILL_ALIVE;
 
     enum
     {
@@ -205,6 +216,21 @@ implementation
     {
         hop = new_hop;
         NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot());
+    }
+
+    void set_path_parent(uint16_t new_parent) {
+        path_parent = new_parent;
+        simdbg("stdout", "Set path parent to %" PRIu16 "\n", path_parent);
+    }
+
+    void set_path_child(uint16_t new_child) {
+        path_child = new_child;
+        simdbg("stdout", "Set path child to %" PRIu16 "\n", path_child);
+    }
+
+    void set_path_order(uint16_t new_order) {
+        path_order = new_order;
+        simdbg("stdout", "Set path order to %" PRIu16 "\n", path_order);
     }
     //###################}}}
 
@@ -468,6 +494,8 @@ implementation
             uint16_t min_slot = BOT;
             msg.dist = get_search_dist() - 1;
             msg.a_node = BOT;
+            set_path_order(0);
+            msg.path_order = 0;
             assert(children.count != 0);
             NeighbourList_select(&n_info, &children, &child_list);
             min_slot = OnehopList_min_slot(&child_list);
@@ -480,6 +508,9 @@ implementation
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbgverbose("stdout", "Sent search message to %u\n", msg.a_node);
+
+            set_path_parent(BOT);
+            set_path_child(msg.a_node);
         }
     }
 
@@ -503,10 +534,23 @@ implementation
             msg.a_node = choose(&npar);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.len_d = redir_length - 1;
+            msg.path_order = path_order;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
             simdbgverbose("a_node was %u\n", msg.a_node);
+
+            set_path_child(msg.a_node);
         }
+    }
+
+    void send_repair_init()
+    {
+        RepairMessage msg;
+        msg.source_id = TOS_NODE_ID;
+        msg.source_path_order = path_order;
+        msg.distance = 1;
+        msg.path[0] = TOS_NODE_ID;
+        send_Repair_message(&msg, AM_BROADCAST_ADDR);
     }
 
     task void send_normal(void)
@@ -608,6 +652,16 @@ implementation
         {
             process_dissem();
             process_collision();
+        }
+
+        //Repair broken path
+        if(call NodeType.get() == SearchNode || call NodeType.get() == ChangeNode) {
+            path_parent_alive--;
+            path_child_alive--;
+            if(path_parent_alive <= 0) {
+                simdbg("stdout", "Sending path repair...\n");
+                send_repair_init();
+            }
         }
 
         return TRUE;
@@ -781,6 +835,14 @@ implementation
                 NeighbourList_add_info(&n_info, source);
             }
         }
+
+        //Update the still alive count of the parent/child in the path
+        if(source_addr == path_parent) {
+            path_parent_alive = PATH_STILL_ALIVE;
+        }
+        else if(source_addr == path_child) {
+            path_child_alive = PATH_STILL_ALIVE;
+        }
     }
 
     void Sink_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
@@ -821,6 +883,9 @@ implementation
         if(rcvd->a_node != TOS_NODE_ID) return;
         simdbgverbose("stdout", "Received search\n");
 
+        set_path_parent(source_addr);
+        set_path_order(rcvd->path_order + 1);
+
         if((rcvd->dist == 0 && npar.count != 0))
         {
             start_node = TRUE;
@@ -831,6 +896,7 @@ implementation
         {
             SearchMessage msg;
             msg.dist = rcvd->dist;
+            msg.path_order = rcvd->path_order + 1;
             if(children.count != 0)
             {
                 msg.a_node = choose(&children);
@@ -844,6 +910,8 @@ implementation
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
             call NodeType.set(SearchNode);
+
+            set_path_child(msg.a_node);
         }
         else if(rcvd->dist > 0)
         {
@@ -854,6 +922,7 @@ implementation
             NeighbourList_select(&n_info, &children, &child_list);
             min_slot = OnehopList_min_slot(&child_list);
             msg.dist = (rcvd->dist-1<0) ? 0 : rcvd->dist - 1;
+            msg.path_order = rcvd->path_order + 1;
             msg.a_node = BOT;
             for(i=0; i<children.count; i++) {
                 NeighbourInfo* child = NeighbourList_get(&n_info, children.ids[i]);
@@ -865,6 +934,8 @@ implementation
             send_Search_message(&msg, AM_BROADCAST_ADDR);
             simdbgverbose("stdout", "Sent search message again to %u\n", msg.a_node);
             call NodeType.set(SearchNode);
+
+            set_path_child(msg.a_node);
         }
     }
 
@@ -886,6 +957,10 @@ implementation
         npar = IDList_minus_parent(&neighbours, parent);
         npar = IDList_minus_parent(&npar, source_addr); //TODO: Check if this is necessary
         npar = IDList_minus_parent(&npar, TOS_NODE_ID);
+
+        set_path_parent(source_addr);
+        set_path_order(rcvd->path_order + 1);
+
         for(i = 0; i < from.count; i++)
         {
             npar = IDList_minus_parent(&npar, from.ids[i]);
@@ -902,9 +977,12 @@ implementation
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.a_node = choose(&npar);
             msg.len_d = rcvd->len_d - 1;
+            msg.path_order = rcvd->path_order + 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
             simdbgverbose("stdout", "Next a_node is %u\n", msg.a_node);
+
+            set_path_child(msg.a_node);
         }
         else if(rcvd->len_d == 0 && npar.count != 0)
         {
@@ -912,6 +990,25 @@ implementation
             call TDMA.set_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
             simdbgverbose("stdout", "Change messages ended\n");
+            call NodeType.set(ChangeNode);
+        }
+        //If this is a repair change message and you have a child
+        else if(rcvd->len_d == BOTTOM && path_child != BOT)
+        {
+            ChangeMessage msg;
+            OnehopList onehop;
+            call TDMA.set_slot(rcvd->n_slot - 1);
+            //If necessary and possible, change parent
+            if(path_child == parent && npar.count != 0) {
+                parent = npar.ids[0];
+            }
+            NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
+            NeighbourList_select(&n_info, &neighbours, &onehop);
+            msg.n_slot = OnehopList_min_slot(&onehop);
+            msg.a_node = path_child;
+            msg.len_d = BOTTOM;
+            msg.path_order = rcvd->path_order + 1;
+            send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
         }
         simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
@@ -938,11 +1035,54 @@ implementation
         case SinkNode:   x_receive_EmptyNormal(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(EmptyNormal)
 
+    void Normal_receive_Repair(const RepairMessage* const rcvd, am_addr_t source_addr)
+    {
+        int i;
+        RepairMessage msg;
+
+        simdbg("stdout", "NormalNode received repair message.\n");
+        METRIC_RCV_REPAIR(rcvd);
+
+        //Stop if the maximum range of the message has been reached
+        if(rcvd->distance + 1 == MAX_REPAIR_PATH_LENGTH) return;
+
+        //TODO: Compare distance of new child to old one
+        path_child = rcvd->path[rcvd->distance - 1];
+
+        msg.source_id = rcvd->source_id;
+        msg.source_path_order = rcvd->source_path_order;
+        msg.distance = rcvd->distance + 1;
+        for(i = 0; i < rcvd->distance; i++)
+        {
+            msg.path[i] = rcvd->path[i];
+        }
+        msg.path[rcvd->distance] = TOS_NODE_ID;
+        send_Repair_message(&msg, AM_BROADCAST_ADDR);
+    }
+
+    void Path_receive_Repair(const RepairMessage* const rcvd, am_addr_t source_addr)
+    {
+        ChangeMessage msg;
+        OnehopList onehop;
+        METRIC_RCV_REPAIR(rcvd);
+        //If the message was sent from a node before you in the path
+        //or if you believe your child is still alive, ignore it
+        if(path_order > rcvd->source_path_order || path_child_alive > 0) return; //TODO: Check the inequality is the correct way round
+        simdbg("stdout", "%s received repair message.\n", call NodeType.current_to_string());
+        set_path_child(rcvd->path[rcvd->distance - 1]);
+        NeighbourList_select(&n_info, &neighbours, &onehop);
+        msg.n_slot = OnehopList_min_slot(&onehop);
+        msg.len_d = BOTTOM;
+        msg.a_node = path_child;
+        msg.path_order = path_order;
+        send_Change_message(&msg, AM_BROADCAST_ADDR);
+    }
+
     RECEIVE_MESSAGE_BEGIN(Repair, Receive)
-        case SourceNode:
+        case SourceNode:    break;
         case SearchNode:
         case ChangeNode:
-        case NormalNode:
-        case SinkNode:      break;
+        case SinkNode:      Path_receive_Repair(rcvd, source_addr); break;
+        case NormalNode:    Normal_receive_Repair(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Repair)
 }
