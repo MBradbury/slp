@@ -3,8 +3,11 @@
 
 #include "utils.h"
 
+//TODO: Don't need to send the whole path, just source_addr
+
 typedef nx_struct RepairMessage {
     nx_am_addr_t source_id;
+    nx_uint16_t source_path_order;
     nx_uint16_t distance;
     nx_am_addr_t path[MAX_REPAIR_PATH_LENGTH];
 } RepairMessage;

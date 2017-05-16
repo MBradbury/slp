@@ -6,6 +6,9 @@
 typedef nx_struct SearchMessage {
     nx_int32_t dist;
     nx_am_addr_t a_node;
+
+    //The position of the node along the critical path
+    nx_uint16_t path_order;
 } SearchMessage;
 
 inline SequenceNumberWithBottom Search_get_sequence_number(const SearchMessage* msg) { return BOTTOM; }
