@@ -162,6 +162,10 @@ class CLI(CommandLineCommon.CLI):
             'utility battle': 0.8,
         }
 
+        key_equivalence = {
+            "attacker model": {"SeqNosOOOReactiveAttacker()": "SeqNosReactiveAttacker()"}
+        }
+
         self._create_min_max_versus_graph(
             [phantom_chen], None, graph_parameters, varying, custom_yaxis_range_max,
             min_label=["Phantom - Min"],
@@ -170,6 +174,7 @@ class CLI(CommandLineCommon.CLI):
             vary_label="",
             comparison_label="PW",
             vvalue_label_converter=self.vvalue_converter,
+            key_equivalence=key_equivalence,
         )
 
     def _run_multi_versus(self, args):
