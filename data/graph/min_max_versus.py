@@ -111,9 +111,6 @@ class Grapher(GrapherBase):
 
                     xvalues.add(xvalue)
 
-                    #if self.xaxis == 'network size':
-                    #    xvalue = xvalue ** 2
-
                     key_names = tuple(key_names)
                     values = tuple(values)
 
@@ -188,7 +185,11 @@ class Grapher(GrapherBase):
         if xvalue in res:
             return res[xvalue]
         else:
-            return res[tuple()]
+            try:
+                return res[tuple()]
+            except KeyError:
+                raise KeyError("Unable to find {} or tuple() in {} when looking for an xvalue with the key {}".format(
+                    xvalue, set(res.keys()), data_key))
 
     def _order_keys(self, keys):
         """Order the keys alphabetically, except for the baseline label.
