@@ -7,12 +7,12 @@ from data.restricted_eval import restricted_eval
 class FaultModel(object):
     def __init__(self, requires_nesc_variables=False):
         self.sim = None
-        self.requires_nesc_variables = requires_nesc_variables
         self._has_gui = False
+        self.requires_nesc_variables = requires_nesc_variables
 
-    def setup(self, sim, gui=False):
+    def setup(self, sim):
         self.sim = sim
-        self._has_gui = gui
+        self._has_gui = hasattr(sim, "gui")
 
     def build_arguments(self):
         return {
@@ -29,14 +29,14 @@ class FaultPointModel(FaultModel):
     def __init__(self, fault_point_probs, base_probability=0.0, requires_nesc_variables=False):
         super(FaultPointModel, self).__init__(requires_nesc_variables=requires_nesc_variables)
         self.fault_points = {}
-        if not fault_point_probs == None:
+        if fault_point_probs is not None:
             self.fault_point_probs = fault_point_probs
         else:
             self.fault_point_probs = {}
         self.base_probability = base_probability
 
-    def setup(self, sim, gui=False):
-        super(FaultPointModel, self).setup(sim, gui=gui)
+    def setup(self, sim):
+        super(FaultPointModel, self).setup(sim)
         sim.register_output_handler("M-FPA", self._fault_point_add)
         sim.register_output_handler("M-FP", self._fault_point_occurred)
 
@@ -64,6 +64,7 @@ class FaultPointModel(FaultModel):
         if self.sim.rng.random() < probability:
             node = self.sim.node_from_ordered_nid(int(node_id))
             self.fault_occurred(fault_point_name, node)
+
             if self._has_gui:
                 self._draw(int(node_id))
 
@@ -256,8 +257,8 @@ class BitFlipFaultPointModel(FaultPointModel):
         super(BitFlipFaultPointModel, self).__init__(fault_point_probs, base_probability=base_probability, requires_nesc_variables=True)
         self.variable = variable
 
-    def setup(self, sim, gui=False):
-        super(BitFlipFaultModel, self).setup(sim, gui=gui)
+    def setup(self, sim):
+        super(BitFlipFaultModel, self).setup(sim)
 
         # Check variable actually exists before starting
         sim.node_from_ordered_nid(0).tossim_node.getVariable(self.variable)
