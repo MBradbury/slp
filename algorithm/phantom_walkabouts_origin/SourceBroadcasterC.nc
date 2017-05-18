@@ -1,4 +1,15 @@
-// used for SAC paper.
+/*
+The codes are used for SAC17 paper.
+Key features include:
+- divide neighbours into 4 sets.
+- use three landmark nodes to decide network topology (SinkCorner or SourceCorner).
+- specify the short and long random walk counts.
+- specify the order of ShortLong or LongShort.
+- short random walk message delay after a long random walk message.
+- use a direction bias factor for bias random walk.
+- bias random walk could choose H or V direction.
+- the length of short and long random walks are fixed.
+*/
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
