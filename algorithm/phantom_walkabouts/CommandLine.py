@@ -16,6 +16,8 @@ import algorithm
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 phantom_chen = algorithm.import_algorithm("phantom_chen")
+ilprouting_chen = algorithm.import_algorithm("ilprouting_chen")
+
 
 from data import results
 
@@ -80,12 +82,12 @@ class CLI(CommandLineCommon.CLI):
         return tafn * 1.0
 
     def _run_table(self, args):
-        phantom_results = results.Results(
+        phantom_walkabouts_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
-        result_table = fake_result.ResultTable(phantom_results)
+        result_table = fake_result.ResultTable(phantom_walkabouts_results)
 
         self._create_table("{}-results".format(self.algorithm_module.name), result_table)
 
@@ -167,10 +169,10 @@ class CLI(CommandLineCommon.CLI):
         }
 
         self._create_min_max_versus_graph(
-            [phantom_chen], None, graph_parameters, varying, custom_yaxis_range_max,
-            min_label=["Phantom - Min"],
-            max_label=["Phantom - Max"],
-            min_max_same_label=["Phantom"],
+            [phantom_chen, ilprouting_chen], None, graph_parameters, varying, custom_yaxis_range_max,
+            min_label=["Phantom - Min", "ILP - Min"],
+            max_label=["Phantom - Max", "ILP - Max"],
+            min_max_same_label=["Phantom", "ILP"],
             vary_label="",
             comparison_label="PW",
             vvalue_label_converter=self.vvalue_converter,
