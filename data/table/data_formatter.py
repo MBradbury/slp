@@ -14,6 +14,7 @@ class TableDataFormatter(object):
             return {
                 "network size": ("Network Size", "nodes"),
                 "repeats": ("Repeats", "~"),
+                "safety factor": ("Safety", "Factor"),
 
                 "source period": ("$P_{src}$", "(sec)"),
                 "fake period": ("$P_{fs}$", "(sec)"),
@@ -110,6 +111,8 @@ class TableDataFormatter(object):
             return "${:.2f}$".format(value)
         elif isinstance(value, int):
             return "${}$".format(value)
+        elif isinstance(value, str):
+            return value
         else:
             try:
                 if isinstance(value[0], dict):

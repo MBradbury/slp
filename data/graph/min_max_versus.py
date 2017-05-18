@@ -26,7 +26,7 @@ class Grapher(GrapherBase):
 
         self.vvalue_label_converter = str
 
-        self._key_equivalence = key_equivalence
+        self.key_equivalence = key_equivalence
 
     def create(self, comparison_results, actual_results, baseline_results=None):
         print('Removing existing directories')
@@ -187,7 +187,7 @@ class Grapher(GrapherBase):
             return data_key
 
         # No key equivalences, so we can't do anything
-        if self._key_equivalence is None:
+        if self.key_equivalence is None:
             return None
 
         # Right we need to look at the key equivalences then
@@ -196,7 +196,7 @@ class Grapher(GrapherBase):
 
         keys_to_try = []
 
-        for (global_param, replacements) in self._key_equivalence.items():
+        for (global_param, replacements) in self.key_equivalence.items():
             global_param_index = global_parameter_names.index(global_param)
 
             for (search, replace) in replacements.items():
@@ -209,6 +209,7 @@ class Grapher(GrapherBase):
         # Try each of the possible combinations
         for key_attempt in keys_to_try:
             if key_attempt in max_comparison_result and key_attempt in min_comparison_result:
+                print("Found {} so using it instead of {}".format(key_attempt, data_key))
                 return key_attempt
 
         return None
