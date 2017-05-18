@@ -7,7 +7,7 @@ order_choices = ["LongShort", "ShortLong"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        super(Arguments, self).__init__("SLP Phantom_Walkabouts_dynamic",
+        super(Arguments, self).__init__("SLP Phantom_Walkabouts",
             has_safety_period=True, has_safety_factor=True)
 
         self.add_argument("--source-period",
