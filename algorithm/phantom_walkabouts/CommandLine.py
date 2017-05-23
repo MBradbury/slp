@@ -146,7 +146,7 @@ class CLI(CommandLineCommon.CLI):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
             'captured': ('Capture Ratio (%)', 'left top'),
-            'norm(sent,time taken)': ('Messages Transmission (messages)', 'left bottom'),
+            'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
             'received ratio': ('Delivery Ratio (%)', 'left bottom'),
             'utility equal': ('Utility (Equal)', 'right top'),
             'utility animal': ('Utility (Habitat)', 'right top'),
@@ -173,8 +173,8 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_min_max_versus_graph(
             [phantom_chen, ilprouting_chen, adaptive_spr_notify_chen], None, graph_parameters, varying, custom_yaxis_range_max,
-            min_label=["Phantom - Min", "ILP - Min", "ADAPTIVE - Min"],
-            max_label=["Phantom - Max", "ILP - Max", "ADAPTIVE - Max"],
+            min_label=["Phantom - Min", "ILP - Min", "Adaptive - Min"],
+            max_label=["Phantom - Max", "ILP - Max", "Adaptive - Max"],
             min_max_same_label=["Phantom", "ILP", "ADAPTIVE"],
             vary_label="",
             comparison_label="PW",
