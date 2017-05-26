@@ -7,7 +7,7 @@ re = None
 
 def parsers():
     raw_single_common = ["verbose", "seed", "configuration", "network size", "distance",
-                         "node id order", "safety period", "start time",
+                         "noise model", "radio model", "node id order", "safety period", "start time",
                          "low powered listening",
                          "max buffer size"]
 
@@ -71,12 +71,18 @@ def avrora_command(module, a, configuration):
     micaz_clock_speed_hz = 7372800
 
     # See: http://compilers.cs.ucla.edu/avrora/help/sensor-network.html
-    options = {
+
+    options = {}
+
+    # Add in the radio model options
+    options.update(a.args.radio_model.avrora_options())
+
+    # Add in everything else
+    options.update({
         "platform": "micaz",
         "simulation": "sensor-network",
         "seconds": seconds_to_run,
         "monitors": "packet,c-print,energy",
-        "radio-range": a.args.distance + 0.1,
         "nodecount": str(configuration.size()),
         "topology": "static",
         "topology-file": os.path.join(target_directory, "topology.txt"),
@@ -100,9 +106,11 @@ def avrora_command(module, a, configuration):
         "report-seconds": "true",
         "seconds-precision": "6",
 
+        "Noise": "models/noise/{}.txt".format(a.args.noise_model),
+
         # Performance stats, such as total cpu cycles executed
         #"throughput": "true",
-    }
+    })
 
     for (key, value) in options.items():
         print("@avrora_parameter:{}={}".format(key, value))
