@@ -40,6 +40,12 @@ def _add_low_powered_listening(parser, **kwargs):
     parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
     parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
 
+def _add_avrora_radio_model(parser, **kwargs):
+    import simulator.AvroraRadioModel as AvroraRadioModel
+
+    parser.add_argument("-rm", "--radio-model", type=AvroraRadioModel.eval_input, required=True)
+
+
 OPTS = {
     "configuration":       lambda x, **kwargs: x.add_argument("-c", "--configuration",
                                                               type=str,
@@ -77,6 +83,9 @@ OPTS = {
                                                               type=str,
                                                               choices=simulator.common.available_noise_models(),
                                                               required=True),
+
+    # Only for Avrora
+    "radio model":         _add_avrora_radio_model,
 
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
                                                               type=Attacker.eval_input,
