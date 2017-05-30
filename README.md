@@ -24,6 +24,8 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
 If you do not have python installed, or have an install that requires
 admin permissions to use pip install, then pyenv is a good alternative.
 
+You do not need to do this step if you are using your system python.
+
 ```bash
 sudo apt-get install lzma-dev tk-dev
 ```
@@ -57,7 +59,7 @@ Please ensure that you install the python packages using pip after setting up py
 
 2. Clone the SLP simulation framework
 
-   I recommend forking MBradbury/slp-algorithms-tinyos to allow you your
+   I recommend forking MBradbury/slp-algorithms-tinyos to give you your
    own repository to push changes to. You can do this on bitbucket.org.
 
    * Anonymously:
