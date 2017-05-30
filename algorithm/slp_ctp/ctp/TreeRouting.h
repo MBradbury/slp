@@ -16,6 +16,7 @@ typedef struct {
   uint16_t etx;
   bool haveHeard;
   bool congested;
+  uint16_t useCount, snoopCount, receiveCount;
 } route_info_t;
 
 typedef struct {
@@ -28,6 +29,9 @@ inline void routeInfoInit(route_info_t *ri) {
     ri->etx = 0;
     ri->haveHeard = 0;
     ri->congested = FALSE;
+    ri->useCount = 0;
+    ri->snoopCount = 0;
+    ri->receiveCount = 0;
 }
 
 #endif
