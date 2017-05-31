@@ -2,32 +2,55 @@ from __future__ import division
 
 from data.analysis import AnalyzerCommon
 
+import math
+
+import Parameters as p
+
 algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
 
-def utility_star(value, cutoff):
+
+def sigmoid_funtion(k,value,x0):
+    return 1.0 / (1.0 + math.exp(k * (-value - x0)))
+
+def utility_star(k, value, x0, cutoff):
     if value >= cutoff:
         return 0.0
     else:
-        return 1.0 - (value / cutoff)
+        return sigmoid_funtion(k,-value,x0)
 
-def utility_deliv(value, cutoff):
-    if value <= cutoff:
-        return 0.0
-    else:
-        return (value - cutoff) / (100 - cutoff)
+def utility_crdr(x, parameters):
+    for (name, k, x0, cutoff, weight) in parameters:
+        if name == "Captured":
+            utility_cr = 0 if x.average_of[name] >= cutoff else sigmoid_funtion(k,-x.average_of[name],x0)
+            weight_cr = weight
 
-def utility_of(name):
-    if name == "ReceiveRatio":
-        return utility_deliv
-    else:
-        return utility_star
+        elif name == "ReceiveRatio":
+            weight_dr = weight
+            if x.average_of[name] <= cutoff:
+                return 0.0, weight_cr + weight_dr
+            else:
+                utility_dr = sigmoid_funtion(k,x.average_of[name],x0)
+
+        else:
+            pass
+
+    return 0.5 * (utility_dr + utility_cr), weight_cr + weight_dr
 
 def utility(x, parameters):
-    return sum(
-        weight * utility_of(name)(x.average_of[name], cutoff)
-        for (name, cutoff, weight)
-        in parameters
-    )
+    u_crdr, weight_crdr = utility_crdr(x, parameters)
+    for (name, k, x0, cutoff, weight) in parameters:
+        if name == "NormalLatency":
+            u_lat = utility_star(k, x.average_of[name], x0, cutoff)
+            weight_lat = weight
+
+        elif name == "norm(Sent,TimeTaken)":
+            u_msg = utility_star(k, x.average_of[name], x0, cutoff)
+            weight_msg = weight
+            
+        else:
+            pass
+    
+    return weight_crdr * u_crdr + weight_lat * u_lat + weight_msg * u_msg
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
@@ -61,19 +84,15 @@ class Analyzer(AnalyzerCommon):
         d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
-        d['utility equal']      = lambda x: str(utility(x, [("Captured",               0.5,  0.25),        # Ranges from [0, 1]
-                                                            ("ReceiveRatio",           0.5, 0.25),        # Ranges from [0, 1]
-                                                            ("NormalLatency",          0.5,    0.25),        # Scale is in seconds
-                                                            ("norm(Sent,TimeTaken)", 500,    0.25)]))
+        d['utility habitat']     = lambda x: str(utility(x, [("Captured",               p.habitat_cr["k"], p.habitat_cr["x0"], p.habitat_cr["cutoff"], p.habitat_cr["weight"]),   # k value, x0 value, capture ratio(ranges from [0, 1])
+                                                            ("ReceiveRatio",           p.habitat_dr["k"], p.habitat_dr["x0"], p.habitat_dr["cutoff"], p.habitat_dr["weight"]),   # k value, x0 value, receive ratio(ranges from [0, 1])
+                                                            ("NormalLatency",          p.habitat_lat["k"], p.habitat_lat["x0"], p.habitat_lat["cutoff"], p.habitat_lat["weight"]),    # k value, x0 value, latency(scale is in seconds)
+                                                            ("norm(Sent,TimeTaken)", p.habitat_msg["k"], p.habitat_msg["x0"], p.habitat_msg["cutoff"], p.habitat_msg["weight"])]))  # k value, x0 value, message send numbers
 
-        d['utility animal']     = lambda x: str(utility(x, [("Captured",               0.5,  0.3),        # Ranges from [0, 1]
-                                                            ("ReceiveRatio",           0.5, 0.3),        # Ranges from [0, 1]
-                                                            ("NormalLatency",          0.5,    0.1),           # Scale is in seconds
-                                                            ("norm(Sent,TimeTaken)", 500,    0.3)]))
+        d['utility military']     = lambda x: str(utility(x, [("Captured",               p.military_cr["k"], p.military_cr["x0"], p.military_cr["cutoff"], p.military_cr["weight"]),   # k value, x0 value, capture ratio(ranges from [0, 1])
+                                                            ("ReceiveRatio",          p.military_dr["k"], p.military_dr["x0"], p.military_dr["cutoff"], p.military_dr["weight"]),   # k value, x0 value, receive ratio(ranges from [0, 1])
+                                                            ("NormalLatency",          p.military_lat["k"], p.military_lat["x0"], p.military_lat["cutoff"], p.military_lat["weight"]),    # k value, x0 value, latency(scale is in seconds)
+                                                            ("norm(Sent,TimeTaken)", p.military_msg["k"], p.military_msg["x0"], p.military_msg["cutoff"], p.military_msg["weight"])]))
 
-        d['utility battle']     = lambda x: str(utility(x, [("Captured",               0.1,  0.25),        # Ranges from [0, 1]
-                                                            ("ReceiveRatio",           0.8, 0.25),        # Ranges from [0, 1]
-                                                            ("NormalLatency",          0.2,    0.4),         # Scale is in seconds
-                                                            ("norm(Sent,TimeTaken)", 200,    0.1)]))
 
         return d
