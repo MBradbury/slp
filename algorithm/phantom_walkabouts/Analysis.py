@@ -12,45 +12,40 @@ algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
 def sigmoid_funtion(k,value,x0):
     return 1.0 / (1.0 + math.exp(k * (-value - x0)))
 
-def utility_star(k, value, x0, cutoff):
-    if value >= cutoff:
+def utility_dr(k, value, x0, cutoff, r_dr, cutoff_dr):
+    if value <= cutoff:
+        return 0.0
+    else:
+        return sigmoid_funtion(k,value,x0)
+
+def utility_star(k, value, x0, cutoff, r_dr, cutoff_dr):
+    if r_dr <= cutoff_dr or value >= cutoff:
         return 0.0
     else:
         return sigmoid_funtion(k,-value,x0)
 
-def utility_crdr(x, parameters):
-    for (name, k, x0, cutoff, weight) in parameters:
-        if name == "Captured":
-            utility_cr = 0 if x.average_of[name] >= cutoff else sigmoid_funtion(k,-x.average_of[name],x0)
-            weight_cr = weight
+def utility_of(name):
+    if name == "ReceiveRatio":
+        return utility_dr
+    else:
+        return utility_star
 
-        elif name == "ReceiveRatio":
-            weight_dr = weight
-            if x.average_of[name] <= cutoff:
-                return 0.0, weight_cr + weight_dr
-            else:
-                utility_dr = sigmoid_funtion(k,x.average_of[name],x0)
-
-        else:
-            pass
-
-    return 0.5 * (utility_dr + utility_cr), weight_cr + weight_dr
 
 def utility(x, parameters):
-    u_crdr, weight_crdr = utility_crdr(x, parameters)
+    r_dr, cutoff_dr = 0, 0
     for (name, k, x0, cutoff, weight) in parameters:
-        if name == "NormalLatency":
-            u_lat = utility_star(k, x.average_of[name], x0, cutoff)
-            weight_lat = weight
+        if name == "ReceiveRatio":
+            r_dr, cutoff_dr = x.average_of[name], cutoff
 
-        elif name == "norm(Sent,TimeTaken)":
-            u_msg = utility_star(k, x.average_of[name], x0, cutoff)
-            weight_msg = weight
-            
-        else:
-            pass
     
-    return weight_crdr * u_crdr + weight_lat * u_lat + weight_msg * u_msg
+    #for (name, k, x0, cutoff, weight) in parameters:
+    #    print "utility of {}: {}".format(name, utility_of(name)(k,x.average_of[name], x0, cutoff, r_dr, cutoff_dr))
+
+    return sum(
+        weight * utility_of(name)(k,x.average_of[name], x0, cutoff, r_dr, cutoff_dr)
+        for (name, k, x0, cutoff, weight)
+        in parameters
+    )
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
