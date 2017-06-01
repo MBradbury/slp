@@ -34,7 +34,7 @@ class Linear(object):
 class Sigmoid(object):
 
     @staticmethod
-    def sigmoid_funtion(k,value,x0):
+    def sigmoid_funtion(k, value, x0):
         return 1.0 / (1.0 + math.exp(k * (-value - x0)))
 
     @classmethod
@@ -42,7 +42,7 @@ class Sigmoid(object):
         if value <= cutoff:
             return 0.0
         else:
-            return cls.sigmoid_funtion(k,value,x0)
+            return cls.sigmoid_funtion(k, value, x0)
 
     @classmethod
     def utility_star(cls, k, value, x0, cutoff, r_dr, cutoff_dr):
