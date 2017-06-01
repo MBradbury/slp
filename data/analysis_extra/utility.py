@@ -42,7 +42,7 @@ class Sigmoid(object):
         if value <= cutoff:
             return 0.0
         else:
-            return sigmoid_funtion(k,value,x0)
+            return cls.sigmoid_funtion(k,value,x0)
 
     @classmethod
     def utility_star(cls, k, value, x0, cutoff, r_dr, cutoff_dr):
