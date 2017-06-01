@@ -26,8 +26,8 @@ class Linear(object):
     @classmethod
     def utility(cls, x, parameters):
         return sum(
-            weight * cls.utility_of(name)(x.average_of[name], cutoff)
-            for (name, cutoff, weight)
+            param.weight * cls.utility_of(name)(x.average_of[name], param.cutoff)
+            for (name, param)
             in parameters
         )
 
@@ -61,16 +61,16 @@ class Sigmoid(object):
     @classmethod
     def utility(cls, x, parameters):
         r_dr, cutoff_dr = 0, 0
-        for (name, k, x0, cutoff, weight) in parameters:
+        for (name, param) in parameters:
             if name == "ReceiveRatio":
-                r_dr, cutoff_dr = x.average_of[name], cutoff
+                r_dr, cutoff_dr = x.average_of[name], param.cutoff
         
         #for (name, k, x0, cutoff, weight) in parameters:
         #    print "utility of {}: {}".format(name, cls.utility_of(name)(k, x.average_of[name], x0, cutoff, r_dr, cutoff_dr))
 
         return sum(
-            weight * cls.utility_of(name)(k, x.average_of[name], x0, cutoff, r_dr, cutoff_dr)
-            for (name, k, x0, cutoff, weight)
+            param.weight * cls.utility_of(name)(param.k, x.average_of[name], param.x0, param.cutoff, r_dr, cutoff_dr)
+            for (name, param)
             in parameters
         )
 
