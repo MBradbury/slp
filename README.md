@@ -7,14 +7,14 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
    You may need to prefix commands with "sudo" to install using admin privileges.
 
         :::bash
-        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev
+        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev libffi-dev
 
    Python 2 or 3 is supported, but python 2 is recommended as it is faster.
 
 2. Install python libraries
 
         :::bash
-        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip --upgrade -v
+        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip cryptography --upgrade -v
         pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade -v
 
    Make sure to prefix these commands with ```sudo``` if installing for the system python.
@@ -184,23 +184,6 @@ Or by the following instruction if you forked it:
 ```bash
 git pull https://github.com/MBradbury/tinyos-main bradbury_2_1_2
 ```
-
-
-# Getting results repositories
-
-Every algorithm should have an individual repository to store its results in.
-One repository to be of likely interest is slp-results-protectionless which stores the results for the protectionless algorithm.
-
-You should checkout this repository using something like the following command:
-
-```bash
-cd slp-algorithms-tinyos
-mkdir results
-cd results
-hg clone https://MBradbury@bitbucket.org/MBradbury/slp-results-protectionless protectionless
-```
-
-The directories in the results directory should have names that match the algorithm name.
 
 # Examples for running simulations
 
