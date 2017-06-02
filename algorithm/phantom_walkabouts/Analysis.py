@@ -1,7 +1,7 @@
 from __future__ import division
 
 from data.analysis import AnalyzerCommon
-from data.analysis_extra.utility import Sigmoid, HabitatSigmoid, BattleSigmoid
+from data.analysis_extra.utility import Sigmoid, AnimalProtectionSigmoid, AssetMonitoringSigmoid, BattleSigmoid
 
 algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
 
@@ -38,10 +38,16 @@ class Analyzer(AnalyzerCommon):
 		d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
 		d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
-		d['utility habitat']     = lambda x: str(Sigmoid.utility(x, [("Captured",    HabitatSigmoid.cr),   
-															("ReceiveRatio",         HabitatSigmoid.dr),   
-															("NormalLatency",        HabitatSigmoid.lat),  
-															("norm(Sent,TimeTaken)", HabitatSigmoid.msg),
+		d['utility animal']     = lambda x: str(Sigmoid.utility(x, [("Captured",    AnimalProtectionSigmoid.cr),   
+															("ReceiveRatio",         AnimalProtectionSigmoid.dr),   
+															("NormalLatency",        AnimalProtectionSigmoid.lat),  
+															("norm(Sent,TimeTaken)", AnimalProtectionSigmoid.msg),
+												]))
+
+		d['utility monitor']     = lambda x: str(Sigmoid.utility(x, [("Captured",    AssetMonitoringSigmoid.cr),   
+															("ReceiveRatio",         AssetMonitoringSigmoid.dr),   
+															("NormalLatency",        AssetMonitoringSigmoid.lat),  
+															("norm(Sent,TimeTaken)", AssetMonitoringSigmoid.msg),
 												]))
 
 		d['utility military']   = lambda x: str(Sigmoid.utility(x, [("Captured",  BattleSigmoid.cr),
