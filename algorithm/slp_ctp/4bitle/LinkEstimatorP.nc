@@ -57,6 +57,7 @@ module LinkEstimatorP {
     interface Receive as SubReceive;
     interface LinkPacketMetadata;
     interface Random;
+    interface Timer<TMilli> as EvictDurationTimer;
   }
 }
 
@@ -143,7 +144,8 @@ implementation {
       neighborLists = TCAST(neighbor_stat_entry_t * COUNT(neighborCount), footer->neighborList);
       k = (prevSentIdx + i + 1) % NEIGHBOR_TABLE_SIZE;
       if ((NeighborTable[k].flags & VALID_ENTRY) &&
-          (NeighborTable[k].flags & MATURE_ENTRY)) {
+          (NeighborTable[k].flags & MATURE_ENTRY) &&
+          !(NeighborTable[k].flags & FORBIDDEN_ENTRY)) {
         neighborLists[j].ll_addr = NeighborTable[k].ll_addr;
         neighborLists[j].inquality = NeighborTable[k].inquality;
         newPrevSentIdx = k;
@@ -156,7 +158,7 @@ implementation {
 
     hdr->seq = linkEstSeq++;
     hdr->flags = 0;
-    hdr->flags |= (NUM_ENTRIES_FLAG & j);
+    hdr->footer_size = (NUM_ENTRIES_FLAG & j);
     newlen = sizeof(linkest_header_t) + len + j*sizeof(linkest_footer_t);
     dbg("LI", "newlen2 = %d\n", newlen);
     return newlen;
@@ -222,6 +224,10 @@ implementation {
         dbg("LI", "Pinned entry, so continuing\n");
         continue;
       }
+      if (NeighborTable[i].flags & FORBIDDEN_ENTRY) {
+        dbg("LI", "Forbidden entry, so continuing\n");
+        continue;
+      }
       thisETX = NeighborTable[i].etx;
       if (thisETX >= worstETX) {
         worstNeighborIdx = i;
@@ -247,7 +253,8 @@ implementation {
     for (i = 0; i < NEIGHBOR_TABLE_SIZE; i++) {
       if (NeighborTable[i].flags & VALID_ENTRY) {
         if (NeighborTable[i].flags & PINNED_ENTRY ||
-            NeighborTable[i].flags & MATURE_ENTRY) {
+            NeighborTable[i].flags & MATURE_ENTRY ||
+            NeighborTable[i].flags & FORBIDDEN_ENTRY) {
         }  else {
           num_eligible_eviction++;
         }
@@ -264,7 +271,8 @@ implementation {
       if (!NeighborTable[i].flags & VALID_ENTRY)
         continue;
       if (NeighborTable[i].flags & PINNED_ENTRY ||
-          NeighborTable[i].flags & MATURE_ENTRY)
+          NeighborTable[i].flags & MATURE_ENTRY ||
+          NeighborTable[i].flags & FORBIDDEN_ENTRY)
         continue;
       if (cnt-- == 0)
         return i;
@@ -443,17 +451,21 @@ implementation {
 
   // return bi-directional link quality to the neighbor
   command uint16_t LinkEstimator.getLinkQuality(am_addr_t neighbor) {
-    uint8_t idx;
-    idx = findIdx(neighbor);
+    uint8_t idx = findIdx(neighbor);
+
     if (idx == INVALID_RVAL) {
       return VERY_LARGE_ETX_VALUE;
-    } else {
-      if (NeighborTable[idx].flags & MATURE_ENTRY) {
-        return NeighborTable[idx].etx;
-      } else {
-        return VERY_LARGE_ETX_VALUE;
-      }
     }
+
+    if (NeighborTable[idx].flags & FORBIDDEN_ENTRY) {
+      return VERY_LARGE_ETX_VALUE;
+    }
+
+    if (NeighborTable[idx].flags & MATURE_ENTRY) {
+      return NeighborTable[idx].etx;
+    }
+
+    return VERY_LARGE_ETX_VALUE;
   }
 
   // insert the neighbor at any cost (if there is a room for it)
@@ -551,6 +563,83 @@ implementation {
     ne->data_total = 0;
     ne->data_success = 0;
     return SUCCESS;
+  }
+
+  // Evict a node for a given duration
+  command error_t LinkEstimator.evict(am_addr_t neighbor, uint32_t duration)
+  {
+    neighbor_table_entry_t *ne;
+    uint8_t nidx = findIdx(neighbor);
+    if (nidx == INVALID_RVAL)
+    {
+      return FAIL;
+    }
+    else
+    {
+      ne = &NeighborTable[nidx];
+    }
+
+    simdbg("stdout", "Evicting %u from 4bitle\n", ne->ll_addr);
+
+    // Remove node from table
+    ne->flags |= FORBIDDEN_ENTRY;
+
+    ne->evict_duration = duration;
+
+    signal LinkEstimator.evicted(neighbor);
+
+    // Start timer to consider when to readd a neighbour
+    if (!call EvictDurationTimer.isRunning())
+    {
+      call EvictDurationTimer.startOneShot(duration);
+    }
+
+    return SUCCESS;
+  }
+
+  event void EvictDurationTimer.fired()
+  {
+    // The start time of this timer
+    const uint32_t t0 = call EvictDurationTimer.gett0();
+    const uint32_t now = call EvictDurationTimer.getNow();
+
+    uint8_t i;
+    neighbor_table_entry_t *ne;
+
+    uint32_t next_duration = UINT32_MAX;
+
+    for (i = 0; i < NEIGHBOR_TABLE_SIZE; i++)
+    {
+      ne = &NeighborTable[i];
+
+      // Skip entries that are not forbidden
+      if ((ne->flags & FORBIDDEN_ENTRY) == 0)
+      {
+        continue;
+      }
+
+      if (ne->evict_duration <= (now - t0))
+      {
+        ne->flags &= ~FORBIDDEN_ENTRY;
+
+        simdbg("stdout", "Unevicting %u\n", ne->ll_addr);
+
+        signal LinkEstimator.evictExpired(ne->ll_addr);
+      }
+      else
+      {
+        ne->evict_duration -= (now - t0);
+
+        // Find the smallest next duration
+        next_duration = (ne->evict_duration < next_duration) ? ne->evict_duration : next_duration;
+      }
+    }
+
+    // Schedule next item for eviction
+    if (next_duration != UINT32_MAX)
+    {
+      call EvictDurationTimer.startOneShot(next_duration);
+    }
   }
 
 
@@ -684,7 +773,7 @@ implementation {
     hdr = getHeader(msg);
     return call SubPacket.payloadLength(msg)
       - sizeof(linkest_header_t)
-      - sizeof(linkest_footer_t)*(NUM_ENTRIES_FLAG & hdr->flags);
+      - sizeof(linkest_footer_t) * (hdr->footer_size & NUM_ENTRIES_FLAG);
   }
 
   // account for the space used by header and footer
@@ -695,7 +784,7 @@ implementation {
     call SubPacket.setPayloadLength(msg,
                                     len
                                     + sizeof(linkest_header_t)
-                                    + sizeof(linkest_footer_t)*(NUM_ENTRIES_FLAG & hdr->flags));
+                                    + sizeof(linkest_footer_t) * (hdr->footer_size & NUM_ENTRIES_FLAG));
   }
 
   command uint8_t Packet.maxPayloadLength() {

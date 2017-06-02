@@ -562,6 +562,7 @@ implementation {
       }
     }
     else {
+      call LinkEstimator.evict(call AMPacket.destination(msg), 10 * 1000);
       /* Packet was acknowledged. Updated the link estimator,
          free the buffer (pool or sendDone), start timer to
          send next packet. */
@@ -766,6 +767,7 @@ implementation {
   
   /* signalled when this neighbor is evicted from the neighbor table */
   event void LinkEstimator.evicted(am_addr_t neighbor) {}
+  event void LinkEstimator.evictExpired(am_addr_t neighbor) {}
 
   
   // Packet ADT commands

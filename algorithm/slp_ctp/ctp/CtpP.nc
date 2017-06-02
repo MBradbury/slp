@@ -186,9 +186,13 @@ implementation {
   components new AMSenderC(AM_CTP_ROUTING) as SendControl;
   components new AMReceiverC(AM_CTP_ROUTING) as ReceiveControl;
 
+  components new TimerMilliC() as EvictDurationTimer;
+
+
   LinkEstimator = Estimator;
   
   Estimator.Random -> RandomC;
+  Estimator.EvictDurationTimer -> EvictDurationTimer;
 
   Estimator.AMSend -> SendControl;
   Estimator.SubReceive -> ReceiveControl;
