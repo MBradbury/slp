@@ -68,8 +68,13 @@ interface LinkEstimator {
   /* called when the parent changes; clear state about data-driven link quality  */
   command error_t clearDLQ(am_addr_t neighbor);
 
+  /* Evict a node for a given duration */
+  command error_t evict(am_addr_t neighbor, uint32_t duration);
+
   /* signal when this neighbor is evicted from the neighbor table */
   event void evicted(am_addr_t neighbor);
+
+  event void evictExpired(am_addr_t neighbor);
 }
 
 

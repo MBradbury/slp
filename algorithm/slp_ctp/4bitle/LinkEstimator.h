@@ -42,9 +42,7 @@
 // Number of entries in the neighbor table
 #define NEIGHBOR_TABLE_SIZE 10
 
-// Masks for the flag field in the link estimation header
 enum {
-  // use last four bits to keep track of
   // how many footer entries there are
   NUM_ENTRIES_FLAG = 15,
 };
@@ -58,6 +56,7 @@ enum {
 // every message passing through the link estimator
 typedef nx_struct linkest_header {
   nx_uint8_t flags;
+  nx_uint8_t footer_size;
   nx_uint8_t seq;
 } linkest_header_t;
 
@@ -86,7 +85,10 @@ enum {
   INIT_ENTRY = 0x4,
   // The upper layer has requested that this link be pinned
   // Useful if we don't want to lose the root from the table
-  PINNED_ENTRY = 0x8
+  PINNED_ENTRY = 0x8,
+  // Signals a neighbour that has been evicted
+  // and is not valid to be used
+  FORBIDDEN_ENTRY = 0x10,
 };
 
 
@@ -103,6 +105,8 @@ typedef struct neighbor_table_entry {
   uint8_t failcnt;
   // flags to describe the state of this entry
   uint8_t flags;
+  // Number of items in the footer
+  uint8_t footer_size;
   // inbound qualities in the range [1..255]
   // 1 bad, 255 good
   uint8_t inquality;
@@ -116,6 +120,8 @@ typedef struct neighbor_table_entry {
   // The total number of data packets transmission attempt to this neighbor
   // since the last data estimator update round.
   uint8_t data_total;
+  // The amount of time this entry has been evicted for
+  uint32_t evict_duration;
 } neighbor_table_entry_t;
 
 

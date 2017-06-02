@@ -272,7 +272,6 @@ implementation {
         uint16_t minEtx;
         uint16_t currentEtx;
         uint16_t linkEtx, pathEtx;
-        uint16_t seenCount, currentCount, minCount;
 
         if (state_is_root)
             return;
@@ -282,8 +281,6 @@ implementation {
         minEtx = MAX_METRIC;
         /* Metric through current parent, initially infinity */
         currentEtx = MAX_METRIC;
-
-        minCount = UINT16_MAX;
 
         dbg("TreeRouting","%s\n",__FUNCTION__);
 
@@ -301,11 +298,9 @@ implementation {
 
             linkEtx = call LinkEstimator.getLinkQuality(entry->neighbor);
 
-            seenCount = entry->info.useCount * 3 + entry->info.snoopCount + entry->info.receiveCount * 2;
-
-            simdbg("stdout",
-                "routingTable[%d]: neighbor: [id: %d parent: %d etx: %d retx: %d count: %u]\n",  
-                i, entry->neighbor, entry->info.parent, linkEtx, entry->info.etx, seenCount);
+            //simdbg("stdout",
+            //    "routingTable[%d]: neighbor: [id: %d parent: %d etx: %d retx: %d]\n",  
+            //    i, entry->neighbor, entry->info.parent, linkEtx, entry->info.etx);
 
             pathEtx = linkEtx + entry->info.etx;
 
@@ -313,7 +308,6 @@ implementation {
             if (entry->neighbor == routeInfo.parent) {
                 dbg("TreeRouting", "   already parent.\n");
                 currentEtx = pathEtx;
-                currentCount = seenCount;
                 /* update routeInfo with parent's current info */
                 routeInfo.etx = entry->info.etx;
                 routeInfo.congested = entry->info.congested;
@@ -336,11 +330,10 @@ implementation {
 
             //pathEtx += (entry->info.use_count * 10);
             
-            if (pathEtx < minEtx /*&& seenCount <= minCount*/) {
+            if (pathEtx < minEtx) {
                 dbg("TreeRouting", "   best is %d, setting to %d\n", pathEtx, entry->neighbor);
                 minEtx = pathEtx;
                 best = entry;
-                minCount = seenCount;
             }  
         }
 
@@ -542,6 +535,10 @@ implementation {
             justEvicted = TRUE;
             post updateRouteTask();
         }
+    }
+
+    event void LinkEstimator.evictExpired(am_addr_t neighbor) {
+        post updateRouteTask();
     }
 
     /* Interface UnicastNameFreeRouting */
