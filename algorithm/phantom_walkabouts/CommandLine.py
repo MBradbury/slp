@@ -119,8 +119,8 @@ class CLI(CommandLineCommon.CLI):
             #'sent': ('Total Messages Sent', 'left top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left bottom'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            #'utility equal': ('Utility (Equal)', 'left top'),
-            'utility habitat': ('Utility (Habitat)', 'left top'),
+            'utility animal': ('Utility (Animal)', 'left top'),
+            'utility monitor': ('Utility (Monitor)', 'left top'),
             'utility military': ('Utility (Military)', 'left top'),
         }
 
@@ -150,8 +150,8 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'left top'),
             'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
             'received ratio': ('Delivery Ratio (%)', 'left bottom'),
-            #'utility equal': ('Utility (Equal)', 'right top'),
-            'utility habitat': ('Utility (Habitat)', 'right bottom'),
+            'utility animal': ('Utility (Animal)', 'right top'),
+            'utility monitor': ('Utility (Monitor)', 'right bottom'),
             'utility military': ('Utility (Military)', 'right bottom'),
         }
 
@@ -164,7 +164,7 @@ class CLI(CommandLineCommon.CLI):
             #'norm(sent,time taken)': 600,
             'received ratio': 100,
             'capture ratio': 100,
-            #'utility equal': 0.8,
+            'utility animal': 1.0,
             'utility animal': 1.0,
             'utility military': 1.0,
         }
@@ -186,8 +186,8 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_multi_versus(self, args):
         graph_parameters = [
-            #('utility equal', 'Utility (Equal)'),
             ('utility animal', 'Utility (Animal)'),
+            ('utility monitor', 'Utility (Monitor)'),
             ('utility military', 'Utility (Military)'),
         ]
 
