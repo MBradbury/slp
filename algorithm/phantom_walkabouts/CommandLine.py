@@ -182,6 +182,8 @@ class CLI(CommandLineCommon.CLI):
             comparison_label="PW",
             vvalue_label_converter=self.vvalue_converter,
             key_equivalence=key_equivalence,
+            nokey=True,
+            generate_legend_graph=True,
         )
 
     def _run_multi_versus(self, args):
