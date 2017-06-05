@@ -108,14 +108,20 @@ class BattleLinear(object):
 
 # Sigmoid parameters used for SRDS 2017 journal extension (FGCS)
 
-class HabitatSigmoid(object):
-    cr = SigmoidParameters(k=10, x0=0.5, cutoff=0.8, weight=0.1)        # k value, x0 value, capture ratio(ranges from [0, 1])
-    dr = SigmoidParameters(k=10, x0=-0.5, cutoff=0.2, weight=0.7)       # k value, x0 value, receive ratio(ranges from [0, 1])
-    lat = SigmoidParameters(k=0.002, x0=2500, cutoff=3, weight=0.1)     # k value, x0 value, latency(scale is in seconds)
-    msg = SigmoidParameters(k=0.005, x0=1000, cutoff=1500, weight=0.1)  # k value, x0 value, message send numbers
+class AnimalProtectionSigmoid(object):
+    cr = SigmoidParameters(k=5, x0=0.5, cutoff=0.5, weight=0.7)         # ranges from [0, 1]
+    dr = SigmoidParameters(k=10, x0=-0.5, cutoff=0.2, weight=0.1)       # ranges from [0, 1]
+    lat = SigmoidParameters(k=1, x0=2.5, cutoff=3, weight=0.1)          # scale is in seconds
+    msg = SigmoidParameters(k=0.005, x0=1000, cutoff=1500, weight=0.1)  # message send numbers
+
+class AssetMonitoringSigmoid(object):
+    cr = SigmoidParameters(k=10, x0=0.5, cutoff=0.8, weight=0.1)       
+    dr = SigmoidParameters(k=5, x0=-0.5, cutoff=0.2, weight=0.7)       
+    lat = SigmoidParameters(k=1, x0=2.5, cutoff=3, weight=0.1)     
+    msg = SigmoidParameters(k=0.005, x0=1000, cutoff=1500, weight=0.1)  
 
 class BattleSigmoid(object):
-    cr = SigmoidParameters(k=10, x0=0.5, cutoff=0.8, weight=0.3)
-    dr = SigmoidParameters(k=0.1, x0=-0.5, cutoff=0.2, weight=0.3)
-    lat = SigmoidParameters(k=0.005, x0=1000, cutoff=1, weight=0.3)
-    msg = SigmoidParameters(k=0.002, x0=2500, cutoff=400, weight=0.1)
+    cr = SigmoidParameters(k=10, x0=0.5, cutoff=0.8, weight=0.1)
+    dr = SigmoidParameters(k=5, x0=-0.5, cutoff=0.5, weight=0.4)
+    lat = SigmoidParameters(k=5, x0=0.5, cutoff=0.8, weight=0.4)
+    msg = SigmoidParameters(k=0.005, x0=1000, cutoff=1500, weight=0.1)
