@@ -335,7 +335,7 @@ class CLI(object):
                 g = min_max_versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=yextractors.get(vary, scalar_extractor))
+                    yextractor=scalar_extractor if yextractors is None else yextractors.get(yaxis, scalar_extractor))
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
