@@ -39,6 +39,9 @@ class Grapher(GrapherBase):
         self.ylabel_font = None
         self.xlabel_font = None
 
+        self.xaxis_logscale = None
+        self.yaxis_logscale = None
+
         self.nokey = False
         self.key_position = 'right top'
         self.key_font = None
@@ -168,6 +171,12 @@ class Grapher(GrapherBase):
             graph_p.write('set xlabel "{}"\n'.format(self.xaxis_label))
             graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
             graph_p.write('set pointsize {}\n'.format(self.point_size))
+
+            if self.xaxis_logscale is not None:
+                graph_p.write('set logscale x "{}"\n'.format(int(self.xaxis_logscale)))
+
+            if self.yaxis_logscale is not None:
+                graph_p.write('set logscale y "{}"\n'.format(int(self.yaxis_logscale)))
 
             if self.nokey:
                 graph_p.write('set nokey\n')
