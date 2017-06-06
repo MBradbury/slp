@@ -26,7 +26,7 @@ from data import results
 
 from data.table import safety_period, fake_result
 from data.graph import summary, versus, min_max_versus
-from data.util import scalar_extractor
+from data.util import scalar_extractor, useful_log10
 
 from data.run.common import RunSimulationsCommon
 
@@ -155,6 +155,10 @@ class CLI(CommandLineCommon.CLI):
             'utility military': ('Utility (Military)', 'right bottom'),
         }
 
+        yextractors = {
+            'normal latency': useful_log10,
+        }
+
         varying = [
             (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
@@ -174,7 +178,8 @@ class CLI(CommandLineCommon.CLI):
         }
 
         self._create_min_max_versus_graph(
-            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen], None, graph_parameters, varying, custom_yaxis_range_max,
+            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen], None, graph_parameters, varying,
+            yextractors=custom_yaxis_range_max, 
             min_label=["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
             max_label=["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
             min_max_same_label=["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
