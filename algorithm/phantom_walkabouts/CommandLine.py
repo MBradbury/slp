@@ -146,7 +146,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
+            #'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
             'captured': ('Capture Ratio (%)', 'left top'),
             'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
             'received ratio': ('Delivery Ratio (%)', 'left bottom'),
@@ -177,19 +177,38 @@ class CLI(CommandLineCommon.CLI):
             "attacker model": {"SeqNosReactiveAttacker()": "SeqNosOOOReactiveAttacker()"}
         }
 
-        self._create_min_max_versus_graph(
-            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen], None, graph_parameters, varying, custom_yaxis_range_max,
-            yextractors=yextractors,
-            min_label=["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
-            max_label=["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
-            min_max_same_label=["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
-            vary_label="",
-            comparison_label="PW",
-            vvalue_label_converter=self.vvalue_converter,
-            key_equivalence=key_equivalence,
-            nokey=True,
-            generate_legend_graph=True,
+        args = (
+            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen],
+            None, graph_parameters, varying, custom_yaxis_range_max,
         )
+
+        kwargs = {
+            "yextractors": yextractors,
+            "min_label": ["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
+            "max_label": ["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
+            "min_max_same_label": ["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
+            "vary_label": "",
+            "comparison_label": "PW",
+            "vvalue_label_converter": self.vvalue_converter,
+            "key_equivalence": key_equivalence,
+            "nokey": True,
+            "generate_legend_graph": True,
+        }
+
+        self._create_min_max_versus_graph(*args, **kwargs)
+
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
+        }
+
+        args = (
+            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen],
+            None, graph_parameters, varying, custom_yaxis_range_max,
+        )
+
+        # For latency generate graphs with log10 yaxis scale
+        self._create_min_max_versus_graph(*args, **kwargs,
+            yaxis_logscale=10)
 
     def _run_multi_versus(self, args):
         graph_parameters = [
