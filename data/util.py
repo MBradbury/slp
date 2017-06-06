@@ -58,6 +58,10 @@ def useful_log10(data):
     if data is None:
         return None
 
+    if not np.isscalar(x):
+        (val, stddev) = x
+        data = val
+
     if data > 0:
         return math.log10(data)
     elif data == 0:
