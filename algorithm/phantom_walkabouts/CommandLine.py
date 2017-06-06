@@ -178,8 +178,8 @@ class CLI(CommandLineCommon.CLI):
         }
 
         self._create_min_max_versus_graph(
-            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen], None, graph_parameters, varying,
-            yextractors=custom_yaxis_range_max, 
+            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen], None, graph_parameters, varying, custom_yaxis_range_max,
+            yextractors=yextractors,
             min_label=["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
             max_label=["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
             min_max_same_label=["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
