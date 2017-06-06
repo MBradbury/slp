@@ -213,7 +213,11 @@ class Grapher(GrapherBase):
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
 
-            graph_p.write('set yrange [0:{}]\n'.format(self.yaxis_range_max))
+            ymin = 0
+            if self.yaxis_logscale is not None:
+                ymin = 1
+
+            graph_p.write('set yrange [{}:{}]\n'.format(ymin, self.yaxis_range_max))
             graph_p.write('set ytics auto\n')
 
             if self.yaxis_font is not None:
