@@ -295,6 +295,7 @@ class CLI(object):
     def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying,
                                      custom_yaxis_range_max=None,
                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
+                                     yextractors=None,
                                      **kwargs):
         from data.graph import min_max_versus
 
@@ -327,13 +328,14 @@ class CLI(object):
             baseline_results = None
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
+
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
 
                 g = min_max_versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
+                    yextractor=yextractors.get(vary, scalar_extractor))
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label

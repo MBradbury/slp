@@ -26,7 +26,7 @@ from data import results
 
 from data.table import safety_period, fake_result
 from data.graph import summary, versus, min_max_versus
-from data.util import scalar_extractor
+from data.util import scalar_extractor, useful_log10
 
 from data.run.common import RunSimulationsCommon
 
@@ -148,11 +148,15 @@ class CLI(CommandLineCommon.CLI):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
             'captured': ('Capture Ratio (%)', 'left top'),
-            'norm(sent,time taken)': ('Messages Transmission (messages per second)', 'right top'),
+            'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
             'received ratio': ('Delivery Ratio (%)', 'left bottom'),
             'utility animal': ('Utility (Animal)', 'right top'),
             'utility monitor': ('Utility (Monitor)', 'right bottom'),
             'utility military': ('Utility (Military)', 'right bottom'),
+        }
+
+        yextractors = {
+            'normal latency': useful_log10,
         }
 
         varying = [
@@ -175,9 +179,10 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_min_max_versus_graph(
             [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen], None, graph_parameters, varying, custom_yaxis_range_max,
-            min_label=["Protectionless - Min", "ProtectionlessCTP - Min","Phantom - Min", "ILP Routing - Min", "AdaptiveSPR - Min"],
-            max_label=["Protectionless - Max", "ProtectionlessCTP - Max", "Phantom - Max", "ILP Routing- Max", "AdaptiveSPR - Max"],
-            min_max_same_label=["Protectionless", "ProtectionlessCTP", "Phantom Routing", "ILP Routing", "AdaptiveSPR"],
+            yextractors=yextractors,
+            min_label=["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
+            max_label=["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
+            min_max_same_label=["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
             vary_label="",
             comparison_label="PW",
             vvalue_label_converter=self.vvalue_converter,
