@@ -155,10 +155,6 @@ class CLI(CommandLineCommon.CLI):
             'utility military': ('Utility (Military)', 'right bottom'),
         }
 
-        yextractors = {
-            'normal latency': useful_log10,
-        }
-
         varying = [
             (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
@@ -169,7 +165,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': 100,
             'capture ratio': 100,
             'utility animal': 1.0,
-            'utility animal': 1.0,
+            'utility monitor': 1.0,
             'utility military': 1.0,
         }
 
@@ -183,7 +179,6 @@ class CLI(CommandLineCommon.CLI):
         )
 
         kwargs = {
-            "yextractors": yextractors,
             "min_label": ["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
             "max_label": ["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
             "min_max_same_label": ["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
