@@ -43,6 +43,8 @@ repeats = 2000
 
 attacker_models = ['SeqNosReactiveAttacker()']
 
+fault_models = ['ReliableFaultModel()']
+
 latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
