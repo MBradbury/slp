@@ -39,7 +39,13 @@ class Simulation(object):
 
         else:
             self.nesc_app = None
-            self.tossim = tossim_module.Tossim({})
+
+            # Don't free C memory allocated at the end, as the OS will
+            # do this for us when the process terminates.
+            #
+            # If we ever get to the point where subsequent runs work well
+            # then freeing the memory will be necessary.
+            self.tossim = tossim_module.Tossim({}, should_free=False)
 
         self.radio = self.tossim.radio()
 
