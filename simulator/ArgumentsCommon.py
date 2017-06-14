@@ -35,10 +35,17 @@ def _add_safety_period(parser, has_safety_period=False, has_safety_factor=False,
 
 def _add_low_powered_listening(parser, **kwargs):
     parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), required=False, default="disabled")
-    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
-    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
-    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
-    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, required=False, default=-1)
+    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1,
+                        help="This is the period for which a node will turn the radio off.")
+
+    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1,
+                        help="This is a global setting, that configures a messages to be transmitted within a given wakeup period.")
+
+    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, required=False, default=-1,
+                        help="How long should the radio be kept on after a message is received.")
+
+    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, required=False, default=-1,
+                        help="The maximum number of CCA checks performed on each wakeup.")
 
 def _add_avrora_radio_model(parser, **kwargs):
     import simulator.AvroraRadioModel as AvroraRadioModel
