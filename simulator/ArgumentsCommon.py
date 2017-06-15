@@ -109,6 +109,16 @@ OPTS = {
                                                               default=1.0,
                                                               help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified."),
 
+    # See http://www.ti.com/lit/ds/symlink/cc2420.pdf section 28
+    # This is for chips with a CC2420 only
+    # TOSSIM DOES NOT SIMULATE THIS!
+    "rf power":            lambda x, **kwargs: x.add_argument("--rf-power",
+                                                              type=int,
+                                                              choices=[3, 7, 11, 15, 19, 23, 27, 31],
+                                                              required=False,
+                                                              default=None,
+                                                              help="Used to set the power levels for the CC2420 radio chip. 3 is low, 31 is high."),
+
     "gui node label":      lambda x, **kwargs: x.add_argument("--gui-node-label",
                                                               type=str,
                                                               required=False,
@@ -273,6 +283,11 @@ class ArgumentsCommon(object):
                 # See http://mail.millennium.berkeley.edu/pipermail/tinyos-help/2011-June/051478.html
                 if self.args.lpl_max_cca_checks >= 0:
                     result["MAX_LPL_CCA_CHECKS"] = self.args.lpl_max_cca_checks
+
+        if hasattr(self.args, 'rf_power'):
+          if self.args.rf_power is not None:
+            # TODO: consider setting the values for alternate drivers (CC2420X, ...)
+            result['CC2420_DEF_RFPOWER'] = self.args.rf_power
 
         return result
 
