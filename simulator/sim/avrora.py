@@ -8,7 +8,7 @@ re = None
 def parsers():
     raw_single_common = ["verbose", "seed", "configuration", "network size", "distance",
                          "noise model", "radio model", "node id order", "safety period", "start time",
-                         "low powered listening",
+                         "low powered listening", "rf power",
                          "max buffer size"]
 
     return [
