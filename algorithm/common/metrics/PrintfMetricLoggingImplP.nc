@@ -1,5 +1,18 @@
 #include "MetricLogging.h"
 
+// By converting message type from a string to an int
+// we should reduce the number of characters that need to be
+// printed over the serial interface.
+// This should increase the reliability of the output, at a cost
+// of some CPU usage to convert from a string to an int.
+#ifdef USE_SERIAL_PRINTF
+#	define MESSAGE_TYPE_SPEC "%" PRIu8
+#	define MESSAGE_TYPE_CONVERTER(message_type) call MessageType.from_string(message_type)
+#else
+#	define MESSAGE_TYPE_SPEC "%s"
+#	define MESSAGE_TYPE_CONVERTER(message_type) message_type
+#endif
+
 module PrintfMetricLoggingImplP
 {
 	provides interface MetricLogging;
@@ -21,8 +34,8 @@ implementation
 		)
 	{
 		simdbg("M-CR",
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
-			message_type, proximate_source, ultimate_source, sequence_number, distance);
+			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, sequence_number, distance);
 	}
 
 	command void MetricLogging.log_metric_bcast(
@@ -32,8 +45,8 @@ implementation
 		)
 	{
 		simdbg("M-CB",
-			"%s,%" PRIu8 "," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, status, sequence_number);
+			MESSAGE_TYPE_SPEC ",%" PRIu8 "," SEQUENCE_NUMBER_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), status, sequence_number);
 	}
 
 	command void MetricLogging.log_metric_deliver(
@@ -44,8 +57,8 @@ implementation
 		)
 	{
 		simdbg("M-CD", \
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, proximate_source, ultimate_source_poss_bottom, sequence_number);
+			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number);
 	}
 
 	command void MetricLogging.log_attacker_receive(
@@ -57,8 +70,8 @@ implementation
 		)
 	{
 		simdbg("A-R",
-			"%s," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
-			message_type, proximate_source, ultimate_source_poss_bottom, sequence_number);
+			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number);
 	}
 
 	command void MetricLogging.log_metric_node_change(
