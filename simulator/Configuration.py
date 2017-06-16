@@ -652,6 +652,20 @@ class GrenobleSmall(Configuration):
             space_behind_sink=False
         )
 
+class GrenobleAll(Configuration):
+    """A source in the corner and a sink in the centre."""
+    def __init__(self, *args, **kwargs):
+        from data.testbed.fitiotlab import Grenoble
+        grenoble = Grenoble()
+
+        super(GrenobleSmall, self).__init__(
+            grenoble,
+            source_ids={12},
+            sink_id=80,
+            space_behind_sink=True
+        )
+
+
 class TwistGuess(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.twist import Twist
