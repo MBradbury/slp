@@ -640,6 +640,19 @@ class EuratechSmall5by10Top(Configuration):
             space_behind_sink=False
         )
 
+class EuratechAll(Configuration):
+    """A source at one end of a rectangular strip and a sink in the middle."""
+    def __init__(self, *args, **kwargs):
+        from data.testbed.fitiotlab import Euratech
+        euratech = Euratech()
+
+        super(EuratechAll, self).__init__(
+            euratech,
+            source_ids={183},
+            sink_id=148,
+            space_behind_sink=True
+        )
+
 class GrenobleSmall(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.fitiotlab import Grenoble
@@ -660,7 +673,7 @@ class GrenobleAll(Configuration):
 
         super(GrenobleAll, self).__init__(
             grenoble,
-            source_ids={12},
+            source_ids={10},
             sink_id=80,
             space_behind_sink=True
         )
