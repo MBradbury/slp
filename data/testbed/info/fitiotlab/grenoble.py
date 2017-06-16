@@ -9,10 +9,11 @@ from simulator.Topology import Topology
 
 class Grenoble(Topology):
     """The layout of nodes on the Grenoble testbed, see: https://www.iot-lab.info/testbed/maps.php?site=grenoble"""
+
+    platform = "wsn430v13"
+
     def __init__(self, subset=None):
         super(Grenoble, self).__init__()
-        
-        self.platform = "wsn430v13"
         
         self.nodes[1] = np.array((4.25, 27.67, 1.98), dtype=np.float64)
         self.nodes[2] = np.array((4.57, 27.37, 2.7), dtype=np.float64)
@@ -157,6 +158,7 @@ class Grenoble(Topology):
         self.nodes[167] = np.array((8.54, 35.07, 2.58), dtype=np.float64)
         self.nodes[168] = np.array((9.56, 35.07, 2.58), dtype=np.float64)
         self.nodes[169] = np.array((10.66, 35.07, 2.58), dtype=np.float64)
+        self.nodes[170] = np.array((11.76, 35.07, 2.58), dtype=np.float64)
         self.nodes[171] = np.array((12.8, 35.07, 2.58), dtype=np.float64)
         self.nodes[172] = np.array((2.52, 36.37, 3.67), dtype=np.float64)
         self.nodes[173] = np.array((3.37, 36.37, 3.67), dtype=np.float64)
