@@ -47,13 +47,15 @@ class Runner(object):
             "profile": "Basic", # "wsn430_with_power_1s",
         }
 
-        if configuration.topology.platform == "wsn430v14":
+        if configuration.topology.platform == "wsn430v13":
             print("*********************************************************************")
-            print("* WARNING: The CC2420 interrupt line from the radio                 *")
-            print("* to the MSP430 CPU is not connected on the WSN430v1.4              *")
+            print("* WARNING: The CC1101 interrupt line from the radio                 *")
+            print("* to the MSP430 CPU is not connected on the wsn430v13               *")
             print("* hardware on the FIT IoT-Lab. This will prevent it from            *")
             print("* sending messages.                                                 *")
             print("* See: https://github.com/iot-lab/iot-lab/wiki/Hardware_Wsn430-node *")
+            print("* This website says that the CC2420 is affected, but I have only    *")
+            print("* observed this with wsn430v13 and the wsn430v14 seems to work.     *")
             print("*********************************************************************")
 
         command = [
