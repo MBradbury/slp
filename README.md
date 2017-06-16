@@ -398,6 +398,20 @@ A very important thing to note is that if you make any change to data/analysis.p
 then you MUST rerun ./scripts/cythonise_analysis.sh. This may happen when you pull
 from another repo. If you do not then analysis may not work properly.
 
+# Deploying on a testbed
+
+## FiT IoT-Lab setup
+
+Install the python tools by:
+```bash
+pip install iotlabsshcli
+```
+
+Authenticate your account:
+```bash
+auth-cli -u <username>
+```
+
 # Profiling the code
 
 ## Simulator framework profiling
