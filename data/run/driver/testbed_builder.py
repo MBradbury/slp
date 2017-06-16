@@ -26,6 +26,13 @@ def choose_platform(provided, available):
         else:
             raise RuntimeError("The provided platform {} is not in the available platforms {}".format(provided, available))
 
+# The platform specific objcopy and objdump tools
+PLATFORM_TOOLS = {
+    "wsn430v13": ("msp430-objcopy", "msp430-objdump"),
+    "wsn430v14": ("msp430-objcopy", "msp430-objdump"),
+    "micaz":     ("avr-objcopy", "avr-objdump"),
+    "telosb":    ("msp430-objcopy", "msp430-objdump"),
+}
 
 class Runner(object):
     def __init__(self, testbed, platform=None, generate_per_node_id_binary=False):
@@ -140,12 +147,17 @@ class Runner(object):
     def mode(self):
         return "TESTBED"
 
-    @staticmethod
-    def create_tos_node_id_ihex(source, target, node_id):
+    def create_tos_node_id_ihex(self, source, target, node_id):
+
+        try:
+            (objcopy, objdump) = PLATFORM_TOOLS[self.platform]
+        except KeyError:
+            raise KeyError("Unable to find the platform tools for '{}'".format(self.platform))
+
         command = " ".join([
             "tos-set-symbols",
-            "--objcopy msp430-objcopy",
-            "--objdump msp430-objdump",
+            "--objcopy {}".format(objcopy),
+            "--objdump {}".format(objdump),
             "--target ihex",
             source, target,
             "TOS_NODE_ID={}".format(node_id),
