@@ -23,7 +23,7 @@ CFLAGS += -I$(TOSDIR)/lib/avrora
 endif
 
 
-SERIAL_JAVA_TARGETS = metric_receive_msg.java metric_bcast_msg.java metric_deliver_msg.java attacker_receive_msg.java metric_node_change_msg.java metric_node_type_add_msg.java metric_message_type_add_msg.java error_occurred_msg.java metric_node_slot_change_msg.java
+SERIAL_JAVA_TARGETS = metric_receive_msg.java metric_bcast_msg.java metric_deliver_msg.java attacker_receive_msg.java metric_node_change_msg.java metric_node_type_add_msg.java metric_message_type_add_msg.java error_occurred_msg.java event_occurred_msg.java metric_node_slot_change_msg.java
 SERIAL_CLASS_TARGETS = $(JAVA_TARGETS:.java=.class)
 
 # The Indriya testbed needs printf_msg java class files

@@ -63,6 +63,7 @@ interface MetricLogging
 		);
 
 	command void log_stdout(
+		uint16_t code,
 		const char* message
 		);
 

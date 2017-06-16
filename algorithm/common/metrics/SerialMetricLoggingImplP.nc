@@ -42,7 +42,7 @@ module SerialMetricLoggingImplP
 {
 	provides interface MetricLogging;
 
-	uses interface Init;
+	provides interface Init;
 
 	uses interface MessageType;
 
@@ -61,9 +61,10 @@ implementation
 {
 	bool locked;
 
-	event error_t Init.init()
+	command error_t Init.init()
 	{
 		locked = FALSE;
+		return SUCCESS;
 	}
 
 	event void SerialControl.startDone(error_t err)
@@ -306,9 +307,17 @@ implementation
 	}
 
 	command void MetricLogging.log_stdout(
+		uint16_t code,
 		const char* message
 		)
 	{
+		SERIAL_START_SEND(event_occurred_msg_t)
+
+		msg->type = AM_EVENT_OCCURRED_MSG;
+
+		msg->event_code = code;
+
+		SERIAL_END_SEND(event_occurred_msg_t)
 	}
 
 	//##########SLP TDMA DAS##########
