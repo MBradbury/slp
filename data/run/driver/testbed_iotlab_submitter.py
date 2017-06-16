@@ -44,10 +44,17 @@ class Runner(object):
         options = {
             "testbed_name": type(configuration.topology).__name__.lower(),
             "platform": self._get_platform(configuration.topology.platform),
-            #"nodes": configuration.topology.node_ids(),
-            #"executable": executable,
             "profile": "wsn430_with_power_1s", #"Basic",
         }
+
+        if configuration.topology.platform == "wsn430v14":
+            print("*********************************************************************")
+            print("* WARNING: The CC2420 interrupt line from the radio                 *")
+            print("* to the MSP430 CPU is not connected on the WSN430v1.4              *")
+            print("* hardware on the FIT IoT-Lab. This will prevent it from            *")
+            print("* sending messages.                                                 *")
+            print("* See: https://github.com/iot-lab/iot-lab/wiki/Hardware_Wsn430-node *")
+            print("*********************************************************************")
 
         command = [
             "experiment-cli", "submit",
@@ -57,6 +64,9 @@ class Runner(object):
 
         for node in configuration.topology.nodes:
             executable = os.path.join(target_directory, "main-{}.ihex".format(node))
+
+            if not os.path.isfile(executable):
+                raise RuntimeError("Did you forget to build the binaries with the --generate-per-node-id-binary options? Could not find '{}'.".format(executable))
 
             command.append("--list {testbed_name},{platform},{nodes},{executable},{profile}".format(executable=executable, nodes=node, **options))
 
