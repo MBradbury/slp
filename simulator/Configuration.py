@@ -658,7 +658,7 @@ class GrenobleAll(Configuration):
         from data.testbed.fitiotlab import Grenoble
         grenoble = Grenoble()
 
-        super(GrenobleSmall, self).__init__(
+        super(GrenobleAll, self).__init__(
             grenoble,
             source_ids={12},
             sink_id=80,
