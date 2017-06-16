@@ -24,7 +24,10 @@ def build_arguments():
     return {
         # Wait for a short amount of time before running the boot event
         # Runner will need to be quick to capture the output.
-        "DELAYED_BOOT_TIME_MINUTES": 2
+        # This needs to be as long as it takes to flash all the nodes
+        # being requested. serial_aggregator will not start running
+        # until all nodes have been flashed.
+        "DELAYED_BOOT_TIME_MINUTES": 6
     }
 
 # Resources:
