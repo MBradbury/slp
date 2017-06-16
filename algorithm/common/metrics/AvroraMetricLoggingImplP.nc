@@ -162,6 +162,7 @@ implementation
 	}
 
 	command void MetricLogging.log_stdout(
+		uint16_t code,
 		const char* message
 		)
 	{

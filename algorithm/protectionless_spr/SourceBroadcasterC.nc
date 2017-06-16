@@ -179,6 +179,8 @@ implementation
 		{
 			call NodeType.set(SourceNode);
 
+			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected\n");
+
 			call SourcePeriodModel.startPeriodic();
 		}
 	}
@@ -187,6 +189,8 @@ implementation
 	{
 		if (call NodeType.get() == SourceNode)
 		{
+			LOG_STDOUT(EVENT_OBJECT_STOP_DETECTED, "An object has stopped being detected\n");
+
 			call SourcePeriodModel.stop();
 
 			call NodeType.set(NormalNode);
