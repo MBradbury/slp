@@ -44,7 +44,7 @@ class Runner(object):
         options = {
             "testbed_name": type(configuration.topology).__name__.lower(),
             "platform": self._get_platform(configuration.topology.platform),
-            "profile": "wsn430_with_power_1s", #"Basic",
+            "profile": "Basic", # "wsn430_with_power_1s",
         }
 
         if configuration.topology.platform == "wsn430v14":
@@ -66,7 +66,7 @@ class Runner(object):
             executable = os.path.join(target_directory, "main-{}.ihex".format(node))
 
             if not os.path.isfile(executable):
-                raise RuntimeError("Did you forget to build the binaries with the --generate-per-node-id-binary options? Could not find '{}'.".format(executable))
+                raise RuntimeError("Could not find '{}'. Did you forget to build the binaries with the --generate-per-node-id-binary options?".format(executable))
 
             command.append("--list {testbed_name},{platform},{nodes},{executable},{profile}".format(executable=executable, nodes=node, **options))
 
