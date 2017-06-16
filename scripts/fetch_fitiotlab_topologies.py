@@ -98,10 +98,11 @@ for site in site_names:
         print('', file=out_file)
         print('class {}(Topology):'.format(site.title()), file=out_file)
         print('    """The layout of nodes on the {} testbed, see: https://www.iot-lab.info/testbed/maps.php?site={}"""'.format(site.title(), site), file=out_file)
+        print('', file=out_file)
+        print('    platform = "{}"'.format(next(iter(platforms))), file=out_file)
+        print('', file=out_file)
         print('    def __init__(self, subset=None):', file=out_file)
         print('        super({}, self).__init__()'.format(site.title()), file=out_file)
-        print('        ', file=out_file)
-        print('        self.platform = "{}"'.format(next(iter(platforms))), file=out_file)
         print('        ', file=out_file)
 
         for node in nodes:
