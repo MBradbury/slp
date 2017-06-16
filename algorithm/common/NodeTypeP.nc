@@ -1,7 +1,7 @@
 
 #include "MetricLogging.h"
 
-#define UNKNOWN_NODE_TYPE ((uint8_t)-1)
+#define UNKNOWN_NODE_TYPE UINT8_MAX
 
 generic module NodeTypeP(uint8_t maximum_node_types)
 {
@@ -24,6 +24,9 @@ implementation
 		size = 0;
 
 		current_type = UNKNOWN_NODE_TYPE;
+
+		memset(idents, UNKNOWN_NODE_TYPE, sizeof(idents));
+		memset(names, 0, sizeof(names));
 
 		return SUCCESS;
 	}

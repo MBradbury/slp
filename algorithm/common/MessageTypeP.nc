@@ -1,6 +1,8 @@
 
 #include "MetricLogging.h"
 
+#define UNKNOWN_MESSAGE_TYPE UINT8_MAX
+
 generic module MessageTypeP(uint8_t maximum_message_types)
 {
 	provides interface MessageType;
@@ -18,6 +20,9 @@ implementation
 	command error_t Init.init()
 	{
 		size = 0;
+
+		memset(idents, UNKNOWN_MESSAGE_TYPE, sizeof(idents));
+		memset(names, 0, sizeof(names));
 
 		return SUCCESS;
 	}
@@ -62,7 +67,7 @@ implementation
 			}
 		}
 
-		return (uint8_t)-1;
+		return UNKNOWN_MESSAGE_TYPE;
 	}
 
 	command const char* MessageType.to_string(uint8_t ident)
@@ -77,5 +82,10 @@ implementation
 		}
 
 		return "<unknown>";
+	}
+
+	command uint8_t MessageType.unknown_type()
+	{
+		return UNKNOWN_MESSAGE_TYPE;
 	}
 }
