@@ -27,8 +27,12 @@ touch(os.path.join(output_directory, "__init__.py"))
 
 site_names = ["euratech", "grenoble", "rennes", "strasbourg"]
 
-class NodeDetails:
+# Saclay claims to have wsn430v14 nodes, but observing the 
+# map at https://www.iot-lab.info/testbed/maps.php?site=saclay
+# shows that there is only a single down node.
+# So don't bother looking for nodes there.
 
+class NodeDetails:
 
     @staticmethod
     def parse(obj, name, converter=lambda x: x):
