@@ -117,6 +117,9 @@ def avrora_command(module, a, configuration):
 
     target_file = os.path.join(target_directory, "main.elf")
 
+    if not os.path.isfile(target_file):
+        raise RuntimeError("Cannot find the binary '{}'".format(target_file))
+
     options_string = " ".join("-{}='{}'".format(k,v) for (k,v) in options.items())
 
     # Avrora is a bit crazy as it uses a one thread per node architecture
@@ -146,6 +149,9 @@ def avrora_iter(iterable):
     PACKET_STATS_RE = re.compile(r'\s*(\d+)\s*(\d+) / (\d+)\s*(\d+) / (\d+)\s*(\d+)\s*(\d+)\s*')
 
     started = False
+    loading = False
+    loading_count = None
+    loaded = False
     ended = False
 
     avrora_sim_cycles = False
@@ -158,9 +164,20 @@ def avrora_iter(iterable):
         line = line.rstrip()
 
         if not started:
+            if loading_count is not None:
+                loading_count.append(line)
+
             # Check that the binary was loaded okay
-            if line.startswith("Loading") and not line.endswith("OK"):
-                raise RuntimeError(line)
+            if line.startswith("Loading"):
+                loading = True
+                loading_count = [line]
+
+            if line.endswith("OK"):
+                loaded = True
+                loading_count = None
+
+            if not loaded and loading_count is not None and len(loading_count) >= 4:
+                raise RuntimeError("Failed to load binary with lines: {}".format(loading_count))
 
             if line.startswith(results_start):
                 started = True
@@ -331,6 +348,9 @@ def run_simulation(module, a, count=1, print_warnings=False):
                     print("For parameters:", file=sys.stderr)
                     print(all_args, file=sys.stderr)
 
+                    # Make sure to kill the avrora java process
+                    proc.kill()
+
                     return 51
 
                 proc.stdout.close()
@@ -351,6 +371,9 @@ def run_simulation(module, a, count=1, print_warnings=False):
                     print(traceback.format_exc(), file=sys.stderr)
                     print("For parameters:", file=sys.stderr)
                     print(all_args, file=sys.stderr)
+
+                    # Make sure to kill the avrora java process
+                    proc.kill()
                     
                     return 52
 
