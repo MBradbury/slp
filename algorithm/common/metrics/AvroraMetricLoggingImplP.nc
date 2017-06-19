@@ -38,14 +38,14 @@ implementation
 		if (sequence_number == BOTTOM)
 		{
 			simdbg("M-CR",
-				MESSAGE_TYPE_SPEC, "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC ",-1," DISTANCE_SPEC "\n",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC ",-1," DISTANCE_SPEC "\n",
 				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, distance);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("M-CR",
-				MESSAGE_TYPE_SPEC, "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," NXSEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," NXSEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
 				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, seqno, distance);
 		}
 	}
@@ -59,7 +59,7 @@ implementation
 		if (sequence_number == BOTTOM)
 		{
 			simdbg("M-CB",
-				MESSAGE_TYPE_SPEC, ",%" PRIu8 ",-1\n",
+				MESSAGE_TYPE_SPEC ",%" PRIu8 ",-1\n",
 				MESSAGE_TYPE_CONVERTER(message_type), status);
 		}
 		else
@@ -81,14 +81,14 @@ implementation
 		if (sequence_number == BOTTOM)
 		{
 			simdbg("M-CD", \
-				MESSAGE_TYPE_SPEC, "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1\n",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1\n",
 				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("M-CD", \
-				MESSAGE_TYPE_SPEC, "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "\n",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "\n",
 				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, seqno);
 		}
 
@@ -106,14 +106,14 @@ implementation
 		if (sequence_number == BOTTOM)
 		{
 			simdbg("A-R",
-				MESSAGE_TYPE_SPEC, "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1\n",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1\n",
 				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("A-R",
-				MESSAGE_TYPE_SPEC, "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "\n",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "\n",
 				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, seqno);
 		}
 	}
