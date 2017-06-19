@@ -35,16 +35,16 @@ def _add_safety_period(parser, has_safety_period=False, has_safety_factor=False,
 
 def _add_low_powered_listening(parser, **kwargs):
     parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), required=False, default="disabled")
-    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1,
+    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=None,
                         help="This is the period for which a node will turn the radio off.")
 
-    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=-1,
+    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=None,
                         help="This is a global setting, that configures a messages to be transmitted within a given wakeup period.")
 
-    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, required=False, default=-1,
+    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, required=False, default=None,
                         help="How long should the radio be kept on after a message is received.")
 
-    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, required=False, default=-1,
+    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, required=False, default=None,
                         help="The maximum number of CCA checks performed on each wakeup.")
 
 def _add_avrora_radio_model(parser, **kwargs):
@@ -259,21 +259,20 @@ class ArgumentsCommon(object):
           result.update(self.args.fault_model.build_arguments())
 
         if hasattr(self.args, 'low_power_listening'):
-            # Negative indicates disabled
 
             if self.args.low_power_listening == "enabled":
                 result["LOW_POWER_LISTENING"] = 1
 
                 # See SystemLowPowerListeningP.nc for how this macro is used
-                if self.args.lpl_remote_wakeup >= 0:
+                if self.args.lpl_remote_wakeup is not None:
                     result["LPL_DEF_REMOTE_WAKEUP"] = self.args.lpl_remote_wakeup
 
                 # See PowerCycleP.nc for how this macro is used
-                if self.args.lpl_local_wakeup >= 0:
+                if self.args.lpl_local_wakeup is not None:
                     result["LPL_DEF_LOCAL_WAKEUP"] = self.args.lpl_local_wakeup
 
                 # See SystemLowPowerListeningP.nc for how this macro is used
-                if self.args.lpl_delay_after_receive >= 0:
+                if self.args.lpl_delay_after_receive is not None:
                     result["DELAY_AFTER_RECEIVE"] = self.args.lpl_delay_after_receive
 
                 # See DefaultLpl.h for definition
@@ -281,7 +280,7 @@ class ArgumentsCommon(object):
                 # Other values than the default might be good.
                 # The following link recommends 1600
                 # See http://mail.millennium.berkeley.edu/pipermail/tinyos-help/2011-June/051478.html
-                if self.args.lpl_max_cca_checks >= 0:
+                if self.args.lpl_max_cca_checks is not None:
                     result["MAX_LPL_CCA_CHECKS"] = self.args.lpl_max_cca_checks
 
         if hasattr(self.args, 'rf_power'):
