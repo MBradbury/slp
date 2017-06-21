@@ -95,6 +95,10 @@ def avrora_command(module, a, configuration):
         # Needed to be able to print simdbg strings longer than 30 bytes
         "max": a.args.max_buffer_size,
 
+        # The allow usage of the c-print monitor.
+        # This must match the name of the variable in AvroraPrint.h
+        #"VariableName": "debugbuf1",
+
         # Show the messages sent and received
         "show-packets": "true",
 
@@ -267,7 +271,6 @@ def avrora_iter(iterable):
         energy = NodeEnergy("\n".join(energy_stats_buffer))
 
         yield "None|AVRORA-ENERGY-STATS:D:{}:None:{}".format(energy.nid, energy.encode())
-
 
 def run_simulation(module, a, count=1, print_warnings=False):
     global base64, pickle, re
