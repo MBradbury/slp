@@ -74,7 +74,13 @@ class MetricsCommon(object):
 
         self.node_transitions = defaultdict(int)
 
+        self.node_types = {}
+        self.message_types = {}
+
         self.register('M-NC', self.process_node_change_event)
+
+        self.register('M-NTA', self.process_node_type_add)
+        self.register('M-MTA', self.process_message_type_add)
 
         # BCAST / RCV / DELIVER events
         self.register('M-CB', self.process_bcast_event)
@@ -92,6 +98,14 @@ class MetricsCommon(object):
 
     def _time_to_bin(self, time):
         return int(math.floor(time / self._time_bin_width))
+
+    def process_node_type_add(self, d_or_e, node_id, time, detail):
+        (ident, name) = detail.split(',')
+        self.node_types[name] = int(ident)
+
+    def process_message_type_add(self, d_or_e, node_id, time, detail):
+        (ident, name) = detail.split(',')
+        self.message_types[name] = int(ident)
 
     def process_bcast_event(self, d_or_e, node_id, time, detail):
         (kind, status, sequence_number) = detail.split(',')
