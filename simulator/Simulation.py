@@ -517,9 +517,11 @@ class OfflineSimulation(object):
                 # Handle the event
                 if kind in self._line_handlers:
                     self._line_handlers[kind](log_type, node_id, self.sim_time(), message_line)
+                else:
+                    print("There is no handler for the kind {}. Unable to process the line {}.".format(kind, message_line), file=sys.stderr)
 
                 if log_type == "E":
-                    print("An error occurred: '{}'.".format(message_line))
+                    print("An error occurred: '{}'.".format(message_line), file=sys.stderr)
 
                 event_count += 1
 
