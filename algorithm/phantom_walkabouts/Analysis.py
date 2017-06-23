@@ -23,6 +23,9 @@ class Analyzer(AnalyzerCommon):
 
 		AnalyzerCommon.common_results(d)
 
+		d['normalised captured']	= lambda x: str(x.average_of['Captured']/x.average_of['ReceiveRatio'])
+		d['normalised norm(sent,time taken)']	= lambda x: str(x.average_of['norm(Sent,TimeTaken)']/x.average_of['ReceiveRatio'])
+
 		d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
 		d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
 		d['beacon']             = lambda x: AnalyzerCommon._format_results(x, 'BeaconSent')
