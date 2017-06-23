@@ -147,16 +147,14 @@ class CLI(CommandLineCommon.CLI):
     def _run_min_max_versus(self, args):
         graph_parameters = {
             #'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
-            'captured': ('Capture Ratio (%)', 'left top'),
-            'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
+            #'captured': ('Capture Ratio (%)', 'left top'),
+            #'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
             'received ratio': ('Delivery Ratio (%)', 'left bottom'),
-            'utility animal': ('Utility (Animal)', 'right top'),
-            'utility monitor': ('Utility (Monitor)', 'right bottom'),
+            'utility animal': ('Utility (Animal Protection)', 'right top'),
+            'utility monitor': ('Utility (Asset Monitor)', 'right bottom'),
             'utility military': ('Utility (Military)', 'right bottom'),
-        }
-
-        yextractors = {
-            'normal latency': useful_log10,
+            'normalised captured': ('Normalised Capture Ratio', 'left top'),
+            'normalised norm(sent,time taken)': ('Normalised Messages Transmission', 'right top'),
         }
 
         varying = [
@@ -169,8 +167,10 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': 100,
             'capture ratio': 100,
             'utility animal': 1.0,
-            'utility animal': 1.0,
+            'utility monitor': 1.0,
             'utility military': 1.0,
+            #'normalised captured': 2.0,
+            #'normalised norm(sent,time taken)': 2000
         }
 
         key_equivalence = {
@@ -183,7 +183,6 @@ class CLI(CommandLineCommon.CLI):
         )
 
         kwargs = {
-            "yextractors": yextractors,
             "min_label": ["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
             "max_label": ["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
             "min_max_same_label": ["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
@@ -207,8 +206,7 @@ class CLI(CommandLineCommon.CLI):
         )
 
         # For latency generate graphs with log10 yaxis scale
-        self._create_min_max_versus_graph(*args, **kwargs,
-            yaxis_logscale=10)
+        self._create_min_max_versus_graph(*args, yaxis_logscale=10, **kwargs)
 
     def _run_multi_versus(self, args):
         graph_parameters = [
