@@ -64,7 +64,7 @@ class FlockLab(Topology):
         self.nodes[204] = np.array((-100, -100), dtype=np.float64)
         self.nodes[200] = np.array((-100, -100), dtype=np.float64)
         self.nodes[201] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[202] = np.array((-100, -100), dtype=np.float64)
+        #self.nodes[202] = np.array((-100, -100), dtype=np.float64)
 
         self._process_node_id_order("topology")
 
