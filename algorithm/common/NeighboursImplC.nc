@@ -26,7 +26,7 @@ generic module NeighboursImplC(
 	uses interface Leds;
 	uses interface Random;
 
-#ifdef USE_SERIAL_PRINTF
+#ifdef METRIC_LOGGING_NEEDS_LOCALTIME
 	uses interface LocalTime<TMilli>;
 #endif
 
