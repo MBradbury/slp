@@ -36,6 +36,10 @@
 #	error "Unknown configuration"
 #endif
 
+#if defined(USE_SERIAL_PRINTF) || (defined(CYCLEACCURATE_AVRORA) && defined(AVRORA_OUTPUT))
+#	define METRIC_LOGGING_NEEDS_LOCALTIME
+#endif
+
 #define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
 	call MetricLogging.log_metric_receive(#TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE)
 
