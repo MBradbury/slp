@@ -16,7 +16,7 @@ def log_mode():
 def url():
     return "https://indriya.comp.nus.edu.sg/motelab/html/index.php"
 
-def submitter():
+def submitter(*args, **kwargs):
     raise RuntimeError("{} does not support automatic submission".format(name()))
 
 def build_arguments():

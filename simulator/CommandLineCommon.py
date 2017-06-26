@@ -103,6 +103,7 @@ class CLI(object):
 
         subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
+        subparser.add_argument("--dry-run", action="store_true", help="Do not actually submit, but check things would progress.")
 
 
         ###
@@ -722,7 +723,7 @@ class CLI(object):
                                  skip_completed_simulations=False)
 
         elif 'submit' == args.testbed_mode:
-            submitter = testbed.submitter()
+            submitter = testbed.submitter(dry_run=args.dry_run)
 
             skip_complete = not args.no_skip_complete
 

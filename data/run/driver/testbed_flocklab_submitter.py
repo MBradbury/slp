@@ -11,8 +11,8 @@ import subprocess
 from simulator import Configuration
 
 class Runner(object):
-    def __init__(self):
-        pass
+    def __init__(self, dry_run=False):
+        self.dry_run = dry_run
 
     def add_job(self, options, name, estimated_time):
         target_directory = name[:-len(".txt")]
@@ -44,7 +44,7 @@ class Runner(object):
         duration_secs = duration * 30
 
         print('<?xml version="1.0" encoding="UTF-8"?>', file=config_file)
-        print('<!-- $Id: flocklab.xml {} {} $ -->'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z"), getpass.getuser()), file=config_file)
+        print('<!-- $Id: flocklab.xml {} {} $ -->'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S Z%Z"), getpass.getuser()), file=config_file)
         print('', file=config_file)
         print('<testConf xmlns="http://www.flocklab.ethz.ch" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.flocklab.ethz.ch xml/flocklab.xsd">', file=config_file)
         print('    <generalConf>', file=config_file)
@@ -93,7 +93,10 @@ class Runner(object):
 
     def _submit_job(self, a, target_directory):
 
-        name = target_directory.replace("/", "_").replace("-", "_")[len("testbed_"):-len("_real")].replace("ReliableFaultModel__", "")
+        name = target_directory.replace("/", "_").replace("-", "_")
+
+        # Remove some things to get the name to be shorter
+        name = name[len("testbed_"):-len("_real")].replace("ReliableFaultModel__", "")
 
         configuration = Configuration.create(a.args.configuration, a.args)
 
@@ -105,7 +108,8 @@ class Runner(object):
         with open(config_path, "w") as config_file:
             self.generate_configuration_xml(configuration, config_file, exe_path,
                 name=name,
-                duration=duration)
+                duration=duration,
+            )
 
         # Check that everything is okay
         command = ["./scripts/flocklab.sh", "-v", config_path]
@@ -120,7 +124,10 @@ class Runner(object):
         command = ["./scripts/flocklab.sh", "-c", config_path]
 
         print("Submitting xml job: ",  " ".join(command))
-        subprocess.check_call(" ".join(command), shell=True) 
+        if not self.dry_run:
+            subprocess.check_call(" ".join(command), shell=True)
+        else:
+            print("Dry run complete!")
 
     @staticmethod
     def parse_arguments(module, argv):
