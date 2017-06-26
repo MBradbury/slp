@@ -83,9 +83,7 @@ class Runner(object):
         print('        <description>{name}</description>'.format(**options), file=config_file)
         print('        <platform>{}</platform>'.format(platform), file=config_file)
         print('        <os>tinyos</os>', file=config_file)
-        print('        <data>', file=config_file)
-        print(encoded_file, file=config_file)
-        print('        </data>', file=config_file)
+        print('        <data>{}</data>'.format(encoded_file), file=config_file)
         print('    </imageConf>', file=config_file)
 
         print('</testConf>', file=config_file)
