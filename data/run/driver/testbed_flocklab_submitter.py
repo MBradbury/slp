@@ -36,10 +36,12 @@ class Runner(object):
             return "tmote"
         return platform
 
-    def generate_configuration_xml(self, configuration, config_file, exe_path, **options):
+    def generate_configuration_xml(self, configuration, config_file, exe_path, duration=None, **options):
 
         # See: https://www.flocklab.ethz.ch/wiki/wiki/Public/Man/XmlConfig
         # for the details of the xml config
+
+        duration_secs = duration * 30
 
         print('<?xml version="1.0" encoding="UTF-8"?>', file=config_file)
         print('<!-- $Id: flocklab.xml {} {} $ -->'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z"), getpass.getuser()), file=config_file)
@@ -49,7 +51,7 @@ class Runner(object):
         print('        <name>{name}</name>'.format(**options), file=config_file)
         print('        <description>SLP Simulation</description>', file=config_file)
         print('        <scheduleAsap>', file=config_file)
-        print('            <durationSecs>{duration}</durationSecs>'.format(**options), file=config_file)
+        print('            <durationSecs>{}</durationSecs>'.format(duration_secs), file=config_file)
         print('        </scheduleAsap>', file=config_file)
         print('        <emailResults>yes</emailResults>', file=config_file)
         print('    </generalConf>', file=config_file)
@@ -91,25 +93,34 @@ class Runner(object):
 
     def _submit_job(self, a, target_directory):
 
-        name = target_directory.replace("/", "_").replace("-", "_")[len("testbed_"):-len("_real")]
+        name = target_directory.replace("/", "_").replace("-", "_")[len("testbed_"):-len("_real")].replace("ReliableFaultModel__", "")
 
         configuration = Configuration.create(a.args.configuration, a.args)
 
         exe_path = os.path.join(target_directory, "main.exe")
         config_path = os.path.join(target_directory, "flocklab.xml")
 
-        duration_secs = 30 * 60
+        duration = 30 # in minutes
 
         with open(config_path, "w") as config_file:
             self.generate_configuration_xml(configuration, config_file, exe_path,
                 name=name,
-                duration=duration_secs)
+                duration=duration)
 
         # Check that everything is okay
+        command = ["./scripts/flocklab.sh", "-v", config_path]
+
+        print("Checking xml validity: ",  " ".join(command))
+        validator_output = subprocess.check_output(" ".join(command), shell=True).strip()
+
+        if validator_output != "The file validated correctly.":
+            raise RuntimeError(validator_output)
+
+        # Submit the job
         command = ["./scripts/flocklab.sh", "-c", config_path]
 
-        print(" ".join(command))
-        subprocess.check_call(" ".join(command), shell=True)
+        print("Submitting xml job: ",  " ".join(command))
+        subprocess.check_call(" ".join(command), shell=True) 
 
     @staticmethod
     def parse_arguments(module, argv):
