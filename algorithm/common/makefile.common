@@ -25,10 +25,6 @@ endif
 ifeq ($(TESTBED), flocklab)
 SENSORBOARD = flocklab
 PFLAGS += -board=$(SENSORBOARD) -I$(TOSDIR)/sensorboards/$(SENSORBOARD)
-#BUILD_DEPS += flocklab_embedded_image
-
-#flocklab_embedded_image: exe
-#        @sed -i -n '1h;1!H;$${ g;s/<data>.*<\/data>/<data>#'"`base64 $(MAIN_EXE) | tr '\n' '#' | sed 's/\//\\\\\//g'`"'<\/data>/;s/#/\n/g;p}' FlockLab_Testconfiguration.xml
 endif
 
 SERIAL_JAVA_TARGETS = metric_receive_msg.java metric_bcast_msg.java metric_deliver_msg.java attacker_receive_msg.java metric_node_change_msg.java metric_node_type_add_msg.java metric_message_type_add_msg.java error_occurred_msg.java event_occurred_msg.java metric_node_slot_change_msg.java
