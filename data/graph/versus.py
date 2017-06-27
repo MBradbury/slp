@@ -206,8 +206,6 @@ class Grapher(GrapherBase):
                 else:
                     xvalues_padding = 0.1
 
-            # Should remain the same as we are testing with
-            # a limited sized grid of nodes
             graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_num) - xvalues_padding, max(xvalues_as_num) + xvalues_padding))
             graph_p.write('set xtics ({})\n'.format(",".join(map(str, sorted(xvalues_as_num)))))
 
