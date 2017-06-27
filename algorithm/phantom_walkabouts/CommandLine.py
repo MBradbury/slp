@@ -206,7 +206,7 @@ class CLI(CommandLineCommon.CLI):
         )
 
         # For latency generate graphs with log10 yaxis scale
-        self._create_min_max_versus_graph(*args, yaxis_logscale=10, **kwargs)
+        self._create_min_max_versus_graph(*args, yaxis_logscale=10, yaxis_range_min=10, **kwargs)
 
     def _run_multi_versus(self, args):
         graph_parameters = [
