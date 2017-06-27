@@ -330,8 +330,13 @@ class CLI(object):
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
 
+            if isinstance(vary, tuple):
+                vary_str = "(" + ",".join(vary) + ")"
+            else:
+                vary_str = str(vary)
+
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary_str).replace(" ", "_")
 
                 g = min_max_versus.Grapher(
                     self.algorithm_module.graphs_path, name,
@@ -353,7 +358,9 @@ class CLI(object):
                 if g.create(all_comparion_results, algo_results, baseline_results=baseline_results):
                     summary.GraphSummary(
                         os.path.join(self.algorithm_module.graphs_path, name),
-                        os.path.join(algorithm.results_directory_name, 'mmv-{}_{}-{}'.format(self.algorithm_module.name, "_".join(mod.name for mod in comparison_modules), name))
+                        os.path.join(algorithm.results_directory_name,
+                                     'mmv-{}_{}-{}'.format(self.algorithm_module.name,
+                                     "_".join(mod.name for mod in comparison_modules), name))
                     ).run()
 
     def _create_multi_versus_graph(self, graph_parameters, xaxes, yaxis_label,
