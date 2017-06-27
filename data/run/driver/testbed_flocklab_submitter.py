@@ -65,9 +65,12 @@ class Runner(object):
         print('        <embeddedImageId>{name}</embeddedImageId>'.format(**options), file=config_file)
         print('    </targetConf>', file=config_file)        
 
+        # serialConf tests show:
+        # - Do not use the serial port, serial out is over usb
+
         print('    <serialConf>', file=config_file)
         print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
-        print('        <port>serial</port>', file=config_file)
+        print('        <port>usb</port>', file=config_file)
         print('        <baudrate>115200</baudrate>', file=config_file)
         print('        <mode>ascii</mode>', file=config_file)
         print('    </serialConf>', file=config_file)
