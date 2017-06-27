@@ -8,8 +8,8 @@ import subprocess
 from simulator import Configuration
 
 class Runner(object):
-    def __init__(self):
-        pass
+    def __init__(self, dry_run=False):
+        self.dry_run = dry_run
 
     def add_job(self, options, name, estimated_time):
         target_directory = name[:-len(".txt")]
@@ -74,7 +74,10 @@ class Runner(object):
 
 
         print(" ".join(command))
-        subprocess.check_call(" ".join(command), shell=True)
+        if not self.dry_run:
+            subprocess.check_call(" ".join(command), shell=True)
+        else:
+            print("Dry run complete!")
 
     @staticmethod
     def parse_arguments(module, argv):

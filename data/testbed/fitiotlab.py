@@ -15,10 +15,10 @@ def log_mode():
 def url():
     return "https://www.iot-lab.info"
 
-def submitter():
+def submitter(*args, **kwargs):
     from data.run.driver.testbed_iotlab_submitter import Runner as Submitter
 
-    return Submitter()
+    return Submitter(*args, **kwargs)
 
 def build_arguments():
     return {
