@@ -16,7 +16,7 @@ try:
     # Python 2
     from itertools import izip_longest
 except ImportError:
-    #Python 3
+    # Python 3
     from itertools import zip_longest as izip_longest
 
 from itertools import tee
@@ -694,7 +694,20 @@ class MetricsCommon(object):
 
     def get_results(self):
         """Get the results in the result file format."""
-        return "|".join(str(fn(self)) for fn in self.items().values())
+        results = []
+
+        for (name, fn) in self.items().items():
+            try:
+                result = str(fn(self))
+            except Exception as ex:
+                import traceback
+                print("Error finding the value of '{}': {}".format(name, ex), file=sys.stderr)
+                print(traceback.format_exc(), file=sys.stderr)
+                result = "None"
+
+            results.append(result)
+
+        return "|".join(results)
 
     def print_results(self, stream=None):
         """Print the results to the specified stream (defaults to sys.stdout)."""

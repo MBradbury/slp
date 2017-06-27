@@ -400,17 +400,33 @@ from another repo. If you do not then analysis may not work properly.
 
 # Deploying on a testbed
 
-## FiT IoT-Lab setup
+## FiT IoT-Lab Setup
 
-Install the python tools by:
+Install the python tools by following the instructions at https://github.com/iot-lab/iot-lab/wiki/CLI-Tools-Installation
+The current release (2.4.0) can be checked at this website: https://github.com/iot-lab/cli-tools/releases
 ```bash
-pip install iotlabsshcli
+sudo apt-get install python-setuptools
+wget -qO - https://github.com/iot-lab/cli-tools/archive/[release_version].tar.gz | tar xz
+cd cli-tools-[release_version] && sudo python setup.py install
 ```
 
 Authenticate your account:
 ```bash
 auth-cli -u <username>
 ```
+
+## w-iLab.t Setup
+
+Download jfed (see: http://jfed.iminds.be/downloads). You must make sure you have Java 8 installed.
+
+```bash
+sudo apt-key adv --keyserver hkp://pool.sks-keyservers.net --recv-keys E7F4995E 
+sudo echo "deb http://jfed.iminds.be/deb-repo stable main" | sudo tee /etc/apt/sources.list.d/jfed.list
+sudo apt-get update
+sudo apt-get install jfed 
+```
+
+Download your certificate from https://authority.ilabt.iminds.be/getcert.php
 
 # Profiling the code
 

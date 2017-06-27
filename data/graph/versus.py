@@ -31,6 +31,7 @@ class Grapher(GrapherBase):
         self.vary_prefix = ''
         self.vvalue_label_converter = None
 
+        self.yaxis_range_min = None
         self.yaxis_range_max = '*'
 
         self.yaxis_font = None
@@ -213,9 +214,13 @@ class Grapher(GrapherBase):
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
 
-            ymin = 0
-            if self.yaxis_logscale is not None:
-                ymin = 1
+
+            if self.yaxis_range_min is not None:
+                ymin = self.yaxis_range_min
+            else:
+                ymin = 0
+                if self.yaxis_logscale is not None:
+                    ymin = 1
 
             graph_p.write('set yrange [{}:{}]\n'.format(ymin, self.yaxis_range_max))
             graph_p.write('set ytics auto\n')

@@ -691,6 +691,18 @@ class TwistGuess(Configuration):
             space_behind_sink=False
         )
 
+class FlockLabSinkCentre(Configuration):
+    def __init__(self, *args, **kwargs):
+        from data.testbed.flocklab import FlockLab
+        flocklab = FlockLab()
+
+        super(FlockLabSinkCentre, self).__init__(
+            flocklab,
+            source_ids={2},
+            sink_id=23,
+            space_behind_sink=True
+        )
+
 def configurations():
     """A list of the available configuration classes."""
     return [cls for cls in Configuration.__subclasses__()] # pylint: disable=no-member
