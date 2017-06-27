@@ -56,7 +56,7 @@ class Runner(object):
         print('        <emailResults>yes</emailResults>', file=config_file)
         print('    </generalConf>', file=config_file)
 
-        nodes = " ".join(["{:03d}".format(node) for node in sorted(configuration.topology.nodes)])
+        nodes = configuration.topology.node_ids()
 
         print('    <targetConf>', file=config_file)
         print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
@@ -67,8 +67,8 @@ class Runner(object):
 
         print('    <serialConf>', file=config_file)
         print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
-        #print('        <port>usb</port>', file=config_file)
-        #print('        <baudrate>115200</baudrate>', file=config_file)
+        print('        <port>serial</port>', file=config_file)
+        print('        <baudrate>115200</baudrate>', file=config_file)
         print('        <mode>ascii</mode>', file=config_file)
         print('    </serialConf>', file=config_file)
 
