@@ -16,7 +16,7 @@ def main():
     r = requests.get(node_url)
 
     if r.status_code != 200:
-        raise RuntimeError("Failed to get the flockla positions")
+        raise RuntimeError("Failed to get the flocklab positions")
 
     matches = re.findall(r"{.*}", r.text)
 
