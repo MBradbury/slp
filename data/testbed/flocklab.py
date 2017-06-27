@@ -27,46 +27,4 @@ def build_arguments():
 # Resources:
 # - https://www.flocklab.ethz.ch/wiki/wiki/Public/Index
 
-class FlockLab(Topology):
-    """The layout of nodes on the Flock Lab testbed, see: https://www.flocklab.ethz.ch/user/topology.php"""
-    def __init__(self):
-        super(FlockLab, self).__init__()
-
-        self.platform = "telosb"
-
-        self.nodes[1] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[2] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[4] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[8] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[15] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[33] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[3] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[6] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[16] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[22] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[28] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[32] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[31] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[18] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[27] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[24] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[23] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[10] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[26] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[20] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[19] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[17] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[13] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[25] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[14] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[7] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[11] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[204] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[200] = np.array((-100, -100), dtype=np.float64)
-        self.nodes[201] = np.array((-100, -100), dtype=np.float64)
-        #self.nodes[202] = np.array((-100, -100), dtype=np.float64)
-
-        self._process_node_id_order("topology")
-
-    def __str__(self):
-        return "FlockLab<>"
+from data.testbed.info.flocklab import FlockLab
