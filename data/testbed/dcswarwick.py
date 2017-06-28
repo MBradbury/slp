@@ -19,6 +19,9 @@ def submitter(*args, **kwargs):
 def build_arguments():
     return {}
 
+def fastserial_supported():
+    return True
+
 class DCSWarwick(Topology):
     """The layout of the nodes in DCS Warwick."""
     def __init__(self):

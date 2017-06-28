@@ -11,7 +11,7 @@ def platform():
     return "telosb"
 
 def log_mode():
-    return "unbuffered_printf"
+    return "uart_printf"
 
 def url():
     return "https://www.flocklab.ethz.ch/wiki/wiki/Public/Man/Description"
@@ -23,6 +23,9 @@ def submitter(*args, **kwargs):
 
 def build_arguments():
     return {}
+
+def fastserial_supported():
+	return False
 
 # Resources:
 # - https://www.flocklab.ethz.ch/wiki/wiki/Public/Index

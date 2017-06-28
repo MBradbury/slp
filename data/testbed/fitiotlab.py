@@ -30,6 +30,9 @@ def build_arguments():
         "DELAYED_BOOT_TIME_MINUTES": 6
     }
 
+def fastserial_supported():
+    return True
+
 # Resources:
 # - https://github.com/iot-lab/wsn430/tree/master/OS/TinyOS
 # - https://www.iot-lab.info/hardware/wsn430/ (Difference between the two hardware types)
