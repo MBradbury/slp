@@ -13,7 +13,7 @@
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_DISABLE(msg) METRIC_RCV(Disable, source_addr, msg->source_id, UNKNOWN_SEQNO, BOTTOM)
 
-#define AWAY_DELAY_MS 100
+#define AWAY_DELAY_MS 200
 
 module SourceBroadcasterC
 {
@@ -26,6 +26,7 @@ module SourceBroadcasterC
 	uses interface SplitControl as RadioControl;
 
 	uses interface Timer<TMilli> as AwaySenderTimer;
+	uses interface Timer<TMilli> as DisableSenderTimer;
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
@@ -59,6 +60,7 @@ implementation
 	SequenceNumber away_sequence_counter;
 
 	int32_t sink_distance;
+	int32_t source_distance;
 
 	int away_messages_to_send;
 
@@ -72,8 +74,9 @@ implementation
 		sequence_number_init(&away_sequence_counter);
 
 		sink_distance = BOTTOM;
+		source_distance = BOTTOM;
 
-		away_messages_to_send = 2;
+		away_messages_to_send = 3;
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
@@ -88,7 +91,7 @@ implementation
 			call NodeType.init(SinkNode);
 			sink_distance = 0;
 
-			call AwaySenderTimer.startOneShot(1 * 1000);
+			call AwaySenderTimer.startOneShot(5 * AWAY_DELAY_MS);
 		}
 		else
 		{
@@ -106,7 +109,7 @@ implementation
 
 			call Leds.led2On();
 
-			call ObjectDetector.start();
+			call ObjectDetector.start_later(5 * 1000);
 		}
 		else
 		{
@@ -129,6 +132,8 @@ implementation
 		if (call NodeType.get() != SinkNode)
 		{
 			call NodeType.set(SourceNode);
+
+			source_distance = 0;
 
 			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected\n");
 
@@ -188,8 +193,19 @@ implementation
 		}
 	}
 
+	event void DisableSenderTimer.fired()
+	{
+		DisableMessage disable_message;
+		disable_message.source_id = TOS_NODE_ID;
+		disable_message.hop_limit = DISABLE_HOPS;
+
+		send_Disable_message(&disable_message, AM_BROADCAST_ADDR);
+	}
+
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
@@ -205,11 +221,18 @@ implementation
 			forwarding_message.source_distance += 1;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+
+			if (source_distance != BOTTOM && sink_distance != BOTTOM && sink_distance == PROTECTED_SINK_HOPS)
+			{
+				call DisableSenderTimer.startOneShot(25);
+			}
 		}
 	}
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
@@ -227,6 +250,8 @@ implementation
 
 	void x_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
@@ -253,15 +278,20 @@ implementation
 	{
 		METRIC_RCV_DISABLE(rcvd);
 
-		if (rcvd->hop_limit != 0)
+		simdbg("stdout", "Received disable\n");
+
+		if (sink_distance != BOTTOM && sink_distance > PROTECTED_SINK_HOPS)
 		{
-			DisableMessage forwarding_message = *rcvd;
-			forwarding_message.hop_limit -= 1;
+			if (rcvd->hop_limit > 0)
+			{
+				DisableMessage forwarding_message = *rcvd;
+				forwarding_message.hop_limit -= 1;
 
-			send_Disable_message(&forwarding_message, AM_BROADCAST_ADDR);
+				send_Disable_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}
+
+			call RadioControl.stop();
 		}
-
-		call RadioControl.stop();
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Disable, Receive)
