@@ -39,8 +39,10 @@ implementation
 
 	// Timers
 	components new TimerMilliC() as AwaySenderTimer;
+	components new TimerMilliC() as DisableSenderTimer;
 
 	App.AwaySenderTimer -> AwaySenderTimer;
+	App.DisableSenderTimer -> DisableSenderTimer;
 
 
 	// Networking
