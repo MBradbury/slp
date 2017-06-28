@@ -22,6 +22,9 @@ def submitter(*args, **kwargs):
 def build_arguments():
     return {}
 
+def fastserial_supported():
+    return True
+
 # Resources:
 # - https://www.twist.tu-berlin.de/tutorials/twist-getting-started.html#prerequisites
 

@@ -11,10 +11,10 @@ def platform():
     return "telosb"
 
 def log_mode():
-    return "serial"
+    return "unbuffered_printf"
 
 def url():
-    return "https://indriya.comp.nus.edu.sg/motelab/html/index.php"
+    return "http://doc.ilabt.iminds.be/ilabt-documentation/wilabfacility.html"
 
 def submitter(*args, **kwargs):
     raise RuntimeError("{} does not support automatic submission".format(name()))
@@ -26,28 +26,23 @@ def fastserial_supported():
     return True
 
 # Resources:
-# - https://indriya.comp.nus.edu.sg/motelab/html/faq.php
+# - http://doc.ilabt.iminds.be/ilabt-documentation/wilabfacility.html
 
-class Indriya(Topology):
-    """The layout of nodes on the Indriya testbed, see: https://indriya.comp.nus.edu.sg/motelab/html/motes-info.php"""
+"""
+class WiLabT(Topology):
+    "" "The layout of nodes on the w-iLab.t testbed, see: https://indriya.comp.nus.edu.sg/motelab/html/motes-info.php" ""
     def __init__(self):
-        super(Indriya, self).__init__()
+        super(WiLabT, self).__init__()
 
         self.platform = "telosb"
 
         floor_distance = 20.0
 
-        arduino_nodes = set(range(87, 113))
-
-        for nid in range(1, 139):
-
-            # Skip arduino nodes
-            if nid in arduino_nodes:
-                continue
-
+        for nid in xrange(1, 139):
             self.nodes[nid] = np.array((-100, -100), dtype=np.float64)
 
         self._process_node_id_order("topology")
 
     def __str__(self):
-        return "Indriya<>"
+        return "WiLabT<>"
+"""

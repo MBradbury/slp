@@ -42,7 +42,7 @@ def build_sim(directory, platform="micaz", **kwargs):
 
     return result
 
-def build_actual(directory, platform, **kwargs):
+def build_actual(directory, platform, enable_fast_serial=False, **kwargs):
 
     if platform not in ALLOWED_PLATFORMS:
         raise RuntimeError("Unknown build platform {}. Only {} are allowed.".format(platform, ALLOWED_PLATFORMS))
@@ -62,6 +62,8 @@ def build_actual(directory, platform, **kwargs):
     if "USE_SERIAL_MESSAGES" in kwargs:
         make_options["USE_SERIAL_MESSAGES"] = 1
 
+    fastserial_opt = "fastserial" if enable_fast_serial else ""
+
     # If this is a build for a testbed or cycle accurate simulator, make sure to pass that information
     # on to the makefile, which may need to do additional things to support that configuration.
     if "TESTBED" in kwargs:
@@ -71,7 +73,7 @@ def build_actual(directory, platform, **kwargs):
 
     make_options_string = " ".join('{}={!r}'.format(k, v) for (k, v) in make_options.items())
 
-    command = 'make {} fastserial {}'.format(platform, make_options_string)
+    command = 'make {} {} {}'.format(platform, fastserial_opt, make_options_string)
 
     print(command, file=sys.stderr)
 
