@@ -11,7 +11,7 @@ def platform():
     return "telosb"
 
 def log_mode():
-    return "uart_printf"
+    return "unbuffered_printf"
 
 def url():
     return "https://www.flocklab.ethz.ch/wiki/wiki/Public/Man/Description"
