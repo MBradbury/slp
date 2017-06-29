@@ -14,7 +14,7 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
 2. Install python libraries
 
         :::bash
-        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip cryptography --upgrade -v
+        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip cryptography requests --upgrade -v
         pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade -v
 
    Make sure to prefix these commands with ```sudo``` if installing for the system python.
