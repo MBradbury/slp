@@ -16,12 +16,17 @@ import algorithm
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 phantom_chen = algorithm.import_algorithm("phantom_chen")
+ilprouting_chen = algorithm.import_algorithm("ilprouting_chen")
+adaptive_spr_notify_chen = algorithm.import_algorithm("adaptive_spr_notify_chen")
+protectionless_chen = algorithm.import_algorithm("protectionless_chen")
+protectionless_ctp_chen = algorithm.import_algorithm("protectionless_ctp_chen")
+
 
 from data import results
 
 from data.table import safety_period, fake_result
 from data.graph import summary, versus, min_max_versus
-from data.util import scalar_extractor
+from data.util import scalar_extractor, useful_log10
 
 from data.run.common import RunSimulationsCommon
 
@@ -30,6 +35,8 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("--show", action="store_true", default=False)
+
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-min-max", self._run_min_max_versus)
         subparser = self._add_argument("graph-multi", self._run_multi_versus)
@@ -80,14 +87,14 @@ class CLI(CommandLineCommon.CLI):
         return tafn * 1.0
 
     def _run_table(self, args):
-        phantom_results = results.Results(
+        phantom_walkabouts_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
-        result_table = fake_result.ResultTable(phantom_results)
+        result_table = fake_result.ResultTable(phantom_walkabouts_results)
 
-        self._create_table("{}-results".format(self.algorithm_module.name), result_table)
+        self._create_table("{}-results".format(self.algorithm_module.name), result_table, orientation='landscape', show=args.show)
 
     @staticmethod
     def vvalue_converter(name):
@@ -112,9 +119,9 @@ class CLI(CommandLineCommon.CLI):
             #'sent': ('Total Messages Sent', 'left top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left bottom'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'utility equal': ('Utility (Equal)', 'left top'),
-            'utility animal': ('Utility (Habitat)', 'left top'),
-            'utility battle': ('Utility (Military)', 'left top'),
+            'utility animal': ('Utility (Animal)', 'left top'),
+            'utility monitor': ('Utility (Monitor)', 'left top'),
+            'utility military': ('Utility (Military)', 'left top'),
         }
 
         varying = [
@@ -139,13 +146,17 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
+            #'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
             'captured': ('Capture Ratio (%)', 'left top'),
-            'norm(sent,time taken)': ('Messages Transmission (messages)', 'left bottom'),
+            'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
             'received ratio': ('Delivery Ratio (%)', 'left bottom'),
-            'utility equal': ('Utility (Equal)', 'right top'),
-            'utility animal': ('Utility (Habitat)', 'right top'),
-            'utility battle': ('Utility (Military)', 'right top'),
+            'utility animal': ('Utility (Animal)', 'right top'),
+            'utility monitor': ('Utility (Monitor)', 'right bottom'),
+            'utility military': ('Utility (Military)', 'right bottom'),
+        }
+
+        yextractors = {
+            'normal latency': useful_log10,
         }
 
         varying = [
@@ -157,26 +168,53 @@ class CLI(CommandLineCommon.CLI):
             #'norm(sent,time taken)': 600,
             'received ratio': 100,
             'capture ratio': 100,
-            'utility equal': 0.8,
-            'utility animal': 0.8,
-            'utility battle': 0.8,
+            'utility animal': 1.0,
+            'utility animal': 1.0,
+            'utility military': 1.0,
         }
 
-        self._create_min_max_versus_graph(
-            [phantom_chen], None, graph_parameters, varying, custom_yaxis_range_max,
-            min_label=["Phantom - Min"],
-            max_label=["Phantom - Max"],
-            min_max_same_label=["Phantom"],
-            vary_label="",
-            comparison_label="PW",
-            vvalue_label_converter=self.vvalue_converter,
+        key_equivalence = {
+            "attacker model": {"SeqNosReactiveAttacker()": "SeqNosOOOReactiveAttacker()"}
+        }
+
+        args = (
+            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen],
+            None, graph_parameters, varying, custom_yaxis_range_max,
         )
+
+        kwargs = {
+            "yextractors": yextractors,
+            "min_label": ["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
+            "max_label": ["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
+            "min_max_same_label": ["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
+            "vary_label": "",
+            "comparison_label": "PW",
+            "vvalue_label_converter": self.vvalue_converter,
+            "key_equivalence": key_equivalence,
+            "nokey": True,
+            "generate_legend_graph": True,
+        }
+
+        self._create_min_max_versus_graph(*args, **kwargs)
+
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
+        }
+
+        args = (
+            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen],
+            None, graph_parameters, varying, custom_yaxis_range_max,
+        )
+
+        # For latency generate graphs with log10 yaxis scale
+        self._create_min_max_versus_graph(*args, **kwargs,
+            yaxis_logscale=10)
 
     def _run_multi_versus(self, args):
         graph_parameters = [
-            ('utility equal', 'Utility (Equal)'),
             ('utility animal', 'Utility (Animal)'),
-            ('utility battle', 'Utility (Battle)'),
+            ('utility monitor', 'Utility (Monitor)'),
+            ('utility military', 'Utility (Military)'),
         ]
 
         varying = [

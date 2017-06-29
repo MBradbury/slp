@@ -15,13 +15,15 @@ implementation
 	App.MessageType = MessageType;
 
 #ifdef USE_SERIAL_PRINTF
-
-	components SerialStartC;
-
+	
 #if defined(SERIAL_PRINTF_UNBUFFERED)
+	components SerialStartC;
 	components SerialPrintfC;
 #elif defined(SERIAL_PRINTF_BUFFERED)
+	components SerialStartC;
 	components PrintfC;
+#elif defined(SERIAL_PRINTF_UART)
+	components UartPrintfC;
 #else
 #	error "Serial Printf needs to be buffered or unbuffered, but is neither."
 #endif

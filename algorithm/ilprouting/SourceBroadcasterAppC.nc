@@ -94,6 +94,7 @@ implementation
     components
         new CircularBufferC(SeqNoWithFlag, SLP_MAX_NUM_SOURCES * SLP_SEND_QUEUE_SIZE) as LruNormalSeqNos;
     App.LruNormalSeqNos -> LruNormalSeqNos;
+    LruNormalSeqNos.Compare -> App;
 
     // Pool / Queue
     STATIC_ASSERT_MSG(SLP_SEND_QUEUE_SIZE > 0, SLP_SEND_QUEUE_SIZE_must_be_gt_0);

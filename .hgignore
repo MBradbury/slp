@@ -35,3 +35,4 @@ cycle_accurate/*
 */tos_image.xml
 */wiring-check.xml
 app.c
+*/*/*.java

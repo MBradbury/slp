@@ -1,8 +1,10 @@
 from __future__ import division
 
-from data.analysis import Analyse, AnalyzerCommon
+from data.analysis import AnalyzerCommon
 
-from simulator import SourcePeriodModel
+#from data.analysis import Analyse
+
+#from simulator import SourcePeriodModel
 
 """class AnalyseWithOutlierDetection(Analyse):
     def detect_outlier(self, values):

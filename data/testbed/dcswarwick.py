@@ -13,11 +13,14 @@ def platform():
 def log_mode():
     return "printf"
 
-def submitter():
+def submitter(*args, **kwargs):
     raise RuntimeError("{} does not support automatic submission".format(name()))
 
 def build_arguments():
     return {}
+
+def fastserial_supported():
+    return True
 
 class DCSWarwick(Topology):
     """The layout of the nodes in DCS Warwick."""

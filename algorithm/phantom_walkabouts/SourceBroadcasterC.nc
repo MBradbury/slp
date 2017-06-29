@@ -1,4 +1,17 @@
-//improved phantom_walkabouts_origin version without specify short and long walk length.
+/*
+The codes are used for SRDS17 paper.
+Key features include:
+- node divides neighbours into 4 sets.
+- use three landmark nodes to decide network topology (SinkCorner or SourceCorner).
+- specify the short and long random walk counts.
+- specify the order of ShortLong or LongShort.
+- short random walk messages delay after a long random walk message.
+- use a direction bias factor for bias random walk.
+- bias random walk could choose H or V direction.
+- the length of short and long random walks are chosen from S and L.
+*/
+
+
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
@@ -85,7 +98,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 { \
 	if (rcvd->name != BOTTOM) \
 	{ \
-		landmark_bottom_left_distance = minbot(landmark_bottom_left_distance, botinc(rcvd->name)); \
+		bottom_left_distance = minbot(bottom_left_distance, botinc(rcvd->name)); \
 	} \
 }
 
@@ -93,7 +106,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 { \
 	if (rcvd->name != BOTTOM) \
 	{ \
-		landmark_bottom_right_distance = minbot(landmark_bottom_right_distance, botinc(rcvd->name)); \
+		bottom_right_distance = minbot(bottom_right_distance, botinc(rcvd->name)); \
 	} \
 }
 
@@ -109,7 +122,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 { \
 	if (rcvd->name != BOTTOM) \
 	{ \
-		landmark_sink_distance = minbot(landmark_sink_distance, botinc(rcvd->name)); \
+		sink_distance = minbot(sink_distance, botinc(rcvd->name)); \
 	} \
 }
 
@@ -176,10 +189,10 @@ implementation
 
 	bool reach_borderline;
 
-	int16_t landmark_bottom_left_distance;
-	int16_t landmark_bottom_right_distance;
+	int16_t bottom_left_distance;
+	int16_t bottom_right_distance;
 	int16_t landmark_top_right_distance;
-	int16_t landmark_sink_distance;
+	int16_t sink_distance;
 
 	int16_t sink_bl_dist;		//sink-bottom_left distance.
 	int16_t sink_br_dist;		//sink-bottom_right distance.
@@ -239,12 +252,24 @@ implementation
 			sink_location = Others;
 	}
 
+	// return how many 1 in a number
+	int16_t bitcount(int16_t n)
+	{
+		int16_t count = 0;
+		while(n)
+		{
+			count++;
+			n &= (n-1);
+		}
+		return count;
+	}
 
 	SetType random_walk_direction()
 	{
 		uint32_t possible_sets = UnknownSet;
+		uint16_t rnd;
 
-		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM)
+		if (bottom_left_distance != BOTTOM && bottom_right_distance != BOTTOM)
 		{
 			uint32_t i;
 
@@ -257,141 +282,38 @@ implementation
 			{
 				distance_container_t const* const neighbour = &neighbours.data[i].contents;
 
-				if (landmark_bottom_left_distance < neighbour->bottom_left_distance && landmark_bottom_right_distance <  neighbour->bottom_right_distance)
+				if (bottom_left_distance < neighbour->bottom_left_distance && bottom_right_distance <  neighbour->bottom_right_distance)
 				{
 					FurtherSet_neighbours ++;
 					FurtherSideSet_neighbours ++;					
 				}
-				else if (landmark_bottom_left_distance > neighbour->bottom_left_distance && landmark_bottom_right_distance < neighbour->bottom_right_distance)
+				else if (bottom_left_distance > neighbour->bottom_left_distance && bottom_right_distance < neighbour->bottom_right_distance)
 				{
 					CloserSideSet_neighbours ++;
 					FurtherSet_neighbours ++;
 				}
-				else if (landmark_bottom_left_distance > neighbour->bottom_left_distance && landmark_bottom_right_distance >  neighbour->bottom_right_distance)
+				else if (bottom_left_distance > neighbour->bottom_left_distance && bottom_right_distance >  neighbour->bottom_right_distance)
 				{
 					CloserSet_neighbours ++;
 					CloserSideSet_neighbours ++;				
 				}
-				else //if (landmark_bottom_left_distance < neighbour->bottom_left_distance && landmark_bottom_right_distance > neighbour->bottom_right_distance)
+				else //if (bottom_left_distance < neighbour->bottom_left_distance && bottom_right_distance > neighbour->bottom_right_distance)
 				{
 					CloserSet_neighbours ++;
 					FurtherSideSet_neighbours ++;
 				}
 
-				if (FurtherSideSet_neighbours > 1)
-				{
-					possible_sets |= FurtherSideSet;
-				}
-
-				if (CloserSideSet_neighbours > 1)
-				{
-					possible_sets |= CloserSideSet;
-				}
-
-				if (FurtherSet_neighbours > 1)
-				{
-					possible_sets |= FurtherSet; 
-				}
-
-				if (CloserSet_neighbours > 1)
-				{
-					possible_sets |= CloserSet;
-				}
+				possible_sets = CloserSet|FurtherSet|CloserSideSet|FurtherSideSet;
 			}
-			//simdbg("stdout", "landmark_bottom_left_distance=%u, landmark_bottom_right_distance=%u", landmark_bottom_left_distance, landmark_bottom_right_distance);
+			//simdbgverbose("stdout", "CloserSet_neighbours=%d, FurtherSet_neighbours=%d, CloserSideSet_neighbours=%d, FurtherSideSet_neighbours=%d\n",
+			//CloserSet_neighbours, FurtherSet_neighbours, CloserSideSet_neighbours, FurtherSideSet_neighbours);
 		}
 
-		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
-		{	
-			uint16_t rnd = call Random.rand16() % 4;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else if (rnd == 2)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == ( FurtherSet | CloserSideSet | FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return FurtherSet;
-			else if (rnd == 1)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet  | CloserSideSet | FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet | FurtherSet  | FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet | FurtherSet | CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else					return CloserSideSet;			
-		}
-
-		else if (possible_sets == (CloserSet|CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return CloserSet;
-			else					return CloserSideSet;
-		}
-
-		else if (possible_sets == (CloserSet|FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return CloserSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (FurtherSet|FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return FurtherSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (FurtherSet|CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return FurtherSet;
-			else					return CloserSideSet;
-		}
-
-		else if (possible_sets == CloserSet)
-		{
-			return CloserSet;
-		}
-		else if (possible_sets == FurtherSet)
-		{
-			return FurtherSet;
-		}
-
-		else if (possible_sets == CloserSideSet)
-		{
-			return CloserSideSet;
-		}
-		else if (possible_sets == FurtherSideSet)
-		{
-			return FurtherSideSet;
-		}
-		else
-		{
-			return UnknownSet;
-		}
-
+		//simdbgverbose("stdout", "possible_sets=%d, bottom_left_distance=%d, bottom_right_distance=%d, sink_distance=%d\n", 
+		//possible_sets, bottom_left_distance, bottom_right_distance, sink_distance);
+		
+		rnd = call Random.rand16() % bitcount(possible_sets) + 1;
+		return (possible_sets >> rnd) + 1;
 	}
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, BiasedType biased_direction, const am_addr_t* to_ignore, size_t to_ignore_length)
@@ -409,7 +331,7 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (landmark_bottom_left_distance != BOTTOM && landmark_bottom_right_distance != BOTTOM && further_or_closer_set != UnknownSet)
+		if (bottom_left_distance != BOTTOM && bottom_right_distance != BOTTOM && further_or_closer_set != UnknownSet)
 		{
 			for (k = 0; k != neighbours.size; ++k)
 			{
@@ -434,10 +356,10 @@ implementation
 					}
 				}
 
-				if ((further_or_closer_set == FurtherSet && landmark_bottom_right_distance < neighbour->contents.bottom_right_distance) ||
-					(further_or_closer_set == CloserSet && landmark_bottom_right_distance >= neighbour->contents.bottom_right_distance) ||
-					(further_or_closer_set == FurtherSideSet && landmark_bottom_left_distance < neighbour->contents.bottom_left_distance) ||
-					(further_or_closer_set == CloserSideSet && landmark_bottom_left_distance >= neighbour->contents.bottom_left_distance))
+				if ((further_or_closer_set == FurtherSet && bottom_right_distance < neighbour->contents.bottom_right_distance) ||
+					(further_or_closer_set == CloserSet && bottom_right_distance >= neighbour->contents.bottom_right_distance) ||
+					(further_or_closer_set == FurtherSideSet && bottom_left_distance < neighbour->contents.bottom_left_distance) ||
+					(further_or_closer_set == CloserSideSet && bottom_left_distance >= neighbour->contents.bottom_left_distance))
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -447,7 +369,7 @@ implementation
 		if (local_neighbours.size == 0)
 		{
 			//simdbgverbose("stdout", "No local neighbours to choose so broadcasting. (my-dist=%d, my-neighbours-size=%u)\n",
-			//	landmark_bottom_left_distance, neighbours.size);
+			//	bottom_left_distance, neighbours.size);
 
 			chosen_address = AM_BROADCAST_ADDR;
 		}
@@ -470,9 +392,9 @@ implementation
 				{
 					neighbour = &local_neighbours.data[neighbour_index];   //choose one neighbour.
 
-					if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance)
+					if (bottom_left_distance > neighbour->contents.bottom_left_distance)
 						bias_direction = V;
-					else if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance)
+					else if (bottom_left_distance < neighbour->contents.bottom_left_distance)
 						bias_direction = H;
 					else
 						simdbgerror("stdout","bias_direction error!\n");
@@ -487,7 +409,7 @@ implementation
 						neighbour = &local_neighbours.data[k];
 						if(biased_direction == H)
 						{
-							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < BIASED_NO)
+							if (bottom_left_distance < neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -496,7 +418,7 @@ implementation
 						}
 						else		//biased_direction is V
 						{
-							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < BIASED_NO)
+							if (bottom_left_distance > neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -598,10 +520,10 @@ implementation
 	{
 		reach_borderline = FALSE;
 
-		landmark_bottom_left_distance = BOTTOM;
-		landmark_bottom_right_distance = BOTTOM;
+		bottom_left_distance = BOTTOM;
+		bottom_right_distance = BOTTOM;
 		landmark_top_right_distance = BOTTOM;
-		landmark_sink_distance = BOTTOM;
+		sink_distance = BOTTOM;
 
 		sink_bl_dist = BOTTOM;		//sink-bottom_left distance.
 		sink_br_dist = BOTTOM;		//sink-bottom_right distance.
@@ -705,7 +627,7 @@ implementation
 	{
 		AwayMessage message;
 
-		landmark_bottom_left_distance = 0;
+		bottom_left_distance = 0;
 		message.landmark_location = BOTTOMLEFT;
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -724,7 +646,7 @@ implementation
 	{
 		AwayMessage message;
 
-		landmark_bottom_right_distance = 0;
+		bottom_right_distance = 0;
 		message.landmark_location = BOTTOMRIGHT;
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -784,12 +706,12 @@ implementation
 		}
 
 
-		random_walk_length = landmark_sink_distance/2 -1;
+		random_walk_length = sink_distance/2 -1;
 		RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + 2;
-		LONG_RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + landmark_sink_distance + 2;
+		LONG_RANDOM_WALK_HOPS = call Random.rand16()%random_walk_length + sink_distance + 2;
 		
 		
-		//simdbg("stdout","(ssd:%d,random walk length:%d)short random walk hop=%d, long random walk hop=%d\n", landmark_sink_distance, random_walk_length, RANDOM_WALK_HOPS, LONG_RANDOM_WALK_HOPS);
+		//simdbg("stdout","(ssd:%d,random walk length:%d)short random walk hop=%d, long random walk hop=%d\n", sink_distance, random_walk_length, RANDOM_WALK_HOPS, LONG_RANDOM_WALK_HOPS);
 
 		#ifdef SHORT_LONG_SEQUENCE
 		{
@@ -818,10 +740,10 @@ implementation
 		message.source_distance = 0;
 		message.biased_direction = 0;	//initialise the biased_direction when first generate message.
 
-		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
-		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
+		message.landmark_distance_of_bottom_left_sender = bottom_left_distance;
+		message.landmark_distance_of_bottom_right_sender = bottom_right_distance;
 		message.landmark_distance_of_top_right_sender = landmark_top_right_distance;
-		message.landmark_distance_of_sink_sender = landmark_sink_distance;
+		message.landmark_distance_of_sink_sender = sink_distance;
 
 		message.further_or_closer_set = random_walk_direction();
 
@@ -867,7 +789,7 @@ implementation
 
 		if (call NodeType.get() == SinkNode)
 		{
-			landmark_sink_distance = 0;
+			sink_distance = 0;
 			message.landmark_location = SINK;
 		}
 		else
@@ -894,10 +816,10 @@ implementation
 
 		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
-		message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
-		message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
+		message.landmark_distance_of_bottom_left_sender = bottom_left_distance;
+		message.landmark_distance_of_bottom_right_sender = bottom_right_distance;
 		message.landmark_distance_of_top_right_sender = landmark_top_right_distance;
-		message.landmark_distance_of_sink_sender = landmark_sink_distance;
+		message.landmark_distance_of_sink_sender = sink_distance;
 
 		call Packet.clear(&packet);
 
@@ -927,10 +849,10 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
 
-			forwarding_message.landmark_distance_of_bottom_left_sender = landmark_bottom_left_distance;
-			forwarding_message.landmark_distance_of_bottom_right_sender = landmark_bottom_right_distance;
+			forwarding_message.landmark_distance_of_bottom_left_sender = bottom_left_distance;
+			forwarding_message.landmark_distance_of_bottom_right_sender = bottom_right_distance;
 			forwarding_message.landmark_distance_of_top_right_sender = landmark_top_right_distance;
-			forwarding_message.landmark_distance_of_sink_sender = landmark_sink_distance;
+			forwarding_message.landmark_distance_of_sink_sender = sink_distance;
 
 			if (rcvd->source_distance + 1 < rcvd->random_walk_hops && !rcvd->broadcast)
 			{

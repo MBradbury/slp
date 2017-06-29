@@ -240,6 +240,20 @@ class tinis(ClusterCommon):
     def array_submitter(self, notify_emails=None):
         return self._pbs_array_submitter(notify_emails=notify_emails)
 
+class orac(ClusterCommon):
+    def __init__(self):
+        super(orac, self).__init__("pbs", "orac.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
+            ppn=28,
+            tpp=1,
+            rpn=(128 * 1024) / 28 # 128GB per node
+        )
+
+    def submitter(self, notify_emails=None):
+        return self._pbs_submitter(notify_emails=notify_emails)
+
+    def array_submitter(self, notify_emails=None):
+        return self._pbs_array_submitter(notify_emails=notify_emails)
+
 def available():
     """A list of the names of the available clusters."""
     return ClusterCommon.__subclasses__()  # pylint: disable=no-member

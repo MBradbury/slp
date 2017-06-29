@@ -96,4 +96,8 @@ interface CtpInfo {
   command uint16_t getNeighborLinkQuality(uint8_t n);
   command uint16_t getNeighborRouteQuality(uint8_t n);
   command am_addr_t getNeighborAddr(uint8_t n);
+
+  command void usedLink(am_addr_t address);
+  command void snoopLink(am_addr_t address);
+  command void receiveLink(am_addr_t address);
 }

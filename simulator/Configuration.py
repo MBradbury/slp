@@ -640,6 +640,19 @@ class EuratechSmall5by10Top(Configuration):
             space_behind_sink=False
         )
 
+class EuratechAll(Configuration):
+    """A source at one end of a rectangular strip and a sink in the middle."""
+    def __init__(self, *args, **kwargs):
+        from data.testbed.fitiotlab import Euratech
+        euratech = Euratech()
+
+        super(EuratechAll, self).__init__(
+            euratech,
+            source_ids={183},
+            sink_id=148,
+            space_behind_sink=True
+        )
+
 class GrenobleSmall(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.fitiotlab import Grenoble
@@ -652,6 +665,20 @@ class GrenobleSmall(Configuration):
             space_behind_sink=False
         )
 
+class GrenobleAll(Configuration):
+    """A source in the corner and a sink in the centre."""
+    def __init__(self, *args, **kwargs):
+        from data.testbed.fitiotlab import Grenoble
+        grenoble = Grenoble()
+
+        super(GrenobleAll, self).__init__(
+            grenoble,
+            source_ids={10},
+            sink_id=80,
+            space_behind_sink=True
+        )
+
+
 class TwistGuess(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.twist import Twist
@@ -662,6 +689,18 @@ class TwistGuess(Configuration):
             source_ids={11},
             sink_id=210,
             space_behind_sink=False
+        )
+
+class FlockLabSinkCentre(Configuration):
+    def __init__(self, *args, **kwargs):
+        from data.testbed.flocklab import FlockLab
+        flocklab = FlockLab()
+
+        super(FlockLabSinkCentre, self).__init__(
+            flocklab,
+            source_ids={2},
+            sink_id=23,
+            space_behind_sink=True
         )
 
 def configurations():

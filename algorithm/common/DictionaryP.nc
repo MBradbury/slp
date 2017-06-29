@@ -77,7 +77,7 @@ implementation
 			}
 		}
 
-		assert(stored_value != NULL);
+		//assert(stored_value != NULL);
 
 		*stored_value = value;
 

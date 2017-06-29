@@ -262,7 +262,6 @@ implementation {
         return (etx < ETX_THRESHOLD);
     }
 
-
     /* updates the routing information, using the info that has been received
      * from neighbor beacons. Two things can cause this info to change: 
      * neighbor beacons, changes in link estimates, including neighbor eviction */
@@ -291,17 +290,20 @@ implementation {
 
             // Avoid bad entries and 1-hop loops
             if (entry->info.parent == INVALID_ADDR || entry->info.parent == my_ll_addr) {
-              dbg("TreeRouting", 
-                  "routingTable[%d]: neighbor: [id: %d parent: %d  etx: NO ROUTE]\n",  
-                  i, entry->neighbor, entry->info.parent);
-              continue;
+                dbg("TreeRouting",
+                    "routingTable[%d]: neighbor: [id: %d parent: %d  etx: NO ROUTE]\n",
+                    i, entry->neighbor, entry->info.parent);
+                continue;
             }
 
             linkEtx = call LinkEstimator.getLinkQuality(entry->neighbor);
-            dbg("TreeRouting", 
-                "routingTable[%d]: neighbor: [id: %d parent: %d etx: %d retx: %d]\n",  
-                i, entry->neighbor, entry->info.parent, linkEtx, entry->info.etx);
+
+            //simdbg("stdout",
+            //    "routingTable[%d]: neighbor: [id: %d parent: %d etx: %d retx: %d]\n",  
+            //    i, entry->neighbor, entry->info.parent, linkEtx, entry->info.etx);
+
             pathEtx = linkEtx + entry->info.etx;
+
             /* Operations specific to the current parent */
             if (entry->neighbor == routeInfo.parent) {
                 dbg("TreeRouting", "   already parent.\n");
@@ -309,16 +311,24 @@ implementation {
                 /* update routeInfo with parent's current info */
                 routeInfo.etx = entry->info.etx;
                 routeInfo.congested = entry->info.congested;
+                routeInfo.useCount = entry->info.useCount;
+                routeInfo.snoopCount = entry->info.snoopCount;
+                routeInfo.receiveCount = entry->info.receiveCount;
                 continue;
             }
+
             /* Ignore links that are congested */
-            if (entry->info.congested)
+            if (entry->info.congested) {
                 continue;
+            }
+
             /* Ignore links that are bad */
             if (!passLinkEtxThreshold(linkEtx)) {
               dbg("TreeRouting", "   did not pass threshold.\n");
               continue;
             }
+
+            //pathEtx += (entry->info.use_count * 10);
             
             if (pathEtx < minEtx) {
                 dbg("TreeRouting", "   best is %d, setting to %d\n", pathEtx, entry->neighbor);
@@ -343,7 +353,9 @@ implementation {
         if (minEtx != MAX_METRIC) {
             if (currentEtx == MAX_METRIC ||
                 (routeInfo.congested && (minEtx < (routeInfo.etx + 10))) ||
-                minEtx + PARENT_SWITCH_THRESHOLD < currentEtx) {
+                (minEtx + PARENT_SWITCH_THRESHOLD < currentEtx)
+//                (minEtx /*+ PARENT_SWITCH_THRESHOLD*/ < currentEtx && minCount <= currentCount)
+               ) {
                 // routeInfo.metric will not store the composed metric.
                 // since the linkMetric may change, we will compose whenever
                 // we need it: i. when choosing a parent (here); 
@@ -382,7 +394,6 @@ implementation {
         }
         justEvicted = FALSE;
     }
-
     
 
     /* send a beacon advertising this node's routeInfo */
@@ -526,10 +537,14 @@ implementation {
         }
     }
 
+    event void LinkEstimator.evictExpired(am_addr_t neighbor) {
+        post updateRouteTask();
+    }
+
     /* Interface UnicastNameFreeRouting */
     /* Simple implementation: return the current routeInfo */
     command am_addr_t Routing.nextHop() {
-        return routeInfo.parent;    
+        return routeInfo.parent;
     }
     command bool Routing.hasRoute() {
         return (routeInfo.parent != INVALID_ADDR);
@@ -595,6 +610,39 @@ implementation {
             return routingTable[idx].info.congested;
         }
         return FALSE;
+    }
+
+    command void CtpInfo.usedLink(am_addr_t address)
+    {
+        uint8_t idx = routingTableFind(address);
+
+        if (idx < routingTableActive)
+        {
+            routingTable[idx].info.useCount += 1;
+            post updateRouteTask();
+        }
+    }
+
+    command void CtpInfo.snoopLink(am_addr_t address)
+    {
+        uint8_t idx = routingTableFind(address);
+
+        if (idx < routingTableActive)
+        {
+            routingTable[idx].info.snoopCount += 1;
+            post updateRouteTask();
+        }
+    }
+
+    command void CtpInfo.receiveLink(am_addr_t address)
+    {
+        uint8_t idx = routingTableFind(address);
+
+        if (idx < routingTableActive)
+        {
+            routingTable[idx].info.receiveCount += 1;
+            post updateRouteTask();
+        }
     }
     
     /* RootControl interface */
@@ -733,6 +781,9 @@ implementation {
               routingTable[idx].info.etx = etx;
               routingTable[idx].info.haveHeard = 1;
               routingTable[idx].info.congested = FALSE;
+              routingTable[idx].info.useCount = 0;
+              routingTable[idx].info.snoopCount = 0;
+              routingTable[idx].info.receiveCount = 0;
               routingTableActive++;
               dbg("TreeRouting", "%s OK, new entry\n", __FUNCTION__);
             } else {

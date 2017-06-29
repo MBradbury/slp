@@ -5,4 +5,6 @@ interface MessageType
 
 	command uint8_t from_string(const char* name);
 	command const char* to_string(uint8_t ident);
+
+	command uint8_t unknown_type();
 }

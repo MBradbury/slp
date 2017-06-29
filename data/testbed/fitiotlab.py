@@ -15,17 +15,23 @@ def log_mode():
 def url():
     return "https://www.iot-lab.info"
 
-def submitter():
+def submitter(*args, **kwargs):
     from data.run.driver.testbed_iotlab_submitter import Runner as Submitter
 
-    return Submitter()
+    return Submitter(*args, **kwargs)
 
 def build_arguments():
     return {
         # Wait for a short amount of time before running the boot event
         # Runner will need to be quick to capture the output.
-        "DELAYED_BOOT_TIME_MINUTES": 2
+        # This needs to be as long as it takes to flash all the nodes
+        # being requested. serial_aggregator will not start running
+        # until all nodes have been flashed.
+        "DELAYED_BOOT_TIME_MINUTES": 6
     }
+
+def fastserial_supported():
+    return True
 
 # Resources:
 # - https://github.com/iot-lab/wsn430/tree/master/OS/TinyOS

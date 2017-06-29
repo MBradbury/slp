@@ -27,8 +27,12 @@ touch(os.path.join(output_directory, "__init__.py"))
 
 site_names = ["euratech", "grenoble", "rennes", "strasbourg"]
 
-class NodeDetails:
+# Saclay claims to have wsn430v14 nodes, but observing the 
+# map at https://www.iot-lab.info/testbed/maps.php?site=saclay
+# shows that there is only a single down node.
+# So don't bother looking for nodes there.
 
+class NodeDetails:
 
     @staticmethod
     def parse(obj, name, converter=lambda x: x):
@@ -98,10 +102,11 @@ for site in site_names:
         print('', file=out_file)
         print('class {}(Topology):'.format(site.title()), file=out_file)
         print('    """The layout of nodes on the {} testbed, see: https://www.iot-lab.info/testbed/maps.php?site={}"""'.format(site.title(), site), file=out_file)
+        print('', file=out_file)
+        print('    platform = "{}"'.format(next(iter(platforms))), file=out_file)
+        print('', file=out_file)
         print('    def __init__(self, subset=None):', file=out_file)
         print('        super({}, self).__init__()'.format(site.title()), file=out_file)
-        print('        ', file=out_file)
-        print('        self.platform = "{}"'.format(next(iter(platforms))), file=out_file)
         print('        ', file=out_file)
 
         for node in nodes:

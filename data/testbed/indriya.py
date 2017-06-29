@@ -16,11 +16,14 @@ def log_mode():
 def url():
     return "https://indriya.comp.nus.edu.sg/motelab/html/index.php"
 
-def submitter():
+def submitter(*args, **kwargs):
     raise RuntimeError("{} does not support automatic submission".format(name()))
 
 def build_arguments():
     return {}
+
+def fastserial_supported():
+    return True
 
 # Resources:
 # - https://indriya.comp.nus.edu.sg/motelab/html/faq.php
@@ -34,7 +37,14 @@ class Indriya(Topology):
 
         floor_distance = 20.0
 
-        for nid in xrange(1, 139):
+        arduino_nodes = set(range(87, 113))
+
+        for nid in range(1, 139):
+
+            # Skip arduino nodes
+            if nid in arduino_nodes:
+                continue
+
             self.nodes[nid] = np.array((-100, -100), dtype=np.float64)
 
         self._process_node_id_order("topology")

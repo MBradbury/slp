@@ -48,13 +48,14 @@ class MobilityModel(object):
             indexes.append("{}U".format(self.configuration.topology.to_topo_nid(node_id)))
 
             period = [
-                "[{node_idx}][{interval_idx}].from = {}, [{node_idx}][{interval_idx}].to = {}".format(
-                    to_tinyos_format(begin), to_tinyos_format(end), node_idx=node_idx, interval_idx=interval_idx)
+                #"[{node_idx}][{interval_idx}].from = {from_time}, [{node_idx}][{interval_idx}].to = {to_time}".format(
+                "{{{from_time}, {to_time}}}".format(
+                    from_time=to_tinyos_format(begin), to_time=to_tinyos_format(end), node_idx=node_idx, interval_idx=interval_idx)
                 for (interval_idx, (begin, end))
                 in enumerate(intervals)
             ]
 
-            periods.append(", ".join(period))
+            periods.append("{" + ", ".join(period) + "}")
 
             periods_lengths.append("{}U".format(len(period)))
 

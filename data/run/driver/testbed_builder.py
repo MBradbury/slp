@@ -26,6 +26,13 @@ def choose_platform(provided, available):
         else:
             raise RuntimeError("The provided platform {} is not in the available platforms {}".format(provided, available))
 
+# The platform specific objcopy and objdump tools
+PLATFORM_TOOLS = {
+    "wsn430v13": ("msp430-objcopy", "msp430-objdump"),
+    "wsn430v14": ("msp430-objcopy", "msp430-objdump"),
+    "micaz":     ("avr-objcopy", "avr-objdump"),
+    "telosb":    ("msp430-objcopy", "msp430-objdump"),
+}
 
 class Runner(object):
     def __init__(self, testbed, platform=None, generate_per_node_id_binary=False):
@@ -83,7 +90,9 @@ class Runner(object):
 
         print("Building for {}".format(build_args))
 
-        build_result = Builder.build_actual(module_path, self.platform, **build_args)
+        build_result = Builder.build_actual(module_path, self.platform,
+                                            enable_fast_serial=self.testbed.fastserial_supported(),
+                                            **build_args)
 
         print("Build finished with result {}, waiting for a bit...".format(build_result))
 
@@ -140,12 +149,17 @@ class Runner(object):
     def mode(self):
         return "TESTBED"
 
-    @staticmethod
-    def create_tos_node_id_ihex(source, target, node_id):
+    def create_tos_node_id_ihex(self, source, target, node_id):
+
+        try:
+            (objcopy, objdump) = PLATFORM_TOOLS[self.platform]
+        except KeyError:
+            raise KeyError("Unable to find the platform tools for '{}'".format(self.platform))
+
         command = " ".join([
             "tos-set-symbols",
-            "--objcopy msp430-objcopy",
-            "--objdump msp430-objdump",
+            "--objcopy {}".format(objcopy),
+            "--objdump {}".format(objdump),
             "--target ihex",
             source, target,
             "TOS_NODE_ID={}".format(node_id),
@@ -173,19 +187,19 @@ class Runner(object):
         build_args.update(self.testbed.build_arguments())
 
         log_mode = self.testbed.log_mode()
-        if log_mode == "printf":
-            build_args["USE_SERIAL_PRINTF"] = 1
-            build_args["SERIAL_PRINTF_BUFFERED"] = 1
-        elif log_mode == "unbuffered_printf":
-            build_args["USE_SERIAL_PRINTF"] = 1
-            build_args["SERIAL_PRINTF_UNBUFFERED"] = 1
-        elif log_mode == "serial":
-            build_args["USE_SERIAL_MESSAGES"] = 1
-        elif log_mode == "disabled":
-            build_args["NO_SERIAL_OUTPUT"] = 1
-        elif log_mode == "avrora":
-            build_args["AVRORA_OUTPUT"] = 1
-        else:
-            raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
+
+        modes = {
+            "printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_BUFFERED": 1},
+            "unbuffered_printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UNBUFFERED": 1},
+            "uart_printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UART": 1},
+            "serial": {"USE_SERIAL_MESSAGES": 1},
+            "disabled": {"NO_SERIAL_OUTPUT": 1},
+            "avrora": {"AVRORA_OUTPUT": 1},
+        }
+
+        try:
+            build_args.update(modes[log_mode])
+        except KeyError:
+            raise RuntimeError("Unknown testbed log mode {}. Available: {}".format(log_mode, modes.keys()))
 
         return build_args
