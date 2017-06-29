@@ -90,7 +90,9 @@ class Runner(object):
 
         print("Building for {}".format(build_args))
 
-        build_result = Builder.build_actual(module_path, self.platform, **build_args)
+        build_result = Builder.build_actual(module_path, self.platform,
+                                            enable_fast_serial=self.testbed.fastserial_supported(),
+                                            **build_args)
 
         print("Build finished with result {}, waiting for a bit...".format(build_result))
 
@@ -185,19 +187,19 @@ class Runner(object):
         build_args.update(self.testbed.build_arguments())
 
         log_mode = self.testbed.log_mode()
-        if log_mode == "printf":
-            build_args["USE_SERIAL_PRINTF"] = 1
-            build_args["SERIAL_PRINTF_BUFFERED"] = 1
-        elif log_mode == "unbuffered_printf":
-            build_args["USE_SERIAL_PRINTF"] = 1
-            build_args["SERIAL_PRINTF_UNBUFFERED"] = 1
-        elif log_mode == "serial":
-            build_args["USE_SERIAL_MESSAGES"] = 1
-        elif log_mode == "disabled":
-            build_args["NO_SERIAL_OUTPUT"] = 1
-        elif log_mode == "avrora":
-            build_args["AVRORA_OUTPUT"] = 1
-        else:
-            raise RuntimeError("Unknown testbed log mode {}".format(log_mode))
+
+        modes = {
+            "printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_BUFFERED": 1},
+            "unbuffered_printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UNBUFFERED": 1},
+            "uart_printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UART": 1},
+            "serial": {"USE_SERIAL_MESSAGES": 1},
+            "disabled": {"NO_SERIAL_OUTPUT": 1},
+            "avrora": {"AVRORA_OUTPUT": 1},
+        }
+
+        try:
+            build_args.update(modes[log_mode])
+        except KeyError:
+            raise RuntimeError("Unknown testbed log mode {}. Available: {}".format(log_mode, modes.keys()))
 
         return build_args
