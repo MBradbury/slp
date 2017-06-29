@@ -28,6 +28,7 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbgverbose("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
+//TODO: Repair messages only sent once, not each period
 
 //Distance search messages travel from sink
 //Search + Change < Sink-Source Distance - 2
