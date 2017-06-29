@@ -22,7 +22,11 @@ def submitter(*args, **kwargs):
     return Submitter(*args, **kwargs)
 
 def build_arguments():
-    return {}
+    return {
+    	# Wait for a short amount of time before running the boot event.
+    	# This is to help catch all the serial output
+        "DELAYED_BOOT_TIME_MINUTES": 3
+    }
 
 def fastserial_supported():
 	return False
