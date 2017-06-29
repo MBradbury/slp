@@ -14,4 +14,12 @@ else
   fi
 fi
 
-curl --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output results.$TESTID.tar.gz
+mkdir -p testbed_results/flocklab
+
+curl -s --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
+
+tar xzf testbed_results/flocklab/results.$TESTID.tar.gz --directory testbed_results/flocklab
+
+rm testbed_results/flocklab/results.$TESTID.tar.gz
+
+echo "Saved FlockLab results to testbed_results/flocklab/$TESTID"
