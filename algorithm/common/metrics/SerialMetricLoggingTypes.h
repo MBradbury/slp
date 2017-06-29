@@ -6,6 +6,7 @@
 // These constants are used to set the message channel and type
 // The format of the name is required by the mig tool
 enum {
+	AM_EVENT_OCCURRED_MSG = 48,
 	AM_ERROR_OCCURRED_MSG = 49,
 	AM_METRIC_RECEIVE_MSG = 50,
 	AM_METRIC_BCAST_MSG = 51,
@@ -118,6 +119,12 @@ typedef nx_struct error_occurred_msg {
 
 	nx_uint16_t error_code;
 } error_occurred_msg_t;
+
+typedef nx_struct event_occurred_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_uint16_t event_code;
+} event_occurred_msg_t;
 
 //##########SLP TDMA DAS##########
 typedef nx_struct metric_node_slot_change_msg {

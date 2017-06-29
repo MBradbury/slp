@@ -36,6 +36,10 @@
 #	error "Unknown configuration"
 #endif
 
+#if defined(USE_SERIAL_PRINTF) || (defined(CYCLEACCURATE_AVRORA) && defined(AVRORA_OUTPUT))
+#	define METRIC_LOGGING_NEEDS_LOCALTIME
+#endif
+
 #define METRIC_RCV(TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE) \
 	call MetricLogging.log_metric_receive(#TYPE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, DISTANCE)
 
@@ -81,21 +85,21 @@
 
 // No need to format messages when using serial message as the string will not be used.
 #if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
-#define LOG_STDOUT(MESSAGE, ...) \
-	call MetricLogging.log_stdout(MESSAGE)
+#define LOG_STDOUT(CODE, MESSAGE, ...) \
+	call MetricLogging.log_stdout(CODE, MESSAGE)
 #else
-#define LOG_STDOUT(MESSAGE, ...) \
+#define LOG_STDOUT(CODE, MESSAGE, ...) \
 	do { \
 		char stdout_message[256]; \
 		snprintf(stdout_message, ARRAY_SIZE(stdout_message), MESSAGE, ##__VA_ARGS__); \
-		call MetricLogging.log_stdout(stdout_message); \
+		call MetricLogging.log_stdout(CODE, stdout_message); \
 	} while (FALSE)
 #endif
 
 #ifdef SLP_VERBOSE_DEBUG
 #	define LOG_STDOUT_VERBOSE LOG_STDOUT
 #else
-#	define LOG_STDOUT_VERBOSE(MESSAGE, ...)
+#	define LOG_STDOUT_VERBOSE(CODE, MESSAGE, ...)
 #endif
 
 // Error codes for events that need to be passed on over a serial connection
@@ -131,6 +135,21 @@ enum SLPErrorCodes {
 
 	// Do not use error codes 1xxx as they are reserved for application
 	// specific errors.
+
+	// Do not use event codes 2xxx as they are reserved for general events.
+
+	// Do not use event codes 3xxx as they are reserved for application
+	// specific events.
+};
+
+enum SLPEventCodes {
+	EVENT_OBJECT_DETECTED = 2001,
+	EVENT_OBJECT_STOP_DETECTED = 2002,
+
+	EVENT_RADIO_BUSY = 2003,
+	EVENT_SEND_DONE = 2004,
+
+	// Only use 2xxx codes here. The reasoning for SLPErrorCodes applies.
 };
 
 #endif // SLP_METRIC_LOGGING_H

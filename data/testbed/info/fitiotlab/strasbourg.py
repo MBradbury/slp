@@ -9,10 +9,11 @@ from simulator.Topology import Topology
 
 class Strasbourg(Topology):
     """The layout of nodes on the Strasbourg testbed, see: https://www.iot-lab.info/testbed/maps.php?site=strasbourg"""
+
+    platform = "wsn430v13"
+
     def __init__(self, subset=None):
         super(Strasbourg, self).__init__()
-        
-        self.platform = "wsn430v13"
         
         self.nodes[1] = np.array((0.0, 9.0, 0.5), dtype=np.float64)
         self.nodes[2] = np.array((0.0, 9.0, 1.5), dtype=np.float64)

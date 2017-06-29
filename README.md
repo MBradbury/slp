@@ -7,14 +7,14 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
    You may need to prefix commands with "sudo" to install using admin privileges.
 
         :::bash
-        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev
+        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev libffi-dev
 
    Python 2 or 3 is supported, but python 2 is recommended as it is faster.
 
 2. Install python libraries
 
         :::bash
-        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip --upgrade -v
+        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip cryptography requests --upgrade -v
         pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade -v
 
    Make sure to prefix these commands with ```sudo``` if installing for the system python.
@@ -23,6 +23,8 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
 
 If you do not have python installed, or have an install that requires
 admin permissions to use pip install, then pyenv is a good alternative.
+
+You do not need to do this step if you are using your system python.
 
 ```bash
 sudo apt-get install lzma-dev tk-dev
@@ -57,7 +59,7 @@ Please ensure that you install the python packages using pip after setting up py
 
 2. Clone the SLP simulation framework
 
-   I recommend forking MBradbury/slp-algorithms-tinyos to allow you your
+   I recommend forking MBradbury/slp-algorithms-tinyos to give you your
    own repository to push changes to. You can do this on bitbucket.org.
 
    * Anonymously:
@@ -182,23 +184,6 @@ Or by the following instruction if you forked it:
 ```bash
 git pull https://github.com/MBradbury/tinyos-main bradbury_2_1_2
 ```
-
-
-# Getting results repositories
-
-Every algorithm should have an individual repository to store its results in.
-One repository to be of likely interest is slp-results-protectionless which stores the results for the protectionless algorithm.
-
-You should checkout this repository using something like the following command:
-
-```bash
-cd slp-algorithms-tinyos
-mkdir results
-cd results
-hg clone https://MBradbury@bitbucket.org/MBradbury/slp-results-protectionless protectionless
-```
-
-The directories in the results directory should have names that match the algorithm name.
 
 # Examples for running simulations
 
@@ -412,6 +397,36 @@ cd slp-algorithms-tinyos
 A very important thing to note is that if you make any change to data/analysis.py
 then you MUST rerun ./scripts/cythonise_analysis.sh. This may happen when you pull
 from another repo. If you do not then analysis may not work properly.
+
+# Deploying on a testbed
+
+## FiT IoT-Lab Setup
+
+Install the python tools by following the instructions at https://github.com/iot-lab/iot-lab/wiki/CLI-Tools-Installation
+The current release (2.4.0) can be checked at this website: https://github.com/iot-lab/cli-tools/releases
+```bash
+sudo apt-get install python-setuptools
+wget -qO - https://github.com/iot-lab/cli-tools/archive/[release_version].tar.gz | tar xz
+cd cli-tools-[release_version] && sudo python setup.py install
+```
+
+Authenticate your account:
+```bash
+auth-cli -u <username>
+```
+
+## w-iLab.t Setup
+
+Download jfed (see: http://jfed.iminds.be/downloads). You must make sure you have Java 8 installed.
+
+```bash
+sudo apt-key adv --keyserver hkp://pool.sks-keyservers.net --recv-keys E7F4995E 
+sudo echo "deb http://jfed.iminds.be/deb-repo stable main" | sudo tee /etc/apt/sources.list.d/jfed.list
+sudo apt-get update
+sudo apt-get install jfed 
+```
+
+Download your certificate from https://authority.ilabt.iminds.be/getcert.php
 
 # Profiling the code
 

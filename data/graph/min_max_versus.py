@@ -3,6 +3,8 @@ from __future__ import print_function
 from collections import defaultdict
 import os
 
+import simulator.common
+
 import data.util
 from data.graph.versus import Grapher as GrapherBase
 
@@ -10,7 +12,7 @@ import numpy as np
 
 class Grapher(GrapherBase):
     def __init__(self, output_directory,
-                 result_name, xaxis, yaxis, vary, yextractor=None):
+                 result_name, xaxis, yaxis, vary, yextractor=None, key_equivalence=None):
 
         super(Grapher, self).__init__(
             output_directory, result_name, xaxis, yaxis, vary, yextractor
@@ -23,6 +25,8 @@ class Grapher(GrapherBase):
         self.baseline_label = 'Baseline'
 
         self.vvalue_label_converter = str
+
+        self.key_equivalence = key_equivalence
 
     def create(self, comparison_results, actual_results, baseline_results=None):
         print('Removing existing directories')
@@ -111,9 +115,6 @@ class Grapher(GrapherBase):
 
                     xvalues.add(xvalue)
 
-                    #if self.xaxis == 'network size':
-                    #    xvalue = xvalue ** 2
-
                     key_names = tuple(key_names)
                     values = tuple(values)
 
@@ -127,10 +128,12 @@ class Grapher(GrapherBase):
 
                     for (i, (max_comparison_result, min_comparison_result)) in enumerate(zip(max_comparison_results, min_comparison_results)):
 
-                        if data_key in max_comparison_result and data_key in min_comparison_result:
+                        comparison_data_key = self._get_key_in_comparison(data_key, max_comparison_result, min_comparison_result)
 
-                            max_value = self._get_compairson_result(max_comparison_result, data_key, src_period, xvalue)
-                            min_value = self._get_compairson_result(min_comparison_result, data_key, src_period, xvalue)
+                        if comparison_data_key is not None:
+
+                            max_value = self._get_compairson_result(max_comparison_result, comparison_data_key, src_period, xvalue)
+                            min_value = self._get_compairson_result(min_comparison_result, comparison_data_key, src_period, xvalue)
 
                             dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_value
 
@@ -178,6 +181,39 @@ class Grapher(GrapherBase):
 
         return self._build_plots_from_dat(dat)
 
+    def _get_key_in_comparison(self, data_key, max_comparison_result, min_comparison_result):
+        # Try the simple case first
+        if data_key in max_comparison_result and data_key in min_comparison_result:
+            return data_key
+
+        # No key equivalences, so we can't do anything
+        if self.key_equivalence is None:
+            return None
+
+        # Right we need to look at the key equivalences then
+
+        global_parameter_names = simulator.common.global_parameter_names
+
+        keys_to_try = []
+
+        for (global_param, replacements) in self.key_equivalence.items():
+            global_param_index = global_parameter_names.index(global_param)
+
+            for (search, replace) in replacements.items():
+                if data_key[global_param_index] == search:
+
+                    new_key = data_key[:global_param_index] + (replace,) + data_key[global_param_index+1:]
+
+                    keys_to_try.append(new_key)
+
+        # Try each of the possible combinations
+        for key_attempt in keys_to_try:
+            if key_attempt in max_comparison_result and key_attempt in min_comparison_result:
+                print("Found {} so using it instead of {}".format(key_attempt, data_key))
+                return key_attempt
+
+        return None
+
     def _get_compairson_result(self, comparison_result, data_key, src_period, xvalue):
         res = comparison_result[data_key].get(src_period)
 
@@ -188,7 +224,11 @@ class Grapher(GrapherBase):
         if xvalue in res:
             return res[xvalue]
         else:
-            return res[tuple()]
+            try:
+                return res[tuple()]
+            except KeyError:
+                raise KeyError("Unable to find {} or tuple() in {} when looking for an xvalue with the key {}".format(
+                    xvalue, set(res.keys()), data_key))
 
     def _order_keys(self, keys):
         """Order the keys alphabetically, except for the baseline label.

@@ -103,6 +103,7 @@ class CLI(object):
 
         subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
+        subparser.add_argument("--dry-run", action="store_true", help="Do not actually submit, but check things would progress.")
 
 
         ###
@@ -295,6 +296,7 @@ class CLI(object):
     def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying,
                                      custom_yaxis_range_max=None,
                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
+                                     yextractors=None,
                                      **kwargs):
         from data.graph import min_max_versus
 
@@ -327,13 +329,19 @@ class CLI(object):
             baseline_results = None
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
+
+            if isinstance(vary, tuple):
+                vary_str = "(" + ",".join(vary) + ")"
+            else:
+                vary_str = str(vary)
+
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary_str).replace(" ", "_")
 
                 g = min_max_versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
+                    yextractor=scalar_extractor if yextractors is None else yextractors.get(yaxis, scalar_extractor))
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
@@ -350,7 +358,9 @@ class CLI(object):
                 if g.create(all_comparion_results, algo_results, baseline_results=baseline_results):
                     summary.GraphSummary(
                         os.path.join(self.algorithm_module.graphs_path, name),
-                        os.path.join(algorithm.results_directory_name, 'mmv-{}_{}-{}'.format(self.algorithm_module.name, "_".join(mod.name for mod in comparison_modules), name))
+                        os.path.join(algorithm.results_directory_name,
+                                     'mmv-{}_{}-{}'.format(self.algorithm_module.name,
+                                     "_".join(mod.name for mod in comparison_modules), name))
                     ).run()
 
     def _create_multi_versus_graph(self, graph_parameters, xaxes, yaxis_label,
@@ -720,7 +730,7 @@ class CLI(object):
                                  skip_completed_simulations=False)
 
         elif 'submit' == args.testbed_mode:
-            submitter = testbed.submitter()
+            submitter = testbed.submitter(dry_run=args.dry_run)
 
             skip_complete = not args.no_skip_complete
 

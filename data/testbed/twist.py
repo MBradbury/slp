@@ -16,11 +16,14 @@ def log_mode():
 def url():
     return "https://www.twist.tu-berlin.de"
 
-def submitter():
+def submitter(*args, **kwargs):
     raise RuntimeError("{} does not support automatic submission".format(name()))
 
 def build_arguments():
     return {}
+
+def fastserial_supported():
+    return True
 
 # Resources:
 # - https://www.twist.tu-berlin.de/tutorials/twist-getting-started.html#prerequisites

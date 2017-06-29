@@ -31,6 +31,7 @@ class Grapher(GrapherBase):
         self.vary_prefix = ''
         self.vvalue_label_converter = None
 
+        self.yaxis_range_min = None
         self.yaxis_range_max = '*'
 
         self.yaxis_font = None
@@ -38,6 +39,9 @@ class Grapher(GrapherBase):
 
         self.ylabel_font = None
         self.xlabel_font = None
+
+        self.xaxis_logscale = None
+        self.yaxis_logscale = None
 
         self.nokey = False
         self.key_position = 'right top'
@@ -169,6 +173,12 @@ class Grapher(GrapherBase):
             graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
             graph_p.write('set pointsize {}\n'.format(self.point_size))
 
+            if self.xaxis_logscale is not None:
+                graph_p.write('set logscale x "{}"\n'.format(int(self.xaxis_logscale)))
+
+            if self.yaxis_logscale is not None:
+                graph_p.write('set logscale y "{}"\n'.format(int(self.yaxis_logscale)))
+
             if self.nokey:
                 graph_p.write('set nokey\n')
             else:
@@ -196,15 +206,21 @@ class Grapher(GrapherBase):
                 else:
                     xvalues_padding = 0.1
 
-            # Should remain the same as we are testing with
-            # a limited sized grid of nodes
             graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_num) - xvalues_padding, max(xvalues_as_num) + xvalues_padding))
             graph_p.write('set xtics ({})\n'.format(",".join(map(str, sorted(xvalues_as_num)))))
 
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
 
-            graph_p.write('set yrange [0:{}]\n'.format(self.yaxis_range_max))
+
+            if self.yaxis_range_min is not None:
+                ymin = self.yaxis_range_min
+            else:
+                ymin = 0
+                if self.yaxis_logscale is not None:
+                    ymin = 1
+
+            graph_p.write('set yrange [{}:{}]\n'.format(ymin, self.yaxis_range_max))
             graph_p.write('set ytics auto\n')
 
             if self.yaxis_font is not None:

@@ -8,8 +8,8 @@ import subprocess
 from simulator import Configuration
 
 class Runner(object):
-    def __init__(self):
-        pass
+    def __init__(self, dry_run=False):
+        self.dry_run = dry_run
 
     def add_job(self, options, name, estimated_time):
         target_directory = name[:-len(".txt")]
@@ -44,10 +44,19 @@ class Runner(object):
         options = {
             "testbed_name": type(configuration.topology).__name__.lower(),
             "platform": self._get_platform(configuration.topology.platform),
-            #"nodes": configuration.topology.node_ids(),
-            #"executable": executable,
-            "profile": "wsn430_with_power_1s", #"Basic",
+            "profile": "Basic", # "wsn430_with_power_1s",
         }
+
+        if configuration.topology.platform == "wsn430v13":
+            print("*********************************************************************")
+            print("* WARNING: The CC1101 interrupt line from the radio                 *")
+            print("* to the MSP430 CPU is not connected on the wsn430v13               *")
+            print("* hardware on the FIT IoT-Lab. This will prevent it from            *")
+            print("* sending messages.                                                 *")
+            print("* See: https://github.com/iot-lab/iot-lab/wiki/Hardware_Wsn430-node *")
+            print("* This website says that the CC2420 is affected, but I have only    *")
+            print("* observed this with wsn430v13 and the wsn430v14 seems to work.     *")
+            print("*********************************************************************")
 
         command = [
             "experiment-cli", "submit",
@@ -58,11 +67,17 @@ class Runner(object):
         for node in configuration.topology.nodes:
             executable = os.path.join(target_directory, "main-{}.ihex".format(node))
 
+            if not os.path.isfile(executable):
+                raise RuntimeError("Could not find '{}'. Did you forget to build the binaries with the --generate-per-node-id-binary options?".format(executable))
+
             command.append("--list {testbed_name},{platform},{nodes},{executable},{profile}".format(executable=executable, nodes=node, **options))
 
 
         print(" ".join(command))
-        subprocess.check_call(" ".join(command), shell=True)
+        if not self.dry_run:
+            subprocess.check_call(" ".join(command), shell=True)
+        else:
+            print("Dry run complete!")
 
     @staticmethod
     def parse_arguments(module, argv):

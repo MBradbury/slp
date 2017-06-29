@@ -190,7 +190,10 @@ implementation
 			call BroadcastFakeTimer.startOneShot(FAKE_SEND_DELAY_MS);
 		}
 
-		become_Normal();
+		if (!call BroadcastFakeTimer.isRunning())
+		{
+			become_Normal();
+		}
 	}
 
 	void process_send_fake_message(void)

@@ -39,7 +39,13 @@ class Simulation(object):
 
         else:
             self.nesc_app = None
-            self.tossim = tossim_module.Tossim({})
+
+            # Don't free C memory allocated at the end, as the OS will
+            # do this for us when the process terminates.
+            #
+            # If we ever get to the point where subsequent runs work well
+            # then freeing the memory will be necessary.
+            self.tossim = tossim_module.Tossim({}, should_free=False)
 
         self.radio = self.tossim.radio()
 
@@ -91,7 +97,7 @@ class Simulation(object):
             self.tossim.addChannel("stderr", sys.stderr)
 
         self.fault_model = args.fault_model
-        self.fault_model.setup(self, gui=(args.mode == "GUI"))
+        self.fault_model.setup(self)
 
         self.attackers = []
 
@@ -511,9 +517,11 @@ class OfflineSimulation(object):
                 # Handle the event
                 if kind in self._line_handlers:
                     self._line_handlers[kind](log_type, node_id, self.sim_time(), message_line)
+                else:
+                    print("There is no handler for the kind {}. Unable to process the line {}.".format(kind, message_line), file=sys.stderr)
 
                 if log_type == "E":
-                    print("An error occurred: '{}'.".format(message_line))
+                    print("An error occurred: '{}'.".format(message_line), file=sys.stderr)
 
                 event_count += 1
 

@@ -396,7 +396,6 @@ implementation {
       error_t subsendResult;
       fe_queue_entry_t* qe = call SendQueue.head();
       uint8_t payloadLen = call SubPacket.payloadLength(qe->msg);
-      am_addr_t dest = call UnicastNameFreeRouting.nextHop();
 
       if (call SentCache.lookup(qe->msg)) {
         /* This packet is a duplicate, so suppress it: free memory and
@@ -434,12 +433,16 @@ implementation {
         signal SubSend.sendDone(qe->msg, SUCCESS);
       }
       else {
+        const am_addr_t dest = call UnicastNameFreeRouting.nextHop();
+
         /* The basic forwarding/sending case. */
         call CtpPacket.setEtx(qe->msg, gradient);
         call CtpPacket.clearOption(qe->msg, CTP_OPT_ECN | CTP_OPT_PULL);
+
         if (call PacketAcknowledgements.requestAck(qe->msg) == SUCCESS) {
           setState(ACK_PENDING);
         }
+
         if (hasState(QUEUE_CONGESTED)) {
           call CtpPacket.setOption(qe->msg, CTP_OPT_ECN); 
           clearState(QUEUE_CONGESTED);
@@ -447,6 +450,9 @@ implementation {
         
         subsendResult = call SubSend.send(dest, qe->msg, payloadLen);
         if (subsendResult == SUCCESS) {
+
+            call CtpInfo.usedLink(dest);
+
           // Successfully submitted to the data-link layer.
           setState(SENDING);
           dbg("Forwarder", "%s: subsend succeeded with %p.\n", __FUNCTION__, qe->msg);
@@ -556,6 +562,7 @@ implementation {
       }
     }
     else {
+      call LinkEstimator.evict(call AMPacket.destination(msg), 10 * 1000);
       /* Packet was acknowledged. Updated the link estimator,
          free the buffer (pool or sendDone), start timer to
          send next packet. */
@@ -670,6 +677,8 @@ implementation {
     fe_queue_entry_t* qe;
     uint8_t i, thl;
 
+    call CtpInfo.receiveLink(call AMPacket.source(msg));
+
 
     collectid = call CtpPacket.getType(msg);
 
@@ -730,6 +739,8 @@ implementation {
   SubSnoop.receive(message_t* msg, void *payload, uint8_t len) {
     void* adjusted_payload = (char*)payload + sizeof(ctp_data_header_t);
 
+    call CtpInfo.snoopLink(call AMPacket.source(msg));
+
     // Check for the pull bit (P) [TEP123] and act accordingly.  This
     // check is made for all packets, not just ones addressed to us.
     if (call CtpPacket.option(msg, CTP_OPT_PULL)) {
@@ -756,6 +767,7 @@ implementation {
   
   /* signalled when this neighbor is evicted from the neighbor table */
   event void LinkEstimator.evicted(am_addr_t neighbor) {}
+  event void LinkEstimator.evictExpired(am_addr_t neighbor) {}
 
   
   // Packet ADT commands

@@ -9,10 +9,11 @@ from simulator.Topology import Topology
 
 class Rennes(Topology):
     """The layout of nodes on the Rennes testbed, see: https://www.iot-lab.info/testbed/maps.php?site=rennes"""
+
+    platform = "wsn430v14"
+
     def __init__(self, subset=None):
         super(Rennes, self).__init__()
-        
-        self.platform = "wsn430v14"
         
         self.nodes[2] = np.array((-4.62, 0.744, 2.912), dtype=np.float64)
         self.nodes[3] = np.array((-4.62, 1.348, 2.911), dtype=np.float64)
@@ -104,7 +105,6 @@ class Rennes(Topology):
         self.nodes[95] = np.array((-2.148, 13.431, 2.905), dtype=np.float64)
         self.nodes[96] = np.array((-2.148, 14.035, 2.905), dtype=np.float64)
         self.nodes[97] = np.array((-1.324, 0.14, 2.912), dtype=np.float64)
-        self.nodes[99] = np.array((-1.324, 1.348, 2.911), dtype=np.float64)
         self.nodes[101] = np.array((-1.324, 2.556, 2.911), dtype=np.float64)
         self.nodes[102] = np.array((-1.324, 3.161, 2.91), dtype=np.float64)
         self.nodes[104] = np.array((-1.324, 4.369, 2.91), dtype=np.float64)
@@ -162,7 +162,6 @@ class Rennes(Topology):
         self.nodes[168] = np.array((3.084, 0.744, 2.912), dtype=np.float64)
         self.nodes[169] = np.array((3.084, 1.348, 2.911), dtype=np.float64)
         self.nodes[170] = np.array((3.084, 1.952, 2.911), dtype=np.float64)
-        self.nodes[171] = np.array((3.084, 2.556, 2.91), dtype=np.float64)
         self.nodes[172] = np.array((3.084, 3.161, 2.91), dtype=np.float64)
         self.nodes[173] = np.array((3.084, 3.765, 2.91), dtype=np.float64)
         self.nodes[174] = np.array((3.084, 4.369, 2.909), dtype=np.float64)
@@ -180,7 +179,6 @@ class Rennes(Topology):
         self.nodes[186] = np.array((3.908, 0.744, 2.912), dtype=np.float64)
         self.nodes[187] = np.array((3.908, 1.348, 2.911), dtype=np.float64)
         self.nodes[188] = np.array((3.908, 1.952, 2.911), dtype=np.float64)
-        self.nodes[189] = np.array((3.908, 2.556, 2.91), dtype=np.float64)
         self.nodes[190] = np.array((3.908, 3.161, 2.91), dtype=np.float64)
         self.nodes[191] = np.array((3.908, 3.765, 2.91), dtype=np.float64)
         self.nodes[193] = np.array((3.908, 4.973, 2.909), dtype=np.float64)
@@ -194,9 +192,6 @@ class Rennes(Topology):
         self.nodes[201] = np.array((3.908, 9.806, 2.905), dtype=np.float64)
         self.nodes[202] = np.array((3.908, 10.41, 2.905), dtype=np.float64)
         self.nodes[203] = np.array((4.732, 0.14, 2.912), dtype=np.float64)
-        self.nodes[204] = np.array((4.732, 0.744, 2.912), dtype=np.float64)
-        self.nodes[205] = np.array((4.732, 1.348, 2.911), dtype=np.float64)
-        self.nodes[206] = np.array((4.732, 1.952, 2.911), dtype=np.float64)
         self.nodes[207] = np.array((4.732, 2.556, 2.91), dtype=np.float64)
         self.nodes[208] = np.array((4.732, 3.161, 2.91), dtype=np.float64)
         self.nodes[209] = np.array((4.732, 3.765, 2.91), dtype=np.float64)

@@ -25,7 +25,7 @@ implementation
 	components RandomC;
 	App.Random -> RandomC;
 
-#ifdef USE_SERIAL_PRINTF
+#ifdef METRIC_LOGGING_NEEDS_LOCALTIME
 	components LocalTimeMilliC;
 	App.LocalTime -> LocalTimeMilliC;
 #endif

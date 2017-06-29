@@ -2,7 +2,7 @@ from __future__ import print_function, division
 
 def parsers():
     return [
-        ("SINGLE", None, ["verbose", "configuration", "log file"]),
+        ("SINGLE", None, ["verbose", "configuration", "attacker model", "seed", "log file"]),
         ("GUI", "SINGLE", ["gui scale"]),
     ]
 
@@ -29,7 +29,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
         raise RuntimeError("Unknown mode {}".format(a.args.mode))
 
     with open(a.args.log_file, "r") as log_file:
-        with OfflineSimulation(module, configuration, a.args, even_log=log_file) as sim:
+        with OfflineSimulation(module, configuration, a.args, event_log=log_file) as sim:
 
             # Create a copy of the provided attacker model
             attacker = copy.deepcopy(a.args.attacker_model)
