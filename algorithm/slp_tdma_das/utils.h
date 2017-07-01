@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #define MAX_ONEHOP SLP_MAX_1_HOP_NEIGHBOURHOOD
 #define MAX_TWOHOP SLP_MAX_2_HOP_NEIGHBOURHOOD
