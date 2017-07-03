@@ -29,7 +29,7 @@ def build_arguments():
     }
 
 def fastserial_supported():
-	return False
+	return True
 
 # Resources:
 # - https://www.flocklab.ethz.ch/wiki/wiki/Public/Index
