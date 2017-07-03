@@ -183,9 +183,9 @@ class CLI(CommandLineCommon.CLI):
         )
 
         kwargs = {
-            "min_label": ["Protectionless - Min", "ProtectionlessCtp - Min","Phantom - Min", "ILP - Min", "Adaptive - Min"],
-            "max_label": ["Protectionless - Max", "ProtectionlessCtp - Max", "Phantom - Max", "ILP - Max", "Adaptive - Max"],
-            "min_max_same_label": ["Protectionless", "ProtectionlessCtp", "Phantom", "ILP", "ADAPTIVE"],
+            "min_label": ["Protectionless - Min", "ProtectionlessCTP - Min","Phantom - Min", "ILP Routing - Min", "Adaptive - Min"],
+            "max_label": ["Protectionless - Max", "ProtectionlessCTP - Max", "Phantom - Max", "ILP Routing - Max", "Adaptive - Max"],
+            "min_max_same_label": ["Protectionless", "ProtectionlessCTP", "Phantom", "ILP Routing", "ADAPTIVE"],
             "vary_label": "",
             "comparison_label": "PW",
             "vvalue_label_converter": self.vvalue_converter,
