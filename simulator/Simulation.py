@@ -97,7 +97,6 @@ class Simulation(object):
             self.tossim.addChannel("stderr", sys.stderr)
 
         self.fault_model = args.fault_model
-        self.fault_model.setup(self)
 
         self.attackers = []
 
@@ -111,6 +110,8 @@ class Simulation(object):
         self.attacker_found_source = False
 
     def __enter__(self):
+
+        self.fault_model.setup(self)
 
         self.enter_start_time = timeit.default_timer()
 
