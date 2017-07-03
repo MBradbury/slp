@@ -131,10 +131,12 @@ class Simulation(object):
         """Registers this class to catch the output from the simulation on the given channel."""
 
         def process_one_line(line):
-            (d_or_e, node_id, time, detail) = line.split(':', 3)
-            
             # Do not pass newline in detail onwards
-            function(d_or_e, node_id, time, detail[:-1])
+            args = line[:-1].split(':', 3)
+            
+            # (d_or_e, node_id, time, detail) = args
+            
+            function(*args)
 
         self.tossim.addCallback(name, process_one_line)
 
