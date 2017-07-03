@@ -15,12 +15,11 @@ implementation
 	App.MessageType = MessageType;
 
 #ifdef USE_SERIAL_PRINTF
-	
-#if defined(SERIAL_PRINTF_UNBUFFERED)
 	components SerialStartC;
+
+#if defined(SERIAL_PRINTF_UNBUFFERED)
 	components SerialPrintfC;
 #elif defined(SERIAL_PRINTF_BUFFERED)
-	components SerialStartC;
 	components PrintfC;
 #elif defined(SERIAL_PRINTF_UART)
 	components UartPrintfC;
@@ -30,7 +29,6 @@ implementation
 
 	// Time
 	components LocalTimeMilliC;
-	
 	App.LocalTime -> LocalTimeMilliC;
 #endif
 }
