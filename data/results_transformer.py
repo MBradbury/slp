@@ -66,7 +66,7 @@ class EliminateDominatedResultsTransformer(object):
         combined_results = self._combine_results(module_results)
 
         # Find the dominating data
-        dominating_data, self.dominated_data = self._filter_strictly_worse(combined_results)
+        dominating_data, self.dominated_data = self._filter_strictly_worse(combined_results, result_names)
 
         # Split up the data back into the individual chunks
         split_results = self._convert_dominating_to_individual(dominating_data)
@@ -95,7 +95,7 @@ class EliminateDominatedResultsTransformer(object):
         return tuple(np.delete(key, to_remove_idx))
 
     def _transform_results_data(self, data, to_remove):
-        to_remove_idx = tuple([self.global_parameter_names.index(name) for name in to_remove])
+        to_remove_idx = tuple([self.global_parameter_names.index(name) for name in to_remove if name in self.global_parameter_names])
 
         return {self._transform_key(k, to_remove_idx): v for (k, v) in data.items()}
 
@@ -104,7 +104,7 @@ class EliminateDominatedResultsTransformer(object):
 
         for (algo, module_result) in zip(self.algorithm_modules, module_results):
 
-            safety_factor_idx = safety_factor_indexes[algo.name]
+            safety_factor_idx = self.safety_factor_indexes[algo.name]
 
             for (global_params, items1) in module_result.data.items():
                 for (source_period, items2) in items1.items():
@@ -119,14 +119,14 @@ class EliminateDominatedResultsTransformer(object):
         return combined_data
 
 
-    def _does_value_dominate(self, value, other_value):
+    def _does_value_dominate(self, value, other_value, result_names):
         return all(
             self.comparison_functions[name](v, ov)
             for (name, v, ov)
             in zip(result_names, value, other_value)
         )
 
-    def _remove_dominated_items(self, items):
+    def _remove_dominated_items(self, items, result_names):
         new_items = {}
         dominated_items = []
 
@@ -145,7 +145,7 @@ class EliminateDominatedResultsTransformer(object):
 
                 other_value = tuple(map(scalar_extractor, other_value))
 
-                if self._does_value_dominate(other_value, value):
+                if self._does_value_dominate(other_value, value, result_names):
                     is_dominated = True
                     print("{} ({}) is dominated by {} ({})".format(key, value, other_key, other_value))
 
@@ -158,7 +158,7 @@ class EliminateDominatedResultsTransformer(object):
         return new_items, dominated_items
 
 
-    def _filter_strictly_worse(self, combined_data):
+    def _filter_strictly_worse(self, combined_data, result_names):
         dominating_data = {}
         dominated_data = {}
 
@@ -166,7 +166,7 @@ class EliminateDominatedResultsTransformer(object):
             for (source_period, items2) in items1.items():
                 for (safety_factor, items3) in items2.items():
 
-                    dominating_items, dominated_items = self._remove_dominated_items(items3)
+                    dominating_items, dominated_items = self._remove_dominated_items(items3, result_names)
 
                     dominating_data.setdefault(global_params, {}).setdefault(source_period, {})[safety_factor] = dominating_items
                     dominated_data.setdefault(global_params, {}).setdefault(source_period, {})[safety_factor] = dominated_items
@@ -181,7 +181,7 @@ class EliminateDominatedResultsTransformer(object):
                 for (safety_factor, items3) in items2.items():
                     for ((algo_name, new_local_params), results) in items3.items():
 
-                        local_params = tuple(np.insert(new_local_params, safety_factor_indexes[algo_name], [safety_factor]))
+                        local_params = tuple(np.insert(new_local_params, self.safety_factor_indexes[algo_name], [safety_factor]))
 
                         res.setdefault(algo_name, {}).setdefault(global_params, {}).setdefault(source_period, {})[local_params] = results
 
