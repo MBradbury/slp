@@ -294,19 +294,20 @@ class CLI(object):
                     ).run()
 
     def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying,
-                                     custom_yaxis_range_max=None,
+                                     algo_results=None, custom_yaxis_range_max=None,
                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                      yextractors=None,
                                      **kwargs):
         from data.graph import min_max_versus
 
-        algo_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation=source_period_normalisation,
-            network_size_normalisation=network_size_normalisation,
-            results_filter=results_filter)
+        if algo_results is None:
+            algo_results = results.Results(
+                self.algorithm_module.result_file_path,
+                parameters=self.algorithm_module.local_parameter_names,
+                results=tuple(graph_parameters.keys()),
+                source_period_normalisation=source_period_normalisation,
+                network_size_normalisation=network_size_normalisation,
+                results_filter=results_filter)
 
         all_comparion_results = [
             results.Results(
@@ -316,15 +317,19 @@ class CLI(object):
                 source_period_normalisation=source_period_normalisation,
                 network_size_normalisation=network_size_normalisation,
                 results_filter=results_filter)
+            if not hasattr(comparion_module, "data") else comparion_module
 
             for comparion_module in comparison_modules
         ]
 
         if baseline_module is not None:
-            baseline_results = results.Results(
-                baseline_module.result_file_path,
-                parameters=baseline_module.local_parameter_names,
-                results=tuple(graph_parameters.keys()))
+            if hasattr(baseline_module, "data"):
+                baseline_results = baseline_module
+            else:
+                baseline_results = results.Results(
+                    baseline_module.result_file_path,
+                    parameters=baseline_module.local_parameter_names,
+                    results=tuple(graph_parameters.keys()))
         else:
             baseline_results = None
 
