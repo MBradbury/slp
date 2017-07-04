@@ -11,9 +11,7 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_DISABLE(msg) METRIC_RCV(Disable, source_addr, msg->source_id, UNKNOWN_SEQNO, BOTTOM)
-
-#define AWAY_DELAY_MS 200
+#define METRIC_RCV_DISABLE(msg) METRIC_RCV(Disable, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 
 module SourceBroadcasterC
 {
@@ -119,7 +117,7 @@ implementation
 
 			call Leds.led2On();
 
-			call ObjectDetector.start_later(5 * 1000);
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
