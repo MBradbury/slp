@@ -14,6 +14,10 @@
 	atomic { \
 		packet = call MessagePool.get(); \
 	} \
+	/* Check if pool was full */ \
+	if (packet == NULL) { \
+		return; \
+	} \
  \
  	call Packet.setPayloadLength(packet, sizeof(MESSAGE_NAME)); \
 	msg = (MESSAGE_NAME*)call Packet.getPayload(packet, sizeof(MESSAGE_NAME)); \
