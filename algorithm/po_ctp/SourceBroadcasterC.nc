@@ -11,6 +11,7 @@
 #include <TinyError.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
+#define METRIC_RCV_NORMALFLOOD(msg) METRIC_RCV(NormalFlood, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_DISABLE(msg) METRIC_RCV(Disable, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 
@@ -33,6 +34,9 @@ module SourceBroadcasterC
 	uses interface Receive as NormalReceive;
 	uses interface Receive as NormalSnoop;
 	uses interface Intercept as NormalIntercept;
+
+	uses interface AMSend as NormalFloodSend;
+	uses interface Receive as NormalFloodReceive;
 
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
@@ -106,7 +110,7 @@ implementation
 
 			sink_distance = 0;
 
-			call AwaySenderTimer.startOneShot(SLP_OBJECT_DETECTOR_START_DELAY_MS - 1500);
+			call AwaySenderTimer.startOneShot(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
@@ -125,7 +129,7 @@ implementation
 
 			call RoutingControl.start();
 
-			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
+			call ObjectDetector.start_later(2 * SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
@@ -141,6 +145,8 @@ implementation
 		call Leds.led2Off();
 	}
 
+	task void start_normal_flood();
+
 	event void ObjectDetector.detect()
 	{
 		// A sink node cannot become a source node
@@ -151,6 +157,8 @@ implementation
 			source_distance = 0;
 
 			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected\n");
+
+			post start_normal_flood();
 
 			call SourcePeriodModel.startPeriodic();
 		}
@@ -169,14 +177,27 @@ implementation
 	}
 
 	USE_MESSAGE_NO_TARGET(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(NormalFlood);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Disable);
+
+	task void start_normal_flood()
+	{
+		NormalFloodMessage message;
+
+		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
+		message.source_id = TOS_NODE_ID;
+		message.source_distance = 0;
+
+		if (send_NormalFlood_message(&message, AM_BROADCAST_ADDR))
+		{
+			call NormalSeqNos.increment(TOS_NODE_ID);
+		}
+	}
 
 	event void SourcePeriodModel.fired()
 	{
 		NormalMessage message;
-
-		simdbgverbose("SourceBroadcasterC", "SourcePeriodModel fired.\n");
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
@@ -243,15 +264,6 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
-
-			if (!sent_disable)
-			{
-				disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / (2 * M_PI));
-
-				call DisableSenderTimer.startOneShot(25);
-
-				sent_disable = TRUE;
-			}
 		}
 	}
 
@@ -307,6 +319,53 @@ implementation
 		//case SinkNode: break; // Sink should never intercept a Normal
 		case NormalNode: return Normal_intercept_Normal(rcvd, source_addr);
 	INTERCEPT_MESSAGE_END(Normal)
+
+
+	void Sink_receive_NormalFlood(const NormalFloodMessage* const rcvd, am_addr_t source_addr)
+	{
+		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		{
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+
+			METRIC_RCV_NORMALFLOOD(rcvd);
+
+			if (!sent_disable)
+			{
+				disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / (2 * M_PI));
+
+				call DisableSenderTimer.startOneShot(25);
+
+				sent_disable = TRUE;
+			}
+		}
+	}
+
+	void x_receive_NormalFlood(const NormalFloodMessage* const rcvd, am_addr_t source_addr)
+	{
+		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		{
+			NormalFloodMessage forwarding_message;
+
+			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+
+			METRIC_RCV_NORMALFLOOD(rcvd);
+
+			forwarding_message = *rcvd;
+			forwarding_message.source_distance += 1;
+
+			send_NormalFlood_message(&forwarding_message, AM_BROADCAST_ADDR);
+		}
+	}
+
+	RECEIVE_MESSAGE_BEGIN(NormalFlood, Receive)
+		case SourceNode: break;
+		case SinkNode: Sink_receive_NormalFlood(rcvd, source_addr); break;
+		case NormalNode: x_receive_NormalFlood(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(NormalFlood)
 
 
 	void x_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)

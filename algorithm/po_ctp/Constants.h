@@ -4,6 +4,7 @@
 enum Channels
 {
 	NORMAL_CHANNEL = 0xee,
+	NORMAL_FLOOD_CHANNEL = 1,
 	AWAY_CHANNEL = 2,
 	DISABLE_CHANNEL = 3,
 };
