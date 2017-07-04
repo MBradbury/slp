@@ -132,7 +132,7 @@ implementation
 		)
 	{
 		// No newline here, message needs to provide it!
-		simdbg("stdout", "%s", message);
+		simdbg("stdout", "%" PRIu16 ",%s", code, message);
 	}
 
 	//##########SLP TDMA DAS##########
