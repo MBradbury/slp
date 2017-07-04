@@ -152,7 +152,9 @@ enum SLPEventCodes {
 	EVENT_RADIO_ON = 2005,
 	EVENT_RADIO_OFF = 2006,
 
+	// Yes the capitalisation is odd, but it needs to be this way
 	EVENT_Receive_VALID_PACKET = 2007,
+	EVENT_Snoop_VALID_PACKET = 2008,
 
 	// Only use 2xxx codes here. The reasoning for SLPErrorCodes applies.
 };
