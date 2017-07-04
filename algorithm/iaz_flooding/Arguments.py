@@ -13,13 +13,11 @@ class Arguments(ArgumentsCommon):
             type=simulator.MobilityModel.eval_input,
             default=simulator.MobilityModel.StationaryMobilityModel())
 
-       	self.add_argument("--protected-sink-hops", type=self.type_positive_int, required=True)
-       	self.add_argument("--disable-hops", type=self.type_positive_int, required=True)
+        self.add_argument("--protected-sink-hops", type=self.type_positive_int, required=True)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
         result["PROTECTED_SINK_HOPS"] = self.args.protected_sink_hops
-        result["DISABLE_HOPS"] = self.args.disable_hops
 
         return result

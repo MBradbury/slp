@@ -4,6 +4,7 @@ import datetime
 import os
 
 import algorithm
+protectionless = algorithm.import_algorithm("protectionless")
 
 from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
@@ -16,7 +17,7 @@ from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
         subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("--show-stddev", action="store_true")
@@ -25,6 +26,9 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
         subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graphs)
+
+    def time_after_first_normal_to_safety_period(self, tafn):
+        return tafn * 2.0
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
