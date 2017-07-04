@@ -71,7 +71,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
+			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
 			call ObjectDetector.start();
 		}
@@ -85,7 +85,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
+		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
 
 	event void ObjectDetector.detect()

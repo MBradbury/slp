@@ -149,6 +149,11 @@ enum SLPEventCodes {
 	EVENT_RADIO_BUSY = 2003,
 	EVENT_SEND_DONE = 2004,
 
+	EVENT_RADIO_ON = 2005,
+	EVENT_RADIO_OFF = 2006,
+
+	EVENT_Receive_VALID_PACKET = 2007,
+
 	// Only use 2xxx codes here. The reasoning for SLPErrorCodes applies.
 };
 
