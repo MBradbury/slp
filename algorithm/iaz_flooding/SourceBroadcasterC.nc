@@ -58,11 +58,16 @@ implementation
 	message_t packet;
 
 	SequenceNumber away_sequence_counter;
+	SequenceNumber disable_sequence_counter;
 
 	int32_t sink_distance;
 	int32_t source_distance;
 
+	int32_t disable_radius;
+
 	int away_messages_to_send;
+
+	bool sent_disable;
 
 	event void Boot.booted()
 	{
@@ -72,11 +77,16 @@ implementation
 		call Packet.clear(&packet);
 
 		sequence_number_init(&away_sequence_counter);
+		sequence_number_init(&disable_sequence_counter);
 
 		sink_distance = BOTTOM;
 		source_distance = BOTTOM;
 
+		disable_radius = BOTTOM;
+
 		away_messages_to_send = 3;
+
+		sent_disable = FALSE;
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
@@ -200,10 +210,19 @@ implementation
 	event void DisableSenderTimer.fired()
 	{
 		DisableMessage disable_message;
+		disable_message.sequence_number = sequence_number_next(&disable_sequence_counter);
 		disable_message.source_id = TOS_NODE_ID;
-		disable_message.hop_limit = DISABLE_HOPS;
+		disable_message.hop_limit = (int16_t)disable_radius;
+		disable_message.sink_source_distance = source_distance;
 
-		send_Disable_message(&disable_message, AM_BROADCAST_ADDR);
+		if (send_Disable_message(&disable_message, AM_BROADCAST_ADDR))
+		{
+			sequence_number_increment(&disable_sequence_counter);
+		}
+		else
+		{
+			call DisableSenderTimer.startOneShot(25);
+		}
 	}
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -225,12 +244,6 @@ implementation
 			forwarding_message.source_distance += 1;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
-
-			if (source_distance != BOTTOM && sink_distance != BOTTOM &&
-				sink_distance == PROTECTED_SINK_HOPS + 1 && source_distance == 6)
-			{
-				call DisableSenderTimer.startOneShot(25);
-			}
 		}
 	}
 
@@ -243,6 +256,17 @@ implementation
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			if (!sent_disable)
+			{
+				const int CONE_WIDTH = 6;
+
+				disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / (2 * M_PI));
+
+				call DisableSenderTimer.startOneShot(25);
+
+				sent_disable = TRUE;
+			}
 		}
 	}
 
@@ -281,21 +305,31 @@ implementation
 
 	void Normal_receive_Disable(const DisableMessage* const rcvd, am_addr_t source_addr)
 	{
-		METRIC_RCV_DISABLE(rcvd);
-
-		simdbg("stdout", "Received disable\n");
-
-		if (sink_distance != BOTTOM && sink_distance > PROTECTED_SINK_HOPS)
+		if (sequence_number_before(&disable_sequence_counter, rcvd->sequence_number))
 		{
+			sequence_number_update(&disable_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV_DISABLE(rcvd);
+
 			if (rcvd->hop_limit > 0)
 			{
 				DisableMessage forwarding_message = *rcvd;
-				forwarding_message.hop_limit -= 1;
 
 				send_Disable_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
 
-			call RadioControl.stop();
+			if (
+				// Create the inner disabled ring and the outer disabled ring of nodes
+				sink_distance != BOTTOM && sink_distance > PROTECTED_SINK_HOPS && sink_distance < rcvd->hop_limit &&
+
+				// Create the exit cone
+				source_distance != BOTTOM && rcvd->sink_source_distance >= source_distance - sink_distance &&
+
+				// Protect nodes by the source
+				source_distance > 1)
+			{
+				call RadioControl.stop();
+			}
 		}
 	}
 
