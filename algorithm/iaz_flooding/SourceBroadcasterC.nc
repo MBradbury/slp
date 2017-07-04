@@ -183,13 +183,17 @@ implementation
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&away_sequence_counter);
-		}
-		else
-		{
+
+			away_messages_to_send -= 1;
+
 			if (away_messages_to_send > 0)
 			{
 				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
 			}
+		}
+		else
+		{
+			call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
 		}
 	}
 
@@ -222,7 +226,8 @@ implementation
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (source_distance != BOTTOM && sink_distance != BOTTOM && sink_distance == PROTECTED_SINK_HOPS)
+			if (source_distance != BOTTOM && sink_distance != BOTTOM &&
+				sink_distance == PROTECTED_SINK_HOPS + 1 && source_distance == 6)
 			{
 				call DisableSenderTimer.startOneShot(25);
 			}
