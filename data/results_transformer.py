@@ -48,7 +48,7 @@ class EliminateDominatedResultsTransformer(object):
             results.Results(
                 module.result_file_path,
                 parameters=module.local_parameter_names,
-                results=result_names)
+                results=tuple(set(result_names) | set(comparison_functions.keys())))
 
             for module
             in self.algorithm_modules
@@ -120,11 +120,17 @@ class EliminateDominatedResultsTransformer(object):
 
 
     def _does_value_dominate(self, value, other_value, result_names):
-        return all(
-            self.comparison_functions[name](v, ov)
-            for (name, v, ov)
-            in zip(result_names, value, other_value)
-        )
+        result = True
+
+        for (name, fn) in self.comparison_functions.items():
+            name_idx = result_names.index(name)
+
+            v = value[name_idx]
+            ov = other_value[name_idx]
+
+            result &= fn(v, ov)
+
+        return result
 
     def _remove_dominated_items(self, items, result_names):
         new_items = {}
