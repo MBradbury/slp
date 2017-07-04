@@ -41,6 +41,8 @@ class EliminateDominatedResultsTransformer(object):
         self.comparison_functions = comparison_functions
         self.remove_redundant_parameters = remove_redundant_parameters
 
+        self.dominated_data = None
+
     def transform(self, result_names):
         module_results = [
             results.Results(
@@ -64,7 +66,7 @@ class EliminateDominatedResultsTransformer(object):
         combined_results = self._combine_results(module_results)
 
         # Find the dominating data
-        dominating_data, dominated_data = self._filter_strictly_worse(combined_results)
+        dominating_data, self.dominated_data = self._filter_strictly_worse(combined_results)
 
         # Split up the data back into the individual chunks
         split_results = self._convert_dominating_to_individual(dominating_data)
