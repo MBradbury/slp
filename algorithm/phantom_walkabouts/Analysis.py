@@ -15,6 +15,9 @@ class Analyzer(AnalyzerCommon):
 		return [
 			('Sent', 'TimeTaken'),
 			(('Sent', 'TimeTaken'), 'num_nodes'),
+
+			('Captured', 'ReceiveRatio'),
+			(('Sent', 'TimeTaken'), 'ReceiveRatio'),
 		]
 
 	@staticmethod
@@ -23,8 +26,8 @@ class Analyzer(AnalyzerCommon):
 
 		AnalyzerCommon.common_results(d)
 
-		d['normalised captured']	= lambda x: str(x.average_of['Captured']/x.average_of['ReceiveRatio'])
-		d['normalised norm(sent,time taken)']	= lambda x: str(x.average_of['norm(Sent,TimeTaken)']/x.average_of['ReceiveRatio'])
+		d['normalised captured']	= lambda x: AnalyzerCommon._format_results(x, 'norm(Captured,ReceiveRatio)')
+		d['normalised norm(sent,time taken)']	= lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),ReceiveRatio)')
 
 		d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
 		d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
@@ -39,7 +42,7 @@ class Analyzer(AnalyzerCommon):
 		d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
 
 		d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
-		d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
+		d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')  
 
 		d['utility animal']     = lambda x: str(Sigmoid.utility(x, [("Captured",    AnimalProtectionSigmoid.cr),   
 															("ReceiveRatio",         AnimalProtectionSigmoid.dr),   
