@@ -48,3 +48,5 @@ fault_models = ['ReliableFaultModel()']
 latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
+
+protected_sink_hops = [1]

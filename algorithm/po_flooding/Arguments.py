@@ -5,7 +5,7 @@ import simulator.MobilityModel
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        super(Arguments, self).__init__("SLP Isolated Adversary Zone Flooding", has_safety_period=True)
+        super(Arguments, self).__init__("SLP Power Off Flooding", has_safety_period=True)
 
         self.add_argument("--source-period",
             type=simulator.SourcePeriodModel.eval_input, required=True)
