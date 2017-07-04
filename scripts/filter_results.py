@@ -172,7 +172,7 @@ def convert_dominating_to_individual(dominating_data):
 algorithm_names = ["protectionless_chen", "protectionless_ctp_chen", "phantom_walkabouts",
                    "phantom_chen", "ilprouting_chen", "adaptive_spr_notify_chen"]
 
-new_global_parameters, res = all_results(algorithm_names)
+"""new_global_parameters, res = all_results(algorithm_names)
 
 #pprint(res)
 
@@ -181,5 +181,14 @@ dominating_data, dominated_data = filter_strictly_worse(res)
 #pprint(dominated_data)
 
 multiple_dominating_data = convert_dominating_to_individual(dominating_data)
+
+pprint(multiple_dominating_data)
+"""
+
+import data.results_transformer as trans
+
+tr = trans.EliminateDominatedResultsTransformer(algorithm_names, comparison_functions, remove_redundant_parameters=True)
+
+multiple_dominating_data = tr.transform(result_names)
 
 pprint(multiple_dominating_data)
