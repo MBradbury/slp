@@ -259,8 +259,6 @@ implementation
 
 			if (!sent_disable)
 			{
-				const int CONE_WIDTH = 6;
-
 				disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / (2 * M_PI));
 
 				call DisableSenderTimer.startOneShot(25);
@@ -320,7 +318,7 @@ implementation
 
 			if (
 				// Create the inner disabled ring and the outer disabled ring of nodes
-				sink_distance != BOTTOM && sink_distance > PROTECTED_SINK_HOPS && sink_distance < rcvd->hop_limit &&
+				sink_distance != BOTTOM && sink_distance > PROTECTED_SINK_HOPS && sink_distance <= rcvd->hop_limit &&
 
 				// Create the exit cone
 				source_distance != BOTTOM && rcvd->sink_source_distance >= source_distance - sink_distance &&
