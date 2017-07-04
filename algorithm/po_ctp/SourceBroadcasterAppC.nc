@@ -48,6 +48,13 @@ implementation
 
 	// Networking
 	components
+		new AMSenderC(NORMAL_FLOOD_CHANNEL) as NormalFloodSender,
+		new AMReceiverC(NORMAL_FLOOD_CHANNEL) as NormalFloodReceiver;
+
+	App.NormalFloodSend -> NormalFloodSender;
+	App.NormalFloodReceive -> NormalFloodReceiver;
+
+	components
 		new AMSenderC(AWAY_CHANNEL) as AwaySender,
 		new AMReceiverC(AWAY_CHANNEL) as AwayReceiver;
 
