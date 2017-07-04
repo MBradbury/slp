@@ -40,6 +40,26 @@ implementation
 	App.AMPacket -> ActiveMessageC;
 
 	// Timers
+	components new TimerMilliC() as AwaySenderTimer;
+	components new TimerMilliC() as DisableSenderTimer;
+
+	App.AwaySenderTimer -> AwaySenderTimer;
+	App.DisableSenderTimer -> DisableSenderTimer;
+
+	// Networking
+	components
+		new AMSenderC(AWAY_CHANNEL) as AwaySender,
+		new AMReceiverC(AWAY_CHANNEL) as AwayReceiver;
+
+	App.AwaySend -> AwaySender;
+	App.AwayReceive -> AwayReceiver;
+
+	components
+		new AMSenderC(DISABLE_CHANNEL) as DisableSender,
+		new AMReceiverC(DISABLE_CHANNEL) as DisableReceiver;
+
+	App.DisableSend -> DisableSender;
+	App.DisableReceive -> DisableReceiver;
 
 	// Object Detector - For Source movement
 	components ObjectDetectorP;

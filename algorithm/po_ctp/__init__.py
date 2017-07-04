@@ -7,4 +7,4 @@ def _setup():
 (name, results_path, result_file, result_file_path, graphs_path) = _setup()
 
 
-local_parameter_names = tuple()
+local_parameter_names = ("protected sink hops", "cone width")
