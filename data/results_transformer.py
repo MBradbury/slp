@@ -44,11 +44,14 @@ class EliminateDominatedResultsTransformer(object):
         self.dominated_data = None
 
     def transform(self, result_names):
+
+        all_result_names = tuple(set(result_names) | set(self.comparison_functions.keys()))
+
         module_results = [
             results.Results(
                 module.result_file_path,
                 parameters=module.local_parameter_names,
-                results=tuple(set(result_names) | set(comparison_functions.keys())))
+                results=all_result_names)
 
             for module
             in self.algorithm_modules
@@ -66,14 +69,14 @@ class EliminateDominatedResultsTransformer(object):
         combined_results = self._combine_results(module_results)
 
         # Find the dominating data
-        dominating_data, self.dominated_data = self._filter_strictly_worse(combined_results, result_names)
+        dominating_data, self.dominated_data = self._filter_strictly_worse(combined_results, all_result_names)
 
         # Split up the data back into the individual chunks
         split_results = self._convert_dominating_to_individual(dominating_data)
 
         # Reassign it
-        for (module_result, split_result) in zip(module_results, split_results):
-            module_result.data = split_result
+        for (module_result, module) in zip(module_results, self.algorithm_modules):
+            module_result.data = split_results[module.name]
             module_result.global_parameter_names = self.global_parameter_names
 
         return module_results
