@@ -439,12 +439,18 @@ class CLI(object):
             else:
                 product_argument.append(getattr(parameters, _get_global_plural_name(global_name)))
 
+        local_appendicies_to_try = ["s", "es", ""]
+
         # Now lets process the algorithm specific parameters
         for local_name in self.algorithm_module.local_parameter_names:
-            try:
-                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "s"))
-            except AttributeError:
-                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "es"))
+            for appendix in local_appendicies_to_try:
+                try:
+                    product_argument.append(getattr(parameters, local_name.replace(" ", "_") + appendix))
+                    break
+                except AttributeError:
+                    continue
+            else:
+                raise RuntimeError("Unable to find plural of {}".format(local_name))
 
         argument_product = itertools.product(*product_argument)
 
