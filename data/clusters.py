@@ -141,6 +141,24 @@ class ClusterCommon(object):
 
         return Submitter(cluster_command, prepare_command, jobs, job_repeats=1)
 
+    def _moab_submitter(self, notify_emails=None):
+        from data.run.driver.cluster_submitter import Runner as Submitter
+
+        ram_to_ask_for_mb = self._ram_to_ask_for()
+
+        # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        # Don't provide a queue, as the job will be routed to the correct place.
+        cluster_command = "msub -j oe -h -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
+            self.ppn, ram_to_ask_for_mb)
+
+        if notify_emails is not None and len(notify_emails) > 0:
+            print("Warning: flux does not currently have email notification setup")
+            cluster_command += " -m ae -M {}".format(",".join(notify_emails))
+
+        prepare_command = "cd $PBS_O_WORKDIR"
+
+        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1)
+
 
 class dummy(ClusterCommon):
     def __init__(self):
@@ -242,17 +260,14 @@ class tinis(ClusterCommon):
 
 class orac(ClusterCommon):
     def __init__(self):
-        super(orac, self).__init__("pbs", "orac.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
+        super(orac, self).__init__("moab", "orac.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
             ppn=28,
             tpp=1,
             rpn=(128 * 1024) / 28 # 128GB per node
         )
 
     def submitter(self, notify_emails=None):
-        return self._pbs_submitter(notify_emails=notify_emails)
-
-    def array_submitter(self, notify_emails=None):
-        return self._pbs_array_submitter(notify_emails=notify_emails)
+        return self._moab_submitter(notify_emails=notify_emails)
 
 def available():
     """A list of the names of the available clusters."""
