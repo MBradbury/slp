@@ -153,7 +153,7 @@ class ClusterCommon(object):
 
         if notify_emails is not None and len(notify_emails) > 0:
             print("Warning: flux does not currently have email notification setup")
-            cluster_command += " -m ae -M {}".format(",".join(notify_emails))
+            cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
         prepare_command = "cd $PBS_O_WORKDIR"
 
@@ -191,7 +191,7 @@ class dummy(ClusterCommon):
             self.ppn, ram_to_ask_for_mb)
 
         if notify_emails is not None and len(notify_emails) > 0:
-            cluster_command += " -m ae -M {}".format(",".join(notify_emails))
+            cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
         prepare_command = " <prepare> "
 
@@ -213,7 +213,7 @@ class dummy(ClusterCommon):
             num_array_jobs, num_jobs, num_jobs * ram_per_job_mb)
 
         if notify_emails is not None and len(notify_emails) > 0:
-            cluster_command += " -m ae -M {}".format(",".join(notify_emails))
+            cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
         prepare_command = " <prepare> "
 
