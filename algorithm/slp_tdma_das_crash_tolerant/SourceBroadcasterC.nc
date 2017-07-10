@@ -8,6 +8,7 @@
 #include "ChangeMessage.h"
 #include "EmptyNormalMessage.h"
 #include "RepairMessage.h"
+#include "CrashMessage.h"
 
 #include "utils.h"
 
@@ -72,6 +73,9 @@ module SourceBroadcasterC
     uses interface AMSend as RepairSend;
     uses interface Receive as RepairReceive;
 
+    uses interface AMSend as CrashSend;
+    uses interface Receive as CrashReceive;
+
     uses interface MetricLogging;
 
     uses interface TDMA;
@@ -115,6 +119,12 @@ implementation
 #define PATH_STILL_ALIVE 4
     uint8_t path_child_alive = PATH_STILL_ALIVE;
     uint8_t path_parent_alive = PATH_STILL_ALIVE;
+
+    bool repair_sending = FALSE;
+    RepairMessage repair_message;
+
+    IDList crash_suspects;
+    bool parent_reconfigure = FALSE;
 
     enum
     {
@@ -205,6 +215,11 @@ implementation
     {
         return CHANGE_LENGTH;
     }
+
+    uint32_t get_normal_start_period()
+    {
+        return get_minimum_setup_periods() + PATH_STILL_ALIVE + 2;
+    }
     //###################}}}
 
     //Setter Functions{{{
@@ -221,17 +236,17 @@ implementation
 
     void set_path_parent(uint16_t new_parent) {
         path_parent = new_parent;
-        simdbg("stdout", "Set path parent to %" PRIu16 "\n", path_parent);
+        simdbg("stdout", "Set path parent to %" PRIu16 " (slot=%u)\n", path_parent, call TDMA.get_slot());
     }
 
     void set_path_child(uint16_t new_child) {
         path_child = new_child;
-        simdbg("stdout", "Set path child to %" PRIu16 "\n", path_child);
+        simdbg("stdout", "Set path child to %" PRIu16 " (slot=%u)\n", path_child, call TDMA.get_slot());
     }
 
     void set_path_order(uint16_t new_order) {
         path_order = new_order;
-        simdbg("stdout", "Set path order to %" PRIu16 "\n", path_order);
+        simdbg("stdout", "Set path order to %" PRIu16 " (slot=%u)\n", path_order, call TDMA.get_slot());
     }
     //###################}}}
 
@@ -244,6 +259,7 @@ implementation
         n_info = NeighbourList_new();
         children = IDList_new();
         from = IDList_new();
+        crash_suspects = IDList_new();
 
         simdbgverbose("Boot", "Application booted.\n");
 
@@ -328,6 +344,7 @@ implementation
     USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Change);
     USE_MESSAGE_NO_EXTRA_TO_SEND(EmptyNormal);
     USE_MESSAGE_NO_EXTRA_TO_SEND(Repair);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(Crash);
 
     void init(void)
     {
@@ -546,12 +563,18 @@ implementation
 
     void send_repair_init()
     {
-        RepairMessage msg;
-        msg.source_id = TOS_NODE_ID;
-        msg.source_path_order = path_order;
-        msg.distance = 1;
-        msg.path[0] = TOS_NODE_ID;
-        send_Repair_message(&msg, AM_BROADCAST_ADDR);
+        repair_message.source_id = TOS_NODE_ID;
+        repair_message.source_path_order = path_order;
+        repair_message.distance = 1;
+        repair_message.path[0] = TOS_NODE_ID;
+        send_Repair_message(&repair_message, AM_BROADCAST_ADDR);
+        repair_sending = TRUE;
+    }
+
+    void send_crash_init()
+    {
+        CrashMessage msg;
+        send_Crash_message(&msg, AM_BROADCAST_ADDR);
     }
 
     task void send_normal(void)
@@ -609,7 +632,11 @@ implementation
 
     void send_Change_done(message_t* msg, error_t error)
     {
-        call FaultModel.fault_point(PathFaultPoint);
+        //Don't activate fault point if we are repairing the path
+        if(((ChangeMessage*)(msg->data))->len_d != BOTTOM)
+        {
+            call FaultModel.fault_point(PathFaultPoint);
+        }
     }
 
     void MessageQueue_clear()
@@ -623,6 +650,41 @@ implementation
                 call MessagePool.put(message);
             }
         }
+    }
+
+    void check_crashes()
+    {
+        //Check for crashes
+        //TODO Should this be here? More convenient than making another timer
+        parent_reconfigure = FALSE;
+        if(IDList_indexOf(&crash_suspects, parent) != BOT)
+        {
+            simdbg("stdout", "Parent crashed\n");
+            call TDMA.set_slot(BOT);
+            set_hop(BOT);
+            parent = BOT;
+            parent_reconfigure = TRUE;
+            send_crash_init();
+        }
+
+        {
+            int i;
+            for(i = 0; i < crash_suspects.count; i++)
+            {
+                if(NeighbourList_get(&n_info, crash_suspects.ids[i])->slot != BOT)
+                {
+                    IDList_remove(&neighbours, crash_suspects.ids[i]);
+                    IDList_remove(&potential_parents, crash_suspects.ids[i]);
+                    IDList_remove(&children, crash_suspects.ids[i]);
+                    IDList_remove(&from, crash_suspects.ids[i]);
+                    NeighbourList_remove(&n_info, crash_suspects.ids[i]);
+                    OtherList_remove(&others, crash_suspects.ids[i]);
+                }
+            }
+        }
+
+        //Reset crash_suspects
+        crash_suspects = IDList_minus_parent(&neighbours, TOS_NODE_ID);
     }
     //Main Logic}}}
 
@@ -644,9 +706,10 @@ implementation
             send_change_init();
             return FALSE;
         }
-        if(call TDMA.get_slot() != BOT || period_counter < get_pre_beacon_periods())
+        if(call TDMA.get_slot() != BOT || period_counter < get_pre_beacon_periods() || parent_reconfigure)
         {
-            call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_slot_period() * random_float()));
+            check_crashes();
+            call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_dissem_period() * random_float()));
         }
 
         if(period_counter > get_pre_beacon_periods())
@@ -655,22 +718,29 @@ implementation
             process_collision();
         }
 
+        //TODO The node with no child at the end of the path might suffer from this
         //Repair broken path
+        if(call NodeType.get() == SinkNode || call NodeType.get() == SearchNode || call NodeType.get() == ChangeNode) {
+            path_child_alive = (path_child_alive==0) ? 0 : path_child_alive - 1;
+        }
         if(call NodeType.get() == SearchNode || call NodeType.get() == ChangeNode) {
             path_parent_alive--;
-            path_child_alive--;
             if(path_parent_alive <= 0) {
-                simdbg("stdout", "Sending path repair...\n");
-                send_repair_init();
+                simdbg("stdout", "Sending path repair... (slot=%u)\n", call TDMA.get_slot());
+                /*send_repair_init();*/
             }
         }
+
+        /*if(repair_sending) {*/
+            /*send_Repair_message(&repair_message, AM_BROADCAST_ADDR);*/
+        /*}*/
 
         return TRUE;
     }
 
     event void TDMA.slot_started()
     {
-        if(call TDMA.get_slot() != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
+        if(call TDMA.get_slot() != BOT && call NodeType.get() != SinkNode && period_counter > get_normal_start_period())
         {
             post send_normal();
         }
@@ -844,6 +914,11 @@ implementation
         else if(source_addr == path_child) {
             path_child_alive = PATH_STILL_ALIVE;
         }
+
+        if(call TDMA.get_slot() != BOT)
+        {
+            IDList_remove(&crash_suspects, source_addr);
+        }
     }
 
     void Sink_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
@@ -961,6 +1036,7 @@ implementation
 
         set_path_parent(source_addr);
         set_path_order(rcvd->path_order + 1);
+        repair_sending = FALSE;
 
         for(i = 0; i < from.count; i++)
         {
@@ -1000,9 +1076,9 @@ implementation
             OnehopList onehop;
             call TDMA.set_slot(rcvd->n_slot - 1);
             //If necessary and possible, change parent
-            if(path_child == parent && npar.count != 0) {
-                parent = npar.ids[0];
-            }
+            /*if(path_child == parent && npar.count != 0) {*/
+                /*parent = npar.ids[0];*/
+            /*}*/
             NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
             NeighbourList_select(&n_info, &neighbours, &onehop);
             msg.n_slot = OnehopList_min_slot(&onehop);
@@ -1011,10 +1087,12 @@ implementation
             msg.path_order = rcvd->path_order + 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
+            simdbg("stdout", "ID = %u (slot = %u) became new change\n", TOS_NODE_ID, call TDMA.get_slot());
         }
         simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
     }
 
+    //TODO Change receive change (set new path order and slot)?
     RECEIVE_MESSAGE_BEGIN(Change, Receive)
         case SourceNode: break;
         case SearchNode:
@@ -1039,26 +1117,30 @@ implementation
     void Normal_receive_Repair(const RepairMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
-        RepairMessage msg;
 
-        simdbg("stdout", "NormalNode received repair message.\n");
+        /*simdbg("stdout", "NormalNode received repair message.\n");*/
         METRIC_RCV_REPAIR(rcvd);
 
         //Stop if the maximum range of the message has been reached
-        if(rcvd->distance + 1 == MAX_REPAIR_PATH_LENGTH) return;
+        //TODO Timeout path_child validity?
+        if(rcvd->distance + 1 == MAX_REPAIR_PATH_LENGTH || path_child != BOT) return;
 
-        //TODO: Compare distance of new child to old one
-        path_child = rcvd->path[rcvd->distance - 1];
+        //TODO: Compare distance of new child to old one (done?)
+        /*path_child = rcvd->path[rcvd->distance - 1];*/
+        /*set_path_child(rcvd->path[rcvd->distance - 1]);*/
+        set_path_child(source_addr);
 
-        msg.source_id = rcvd->source_id;
-        msg.source_path_order = rcvd->source_path_order;
-        msg.distance = rcvd->distance + 1;
+        repair_message.source_id = rcvd->source_id;
+        repair_message.source_path_order = rcvd->source_path_order;
+        repair_message.distance = rcvd->distance + 1;
         for(i = 0; i < rcvd->distance; i++)
         {
-            msg.path[i] = rcvd->path[i];
+            repair_message.path[i] = rcvd->path[i];
         }
-        msg.path[rcvd->distance] = TOS_NODE_ID;
-        send_Repair_message(&msg, AM_BROADCAST_ADDR);
+        repair_message.path[rcvd->distance] = TOS_NODE_ID;
+        simdbg("stdout", "Sending on repair message (slot=%u)\n", call TDMA.get_slot());
+        send_Repair_message(&repair_message, AM_BROADCAST_ADDR);
+        repair_sending = TRUE;
     }
 
     void Path_receive_Repair(const RepairMessage* const rcvd, am_addr_t source_addr)
@@ -1068,10 +1150,14 @@ implementation
         METRIC_RCV_REPAIR(rcvd);
         //If the message was sent from a node before you in the path
         //or if you believe your child is still alive, ignore it
-        if(path_order > rcvd->source_path_order || path_child_alive > 0) return; //TODO: Check the inequality is the correct way round
         simdbg("stdout", "%s received repair message.\n", call NodeType.current_to_string());
-        set_path_child(rcvd->path[rcvd->distance - 1]);
+        simdbg("stdout", "path_order=%u > source_order=%u || path_child_alive=%u > 0\n", path_order, rcvd->source_path_order, path_child_alive);
+        if(path_order > rcvd->source_path_order || path_child_alive > 0) return; //TODO: Check the inequality is the correct way round
+        simdbg("stdout", "%s processing repair message.\n", call NodeType.current_to_string());
+        /*set_path_child(rcvd->path[rcvd->distance - 1]);*/
+        set_path_child(source_addr);
         NeighbourList_select(&n_info, &neighbours, &onehop);
+        //TODO Set path_child slot in n_info
         msg.n_slot = OnehopList_min_slot(&onehop);
         msg.len_d = BOTTOM;
         msg.a_node = path_child;
@@ -1086,4 +1172,25 @@ implementation
         case SinkNode:      Path_receive_Repair(rcvd, source_addr); break;
         case NormalNode:    Normal_receive_Repair(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Repair)
+
+    void x_receive_Crash(const CrashMessage* const rcvd, am_addr_t source_addr)
+    {
+        if(parent == source_addr)
+        {
+            CrashMessage msg;
+            call TDMA.set_slot(BOT);
+            set_hop(BOT);
+            parent = BOT;
+            parent_reconfigure = TRUE;
+            send_Crash_message(&msg, AM_BROADCAST_ADDR);
+        }
+    }
+
+    RECEIVE_MESSAGE_BEGIN(Crash, Receive)
+        case SinkNode:      break;
+        case SourceNode:
+        case NormalNode:
+        case SearchNode:
+        case ChangeNode:    x_receive_Crash(rcvd, source_addr); break;
+    RECEIVE_MESSAGE_END(Crash)
 }

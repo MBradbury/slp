@@ -105,6 +105,13 @@ implementation
     App.RepairSend -> RepairSender;
     App.RepairReceive -> RepairReceiver;
 
+    components
+        new AMSenderC(CRASH_CHANNEL) as CrashSender,
+        new AMReceiverC(CRASH_CHANNEL) as CrashReceiver;
+
+    App.CrashSend -> CrashSender;
+    App.CrashReceive -> CrashReceiver;
+
     // Message Queue
     components
         new PoolC(NormalMessage, MESSAGE_QUEUE_SIZE) as MessagePool,
