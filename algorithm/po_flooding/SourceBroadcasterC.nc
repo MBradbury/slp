@@ -472,7 +472,7 @@ implementation
 				// be larger.
 				//disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / (2 * M_PI));
 
-				disable_radius = (int32_t)ceil((source_distance + CONE_WIDTH) / (2 * M_PI * 0.25));
+				disable_radius = (int32_t)ceil((source_distance + CONE_WIDTH) / (2 * M_PI * 0.5));
 
 				LOG_STDOUT(ERROR_UNKNOWN, "Disable radius is %u\n", disable_radius);
 
