@@ -73,6 +73,7 @@ module SourceBroadcasterC
 	uses interface Timer<TMilli> as DisableSenderTimer;
 	uses interface Timer<TMilli> as ActivateSenderTimer;
 	uses interface Timer<TMilli> as ActivateExpiryTimer;
+	uses interface Timer<TMilli> as ActivateBackoffTimer;
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
@@ -143,10 +144,10 @@ implementation
 
 	void enable_normal_forward_with_timeout(void)
 	{
-		if (!process_messages)
+		if (!process_messages || call ActivateExpiryTimer.isRunning())
 		{
 			enable_normal_forward();
-			call ActivateExpiryTimer.startOneShot(ACTIVATE_PERIOD_MS + ACTIVATE_PERIOD_MS / 4);
+			call ActivateExpiryTimer.startOneShot(ACTIVATE_PERIOD_MS + ACTIVATE_PERIOD_MS / 5);
 		}
 	}
 
@@ -320,12 +321,20 @@ implementation
 
 	event void ActivateSenderTimer.fired()
 	{
+		call ActivateSenderTimer.startOneShot(ACTIVATE_PERIOD_MS);
+
 		current_activate_message.sequence_number = sequence_number_next(&activate_sequence_counter);
 		current_activate_message.source_id = TOS_NODE_ID;
 		current_activate_message.sink_distance = 0;
+		current_activate_message.previous_normal_forward_enabled = TRUE;
 
 		sequence_number_increment(&activate_sequence_counter);
 
+		post send_activate();
+	}
+
+	event void ActivateBackoffTimer.fired()
+	{
 		post send_activate();
 	}
 
@@ -353,6 +362,11 @@ implementation
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
 
+		if (call Random.rand16() % 2 == 1)
+		{
+			CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance > sink_distance && neighbour->source_distance > source_distance)
+		}
+
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance > sink_distance)
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance == sink_distance)
 
@@ -379,7 +393,7 @@ implementation
 		}
 		else
 		{
-			post send_activate();
+			call ActivateBackoffTimer.startOneShot(25);
 		}
 	}
 	
@@ -393,7 +407,7 @@ implementation
 		{
 			const am_addr_t target = call AMPacket.destination(msg);
 
-			const bool ack_requested = target != AM_BROADCAST_ADDR;
+			const bool ack_requested = (target != AM_BROADCAST_ADDR);
 			const bool was_acked = call ActivatePacketAcknowledgements.wasAcked(msg);
 
 			if (ack_requested & !was_acked)
@@ -453,10 +467,17 @@ implementation
 
 			if (!sent_disable)
 			{
-				disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / (2 * M_PI));
+				// This equation is for when the path that is activated is always away from
+				// the sink and source. If paths towards the source exist, then this should
+				// be larger.
+				//disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / (2 * M_PI));
+
+				disable_radius = (int32_t)ceil((source_distance + CONE_WIDTH) / (2 * M_PI * 0.25));
+
+				LOG_STDOUT(ERROR_UNKNOWN, "Disable radius is %u\n", disable_radius);
 
 				call DisableSenderTimer.startOneShot(25);
-				call ActivateSenderTimer.startPeriodic(ACTIVATE_PERIOD_MS);
+				call ActivateSenderTimer.startOneShot(100);
 
 				sent_disable = TRUE;
 			}
@@ -522,8 +543,6 @@ implementation
 			{
 				disable_normal_forward();
 			}
-
-			post send_activate();
 		}
 	}
 
@@ -538,15 +557,20 @@ implementation
 	{
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, BOTTOM);
+
 		if (sequence_number_before(&activate_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&activate_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_ACTIVATE(rcvd);
 
+			// If we are coming from a disabled node and we are enabled, stop sending active message
+			//if (rcvd->previous_normal_forward_enabled || !process_messages)
 			{
 				current_activate_message = *rcvd;
 				current_activate_message.sink_distance += 1;
+				current_activate_message.previous_normal_forward_enabled = process_messages;
 
 				post send_activate();
 			}
@@ -566,13 +590,17 @@ implementation
 	{
 		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, BOTTOM);
+
 		if (sequence_number_before(&activate_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&activate_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_ACTIVATE(rcvd);
 
-			//enable_normal_forward_with_timeout();
+#ifdef CONE_TYPE_WITH_SNOOP
+			enable_normal_forward_with_timeout();
+#endif
 		}
 	}
 
