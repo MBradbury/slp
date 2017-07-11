@@ -20,7 +20,13 @@ enum Channels
 
 #define SLP_OBJECT_DETECTOR_START_DELAY_MS (5 * 1000)
 
-#define CONE_WIDTH 3
+#if defined(CONE_TYPE_WITH_SNOOP)
+#	define CONE_WIDTH 3
+#elif defined(CONE_TYPE_WITHOUT_SNOOP)
+#	define CONE_WIDTH 1
+#else
+#	error "Unknown cone type"
+#endif
 
 typedef struct
 {

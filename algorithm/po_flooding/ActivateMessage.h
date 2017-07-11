@@ -10,6 +10,8 @@ typedef nx_struct ActivateMessage {
 
   nx_uint16_t sink_distance;
 
+  nx_uint8_t previous_normal_forward_enabled;
+
 } ActivateMessage;
 
 inline SequenceNumberWithBottom Activate_get_sequence_number(const ActivateMessage* msg) { return msg->sequence_number; }

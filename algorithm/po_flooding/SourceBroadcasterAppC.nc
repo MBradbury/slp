@@ -44,11 +44,13 @@ implementation
 	components new TimerMilliC() as DisableSenderTimer;
 	components new TimerMilliC() as ActivateSenderTimer;
 	components new TimerMilliC() as ActivateExpiryTimer;
+	components new TimerMilliC() as ActivateBackoffTimer;
 
 	App.AwaySenderTimer -> AwaySenderTimer;
 	App.DisableSenderTimer -> DisableSenderTimer;
 	App.ActivateSenderTimer-> ActivateSenderTimer;
 	App.ActivateExpiryTimer -> ActivateExpiryTimer;
+	App.ActivateBackoffTimer -> ActivateBackoffTimer;
 
 
 	// Networking
