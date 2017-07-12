@@ -190,7 +190,14 @@ class EliminateDominatedResultsTransformer(object):
                 for (safety_factor, items3) in items2.items():
                     for ((algo_name, new_local_params), results) in items3.items():
 
-                        local_params = tuple(np.insert(new_local_params, self.safety_factor_indexes[algo_name], [safety_factor]))
+                        local_params = list(new_local_params)
+                        local_params.insert(self.safety_factor_indexes[algo_name], round(safety_factor, 1))
+                        local_params = tuple(local_params)
+
+                        """local_params = tuple(np.insert(new_local_params, self.safety_factor_indexes[algo_name], [safety_factor]))
+                        """
+                        """print(local_params)
+                        raise RuntimeError()"""
 
                         res.setdefault(algo_name, {}).setdefault(global_params, {}).setdefault(source_period, {})[local_params] = results
 
