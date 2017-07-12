@@ -85,16 +85,16 @@ class GrapherBase(object):
                 (args1, args2, root) = item
 
                 try:
-                    subprocess.check_call(args1, cwd=root)
+                    out = subprocess.check_output(args1, cwd=root, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as ex:
-                    outqueue.put((args1, root, ex))
-                    raise RuntimeError("Failed to {} in '{}'".format(args2, root), ex)
+                    outqueue.put((args1, root, out, ex))
+                    raise RuntimeError("Failed to {} in '{}' with {}".format(args2, root, out), ex)
 
                 try:
-                    subprocess.check_call(args2, cwd=root)
+                    out = subprocess.check_output(args2, cwd=root, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as ex:
-                    outqueue.put((args2, root, ex))
-                    raise RuntimeError("Failed to {} in '{}'".format(args2, root), ex)
+                    outqueue.put((args2, root, out, ex))
+                    raise RuntimeError("Failed to {} in '{}' with {}".format(args2, root, out), ex)
 
         nprocs = multiprocessing.cpu_count()
 
