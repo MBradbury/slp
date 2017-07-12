@@ -27,7 +27,6 @@ class Grapher(GrapherBase):
         self.vvalue_label_converter = str
 
         self.allow_missing_comparison = False
-        self.missing_comparsion_value = '?'
 
         self.key_equivalence = key_equivalence
 
@@ -231,7 +230,7 @@ class Grapher(GrapherBase):
                 return res[tuple()]
             except KeyError:
                 if self.allow_missing_comparison:
-                    return self.missing_comparsion_value
+                    return self.missing_value_string
                 else:
                     raise KeyError("Unable to find {} or tuple() in {} when looking for an xvalue with the key {}".format(
                         xvalue, set(res.keys()), data_key))
