@@ -234,6 +234,8 @@ class CLI(object):
                 for (attr_name, attr_value) in kwargs.items():
                     if hasattr(g, attr_name):
                         setattr(g, attr_name, attr_value)
+                    else:
+                        print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
@@ -282,7 +284,10 @@ class CLI(object):
                 g.key_position = key_position
 
                 for (attr_name, attr_value) in kwargs.items():
-                    setattr(g, attr_name, attr_value)
+                    if hasattr(g, attr_name):
+                        setattr(g, attr_name, attr_value)
+                    else:
+                        print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
@@ -355,7 +360,10 @@ class CLI(object):
                 g.key_position = key_position
 
                 for (attr_name, attr_value) in kwargs.items():
-                    setattr(g, attr_name, attr_value)
+                    if hasattr(g, attr_name):
+                        setattr(g, attr_name, attr_value)
+                    else:
+                        print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
@@ -402,6 +410,8 @@ class CLI(object):
             for (attr_name, attr_value) in kwargs.items():
                 if hasattr(g, attr_name):
                     setattr(g, attr_name, attr_value)
+                else:
+                    print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
 
             if custom_yaxis_range_max is not None:
                 g.yaxis_range_max = custom_yaxis_range_max
