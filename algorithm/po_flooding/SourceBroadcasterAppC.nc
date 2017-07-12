@@ -14,9 +14,11 @@ implementation
 	// Low levels events such as boot and LED control
 	components DelayedBootEventMainP as MainC;
 	components LedsWhenGuiC as LedsC;
+	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
+	App.Random -> RandomC;
 
 	components MetricLoggingP as MetricLogging;
 
@@ -26,7 +28,7 @@ implementation
 	App.NodeType -> NodeTypeC;
 	NodeTypeC.MetricLogging -> MetricLogging;
 
-	components new MessageTypeC(3);
+	components new MessageTypeC(6);
 	App.MessageType -> MessageTypeC;
 	MessageTypeC.MetricLogging -> MetricLogging;
 
@@ -40,9 +42,15 @@ implementation
 	// Timers
 	components new TimerMilliC() as AwaySenderTimer;
 	components new TimerMilliC() as DisableSenderTimer;
+	components new TimerMilliC() as ActivateSenderTimer;
+	components new TimerMilliC() as ActivateExpiryTimer;
+	components new TimerMilliC() as ActivateBackoffTimer;
 
 	App.AwaySenderTimer -> AwaySenderTimer;
 	App.DisableSenderTimer -> DisableSenderTimer;
+	App.ActivateSenderTimer-> ActivateSenderTimer;
+	App.ActivateExpiryTimer -> ActivateExpiryTimer;
+	App.ActivateBackoffTimer -> ActivateBackoffTimer;
 
 
 	// Networking
@@ -69,6 +77,26 @@ implementation
 
 	App.DisableSend -> DisableSender;
 	App.DisableReceive -> DisableReceiver;
+
+	components
+		new AMSenderC(ACTIVATE_CHANNEL) as ActivateSender,
+		new AMReceiverC(ACTIVATE_CHANNEL) as ActivateReceiver,
+        new AMSnooperC(ACTIVATE_CHANNEL) as ActivateSnooper;
+
+	App.ActivateSend -> ActivateSender;
+	App.ActivateReceive -> ActivateReceiver;
+	App.ActivateSnoop -> ActivateSnooper;
+    App.ActivatePacketAcknowledgements -> ActivateSender.Acks;
+
+
+	components new NeighboursC(
+        ni_container_t, SLP_MAX_1_HOP_NEIGHBOURHOOD,
+        BeaconMessage, BEACON_CHANNEL,
+        PollMessage, POLL_CHANNEL);
+    App.Neighbours -> NeighboursC;
+
+    NeighboursC.MetricLogging -> MetricLogging;
+    NeighboursC.NodeType -> NodeTypeC;
 
 
 	// Object Detector - For Source movement

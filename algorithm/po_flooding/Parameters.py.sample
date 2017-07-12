@@ -49,4 +49,6 @@ latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
 
-protected_sink_hops = [1]
+protected_sink_hops = [1, 2]
+
+cone_widths = [4, 5]

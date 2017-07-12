@@ -36,9 +36,9 @@ def all_results(algorithms):
 
 	module_results = [
 		results.Results(
-            module.result_file_path,
-            parameters=module.local_parameter_names,
-            results=result_names)
+			module.result_file_path,
+			parameters=module.local_parameter_names,
+			results=result_names)
 
 		for module
 		in modules
@@ -170,7 +170,7 @@ def convert_dominating_to_individual(dominating_data):
 
 
 algorithm_names = ["protectionless_chen", "protectionless_ctp_chen", "phantom_walkabouts",
-                   "phantom_chen", "ilprouting_chen", "adaptive_spr_notify_chen"]
+				   "phantom_chen", "ilprouting_chen", "adaptive_spr_notify_chen"]
 
 """new_global_parameters, res = all_results(algorithm_names)
 

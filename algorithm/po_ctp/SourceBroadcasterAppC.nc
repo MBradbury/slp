@@ -14,11 +14,9 @@ implementation
 	// Low levels events such as boot and LED control
 	components DelayedBootEventMainP as MainC;
 	components LedsWhenGuiC as LedsC;
-	components RandomC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
-	App.Random -> RandomC;
 
 	components MetricLoggingP as MetricLogging;
 
@@ -38,19 +36,37 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.Packet -> ActiveMessageC;
 	App.AMPacket -> ActiveMessageC;
 
 	// Timers
-	components new TimerMilliC() as BroadcastBeaconTimer;
-	components new TimerMilliC() as FakeWalkTimer;
-	components new TimerMilliC() as FakeSendTimer;
-	components new TimerMilliC() as EtxTimer;
+	components new TimerMilliC() as AwaySenderTimer;
+	components new TimerMilliC() as DisableSenderTimer;
 
-	App.BroadcastBeaconTimer -> BroadcastBeaconTimer;
-	App.FakeWalkTimer -> FakeWalkTimer;
-	App.FakeSendTimer -> FakeSendTimer;
-	App.EtxTimer -> EtxTimer;
+	App.AwaySenderTimer -> AwaySenderTimer;
+	App.DisableSenderTimer -> DisableSenderTimer;
 
+	// Networking
+	components
+		new AMSenderC(NORMAL_FLOOD_CHANNEL) as NormalFloodSender,
+		new AMReceiverC(NORMAL_FLOOD_CHANNEL) as NormalFloodReceiver;
+
+	App.NormalFloodSend -> NormalFloodSender;
+	App.NormalFloodReceive -> NormalFloodReceiver;
+
+	components
+		new AMSenderC(AWAY_CHANNEL) as AwaySender,
+		new AMReceiverC(AWAY_CHANNEL) as AwayReceiver;
+
+	App.AwaySend -> AwaySender;
+	App.AwayReceive -> AwayReceiver;
+
+	components
+		new AMSenderC(DISABLE_CHANNEL) as DisableSender,
+		new AMReceiverC(DISABLE_CHANNEL) as DisableReceiver;
+
+	App.DisableSend -> DisableSender;
+	App.DisableReceive -> DisableReceiver;
 
 	// Object Detector - For Source movement
 	components ObjectDetectorP;
@@ -68,12 +84,8 @@ implementation
 	App.RoutingControl -> CollectionC;
 	App.RootControl -> CollectionC;
 	//App.CollectionPacket -> CollectionC;
-	App.CtpInfo -> CollectionC;
+	//App.CtpInfo -> CollectionC;
 	//App.CtpCongestion -> CollectionC;
-
-	components CTPMetricsP;
-	CTPMetricsP.MetricLogging -> MetricLogging;
-	CollectionC.CollectionDebug -> CTPMetricsP;
 
 	components new CollectionSenderC(NORMAL_CHANNEL);
 
@@ -83,38 +95,8 @@ implementation
 	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
 	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
 
-	components
-		new AMSenderC(CHOOSE_CHANNEL) as ChooseSender,
-		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver,
-		new AMSnooperC(CHOOSE_CHANNEL) as ChooseSnooper;
-
-	App.ChooseSend -> ChooseSender;
-	App.ChooseReceive -> ChooseReceiver;
-	App.ChooseSnoop -> ChooseSnooper;
-
-	components
-		new AMSenderC(FAKE_CHANNEL) as FakeSender,
-		new AMReceiverC(FAKE_CHANNEL) as FakeReceiver,
-		new AMSnooperC(FAKE_CHANNEL) as FakeSnooper;
-
-	App.FakeSend -> FakeSender;
-	App.FakeReceive -> FakeReceiver;
-	App.FakeSnoop -> FakeSnooper;
-
-	components
-		new AMSenderC(BEACON_CHANNEL) as BeaconSender,
-		new AMReceiverC(BEACON_CHANNEL) as BeaconReceiver;
-
-	App.BeaconSend -> BeaconSender;
-	App.BeaconReceive -> BeaconReceiver;
-
-
-	components
-		new DictionaryC(am_addr_t, uint16_t, SLP_MAX_NUM_SOURCES) as Sources;
-	App.Sources -> Sources;
-
-
-	components
-		new DictionaryC(am_addr_t, uint16_t, SLP_MAX_1_HOP_NEIGHBOURHOOD) as NeighboursMinSourceDistance;
-	App.NeighboursMinSourceDistance -> NeighboursMinSourceDistance;
+	components CTPMetricsP;
+	CTPMetricsP.MetricLogging -> MetricLogging;
+	CTPMetricsP.CtpInfo -> CollectionC;
+	CollectionC.CollectionDebug -> CTPMetricsP;
 }
