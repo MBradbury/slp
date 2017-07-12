@@ -232,7 +232,6 @@ class Grapher(GrapherBase):
             except KeyError:
                 if self.allow_missing_comparison:
                     print(xvalue, res)
-                    return self.missing_comparsion_value
                 else:
                     raise KeyError("Unable to find {} or tuple() in {} when looking for an xvalue with the key {}".format(
                         xvalue, set(res.keys()), data_key))
