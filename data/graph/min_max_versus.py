@@ -26,6 +26,9 @@ class Grapher(GrapherBase):
 
         self.vvalue_label_converter = str
 
+        self.allow_missing_comparison = False
+        self.missing_comparsion_value = '?'
+
         self.key_equivalence = key_equivalence
 
     def create(self, comparison_results, actual_results, baseline_results=None):
@@ -227,8 +230,11 @@ class Grapher(GrapherBase):
             try:
                 return res[tuple()]
             except KeyError:
-                raise KeyError("Unable to find {} or tuple() in {} when looking for an xvalue with the key {}".format(
-                    xvalue, set(res.keys()), data_key))
+                if self.allow_missing_comparison:
+                    return self.missing_comparsion_value
+                else:
+                    raise KeyError("Unable to find {} or tuple() in {} when looking for an xvalue with the key {}".format(
+                        xvalue, set(res.keys()), data_key))
 
     def _order_keys(self, keys):
         """Order the keys alphabetically, except for the baseline label.
