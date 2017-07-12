@@ -280,12 +280,12 @@ class Grapher(GrapherBase):
 
             if self.error_bars:
                 for x in range(1, column_count + 1):
-                    plots.append('NaN with errorbars title \'{} {}{}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
+                    plots.append('NaN with errorbars title "{} {}{}" linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
                         self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix,
                         x=x, ycol=x * 2, line_width=self.line_width))
             else:
                 for x in range(1, column_count + 1):
-                    plots.append('NaN with lp title \'{} {}{}\' linewidth {line_width}'.format(
+                    plots.append('NaN with lp title "{} {}{}" linewidth {line_width}'.format(
                         self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix,
                         line_width=self.line_width))
 

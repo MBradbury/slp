@@ -16,4 +16,9 @@ typedef nx_struct NormalMessage {
 inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
 inline int32_t Normal_get_source_id(const NormalMessage* msg) { return msg->source_id; }
 
+typedef NormalMessage NormalFloodMessage;
+
+#define NormalFlood_get_sequence_number Normal_get_sequence_number
+#define NormalFlood_get_source_id Normal_get_source_id
+
 #endif // SLP_MESSAGES_NORMALMESSAGE_H
