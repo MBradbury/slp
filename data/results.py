@@ -4,6 +4,7 @@ from __future__ import print_function, division
 import ast
 import csv
 import math
+import os.path
 
 import numpy as np
 
@@ -49,6 +50,14 @@ class Results(object):
             setattr(self, _name_to_attr(param), set())
 
         self._read_results(result_file, results_filter, source_period_normalisation, network_size_normalisation)
+
+    @property
+    def name(self):
+        """Get the name of the results.
+        This is a horrible hack because the results file is called
+        "whatever/[algorithm name]-results.csv". So we can abuse this
+        to find out the name of the algorithm this is the results for."""
+        return os.path.basename(self.result_file_name).split("-", 1)[0]
 
     def parameters(self):
         return [
