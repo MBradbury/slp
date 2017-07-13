@@ -144,8 +144,10 @@ class Results(object):
         if name == 'captured':
             return float(value) * 100.0
         elif name in {'received ratio', 'paths reached end', 'source dropped'}:
+            # Convert from percentage in [0, 1] to [0, 100]
             return extract_average_and_stddev(value) * 100.0
         elif name == 'normal latency':
+            # Convert from seconds to milliseconds
             return extract_average_and_stddev(value) * 1000.0
         elif ';' in value:
             return extract_average_and_stddev(value)

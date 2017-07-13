@@ -28,6 +28,8 @@ enum Channels
 #	error "Unknown cone type"
 #endif
 
+#define ACTIVATE_RANDOMLY_CHANGES
+
 typedef struct
 {
 	int16_t sink_distance;
