@@ -141,8 +141,13 @@ class Grapher(GrapherBase):
 
                             dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
 
-                            if np.isclose(min_value, max_value):
-                                min_max_merge_consider[(key_names, values, self.max_label[i], self.min_label[i], i)].add(xvalue)
+                            try:
+                                if np.isclose(min_value, max_value):
+                                    min_max_merge_consider[(key_names, values, self.max_label[i], self.min_label[i], i)].add(xvalue)
+                            except TypeError:
+                                # We can't compare default values that are strings,
+                                # so just skip trying to merge these ones
+                                pass
 
                         else:
                             print("Not processing {} as it is not in the min/max data:".format(data_key))
@@ -178,8 +183,6 @@ class Grapher(GrapherBase):
 
                 # Update dat
                 dat[(key_names, values)] = local_dat
-
-        #raise RuntimeError()
 
         return self._build_plots_from_dat(dat)
 
