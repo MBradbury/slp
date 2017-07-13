@@ -11,7 +11,7 @@ from data.restricted_eval import restricted_eval
 MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {
     'DummyNormal', 'Move', 'Beacon', 'CTPBeacon',
     'Inform', 'Search', 'Change', 'EmptyNormal', 'Poll',
-    'Disable', 'Repair',
+    'Disable', 'Repair', 'Crash',
 }
 
 # An attacker can detect these are not messages to follow,
@@ -19,7 +19,7 @@ MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {
 MESSAGES_TO_IGNORE = {
     'Beacon', 'Away', 'Move', 'Choose', 'Dissem',
     'CTPBeacon', 'Inform', 'Search', 'Change',
-    'Poll', 'Notify', 'Disable', 'Repair',
+    'Poll', 'Notify', 'Disable', 'Repair', 'Crash',
 }
 
 class Attacker(object):
