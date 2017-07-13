@@ -18,12 +18,14 @@ class Arguments(ArgumentsCommon):
         self.add_argument("--protected-sink-hops", type=self.type_positive_int, required=True)
         self.add_argument("--activate-period", type=self.type_positive_float, required=True)
         self.add_argument("--cone-type", type=str, choices=CONE_TYPE_OPTIONS, required=True)
+        self.add_argument("--expiry-delay-factor", type=self.type_positive_float, required=True)
 
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
         result["PROTECTED_SINK_HOPS"] = self.args.protected_sink_hops
         result["ACTIVATE_PERIOD_MS"] = int(self.args.activate_period * 1000)
+        result["ACTIVATE_EXPIRY_PERIOD_MS"] = int(self.args.activate_period * 1000 * self.args.expiry_delay_factor)
         result["CONE_TYPE_" + self.args.cone_type] = 1
 
         return result

@@ -147,7 +147,7 @@ implementation
 		if (!process_messages || call ActivateExpiryTimer.isRunning())
 		{
 			enable_normal_forward();
-			call ActivateExpiryTimer.startOneShot(ACTIVATE_PERIOD_MS + ACTIVATE_PERIOD_MS / 5);
+			call ActivateExpiryTimer.startOneShot(ACTIVATE_EXPIRY_PERIOD_MS);
 		}
 	}
 
@@ -321,7 +321,9 @@ implementation
 
 	event void ActivateSenderTimer.fired()
 	{
+#ifdef ACTIVATE_RANDOMLY_CHANGES
 		call ActivateSenderTimer.startOneShot(ACTIVATE_PERIOD_MS);
+#endif
 
 		current_activate_message.sequence_number = sequence_number_next(&activate_sequence_counter);
 		current_activate_message.source_id = TOS_NODE_ID;
@@ -362,13 +364,14 @@ implementation
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
 
-		if (call Random.rand16() % 2 == 1)
-		{
-			CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance > sink_distance && neighbour->source_distance > source_distance)
-		}
-
+#ifdef ACTIVATE_RANDOMLY_CHANGES
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance > sink_distance)
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance == sink_distance)
+#else
+		CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance > sink_distance && neighbour->source_distance > source_distance)
+		CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance >= sink_distance && neighbour->source_distance > source_distance)
+		CHOOSE_NEIGHBOURS_WITH_PREDICATE(neighbour->sink_distance >= sink_distance && neighbour->source_distance >= source_distance)
+#endif
 
 		if (local_neighbours.size > 0)
 		{
@@ -386,14 +389,26 @@ implementation
 		am_addr_t target = AM_BROADCAST_ADDR;
 		const bool target_success = choose_activate_target(&target);
 
-		bool ack_requested = (target != AM_BROADCAST_ADDR);
-
-		if (send_Activate_message(&current_activate_message, target, &ack_requested))
+		if (!target_success)
 		{
+			PollMessage poll_message;
+			poll_message.sink_distance_of_sender= sink_distance;
+			poll_message.source_distance_of_sender = source_distance;
+
+			call Neighbours.poll(&poll_message);
+			call ActivateBackoffTimer.startOneShot(25);
 		}
 		else
 		{
-			call ActivateBackoffTimer.startOneShot(25);
+			bool ack_requested = (target != AM_BROADCAST_ADDR);
+
+			if (send_Activate_message(&current_activate_message, target, &ack_requested))
+			{
+			}
+			else
+			{
+				call ActivateBackoffTimer.startOneShot(25);
+			}
 		}
 	}
 	
@@ -401,7 +416,7 @@ implementation
 	{
 		if (error != SUCCESS)
 		{
-			post send_activate();
+			call ActivateBackoffTimer.startOneShot(25);
 		}
 		else
 		{
@@ -414,7 +429,7 @@ implementation
 			{
 				call Neighbours.rtx_result(target, FALSE);
 
-				post send_activate();
+				call ActivateBackoffTimer.startOneShot(25);
 			}
 			else
 			{
@@ -467,14 +482,19 @@ implementation
 
 			if (!sent_disable)
 			{
+#ifdef ACTIVATE_RANDOMLY_CHANGES
+				//disable_radius = (int32_t)ceil((source_distance + CONE_WIDTH/2.0) / (M_PI / 2));
+				disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / M_PI);
+#else
 				// This equation is for when the path that is activated is always away from
 				// the sink and source. If paths towards the source exist, then this should
 				// be larger.
-				//disable_radius = (int32_t)ceil((2 * source_distance + CONE_WIDTH) / (2 * M_PI));
+				disable_radius = (int32_t)ceil((source_distance + CONE_WIDTH/2.0) / M_PI);
+#endif
 
-				disable_radius = (int32_t)ceil((source_distance + CONE_WIDTH) / (2 * M_PI * 0.5));
+				//disable_radius = min(disable_radius, source_distance/2);
 
-				LOG_STDOUT(ERROR_UNKNOWN, "Disable radius is %u\n", disable_radius);
+				LOG_STDOUT(ERROR_UNKNOWN, "Disable radius is %u Dsrc/2 is %d\n", disable_radius, source_distance/2);
 
 				call DisableSenderTimer.startOneShot(25);
 				call ActivateSenderTimer.startOneShot(100);
@@ -575,7 +595,11 @@ implementation
 				post send_activate();
 			}
 
+#ifdef ACTIVATE_RANDOMLY_CHANGES
 			enable_normal_forward_with_timeout();
+#else
+			enable_normal_forward();
+#endif
 		}
 	}
 
@@ -599,7 +623,11 @@ implementation
 			METRIC_RCV_ACTIVATE(rcvd);
 
 #ifdef CONE_TYPE_WITH_SNOOP
+#	ifdef ACTIVATE_RANDOMLY_CHANGES
 			enable_normal_forward_with_timeout();
+#	else
+			enable_normal_forward();
+#	endif
 #endif
 		}
 	}
