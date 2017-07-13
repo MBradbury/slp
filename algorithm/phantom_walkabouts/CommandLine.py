@@ -212,7 +212,8 @@ class CLI(CommandLineCommon.CLI):
             "nokey": True,
             "generate_legend_graph": True,
             "allow_missing_comparison": True,
-            "missing_comparsion_value": -1,
+            "set_datafile_missing": True,
+            "missing_value_string": '?',
         }
 
         self._create_min_max_versus_graph(*args, **kwargs)
