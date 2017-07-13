@@ -52,11 +52,7 @@ class CLI(CommandLineCommon.CLI):
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=(
-                'sent', 'delivered', 'time taken',
-                #'energy impact',
-                #'energy impact per node',
-                'energy impact per node per second',
-                'norm(norm(sent,time taken),num_nodes)',
+                'sent', 'captured', 'received ratio',
                 'normal latency', 'ssd', 'attacker distance',
             ))
 
@@ -74,7 +70,7 @@ class CLI(CommandLineCommon.CLI):
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             #'good move ratio': ('Good Move Ratio (%)', 'right top'),
-            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
+            #'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
         }
 
         varying = [
