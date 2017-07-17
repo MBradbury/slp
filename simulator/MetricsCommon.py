@@ -103,13 +103,13 @@ class MetricsCommon(object):
     def message_kind_to_string(self, kind):
         try:
             return self.message_types[int(kind)]
-        except TypeError:
+        except ValueError:
             return kind
 
     def node_kind_to_string(self, kind):
         try:
             return self.node_types[int(kind)]
-        except TypeError:
+        except ValueError:
             return kind
 
 
