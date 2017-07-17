@@ -98,12 +98,12 @@ implementation
     App.EmptyNormalSend -> EmptyNormalSender;
     App.EmptyNormalReceive -> EmptyNormalReceiver;
 
-    components
-        new AMSenderC(REPAIR_CHANNEL) as RepairSender,
-        new AMReceiverC(REPAIR_CHANNEL) as RepairReceiver;
+    /*components*/
+        /*new AMSenderC(REPAIR_CHANNEL) as RepairSender,*/
+        /*new AMReceiverC(REPAIR_CHANNEL) as RepairReceiver;*/
 
-    App.RepairSend -> RepairSender;
-    App.RepairReceive -> RepairReceiver;
+    /*App.RepairSend -> RepairSender;*/
+    /*App.RepairReceive -> RepairReceiver;*/
 
     components
         new AMSenderC(CRASH_CHANNEL) as CrashSender,
