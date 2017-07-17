@@ -52,6 +52,10 @@ def _add_avrora_radio_model(parser, **kwargs):
 
     parser.add_argument("-rm", "--radio-model", type=AvroraRadioModel.eval_input, required=True)
 
+def _add_log_converter(parser, **kwargs):
+    import simulator.OfflineLogConverter as OfflineLogConverter
+
+    parser.add_argument("--log-converter", type=str, choices=OfflineLogConverter.names(), required=True)
 
 OPTS = {
     "configuration":       lambda x, **kwargs: x.add_argument("-c", "--configuration",
@@ -145,6 +149,8 @@ OPTS = {
     "log file":            lambda x, **kwargs: x.add_argument("--log-file",
                                                               type=str,
                                                               required=True),
+
+    "log converter":        _add_log_converter,
 
     "low powered listening": _add_low_powered_listening,
 
