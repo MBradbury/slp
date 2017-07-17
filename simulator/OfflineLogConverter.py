@@ -87,7 +87,7 @@ class Avrora(OfflineLogConverter):
         return self
 
     def __next__(self):
-        while True;
+        while True:
             line = next(self._log_file_iter)
 
             if not started and line.startswith(self.results_start):
