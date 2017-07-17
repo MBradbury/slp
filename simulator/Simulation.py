@@ -364,13 +364,16 @@ class OfflineSimulation(object):
 
         self._event_log = event_log
 
+        if args.verbose:
+            self.register_output_handler("stdout", self._stdout_printer)
+        else:
+            self.register_output_handler("stdout", None)
+
         import re
         self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.+)\s*')
 
     def __enter__(self):
-
         self.enter_start_time = timeit.default_timer()
-
         return self
 
     def __exit__(self, tp, value, tb):
@@ -395,7 +398,6 @@ class OfflineSimulation(object):
 
     def _create_nodes(self, node_locations):
         """Creates nodes"""
-
         for (nid, loc) in node_locations.items():
             self.nodes.append(Node(nid, loc, None))
 
@@ -448,7 +450,6 @@ class OfflineSimulation(object):
         return not self.attacker_found_source
 
     def _parse_line(self, line):
-
         # Example line:
         #2016/07/27 14:47:34.418:Metric-COMM:2:D:42202:DELIVER:Normal,4,1,1,22
 
@@ -484,7 +485,8 @@ class OfflineSimulation(object):
                 result = self._parse_line(line)
 
                 if result is None:
-                    print("Warning unable to parse: '{}'. Skipping that line.".format(line), file=sys.stderr)
+                    print("Warning unable to parse: '{}'. As hex: '{}'. Skipping that line.".format(
+                        line, ":".join("{:02x}".format(ord(c)) for c in line)), file=sys.stderr)
                     continue
 
                 (current_time, kind, node_local_time, log_type, node_id, message_line) = result
@@ -519,18 +521,21 @@ class OfflineSimulation(object):
 
                 # Handle the event
                 if kind in self._line_handlers:
-                    self._line_handlers[kind](log_type, node_id, self.sim_time(), message_line)
+                    if self._line_handlers[kind] is not None:
+                        self._line_handlers[kind](log_type, node_id, self.sim_time(), message_line)
                 else:
-                    print("There is no handler for the kind {}. Unable to process the line {}.".format(kind, message_line), file=sys.stderr)
+                    print("There is no handler for the kind {}. Unable to process the line '{}'.".format(kind, message_line), file=sys.stderr)
 
                 if log_type == "E":
-                    print("An error occurred: '{}'.".format(message_line), file=sys.stderr)
+                    print("An error occurred on node {} at {}: '{}'.".format(node_id, self.sim_time(), message_line), file=sys.stderr)
 
                 event_count += 1
 
         finally:
             self._post_run(event_count)
 
+    def _stdout_printer(self, log_type, node_id, sim_time, message):
+        print(message)
 
     def add_attacker(self, attacker):
         self.attackers.append(attacker)
