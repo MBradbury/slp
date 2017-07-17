@@ -26,7 +26,7 @@ class FlockLab(OfflineLogConverter):
         for line in self._log_file:
             if line.startswith('#'):
                 continue
-            if line == "\0\n":
+            if line.endswith("\0\n"):
                 continue
 
             timestamp, observer_id, node_id, direction, output = line.split(",", 4)
