@@ -24,8 +24,6 @@ class CLI(CommandLineCommon.CLI):
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("graph", self._run_graph)
-        subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
-        subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graphs)
 
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
@@ -85,59 +83,3 @@ class CLI(CommandLineCommon.CLI):
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
             source_period_normalisation="NumSources"
         )
-
-    def _run_ccpe_comparison_table(self, args):
-        from data.old_results import OldResults
-
-        old_results = OldResults(
-            'results/CCPE/protectionless-results.csv',
-            parameters=tuple(),
-            results=('time taken', 'received ratio', 'safety period')
-        )
-
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=('time taken', 'received ratio', 'safety period')
-        )
-
-        result_table = direct_comparison.ResultTable(old_results, protectionless_results)
-
-        self._create_table('{}-ccpe-comparison'.format(self.algorithm_module.name), result_table)
-
-    def _run_ccpe_comparison_graphs(self, args):
-        from data.old_results import OldResults
-
-        result_names = ('time taken', 'received ratio', 'safety period')
-
-        old_results = OldResults(
-            'results/CCPE/protectionless-results.csv',
-            parameters=self.algorithm_module.local_parameter_names,
-            results=result_names
-        )
-
-        protectionless_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=result_names
-        )
-
-        result_table = direct_comparison.ResultTable(old_results, protectionless_results)
-
-        def create_ccpe_comp_versus(yxaxis, pc=False):
-            name = 'ccpe-comp-{}-{}'.format(yxaxis, "pcdiff" if pc else "diff")
-
-            versus.Grapher(
-                self.algorithm_module.graphs_path, name,
-                xaxis='network size', yaxis=yxaxis, vary='source period',
-                yextractor=lambda (diff, pcdiff): pcdiff if pc else diff
-            ).create(result_table)
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
-            ).run()
-
-        for result_name in result_names:
-            create_ccpe_comp_versus(result_name, pc=True)
-            create_ccpe_comp_versus(result_name, pc=False)
