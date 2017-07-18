@@ -35,7 +35,8 @@ class RunSimulations(RunSimulationsCommon):
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
+        # super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
+        super(CLI, self).__init__(__package__, True, RunSimulations)
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
@@ -67,8 +68,7 @@ class CLI(CommandLineCommon.CLI):
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
-            parameters.pre_beacon_periods, parameters.dissem_timeout, parameters.search_distance,
-            parameters.simulate_crash
+            parameters.pre_beacon_periods, parameters.dissem_timeout, parameters.search_distance
         ))
 
         # argument_product = list(itertools.product(
