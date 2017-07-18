@@ -203,7 +203,7 @@ class RunSimulationsCommon(object):
 
         # These characters cause issues in file names.
         # They also need to be valid python module names.
-        chars = ".,()="
+        chars = ".,()={}'\""
 
         for char in chars:
             name = name.replace(char, "_")
