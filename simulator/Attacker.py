@@ -78,6 +78,8 @@ class Attacker(object):
 
         (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
 
+        msg_type = self._sim.metrics.message_kind_to_string(msg_type)
+
         # Doesn't want to process this message if this is a message the attacker knows to ignore
         if msg_type in MESSAGES_TO_IGNORE:
             return False
