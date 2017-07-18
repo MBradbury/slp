@@ -7,4 +7,4 @@ def _setup():
 (name, results_path, result_file, result_file_path, graphs_path) = _setup()
 
 
-local_parameter_names = ("protected sink hops", "activate period", "cone type")
+local_parameter_names = ("deactivate period",)

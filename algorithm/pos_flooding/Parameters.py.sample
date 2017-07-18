@@ -7,7 +7,7 @@ communication_models = ["low-asymmetry"]
 
 sizes = [11, 15, 21, 25]
 
-source_periods = [2.0, 1.0, 0.5, 0.25, 0.125]
+source_periods = [2.0, 1.0, 0.5, 0.25]
 
 configurations = [
     'SourceCorner',
@@ -49,6 +49,4 @@ latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
 
-protected_sink_hops = [1, 2]
-
-cone_widths = [4, 5]
+deactivate_period = [2.0, 1.0, 0.5, 0.25]
