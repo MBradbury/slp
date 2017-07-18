@@ -32,7 +32,7 @@ class Plotter(GenericPlotter):
     def prepareCanvas(self):
         self.tk = Tk()
         self.tk.title(self.windowTitle)
-        self.canvas = Canvas(self.tk, width=700, height=700)
+        self.canvas = Canvas(self.tk, width=850, height=850)
         self.canvas.pack(fill=BOTH, expand=YES)
         self.createText('time', 0, 0, text="time=0.0 seconds")
 
