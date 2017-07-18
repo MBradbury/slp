@@ -476,7 +476,7 @@ implementation
                         }
                     }
                 }
-                if(!das) simdbg("DAS-State", "DAS is 0\n");
+                if(!das) simdbgverbose("DAS-State", "DAS is 0\n");
             }
 
             /*
