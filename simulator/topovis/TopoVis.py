@@ -242,7 +242,7 @@ class Scene:
 
         if cmd is None:
             return
-        elif type(cmd) is str:
+        elif isinstance(cmd, str):
             exec('self.' + cmd)
         else:
             cmd(*args, **kwargs)
