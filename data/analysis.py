@@ -268,6 +268,7 @@ class Analyse(object):
         "AttackerStepsTowards": _parse_dict_tuple_nodes_to_value,
         "AttackerSinkDistance": _parse_dict_tuple_nodes_to_value,
         "AttackerMinSourceDistance": _parse_dict_tuple_nodes_to_value,
+        "AttackerReceiveRatio": partial(_parse_dict_node_to_value, decompress=False),
         #"NodeWasSource": _inf_handling_literal_eval,
 
         "NodeTransitions": _parse_dict_string_tuple_to_value,

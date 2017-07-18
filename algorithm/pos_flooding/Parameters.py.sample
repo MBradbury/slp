@@ -7,7 +7,7 @@ communication_models = ["low-asymmetry"]
 
 sizes = [11, 15, 21, 25]
 
-source_periods = [1.0, 0.5, 0.25, 0.125]
+source_periods = [2.0, 1.0, 0.5, 0.25]
 
 configurations = [
     'SourceCorner',
@@ -39,7 +39,7 @@ configurations = [
     'Source2Corner2OppositeCorner'
 ]
 
-repeats = 2000
+repeats = 5000
 
 attacker_models = ['SeqNosReactiveAttacker()']
 
@@ -48,3 +48,5 @@ fault_models = ['ReliableFaultModel()']
 latest_node_start_time = 1.0 # in seconds
 
 node_id_orders = ['randomised']
+
+deactivate_period = [2.0, 1.0, 0.5, 0.25]

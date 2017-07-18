@@ -174,7 +174,8 @@ implementation
 		const char* message
 		)
 	{
-		simdbg("stdout", "%s", message);
+		// No newline here, message needs to provide it!
+		simdbg("stdout", "%" PRIu16 ",%s", code, message);
 	}
 
 	//##########SLP TDMA DAS##########

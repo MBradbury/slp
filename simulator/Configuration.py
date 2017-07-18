@@ -30,6 +30,7 @@ class Configuration(object):
                     self.source_ids, topology.nodes))
 
         self._dist_matrix = None
+        self._dist_matrix_meters = None
         self._predecessors = None
 
         self._build_connectivity_matrix()
@@ -55,14 +56,14 @@ class Configuration(object):
         )
 
     def _build_connectivity_matrix(self):
+        coords = list(self.topology.nodes.values())
+
+        self._dist_matrix_meters = cdist(coords, coords, 'euclidean')
+
         # If there is not a uniform distance between nodes,
         # then we cannot build the connectivity matrix this way
         if not hasattr(self.topology, "distance"):
             return
-
-        coords = list(self.topology.nodes.values())
-
-        self._dist_matrix_meters = cdist(coords, coords, 'euclidean')
 
         connectivity_matrix = self._dist_matrix_meters <= self.topology.distance
 

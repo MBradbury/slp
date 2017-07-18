@@ -343,7 +343,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
+			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
 			call ObjectDetector.start_later(3 * 1000);
 		}
@@ -357,7 +357,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
+		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);

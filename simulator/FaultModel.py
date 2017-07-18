@@ -65,12 +65,8 @@ class FaultPointModel(FaultModel):
             node = self.sim.node_from_ordered_nid(int(node_id))
             self.fault_occurred(fault_point_name, node)
 
-            # Cannot check the self._has_gui variable as it is always false
-            # for some reason
-            try:
+            if self._has_gui:
                 self._draw(int(node_id))
-            except:
-                pass
 
     def fault_occurred(self, fault_point_name, node):
         raise NotImplementedError("FaultPointModel subclass must implement fault_occurred function")

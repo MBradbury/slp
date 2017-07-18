@@ -26,6 +26,8 @@ class Grapher(GrapherBase):
 
         self.vvalue_label_converter = str
 
+        self.allow_missing_comparison = False
+
         self.key_equivalence = key_equivalence
 
     def create(self, comparison_results, actual_results, baseline_results=None):
@@ -139,8 +141,13 @@ class Grapher(GrapherBase):
 
                             dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
 
-                            if np.isclose(min_value, max_value):
-                                min_max_merge_consider[(key_names, values, self.max_label[i], self.min_label[i], i)].add(xvalue)
+                            try:
+                                if np.isclose(min_value, max_value):
+                                    min_max_merge_consider[(key_names, values, self.max_label[i], self.min_label[i], i)].add(xvalue)
+                            except TypeError:
+                                # We can't compare default values that are strings,
+                                # so just skip trying to merge these ones
+                                pass
 
                         else:
                             print("Not processing {} as it is not in the min/max data:".format(data_key))
@@ -176,8 +183,6 @@ class Grapher(GrapherBase):
 
                 # Update dat
                 dat[(key_names, values)] = local_dat
-
-        #raise RuntimeError()
 
         return self._build_plots_from_dat(dat)
 
@@ -227,8 +232,11 @@ class Grapher(GrapherBase):
             try:
                 return res[tuple()]
             except KeyError:
-                raise KeyError("Unable to find {} or tuple() in {} when looking for an xvalue with the key {}".format(
-                    xvalue, set(res.keys()), data_key))
+                if self.allow_missing_comparison:
+                    return self.missing_value_string
+                else:
+                    raise KeyError("Unable to find {} or tuple() in {} when looking for an xvalue with the key {}".format(
+                        xvalue, set(res.keys()), data_key))
 
     def _order_keys(self, keys):
         """Order the keys alphabetically, except for the baseline label.
