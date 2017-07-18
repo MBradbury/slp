@@ -632,7 +632,7 @@ implementation
         }
         if(call TDMA.get_slot() != BOT || period_counter < get_pre_beacon_periods())
         {
-            call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_slot_period() * random_float()));
+            call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_dissem_period() * random_float()));
         }
 
         if(period_counter > get_pre_beacon_periods())

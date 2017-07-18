@@ -23,6 +23,7 @@ class Metrics(MetricsCommon):
         d["ChangeSent"]               = lambda x: x.number_sent("Change")
         d["SearchSent"]               = lambda x: x.number_sent("Search")
         d["EmptyNormalSent"]          = lambda x: x.number_sent("EmptyNormal")
+        d["CrashSent"]                = lambda x: x.number_sent("Crash")
 
         d["FirstSendTime"]            = lambda x: x.first_normal_send_times()
 

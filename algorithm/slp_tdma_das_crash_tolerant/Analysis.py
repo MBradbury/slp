@@ -25,6 +25,7 @@ class Analyzer(AnalyzerCommon):
         d['dissem']             = lambda x: AnalyzerCommon._format_results(x, 'DissemSent')
         d['search']             = lambda x: AnalyzerCommon._format_results(x, 'SearchSent')
         d['change']             = lambda x: AnalyzerCommon._format_results(x, 'ChangeSent')
+        d['crash']              = lambda x: AnalyzerCommon._format_results(x, 'CrashSent')
 
         d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource', allow_missing=True)
 
