@@ -32,44 +32,45 @@ class Linear(object):
         )
 
 class Sigmoid(object):
+    dr = 0
 
     @staticmethod
     def sigmoid_funtion(k, value, x0):
         return 1.0 / (1.0 + math.exp(k * (-value - x0)))
 
     @classmethod
-    def utility_dr(cls, k, value, x0, cutoff, r_dr, cutoff_dr):
-        if value <= cutoff:
-            return 0.0
-        else:
-            return cls.sigmoid_funtion(k, value, x0)
+    def utility_dr(cls, k, value, x0, dr):
+        return cls.sigmoid_funtion(k, value, x0)
 
     @classmethod
-    def utility_star(cls, k, value, x0, cutoff, r_dr, cutoff_dr):
-        if r_dr <= cutoff_dr or value >= cutoff:
-            return 0.0
-        else:
-            return cls.sigmoid_funtion(k, -value, x0)
+    def utility_lat(cls, k, value, x0, dr):
+        return cls.sigmoid_funtion(k, -value, x0)
+
+    @classmethod
+    def utility_star(cls, k, value, x0, dr):
+        return cls.sigmoid_funtion(k, -value/dr, x0)
 
     @classmethod
     def utility_of(cls, name):
         if name == "ReceiveRatio":
             return cls.utility_dr
+        elif name == "NormalLatency":
+            return cls.utility_lat
         else:
             return cls.utility_star
 
     @classmethod
     def utility(cls, x, parameters):
-        r_dr, cutoff_dr = 0, 0
-        for (name, param) in parameters:
+        for (name,param) in parameters:
             if name == "ReceiveRatio":
-                r_dr, cutoff_dr = x.average_of[name], param.cutoff
-        
-        #for (name, k, x0, cutoff, weight) in parameters:
-        #    print "utility of {}: {}".format(name, cls.utility_of(name)(k, x.average_of[name], x0, cutoff, r_dr, cutoff_dr))
+                cls.dr =  x.average_of[name]
+
+        #print "$$dr = {}$$".format(cls.dr)
+        #for (name,param) in parameters:
+        #    print "***utility of {}, value:{}***".format(name, cls.utility_of(name)(param.k, x.average_of[name], param.x0, cls.dr))
 
         return sum(
-            param.weight * cls.utility_of(name)(param.k, x.average_of[name], param.x0, param.cutoff, r_dr, cutoff_dr)
+            param.weight * cls.utility_of(name)(param.k, x.average_of[name], param.x0, cls.dr)
             for (name, param)
             in parameters
         )
@@ -80,10 +81,9 @@ class LinearParameters(object):
         self.weight = weight
 
 class SigmoidParameters(object):
-    def __init__(self, k, x0, cutoff, weight):
+    def __init__(self, k, x0, weight):
         self.k = k
         self.x0 = x0
-        self.cutoff = cutoff
         self.weight = weight
 
 # Linear parameters used in the SRDS 2017 paper submission
@@ -109,19 +109,19 @@ class BattleLinear(object):
 # Sigmoid parameters used for SRDS 2017 journal extension (FGCS)
 
 class AnimalProtectionSigmoid(object):
-    cr = SigmoidParameters(k=5, x0=0.5, cutoff=0.5, weight=0.7)         # ranges from [0, 1]
-    dr = SigmoidParameters(k=10, x0=-0.5, cutoff=0.2, weight=0.1)       # ranges from [0, 1]
-    lat = SigmoidParameters(k=1, x0=2.5, cutoff=3, weight=0.1)          # scale is in seconds
-    msg = SigmoidParameters(k=0.005, x0=1000, cutoff=1500, weight=0.1)  # message send numbers
+    cr = SigmoidParameters(k=10.0, x0=0.4, weight=0.4)         # ranges from [0, 1]
+    dr = SigmoidParameters(k=10.0, x0=-0.5, weight=0.2)       # ranges from [0, 1]
+    lat = SigmoidParameters(k=2.0, x0=1.5, weight=0.2)          # scale is in seconds
+    msg = SigmoidParameters(k=0.005, x0=1000.0, weight=0.2)  # message send numbers
 
 class AssetMonitoringSigmoid(object):
-    cr = SigmoidParameters(k=10, x0=0.5, cutoff=0.8, weight=0.1)       
-    dr = SigmoidParameters(k=5, x0=-0.5, cutoff=0.2, weight=0.7)       
-    lat = SigmoidParameters(k=1, x0=2.5, cutoff=3, weight=0.1)     
-    msg = SigmoidParameters(k=0.005, x0=1000, cutoff=1500, weight=0.1)  
+    cr = SigmoidParameters(k=10.0, x0=0.5, weight=0.2)       
+    dr = SigmoidParameters(k=10.0, x0=-0.6, weight=0.4)       
+    lat = SigmoidParameters(k=2.0, x0=1.5, weight=0.2)     
+    msg = SigmoidParameters(k=0.005, x0=1000.0, weight=0.2)  
 
 class BattleSigmoid(object):
-    cr = SigmoidParameters(k=10, x0=0.5, cutoff=0.8, weight=0.1)
-    dr = SigmoidParameters(k=5, x0=-0.5, cutoff=0.5, weight=0.4)
-    lat = SigmoidParameters(k=5, x0=0.5, cutoff=0.8, weight=0.4)
-    msg = SigmoidParameters(k=0.005, x0=1000, cutoff=1500, weight=0.1)
+    cr = SigmoidParameters(k=10.0, x0=0.5, weight=0.1)
+    dr = SigmoidParameters(k=10.0, x0=-0.5, weight=0.4)
+    lat = SigmoidParameters(k=5.0, x0=1.0, weight=0.4)
+    msg = SigmoidParameters(k=0.005, x0=1000.0, weight=0.1)

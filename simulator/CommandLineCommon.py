@@ -234,6 +234,8 @@ class CLI(object):
                 for (attr_name, attr_value) in kwargs.items():
                     if hasattr(g, attr_name):
                         setattr(g, attr_name, attr_value)
+                    else:
+                        print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
@@ -282,7 +284,10 @@ class CLI(object):
                 g.key_position = key_position
 
                 for (attr_name, attr_value) in kwargs.items():
-                    setattr(g, attr_name, attr_value)
+                    if hasattr(g, attr_name):
+                        setattr(g, attr_name, attr_value)
+                    else:
+                        print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
@@ -294,19 +299,20 @@ class CLI(object):
                     ).run()
 
     def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying,
-                                     custom_yaxis_range_max=None,
+                                     algo_results=None, custom_yaxis_range_max=None,
                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                      yextractors=None,
                                      **kwargs):
         from data.graph import min_max_versus
 
-        algo_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            source_period_normalisation=source_period_normalisation,
-            network_size_normalisation=network_size_normalisation,
-            results_filter=results_filter)
+        if algo_results is None:
+            algo_results = results.Results(
+                self.algorithm_module.result_file_path,
+                parameters=self.algorithm_module.local_parameter_names,
+                results=tuple(graph_parameters.keys()),
+                source_period_normalisation=source_period_normalisation,
+                network_size_normalisation=network_size_normalisation,
+                results_filter=results_filter)
 
         all_comparion_results = [
             results.Results(
@@ -316,15 +322,19 @@ class CLI(object):
                 source_period_normalisation=source_period_normalisation,
                 network_size_normalisation=network_size_normalisation,
                 results_filter=results_filter)
+            if not hasattr(comparion_module, "data") else comparion_module
 
             for comparion_module in comparison_modules
         ]
 
         if baseline_module is not None:
-            baseline_results = results.Results(
-                baseline_module.result_file_path,
-                parameters=baseline_module.local_parameter_names,
-                results=tuple(graph_parameters.keys()))
+            if hasattr(baseline_module, "data"):
+                baseline_results = baseline_module
+            else:
+                baseline_results = results.Results(
+                    baseline_module.result_file_path,
+                    parameters=baseline_module.local_parameter_names,
+                    results=tuple(graph_parameters.keys()))
         else:
             baseline_results = None
 
@@ -350,7 +360,10 @@ class CLI(object):
                 g.key_position = key_position
 
                 for (attr_name, attr_value) in kwargs.items():
-                    setattr(g, attr_name, attr_value)
+                    if hasattr(g, attr_name):
+                        setattr(g, attr_name, attr_value)
+                    else:
+                        print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
@@ -397,6 +410,8 @@ class CLI(object):
             for (attr_name, attr_value) in kwargs.items():
                 if hasattr(g, attr_name):
                     setattr(g, attr_name, attr_value)
+                else:
+                    print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
 
             if custom_yaxis_range_max is not None:
                 g.yaxis_range_max = custom_yaxis_range_max
@@ -439,12 +454,18 @@ class CLI(object):
             else:
                 product_argument.append(getattr(parameters, _get_global_plural_name(global_name)))
 
+        local_appendicies_to_try = ["s", "es", ""]
+
         # Now lets process the algorithm specific parameters
         for local_name in self.algorithm_module.local_parameter_names:
-            try:
-                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "s"))
-            except AttributeError:
-                product_argument.append(getattr(parameters, local_name.replace(" ", "_") + "es"))
+            for appendix in local_appendicies_to_try:
+                try:
+                    product_argument.append(getattr(parameters, local_name.replace(" ", "_") + appendix))
+                    break
+                except AttributeError:
+                    continue
+            else:
+                raise RuntimeError("Unable to find plural of {}".format(local_name))
 
         argument_product = itertools.product(*product_argument)
 

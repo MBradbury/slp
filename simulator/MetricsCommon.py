@@ -99,13 +99,27 @@ class MetricsCommon(object):
     def _time_to_bin(self, time):
         return int(math.floor(time / self._time_bin_width))
 
+
+    def message_kind_to_string(self, kind):
+        try:
+            return self.message_types[int(kind)]
+        except ValueError:
+            return kind
+
+    def node_kind_to_string(self, kind):
+        try:
+            return self.node_types[int(kind)]
+        except ValueError:
+            return kind
+
+
     def process_node_type_add(self, d_or_e, node_id, time, detail):
         (ident, name) = detail.split(',')
-        self.node_types[name] = int(ident)
+        self.node_types[int(ident)] = name
 
     def process_message_type_add(self, d_or_e, node_id, time, detail):
         (ident, name) = detail.split(',')
-        self.message_types[name] = int(ident)
+        self.message_types[int(ident)] = name
 
     def process_bcast_event(self, d_or_e, node_id, time, detail):
         (kind, status, sequence_number) = detail.split(',')
@@ -116,6 +130,8 @@ class MetricsCommon(object):
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
         time = float(time)
+
+        kind = self.message_kind_to_string(kind)
 
         self.sent[kind][top_node_id] += 1
 
@@ -167,13 +183,15 @@ class MetricsCommon(object):
             top_source_id = ttn(ord_source_id)
             idx_source_id = oi(ord_source_id)
 
-            prox_distance = nd[idx_source_id, idx_proximate_source_id]
-            node_distance = nd[idx_source_id, idx_node_id]
-            
-            if node_distance < prox_distance:
-                further_hops[kind][top_source_id] += 1
-            else:
-                closer_or_same_hops[kind][top_source_id] += 1
+            # Not all topologies know the distance in hops
+            if nd is not None:
+                prox_distance = nd[idx_source_id, idx_proximate_source_id]
+                node_distance = nd[idx_source_id, idx_node_id]
+                
+                if node_distance < prox_distance:
+                    further_hops[kind][top_source_id] += 1
+                else:
+                    closer_or_same_hops[kind][top_source_id] += 1
             
             prox_distance_m = ndm[idx_source_id, idx_proximate_source_id]
             node_distance_m = ndm[idx_source_id, idx_node_id]
@@ -187,6 +205,8 @@ class MetricsCommon(object):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        kind = self.message_kind_to_string(kind)
 
         self.received[kind][top_node_id] += 1
 
@@ -212,6 +232,8 @@ class MetricsCommon(object):
         (kind, proximate_source_id, ultimate_source_id, sequence_number) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        kind = self.message_kind_to_string(kind)
 
         self.delivered[kind][top_node_id] += 1
 

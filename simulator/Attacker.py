@@ -19,7 +19,7 @@ MESSAGES_WITHOUT_SEQUENCE_NUMBERS = {
 MESSAGES_TO_IGNORE = {
     'Beacon', 'Away', 'Move', 'Choose', 'Dissem',
     'CTPBeacon', 'Inform', 'Search', 'Change',
-    'Poll', 'Notify', 'Disable', 'Repair', 'Crash',
+    'Poll', 'Notify', 'Disable', 'Repair', 'Activate', 'Crash',
 }
 
 class Attacker(object):

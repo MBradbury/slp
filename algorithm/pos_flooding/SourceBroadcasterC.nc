@@ -2,23 +2,22 @@
 #include "Common.h"
 #include "SendReceiveFunctions.h"
 
+#include "NeighbourDetail.h"
+
 #include "NormalMessage.h"
 #include "AwayMessage.h"
-#include "DisableMessage.h"
 
 #include <Timer.h>
 #include <TinyError.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_DISABLE(msg) METRIC_RCV(Disable, source_addr, msg->source_id, UNKNOWN_SEQNO, BOTTOM)
-
-#define AWAY_DELAY_MS 200
 
 module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
+	uses interface Random;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -26,16 +25,13 @@ module SourceBroadcasterC
 	uses interface SplitControl as RadioControl;
 
 	uses interface Timer<TMilli> as AwaySenderTimer;
-	uses interface Timer<TMilli> as DisableSenderTimer;
+	uses interface Timer<TMilli> as DisableExpiryTimer;
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
 
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
-
-	uses interface AMSend as DisableSend;
-	uses interface Receive as DisableReceive;
 
 	uses interface MetricLogging;
 
@@ -61,8 +57,53 @@ implementation
 
 	int32_t sink_distance;
 	int32_t source_distance;
+	int32_t sink_source_distance;
 
 	int away_messages_to_send;
+
+	bool process_messages;
+
+	am_addr_t previously_sent_to;
+
+	// Produces a random float between 0 and 1
+	float random_float(void)
+	{
+		// There appears to be problem with the 32 bit random number generator
+		// in TinyOS that means it will not generate numbers in the full range
+		// that a 32 bit integer can hold. So use the 16 bit value instead.
+		// With the 16 bit integer we get better float values to compared to the
+		// fake source probability.
+		// Ref: https://github.com/tinyos/tinyos-main/issues/248
+		const uint16_t rnd = call Random.rand16();
+
+		return ((float)rnd) / UINT16_MAX;
+	}
+
+	void disable_normal_forward(void)
+	{
+		if (process_messages)
+		{
+			call Leds.led2Off();
+			process_messages = FALSE;
+			LOG_STDOUT(EVENT_RADIO_DISABLED, "radio disabled\n");
+		}
+	}
+
+	void enable_normal_forward(void)
+	{
+		if (!process_messages)
+		{
+			call Leds.led2On();
+			process_messages = TRUE;
+			LOG_STDOUT(EVENT_RADIO_ENABLED, "radio enabled\n");
+		}
+	}
+
+	void disable_normal_forward_with_timeout(void)
+	{
+		disable_normal_forward();
+		call DisableExpiryTimer.startOneShot(DEACTIVATE_PERIOD_MS);
+	}
 
 	event void Boot.booted()
 	{
@@ -75,12 +116,12 @@ implementation
 
 		sink_distance = BOTTOM;
 		source_distance = BOTTOM;
+		sink_source_distance = BOTTOM;
 
 		away_messages_to_send = 3;
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
-		call MessageType.register_pair(DISABLE_CHANNEL, "Disable");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
@@ -98,6 +139,8 @@ implementation
 			call NodeType.init(NormalNode);
 		}
 
+		enable_normal_forward();
+
 		call RadioControl.start();
 	}
 
@@ -105,11 +148,9 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			simdbgverbose("SourceBroadcasterC", "RadioControl started.\n");
+			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
-			call Leds.led2On();
-
-			call ObjectDetector.start_later(5 * 1000);
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
@@ -121,9 +162,7 @@ implementation
 
 	event void RadioControl.stopDone(error_t err)
 	{
-		simdbgverbose("SourceBroadcasterC", "RadioControl stopped.\n");
-
-		call Leds.led2Off();
+		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
 
 	event void ObjectDetector.detect()
@@ -138,6 +177,8 @@ implementation
 			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected\n");
 
 			call SourcePeriodModel.startPeriodic();
+
+			enable_normal_forward();
 		}
 	}
 
@@ -155,7 +196,6 @@ implementation
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
-	USE_MESSAGE_NO_EXTRA_TO_SEND(Disable);
 
 	event void SourcePeriodModel.fired()
 	{
@@ -165,12 +205,18 @@ implementation
 
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_distance = 0;
+		message.sink_source_distance = sink_distance;
 		message.source_id = TOS_NODE_ID;
 
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
+	}
+
+	event void DisableExpiryTimer.fired()
+	{
+		enable_normal_forward();
 	}
 
 	event void AwaySenderTimer.fired()
@@ -183,33 +229,27 @@ implementation
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			sequence_number_increment(&away_sequence_counter);
-		}
-		else
-		{
+
+			away_messages_to_send -= 1;
+
 			if (away_messages_to_send > 0)
 			{
 				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
 			}
 		}
-	}
-
-	event void DisableSenderTimer.fired()
-	{
-		DisableMessage disable_message;
-		disable_message.source_id = TOS_NODE_ID;
-		disable_message.hop_limit = DISABLE_HOPS;
-
-		send_Disable_message(&disable_message, AM_BROADCAST_ADDR);
+		else
+		{
+			call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
+		}
 	}
 
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		source_distance = minbot(source_distance, rcvd->source_distance + 1);
+		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
 
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
 		{
-			NormalMessage forwarding_message;
-
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
@@ -217,14 +257,21 @@ implementation
 			simdbgverbose("SourceBroadcasterC", "Received unseen Normal seqno=" NXSEQUENCE_NUMBER_SPEC " from %u.\n",
 				rcvd->sequence_number, source_addr);
 
-			forwarding_message = *rcvd;
-			forwarding_message.source_distance += 1;
-
-			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
-
-			if (source_distance != BOTTOM && sink_distance != BOTTOM && sink_distance == PROTECTED_SINK_HOPS)
+			if (process_messages)
 			{
-				call DisableSenderTimer.startOneShot(25);
+				NormalMessage forwarding_message = *rcvd;
+				forwarding_message.source_distance += 1;
+				forwarding_message.sink_source_distance = sink_source_distance;
+
+				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}
+
+			if (source_distance != BOTTOM && sink_distance != BOTTOM && sink_source_distance != BOTTOM &&
+				source_distance < sink_source_distance &&
+				(sink_distance >= 2 && sink_distance <= ceil(sink_source_distance/2.0)) &&
+				(rcvd->sequence_number & 1) == 0)
+			{
+				disable_normal_forward_with_timeout();
 			}
 		}
 	}
@@ -272,31 +319,4 @@ implementation
 		case NormalNode: x_receive_Away(rcvd, source_addr); break;
 		case SourceNode: break;
 	RECEIVE_MESSAGE_END(Away)
-
-
-	void Normal_receive_Disable(const DisableMessage* const rcvd, am_addr_t source_addr)
-	{
-		METRIC_RCV_DISABLE(rcvd);
-
-		simdbg("stdout", "Received disable\n");
-
-		if (sink_distance != BOTTOM && sink_distance > PROTECTED_SINK_HOPS)
-		{
-			if (rcvd->hop_limit > 0)
-			{
-				DisableMessage forwarding_message = *rcvd;
-				forwarding_message.hop_limit -= 1;
-
-				send_Disable_message(&forwarding_message, AM_BROADCAST_ADDR);
-			}
-
-			call RadioControl.stop();
-		}
-	}
-
-	RECEIVE_MESSAGE_BEGIN(Disable, Receive)
-		case SinkNode: break;
-		case NormalNode: Normal_receive_Disable(rcvd, source_addr); break;
-		case SourceNode: break;
-	RECEIVE_MESSAGE_END(Disable)
 }

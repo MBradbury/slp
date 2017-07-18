@@ -70,6 +70,9 @@ class Grapher(GrapherBase):
         self.generate_legend_graph = False
         self.legend_font_size = '14'
 
+        self.missing_value_string = '?'
+        self.set_datafile_missing = False
+
     def _value_extractor(self, yvalue):
         if self.error_bars:
             return yvalue
@@ -146,9 +149,9 @@ class Grapher(GrapherBase):
                         if yvalue is not None and not isinstance(yvalue, np.ndarray):
                             raise RuntimeError("Cannot display error bars for {} as no stddev is included in the results".format(dir_name))
 
-                        row.extend(yvalue if yvalue is not None else ['?', '?'])
+                        row.extend(yvalue if yvalue is not None else [self.missing_value_string, self.missing_value_string])
                     else:
-                        row.append(yvalue if yvalue is not None else '?')
+                        row.append(yvalue if yvalue is not None else self.missing_value_string)
 
                 table.append(row)
 
@@ -162,6 +165,9 @@ class Grapher(GrapherBase):
             graph_p.write('#!/usr/bin/gnuplot\n')
 
             graph_p.write('set terminal pdf enhanced\n')
+
+            if self.set_datafile_missing:
+                graph_p.write('set datafile missing "{}"\n'.format(self.missing_value_string))
 
             if self.ylabel_font is not None:
                 graph_p.write('set ylabel font "{}"\n'.format(self.ylabel_font))
@@ -280,12 +286,12 @@ class Grapher(GrapherBase):
 
             if self.error_bars:
                 for x in range(1, column_count + 1):
-                    plots.append('NaN with errorbars title \'{} {}{}\' linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
+                    plots.append('NaN with errorbars title "{} {}{}" linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
                         self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix,
                         x=x, ycol=x * 2, line_width=self.line_width))
             else:
                 for x in range(1, column_count + 1):
-                    plots.append('NaN with lp title \'{} {}{}\' linewidth {line_width}'.format(
+                    plots.append('NaN with lp title "{} {}{}" linewidth {line_width}'.format(
                         self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix,
                         line_width=self.line_width))
 

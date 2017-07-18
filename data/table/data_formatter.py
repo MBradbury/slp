@@ -70,6 +70,10 @@ class TableDataFormatter(object):
                 "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
                 "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
                 "norm(norm(norm(sent,time taken),network size),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
+
+                "protected sink hops": ("Protected", "Sink Hops"),
+                "activate period": ("$P_{activate}$", "(sec)"),
+                "cone type": ("Cone", "Type"),
             }[name]
         except KeyError as ex:
             print("Failed to find the name '{}'. Using default. : {}".format(name, ex), file=sys.stderr)
@@ -95,7 +99,7 @@ class TableDataFormatter(object):
             return "${:.1f}$".format(value[0])
         elif name == "approach":
             return latex.escape(value.replace("_APPROACH", ""))
-        elif name in {"landmark node"}:
+        elif name in {"landmark node", "cone type"}:
             return latex.escape(value)
         elif name.startswith("energy impact"):
             return "${:.5f}$".format(value[0])

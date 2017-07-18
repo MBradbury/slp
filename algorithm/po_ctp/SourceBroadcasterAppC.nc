@@ -22,11 +22,11 @@ implementation
 
 	App.MetricLogging -> MetricLogging;
 
-	components new NodeTypeC(3);
+	components new NodeTypeC(6);
 	App.NodeType -> NodeTypeC;
 	NodeTypeC.MetricLogging -> MetricLogging;
 
-	components new MessageTypeC(3);
+	components new MessageTypeC(6);
 	App.MessageType -> MessageTypeC;
 	MessageTypeC.MetricLogging -> MetricLogging;
 
@@ -36,6 +36,8 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.Packet -> ActiveMessageC;
+	App.AMPacket -> ActiveMessageC;
 
 	// Timers
 	components new TimerMilliC() as AwaySenderTimer;
@@ -44,17 +46,13 @@ implementation
 	App.AwaySenderTimer -> AwaySenderTimer;
 	App.DisableSenderTimer -> DisableSenderTimer;
 
-
 	// Networking
 	components
-		new AMSenderC(NORMAL_CHANNEL) as NormalSender,
-		new AMReceiverC(NORMAL_CHANNEL) as NormalReceiver;
-	
-	App.Packet -> NormalSender; // TODO: is this right?
-	App.AMPacket -> NormalSender; // TODO: is this right?
-	
-	App.NormalSend -> NormalSender;
-	App.NormalReceive -> NormalReceiver;
+		new AMSenderC(NORMAL_FLOOD_CHANNEL) as NormalFloodSender,
+		new AMReceiverC(NORMAL_FLOOD_CHANNEL) as NormalFloodReceiver;
+
+	App.NormalFloodSend -> NormalFloodSender;
+	App.NormalFloodReceive -> NormalFloodReceiver;
 
 	components
 		new AMSenderC(AWAY_CHANNEL) as AwaySender,
@@ -70,7 +68,6 @@ implementation
 	App.DisableSend -> DisableSender;
 	App.DisableReceive -> DisableReceiver;
 
-
 	// Object Detector - For Source movement
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
@@ -82,4 +79,24 @@ implementation
 	components
 		new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
+
+	components CollectionC;
+	App.RoutingControl -> CollectionC;
+	App.RootControl -> CollectionC;
+	//App.CollectionPacket -> CollectionC;
+	//App.CtpInfo -> CollectionC;
+	//App.CtpCongestion -> CollectionC;
+
+	components new CollectionSenderC(NORMAL_CHANNEL);
+
+	// Networking
+	App.NormalSend -> CollectionSenderC;
+	App.NormalReceive -> CollectionC.Receive[NORMAL_CHANNEL];
+	App.NormalSnoop -> CollectionC.Snoop[NORMAL_CHANNEL];
+	App.NormalIntercept -> CollectionC.Intercept[NORMAL_CHANNEL];
+
+	components CTPMetricsP;
+	CTPMetricsP.MetricLogging -> MetricLogging;
+	CTPMetricsP.CtpInfo -> CollectionC;
+	CollectionC.CollectionDebug -> CTPMetricsP;
 }
