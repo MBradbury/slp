@@ -157,6 +157,9 @@ enum SLPEventCodes {
 	EVENT_Snoop_VALID_PACKET = 2008,
 	EVENT_Intercept_VALID_PACKET = 2009,
 
+	EVENT_RADIO_ENABLED = 2010,
+	EVENT_RADIO_DISABLED = 2011,
+
 	// Only use 2xxx codes here. The reasoning for SLPErrorCodes applies.
 };
 
