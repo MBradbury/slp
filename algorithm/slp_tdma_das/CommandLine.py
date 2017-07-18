@@ -31,11 +31,12 @@ class RunSimulations(RunSimulationsCommon):
         path_length = search_distance + change_distance
 
         # return path_length*tdma_period_length
-        return (1 + ssd)*tdma_period_length*1.5
+        return (1 + ssd)*tdma_period_length*2
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
+        # super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
+        super(CLI, self).__init__(__package__, True, RunSimulations)
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
@@ -47,9 +48,9 @@ class CLI(CommandLineCommon.CLI):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 11:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8) #For 2000 runs
         elif size == 15:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=10) #For 2000 runs
         elif size == 21:
             return datetime.timedelta(hours=1)
         elif size == 25:
@@ -67,8 +68,7 @@ class CLI(CommandLineCommon.CLI):
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
-            parameters.pre_beacon_periods, parameters.dissem_timeout, parameters.search_distance,
-            parameters.simulate_crash
+            parameters.pre_beacon_periods, parameters.dissem_timeout, parameters.search_distance
         ))
 
         # argument_product = list(itertools.product(

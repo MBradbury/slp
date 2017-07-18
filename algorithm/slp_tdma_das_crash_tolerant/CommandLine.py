@@ -21,21 +21,21 @@ class RunSimulations(RunSimulationsCommon):
         # tafn = super(RunSimulations, self)._get_safety_period(darguments)
 
         network_size = darguments["network size"]
-        search_distance = darguments["search distance"]
+        # search_distance = darguments["search distance"]
         dissem_period = darguments["dissem period"]
         slot_period = darguments["slot period"]
         tdma_num_slots = darguments["tdma num slots"]
         tdma_period_length = dissem_period + (slot_period * tdma_num_slots)
         ssd = network_size - 1                                                  #XXX Cheap fix until I find the real solution
-        change_distance = ssd // 3
-        path_length = search_distance + change_distance
+        # change_distance = ssd // 3
+        # path_length = search_distance + change_distance
 
         # return path_length*tdma_period_length
-        return (1 + ssd)*tdma_period_length*1.5
+        return (1 + ssd)*tdma_period_length*2
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
+        super(CLI, self).__init__(__package__, True, RunSimulations)
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
@@ -47,9 +47,9 @@ class CLI(CommandLineCommon.CLI):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 11:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8) #For 2000 runs
         elif size == 15:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=10) #For 2000 runs
         elif size == 21:
             return datetime.timedelta(hours=1)
         elif size == 25:
@@ -67,8 +67,7 @@ class CLI(CommandLineCommon.CLI):
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
-            parameters.pre_beacon_periods, parameters.dissem_timeout, parameters.search_distance,
-            parameters.simulate_crash
+            parameters.pre_beacon_periods, parameters.search_distance
         ))
 
         # argument_product = list(itertools.product(
