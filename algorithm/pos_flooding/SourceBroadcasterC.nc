@@ -65,18 +65,38 @@ implementation
 
 	am_addr_t previously_sent_to;
 
+	// Produces a random float between 0 and 1
+	float random_float(void)
+	{
+		// There appears to be problem with the 32 bit random number generator
+		// in TinyOS that means it will not generate numbers in the full range
+		// that a 32 bit integer can hold. So use the 16 bit value instead.
+		// With the 16 bit integer we get better float values to compared to the
+		// fake source probability.
+		// Ref: https://github.com/tinyos/tinyos-main/issues/248
+		const uint16_t rnd = call Random.rand16();
+
+		return ((float)rnd) / UINT16_MAX;
+	}
+
 	void disable_normal_forward(void)
 	{
-		call Leds.led2Off();
-		process_messages = FALSE;
-		LOG_STDOUT(0, "Disabling radio\n");
+		if (process_messages)
+		{
+			call Leds.led2Off();
+			process_messages = FALSE;
+			LOG_STDOUT(EVENT_RADIO_DISABLED, "radio disabled\n");
+		}
 	}
 
 	void enable_normal_forward(void)
 	{
-		call Leds.led2On();
-		process_messages = TRUE;
-		LOG_STDOUT(0, "Starting radio\n");
+		if (!process_messages)
+		{
+			call Leds.led2On();
+			process_messages = TRUE;
+			LOG_STDOUT(EVENT_RADIO_ENABLED, "radio enabled\n");
+		}
 	}
 
 	void disable_normal_forward_with_timeout(void)
@@ -157,6 +177,8 @@ implementation
 			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected\n");
 
 			call SourcePeriodModel.startPeriodic();
+
+			enable_normal_forward();
 		}
 	}
 
@@ -235,16 +257,19 @@ implementation
 			simdbgverbose("SourceBroadcasterC", "Received unseen Normal seqno=" NXSEQUENCE_NUMBER_SPEC " from %u.\n",
 				rcvd->sequence_number, source_addr);
 
-			//if (process_messages)
+			if (process_messages)
 			{
 				NormalMessage forwarding_message = *rcvd;
 				forwarding_message.source_distance += 1;
+				forwarding_message.sink_source_distance = sink_source_distance;
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
 
-			if (source_distance != BOTTOM && sink_distance != BOTTOM &&
-				source_distance < sink_source_distance && (sink_distance >= 2 && sink_distance <= 4) && (rcvd->sequence_number & 1) == 0)
+			if (source_distance != BOTTOM && sink_distance != BOTTOM && sink_source_distance != BOTTOM &&
+				source_distance < sink_source_distance &&
+				(sink_distance >= 2 && sink_distance <= ceil(sink_source_distance/2.0)) &&
+				(rcvd->sequence_number & 1) == 0)
 			{
 				disable_normal_forward_with_timeout();
 			}
