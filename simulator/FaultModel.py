@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 
-#import sys
+import sys
 
 from data.restricted_eval import restricted_eval
 
@@ -29,10 +29,7 @@ class FaultPointModel(FaultModel):
     def __init__(self, fault_point_probs, base_probability=0.0, requires_nesc_variables=False):
         super(FaultPointModel, self).__init__(requires_nesc_variables=requires_nesc_variables)
         self.fault_points = {}
-        if fault_point_probs is not None:
-            self.fault_point_probs = fault_point_probs
-        else:
-            self.fault_point_probs = {}
+        self.fault_point_probs = fault_point_probs if fault_point_probs is not None else {}
         self.base_probability = base_probability
 
     def setup(self, sim):
@@ -46,27 +43,30 @@ class FaultPointModel(FaultModel):
         }
 
     def _fault_point_add(self, log_type, node_id, current_time, detail):
-        match = detail.split(",")
-        fault_point_id = int(match[0])
-        fault_point_name = match[1]
+        fault_point_id, fault_point_name = detail.split(",")
+        fault_point_id = int(fault_point_id)
+
         self.fault_points[fault_point_id] = fault_point_name
-        if not self.fault_point_probs.has_key(fault_point_name):
+        if fault_point_name not in self.fault_point_probs:
             self.fault_point_probs[fault_point_name] = self.base_probability
 
     def _fault_point_occurred(self, log_type, node_id, current_time, detail):
         fault_point_id = int(detail)
         try:
             fault_point_name = self.fault_points[fault_point_id]
-            probability = self.fault_point_probs[fault_point_name]
         except KeyError:
+            print("A fault point (with id {}) occurred that was not previously added.".format(fault_point_id), file=sys.stderr)
             return
 
+        probability = self.fault_point_probs[fault_point_name]
+
         if self.sim.rng.random() < probability:
-            node = self.sim.node_from_ordered_nid(int(node_id))
+            node_id = int(node_id)
+            node = self.sim.node_from_ordered_nid(node_id)
             self.fault_occurred(fault_point_name, node)
 
             if self._has_gui:
-                self._draw(int(node_id))
+                self._draw(node_id)
 
     def fault_occurred(self, fault_point_name, node):
         raise NotImplementedError("FaultPointModel subclass must implement fault_occurred function")
@@ -83,7 +83,8 @@ class FaultPointModel(FaultModel):
         self.sim.gui.scene.execute(time, 'circle({},{},5,ident={!r},{})'.format(x, y, shape_id, options))
 
     def __str__(self):
-        return "{}(fault_point_probs={},base_probability={})".format(type(self).__name__, self.fault_point_probs, self.base_probability)
+        return "{}(fault_point_probs={},base_probability={})".format(
+            type(self).__name__, self.fault_point_probs, self.base_probability)
 
 class ReliableFaultModel(FaultModel):
     """The default fault mobility model, nothing bad happens."""
@@ -299,8 +300,12 @@ class NescFaultModel(FaultModel):
 
 def models():
     """A list of the available models."""
-    return [f for f in FaultModel.__subclasses__() + FaultPointModel.__subclasses__() # pylint: disable=no-member
-                if not type(f).__name__ == "FaultPointModel"]
+    return [
+        f
+        for f
+        in FaultModel.__subclasses__() + FaultPointModel.__subclasses__() # pylint: disable=no-member
+        if f is not FaultPointModel
+    ]
 
 def eval_input(source):
     result = restricted_eval(source, models())
