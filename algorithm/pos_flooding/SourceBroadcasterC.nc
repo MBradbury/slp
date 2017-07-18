@@ -267,8 +267,9 @@ implementation
 			}
 
 			if (source_distance != BOTTOM && sink_distance != BOTTOM && sink_source_distance != BOTTOM &&
-				source_distance < sink_source_distance &&
-				(sink_distance >= 2 && sink_distance <= ceil(sink_source_distance/2.0)) &&
+				sink_distance > 2 &&
+				source_distance <= sink_source_distance + 1 &&
+				(sink_distance >= 2 && sink_distance <= 4) &&
 				(rcvd->sequence_number & 1) == 0)
 			{
 				disable_normal_forward_with_timeout();
