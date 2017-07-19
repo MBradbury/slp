@@ -163,6 +163,20 @@ def _run_parallel(sim, module, a, argv):
 
             if process.returncode != 0:
                 error_message = "Bad return code {} (with args: '{}')".format(process.returncode, args)
+
+                # Negative return code indicates process terminated by signal
+                # Do our best to add that information
+                if process.returncode < 0:
+                    try:
+                        import signal
+                        signals = {getattr(signal, n): n for n in dir(signal) if n.startswith("SIG") and not n.startswith("SIG_")}
+                        signal_name = signals.get(-process.returncode, None)
+                        if signal_name:
+                            error_message += ". Process killed by signal {}({})".format(signal_name, -process.returncode)
+                    except:
+                        # Ignore any exceptions that occur, we are just trying to help the users
+                        pass
+
                 with print_lock:
                     print(error_message, file=sys.stderr)
                     sys.stderr.flush()
