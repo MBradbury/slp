@@ -35,7 +35,7 @@ class Transformer(ast.NodeTransformer):
         if nodetype not in self.ALLOWED_NODE_TYPES:
             raise RuntimeError("Invalid expression: {} not allowed".format(nodetype))
 
-        return ast.NodeTransformer.generic_visit(self, node)
+        return super(Transformer, self).generic_visit(node)
 
 # From: https://stackoverflow.com/questions/14611352/malformed-string-valueerror-ast-literal-eval-with-string-representation-of-tup
 def restricted_eval(source, available):
@@ -48,8 +48,11 @@ def restricted_eval(source, available):
 
     transformer = Transformer(allowed)
 
-    # raises RuntimeError on invalid code
-    transformer.visit(tree)
+    # Check validity of tree
+    try:
+        transformer.visit(tree)
+    except RuntimeError as ex:
+        raise RuntimeError("Failed to evaluate '{}' (allowed={}) due to '{}'".format(source, allowed, ex))
 
     # compile the ast into a code object
     clause = compile(tree, '<AST>', 'eval')
