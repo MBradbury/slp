@@ -55,6 +55,11 @@ class Runner(object):
         # Need to remove empty strings as bash doesn't allow `;;`
         precommand = " ; ".join(filter(None, (self.prepare_command, debug_command, script_command, 'date')))
 
+        # If any of the options contain single quotes, then
+        # they need to be escaped as the whole echo is placed within
+        # single quotes
+        precommand = precommand.replace("'", "\\'")
+
         command = 'echo \'{}\' | {}'.format(precommand, cluster_command)
 
         self._submit_job(command)
