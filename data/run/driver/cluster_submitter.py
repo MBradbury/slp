@@ -58,7 +58,7 @@ class Runner(object):
         # If any of the options contain single quotes, then
         # they need to be escaped as the whole echo is placed within
         # single quotes
-        precommand = precommand.replace("'", "\\'")
+        precommand = precommand.replace("'", "'\\''")
 
         command = 'echo \'{}\' | {}'.format(precommand, cluster_command)
 
