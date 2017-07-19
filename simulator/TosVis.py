@@ -99,7 +99,6 @@ class Gui:
         self.scene = Scene(timescale=1)
         self.scene.addPlotter(Plotter())
 
-
         self._sim = sim
 
         # Default factor to scale the node positions by
@@ -227,14 +226,14 @@ class Gui:
             self.scene.execute(time, 'delshape({!r})'.format(ident))
         elif add_remove == "+":
             self.scene.execute(time,
-                'line({},{},{},{},ident={!r},line=LineStyle(arrow="head", color={}))'.format(
-                    x1, y1, x2, y2, ident, repr(colour))
+                'line({},{},{},{},ident={!r},line=LineStyle(arrow="head", color={!r}))'.format(
+                    x1, y1, x2, y2, ident, colour)
             )
         elif add_remove == "!":
             self.scene.execute(time, 'delshape({!r})'.format(ident))
             self.scene.execute(time,
-                'line({},{},{},{},ident={!r},line=LineStyle(arrow="head", color={}))'.format(
-                    x1, y1, x2, y2, ident, repr(colour))
+                'line({},{},{},{},ident={!r},line=LineStyle(arrow="head", color={!r}))'.format(
+                    x1, y1, x2, y2, ident, colour)
             )
         else:
             raise RuntimeError("Unknown add/remove action {}".format(add_remove))
