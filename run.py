@@ -162,7 +162,7 @@ def _run_parallel(sim, module, a, argv):
                 sys.stderr.flush()
 
             if process.returncode != 0:
-                error_message = "Bad return code {}".format(process.returncode)
+                error_message = "Bad return code {} (with args: '{}')".format(process.returncode, args)
                 with print_lock:
                     print(error_message, file=sys.stderr)
                     sys.stderr.flush()
