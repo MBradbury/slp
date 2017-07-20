@@ -8,7 +8,7 @@ from simulator import CommandLineCommon
 
 import algorithm
 
-protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
+slp_tdma_das = algorithm.import_algorithm("slp_tdma_das")
 
 from data import results
 from data.run.common import RunSimulationsCommon
@@ -99,7 +99,7 @@ class CLI(CommandLineCommon.CLI):
             'attacker distance': ('Meters', 'left top'),
         }
 
-        slp_tdma_das_results = results.Results(
+        slp_tdma_das_crash_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()))
@@ -119,7 +119,7 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = vary_prefix
                 g.key_position = key_position
 
-                g.create(slp_tdma_das_results)
+                g.create(slp_tdma_das_crash_results)
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
@@ -138,12 +138,12 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
         }
 
-        protectionless_tdma_das_results = results.Results(
-            protectionless_tdma_das.result_file_path,
-            parameters=protectionless_tdma_das.local_parameter_names,
-            results=list(set(graph_parameters.keys()) & set(protectionless_tdma_das.Analysis.Analyzer.results_header().keys())))
-
         slp_tdma_das_results = results.Results(
+            slp_tdma_das.result_file_path,
+            parameters=slp_tdma_das.local_parameter_names,
+            results=list(set(graph_parameters.keys()) & set(slp_tdma_das.Analysis.Analyzer.results_header().keys())))
+
+        slp_tdma_das_crash_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()))
@@ -164,14 +164,14 @@ class CLI(CommandLineCommon.CLI):
                 g.key_position = key_position
 
                 g.force_vvalue_label = True
-                g.result_label = "SLP TDMA DAS"
-                g.baseline_label = "Protectionless TDMA DAS"
+                g.result_label = "Crash Tolerant SLP TDMA DAS"
+                g.baseline_label = "SLP TDMA DAS"
 
                 g.nokey = True
                 g.generate_legend_graph = True
                 g.legend_font_size = '8'
 
-                g.create(slp_tdma_das_results, baseline_results=protectionless_tdma_das_results)
+                g.create(slp_tdma_das_crash_results, baseline_results=slp_tdma_das_results)
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
