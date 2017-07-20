@@ -20,6 +20,14 @@ class Grapher(GrapherBase):
         self.force_vvalue_label = False
 
     def create(self, simulation_results, baseline_results=None):
+
+        # Check assumptions about baseline parameters are not violated
+        if baseline_results is not None:
+            sim_params = set(simulation_results.parameter_names)
+            base_params = set(baseline_results.parameter_names)
+            if not base_params.issubset(sim_params):
+                raise RuntimeError("The following parameters are in the baseline, but not in the simulation results: {}".format(base_params - sim_params))
+
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
