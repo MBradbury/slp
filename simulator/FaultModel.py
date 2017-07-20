@@ -25,6 +25,9 @@ class FaultModel(object):
     def __str__(self):
         return type(self).__name__ + "()"
 
+    def short_name(self):
+        return str(self)
+
 class FaultPointModel(FaultModel):
     def __init__(self, fault_point_probs, base_probability=0.0, requires_nesc_variables=False):
         super(FaultPointModel, self).__init__(requires_nesc_variables=requires_nesc_variables)
@@ -85,6 +88,10 @@ class FaultPointModel(FaultModel):
     def __str__(self):
         return "{}(fault_point_probs={},base_probability={})".format(
             type(self).__name__, self.fault_point_probs, self.base_probability)
+
+    def short_name(self):
+        return "{}({},{})".format(
+            type(self).__name__.replace("FaultPointModel", "FPM"), self.fault_point_probs, self.base_probability)
 
 class ReliableFaultModel(FaultModel):
     """The default fault mobility model, nothing bad happens."""
