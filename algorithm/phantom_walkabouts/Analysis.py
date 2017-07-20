@@ -1,7 +1,7 @@
 from __future__ import division
 
 from data.analysis import AnalyzerCommon
-from data.analysis_extra.utility import Sigmoid, AnimalProtectionSigmoid, AssetMonitoringSigmoid, BattleSigmoid
+from data.analysis_extra.utility import Function, AnimalProtection, AssetMonitoring, Military
 
 algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
 
@@ -44,22 +44,22 @@ class Analyzer(AnalyzerCommon):
 		d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
 		d['norm(norm(sent,time taken),network size)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')  
 
-		d['utility animal']     = lambda x: str(Sigmoid.utility(x, [("Captured",    AnimalProtectionSigmoid.cr),   
-															("ReceiveRatio",         AnimalProtectionSigmoid.dr),   
-															("NormalLatency",        AnimalProtectionSigmoid.lat),  
-															("norm(Sent,TimeTaken)", AnimalProtectionSigmoid.msg),
+		d['utility animal']     = lambda x: str(Function.utility(x, [("Captured",    AnimalProtection.cr, "Sigmoid"), 
+															("ReceiveRatio",         AnimalProtection.dr, "Linear"),   
+															("NormalLatency",        AnimalProtection.lat, "Linear"),  
+															("norm(Sent,TimeTaken)", AnimalProtection.msg, "Linear"),
 												]))
 
-		d['utility monitor']     = lambda x: str(Sigmoid.utility(x, [("Captured",    AssetMonitoringSigmoid.cr),   
-															("ReceiveRatio",         AssetMonitoringSigmoid.dr),   
-															("NormalLatency",        AssetMonitoringSigmoid.lat),  
-															("norm(Sent,TimeTaken)", AssetMonitoringSigmoid.msg),
+		d['utility monitor']     = lambda x: str(Function.utility(x, [("Captured",    AssetMonitoring.cr, "Linear"),   
+															("ReceiveRatio",         AssetMonitoring.dr, "Sigmoid"), 
+															("NormalLatency",        AssetMonitoring.lat, "Linear"),  
+															("norm(Sent,TimeTaken)", AssetMonitoring.msg, "Sigmoid"),
 												]))
 
-		d['utility military']   = lambda x: str(Sigmoid.utility(x, [("Captured",  BattleSigmoid.cr),
-															("ReceiveRatio",        BattleSigmoid.dr),   
-															("NormalLatency",       BattleSigmoid.lat),
-															("norm(Sent,TimeTaken)",    BattleSigmoid.msg),
+		d['utility military']   = lambda x: str(Function.utility(x, [("Captured",  Military.cr, "Sigmoid"),
+															("ReceiveRatio",        Military.dr, "Sigmoid"),   
+															("NormalLatency",       Military.lat, "Sigmoid"),
+															("norm(Sent,TimeTaken)",    Military.msg, "Linear"),
 												]))
 
 		return d
