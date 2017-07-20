@@ -39,6 +39,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
+        subparser = self._add_argument("graph-min-max", self._run_graph_min_max)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -147,10 +148,45 @@ class CLI(CommandLineCommon.CLI):
         }
 
         self._create_baseline_versus_graph(slp_tdma_das, graph_parameters, varying, custom_yaxis_range_max,
-                force_vvalue_label=True,
-                result_label="Crash Tolerant SLP TDMA DAS",
-                baseline_label="SLP TDMA DAS",
-                nokey=True,
-                generate_legend_graph=True,
-                legend_font_size='8',
-            )
+            force_vvalue_label=True,
+            result_label="Crash Tolerant SLP TDMA DAS",
+            baseline_label="SLP TDMA DAS",
+            nokey=True,
+            generate_legend_graph=True,
+            legend_font_size='8',
+        )
+
+    def _run_graph_min_max(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'attacker distance': ('Meters', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+        }
+
+        varying = [
+            (('network size', ''), ('source period', ' seconds')),
+        ]
+
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
+
+        self._create_min_max_versus_graph(
+            [slp_tdma_das], None, graph_parameters, varying, None, custom_yaxis_range_max,
+            min_label=['SLP TDMA DAS - Lowest'],
+            max_label=['SLP TDMA DAS - Highest'],
+            vary_label="",
+            comparison_label='Crash Tolerant SLP TDMA DAS',
+
+            force_vvalue_label=True,
+            #result_label="Crash Tolerant SLP TDMA DAS",
+            #baseline_label="SLP TDMA DAS",
+            nokey=True,
+            generate_legend_graph=True,
+            legend_font_size='8',
+        )
