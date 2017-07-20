@@ -398,6 +398,30 @@ A very important thing to note is that if you make any change to data/analysis.p
 then you MUST rerun ./scripts/cythonise_analysis.sh. This may happen when you pull
 from another repo. If you do not then analysis may not work properly.
 
+
+# Merging results from multiple runs on the cluster
+
+When you run the same job on the cluster twice you will need to
+merge the results files for the second run to be of use.
+The script in ./scripts/merge_results.py can be used to do this.
+
+To make sure the correct files are merged all results will execute
+a job with seed 44 twice. If files are incorrect merged then the
+analysis will fail as the results for seed 44 will not match.
+
+First, lets say you have already copied the results from the
+previous run on the cluster locally to your machine.
+This folder will be something like: "slp-algorithms-tinyos/results/<algorithm>".
+
+1. Move the existing results to another directory "slp-algorithms-tinyos/results/<algorithm>/old"
+2. Copy results from the cluster using "./create <algorithm> <cluster> copy-back"
+3. Move the new results to "slp-algorithms-tinyos/results/<algorithm>/new"
+4. Move the first set of results back to where they were
+5. Run ./scripts/merge_results.py --results-dir "slp-algorithms-tinyos/results/<algorithm>" --merge-dir "slp-algorithms-tinyos/results/<algorithm>/new"
+
+You will need to manually remove the backup files which are left behind in case the merge goes wrong.
+
+
 # Deploying on a testbed
 
 ## FiT IoT-Lab Setup
