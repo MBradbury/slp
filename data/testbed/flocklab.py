@@ -23,13 +23,13 @@ def submitter(*args, **kwargs):
 
 def build_arguments():
     return {
-    	# Wait for a short amount of time before running the boot event.
-    	# This is to help catch all the serial output
+        # Wait for a short amount of time before running the boot event.
+        # This is to help catch all the serial output
         "DELAYED_BOOT_TIME_MINUTES": 3
     }
 
 def fastserial_supported():
-	return False
+    return False
 
 # Resources:
 # - https://www.flocklab.ethz.ch/wiki/wiki/Public/Index
