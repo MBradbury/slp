@@ -1,12 +1,14 @@
 #include "MetricLogging.h"
 
+#include "slp_static_assert.h"
+
 #ifndef USE_SERIAL_MESSAGES
 #	error "Must only use MetricLoggingP when USE_SERIAL_MESSAGES is defined"
 #endif
 
-//#define MAX_SERIAL_PACKET_SIZE 255
-
 #define SERIAL_START_SEND(MESSAGE_NAME) \
+	STATIC_ASSERT(sizeof(MESSAGE_NAME) <= TOSH_DATA_LENGTH); \
+ \
 	message_t* packet; \
 	MESSAGE_NAME* msg; \
 	error_t result; \
@@ -21,8 +23,6 @@
  \
  	call Packet.setPayloadLength(packet, sizeof(MESSAGE_NAME)); \
 	msg = (MESSAGE_NAME*)call Packet.getPayload(packet, sizeof(MESSAGE_NAME)); \
- \
-	/*STATIC_ASSERT_MSG(sizeof(MESSAGE_NAME) <= MAX_SERIAL_PACKET_SIZE, Need_to_increase_the_MAX_SERIAL_PACKET_SIZE_for_##MESSAGE_NAME);*/ \
  \
  	msg->node_id = TOS_NODE_ID; \
 	msg->local_time = call LocalTime.get();
