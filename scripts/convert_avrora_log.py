@@ -3,17 +3,18 @@ from __future__ import print_function
 
 from simulator.OfflineLogConverter import Avrora as AvroraLogConverter
 
-def convert_avrora_log(result_file, output_file):
+def convert_avrora_log(result_file, output_path):
 
-	converter = AvroraLogConverter(result_file)
+    converter = AvroraLogConverter(result_file)
 
-	for line in converter:
-		print(line, file=output_file)
+    with open(output_path, 'w') as output_file:
+        for line in converter:
+            print(line, file=output_file)
 
-	print("Average Tx:", converter.average_tx_length, "ms")
-	print("Average Rx:", converter.average_rx_length, "ms")
-	print("Count Tx:", converter.average_tx_count)
-	print("Count Rx:", converter.average_rx_count)
+    print("Average Tx:", converter.average_tx_length, "ms")
+    print("Average Rx:", converter.average_rx_length, "ms")
+    print("Count Tx:", converter.average_tx_count)
+    print("Count Rx:", converter.average_rx_count)
 
 if __name__ == "__main__":
     import argparse
