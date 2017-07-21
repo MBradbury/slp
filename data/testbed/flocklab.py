@@ -8,6 +8,8 @@ def name():
 
 def platform():
     """The hardware platform of the testbed"""
+    # Whilst there are some tinynode motes on the testbed
+    # They are practically useless as there are only 6 of them.
     return ["telosb", "tinynode"]
 
 def log_mode():
