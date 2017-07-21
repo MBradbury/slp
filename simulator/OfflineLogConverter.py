@@ -205,6 +205,7 @@ class SerialMessageLogConverter(object):
             reader["milli_time"] -= reader["milli_time"][0]
 
             return (message_type, reader)
+
         except pandas.io.common.EmptyDataError:
             # Skip empty files
             return (None, None)
@@ -218,6 +219,9 @@ class SerialMessageLogConverter(object):
             in (self._read_dat_file(path) for path in dat_file_paths)
             if message_type is not None
         }
+
+        if len(dat_files) == 0:
+            raise RuntimeError("All dat files were empty, no results present.")
 
         # Remove "\0" from any fields that are strings
         to_remove_nul_char = [(self.AM_METRIC_NODE_TYPE_ADD_MSG, "node_type_name"), (self.AM_METRIC_MESSAGE_TYPE_ADD_MSG, "message_type_name")]
