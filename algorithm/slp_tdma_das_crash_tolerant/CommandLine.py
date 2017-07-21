@@ -166,6 +166,7 @@ class CLI(CommandLineCommon.CLI):
             'attacker distance': ('Meters', 'left top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+            'control sent': ('SLP control messages sent', 'left top'),
         }
 
         varying = [
