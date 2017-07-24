@@ -10,6 +10,9 @@ class FaultModel(object):
         self._has_gui = False
         self.requires_nesc_variables = requires_nesc_variables
 
+        # Record how many faults have occurred
+        self.faults_occurred = 0
+
     def setup(self, sim):
         self.sim = sim
         self._has_gui = hasattr(sim, "gui")
@@ -50,8 +53,6 @@ class FaultPointModel(FaultModel):
         fault_point_id = int(fault_point_id)
 
         self.fault_points[fault_point_id] = fault_point_name
-        if fault_point_name not in self.fault_point_probs:
-            self.fault_point_probs[fault_point_name] = self.base_probability
 
     def _fault_point_occurred(self, log_type, node_id, current_time, detail):
         fault_point_id = int(detail)
@@ -61,12 +62,14 @@ class FaultPointModel(FaultModel):
             print("A fault point (with id {}) occurred that was not previously added.".format(fault_point_id), file=sys.stderr)
             return
 
-        probability = self.fault_point_probs[fault_point_name]
+        probability = self.fault_point_probs.get(fault_point_name, self.base_probability)
 
         if self.sim.rng.random() < probability:
             node_id = int(node_id)
             node = self.sim.node_from_ordered_nid(node_id)
             self.fault_occurred(fault_point_name, node)
+
+            self.faults_occurred += 1
 
             if self._has_gui:
                 self._draw(node_id)
@@ -131,6 +134,8 @@ class NodeCrashFaultModel(FaultModel):
         # Turn off the mote to simulate a crash
         node.tossim_node.turnOff()
 
+        self.faults_occurred += 1
+
     def __str__(self):
         return "{}(node_id={!r}, crash_time={})".format(type(self).__name__, self.node_id, self.crash_time)
 
@@ -173,6 +178,8 @@ class NodeCrashVariableFaultModel(FaultModel):
                 node.tossim_node.turnOff()
                 del self.variables[v]
 
+                self.faults_occurred += 1
+
         # Add next event
         self.sim.register_event_callback(self._check_variables, current_time + self.check_interval)
 
@@ -199,6 +206,8 @@ class NodeCrashTypeFaultModel(FaultModel):
             node = self.sim.node_from_ordered_nid(int(node_id))
             #print("Turning off node {} to simulate crash because node_type=CrashNode".format(int(node_id)), file=sys.stderr)
             node.tossim_node.turnOff()
+
+            self.faults_occurred += 1
 
 class BitFlipFaultModel(FaultModel):
     """This model will flip a bit in the specified variable on the specified node at the specified time."""
@@ -245,6 +254,8 @@ class BitFlipFaultModel(FaultModel):
 
         #print("Setting variable {} on {} to {} from {} simulate a bit flip".format(
         #    self.variable_name, self.node_id, new_data, data), file=sys.stderr)
+
+        self.faults_occurred += 1
 
     def __str__(self):
         return "{}(node_id={!r}, variable_name={!r}, flip_time={})".format(
