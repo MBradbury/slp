@@ -35,5 +35,6 @@ class Analyzer(AnalyzerCommon):
         d['norm(norm(sent,time taken),network size)'] = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
         d['control sent']       = lambda x: str(x.average_of['SearchSent'] + x.average_of['ChangeSent'])
+        d['path sent']          = lambda x: str(x.average_of['SearchSent'] + x.average_of['ChangeSent'])
 
         return d
