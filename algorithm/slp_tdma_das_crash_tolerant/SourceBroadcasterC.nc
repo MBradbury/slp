@@ -666,6 +666,19 @@ implementation
         }
     }
 
+    void reset_node() {
+        call TDMA.set_slot(BOT);
+        set_hop(BOT);
+        parent = BOT;
+        {
+            int i;
+            for(i = 0; i < n_info.count; i++) {
+                n_info.info[i].slot = BOT;
+                n_info.info[i].hop = BOT;
+            }
+        }
+    }
+
     void check_crashes()
     {
         //Remove crashed nodes from all data structures
@@ -693,23 +706,24 @@ implementation
             {
                 OtherInfo* other_info;
                 NeighbourInfo* parent_info = NeighbourList_get(&n_info, potential_parents.ids[0]);
+                if(parent_info == NULL) {
+                    reset_node();
+                    send_crash_init();
+                    return;
+                }
                 other_info = OtherList_get(&others, parent_info->id);
+                if(other_info == NULL) {
+                    reset_node();
+                    send_crash_init();
+                    return;
+                }
                 parent = parent_info->id;
                 set_hop(parent_info->hop + 1);
                 call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             }
             else
             {
-                call TDMA.set_slot(BOT);
-                set_hop(BOT);
-                parent = BOT;
-                {
-                    int i;
-                    for(i = 0; i < n_info.count; i++) {
-                        n_info.info[i].slot = BOT;
-                        n_info.info[i].hop = BOT;
-                    }
-                }
+                reset_node();
             }
             send_crash_init();
         }
@@ -1304,23 +1318,24 @@ implementation
             {
                 OtherInfo* other_info;
                 NeighbourInfo* parent_info = NeighbourList_get(&n_info, potential_parents.ids[0]);
+                if(parent_info == NULL) {
+                    reset_node();
+                    send_Crash_message(&msg, AM_BROADCAST_ADDR);
+                    return;
+                }
                 other_info = OtherList_get(&others, parent_info->id);
+                if(other_info == NULL) {
+                    reset_node();
+                    send_Crash_message(&msg, AM_BROADCAST_ADDR);
+                    return;
+                }
                 parent = parent_info->id;
                 set_hop(parent_info->hop + 1);
                 call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             }
             else
             {
-                call TDMA.set_slot(BOT);
-                set_hop(BOT);
-                parent = BOT;
-                {
-                    int i;
-                    for(i = 0; i < n_info.count; i++) {
-                        n_info.info[i].slot = BOT;
-                        n_info.info[i].hop = BOT;
-                    }
-                }
+                reset_node();
             }
             send_Crash_message(&msg, AM_BROADCAST_ADDR);
         }
