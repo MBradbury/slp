@@ -4,7 +4,9 @@
 #include "AM.h"
 
 // These constants are used to set the message channel and type
-// The format of the name is required by the mig tool
+// The format of the name is required by the mig tool.
+// Please update simulator/OfflineLogConverter.py when you change
+// any of these values.
 enum {
 	AM_EVENT_OCCURRED_MSG = 48,
 	AM_ERROR_OCCURRED_MSG = 49,

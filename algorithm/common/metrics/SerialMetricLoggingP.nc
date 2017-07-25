@@ -1,7 +1,7 @@
 #include "MetricLogging.h"
 
 #ifndef MESSAGE_QUEUE_SIZE
-#	define MESSAGE_QUEUE_SIZE 64
+#	define MESSAGE_QUEUE_SIZE 32
 #endif
 
 #ifndef USE_SERIAL_MESSAGES

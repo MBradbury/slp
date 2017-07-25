@@ -185,6 +185,9 @@ class Attacker(object):
     def __str__(self):
         return type(self).__name__ + "()"
 
+    def short_name(self):
+        return str(self)
+
 class DeafAttacker(Attacker):
     """An attacker that does nothing when it receives a message"""
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -603,6 +606,10 @@ class RHMPeriodAttacker(Attacker):
 
     def __str__(self):
         return type(self).__name__ + "(dissem_period_length={},clear_periods={},history_window_size={},moves_per_period={})".format(
+            self._dissem_period_length, self._clear_periods, self._history_window_size, self._moves_per_period)
+
+    def short_name(self):
+        return type(self).__name__ + "({},{},{},{})".format(
             self._dissem_period_length, self._clear_periods, self._history_window_size, self._moves_per_period)
 
 def models():

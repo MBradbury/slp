@@ -29,10 +29,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
     else:
         raise RuntimeError("Unknown mode {}".format(a.args.mode))
 
-    with open(a.args.log_file, "r") as log_file:
-
-        converted_event_log = OfflineLogConverter.create_specific(a.args.log_converter, log_file)
-
+    with OfflineLogConverter.create_specific(a.args.log_converter, a.args.log_file) as converted_event_log:
         with OfflineSimulation(module, configuration, a.args, event_log=converted_event_log) as sim:
 
             # Create a copy of the provided attacker model

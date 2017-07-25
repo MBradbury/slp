@@ -627,6 +627,9 @@ class MetricsCommon(object):
         return dict(self.delivered_from_further_meters[msg])
 
 
+    def faults_occurred(self):
+        return self.sim.fault_model.faults_occurred
+
 
     @staticmethod
     def smaller_dict_str(dict_result):
@@ -704,6 +707,8 @@ class MetricsCommon(object):
         d["DeliveredFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_hops_all())
         d["DeliveredFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(x.deliv_closer_or_same_meters_all())
         d["DeliveredFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_meters_all())
+
+        d["FaultsOccured"]                 = lambda x: x.faults_occurred()
 
         d["Errors"]                        = lambda x: MetricsCommon.smaller_dict_str(dict(x.errors))
 
