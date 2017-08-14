@@ -364,4 +364,25 @@ implementation
 
 		SERIAL_END_SEND(metric_parent_change_msg_t)
 	}
+
+	command void MetricLogging.log_metric_rssi(
+		uint16_t average,
+		uint16_t smallest,
+		uint16_t largest,
+		uint16_t reads,
+		uint8_t channel
+		)
+	{
+		SERIAL_START_SEND(metric_rssi_msg_t)
+
+		msg->type = AM_METRIC_RSSI_MSG;
+		
+		msg->average = average;
+		msg->smallest = smallest;
+		msg->largest = largest;
+		msg->reads = reads;
+		msg->channel = channel;
+
+		SERIAL_END_SEND(metric_rssi_msg_t)
+	}
 }

@@ -70,6 +70,9 @@
 #define METRIC_START_PERIOD() \
     call MetricLogging.log_metric_start_period()
 
+#define METRIC_RSSI(RSSI_AVERAGE, RSSI_SMALLEST, RSSI_LARGEST, RSSI_READS, CHANNEL) \
+    call MetricLogging.log_metric_rssi(RSSI_AVERAGE, RSSI_SMALLEST, RSSI_LARGEST, RSSI_READS, CHANNEL)
+
 // No need to format messages when using serial message as the string will not be used.
 #if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \
@@ -129,6 +132,8 @@ enum SLPErrorCodes {
     ERROR_TOO_MANY_FAULT_POINT_TYPES = 16,
     ERROR_FAULT_POINT_NAME_TOO_LONG = 17,
 
+    ERROR_RSSI_READ_FAILURE = 18,
+
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,
 	ERROR_SEND_FAKE_PERIOD_ZERO = 102,
@@ -159,6 +164,8 @@ enum SLPEventCodes {
 
 	EVENT_RADIO_ENABLED = 2010,
 	EVENT_RADIO_DISABLED = 2011,
+
+	EVENT_BOOTED = 2012,
 
 	// Only use 2xxx codes here. The reasoning for SLPErrorCodes applies.
 };

@@ -114,4 +114,14 @@ implementation
 		)
 	{
 	}
+
+	command void MetricLogging.log_metric_rssi(
+		uint16_t average,
+		uint16_t smallest,
+		uint16_t largest,
+		uint16_t reads,
+		uint8_t channel
+		)
+	{
+	}
 }
