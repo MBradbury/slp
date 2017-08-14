@@ -121,7 +121,7 @@ implementation
     //Startup Events
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
 
         call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
         call MessageType.register_pair(EMPTYNORMAL_CHANNEL, "EmptyNormal");
