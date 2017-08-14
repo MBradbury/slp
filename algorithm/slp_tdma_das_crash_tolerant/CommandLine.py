@@ -98,6 +98,7 @@ class CLI(CommandLineCommon.CLI):
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'attacker distance': ('Meters', 'left top'),
+            'crash': ('Number of crash messages sent', 'left top'),
         }
 
         slp_tdma_das_crash_results = results.Results(
@@ -158,6 +159,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph_min_max(self, args):
         graph_parameters = {
+            'normal': ('Normal messages sent', 'left top'),
             'normal latency': ('Normal Message Latency (ms)', 'left top'),
             'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
@@ -166,6 +168,8 @@ class CLI(CommandLineCommon.CLI):
             'attacker distance': ('Meters', 'left top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+            'control sent': ('SLP control messages sent', 'left top'),
+            'path sent': ('Path creation messages sent', 'left top'),
         }
 
         varying = [
