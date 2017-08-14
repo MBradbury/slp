@@ -4,6 +4,7 @@ from collections import Counter, OrderedDict, defaultdict
 import base64
 import math
 import pickle
+import sys
 import zlib
 
 # Allow missing psutil
@@ -979,6 +980,24 @@ class TreeMetricsCommon(MetricsCommon):
         d["TotalTrueParentChanges"]        = lambda x: x.total_true_parent_changes()
 
         d["ParentChangeHeatMap"]           = lambda x: MetricsCommon.compressed_dict_str(x.true_parent_change_heat_map())
+
+        return d
+
+class RssiMetricsCommon(MetricsCommon):
+    """For algorithms that measure the RSSI."""
+    def __init__(self, sim, configuration):
+        super(RssiMetricsCommon, self).__init__(sim, configuration)
+
+        self.register('M-RSSI', self.process_rssi_event)
+
+    def process_rssi_event(self, d_or_e, node_id, time, detail):
+        (average, smallest, largest, reads, channel) = detail.split(',')
+
+        print("RSSI on {} at {} : {}".format(node_id, time, detail))
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
 
         return d
 
