@@ -406,7 +406,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
 
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);

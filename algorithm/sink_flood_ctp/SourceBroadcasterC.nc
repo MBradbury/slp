@@ -64,7 +64,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
 
 		sequence_number_init(&fake_sequence_counter);
 
