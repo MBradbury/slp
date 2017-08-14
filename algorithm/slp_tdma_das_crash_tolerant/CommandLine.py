@@ -8,11 +8,11 @@ from simulator import CommandLineCommon
 
 import algorithm
 
-protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
+slp_tdma_das = algorithm.import_algorithm("slp_tdma_das")
 
 from data import results
 from data.run.common import RunSimulationsCommon
-from data.graph import summary, versus, baseline_versus
+from data.graph import summary, versus
 from data.table import safety_period
 from data.util import scalar_extractor
 
@@ -39,6 +39,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
+        subparser = self._add_argument("graph-min-max", self._run_graph_min_max)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -97,9 +98,10 @@ class CLI(CommandLineCommon.CLI):
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'attacker distance': ('Meters', 'left top'),
+            'crash': ('Number of crash messages sent', 'left top'),
         }
 
-        slp_tdma_das_results = results.Results(
+        slp_tdma_das_crash_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()))
@@ -119,7 +121,7 @@ class CLI(CommandLineCommon.CLI):
                 g.vary_prefix = vary_prefix
                 g.key_position = key_position
 
-                g.create(slp_tdma_das_results)
+                g.create(slp_tdma_das_crash_results)
 
                 summary.GraphSummary(
                     os.path.join(self.algorithm_module.graphs_path, name),
@@ -138,42 +140,57 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
         }
 
-        protectionless_tdma_das_results = results.Results(
-            protectionless_tdma_das.result_file_path,
-            parameters=protectionless_tdma_das.local_parameter_names,
-            results=list(set(graph_parameters.keys()) & set(protectionless_tdma_das.Analysis.Analyzer.results_header().keys())))
+        varying = [
+            (('network size', ''), ('source period', ' seconds')),
+        ]
 
-        slp_tdma_das_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
 
-        for (vary, vary_prefix) in [("source period", " seconds")]:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-baseline-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
+        self._create_baseline_versus_graph(slp_tdma_das, graph_parameters, varying, custom_yaxis_range_max,
+            force_vvalue_label=True,
+            result_label="Crash Tolerant SLP TDMA DAS",
+            baseline_label="SLP TDMA DAS",
+            nokey=True,
+            generate_legend_graph=True,
+            legend_font_size='8',
+        )
 
-                g = baseline_versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
+    def _run_graph_min_max(self, args):
+        graph_parameters = {
+            'normal': ('Normal messages sent', 'left top'),
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'attacker distance': ('Meters', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+            'control sent': ('SLP control messages sent', 'left top'),
+            'path sent': ('Path creation messages sent', 'left top'),
+        }
 
-                g.xaxis_label = 'Network Size'
-                g.yaxis_label = yaxis_label
-                g.vary_label = vary.title() + " -"
-                #g.vary_prefix = vary_prefix
-                g.key_position = key_position
+        varying = [
+            (('network size', ''), ('source period', ' seconds')),
+        ]
 
-                g.force_vvalue_label = True
-                g.result_label = "SLP TDMA DAS"
-                g.baseline_label = "Protectionless TDMA DAS"
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+        }
 
-                g.nokey = True
-                g.generate_legend_graph = True
-                g.legend_font_size = '8'
+        self._create_min_max_versus_graph(
+            [slp_tdma_das], None, graph_parameters, varying, None, custom_yaxis_range_max,
+            min_label=['SLP TDMA DAS - Lowest'],
+            max_label=['SLP TDMA DAS - Highest'],
+            vary_label="",
+            comparison_label='Crash Tolerant SLP TDMA DAS',
 
-                g.create(slp_tdma_das_results, baseline_results=protectionless_tdma_das_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
-                ).run()
+            force_vvalue_label=True,
+            #result_label="Crash Tolerant SLP TDMA DAS",
+            #baseline_label="SLP TDMA DAS",
+            nokey=True,
+            generate_legend_graph=True,
+            legend_font_size='8',
+        )

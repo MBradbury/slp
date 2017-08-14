@@ -24,7 +24,7 @@ class FlockLab(Topology):
         self.nodes[11] = np.array((561, 120), dtype=np.float64)
         self.nodes[13] = np.array((613, 293), dtype=np.float64)
         self.nodes[14] = np.array((628, 173), dtype=np.float64)
-        #self.nodes[15] = np.array((128, 121), dtype=np.float64)
+        self.nodes[15] = np.array((128, 121), dtype=np.float64)
         self.nodes[16] = np.array((85, 404), dtype=np.float64)
         self.nodes[17] = np.array((575, 333), dtype=np.float64)
         self.nodes[18] = np.array((233, 399), dtype=np.float64)
@@ -42,7 +42,7 @@ class FlockLab(Topology):
         self.nodes[33] = np.array((71, 192), dtype=np.float64)
         self.nodes[200] = np.array((242, 532), dtype=np.float64)
         self.nodes[201] = np.array((157, 775), dtype=np.float64)
-        self.nodes[202] = np.array((220, 640), dtype=np.float64)
+        #self.nodes[202] = np.array((220, 640), dtype=np.float64)
         self.nodes[204] = np.array((144, 543), dtype=np.float64)
         
         if subset is not None:

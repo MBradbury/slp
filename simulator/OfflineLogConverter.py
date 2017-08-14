@@ -1,41 +1,57 @@
 from __future__ import print_function, division
 
 from datetime import datetime
+import glob
+import os.path
 import re
+
+import pandas
 
 from data.restricted_eval import restricted_eval
 
 class OfflineLogConverter(object):
-    def __init__(self, log_file):
-        self._log_file = log_file
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 class Null(OfflineLogConverter):
     """Dummy converter that just provides iteration of the log without changes."""
-    def __init__(self, log_file):
-        super(Null, self).__init__(log_file)
+    def __init__(self, log_path):
+        super(Null, self).__init__()
+
+        self._log_file = open(log_path, 'r')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._log_file.close()
 
     def __iter__(self):
         return iter(self._log_file)
 
 class FlockLab(OfflineLogConverter):
-    def __init__(self, log_file):
-        super(FlockLab, self).__init__(log_file)
+    def __init__(self, log_path):
+        super(FlockLab, self).__init__()
 
         self.processed_lines = []
 
-        for line in self._log_file:
-            if line.startswith('#'):
-                continue
-            if line.endswith("\0\n"):
-                continue
+        with open(log_path, 'r') as log_file:
+            for line in log_file:
+                if line.startswith('#'):
+                    continue
+                if line.endswith("\0\n"):
+                    continue
 
-            timestamp, observer_id, node_id, direction, output = line.split(",", 4)
+                timestamp, observer_id, node_id, direction, output = line.split(",", 4)
 
-            timestamp = float(timestamp)
+                timestamp = float(timestamp)
 
-            node_time = datetime.fromtimestamp(timestamp)
+                node_time = datetime.fromtimestamp(timestamp)
 
-            self.processed_lines.append((node_time, output))
+                self.processed_lines.append((node_time, output))
 
         self.processed_lines.sort(key=lambda x: x[0])
 
@@ -66,9 +82,11 @@ class Avrora(OfflineLogConverter):
     TX_LINE_RE = re.compile(r'---->\s+((?:[0-9A-F][0-9A-F]\.)*[0-9A-F][0-9A-F])\s+(\d+\.\d+)\s+ms\s*')
     RX_LINE_RE = re.compile(r'<====\s+((?:[0-9A-F][0-9A-F]\.)*[0-9A-F][0-9A-F])\s+(\d+\.\d+)\s+ms\s*')
 
-    def __init__(self, log_file):
-        super(Avrora, self).__init__(log_file)
-        self._log_file_iter = iter(log_file)
+    def __init__(self, log_path):
+        super(Avrora, self).__init__()
+
+        self._log_file = open(log_path, 'r')
+        self._log_file_iter = iter(self._log_file)
 
         self.started = False
         self.ended = False
@@ -82,6 +100,9 @@ class Avrora(OfflineLogConverter):
     @staticmethod
     def _incremental_ave(curr, item, count):
         return curr + (item - curr) / (count + 1), count + 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._log_file.close()
 
     def __iter__(self):
         return self
@@ -135,10 +156,133 @@ class Avrora(OfflineLogConverter):
     def next(self):
         return self.__next__()
 
+class SerialMessageLogConverter(object):
+    AM_EVENT_OCCURRED_MSG = 48
+    AM_ERROR_OCCURRED_MSG = 49
+    AM_METRIC_RECEIVE_MSG = 50
+    AM_METRIC_BCAST_MSG = 51
+    AM_METRIC_DELIVER_MSG = 52
+    AM_ATTACKER_RECEIVE_MSG = 53
+    AM_METRIC_NODE_CHANGE_MSG = 54
+    AM_METRIC_NODE_TYPE_ADD_MSG = 55
+    AM_METRIC_MESSAGE_TYPE_ADD_MSG = 56
+    AM_METRIC_NODE_SLOT_CHANGE_MSG = 57
+    AM_METRIC_PARENT_CHANGE_MSG = 58
+    AM_METRIC_START_PERIOD_MSG = 59
+    AM_METRIC_FAULT_POINT_TYPE_ADD_MSG = 60
+    AM_METRIC_FAULT_POINT_MSG = 61
 
-class Indriya(OfflineLogConverter):
-    def __init__(self, log_file):
-        super(Indriya, self).__init__(log_file)
+    message_types_to_channels = {
+        AM_METRIC_RECEIVE_MSG:          ("M-CR",    ("message_type", "proximate_source", "ultimate_source", "sequence_number", "distance")),
+        AM_METRIC_BCAST_MSG:            ("M-CB",    ("message_type", "status", "sequence_number")),
+        AM_METRIC_DELIVER_MSG:          ("M-CD",    ("message_type", "proximate_source", "ultimate_source_poss_bottom", "sequence_number")),
+        AM_ATTACKER_RECEIVE_MSG:        ("A-R",     ("message_type", "proximate_source", "ultimate_source_poss_bottom", "sequence_number")),
+        AM_METRIC_NODE_CHANGE_MSG:      ("M-NC",    ("old_node_type", "new_node_type")),
+        AM_ERROR_OCCURRED_MSG:          ("stderr",  ("error_code",)),
+        AM_EVENT_OCCURRED_MSG:          ("stdout",  ("event_code",)),
+        AM_METRIC_NODE_TYPE_ADD_MSG:    ("M-NTA",   ("node_type_id", "node_type_name")),
+        AM_METRIC_MESSAGE_TYPE_ADD_MSG: ("M-MTA",   ("message_type_id", "message_type_name")),
+    }
+
+    def catter_header(self, row, d_or_e, channel):
+        return "{}|{}:{}:{}:{}:".format(row["date_time"], channel, d_or_e, row["node_id"], row["local_time"])
+
+    def catter_row(self, row, channel, headers):
+        return self.catter_header(row, "D", channel) + ",".join(str(row[header]) for header in headers)
+
+    def _read_dat_file(self, path):
+        try:
+            reader = pandas.read_csv(path, delimiter="\t", parse_dates=True)
+
+            # Check there is only one message type
+            if len(reader["type"].unique()) != 1:
+                raise RuntimeError("The type column has more than 1 value.")
+
+            message_type = reader["type"][0]
+
+            reader["date_time"] = reader["insert_time"].apply(lambda x: x.replace("-", "/")) + "." + reader["milli_time"].apply(lambda x: str(x % 1000).ljust(3, '0'))
+
+            reader["milli_time"] -= reader["milli_time"][0]
+
+            return (message_type, reader)
+
+        except pandas.io.common.EmptyDataError:
+            # Skip empty files
+            return (None, None)
+
+    def _create_combined_results(self, log_path):
+        dat_file_paths = glob.glob(os.path.join(log_path, "*.dat"))
+
+        dat_files = {
+            message_type: reader
+            for (message_type, reader)
+            in (self._read_dat_file(path) for path in dat_file_paths)
+            if message_type is not None
+        }
+
+        if len(dat_files) == 0:
+            raise RuntimeError("All dat files were empty, no results present.")
+
+        # Remove "\0" from any fields that are strings
+        to_remove_nul_char = [(self.AM_METRIC_NODE_TYPE_ADD_MSG, "node_type_name"), (self.AM_METRIC_MESSAGE_TYPE_ADD_MSG, "message_type_name")]
+
+        for (ident, name) in to_remove_nul_char:
+            dat_files[ident][name] = dat_files[ident][name].apply(lambda x: x.replace("\\0", ""))
+
+        # Find out the numeric to name mappings for message types
+        node_types = (
+            dat_files[self.AM_METRIC_NODE_TYPE_ADD_MSG][["node_type_id", "node_type_name"]]
+                .drop_duplicates()
+                .set_index("node_type_id")
+                .to_dict()["node_type_name"]
+        )
+
+        # Find out the numeric to name mappings for message types
+        message_types = (
+            dat_files[self.AM_METRIC_MESSAGE_TYPE_ADD_MSG][["message_type_id", "message_type_name"]]
+                .drop_duplicates()
+                .set_index("message_type_id")
+                .to_dict()["message_type_name"]
+        )
+
+        # Convert any node type ids to node type names
+        to_convert_node_type = [(self.AM_METRIC_NODE_CHANGE_MSG, "old_node_type"), (self.AM_METRIC_NODE_CHANGE_MSG, "new_node_type")]
+
+        for (ident, name) in to_convert_node_type:
+            dat_files[ident][name] = dat_files[ident][name].apply(lambda x: node_types.get(x, "<unknown>"))
+
+        dfs = []
+
+        for (message_type, dat_file) in dat_files.items():
+            channel, headers = self.message_types_to_channels[message_type]
+
+            # Convert numeric message type to string
+            if "message_type" in dat_file:
+                dat_file["message_type"] = dat_file["message_type"].apply(lambda x: message_types[x])
+
+            # Get the df we want to output
+            df = pandas.DataFrame({
+                "line": dat_file.apply(self.catter_row, axis=1, args=(channel, headers)),
+                "time": dat_file["milli_time"]
+            })
+
+            dfs.append(df)
+
+        cdf = pandas.concat(dfs).sort_values(by="time")
+
+        del cdf["time"]
+
+        return cdf            
+
+
+class Indriya(OfflineLogConverter, SerialMessageLogConverter):
+    def __init__(self, log_path):
+        super(Indriya, self).__init__()
+
+        self.cdf = self._create_combined_results(log_path)
+        
+    def __iter__(self):
+        return iter(self.cdf["line"])
 
 
 def models():

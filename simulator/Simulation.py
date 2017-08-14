@@ -323,10 +323,16 @@ class OfflineSimulation(object):
             self.safety_period = args.safety_period
             
         elif hasattr(args, "source_period"):
+
+            try:
+                slowest = args.source_period.slowest()
+            except AttributeError:
+                slowest = float(args.source_period)
+
             # To make simulations safer an upper bound on the simulation time
             # is used when no safety period makes sense. This upper bound is the
             # time it would have otherwise taken the attacker to scan the whole network.
-            self.safety_period = len(configuration.topology.nodes) * 2.0 * args.source_period.slowest()
+            self.safety_period = len(configuration.topology.nodes) * 2.0 * slowest
 
         else:
             self.safety_period = None
@@ -341,6 +347,8 @@ class OfflineSimulation(object):
         self._line_handlers = {}
 
         self._callbacks = []
+
+        self.fault_model = args.fault_model
 
         self.attackers = []
 
@@ -373,7 +381,11 @@ class OfflineSimulation(object):
         self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.+)\s*')
 
     def __enter__(self):
+
+        self.fault_model.setup(self)
+
         self.enter_start_time = timeit.default_timer()
+
         return self
 
     def __exit__(self, tp, value, tb):

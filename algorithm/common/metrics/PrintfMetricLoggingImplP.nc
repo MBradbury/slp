@@ -53,12 +53,13 @@ implementation
 		const char* message_type,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		)
 	{
 		simdbg("M-CD", \
-			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number);
+			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number, rssi);
 	}
 
 	command void MetricLogging.log_attacker_receive(
@@ -66,12 +67,13 @@ implementation
 		const message_t* msg,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		)
 	{
 		simdbg("A-R",
-			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number);
+			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number, rssi);
 	}
 
 	command void MetricLogging.log_metric_node_change(
@@ -159,5 +161,18 @@ implementation
 
 		simdbg("G-A", "arrow,-," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",(0,0,0)\n", TOS_NODE_ID, old_parent);
 		simdbg("G-A", "arrow,+," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",(0,0,0)\n", TOS_NODE_ID, new_parent);
+	}
+
+	command void MetricLogging.log_metric_rssi(
+		uint16_t average,
+		uint16_t smallest,
+		uint16_t largest,
+		uint16_t reads,
+		uint8_t channel
+		)
+	{
+		simdbg("M-RSSI",
+				"%" PRIu16 ",%" PRIu16 ",%" PRIu16 ",%" PRIu16 ",%" PRIu8 "\n",
+				average, smallest, largest, reads, channel);
 	}
 }
