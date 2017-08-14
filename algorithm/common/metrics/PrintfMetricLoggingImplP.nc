@@ -160,4 +160,17 @@ implementation
 		simdbg("G-A", "arrow,-," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",(0,0,0)\n", TOS_NODE_ID, old_parent);
 		simdbg("G-A", "arrow,+," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",(0,0,0)\n", TOS_NODE_ID, new_parent);
 	}
+
+	command void MetricLogging.log_metric_rssi(
+		uint16_t average,
+		uint16_t smallest,
+		uint16_t largest,
+		uint16_t reads,
+		uint8_t channel
+		)
+	{
+		simdbg("M-RSSI",
+				"%" PRIu16 ",%" PRIu16 ",%" PRIu16 ",%" PRIu16 ",%" PRIu8 "\n",
+				average, smallest, largest, reads, channel);
+	}
 }

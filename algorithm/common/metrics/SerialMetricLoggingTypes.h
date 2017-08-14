@@ -26,6 +26,8 @@ enum {
 
     AM_METRIC_FAULT_POINT_TYPE_ADD_MSG = 60,
     AM_METRIC_FAULT_POINT_MSG = 61,
+
+    AM_METRIC_RSSI_MSG = 62,
 };
 
 #define MAXIMUM_NODE_TYPE_NAME_LENGTH 20
@@ -148,5 +150,16 @@ typedef nx_struct metric_parent_change_msg {
 	nx_am_addr_t old_parent;
 	nx_am_addr_t new_parent;
 } metric_parent_change_msg_t;
+
+typedef nx_struct metric_rssi_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_uint16_t average;
+	nx_uint16_t smallest;
+	nx_uint16_t largest;
+	nx_uint16_t reads;
+	nx_uint8_t channel;
+
+} metric_rssi_msg_t;
 
 #endif // SLP_SERIAL_METRIC_LOGGING_H
