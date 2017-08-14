@@ -81,6 +81,7 @@ module SourceBroadcasterC
 	uses interface Receive as AwayReceive;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;

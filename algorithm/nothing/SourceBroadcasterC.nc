@@ -18,6 +18,7 @@ module SourceBroadcasterC
 	uses interface SplitControl as RadioControl;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;

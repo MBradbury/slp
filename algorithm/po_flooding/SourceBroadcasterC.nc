@@ -90,6 +90,7 @@ module SourceBroadcasterC
 	uses interface PacketAcknowledgements as ActivatePacketAcknowledgements;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface Neighbours<ni_container_t, BeaconMessage, PollMessage>;
 

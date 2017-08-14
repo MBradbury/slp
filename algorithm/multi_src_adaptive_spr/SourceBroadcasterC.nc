@@ -74,6 +74,7 @@ module SourceBroadcasterC
 	uses interface Receive as BeaconReceive;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;

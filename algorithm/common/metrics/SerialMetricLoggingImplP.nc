@@ -183,7 +183,8 @@ implementation
 		const char* message_type,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		)
 	{
 		SERIAL_START_SEND(metric_deliver_msg_t)
@@ -194,6 +195,7 @@ implementation
 		msg->proximate_source = proximate_source;
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
+		msg->rssi = rssi;
 
 		SERIAL_END_SEND(metric_deliver_msg_t)
 	}
@@ -203,7 +205,8 @@ implementation
 		const message_t* wsn_msg,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		)
 	{
 		SERIAL_START_SEND(attacker_receive_msg_t)
@@ -214,6 +217,7 @@ implementation
 		msg->proximate_source = proximate_source;
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
+		msg->rssi = rssi;
 
 		SERIAL_END_SEND(attacker_receive_msg_t)
 	}

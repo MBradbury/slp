@@ -23,6 +23,7 @@ module ReadRssiC
 	uses interface SplitControl as RadioControl;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface CC2420Config as Config;
 	uses interface Read<uint16_t> as ReadRssi;
@@ -135,7 +136,8 @@ implementation
 			uint16_t rssi_smallest, rssi_largest;
 			uint16_t rssi_reads;
 
-			atomic{
+			atomic
+			{
 				rssi_average = (total >> LOG2SAMPLES);
 				rssi_smallest = smallest;
 				rssi_largest = largest;

@@ -8,6 +8,7 @@ generic configuration NeighboursC(
 	provides interface Neighbours<Info, NBeaconMessage, NPollMessage>;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 	uses interface NodeType;
 }
 implementation

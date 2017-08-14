@@ -67,6 +67,7 @@ module SourceBroadcasterC
     uses interface Receive as EmptyNormalReceive;
 
     uses interface MetricLogging;
+	uses interface MetricHelpers;
 
     uses interface TDMA;
 
