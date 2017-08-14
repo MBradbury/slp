@@ -70,6 +70,7 @@ typedef nx_struct metric_deliver_msg {
 	nx_am_addr_t proximate_source;
 	nx_int32_t ultimate_source_poss_bottom;
 	nx_int64_t sequence_number;
+	nx_int8_t rssi;
 } metric_deliver_msg_t;
 
 typedef nx_struct attacker_receive_msg {
@@ -79,6 +80,7 @@ typedef nx_struct attacker_receive_msg {
 	nx_am_addr_t proximate_source;
 	nx_int32_t ultimate_source_poss_bottom;
 	nx_int64_t sequence_number;
+	nx_int8_t rssi;
 } attacker_receive_msg_t;
 
 typedef nx_struct metric_node_change_msg {

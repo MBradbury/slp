@@ -35,6 +35,7 @@ module SourceBroadcasterC
 	uses interface Receive as FakeReceive;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;

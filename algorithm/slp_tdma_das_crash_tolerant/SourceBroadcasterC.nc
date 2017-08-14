@@ -78,6 +78,7 @@ module SourceBroadcasterC
     uses interface Receive as CrashReceive;
 
     uses interface MetricLogging;
+	uses interface MetricHelpers;
 
     uses interface TDMA;
 

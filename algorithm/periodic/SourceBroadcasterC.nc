@@ -33,6 +33,7 @@ module SourceBroadcasterC
 	uses interface Receive as DummyNormalReceive;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;

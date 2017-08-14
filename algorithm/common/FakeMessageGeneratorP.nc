@@ -6,6 +6,7 @@ configuration FakeMessageGeneratorP
 	uses interface Packet;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 }
 implementation
 {
@@ -15,6 +16,7 @@ implementation
 
 	App.Packet = Packet;
 	App.MetricLogging = MetricLogging;
+	App.MetricHelpers = MetricHelpers;
 
 	components LocalTimeMilliC;
 	

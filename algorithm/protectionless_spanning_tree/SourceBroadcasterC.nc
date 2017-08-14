@@ -26,6 +26,7 @@ module SourceBroadcasterC
 	uses interface Intercept as NormalIntercept;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;

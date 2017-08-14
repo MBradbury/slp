@@ -10,6 +10,7 @@ generic module GossipP(typedef Message, uint32_t wait_period)
 	uses interface Timer<TMilli> as WaitTimer;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface Cache<Message> as SentCache;
 	uses interface Dictionary<Message, gossip_message_info_t> as MessageDict;

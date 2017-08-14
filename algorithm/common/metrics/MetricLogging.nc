@@ -22,7 +22,8 @@ interface MetricLogging
 		const char* message_type,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		);
 
 	command void log_attacker_receive(
@@ -30,7 +31,8 @@ interface MetricLogging
 		const message_t* msg,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		);
 
 	command void log_metric_node_change(

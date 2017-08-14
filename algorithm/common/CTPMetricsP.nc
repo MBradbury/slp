@@ -7,6 +7,7 @@ module CTPMetricsP
 	uses interface CtpInfo;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 }
 
 implementation

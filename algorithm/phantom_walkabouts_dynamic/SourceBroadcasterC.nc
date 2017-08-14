@@ -137,6 +137,7 @@ module SourceBroadcasterC
 	uses interface Receive as NormalSnoop;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;

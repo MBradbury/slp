@@ -85,6 +85,7 @@ module SourceBroadcasterC
 	uses interface Receive as InformReceive;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;
