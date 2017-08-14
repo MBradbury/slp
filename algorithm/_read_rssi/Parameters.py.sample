@@ -1,0 +1,50 @@
+
+distance = 4.5
+
+noise_models = ["meyer-heavy", "casino-lab"]
+
+communication_models = ["low-asymmetry"] 
+
+sizes = [11, 15, 21, 25]
+
+source_periods = [1.0, 0.5, 0.25, 0.125]
+
+configurations = [
+    'SourceCorner',
+    'SinkCorner',
+    'FurtherSinkCorner',
+    #'Generic1',
+    #'Generic2',
+
+    #'RingTop',
+    #'RingOpposite',
+    #'RingMiddle',
+
+    #'CircleEdges',
+    #'CircleSourceCentre',
+    #'CircleSinkCentre',
+
+    # 2 sources
+    'Source2Corners',
+    'Source2Edges',
+    'Source2Corner',
+    'SourceEdgeCorner',
+
+    # 3 sources
+    'Source3Corner',
+
+    # 4 sources
+    'Source4Corners',
+    'Source4Edges',        
+    'Source2Corner2OppositeCorner'
+]
+
+repeats = 2000
+
+attacker_models = ['DeafAttacker()']
+
+fault_models = ['ReliableFaultModel()']
+
+latest_node_start_time = 1.0 # in seconds
+
+node_id_orders = ['topology']
