@@ -148,10 +148,14 @@ implementation
 				reads = 0;
 			}
 
+			post read_rssi();
+
 			METRIC_RSSI(rssi_average, rssi_smallest, rssi_largest, rssi_reads, channel);
 		}
-		
-		post read_rssi();
+		else
+		{
+			post read_rssi();
+		}
 	}
 
 	event void Config.syncDone(error_t error) {}
