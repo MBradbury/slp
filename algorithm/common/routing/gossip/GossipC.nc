@@ -6,6 +6,7 @@ generic configuration GossipC(typedef Message, uint16_t MESSAGE_POOL_SIZE, uint3
 	provides interface Gossip<Message>;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 	uses interface Compare<Message>;
 }
 implementation

@@ -1,5 +1,7 @@
 #include "SequenceNumber.h"
 
+#include <message.h>
+
 interface MetricLogging
 {
 	command void log_metric_receive(
@@ -20,7 +22,8 @@ interface MetricLogging
 		const char* message_type,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		);
 
 	command void log_attacker_receive(
@@ -28,7 +31,8 @@ interface MetricLogging
 		const message_t* msg,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		);
 
 	command void log_metric_node_change(
@@ -80,4 +84,14 @@ interface MetricLogging
 		am_addr_t old_parent,
 		am_addr_t new_parent
 		);
+
+	// General WSN metrics
+	command void log_metric_rssi(
+		uint16_t average,
+		uint16_t smallest,
+		uint16_t largest,
+		uint16_t reads,
+		uint8_t channel
+		);
+
 }

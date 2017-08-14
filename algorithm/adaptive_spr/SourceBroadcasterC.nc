@@ -77,6 +77,7 @@ module SourceBroadcasterC
 	uses interface Receive as BeaconReceive;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface NodeType;
 	uses interface MessageType;
@@ -271,7 +272,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
 
 		busy = FALSE;
 		call Packet.clear(&packet);

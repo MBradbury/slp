@@ -4,6 +4,7 @@ from collections import Counter, OrderedDict, defaultdict
 import base64
 import math
 import pickle
+import sys
 import zlib
 
 # Allow missing psutil
@@ -229,7 +230,7 @@ class MetricsCommon(object):
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
     def process_deliver_event(self, d_or_e, node_id, time, detail):
-        (kind, proximate_source_id, ultimate_source_id, sequence_number) = detail.split(',')
+        (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
@@ -627,6 +628,9 @@ class MetricsCommon(object):
         return dict(self.delivered_from_further_meters[msg])
 
 
+    def faults_occurred(self):
+        return self.sim.fault_model.faults_occurred
+
 
     @staticmethod
     def smaller_dict_str(dict_result):
@@ -704,6 +708,8 @@ class MetricsCommon(object):
         d["DeliveredFromFurtherHops"]       = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_hops_all())
         d["DeliveredFromCloserOrSameMeters"]= lambda x: MetricsCommon.smaller_dict_str(x.deliv_closer_or_same_meters_all())
         d["DeliveredFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_meters_all())
+
+        d["FaultsOccured"]                 = lambda x: x.faults_occurred()
 
         d["Errors"]                        = lambda x: MetricsCommon.smaller_dict_str(dict(x.errors))
 
@@ -974,6 +980,24 @@ class TreeMetricsCommon(MetricsCommon):
         d["TotalTrueParentChanges"]        = lambda x: x.total_true_parent_changes()
 
         d["ParentChangeHeatMap"]           = lambda x: MetricsCommon.compressed_dict_str(x.true_parent_change_heat_map())
+
+        return d
+
+class RssiMetricsCommon(MetricsCommon):
+    """For algorithms that measure the RSSI."""
+    def __init__(self, sim, configuration):
+        super(RssiMetricsCommon, self).__init__(sim, configuration)
+
+        self.register('M-RSSI', self.process_rssi_event)
+
+    def process_rssi_event(self, d_or_e, node_id, time, detail):
+        (average, smallest, largest, reads, channel) = detail.split(',')
+
+        print("RSSI on {} at {} : {}".format(node_id, time, detail))
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
 
         return d
 

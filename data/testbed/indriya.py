@@ -20,7 +20,11 @@ def submitter(*args, **kwargs):
     raise RuntimeError("{} does not support automatic submission".format(name()))
 
 def build_arguments():
-    return {}
+    return {
+        # Wait for a short amount of time before running the boot event.
+        # This is to help catch all the serial output
+        "DELAYED_BOOT_TIME_MINUTES": 12
+    }
 
 def fastserial_supported():
     return True

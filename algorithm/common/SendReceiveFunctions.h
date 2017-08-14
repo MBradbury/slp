@@ -235,8 +235,9 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	const NAME##Message* const rcvd = (const NAME##Message*)payload; \
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
+	const int8_t rssi = call MetricHelpers.getRssi(msg); \
  \
- 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
+ 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
@@ -246,7 +247,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	LOG_STDOUT_VERBOSE(EVENT_##KIND##_VALID_PACKET, #KIND "'ed valid " #NAME ".\n"); \
  \
-	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
+	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi); \
  \
 	switch (call NodeType.get()) \
 	{
@@ -274,8 +275,9 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	NAME##Message* const rcvd = (NAME##Message*)payload; \
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
+	const int8_t rssi = call MetricHelpers.getRssi(msg); \
  \
- 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
+ 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
@@ -285,7 +287,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	LOG_STDOUT_VERBOSE(EVENT_##KIND##_VALID_PACKET, #KIND "'ed valid " #NAME ".\n"); \
  \
-	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd)); \
+	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi); \
  \
 	switch (call NodeType.get()) \
 	{

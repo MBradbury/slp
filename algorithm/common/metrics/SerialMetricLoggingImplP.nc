@@ -1,12 +1,14 @@
 #include "MetricLogging.h"
 
+#include "slp_static_assert.h"
+
 #ifndef USE_SERIAL_MESSAGES
 #	error "Must only use MetricLoggingP when USE_SERIAL_MESSAGES is defined"
 #endif
 
-//#define MAX_SERIAL_PACKET_SIZE 255
-
 #define SERIAL_START_SEND(MESSAGE_NAME) \
+	STATIC_ASSERT(sizeof(MESSAGE_NAME) <= TOSH_DATA_LENGTH); \
+ \
 	message_t* packet; \
 	MESSAGE_NAME* msg; \
 	error_t result; \
@@ -21,8 +23,6 @@
  \
  	call Packet.setPayloadLength(packet, sizeof(MESSAGE_NAME)); \
 	msg = (MESSAGE_NAME*)call Packet.getPayload(packet, sizeof(MESSAGE_NAME)); \
- \
-	/*STATIC_ASSERT_MSG(sizeof(MESSAGE_NAME) <= MAX_SERIAL_PACKET_SIZE, Need_to_increase_the_MAX_SERIAL_PACKET_SIZE_for_##MESSAGE_NAME);*/ \
  \
  	msg->node_id = TOS_NODE_ID; \
 	msg->local_time = call LocalTime.get();
@@ -183,7 +183,8 @@ implementation
 		const char* message_type,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		)
 	{
 		SERIAL_START_SEND(metric_deliver_msg_t)
@@ -194,6 +195,7 @@ implementation
 		msg->proximate_source = proximate_source;
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
+		msg->rssi = rssi;
 
 		SERIAL_END_SEND(metric_deliver_msg_t)
 	}
@@ -203,7 +205,8 @@ implementation
 		const message_t* wsn_msg,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		)
 	{
 		SERIAL_START_SEND(attacker_receive_msg_t)
@@ -214,6 +217,7 @@ implementation
 		msg->proximate_source = proximate_source;
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
+		msg->rssi = rssi;
 
 		SERIAL_END_SEND(attacker_receive_msg_t)
 	}
@@ -363,5 +367,26 @@ implementation
 		msg->new_parent = new_parent;
 
 		SERIAL_END_SEND(metric_parent_change_msg_t)
+	}
+
+	command void MetricLogging.log_metric_rssi(
+		uint16_t average,
+		uint16_t smallest,
+		uint16_t largest,
+		uint16_t reads,
+		uint8_t channel
+		)
+	{
+		SERIAL_START_SEND(metric_rssi_msg_t)
+
+		msg->type = AM_METRIC_RSSI_MSG;
+		
+		msg->average = average;
+		msg->smallest = smallest;
+		msg->largest = largest;
+		msg->reads = reads;
+		msg->channel = channel;
+
+		SERIAL_END_SEND(metric_rssi_msg_t)
 	}
 }

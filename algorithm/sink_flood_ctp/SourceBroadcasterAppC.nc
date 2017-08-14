@@ -19,8 +19,10 @@ implementation
 	App.Leds -> LedsC;
 
 	components MetricLoggingP as MetricLogging;
-
 	App.MetricLogging -> MetricLogging;
+	
+	components MetricHelpersP as MetricHelpers;
+	App.MetricHelpers -> MetricHelpers;
 
 	components new NodeTypeC(6);
 	App.NodeType -> NodeTypeC;

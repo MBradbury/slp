@@ -90,6 +90,7 @@ module SourceBroadcasterC
 	uses interface PacketAcknowledgements as ActivatePacketAcknowledgements;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 
 	uses interface Neighbours<ni_container_t, BeaconMessage, PollMessage>;
 
@@ -153,7 +154,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
 
 		busy = FALSE;
 		call Packet.clear(&packet);

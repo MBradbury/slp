@@ -39,6 +39,7 @@ generic module NeighboursImplC(
 	uses interface Receive as PollReceive;
 
 	uses interface MetricLogging;
+	uses interface MetricHelpers;
 	uses interface NodeType;
 }
 implementation

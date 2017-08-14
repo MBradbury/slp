@@ -21,8 +21,10 @@ implementation
 	App.Random -> RandomC;
 
 	components MetricLoggingP as MetricLogging;
-
 	App.MetricLogging -> MetricLogging;
+	
+	components MetricHelpersP as MetricHelpers;
+	App.MetricHelpers -> MetricHelpers;
 
 	components new NodeTypeC(6);
 	App.NodeType -> NodeTypeC;
@@ -36,9 +38,7 @@ implementation
 
 	// Radio Control
 	components ActiveMessageC;
-
 	App.RadioControl -> ActiveMessageC;
-
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
@@ -84,6 +84,8 @@ implementation
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;
 	FakeMessageGeneratorP.Packet -> ActiveMessageC;
 	FakeMessageGeneratorP.MetricLogging -> MetricLogging;
+	FakeMessageGeneratorP.MetricHelpers -> MetricHelpers;
+	FakeMessageGeneratorP.MetricHelpers -> MetricHelpers;
 
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;

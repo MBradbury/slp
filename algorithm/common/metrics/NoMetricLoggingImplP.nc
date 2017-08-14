@@ -30,7 +30,8 @@ implementation
 		const char* message_type,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		)
 	{
 	}
@@ -40,7 +41,8 @@ implementation
 		const message_t* msg,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		int8_t rssi
 		)
 	{
 	}
@@ -111,6 +113,16 @@ implementation
 	command void MetricLogging.log_metric_parent_change(
 		am_addr_t old_parent,
 		am_addr_t new_parent
+		)
+	{
+	}
+
+	command void MetricLogging.log_metric_rssi(
+		uint16_t average,
+		uint16_t smallest,
+		uint16_t largest,
+		uint16_t reads,
+		uint8_t channel
 		)
 	{
 	}

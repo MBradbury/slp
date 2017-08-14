@@ -76,7 +76,7 @@ class Attacker(object):
         if self.position != node_id:
             return False
 
-        (msg_type, prox_from_id, ult_from_id, sequence_number) = detail.split(',')
+        (msg_type, prox_from_id, ult_from_id, sequence_number, rssi) = detail.split(',')
 
         msg_type = self._sim.metrics.message_kind_to_string(msg_type)
 
@@ -184,6 +184,9 @@ class Attacker(object):
 
     def __str__(self):
         return type(self).__name__ + "()"
+
+    def short_name(self):
+        return str(self)
 
 class DeafAttacker(Attacker):
     """An attacker that does nothing when it receives a message"""
@@ -603,6 +606,10 @@ class RHMPeriodAttacker(Attacker):
 
     def __str__(self):
         return type(self).__name__ + "(dissem_period_length={},clear_periods={},history_window_size={},moves_per_period={})".format(
+            self._dissem_period_length, self._clear_periods, self._history_window_size, self._moves_per_period)
+
+    def short_name(self):
+        return type(self).__name__ + "({},{},{},{})".format(
             self._dissem_period_length, self._clear_periods, self._history_window_size, self._moves_per_period)
 
 def models():

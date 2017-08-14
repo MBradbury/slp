@@ -47,6 +47,7 @@ module SourceBroadcasterC
     uses interface Receive as EmptyNormalReceive;
 
     uses interface MetricLogging;
+	uses interface MetricHelpers;
 
     uses interface TDMA;
 
@@ -121,7 +122,7 @@ implementation
     //Startup Events
 	event void Boot.booted()
 	{
-		simdbgverbose("Boot", "Application booted.\n");
+		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
 
         call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
         call MessageType.register_pair(EMPTYNORMAL_CHANNEL, "EmptyNormal");

@@ -4,7 +4,9 @@
 #include "AM.h"
 
 // These constants are used to set the message channel and type
-// The format of the name is required by the mig tool
+// The format of the name is required by the mig tool.
+// Please update simulator/OfflineLogConverter.py when you change
+// any of these values.
 enum {
 	AM_EVENT_OCCURRED_MSG = 48,
 	AM_ERROR_OCCURRED_MSG = 49,
@@ -24,6 +26,8 @@ enum {
 
     AM_METRIC_FAULT_POINT_TYPE_ADD_MSG = 60,
     AM_METRIC_FAULT_POINT_MSG = 61,
+
+    AM_METRIC_RSSI_MSG = 62,
 };
 
 #define MAXIMUM_NODE_TYPE_NAME_LENGTH 20
@@ -66,6 +70,7 @@ typedef nx_struct metric_deliver_msg {
 	nx_am_addr_t proximate_source;
 	nx_int32_t ultimate_source_poss_bottom;
 	nx_int64_t sequence_number;
+	nx_int8_t rssi;
 } metric_deliver_msg_t;
 
 typedef nx_struct attacker_receive_msg {
@@ -75,6 +80,7 @@ typedef nx_struct attacker_receive_msg {
 	nx_am_addr_t proximate_source;
 	nx_int32_t ultimate_source_poss_bottom;
 	nx_int64_t sequence_number;
+	nx_int8_t rssi;
 } attacker_receive_msg_t;
 
 typedef nx_struct metric_node_change_msg {
@@ -146,5 +152,16 @@ typedef nx_struct metric_parent_change_msg {
 	nx_am_addr_t old_parent;
 	nx_am_addr_t new_parent;
 } metric_parent_change_msg_t;
+
+typedef nx_struct metric_rssi_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_uint16_t average;
+	nx_uint16_t smallest;
+	nx_uint16_t largest;
+	nx_uint16_t reads;
+	nx_uint8_t channel;
+
+} metric_rssi_msg_t;
 
 #endif // SLP_SERIAL_METRIC_LOGGING_H
