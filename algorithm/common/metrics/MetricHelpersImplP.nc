@@ -48,6 +48,6 @@ implementation
 		}
 #endif
 
-		return tx_power
+		return tx_power;
 	}
 }
