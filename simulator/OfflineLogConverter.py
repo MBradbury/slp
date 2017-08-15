@@ -51,6 +51,9 @@ class FlockLab(OfflineLogConverter):
 
                 node_time = datetime.fromtimestamp(timestamp)
 
+                # Remove newline from output
+                output = output.strip()
+
                 self.processed_lines.append((node_time, output))
 
         self.processed_lines.sort(key=lambda x: x[0])
