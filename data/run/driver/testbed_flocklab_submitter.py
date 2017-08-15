@@ -11,7 +11,8 @@ import subprocess
 from simulator import Configuration
 
 class Runner(object):
-    def __init__(self, dry_run=False):
+    def __init__(self, duration, dry_run=False):
+        self.duration = duration
         self.dry_run = dry_run
 
     def add_job(self, options, name, estimated_time):
@@ -36,13 +37,12 @@ class Runner(object):
             return "tmote"
         return platform
 
-    def generate_configuration_xml(self, configuration, config_file, exe_path, duration=None, **options):
+    def generate_configuration_xml(self, configuration, config_file, exe_path, duration, **options):
 
         # See: https://www.flocklab.ethz.ch/wiki/wiki/Public/Man/XmlConfig
         # for the details of the xml config
 
-        # Convert the duration in minutes to seconds
-        duration_secs = duration * 60
+        duration_secs = duration.total_seconds()
 
         print('<?xml version="1.0" encoding="UTF-8"?>', file=config_file)
         print('<!-- $Id: flocklab.xml {} {} $ -->'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S Z%Z"), getpass.getuser()), file=config_file)
@@ -105,12 +105,10 @@ class Runner(object):
         exe_path = os.path.join(target_directory, "main.exe")
         config_path = os.path.join(target_directory, "flocklab.xml")
 
-        duration = 20 # in minutes
-
         with open(config_path, "w") as config_file:
             self.generate_configuration_xml(configuration, config_file, exe_path,
                 name=name,
-                duration=duration,
+                duration=self.duration,
             )
 
         # Check that everything is okay

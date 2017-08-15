@@ -10,6 +10,7 @@ import math
 import os
 import subprocess
 import sys
+import time
 
 import algorithm
 
@@ -102,6 +103,7 @@ class CLI(object):
         subparser.add_argument("-g", "--generate-per-node-id-binary", default=False, action="store_true", help="Also create a per node id binary that can be used in deployment")
 
         subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
+        subparser.add_argument("--duration", type=str, help="How long you wish to run on the testbed for.", required=True)
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
         subparser.add_argument("--dry-run", action="store_true", help="Do not actually submit, but check things would progress.")
 
@@ -751,7 +753,11 @@ class CLI(object):
                                  skip_completed_simulations=False)
 
         elif 'submit' == args.testbed_mode:
-            submitter = testbed.submitter(dry_run=args.dry_run)
+
+            duration = time.strptime(args.duration, "%H:%M:%S")
+            duration = timedelta(hours=duration.tm_hour, minutes=duration.tm_min, seconds=duration.tm_sec)
+
+            submitter = testbed.submitter(duration=duration, dry_run=args.dry_run)
 
             skip_complete = not args.no_skip_complete
 
