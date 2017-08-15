@@ -114,7 +114,7 @@ class Runner(object):
         # Check that everything is okay
         command = ["./scripts/flocklab.sh", "-v", config_path]
 
-        print("Checking xml validity: ",  " ".join(command))
+        print("Checking xml validity:",  " ".join(command))
         validator_output = subprocess.check_output(" ".join(command), shell=True).strip()
 
         if validator_output != "The file validated correctly.":
@@ -123,7 +123,7 @@ class Runner(object):
         # Submit the job
         command = ["./scripts/flocklab.sh", "-c", config_path]
 
-        print("Submitting xml job: ",  " ".join(command))
+        print("Submitting xml job:",  " ".join(command), "for a duration of", self.duration)
         if not self.dry_run:
             subprocess.check_call(" ".join(command), shell=True)
         else:

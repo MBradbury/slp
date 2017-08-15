@@ -757,6 +757,12 @@ class CLI(object):
             duration = time.strptime(args.duration, "%H:%M:%S")
             duration = timedelta(hours=duration.tm_hour, minutes=duration.tm_min, seconds=duration.tm_sec)
 
+            # Add some extra time to account for the period spent waiting for serial to be ready
+            extra_minutes = timedelta(minutes=testbed.build_arguments().get("DELAYED_BOOT_TIME_MINUTES", 0))
+
+            duration += extra_minutes
+            
+
             submitter = testbed.submitter(duration=duration, dry_run=args.dry_run)
 
             skip_complete = not args.no_skip_complete
