@@ -1,6 +1,7 @@
-from __future__ import print_function
+from __future__ import division, print_function
 
 import importlib
+import math
 import os
 import shlex
 import subprocess
@@ -8,7 +9,8 @@ import subprocess
 from simulator import Configuration
 
 class Runner(object):
-    def __init__(self, dry_run=False):
+    def __init__(self, duration, dry_run=False):
+        self.duration = duration
         self.dry_run = dry_run
 
     def add_job(self, options, name, estimated_time):
@@ -39,7 +41,7 @@ class Runner(object):
 
         configuration = Configuration.create(a.args.configuration, a.args)
 
-        duration_min = 30
+        duration_min = int(math.ceil(self.duration.total_seconds() / 60))
 
         options = {
             "testbed_name": type(configuration.topology).__name__.lower(),
