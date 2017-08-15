@@ -48,7 +48,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend)); \
+		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -56,7 +56,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
+		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -104,7 +104,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend)); \
+		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -112,7 +112,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
+		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -154,7 +154,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend)); \
+		METRIC_BCAST(NAME, status, MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -162,7 +162,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend)); \
+		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -236,8 +236,9 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
 	const int8_t rssi = call MetricHelpers.getRssi(msg); \
+	const int16_t lqi = call MetricHelpers.getLqi(msg); \
  \
- 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi); \
+ 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi, lqi); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
@@ -247,7 +248,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	LOG_STDOUT_VERBOSE(EVENT_##KIND##_VALID_PACKET, #KIND "'ed valid " #NAME ".\n"); \
  \
-	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi); \
+	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi, lqi); \
  \
 	switch (call NodeType.get()) \
 	{
@@ -276,8 +277,9 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
 	const int8_t rssi = call MetricHelpers.getRssi(msg); \
+	const int16_t lqi = call MetricHelpers.getLqi(msg); \
  \
- 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi); \
+ 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi, lqi); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
@@ -287,7 +289,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	LOG_STDOUT_VERBOSE(EVENT_##KIND##_VALID_PACKET, #KIND "'ed valid " #NAME ".\n"); \
  \
-	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi); \
+	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi, lqi); \
  \
 	switch (call NodeType.get()) \
 	{

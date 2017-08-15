@@ -56,10 +56,9 @@ typedef nx_struct metric_bcast_msg {
 	METRIC_LOGGING_HEADER
 
 	nx_uint8_t message_type;
-
 	nx_uint8_t status; // nx type for error_t
-
 	nx_int64_t sequence_number;
+	nx_uint8_t tx_power;
 } metric_bcast_msg_t;
 
 typedef nx_struct metric_deliver_msg {
@@ -71,6 +70,7 @@ typedef nx_struct metric_deliver_msg {
 	nx_int32_t ultimate_source_poss_bottom;
 	nx_int64_t sequence_number;
 	nx_int8_t rssi;
+	nx_int16_t lqi;
 } metric_deliver_msg_t;
 
 typedef nx_struct attacker_receive_msg {
@@ -81,6 +81,7 @@ typedef nx_struct attacker_receive_msg {
 	nx_int32_t ultimate_source_poss_bottom;
 	nx_int64_t sequence_number;
 	nx_int8_t rssi;
+	nx_int16_t lqi;
 } attacker_receive_msg_t;
 
 typedef nx_struct metric_node_change_msg {

@@ -123,7 +123,7 @@ class MetricsCommon(object):
         self.message_types[int(ident)] = name
 
     def process_bcast_event(self, d_or_e, node_id, time, detail):
-        (kind, status, sequence_number) = detail.split(',')
+        (kind, status, sequence_number, tx_power) = detail.split(',')
 
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
         if status != "0":
@@ -230,7 +230,7 @@ class MetricsCommon(object):
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
     def process_deliver_event(self, d_or_e, node_id, time, detail):
-        (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi) = detail.split(',')
+        (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
