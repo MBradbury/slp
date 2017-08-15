@@ -165,7 +165,8 @@ implementation
 	command void MetricLogging.log_metric_bcast(
 		const char* message_type,
 		error_t status,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		uint8_t tx_power
 		)
 	{
 		SERIAL_START_SEND(metric_bcast_msg_t)
@@ -175,6 +176,7 @@ implementation
 		msg->message_type = call MessageType.from_string(message_type);
 		msg->status = status;
 		msg->sequence_number = sequence_number;
+		msg->tx_power = tx_power;
 
 		SERIAL_END_SEND(metric_bcast_msg_t)
 	}
@@ -184,7 +186,8 @@ implementation
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
-		int8_t rssi
+		int8_t rssi,
+		int16_t lqi
 		)
 	{
 		SERIAL_START_SEND(metric_deliver_msg_t)
@@ -196,6 +199,7 @@ implementation
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
 		msg->rssi = rssi;
+		msg->lqi = lqi;
 
 		SERIAL_END_SEND(metric_deliver_msg_t)
 	}
@@ -206,7 +210,8 @@ implementation
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
-		int8_t rssi
+		int8_t rssi,
+		int16_t lqi
 		)
 	{
 		SERIAL_START_SEND(attacker_receive_msg_t)
@@ -218,6 +223,7 @@ implementation
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;
 		msg->rssi = rssi;
+		msg->lqi = lqi;
 
 		SERIAL_END_SEND(attacker_receive_msg_t)
 	}

@@ -21,7 +21,8 @@ implementation
 	command void MetricLogging.log_metric_bcast(
 		const char* message_type,
 		error_t status,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		uint8_t tx_power
 		)
 	{
 	}
@@ -31,7 +32,8 @@ implementation
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
-		int8_t rssi
+		int8_t rssi,
+		int16_t lqi
 		)
 	{
 	}
@@ -42,7 +44,8 @@ implementation
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
-		int8_t rssi
+		int8_t rssi,
+		int16_t lqi
 		)
 	{
 	}

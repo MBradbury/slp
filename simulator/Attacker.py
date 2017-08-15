@@ -76,7 +76,7 @@ class Attacker(object):
         if self.position != node_id:
             return False
 
-        (msg_type, prox_from_id, ult_from_id, sequence_number, rssi) = detail.split(',')
+        (msg_type, prox_from_id, ult_from_id, sequence_number, rssi, lqi) = detail.split(',')
 
         msg_type = self._sim.metrics.message_kind_to_string(msg_type)
 

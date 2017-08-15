@@ -41,12 +41,13 @@ implementation
 	command void MetricLogging.log_metric_bcast(
 		const char* message_type,
 		error_t status,
-		SequenceNumberWithBottom sequence_number
+		SequenceNumberWithBottom sequence_number,
+		uint8_t tx_power
 		)
 	{
 		simdbg("M-CB",
-			MESSAGE_TYPE_SPEC ",%" PRIu8 "," SEQUENCE_NUMBER_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), status, sequence_number);
+			MESSAGE_TYPE_SPEC ",%" PRIu8 "," SEQUENCE_NUMBER_SPEC ",%" PRIu8 "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), status, sequence_number, tx_power);
 	}
 
 	command void MetricLogging.log_metric_deliver(
@@ -54,12 +55,13 @@ implementation
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
-		int8_t rssi
+		int8_t rssi,
+		int16_t lqi
 		)
 	{
 		simdbg("M-CD", \
-			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number, rssi);
+			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number, rssi, lqi);
 	}
 
 	command void MetricLogging.log_attacker_receive(
@@ -68,12 +70,13 @@ implementation
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
-		int8_t rssi
+		int8_t rssi,
+		int16_t lqi
 		)
 	{
 		simdbg("A-R",
-			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number, rssi);
+			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number, rssi, lqi);
 	}
 
 	command void MetricLogging.log_metric_node_change(
