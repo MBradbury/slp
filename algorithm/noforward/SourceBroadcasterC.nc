@@ -45,7 +45,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
+		LOG_STDOUT(EVENT_BOOTED, "booted\n");
 
 		busy = FALSE;
 		call Packet.clear(&packet);
@@ -72,7 +72,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
+			LOG_STDOUT(EVENT_RADIO_ON, "radio on\n");
 
 			call ObjectDetector.start();
 		}
