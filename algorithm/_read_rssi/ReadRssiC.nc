@@ -98,6 +98,11 @@ implementation
 
 	event void ReadRssi.readDone(error_t result, uint16_t val)
 	{
+		bool send_metric = FALSE;
+		uint16_t rssi_average;
+		uint16_t rssi_smallest, rssi_largest;
+		uint16_t rssi_reads;
+
 		if (result != SUCCESS)
 		{
 			read_fails += 1;
@@ -128,15 +133,10 @@ implementation
 			if (smallest > val) {
 				smallest = val;
 			}
-		}
 
-		if (reads == (1 << LOG2SAMPLES))
-		{
-			uint16_t rssi_average;
-			uint16_t rssi_smallest, rssi_largest;
-			uint16_t rssi_reads;
+			send_metric = (reads == (1 << LOG2SAMPLES));
 
-			atomic
+			if (send_metric)
 			{
 				rssi_average = (total >> LOG2SAMPLES);
 				rssi_smallest = smallest;
@@ -147,14 +147,13 @@ implementation
 				largest = 0;
 				reads = 0;
 			}
-
-			post read_rssi();
-
-			METRIC_RSSI(rssi_average, rssi_smallest, rssi_largest, rssi_reads, channel);
 		}
-		else
+
+		post read_rssi();
+
+		if (send_metric)
 		{
-			post read_rssi();
+			METRIC_RSSI(rssi_average, rssi_smallest, rssi_largest, rssi_reads, channel);
 		}
 	}
 
