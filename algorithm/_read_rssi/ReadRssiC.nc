@@ -27,8 +27,6 @@ module ReadRssiC
 
 	uses interface CC2420Config as Config;
 	uses interface Read<uint16_t> as ReadRssi;
-
-	//uses interface LocalTime<TMilli>;
 }
 
 implementation

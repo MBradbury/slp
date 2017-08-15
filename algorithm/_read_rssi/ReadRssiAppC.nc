@@ -31,8 +31,4 @@ implementation
 
 	App.ReadRssi -> CC2420ControlC.ReadRssi;
 	App.Config -> CC2420ControlC.CC2420Config;
-
-	// Time
-	//components LocalTimeMilliC;
-	//App.LocalTime -> LocalTimeMilliC;
 }
