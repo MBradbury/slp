@@ -42,7 +42,7 @@ class Runner(object):
         # See: https://www.flocklab.ethz.ch/wiki/wiki/Public/Man/XmlConfig
         # for the details of the xml config
 
-        duration_secs = duration.total_seconds()
+        duration_secs = int(duration.total_seconds())
 
         print('<?xml version="1.0" encoding="UTF-8"?>', file=config_file)
         print('<!-- $Id: flocklab.xml {} {} $ -->'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S Z%Z"), getpass.getuser()), file=config_file)
