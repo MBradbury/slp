@@ -730,18 +730,69 @@ def configuration_rank(configuration):
 def names():
     return [cls.__name__ for cls in configurations()]
 
+def try_create_specific(name):
+    # The format of this name should be:
+    # <Topology><Source><number><Sink><Number>
+
+    import re
+
+    from data.testbed.indriya import Indriya
+    from data.testbed.fitiotlab import Euratech
+    from data.testbed.fitiotlab import Grenoble
+    from data.testbed.twist import Twist
+    from data.testbed.flocklab import FlockLab
+
+    available_topologies = [
+        Line, Grid, Circle, Random, SimpleTree, Ring,
+        Euratech, Grenoble, Indriya, Twist, FlockLab
+    ]
+
+    match = re.match(r"^([A-Za-z]+)Source([0-9]+)Sink([0-9]+)$", name)
+    if not match:
+        raise RuntimeError("Unable to parse configuration name {}".format(name))
+
+    (topology_name, source_id, sink_id) = match.groups()
+
+    topology_classes = [t for t in available_topologies if t.__name__ == topology_name]
+
+    if len(topology_classes) == 0:
+        raise RuntimeError("Unable to find a topology called {}".format(topology_name))
+
+    topology_class = topology_classes[0]
+
+    class NewConfiguration(Configuration):
+        def __init__(self, *args, **kwargs):
+            super(NewConfiguration, self).__init__(
+                topology_class(),
+                source_ids={int(source_id)},
+                sink_id=int(sink_id),
+                space_behind_sink=False
+            )
+
+    NewConfiguration.__name__ = name
+
+    return NewConfiguration
+
+
 # Memoize this call to eliminate the overhead of creating many identical configurations.
 @memoize
 def create_specific(name, *args, **kwargs):
     confs = [cls for cls in configurations() if cls.__name__ == name]
 
-    if len(confs) == 0:
-        raise RuntimeError("No configurations were found using the name {}, args {}".format(name, args))
-
     if len(confs) > 1:
         raise RuntimeError("There are multiple configurations that have the name {}, not sure which one to choose".format(name))
 
-    return confs[0](*args, **kwargs)
+    # Sometimes we might want to be able to dynamically create configurations
+    if len(confs) == 0:
+        try:
+            conf_class = try_create_specific(name)
+        except BaseException as ex:
+            raise RuntimeError("No configurations were found using the name {}. Tried to create a Configuration, but this failed.".format(name), ex)
+
+    else:
+        conf_class = confs[0]
+
+    return conf_class(*args, **kwargs)
 
 def create(name, args):
     req_attrs = ("network_size", "distance", "node_id_order", "seed")
