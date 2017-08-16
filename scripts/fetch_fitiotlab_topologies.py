@@ -81,11 +81,10 @@ def process_site(site):
     with open(path, "r") as out_file:
         nodes = json.load(out_file, object_hook=create_node_objects)["items"]
 
-    # Might also want to get nodes in the "Suspected" state
     nodes = [node for node in nodes if node.archi in supported_hardware and node.state in ("Alive", "Busy") and not node.mobile]
 
     if len(nodes) == 0:
-        raise RuntimeError("No nodes are alive or busy on {}".format(site))
+        raise RuntimeError("No nodes are alive or busy or suspected on {}".format(site))
 
     platforms = {archi_mapping[node.archi] for node in nodes}
 

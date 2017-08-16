@@ -192,6 +192,7 @@ class Rennes(Topology):
         self.nodes[201] = np.array((3.908, 9.806, 2.905), dtype=np.float64)
         self.nodes[202] = np.array((3.908, 10.41, 2.905), dtype=np.float64)
         self.nodes[203] = np.array((4.732, 0.14, 2.912), dtype=np.float64)
+        self.nodes[206] = np.array((4.732, 1.952, 2.911), dtype=np.float64)
         self.nodes[207] = np.array((4.732, 2.556, 2.91), dtype=np.float64)
         self.nodes[208] = np.array((4.732, 3.161, 2.91), dtype=np.float64)
         self.nodes[209] = np.array((4.732, 3.765, 2.91), dtype=np.float64)
