@@ -43,8 +43,10 @@ class Runner(object):
 
         duration_min = int(math.ceil(self.duration.total_seconds() / 60))
 
+        testbed_name = type(configuration.topology).__name__.lower()
+
         options = {
-            "testbed_name": type(configuration.topology).__name__.lower(),
+            "testbed_name": testbed_name,
             "platform": self._get_platform(configuration.topology.platform),
             "profile": "Basic", # "wsn430_with_power_1s",
         }
@@ -60,10 +62,16 @@ class Runner(object):
             print("* observed this with wsn430v13 and the wsn430v14 seems to work.     *")
             print("*********************************************************************")
 
+        # Send this script to be executed
+        # It will start the serial aggregator automatically and
+        # gather the output from the nodes
+        aggregator_script = "data/testbed/info/fitiotlab/aggregator.sh"
+
         command = [
             "experiment-cli", "submit",
             "--name \"{}\"".format(name),
             "--duration {}".format(duration_min),
+            "--site-association \"{},script={}\"".format(testbed_name, aggregator_script)
         ]
 
         for node in configuration.topology.nodes:
@@ -76,10 +84,11 @@ class Runner(object):
 
 
         print(" ".join(command))
-        if not self.dry_run:
-            subprocess.check_call(" ".join(command), shell=True)
-        else:
+        if self.dry_run:
             print("Dry run complete!")
+            return
+        
+        subprocess.check_call(" ".join(command), shell=True) 
 
     @staticmethod
     def parse_arguments(module, argv):
