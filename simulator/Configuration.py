@@ -738,13 +738,13 @@ def try_create_specific(name):
 
     from data.testbed.indriya import Indriya
     from data.testbed.fitiotlab import Euratech
-    from data.testbed.fitiotlab import Grenoble
+    from data.testbed.fitiotlab import Rennes
     from data.testbed.twist import Twist
     from data.testbed.flocklab import FlockLab
 
     available_topologies = [
         Line, Grid, Circle, Random, SimpleTree, Ring,
-        Euratech, Grenoble, Indriya, Twist, FlockLab
+        Euratech, Rennes, Indriya, Twist, FlockLab
     ]
 
     match = re.match(r"^([A-Za-z]+)Source([0-9]+)Sink([0-9]+)$", name)
