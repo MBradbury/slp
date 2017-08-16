@@ -29,6 +29,8 @@
 	({ __typeof__(x) _x = (x); \
 		(x < 0) ? -x : x; })
 
+#define test_random(Random, pr) (call Random.rand16() <= (uint16_t)(UINT16_MAX * pr))
+
 
 inline int16_t botinc(int16_t x)
 {

@@ -26,6 +26,8 @@ import numpy as np
 
 import simulator.Attacker
 
+from data.util import RunningStats
+
 # From: https://docs.python.org/3/library/itertools.html#recipes
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -77,6 +79,9 @@ class MetricsCommon(object):
 
         self.node_types = {}
         self.message_types = {}
+
+        self.delivered_rssi = defaultdict(RunningStats)
+        self.delivered_lqi = defaultdict(RunningStats)
 
         self.register('M-NC', self.process_node_change_event)
 
@@ -154,7 +159,7 @@ class MetricsCommon(object):
                 # Handle starting the duration timeout in the simulation running
                 self.sim.trigger_duration_run_start(time)
 
-    def _record_direction_received(self, kind, ord_node_id, proximate_source_id,
+    def _record_direction_received(self, kind, ord_node_id, ord_proximate_source_id,
                                    further_hops, closer_or_same_hops,
                                    further_meters, closer_or_same_meters):
         # For messages the attacker responds to,
@@ -165,8 +170,6 @@ class MetricsCommon(object):
         # will try to get a distance that the configuration doesn't believe the be a source.
         if kind in simulator.Attacker.MESSAGES_TO_IGNORE:
             return
-
-        ord_proximate_source_id = int(proximate_source_id)
 
         conf = self.configuration
         topo = conf.topology
@@ -225,7 +228,7 @@ class MetricsCommon(object):
             self.normal_receive_time[key] = time
             self.normal_hop_count.append(hop_count)
 
-        self._record_direction_received(kind, ord_node_id, proximate_source_id,
+        self._record_direction_received(kind, ord_node_id, int(proximate_source_id),
                                         self.received_from_further_hops, self.received_from_closer_or_same_hops,
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
@@ -233,14 +236,20 @@ class MetricsCommon(object):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
+        ord_prox_src_id, top_prox_src_id = self._process_node_id(proximate_source_id)
 
         kind = self.message_kind_to_string(kind)
 
         self.delivered[kind][top_node_id] += 1
 
-        self._record_direction_received(kind, ord_node_id, proximate_source_id,
+        self._record_direction_received(kind, ord_node_id, ord_prox_src_id,
                                         self.delivered_from_further_hops, self.delivered_from_closer_or_same_hops,
                                         self.delivered_from_further_meters, self.delivered_from_closer_or_same_meters)
+
+        key = (top_prox_src_id, top_node_id)
+
+        self.delivered_rssi[key].push(int(rssi))
+        self.delivered_lqi[key].push(int(lqi))
 
     def process_node_change_event(self, d_or_e, node_id, time, detail):
         (old_name, new_name) = detail.split(',')
@@ -631,10 +640,25 @@ class MetricsCommon(object):
     def faults_occurred(self):
         return self.sim.fault_model.faults_occurred
 
+    def delivered_rssi_stats(self):
+        return {
+            key: (value.mean(), value.stddev(), value.n)
+            for (key, value)
+            in self.delivered_rssi.items()
+        }
+
+    def delivered_lqi_stats(self):
+        return {
+            key: (value.mean(), value.stddev(), value.n)
+            for (key, value)
+            in self.delivered_lqi.items()
+            if value.mean() != -1
+        }
+
 
     @staticmethod
     def smaller_dict_str(dict_result):
-        return str(dict_result).replace(": ", ":").replace(", ", ",")
+        return str(dict_result).replace(": ", ":").replace(", ", ",").replace(".0,", ",")
 
     @staticmethod
     def compressed_dict_str(dict_result):
@@ -710,6 +734,10 @@ class MetricsCommon(object):
         d["DeliveredFromFurtherMeters"]     = lambda x: MetricsCommon.smaller_dict_str(x.deliv_further_meters_all())
 
         d["FaultsOccured"]                 = lambda x: x.faults_occurred()
+
+        # Link quality metrics
+        #d["DeliveredRssi"]                 = lambda x: MetricsCommon.compressed_dict_str(x.delivered_rssi_stats())
+        #d["DeliveredLqi"]                  = lambda x: MetricsCommon.compressed_dict_str(x.delivered_lqi_stats())
 
         d["Errors"]                        = lambda x: MetricsCommon.smaller_dict_str(dict(x.errors))
 
@@ -794,9 +822,11 @@ class AvroraMetricsCommon(MetricsCommon):
         # and so work out some of the summary stats on the fly.
         # However, I'm not sure how lost_in_middle bytes are calculated.
         # So for now, lets just ignore these metrics and use the
-        # packet summary instead
-        #self.register('AVRORA-TX', self.process_avrora_tx)
-        #self.register('AVRORA-RX', self.process_avrora_rx)
+        # packet summary instead.
+        # But the packet summary does not print if we terminate early
+        # because the attacker has caught the source.
+        self.register('AVRORA-TX', self.process_avrora_tx)
+        self.register('AVRORA-RX', self.process_avrora_rx)
 
         self.register('AVRORA-SIM-CYCLES', self.process_avrora_sim_cycles)
         self.register('AVRORA-PACKET-SUMMARY', self.process_avrora_packet_summary)
