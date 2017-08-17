@@ -33,7 +33,7 @@ class Runner(object):
 
     def _get_platform(self, platform):
         """Get a valid platform to pass to the XML file"""
-        if platform in ("telosb",):
+        if platform == "telosb":
             return "tmote"
         return platform
 
