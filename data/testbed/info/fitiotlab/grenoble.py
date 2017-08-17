@@ -12,6 +12,8 @@ class Grenoble(Topology):
 
     platform = "wsn430v13"
 
+    support_script_execution = True
+
     def __init__(self, subset=None):
         super(Grenoble, self).__init__()
         
