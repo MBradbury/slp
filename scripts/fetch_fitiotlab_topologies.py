@@ -27,6 +27,8 @@ touch(os.path.join(output_directory, "__init__.py"))
 
 site_names = ["euratech", "grenoble", "rennes", "strasbourg"]
 
+sites_support_script_execution = {"euratech", "grenoble", "strasbourg"}
+
 # Saclay claims to have wsn430v14 nodes, but observing the 
 # map at https://www.iot-lab.info/testbed/maps.php?site=saclay
 # shows that there is only a single down node.
@@ -105,6 +107,8 @@ def process_site(site):
         print('    """The layout of nodes on the {} testbed, see: https://www.iot-lab.info/testbed/maps.php?site={}"""'.format(site.title(), site), file=out_file)
         print('', file=out_file)
         print('    platform = "{}"'.format(next(iter(platforms))), file=out_file)
+        print('', file=out_file)
+        print('    support_script_execution = {}'.format(site in sites_support_script_execution), file=out_file)
         print('', file=out_file)
         print('    def __init__(self, subset=None):', file=out_file)
         print('        super({}, self).__init__()'.format(site.title()), file=out_file)
