@@ -62,17 +62,23 @@ class Runner(object):
             print("* observed this with wsn430v13 and the wsn430v14 seems to work.     *")
             print("*********************************************************************")
 
+        command = [
+            "experiment-cli", "submit",
+            "--name \"{}\"".format(name),
+            "--duration {}".format(duration_min),
+        ]
+
         # Send this script to be executed
         # It will start the serial aggregator automatically and
         # gather the output from the nodes
         aggregator_script = "data/testbed/info/fitiotlab/aggregator.sh"
 
-        command = [
-            "experiment-cli", "submit",
-            "--name \"{}\"".format(name),
-            "--duration {}".format(duration_min),
-            "--site-association \"{},script={}\"".format(testbed_name, aggregator_script)
-        ]
+        # If the site supports executing the aggregator script, then just have it run it.
+        # Otherwise, we need to find another site to run the script on.
+        if configuration.topology.support_script_execution:
+            command.append("--site-association \"{},script={}\"".format(testbed_name, aggregator_script))
+        else:
+            raise RuntimeError("The site {} does not support script execution".format(testbed_name))
 
         for node in configuration.topology.nodes:
             executable = os.path.join(target_directory, "main-{}.ihex".format(node))
