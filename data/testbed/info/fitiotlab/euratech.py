@@ -12,6 +12,8 @@ class Euratech(Topology):
 
     platform = "wsn430v14"
 
+    support_script_execution = True
+
     def __init__(self, subset=None):
         super(Euratech, self).__init__()
         

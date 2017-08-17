@@ -12,6 +12,8 @@ class Rennes(Topology):
 
     platform = "wsn430v14"
 
+    support_script_execution = False
+
     def __init__(self, subset=None):
         super(Rennes, self).__init__()
         
