@@ -151,6 +151,7 @@ class Strasbourg(Topology):
         self.nodes[134] = np.array((4.0, 4.0, 1.5), dtype=np.float64)
         self.nodes[135] = np.array((4.0, 4.0, 2.5), dtype=np.float64)
         self.nodes[136] = np.array((5.0, 4.0, 0.5), dtype=np.float64)
+        self.nodes[137] = np.array((5.0, 4.0, 1.5), dtype=np.float64)
         self.nodes[138] = np.array((5.0, 4.0, 2.5), dtype=np.float64)
         self.nodes[139] = np.array((6.0, 4.0, 0.5), dtype=np.float64)
         self.nodes[140] = np.array((6.0, 4.0, 1.5), dtype=np.float64)
