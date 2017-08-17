@@ -27,7 +27,7 @@ def build_arguments():
         # This needs to be as long as it takes to flash all the nodes
         # being requested. serial_aggregator will not start running
         # until all nodes have been flashed.
-        "DELAYED_BOOT_TIME_MINUTES": 6
+        "DELAYED_BOOT_TIME_MINUTES": 7
     }
 
 def fastserial_supported():
