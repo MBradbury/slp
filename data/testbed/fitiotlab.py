@@ -22,12 +22,11 @@ def submitter(*args, **kwargs):
 
 def build_arguments():
     return {
-        # Wait for a short amount of time before running the boot event
-        # Runner will need to be quick to capture the output.
-        # This needs to be as long as it takes to flash all the nodes
-        # being requested. serial_aggregator will not start running
-        # until all nodes have been flashed.
-        "DELAYED_BOOT_TIME_MINUTES": 7
+        # With IoT Lab the nodes are reset after they are all flashed to ensure
+        # booting at a similar time.
+        # If we do not specify this then the default of 10 minutes will be used.
+        # So delay for the shortest amount of time.
+        "DELAYED_BOOT_TIME_MINUTES": 1
     }
 
 def fastserial_supported():
