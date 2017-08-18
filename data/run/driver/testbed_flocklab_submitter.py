@@ -8,6 +8,8 @@ import os
 import shlex
 import subprocess
 
+import data.testbed.flocklab as flocklab_topology
+
 from simulator import Configuration
 
 class Runner(object):
@@ -89,6 +91,20 @@ class Runner(object):
         print('        <os>tinyos</os>', file=config_file)
         print('        <data>{}</data>'.format(encoded_file), file=config_file)
         print('    </imageConf>', file=config_file)
+
+        delayed_boot_secs = flocklab_topology.build_arguments().get("DELAYED_BOOT_TIME_MINUTES", 0) * 60
+
+        print('    <powerProfilingConf>', file=config_file)
+        print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
+        print('        <profConf>', file=config_file)
+        print('            <durationMillisecs>{}</durationMillisecs>'.format((duration_secs - delayed_boot_secs) * 1000), file=config_file)
+        print('            <relativeTime>', file=config_file)
+        print('                <offsetSecs>{}</offsetSecs>'.format(delayed_boot_secs), file=config_file)
+        print('                <offsetMicrosecs>0</offsetMicrosecs>', file=config_file)
+        print('            </relativeTime>', file=config_file)
+        print('            <samplingDivider>{}</samplingDivider>'.format(128), file=config_file)
+        print('        </profConf>', file=config_file)
+        print('    </powerProfilingConf>', file=config_file)
 
         print('</testConf>', file=config_file)
 
