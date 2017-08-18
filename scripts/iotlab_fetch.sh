@@ -26,4 +26,10 @@ mkdir -p testbed_results/iotlab
 # Now to get some of the other files back from the testbed
 rsync -avz $USER@$SITE:~/.iot-lab/$TESTID/ testbed_results/iotlab/$TESTID/
 
+cd testbed_results/iotlab/$TESTID/
+
+gunzip aggregator_log.stderr.gz
+
+cd -
+
 echo "Saved IoT Lab results to testbed_results/iotlab/$TESTID"
