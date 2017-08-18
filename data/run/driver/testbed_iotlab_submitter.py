@@ -75,7 +75,7 @@ class Runner(object):
                     "profile-cli", "addwsn430",
                     "--name \"{}\"".format(options["profile"]),
                     "--power dc", # Power the node using dc (alternative is battery)
-                    "-cfreq 1000", "-power", "-current", "-voltage", # Take these power measurements every 100ms
+                    "-cfreq 70", "-power", "-current", "-voltage", # Take these power measurements every 100ms
                     "-rfreq 500" # Take RSSI measurements every 500 ms
                 ]
                 subprocess.check_call(" ".join(command), shell=True)
