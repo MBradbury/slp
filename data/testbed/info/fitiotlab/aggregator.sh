@@ -12,9 +12,6 @@ catch_signal()
 	#fi
 	gzip -9 ${OUTFILE}
 	gzip -9 ${ERRFILE}
-
-	mv ${OUTFILE}.gz ${OUTFILE}_$(hostname)_${EXP_ID}.gz
-	mv ${ERRFILE}.gz ${ERRFILE}_$(hostname)_${EXP_ID}.gz
 }
 
 #if [ "$#" -eq 1 ]
