@@ -48,7 +48,7 @@ class Runner(object):
         options = {
             "testbed_name": testbed_name,
             "platform": self._get_platform(configuration.topology.platform),
-            "profile": "Basic", # "wsn430_with_power_1s",
+            "profile": "wsn430_with_power",
         }
 
         if configuration.topology.platform == "wsn430v13":
@@ -61,6 +61,30 @@ class Runner(object):
             print("* This website says that the CC2420 is affected, but I have only    *")
             print("* observed this with wsn430v13 and the wsn430v14 seems to work.     *")
             print("*********************************************************************")
+
+        # Need to make sure a valid profile exists
+        try:
+            command = ["profile-cli", "get", "--name \"{}\"".format(options["profile"])]
+            subprocess.check_output(" ".join(command), shell=True, stderr=subprocess.STDOUT)
+
+        except subprocess.CalledProcessError as ex:
+            if "doesn't exist" in ex.output:
+                print("Profile doesn't exist, creating it now...")
+
+                command = [
+                    "profile-cli", "addwsn430",
+                    "--name \"{}\"".format(options["profile"]),
+                    "--power dc", # Power the node using dc (alternative is battery)
+                    "-cfreq 1000", "-power", "-current", "-voltage", # Take these power measurements every 100ms
+                    "-rfreq 500" # Take RSSI measurements every 500 ms
+                ]
+                subprocess.check_call(" ".join(command), shell=True)
+
+                print("Profile Created!")
+
+            else:
+                raise
+
 
         command = [
             "experiment-cli", "submit",
