@@ -46,6 +46,23 @@ class RSSIResult(object):
         else:
             return
 
+    def combine(self, other):
+        result = RSSIResult()
+
+        keys = set(self.node_average.keys()) | set(other.node_average.keys())
+
+        for key in keys:
+            result.node_average[key] = self.node_average[key].combine(other.node_average[key])
+            result.node_smallest[key] = self.node_smallest[key].combine(other.node_smallest[key])
+            result.node_largest[key] = self.node_largest[key].combine(other.node_largest[key])
+
+            result.total_reads[key] = self.total_reads[key] + other.total_reads[key]
+
+        result.start_time = min(self.start_time, other.start_time)
+        result.stop_time = max(self.stop_time, other.stop_time)
+
+        return result
+
 class LinkResult(object):
     def __init__(self):
         self.broadcasting_node_id = None
@@ -95,20 +112,26 @@ class LinkResult(object):
         }
 
 def process_line(line):
-    (date_time, rest) = line.split("|", 1)
+    try:
+        (date_time, rest) = line.split("|", 1)
 
-    date_time = datetime.strptime(date_time, "%Y/%m/%d %H:%M:%S.%f")
+        date_time = datetime.strptime(date_time, "%Y/%m/%d %H:%M:%S.%f")
 
-    (kind, d_or_e, nid, localtime, details) = rest.split(":", 4)
-    nid = int(nid)
-    localtime = int(localtime)
+        (kind, d_or_e, nid, localtime, details) = rest.split(":", 4)
+        nid = int(nid)
+        localtime = int(localtime)
 
-    return (date_time, kind, d_or_e, nid, localtime, details)
+        return (date_time, kind, d_or_e, nid, localtime, details)
+    except BaseException as ex:
+        print("Failed to parse the line: ", line)
+        raise
 
 def analyse_log_file(converter):
     result = None
 
-    for (date_time, kind, d_or_e, nid, localtime, details) in map(process_line, converter):
+    for line in converter:
+
+        (date_time, kind, d_or_e, nid, localtime, details) = process_line(line)
         
         if result is None:
             if kind == "stdout" and "An object has been detected" in details:
@@ -118,7 +141,11 @@ def analyse_log_file(converter):
                 result = RSSIResult()
 
         if result is not None:
-            result.add(date_time, kind, d_or_e, nid, localtime, details)
+            try:
+                result.add(date_time, kind, d_or_e, nid, localtime, details)
+            except ValueError:
+                print("Failed to parse: ", line)
+                raise
 
     return result
 
@@ -155,7 +182,41 @@ def main():
 
     args = parser.parse_args(sys.argv[1:])
 
-    run_analyse_testbed_profile(args)
+    results = run_analyse_testbed_profile(args)
+
+    rssi_results = [result for result in results if isinstance(result, RSSIResult)]
+    link_results = sorted([result for result in results if isinstance(result, LinkResult)], key=lambda x: x.broadcasting_node_id)
+
+    if len(rssi_results) == 0:
+        raise RuntimeError("No RSSI results")
+    if len(link_results) == 0:
+        raise RuntimeError("No Link results")
+
+    print("RSSI Results:")
+    for result in rssi_results:
+        for key in sorted(result.node_average.keys()):
+            (nid, channel) = key
+            print("Node", str(nid).rjust(4),
+                  "channel", channel,
+                  "rssi", "{:.2f}".format(result.node_average[key].mean()).rjust(6),
+                  "+-", "{:.2f}".format(result.node_average[key].stddev())
+            )
+
+
+    rssi_iter = iter(rssi_results)
+
+    rssi_result = next(rssi_iter)
+    for result in rssi_iter:
+        rssi_result = rssi_result.combine(result)
+
+    print("Combined RSSI Result:")
+    for key in sorted(rssi_result.node_average.keys()):
+        (nid, channel) = key
+        print("Node", str(nid).rjust(4),
+              "channel", channel,
+              "rssi", "{:.2f}".format(rssi_result.node_average[key].mean()).rjust(6),
+              "+-", "{:.2f}".format(rssi_result.node_average[key].stddev())
+        )
 
 if __name__ == "__main__":
     main()
