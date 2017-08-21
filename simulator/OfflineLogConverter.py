@@ -339,7 +339,7 @@ def names():
     return [f.__name__ for f in models()]
 
 def create_specific(name, *args, **kwargs):
-    confs = [cls for cls in models() if cls.__name__ == name]
+    confs = [cls for cls in models() if cls.__name__.lower() == name.lower()]
 
     if len(confs) == 0:
         raise RuntimeError("No offline log converters were found using the name {}, args {}".format(name, args))
