@@ -2,6 +2,7 @@ from __future__ import print_function, division
 
 from datetime import datetime
 import glob
+import gzip
 import os.path
 import re
 
@@ -75,6 +76,48 @@ class FlockLab(OfflineLogConverter):
 
     # Logs are grouped together by node id
     # The time will reset to earlier when the serial output for a new node is encountered
+
+
+class FitIotLab(OfflineLogConverter):
+    def __init__(self, log_path):
+        super(FitIotLab, self).__init__()
+
+        self.processed_lines = []
+
+        # Try reading as gzipped file first, then try unzipped
+        # File is typically gzipped by the testbed run script
+        try:
+            with gzip.open(log_path, 'rb') as log_file:
+                self._process_file(log_file)
+        except IOError:
+            with open(log_path, 'r') as log_file:
+                self._process_file(log_file)
+
+        self.processed_lines.sort(key=lambda x: x[0])
+
+        self.processed_lines = [
+
+            "{}|{}".format(node_time.strftime("%Y/%m/%d %H:%M:%S.%f"), output)
+
+            for (node_time, output)
+            in self.processed_lines
+        ]
+
+    def _process_file(self, log_file):
+        for line in log_file:
+            timestamp, node_id, output = line.split(";", 3)
+
+            timestamp = float(timestamp)
+
+            node_time = datetime.fromtimestamp(timestamp)
+
+            # Remove newline from output
+            output = output.strip()
+
+            self.processed_lines.append((node_time, output))
+
+    def __iter__(self):
+        return iter(self.processed_lines)
 
 class Avrora(OfflineLogConverter):
 
