@@ -3,6 +3,8 @@ import numpy as np
 
 from simulator.Topology import Topology
 
+result_file_name = "serial.csv"
+
 def name():
     return __name__
 

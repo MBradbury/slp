@@ -106,6 +106,9 @@ class RunningStats:
             self.old_m = self.new_m
             self.old_s = self.new_s
 
+    def count(self):
+        return self.n
+
     def mean(self):
         return self.new_m if self.n else 0.0
     
