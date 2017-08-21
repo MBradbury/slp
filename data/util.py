@@ -82,7 +82,7 @@ def scalar_extractor(x):
 
 # From: https://github.com/liyanage/python-modules/blob/master/running_stats.py
 # Based on http://www.johndcook.com/standard_deviation.html
-class RunningStats:
+class RunningStats(object):
     def __init__(self):
         self.n = 0
         self.old_m = 0
@@ -117,3 +117,17 @@ class RunningStats:
         
     def stddev(self):
         return math.sqrt(self.var())
+
+    def combine(self, other):
+        # See: https://math.stackexchange.com/questions/1426107/how-to-calculate-two-populations-combined-mean-and-standard-deviation
+        result = RunningStats()
+
+        result.n = self.n + other.n
+        result.new_m = (self.n * self.new_m + other.n * other.new_m) / result.n
+
+        self_sum_squares = self.new_s + self.new_m**2 * (self.n - 1)
+        other_sum_squares = other.new_s + other.new_m**2 * (other.n - 1)
+
+        result.new_s = (self_sum_squares + other_sum_squares) - result.new_m**2 * (result.n - 1)
+
+        return result
