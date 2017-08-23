@@ -18,6 +18,7 @@ implementation
 	Neighbours = App;
 
 	App.MetricLogging = MetricLogging;
+	App.MetricHelpers = MetricHelpers;
 	App.NodeType = NodeType;
 
 	components LedsWhenGuiC;
