@@ -81,6 +81,7 @@ implementation
 	App.Neighbours -> NeighboursC;
 
 	NeighboursC.MetricLogging -> MetricLogging;
+	NeighboursC.MetricHelpers -> MetricHelpers;
 	NeighboursC.NodeType -> NodeTypeC;
 
 
