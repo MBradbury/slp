@@ -2,23 +2,51 @@ from __future__ import print_function, division
 
 from datetime import datetime
 import glob
-import gzip
 import os.path
 import re
+import traceback
 
 import pandas
 
 from data.restricted_eval import restricted_eval
 
+def _sanitise_string(input_string):
+    return re.sub("((\x00)|(\\x00)|(\\\\x00))+", r"\1..\1", input_string)
+
 class OfflineLogConverter(object):
-    def __init__(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        super(OfflineLogConverter, self).__init__(*args, **kwargs)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+class LineLogConverter(object):
+    def __init__(self, log_path):
+        super(LineLogConverter, self).__init__()
+
+        self.processed_lines = []
+
+        with open(log_path, 'r', encoding="ascii", errors="ignore") as log_file:
+            self._process_file(log_file)
+
+        self.processed_lines.sort(key=lambda x: x[0])
+
+        self.processed_lines = [
+
+            "{}|{}".format(node_time.strftime("%Y/%m/%d %H:%M:%S.%f"), output)
+
+            for (node_time, output)
+            in self.processed_lines
+        ]
+
+    def _process_file(self, log_file):
+        raise NotImplementedError()
+
+    def __iter__(self):
+        return iter(self.processed_lines)
 
 class Null(OfflineLogConverter):
     """Dummy converter that just provides iteration of the log without changes."""
@@ -33,42 +61,37 @@ class Null(OfflineLogConverter):
     def __iter__(self):
         return iter(self._log_file)
 
-class FlockLab(OfflineLogConverter):
+class FlockLab(OfflineLogConverter, LineLogConverter):
     def __init__(self, log_path):
-        super(FlockLab, self).__init__()
+        super(FlockLab, self).__init__(log_path)
 
-        self.processed_lines = []
+    def _process_line(self, line):
+        timestamp, observer_id, node_id, direction, output = line.split(",", 4)
 
-        with open(log_path, 'r') as log_file:
-            for line in log_file:
-                if line.startswith('#'):
-                    continue
-                if line.endswith("\0\n"):
-                    continue
+        timestamp = float(timestamp)
 
-                timestamp, observer_id, node_id, direction, output = line.split(",", 4)
+        node_time = datetime.fromtimestamp(timestamp)
 
-                timestamp = float(timestamp)
+        # Remove newline from output
+        output = output.strip()
 
-                node_time = datetime.fromtimestamp(timestamp)
+        return (node_time, output)
 
-                # Remove newline from output
-                output = output.strip()
+    def _process_file(self, log_file):
+        for line in log_file:
+            if line.startswith('#'):
+                continue
+            if line.endswith("\0\n"):
+                continue
 
-                self.processed_lines.append((node_time, output))
-
-        self.processed_lines.sort(key=lambda x: x[0])
-
-        self.processed_lines = [
-
-            "{}|{}".format(node_time.strftime("%Y/%m/%d %H:%M:%S.%f"), output)
-
-            for (node_time, output)
-            in self.processed_lines
-        ]
-
-    def __iter__(self):
-        return iter(self.processed_lines)
+            try:
+                output = self._process_line(line)
+            except ValueError as ex:
+                print("Failed to parse the line:", _sanitise_string(line))
+                traceback.print_exc()
+                continue
+            
+            self.processed_lines.append(output)
 
 
     # First line is a comment that begins with a #
@@ -78,46 +101,33 @@ class FlockLab(OfflineLogConverter):
     # The time will reset to earlier when the serial output for a new node is encountered
 
 
-class FitIotLab(OfflineLogConverter):
+class FitIotLab(OfflineLogConverter, LineLogConverter):
     def __init__(self, log_path):
-        super(FitIotLab, self).__init__()
+        super(FitIotLab, self).__init__(log_path)
 
-        self.processed_lines = []
+    def _process_line(self, line):
 
-        # Try reading as gzipped file first, then try unzipped
-        # File is typically gzipped by the testbed run script
-        try:
-            with gzip.open(log_path, 'rb') as log_file:
-                self._process_file(log_file)
-        except IOError:
-            with open(log_path, 'r') as log_file:
-                self._process_file(log_file)
+        timestamp, node_id, output = line.split(";", 3)
 
-        self.processed_lines.sort(key=lambda x: x[0])
+        timestamp = float(timestamp)
 
-        self.processed_lines = [
+        node_time = datetime.fromtimestamp(timestamp)
 
-            "{}|{}".format(node_time.strftime("%Y/%m/%d %H:%M:%S.%f"), output)
+        # Remove newline from output
+        output = output.strip()
 
-            for (node_time, output)
-            in self.processed_lines
-        ]
+        return (node_time, output)
 
     def _process_file(self, log_file):
         for line in log_file:
-            timestamp, node_id, output = line.split(";", 3)
+            try:
+                output = self._process_line(line)
+            except BaseException as ex:
+                print("Failed to parse the line:", _sanitise_string(line))
+                #traceback.print_exc()
+                continue
 
-            timestamp = float(timestamp)
-
-            node_time = datetime.fromtimestamp(timestamp)
-
-            # Remove newline from output
-            output = output.strip()
-
-            self.processed_lines.append((node_time, output))
-
-    def __iter__(self):
-        return iter(self.processed_lines)
+            self.processed_lines.append(output)
 
 class Avrora(OfflineLogConverter):
 

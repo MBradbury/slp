@@ -1,11 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function, division
 
 import argparse
 from collections import defaultdict
 from datetime import datetime
 import os
+import pickle
+import re
 import sys
+import traceback
+
+import numpy as np
+import pandas as pd
 
 from data.util import RunningStats
 from data import submodule_loader
@@ -111,66 +117,169 @@ class LinkResult(object):
             in self.deliver_at_rssi.items()
         }
 
-def process_line(line):
-    try:
-        (date_time, rest) = line.split("|", 1)
+class AnalyseTestbedProfile(object):
 
-        date_time = datetime.strptime(date_time, "%Y/%m/%d %H:%M:%S.%f")
+    _sanitise_match = re.compile(r"(\x00)+")
 
-        (kind, d_or_e, nid, localtime, details) = rest.split(":", 4)
-        nid = int(nid)
-        localtime = int(localtime)
+    def __init__(self, args):
+        testbed = submodule_loader.load(data.testbed, args.testbed)
 
-        return (date_time, kind, d_or_e, nid, localtime, details)
-    except BaseException as ex:
-        print("Failed to parse the line: ", line)
-        raise
+        self.testbed_name = testbed.name()
+        self.testbed_result_file_name = testbed.result_file_name
 
-def analyse_log_file(converter):
-    result = None
+        self.testbed_topology = getattr(testbed, args.topology)()
 
-    for line in converter:
+        self.flush = args.flush
 
-        (date_time, kind, d_or_e, nid, localtime, details) = process_line(line)
-        
-        if result is None:
-            if kind == "stdout" and "An object has been detected" in details:
-                result = LinkResult()
+    @classmethod
+    def _sanitise_string(cls, input_string):
+        return cls._sanitise_match.sub(r"\1..\1", input_string)
 
-            elif kind == "M-RSSI":
-                result = RSSIResult()
+    def _get_result_path(self, results_dir, result_folder):
 
-        if result is not None:
+        # Don't try this path if it is not a directory
+        if not os.path.isdir(os.path.join(results_dir, result_folder)):
+            return None
+
+        for result_file_name in self.testbed_result_file_name:
+            result_file = os.path.join(results_dir, result_folder, result_file_name)
+
+            if os.path.exists(result_file) and os.path.getsize(result_file) > 0:
+                return result_file
+
+        print("Unable to find any result file (greater than 0 bytes) in {} out of {}".format(
+            os.path.join(results_dir, result_folder),
+            self.testbed_result_file_name)
+        )
+
+        return None
+
+    def _do_run(self, result_file):
+
+        pickle_path = result_file + ".pickle"
+
+        if os.path.exists(pickle_path) and not self.flush:
+
+            print("Loading saved results from:", pickle_path)
+
             try:
-                result.add(date_time, kind, d_or_e, nid, localtime, details)
-            except ValueError:
-                print("Failed to parse: ", line)
-                raise
-
-    return result
-
-
-def run_analyse_testbed_profile(args):
-    testbed = submodule_loader.load(data.testbed, args.testbed)
-
-    testbed_topology = getattr(testbed, args.topology)
-
-    results = []
-
-    for result_folder in os.listdir(args.results_dir):
-
-        result_file = os.path.join(args.results_dir, result_folder, testbed.result_file_name)
+                with open(pickle_path, 'rb') as pickle_file:
+                    return pickle.load(pickle_file)
+            except EOFError:
+                print("Failed to load saved results from:", pickle_path)
 
         print("Processing results in:", result_file)
 
-        converter = OfflineLogConverter.create_specific(args.testbed, result_file)
+        converter = OfflineLogConverter.create_specific(self.testbed_name, result_file)
 
         # This file is of one of two types.
         # Either is is RSSI measurements, where no nodes are broadcasting.
         # Or, a single node is broadcasting and the rest and listening.
-        results.append(analyse_log_file(converter))
+        result = self._analyse_log_file(converter)
 
-    return results
+        with open(pickle_path, 'wb') as pickle_file:
+            pickle.dump(result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return result
+
+
+    def run(self, args):
+        files = [
+            x for x in
+            (self._get_result_path(args.results_dir, result_folder) for result_folder in os.listdir(args.results_dir))
+            if x is not None
+        ]
+
+        return list(map(self._do_run, files))
+
+    def run_parallel(self, args):
+        import multiprocessing
+
+        files = [
+            x for x in
+            (self._get_result_path(args.results_dir, result_folder) for result_folder in os.listdir(args.results_dir))
+            if x is not None
+        ]
+
+        job_pool = multiprocessing.Pool(processes=2)
+
+        return job_pool.map(self._do_run, files)
+
+    def _process_line(self, line):
+        try:
+            (date_time, rest) = line.split("|", 1)
+
+            date_time = datetime.strptime(date_time, "%Y/%m/%d %H:%M:%S.%f")
+
+            (kind, d_or_e, nid, localtime, details) = rest.split(":", 4)
+            nid = int(nid)
+            localtime = int(localtime)
+
+            return (date_time, kind, d_or_e, nid, localtime, details)
+        except BaseException as ex:
+            print("Failed to parse the line:", self._sanitise_string(line))
+            print(self._sanitise_string(str(ex)))
+            traceback.print_exc()
+
+            return None
+
+    def _analyse_log_file(self, converter):
+        result = None
+
+        for line in converter:
+
+            line_result = self._process_line(line)
+            if line_result is None:
+                continue
+
+            if result is None:
+                kind, details = line_result[1], line_result[5]
+                if kind == "stdout" and "An object has been detected" in details:
+                    result = LinkResult()
+
+                elif kind == "M-RSSI":
+                    result = RSSIResult()
+
+                else:
+                    continue
+
+            try:
+                result.add(*line_result)
+            except ValueError as ex:
+                print("Failed to parse: ", self._sanitise_string(line))
+                traceback.print_exc()
+                continue
+
+        return result
+
+    def combine_link_results(self, results):
+        labels = list(self.testbed_topology.nodes.keys())
+
+        print(labels)
+
+        rssi = pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels)
+        lqi = pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels)
+        prr = pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels)
+
+        for result in results:
+            sender = result.broadcasting_node_id
+            result_prr = result.prr()
+
+            for other_nid in result.deliver_at_lqi:
+
+                if sender not in labels or other_nid not in labels:
+                    continue
+
+                rssi.set_value(sender, other_nid, result.deliver_at_rssi[other_nid].mean())
+                lqi.set_value(sender, other_nid, result.deliver_at_lqi[other_nid].mean())
+                prr.set_value(sender, other_nid, result_prr[other_nid])
+
+
+        print("RSSI:\n", rssi)
+        print("LQI:\n", lqi)
+        print("PRR:\n", prr)
+
+        return rssi, lqi, prr
 
 
 def main():
@@ -179,10 +288,22 @@ def main():
     parser.add_argument("testbed", type=str, help="The name of the testbed being profiled")
     parser.add_argument("topology", type=str, help="The testbed topology being used")
     parser.add_argument("--results-dir", type=str, help="The directory containing results for RSSI and signal measurements on the testbed", required=True)
+    parser.add_argument("--parallel", action="store_true", default=False)
+    parser.add_argument("--flush", action="store_true", default=False)
+
 
     args = parser.parse_args(sys.argv[1:])
 
-    results = run_analyse_testbed_profile(args)
+    analyse = AnalyseTestbedProfile(args)
+
+    if not args.parallel:
+        results = analyse.run(args)
+    else:
+
+        if sys.version_info.major < 3:
+            raise RuntimeError("Parallel mode only supported with Python 3")
+
+        results = analyse.run_parallel(args)
 
     rssi_results = [result for result in results if isinstance(result, RSSIResult)]
     link_results = sorted([result for result in results if isinstance(result, LinkResult)], key=lambda x: x.broadcasting_node_id)
@@ -217,6 +338,15 @@ def main():
               "rssi", "{:.2f}".format(rssi_result.node_average[key].mean()).rjust(6),
               "+-", "{:.2f}".format(rssi_result.node_average[key].stddev())
         )
+
+    link_result = analyse.combine_link_results(link_results)
+
+    link_bcast_nodes = {result.broadcasting_node_id for result in link_results}
+    missing_link_bcast_nodes = set(analyse.testbed_topology.nodes.keys()) - link_bcast_nodes
+
+    print("Missing the following link bcast results:")
+    for node in missing_link_bcast_nodes:
+        print(node)
 
 if __name__ == "__main__":
     main()

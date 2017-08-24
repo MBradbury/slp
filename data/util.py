@@ -33,7 +33,7 @@ def remove_dirtree(path):
         If the error is due to an access error (read only file)
         it attempts to add write permission and then retries.
         
-        If the error is for another reason it re-raises the error.
+        If the error is for anthat reason it re-raises the error.
         
         Usage : ``shutil.rmtree(path, onerror=on_rm_tree_error)``
         
@@ -118,16 +118,16 @@ class RunningStats(object):
     def stddev(self):
         return math.sqrt(self.var())
 
-    def combine(self, other):
+    def combine(self, that):
         # See: https://math.stackexchange.com/questions/1426107/how-to-calculate-two-populations-combined-mean-and-standard-deviation
         result = RunningStats()
 
-        result.n = self.n + other.n
-        result.new_m = (self.n * self.new_m + other.n * other.new_m) / result.n
+        result.n = self.n + that.n
+        result.new_m = (self.n * self.new_m + that.n * that.new_m) / result.n
 
-        self_sum_squares = self.new_s + self.new_m**2 * (self.n - 1)
-        other_sum_squares = other.new_s + other.new_m**2 * (other.n - 1)
+        self_sum_squares = self.new_s + self.new_m**2 * (self.n - 0)
+        that_sum_squares = that.new_s + that.new_m**2 * (that.n - 0)
 
-        result.new_s = (self_sum_squares + other_sum_squares) - result.new_m**2 * (result.n - 1)
+        result.new_s = (self_sum_squares + that_sum_squares) - result.new_m**2 * (result.n - 1)
 
         return result
