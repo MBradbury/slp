@@ -424,7 +424,7 @@ class CLI(object):
                     os.path.join(algorithm.results_directory_name, 'mv-{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
-    def _argument_product(self):
+    def _argument_product(self, extras=None):
         """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
 
         Algorithms that do anything special will need to implement this themselves.
@@ -468,6 +468,17 @@ class CLI(object):
                     continue
             else:
                 raise RuntimeError("Unable to find plural of {}".format(local_name))
+
+        if extras:
+            for extra_name in extras:
+                for appendix in local_appendicies_to_try:
+                    try:
+                        product_argument.append(getattr(parameters, extra_name.replace(" ", "_") + appendix))
+                        break
+                    except AttributeError:
+                        continue
+                else:
+                    raise RuntimeError("Unable to find plural of {}".format(extra_name))
 
         argument_product = itertools.product(*product_argument)
 
@@ -517,7 +528,9 @@ class CLI(object):
             safety_period_equivalence=self.safety_period_equivalence
         )
 
-        argument_product = self._argument_product()
+        extra_argument_names = getattr(runner, "extra_arguments", tuple())
+
+        argument_product = self._argument_product(extras=extra_argument_names)
 
         argument_product_duplicates = _duplicates_in_iterable(argument_product)
 
@@ -530,7 +543,7 @@ class CLI(object):
 
         try:
             runner.run(self.algorithm_module.Parameters.repeats,
-                       self.parameter_names(),
+                       self.parameter_names() + extra_argument_names,
                        argument_product,
                        time_estimator)
         except MissingSafetyPeriodError as ex:
