@@ -29,6 +29,7 @@ rsync -avz $USER@$SITE:~/.iot-lab/$TESTID/ testbed_results/iotlab/$TESTID/
 cd testbed_results/iotlab/$TESTID/
 
 gunzip aggregator_log.stderr.gz
+gunzip aggregator_log.stdout.gz
 
 cd -
 
