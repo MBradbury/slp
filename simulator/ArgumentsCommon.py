@@ -290,9 +290,9 @@ class ArgumentsCommon(object):
                     result["MAX_LPL_CCA_CHECKS"] = self.args.lpl_max_cca_checks
 
         if hasattr(self.args, 'rf_power'):
-          if self.args.rf_power is not None:
-            # TODO: consider setting the values for alternate drivers (CC2420X, ...)
-            result['CC2420_DEF_RFPOWER'] = self.args.rf_power
+            if self.args.rf_power is not None:
+                # TODO: consider setting the values for alternate drivers (CC2420X, ...)
+                result['CC2420_DEF_RFPOWER'] = self.args.rf_power
 
         return result
 
