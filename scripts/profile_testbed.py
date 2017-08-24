@@ -261,6 +261,8 @@ class AnalyseTestbedProfile(object):
         lqi = pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels)
         prr = pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels)
 
+        # TODO: combine results for the same broadcasting node id
+
         for result in results:
             sender = result.broadcasting_node_id
             result_prr = result.prr()
@@ -291,7 +293,6 @@ def main():
     parser.add_argument("--parallel", action="store_true", default=False)
     parser.add_argument("--flush", action="store_true", default=False)
 
-
     args = parser.parse_args(sys.argv[1:])
 
     analyse = AnalyseTestbedProfile(args)
@@ -299,7 +300,6 @@ def main():
     if not args.parallel:
         results = analyse.run(args)
     else:
-
         if sys.version_info.major < 3:
             raise RuntimeError("Parallel mode only supported with Python 3")
 
@@ -344,9 +344,10 @@ def main():
     link_bcast_nodes = {result.broadcasting_node_id for result in link_results}
     missing_link_bcast_nodes = set(analyse.testbed_topology.nodes.keys()) - link_bcast_nodes
 
-    print("Missing the following link bcast results:")
-    for node in missing_link_bcast_nodes:
-        print(node)
+    if len(missing_link_bcast_nodes) != 0:
+        print("Missing the following link bcast results:")
+        for node in missing_link_bcast_nodes:
+            print(node)
 
 if __name__ == "__main__":
     main()
