@@ -43,6 +43,11 @@ class RunSimulationsCommon(object):
         self._existing_results = {}
 
     def run(self, repeats, argument_names, argument_product, time_estimator=None):
+
+        if len(argument_names) != len(argument_product[0]):
+            raise RuntimeError("Number of argument names ({}) does not equal number of arguments ({})".format(
+                len(argument_names), len(argument_product[0])))
+
         if self._skip_completed_simulations:
             self._load_existing_results(argument_names)
         
@@ -223,6 +228,9 @@ def filter_arguments(argument_names, argument_product, to_filter):
     return filtered_argument_names, filtered_argument_product
 
 class RunTestbedCommon(RunSimulationsCommon):
+
+    extra_arguments = ('rf power',)
+
     def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False,
                  safety_periods=None, safety_period_equivalence=None):
         # Do all testbed tasks
@@ -244,6 +252,9 @@ class RunTestbedCommon(RunSimulationsCommon):
         super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)
 
 class RunCycleAccurateCommon(RunSimulationsCommon):
+
+    extra_arguments = ('rf power',)
+
     def __init__(self, sim, driver, algorithm_module, result_path, skip_completed_simulations=False,
                  safety_periods=None, safety_period_equivalence=None):
         # Do all cycle accurate tasks
