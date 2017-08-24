@@ -40,7 +40,7 @@ class FlockLab(Topology):
         self.nodes[31] = np.array((221, 218), dtype=np.float64)
         self.nodes[32] = np.array((194, 191), dtype=np.float64)
         self.nodes[33] = np.array((71, 192), dtype=np.float64)
-        self.nodes[200] = np.array((242, 532), dtype=np.float64)
+        #self.nodes[200] = np.array((242, 532), dtype=np.float64)
         #self.nodes[201] = np.array((157, 775), dtype=np.float64)
         #self.nodes[202] = np.array((220, 640), dtype=np.float64)
         self.nodes[204] = np.array((144, 543), dtype=np.float64)
