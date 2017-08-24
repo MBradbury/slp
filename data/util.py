@@ -112,11 +112,11 @@ class RunningStats(object):
     def mean(self):
         return self.new_m if self.n else 0.0
     
-    def var(self):
-        return self.new_s / (self.n - 1) if self.n > 1 else 0.0
+    def var(self, ddof=1):
+        return self.new_s / (self.n - ddof) if self.n > 1 else 0.0
         
-    def stddev(self):
-        return math.sqrt(self.var())
+    def stddev(self, ddof=1):
+        return math.sqrt(self.var(ddof=ddof))
 
     def combine(self, that):
         # See: https://math.stackexchange.com/questions/1426107/how-to-calculate-two-populations-combined-mean-and-standard-deviation
@@ -125,9 +125,9 @@ class RunningStats(object):
         result.n = self.n + that.n
         result.new_m = (self.n * self.new_m + that.n * that.new_m) / result.n
 
-        self_sum_squares = self.new_s + self.new_m**2 * (self.n - 0)
-        that_sum_squares = that.new_s + that.new_m**2 * (that.n - 0)
+        self_sum_squares = self.new_s + self.new_m**2 * self.n
+        that_sum_squares = that.new_s + that.new_m**2 * that.n
 
-        result.new_s = (self_sum_squares + that_sum_squares) - result.new_m**2 * (result.n - 1)
+        result.new_s = (self_sum_squares + that_sum_squares) - result.new_m**2 * result.n
 
         return result
