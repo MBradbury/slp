@@ -43,7 +43,7 @@ class FlockLab(Topology):
         #self.nodes[200] = np.array((242, 532), dtype=np.float64)
         #self.nodes[201] = np.array((157, 775), dtype=np.float64)
         #self.nodes[202] = np.array((220, 640), dtype=np.float64)
-        self.nodes[204] = np.array((144, 543), dtype=np.float64)
+        #self.nodes[204] = np.array((144, 543), dtype=np.float64)
         
         if subset is not None:
             to_keep = {x for l in (range(start, end+1) for (start, end) in subset) for x in l}
