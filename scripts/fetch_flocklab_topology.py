@@ -10,7 +10,7 @@ node_url = "https://www.flocklab.ethz.ch/user/scripts/flocklab-observer-position
 
 output_directory = "data/testbed/info/"
 
-bad_nodes = {15, 200, 201, 202, 205}
+bad_nodes = {15, 200, 201, 202, 204}
 
 def main():
     r = requests.get(node_url)
