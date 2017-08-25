@@ -4,6 +4,7 @@ from __future__ import print_function, division
 import argparse
 from collections import defaultdict
 from datetime import datetime
+import itertools
 import os
 import pickle
 import re
@@ -82,6 +83,8 @@ class LinkResult(object):
         if kind == "M-CB":
             (msg_type, status, seq_no, tx_power) = details.split(",", 3)
 
+            tx_power = int(tx_power)
+
             #print("Bcast ", seq_no)
 
             if self.broadcasting_node_id is None:
@@ -116,6 +119,25 @@ class LinkResult(object):
             for (nid, stats)
             in self.deliver_at_rssi.items()
         }
+
+    def combine(self, other):
+        if self.broadcasting_node_id != other.broadcasting_node_id:
+            raise RuntimeError("Bad broadcasting_node_id")
+        if self.broadcast_power != other.broadcast_power:
+            raise RuntimeError("Bad broadcast_power")
+
+        result = LinkResult()
+
+        result.broadcasting_node_id = self.broadcasting_node_id
+        result.broadcast_power = self.broadcast_power
+
+        result.broadcasts = self.broadcasts + other.broadcasts
+
+        for nid in set(self.deliver_at_rssi.keys()) | set(other.deliver_at_rssi.keys()):
+            result.deliver_at_rssi[nid] = self.deliver_at_rssi[nid].combine(other.deliver_at_rssi[nid])
+            result.deliver_at_lqi[nid] = self.deliver_at_lqi[nid].combine(other.deliver_at_lqi[nid])
+
+        return result
 
 class AnalyseTestbedProfile(object):
 
@@ -255,16 +277,39 @@ class AnalyseTestbedProfile(object):
     def combine_link_results(self, results):
         labels = list(self.testbed_topology.nodes.keys())
 
+        tx_powers = {result.broadcast_power for result in results}
+
         print(labels)
 
-        rssi = pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels)
-        lqi = pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels)
-        prr = pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels)
+        rssi = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
+        lqi = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
+        prr = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
 
-        # TODO: combine results for the same broadcasting node id
+        # Combine results by broadcast id
+        combined_results = {
+            (label, power): [result for result in results if result.broadcasting_node_id == label and result.broadcast_power == power]
+            for label in labels
+            for power in tx_powers
+        }
 
-        for result in results:
-            sender = result.broadcasting_node_id
+        for (sender, power), sender_results in combined_results.items():
+
+            result = None
+
+            if len(sender_results) == 1:
+                result = sender_results[0]
+            if len(sender_results) == 0:
+                continue
+            else:
+                print((sender, power), "has", len(sender_results), "results")
+
+                sender_results_iter = iter(sender_results)
+
+                result = next(sender_results_iter)
+                for sender_result in sender_results_iter:
+                    result = result.combine(sender_result)
+
+
             result_prr = result.prr()
 
             for other_nid in result.deliver_at_lqi:
@@ -272,16 +317,41 @@ class AnalyseTestbedProfile(object):
                 if sender not in labels or other_nid not in labels:
                     continue
 
-                rssi.set_value(sender, other_nid, result.deliver_at_rssi[other_nid].mean())
-                lqi.set_value(sender, other_nid, result.deliver_at_lqi[other_nid].mean())
-                prr.set_value(sender, other_nid, result_prr[other_nid])
+                rssi[power].set_value(sender, other_nid, result.deliver_at_rssi[other_nid].mean())
+                lqi[power].set_value(sender, other_nid, result.deliver_at_lqi[other_nid].mean())
+                prr[power].set_value(sender, other_nid, result_prr[other_nid])
 
 
-        print("RSSI:\n", rssi)
-        print("LQI:\n", lqi)
-        print("PRR:\n", prr)
+        for power in sorted(tx_powers):
+            print("For power level:", power)
+            print("RSSI:\n", rssi[power])
+            print("LQI:\n", lqi[power])
+            print("PRR:\n", prr[power])
+            print("")
 
         return rssi, lqi, prr
+
+    def draw_prr(self, prr):
+        import pygraphviz as pgv
+
+        G = pgv.AGraph(strict=False, directed=True)
+
+        labels = list(prr.columns.values)
+
+        for label in labels:
+            G.add_node(label)
+
+        for index, row in prr.iterrows():
+            for label in labels:
+                if not np.isnan(row[label]):
+                    G.add_edge(index, label, round(row[label], 2))
+
+        G.layout()
+
+        G.draw('prr.png')
+
+
+
 
 
 def main():
@@ -339,15 +409,19 @@ def main():
               "+-", "{:.2f}".format(rssi_result.node_average[key].stddev())
         )
 
-    link_result = analyse.combine_link_results(link_results)
+    rssi, lqi, prr = analyse.combine_link_results(link_results)
 
-    link_bcast_nodes = {result.broadcasting_node_id for result in link_results}
-    missing_link_bcast_nodes = set(analyse.testbed_topology.nodes.keys()) - link_bcast_nodes
+    tx_powers = {result.broadcast_power for result in link_results}
+
+    link_bcast_nodes = {(result.broadcasting_node_id, result.broadcast_power) for result in link_results}
+    missing_link_bcast_nodes = set(itertools.product(analyse.testbed_topology.nodes.keys(), tx_powers)) - link_bcast_nodes
 
     if len(missing_link_bcast_nodes) != 0:
         print("Missing the following link bcast results:")
-        for node in missing_link_bcast_nodes:
-            print(node)
+        for node, power in missing_link_bcast_nodes:
+            print("Node:", node, "Power:", power)
+
+    #analyse.draw_prr(prr)
 
 if __name__ == "__main__":
     main()
