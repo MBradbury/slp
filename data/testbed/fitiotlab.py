@@ -61,3 +61,53 @@ from data.testbed.info.fitiotlab.euratech import Euratech
 from data.testbed.info.fitiotlab.grenoble import Grenoble
 from data.testbed.info.fitiotlab.rennes import Rennes
 from data.testbed.info.fitiotlab.strasbourg import Strasbourg
+
+measurement_files = ["current.csv", "power.csv", "voltage.csv", "rssi.csv"]
+
+def parse_measurement(result_path):
+
+    import os.path
+
+    import numpy as np
+    import pandas
+
+    def convert_node(node):
+        # Example: wsn430-17.euratech.iot-lab.info
+        return np.uint16(int(node.split(".", 1)[0].split("-", 1)[1]))
+
+    options = {
+        "current.csv": ["node", "time", "current"],
+        "power.csv": ["node", "time", "power"],
+        "voltage.csv": ["node", "time", "voltage"],
+        "rssi.csv": ["node", "time", "rssi"],
+    }
+
+    basename = os.path.basename(result_path)
+
+    names = options.get(basename, ["node", "time", "measurement"])
+
+    # See: https://www.iot-lab.info/tutorials/monitor-consumption-wsn430-node/
+    # Current unit is ampere
+    # Voltage unit is volt
+    # Power   unit is watt
+    # RSSI    unit is dBm
+
+    heading_dtypes = {
+        "time": np.float_,
+        "measurement": np.float_,
+        "current": np.float_,
+        "power": np.float_,
+        "voltage": np.float_,
+        "rssi": np.float_,
+    }
+
+    converters = {
+        "node": convert_node
+    }
+
+    df = pandas.read_csv(result_path,
+        names=names, header=None,
+        dtype=heading_dtypes, converters=converters,
+    )
+
+    return df
