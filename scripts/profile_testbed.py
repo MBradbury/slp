@@ -421,6 +421,8 @@ def main():
         for node, power in missing_link_bcast_nodes:
             print("Node:", node, "Power:", power)
 
+        print("Nodes:", list(node for (node, power) in missing_link_bcast_nodes))
+
     #analyse.draw_prr(prr)
 
 if __name__ == "__main__":
