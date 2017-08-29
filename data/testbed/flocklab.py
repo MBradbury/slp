@@ -39,3 +39,35 @@ def fastserial_supported():
 # - https://www.flocklab.ethz.ch/wiki/wiki/Public/Index
 
 from data.testbed.info.flocklab import FlockLab
+
+measurement_files = ["powerprofiling.csv", "powerprofilingstats.csv"]
+
+def parse_measurement(result_path):
+    import os.path
+
+    import pandas
+
+    options = {
+        "powerprofiling.csv": ["timestamp", "observer_id", "node_id", "value_mA"],
+        "powerprofilingstats.csv": ["observer_id", "node_id", "mean_mA"],
+    }
+
+    basename = os.path.basename(result_path)
+
+    names = options[basename]
+
+    heading_dtypes = {
+        "timestamp": np.float_,
+        "observer_id": np.uint16,
+        "node_id": np.uint16,
+        "value_mA": np.float_,
+        "mean_mA": np.float_,
+    }
+
+    df = pandas.read_csv(result_path,
+        names=names, header=None,
+        dtype=heading_dtypes,
+        comment="#",
+    )
+
+    return df

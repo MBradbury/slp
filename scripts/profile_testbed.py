@@ -144,7 +144,9 @@ class AnalyseTestbedProfile(object):
     _sanitise_match = re.compile(r"(\x00)+")
 
     def __init__(self, args):
-        testbed = submodule_loader.load(data.testbed, args.testbed)
+        self._testbed_args = args.testbed
+
+        testbed = self._get_testbed()
 
         self.testbed_name = testbed.name()
         self.testbed_result_file_name = testbed.result_file_name
@@ -153,30 +155,36 @@ class AnalyseTestbedProfile(object):
 
         self.flush = args.flush
 
+    def _get_testbed(self):
+        return submodule_loader.load(data.testbed, self._testbed_args)
+
     @classmethod
     def _sanitise_string(cls, input_string):
         return cls._sanitise_match.sub(r"\1..\1", input_string)
 
-    def _get_result_path(self, results_dir, result_folder):
+    def _get_result_path(self, results_dir):
 
         # Don't try this path if it is not a directory
-        if not os.path.isdir(os.path.join(results_dir, result_folder)):
+        if not os.path.isdir(results_dir):
             return None
 
         for result_file_name in self.testbed_result_file_name:
-            result_file = os.path.join(results_dir, result_folder, result_file_name)
+            result_file = os.path.join(results_dir, result_file_name)
 
             if os.path.exists(result_file) and os.path.getsize(result_file) > 0:
                 return result_file
 
         print("Unable to find any result file (greater than 0 bytes) in {} out of {}".format(
-            os.path.join(results_dir, result_folder),
-            self.testbed_result_file_name)
+            results_dir, self.testbed_result_file_name)
         )
 
         return None
 
-    def _do_run(self, result_file):
+    def _parse_aggregation(self, results_dir):
+        result_file = self._get_result_path(results_dir)
+
+        if result_file is None:
+            return None
 
         pickle_path = result_file + ".pickle"
 
@@ -204,28 +212,102 @@ class AnalyseTestbedProfile(object):
 
         return result
 
+    def _parse_measurements(self, results_dir):
+        testbed = self._get_testbed()
+
+        # Check if testbed support measuring other values
+        if not hasattr(testbed, "measurement_files") or not hasattr(testbed, "parse_measurement"):
+            return None
+
+        results = {}
+
+        for measurement_file in testbed.measurement_files:
+
+            measurement_path = os.path.join(results_dir, measurement_file)
+
+            if not os.path.exists(measurement_path):
+                continue
+
+            pickle_path = measurement_path + ".pickle"
+
+            if os.path.exists(pickle_path) and not self.flush:
+                try:
+                    with open(pickle_path, 'rb') as pickle_file:
+                        results[measurement_file] = pickle.load(pickle_file)
+
+                    continue
+
+                except EOFError:
+                    print("Failed to load saved results from:", pickle_path)
+
+            results[measurement_file] = testbed.parse_measurement(measurement_path)
+
+            with open(pickle_path, 'wb') as pickle_file:
+                pickle.dump(results[measurement_file], pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return results
+
+    def _get_average_current_draw(self, measurement_results):
+        if self.testbed_name == "flocklab":
+
+            df = measurement_results["powerprofiling.csv"]
+            df = df.groupby(["node_id"])["value_mA"].agg([np.mean, np.std]).reset_index()
+            df.rename(columns={"node_id": "node"}, inplace=True)
+
+            return df
+
+        elif self.testbed_name == "fitiotlab":
+
+            df = measurement_results["current.csv"]
+
+            # Convert from amperes to mA
+            df["current"] = df["current"] * 1000
+
+            df = df.groupby(["node"])["current"].agg([np.mean, np.std]).reset_index()
+
+            return df
+
+        else:
+            raise RuntimeError("Unknown testbed {}".format(self.testbed_name))
+
+
+    def _do_run(self, results_dir):
+        if not os.path.isdir(results_dir):
+            return None
+
+        result = self._parse_aggregation(results_dir)
+        
+        measurement_results = self._parse_measurements(results_dir)
+
+        try:
+            average_current_draw = self._get_average_current_draw(measurement_results)
+        except KeyError:
+            average_current_draw = None
+
+        return result
+
 
     def run(self, args):
         files = [
-            x for x in
-            (self._get_result_path(args.results_dir, result_folder) for result_folder in os.listdir(args.results_dir))
-            if x is not None
+            os.path.join(args.results_dir, result_folder)
+            for result_folder
+            in os.listdir(args.results_dir)
         ]
 
-        return list(map(self._do_run, files))
+        return [x for x in map(self._do_run, files) if x is not None]
 
     def run_parallel(self, args):
         import multiprocessing
 
         files = [
-            x for x in
-            (self._get_result_path(args.results_dir, result_folder) for result_folder in os.listdir(args.results_dir))
-            if x is not None
+            os.path.join(args.results_dir, result_folder)
+            for result_folder
+            in os.listdir(args.results_dir)
         ]
 
         job_pool = multiprocessing.Pool(processes=2)
 
-        return job_pool.map(self._do_run, files)
+        return [x for x in job_pool.map(self._do_run, files) if x is not None]
 
     def _process_line(self, line):
         try:
