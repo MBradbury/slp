@@ -36,5 +36,6 @@ class Analyzer(AnalyzerCommon):
 
         d['control sent']       = lambda x: str(x.average_of['SearchSent'] + x.average_of['ChangeSent'])
         d['path sent']          = lambda x: str(x.average_of['SearchSent'] + x.average_of['ChangeSent'])
+        d['overhead']           = lambda x: str((x.average_of['SearchSent'] + x.average_of['ChangeSent'])tx.average_of['NormalSent'])
 
         return d

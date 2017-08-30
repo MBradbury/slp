@@ -170,6 +170,7 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
             'control sent': ('SLP control messages sent', 'left top'),
             'path sent': ('Path creation messages sent', 'left top'),
+            'overhead': ('SLP message overhead (%)', 'left top'),
         }
 
         varying = [
