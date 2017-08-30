@@ -1,5 +1,5 @@
 
-configuration TDMAMultiSlotP
+generic configuration TDMAMultiSlotP(uint8_t NODE_SLOTS)
 {
 	provides interface TDMAMultiSlot;
 
@@ -7,7 +7,7 @@ configuration TDMAMultiSlotP
 }
 implementation
 {
-    components TDMAMultiSlotImplP as App;
+    components new TDMAMultiSlotImplP(NODE_SLOTS) as App;
 
     App.TDMAMultiSlot = TDMAMultiSlot;
 
