@@ -29,16 +29,16 @@ implementation
         return SUCCESS;
     }
 
-    command uint8_t get_total_slots()
+    command uint8_t TDMAMultiSlot.get_total_slots()
     {
         return total_slots;
     }
 
-    command error_t set_slot(uint8_t num, uint16_t new_slot)
+    command error_t TDMAMultiSlot.set_slot(uint8_t num, uint16_t new_slot)
     {
         if (num >= 0 && num < total_slots)
         {
-            const old_slot = slots[num];
+            const uint16_t old_slot = slots[num];
             slots[num] = new_slot;
             signal TDMAMultiSlot.slot_changed(num, old_slot, new_slot);
             call MetricLogging.log_metric_node_slot_change(old_slot, new_slot);
@@ -55,7 +55,7 @@ implementation
     {
         if (num >= 0 && num < total_slots)
         {
-            return slots[num]
+            return slots[num];
         }
         else
         {
@@ -87,7 +87,7 @@ implementation
     {
         uint16_t current_slot = call TDMAMultiSlot.get_current_slot();
         uint16_t next_slot = UINT16_MAX;
-        uint8_t index = UINT8_MAX;
+        uint8_t idx = UINT8_MAX;
         int i;
         current_slot = (current_slot == UINT16_MAX) ? 0 : current_slot;
         for(i = 0; i < total_slots; i++)
@@ -96,10 +96,10 @@ implementation
             else if (slots[i] > current_slot && slots[i] < next_slot)
             {
                 next_slot = slots[i];
-                index = i;
+                idx = i;
             }
         }
-        active_slot = index;
+        active_slot = idx;
     }
 
     command bool TDMAMultiSlot.is_slot_active()

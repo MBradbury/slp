@@ -67,9 +67,9 @@ module SourceBroadcasterC
     uses interface Receive as EmptyNormalReceive;
 
     uses interface MetricLogging;
-	uses interface MetricHelpers;
+    uses interface MetricHelpers;
 
-    uses interface TDMA;
+    uses interface TDMAMultiSlot as TDMA;
 
     uses interface NodeType;
 	uses interface MessageType;
@@ -209,15 +209,15 @@ implementation
     //###################}}}
 
     //Setter Functions{{{
-    event void TDMA.slot_changed(uint16_t old_slot, uint16_t new_slot)
+    event void TDMA.slot_changed(uint8_t num, uint16_t old_slot, uint16_t new_slot)
     {
-        NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot());
+        NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot(0));
     }
 
     void set_hop(uint16_t new_hop)
     {
         hop = new_hop;
-        NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot());
+        NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot(0));
     }
 
     void set_dissem_timer(void)
@@ -325,14 +325,14 @@ implementation
         {
             parent = AM_BROADCAST_ADDR;
             set_hop(0);
-            call TDMA.set_slot(get_tdma_num_slots());
+            call TDMA.set_slot(0, get_tdma_num_slots());
 
             start = FALSE;
         }
         else
         {
             set_hop(BOT);
-            call TDMA.set_slot(BOT);
+            call TDMA.set_slot(0, BOT);
         }
 
         IDList_add(&neighbours, TOS_NODE_ID);
@@ -342,7 +342,7 @@ implementation
     void process_dissem(void)
     {
         int i;
-        if(call TDMA.get_slot() == BOT)
+        if(call TDMA.get_slot(0) == BOT)
         {
             const NeighbourInfo* parent_info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
             OtherInfo* other_info;
@@ -361,11 +361,11 @@ implementation
 
             parent = parent_info->id;
             set_hop(parent_info->hop + 1);
-            call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
+            call TDMA.set_slot(0, parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
 
-            simdbgverbose("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbgverbose_clear("stdout", "\n");
+            /*simdbgverbose("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbgverbose_clear("stdout", "\n");*/
 
-            simdbgverbose("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, call TDMA.get_slot(), hop);
+            simdbgverbose("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, call TDMA.get_slot(0), hop);
 
             {
                 OnehopList onehop;
@@ -377,26 +377,26 @@ implementation
                         IDList_add(&children, onehop.info[i].id);
                     }
                 }
-                simdbgverbose("stdout", "Added children to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");
+                /*simdbgverbose("stdout", "Added children to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");*/
             }
         }
     }
 
     void process_collision(void)
     {
-        if (call TDMA.get_slot() != BOT)
+        if (call TDMA.get_slot(0) != BOT)
         {
             OnehopList neighbour_info;
             int i,j;
             NeighbourList_select(&n_info, &neighbours, &neighbour_info);
-            simdbgverbose("stdout", "Checking Neighbours for slot collisions (our slot %u / hop %u): ", call TDMA.get_slot(), hop); NeighbourList_print(&n_info); simdbgverbose_clear("stdout", "\n");
+            simdbgverbose("stdout", "Checking Neighbours for slot collisions (our slot %u / hop %u): ", call TDMA.get_slot(0), hop); NeighbourList_print(&n_info); simdbgverbose_clear("stdout", "\n");
 
             for(i=0; i<n_info.count; i++)
             {
                 const NeighbourInfo* n_info_i = &n_info.info[i];
                 // Check if there is a slot collision with a neighbour
                 // Do not check for slot collisions with ourself
-                if(n_info_i->slot == call TDMA.get_slot() && n_info_i->id != TOS_NODE_ID)
+                if(n_info_i->slot == call TDMA.get_slot(0) && n_info_i->id != TOS_NODE_ID)
                 {
                     simdbgverbose("stdout", "Found colliding slot from node %u, will evaluate if (%u || (%u && %u))\n",
                         n_info_i->id, (hop > n_info_i->hop), (hop == n_info_i->hop), (TOS_NODE_ID > n_info_i->id));
@@ -406,10 +406,10 @@ implementation
                     // If nodes have the same distance use the node id as a tie breaker.
                     if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
                     {
-                        call TDMA.set_slot(call TDMA.get_slot() - 1);
+                        call TDMA.set_slot(0, call TDMA.get_slot(0) - 1);
 
                         simdbgverbose("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
-                            call TDMA.get_slot(), n_info_i->id, n_info_i->slot);
+                            call TDMA.get_slot(0), n_info_i->id, n_info_i->slot);
                         set_dissem_timer();
                     }
                 }
@@ -443,7 +443,7 @@ implementation
                     {
                         if(potential_parents.ids[i] == neighbour_info.info[j].id)
                         {
-                            if(neighbour_info.info[j].slot > call TDMA.get_slot()) das = TRUE;
+                            if(neighbour_info.info[j].slot > call TDMA.get_slot(0)) das = TRUE;
                         }
                     }
                 }
@@ -631,7 +631,7 @@ implementation
             send_change_init();
             return FALSE;
         }
-        if(call TDMA.get_slot() != BOT || period_counter < get_pre_beacon_periods())
+        if(call TDMA.get_slot(0) != BOT || period_counter < get_pre_beacon_periods())
         {
             call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_dissem_period() * random_float()));
         }
@@ -645,21 +645,21 @@ implementation
         return TRUE;
     }
 
-    event void TDMA.slot_started()
+    event void TDMA.slot_started(uint8_t num)
     {
-        if(call TDMA.get_slot() != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
+        if(call TDMA.get_slot(0) != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
         {
             post send_normal();
         }
     }
 
-    event void TDMA.slot_finished()
+    event void TDMA.slot_finished(uint8_t num)
     {
     }
 
     event void SourcePeriodModel.fired()
     {
-        if(call TDMA.get_slot() != BOT && period_counter > get_minimum_setup_periods())
+        if(call TDMA.get_slot(0) != BOT && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
 
@@ -775,7 +775,7 @@ implementation
 
         if(rcvd->normal)
         {
-            if(call TDMA.get_slot() == BOT && source->slot != BOT)
+            if(call TDMA.get_slot(0) == BOT && source->slot != BOT)
             {
                 OtherInfo* others_source_addr;
 
@@ -814,17 +814,17 @@ implementation
         {
             if(parent == source_addr)
             {
-                if(call TDMA.get_slot() >= source->slot)
+                if(call TDMA.get_slot(0) >= source->slot)
                 {
                     OnehopList p_parents;
                     IDList p_list = IDList_minus_parent(&potential_parents, parent);
                     NeighbourList_select(&n_info, &p_list, &p_parents);
                     for(i = 0; i < p_parents.count; i++)
                     {
-                        if(p_parents.info[i].slot < call TDMA.get_slot())
+                        if(p_parents.info[i].slot < call TDMA.get_slot(0))
                         {
                             /*call TDMA.set_slot( source->slot - (NeighbourList_get(&n_info, parent)->slot - source->slot) );*/
-                            call TDMA.set_slot( source->slot - 1 ); //TODO: Testing
+                            call TDMA.set_slot(0, source->slot - 1 ); //TODO: Testing
                             normal = FALSE;
                             break;
                         }
@@ -847,7 +847,7 @@ implementation
         if(rcvd->parent == TOS_NODE_ID)
         {
             IDList_add(&children, source_addr);
-            simdbgverbose("stdout", "Added child to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");
+            /*simdbgverbose("stdout", "Added child to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");*/
         }
 
         for(i = 0; i<rcvd->N.count; i++)
@@ -948,7 +948,7 @@ implementation
             ChangeMessage msg;
             OnehopList onehop;
             simdbgverbose("stdout", "Received change\n");
-            call TDMA.set_slot(rcvd->n_slot - 1);
+            call TDMA.set_slot(0, rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
             NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
             NeighbourList_select(&n_info, &neighbours, &onehop);
@@ -963,7 +963,7 @@ implementation
         else if(rcvd->len_d == 0 && npar.count != 0)
         {
             normal = FALSE;
-            call TDMA.set_slot(rcvd->n_slot - 1);
+            call TDMA.set_slot(0, rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
             set_dissem_timer(); //Restart sending dissem messages
             simdbgverbose("stdout", "Change messages ended\n");
