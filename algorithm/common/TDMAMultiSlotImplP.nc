@@ -19,6 +19,8 @@ implementation
     uint8_t active_slot;
     bool slot_active;
 
+    uint16_t label;
+
     command error_t Init.init()
     {
         int i;
@@ -100,6 +102,7 @@ implementation
             }
         }
         active_slot = idx;
+        label = slots[active_slot];
     }
 
     command bool TDMAMultiSlot.is_slot_active()
