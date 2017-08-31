@@ -292,7 +292,18 @@ class AnalyseTestbedProfile(object):
 
         return results
 
-    def _get_average_current_draw(self, measurement_results, broadcasting_node_id):
+    def _get_average_current_draw(self, results_dir, measurement_results, broadcasting_node_id):
+
+        pickle_path = os.path.join(results_dir, "current.pickle")
+
+        if os.path.exists(pickle_path) and not self.flush:
+            print("Loading saved current results from:", pickle_path)
+            try:
+                with open(pickle_path, 'rb') as pickle_file:
+                    return pickle.load(pickle_file)
+            except EOFError:
+                print("Failed to load saved current results from:", pickle_path)
+
         if self.testbed_name == "flocklab":
 
             df = measurement_results["powerprofiling.csv"]
@@ -302,7 +313,7 @@ class AnalyseTestbedProfile(object):
             df = df.groupby(["node_id"])["value_mA"].agg([np.mean, np.std]).reset_index()
             df.rename(columns={"node_id": "node"}, inplace=True)
 
-            return CurrentDraw(df, raw_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(df, raw_df, broadcasting_node_id=broadcasting_node_id)
 
         elif self.testbed_name == "fitiotlab":
 
@@ -333,10 +344,15 @@ class AnalyseTestbedProfile(object):
             filtered_df = filtered_df.groupby(["node"])["I_2"].agg([np.mean, np.std, len]).reset_index()
             removed_df = removed_df.groupby(["node"])["current", "voltage", "power"].agg([np.mean, np.std, len]).reset_index()
 
-            return CurrentDraw(filtered_df, raw_df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(filtered_df, raw_df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
 
         else:
             raise UnknownTestbedError(self.testbed_name)
+
+        with open(pickle_path, 'wb') as pickle_file:
+            pickle.dump(result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return result
 
     def _get_rssi(self, measurement_results):
         if self.testbed_name == "fitiotlab":
@@ -377,7 +393,7 @@ class AnalyseTestbedProfile(object):
             else:
                 broadcasting_node_id = None
 
-            average_current_draw = self._get_average_current_draw(measurement_results, broadcasting_node_id)
+            average_current_draw = self._get_average_current_draw(results_dir, measurement_results, broadcasting_node_id)
 
         except (KeyError, UnknownTestbedError):
             average_current_draw = None
@@ -459,7 +475,6 @@ class AnalyseTestbedProfile(object):
             except ValueError as ex:
                 print("Failed to parse: ", self._sanitise_string(line))
                 traceback.print_exc()
-                continue
 
         return result
 
