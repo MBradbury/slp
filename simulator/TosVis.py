@@ -320,8 +320,13 @@ class GuiSimulation(Simulation):
 
         if self._node_label is not None:
             variables = self.nesc_app.variables.variables()
-            if self._node_label not in variables:
-                raise RuntimeError("The variable {} was not present in the list known to python {}".format(self._node_label, variables))
+
+            sanitized_node_label = re.sub(r'/\*.*\*/', '', self._node_label)
+            sanitized_node_label = re.sub(r'\$[0-9]+\$', '.', sanitized_node_label)
+
+            if sanitized_node_label not in variables:
+                raise RuntimeError("The variable {} ({} after sanitisation) was not present in the list known to python {}".format(
+                    self._node_label, sanitized_node_label, variables))
 
 
     def _during_run(self, event_count):
