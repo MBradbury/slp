@@ -325,8 +325,14 @@ class GuiSimulation(Simulation):
             sanitized_node_label = re.sub(r'\$[0-9]+\$', '.', sanitized_node_label)
 
             if sanitized_node_label not in variables:
-                raise RuntimeError("The variable {} ({} after sanitisation) was not present in the list known to python {}".format(
-                    self._node_label, sanitized_node_label, variables))
+                import difflib
+
+                close = difflib.get_close_matches(sanitized_node_label, variables.keys(), n=5)
+
+                san_msg = "" if sanitized_node_label == self._node_label else " ({} after sanitisation)".format(sanitized_node_label)
+
+                raise RuntimeError("The variable {}{} was not present in the list known to python. Close matches: {}".format(
+                    self._node_label, san_msg, close))
 
 
     def _during_run(self, event_count):
