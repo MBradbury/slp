@@ -19,7 +19,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("table", self._run_table)
 
-    def _argument_product(self):
+    def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.product(
@@ -31,6 +31,8 @@ class CLI(CommandLineCommon.CLI):
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
             parameters.pre_beacon_periods, parameters.dissem_timeout
         ))
+
+        argument_product = self.add_extra_arguments(argument_product, extras)
 
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 

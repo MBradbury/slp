@@ -11,7 +11,7 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
-    def _argument_product(self):
+    def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(
@@ -27,6 +27,8 @@ class CLI(CommandLineCommon.CLI):
             for (size, config, attacker, noise, communication_model, fm, distance, nido, lnst, (src_period, broadcast_period))
             in argument_product
         ]
+
+        argument_product = self.add_extra_arguments(argument_product, extras)
 
         return argument_product
 

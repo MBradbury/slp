@@ -424,6 +424,20 @@ class CLI(object):
                     os.path.join(algorithm.results_directory_name, 'mv-{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
+    def _get_extra_plural_name(self, name):
+        parameters = self.algorithm_module.Parameters
+
+        for appendix in ("s", "es", ""):
+            try:
+                return getattr(parameters, name.replace(" ", "_") + appendix)
+            except AttributeError:
+                continue
+        else:
+            raise RuntimeError("Unable to find plural of {}".format(name))
+
+        return None
+
+
     def _argument_product(self, extras=None):
         """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
 
@@ -471,14 +485,7 @@ class CLI(object):
 
         if extras:
             for extra_name in extras:
-                for appendix in local_appendicies_to_try:
-                    try:
-                        product_argument.append(getattr(parameters, extra_name.replace(" ", "_") + appendix))
-                        break
-                    except AttributeError:
-                        continue
-                else:
-                    raise RuntimeError("Unable to find plural of {}".format(extra_name))
+                product_argument.append(self._get_extra_plural_name(extra_name))
 
         argument_product = itertools.product(*product_argument)
 
@@ -488,6 +495,16 @@ class CLI(object):
         argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         return argument_product
+
+    def add_extra_arguments(self, argument_product, extras):
+        if extras is None or len(extras) == 0:
+            return argument_product
+
+        extras = [self._get_extra_plural_name(extra) for extra in extras]
+
+        extras_product = itertools.product(extras)
+
+        return itertools.product(argument_product, extras_product)
 
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal

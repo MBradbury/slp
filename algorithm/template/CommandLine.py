@@ -29,7 +29,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
         subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graph)
 
-    def _argument_product(self):
+    def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(
@@ -46,6 +46,8 @@ class CLI(CommandLineCommon.CLI):
             for (size, config, attacker, nm, cm, fm, distance, nido, lnst, (src_period, fake_period), fake_dur, pr_tfs, pr_pfs)
             in argument_product
         ]
+
+        argument_product = self.add_extra_arguments(argument_product, extras)
 
         return argument_product
 
