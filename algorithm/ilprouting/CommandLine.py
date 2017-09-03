@@ -22,7 +22,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)
 
-    def _argument_product(self):
+    def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.product(
@@ -34,6 +34,8 @@ class CLI(CommandLineCommon.CLI):
             parameters.direct_to_sink_prs, parameters.msg_group_sizes
         ))
 
+        argument_product = self.add_extra_arguments(argument_product, extras)
+        
         return argument_product
 
     def time_after_first_normal_to_safety_period(self, tafn):

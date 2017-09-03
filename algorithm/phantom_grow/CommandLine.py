@@ -20,7 +20,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
 
-    def _argument_product(self):
+    def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.ifilter(
@@ -33,6 +33,8 @@ class CLI(CommandLineCommon.CLI):
                 set(itertools.chain(*parameters.walk_hop_lengths.values()))
             )
         ))
+
+        argument_product = self.add_extra_arguments(argument_product, extras)
 
         return argument_product
 

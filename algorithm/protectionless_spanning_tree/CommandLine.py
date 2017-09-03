@@ -16,7 +16,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._subparsers.add_parser("graph")
 
-    def _argument_product(self):
+    def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(
@@ -38,6 +38,8 @@ class CLI(CommandLineCommon.CLI):
             for (s, c, am, nm, cm, fm, d, nido, lnst, sp)
             in argument_product
         ]
+
+        argument_product = self.add_extra_arguments(argument_product, extras)
 
         return argument_product
 
