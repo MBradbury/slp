@@ -659,6 +659,12 @@ def main():
     rssi, lqi, prr = analyse.combine_link_results(link_results)
 
 
+    prr_diff = prr[19] - prr[31]
+
+    print("PRR diff")
+    print(prr_diff)
+
+
     combined_current, total_good_current, bad_current_nodes = analyse.combine_current_results(current_results)
 
     print("The following nodes has errors in their current measurements:")
