@@ -25,7 +25,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._subparsers.add_parser("min-max-versus")
         subparser = self._subparsers.add_parser("dual-min-max-versus")
 
-    def _argument_product(self):
+    def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.ifilter(
@@ -38,6 +38,8 @@ class CLI(CommandLineCommon.CLI):
                 set(itertools.chain(*parameters.walk_hop_lengths.values())), parameters.landmark_nodes
             )
         ))
+
+        argument_product = self.add_extra_arguments(argument_product, extras)
 
         # Factor in the number of sources when selecting the source period.
         # This is done so that regardless of the number of sources the overall
