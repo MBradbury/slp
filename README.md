@@ -211,8 +211,15 @@ We might also want to test with crashes that can be done like so.
 Note that in this example we have used the string 'top_right' to specify the top right node's id.
 Other landmark node names can be used in this fashion.
 ```bash
-run.py algorithm.protectionless tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy --source-period 1 -am "SeqNosReactiveAttacker()" -nido randomised -fm "NodeCrashFaultModel(12, 5)"
-run.py algorithm.protectionless tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy --source-period 1 -am "SeqNosReactiveAttacker()" -nido randomised -fm "NodeCrashFaultModel('top_right', 5)"
+./run.py algorithm.protectionless tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy --source-period 1 -am "SeqNosReactiveAttacker()" -nido randomised -fm "NodeCrashFaultModel(12, 5)"
+./run.py algorithm.protectionless tossim GUI -c SourceCorner -ns 11 -cm low-asymmetry -nm meyer-heavy --source-period 1 -am "SeqNosReactiveAttacker()" -nido randomised -fm "NodeCrashFaultModel('top_right', 5)"
+```
+
+When running locally with a GUI it can be helpful to display certain variables instead of the node ids.
+These are two examples of how to specify variables for regular components and generic components
+```bash
+./run.py algorithm.adaptive_spr_notify tossim GUI -cm low-asymmetry -ns 11 -c SourceCorner -nm meyer-heavy -safety 50 -am "SeqNosReactiveAttacker()" --source-period 1 --approach PB_FIXED1_APPROACH --gui-node-label 'SourceBroadcasterC.extra_to_send'
+./run.py algorithm.adaptive_spr_notify tossim GUI -cm low-asymmetry -ns 11 -c SourceCorner -nm meyer-heavy -safety 50 -am "SeqNosReactiveAttacker()" --source-period 1 --approach PB_FIXED1_APPROACH --gui-node-label '/*SourceBroadcasterAppC.NodeTypeC.NodeTypeP*/NodeTypeP$0$current_type'
 ```
 
 # Running on the cluster

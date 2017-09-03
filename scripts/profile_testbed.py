@@ -20,35 +20,60 @@ import data.testbed
 
 import simulator.OfflineLogConverter as OfflineLogConverter
 
+def var0(x):
+    return np.var(x, ddof=0)
+
+# (ref. http://www-mtl.mit.edu/Courses/6.111/labkit/datasheets/CC2420.pdf page 49)
+RSSI_OFFSET = 45
+
+def _adjust_tinyos_raw_rssi(rssi):
+    # TinyOS RSSI measurements are in a raw form.
+    # We must first take away 127 to get to the value
+    # provided by the CC2420 chip (ref. CC2420ControlP.nc)
+    # Next we must take away the RSSI_OFFSET (-45)
+    # (ref. http://www-mtl.mit.edu/Courses/6.111/labkit/datasheets/CC2420.pdf page 49)
+    return rssi - 127 - RSSI_OFFSET
+
+def _adjust_tinyos_rssi(rssi):
+    return rssi - RSSI_OFFSET
+
+class UnknownTestbedError(RuntimeError):
+    def __init__(self, testbed):
+        super(UnknownTestbedError, self).__init__("Unknown testbed {}".format(testbed))
+
 class RSSIResult(object):
     def __init__(self):
         self.node_average = defaultdict(RunningStats)
-        self.node_smallest = defaultdict(RunningStats)
-        self.node_largest = defaultdict(RunningStats)
+        #self.node_smallest = defaultdict(RunningStats)
+        #self.node_largest = defaultdict(RunningStats)
 
         self.total_reads = defaultdict(int)
 
-        self.start_time = None
-        self.stop_time = None
+        #self.start_time = None
+        #self.stop_time = None
 
     def add(self, date_time, kind, d_or_e, nid, localtime, details):
         if kind == "M-RSSI":
             (average, smallest, largest, reads, channel) = map(int, details.split(",", 4))
 
+            average = _adjust_tinyos_raw_rssi(average)
+            #smallest = _adjust_tinyos_raw_rssi(smallest)
+            #largest = _adjust_tinyos_raw_rssi(largest)
+
             self.node_average[(nid, channel)].push(average)
-            self.node_smallest[(nid, channel)].push(smallest)
-            self.node_largest[(nid, channel)].push(largest)
+            #self.node_smallest[(nid, channel)].push(smallest)
+            #self.node_largest[(nid, channel)].push(largest)
 
             self.total_reads[(nid, channel)] += reads
 
-            if self.start_time is None:
-                self.start_time = date_time
+            #if self.start_time is None:
+            #    self.start_time = date_time
 
-            if self.stop_time is None:
-                self.stop_time = date_time
+            #if self.stop_time is None:
+            #    self.stop_time = date_time
 
-            if date_time > self.stop_time:
-                self.stop_time = date_time
+            #if date_time > self.stop_time:
+            #    self.stop_time = date_time
 
         else:
             return
@@ -60,13 +85,13 @@ class RSSIResult(object):
 
         for key in keys:
             result.node_average[key] = self.node_average[key].combine(other.node_average[key])
-            result.node_smallest[key] = self.node_smallest[key].combine(other.node_smallest[key])
-            result.node_largest[key] = self.node_largest[key].combine(other.node_largest[key])
+            #result.node_smallest[key] = self.node_smallest[key].combine(other.node_smallest[key])
+            #result.node_largest[key] = self.node_largest[key].combine(other.node_largest[key])
 
             result.total_reads[key] = self.total_reads[key] + other.total_reads[key]
 
-        result.start_time = min(self.start_time, other.start_time)
-        result.stop_time = max(self.stop_time, other.stop_time)
+        #result.start_time = min(self.start_time, other.start_time)
+        #result.stop_time = max(self.stop_time, other.stop_time)
 
         return result
 
@@ -102,7 +127,7 @@ class LinkResult(object):
         elif kind == "M-CD":
             (msg_type, proximate_src, ultimate_src, seq_no, rssi, lqi) = details.split(",", 5)
 
-            rssi = int(rssi)
+            rssi = _adjust_tinyos_rssi(int(rssi))
             lqi = int(lqi)
 
             #print("Deliv ", seq_no, " rssi ", rssi, " lqi ", lqi)
@@ -138,6 +163,13 @@ class LinkResult(object):
             result.deliver_at_lqi[nid] = self.deliver_at_lqi[nid].combine(other.deliver_at_lqi[nid])
 
         return result
+
+class CurrentDraw(object):
+    def __init__(self, df, raw_df, bad_df=None, broadcasting_node_id=None):
+        self.broadcasting_node_id = broadcasting_node_id
+        self.df = df
+        self.raw_df = raw_df
+        self.bad_df = bad_df
 
 class AnalyseTestbedProfile(object):
 
@@ -180,6 +212,13 @@ class AnalyseTestbedProfile(object):
 
         return None
 
+    def _check_big_nul_file(self, result_path):
+        with open(result_path, 'rb') as result_file:
+            firstn = result_file.read(1024)
+
+            if all(x == "\0" for x in firstn):
+                raise RuntimeError("File ({}) consists of NUL bytes".format(result_path))
+
     def _parse_aggregation(self, results_dir):
         result_file = self._get_result_path(results_dir)
 
@@ -199,6 +238,12 @@ class AnalyseTestbedProfile(object):
                 print("Failed to load saved results from:", pickle_path)
 
         print("Processing results in:", result_file)
+
+        try:
+            self._check_big_nul_file(result_file)
+        except RuntimeError as ex:
+            print(ex)
+            return None
 
         converter = OfflineLogConverter.create_specific(self.testbed_name, result_file)
 
@@ -247,28 +292,89 @@ class AnalyseTestbedProfile(object):
 
         return results
 
-    def _get_average_current_draw(self, measurement_results):
+    def _get_average_current_draw(self, results_dir, measurement_results, broadcasting_node_id):
+
+        pickle_path = os.path.join(results_dir, "current.pickle")
+
+        if os.path.exists(pickle_path) and not self.flush:
+            print("Loading saved current results from:", pickle_path)
+            try:
+                with open(pickle_path, 'rb') as pickle_file:
+                    return pickle.load(pickle_file)
+            except EOFError:
+                print("Failed to load saved current results from:", pickle_path)
+
         if self.testbed_name == "flocklab":
 
             df = measurement_results["powerprofiling.csv"]
+
+            raw_df = df.rename(columns={"node_id": "node", "value_mA": "I"})
+
             df = df.groupby(["node_id"])["value_mA"].agg([np.mean, np.std]).reset_index()
             df.rename(columns={"node_id": "node"}, inplace=True)
 
-            return df
+            result = CurrentDraw(df, raw_df, broadcasting_node_id=broadcasting_node_id)
 
         elif self.testbed_name == "fitiotlab":
 
             df = measurement_results["current.csv"]
+            df = df.merge(measurement_results["power.csv"], on=["node", "time"])
+            df = df.merge(measurement_results["voltage.csv"], on=["node", "time"])
 
-            # Convert from amperes to mA
-            df["current"] = df["current"] * 1000
+            # times 1000 to convert from amperes to mA
 
-            df = df.groupby(["node"])["current"].agg([np.mean, np.std]).reset_index()
+            df["I"] = (df["power"] / df["voltage"]) * 1000
+            df["current"] *= 1000
 
-            return df
+            # Power, current and voltage should not be negative
+            # If they are something has gone wrong
+
+            neg = df[["current", "I"]] < 0
+            neg_eq2 = neg.apply(np.sum, axis='columns', raw=True) == 2
+
+            removed_df = df[neg_eq2]   # Bad results with two negative results
+            filtered_df = df[~neg_eq2].copy() # Recoverable results with zero or one negative result(s)
+
+            filtered_df.loc[filtered_df.current < 0,   'I_2'] = filtered_df.I
+            filtered_df.loc[filtered_df.I < 0,         'I_2'] = filtered_df.current
+            filtered_df.loc[np.isnan(filtered_df.I_2), 'I_2'] = (filtered_df.current + filtered_df.I) / 2
+
+            raw_df = filtered_df[["node", "time", "I_2"]].rename(columns={"I_2": "I"})
+
+            filtered_df = filtered_df.groupby(["node"])["I_2"].agg([np.mean, np.std, len]).reset_index()
+            removed_df = removed_df.groupby(["node"])["current", "voltage", "power"].agg([np.mean, np.std, len]).reset_index()
+
+            result = CurrentDraw(filtered_df, raw_df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
 
         else:
-            raise RuntimeError("Unknown testbed {}".format(self.testbed_name))
+            raise UnknownTestbedError(self.testbed_name)
+
+        with open(pickle_path, 'wb') as pickle_file:
+            pickle.dump(result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return result
+
+    def _get_rssi(self, measurement_results):
+        if self.testbed_name == "fitiotlab":
+
+            df = measurement_results["rssi.csv"]
+            df = df.groupby(["node"])["rssi"].agg([np.mean, var0, len]).reset_index()
+
+            channel = None
+
+            result = RSSIResult()
+
+            for row in df.itertuples():
+                result.node_average[(row.node, channel)].n = int(row.len)
+                result.node_average[(row.node, channel)].new_m = float(row.mean)
+                result.node_average[(row.node, channel)].new_s = float(row.var0) * int(row.len)
+
+                result.total_reads[(row.node, channel)] = int(row.len)
+
+            return result
+
+        else:
+            raise UnknownTestbedError(self.testbed_name)
 
 
     def _do_run(self, results_dir):
@@ -276,38 +382,55 @@ class AnalyseTestbedProfile(object):
             return None
 
         result = self._parse_aggregation(results_dir)
+        if result is None:
+            return None
         
         measurement_results = self._parse_measurements(results_dir)
 
         try:
-            average_current_draw = self._get_average_current_draw(measurement_results)
-        except KeyError:
+            if hasattr(result, "broadcasting_node_id"):
+                broadcasting_node_id = result.broadcasting_node_id
+            else:
+                broadcasting_node_id = None
+
+            average_current_draw = self._get_average_current_draw(results_dir, measurement_results, broadcasting_node_id)
+
+        except (KeyError, UnknownTestbedError):
             average_current_draw = None
 
-        return result
+        # Some testbeds can record the RSSI during the execution of the application
+        # If so, lets get those results and include them
+        #try:
+        #    rssi_extra = self._get_rssi(measurement_results)
+        #except (KeyError, UnknownTestbedError):
+        #    rssi_extra = None
 
+        return result, average_current_draw#, rssi_extra
 
-    def run(self, args):
+    def _run(self, args, map_fn):
         files = [
             os.path.join(args.results_dir, result_folder)
             for result_folder
             in os.listdir(args.results_dir)
         ]
 
-        return [x for x in map(self._do_run, files) if x is not None]
+        return [
+            x
+            for l in map_fn(self._do_run, files)
+            if l is not None
+            for x in l
+            if x is not None
+        ]
+
+    def run(self, args):
+        return self._run(args, map)
 
     def run_parallel(self, args):
         import multiprocessing
 
-        files = [
-            os.path.join(args.results_dir, result_folder)
-            for result_folder
-            in os.listdir(args.results_dir)
-        ]
-
         job_pool = multiprocessing.Pool(processes=2)
 
-        return [x for x in job_pool.map(self._do_run, files) if x is not None]
+        return self._run(args, job_pool.map)
 
     def _process_line(self, line):
         try:
@@ -352,7 +475,6 @@ class AnalyseTestbedProfile(object):
             except ValueError as ex:
                 print("Failed to parse: ", self._sanitise_string(line))
                 traceback.print_exc()
-                continue
 
         return result
 
@@ -413,6 +535,49 @@ class AnalyseTestbedProfile(object):
 
         return rssi, lqi, prr
 
+    def combine_current_results(self, results):
+        grouped_results = defaultdict(list)
+
+        bad_nodes = defaultdict(int)
+
+        total = None
+
+        for result in results:
+            grouped_results[result.broadcasting_node_id].append(result)
+
+            if total is None:
+                total = result.df[["node", "len"]].copy()
+                total.set_index(["node"], inplace=True)
+            else:
+                df = result.df[["node", "len"]]
+                df.set_index(["node"], inplace=True)
+                total = total.add(df, fill_value=0)
+
+            if result.bad_df is not None:
+                bad_df_as_dict = result.bad_df.to_dict(orient='index')
+
+                for value in bad_df_as_dict.values():
+                    node = int(value[('node', '')])
+                    count = int(value[('current', 'len')])
+
+                    bad_nodes[node] += count
+
+        combined_results = {}
+
+        for (broadcasting_node_id, results) in grouped_results.items():
+
+            results_iter = iter(results)
+            combined_result = next(results_iter).raw_df
+
+            for result in results_iter:
+                combined_result = combined_result.append(result.raw_df)
+
+            combined_results[broadcasting_node_id] = combined_result.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
+
+        return combined_results, total, bad_nodes
+
+
+
     def draw_prr(self, prr):
         import pygraphviz as pgv
 
@@ -459,22 +624,22 @@ def main():
 
     rssi_results = [result for result in results if isinstance(result, RSSIResult)]
     link_results = sorted([result for result in results if isinstance(result, LinkResult)], key=lambda x: x.broadcasting_node_id)
+    current_results = [result for result in results if isinstance(result, CurrentDraw)]
 
     if len(rssi_results) == 0:
         raise RuntimeError("No RSSI results")
     if len(link_results) == 0:
         raise RuntimeError("No Link results")
 
-    print("RSSI Results:")
-    for result in rssi_results:
-        for key in sorted(result.node_average.keys()):
-            (nid, channel) = key
-            print("Node", str(nid).rjust(4),
-                  "channel", channel,
-                  "rssi", "{:.2f}".format(result.node_average[key].mean()).rjust(6),
-                  "+-", "{:.2f}".format(result.node_average[key].stddev())
-            )
-
+    #print("RSSI Results:")
+    #for result in rssi_results:
+    #    for key in sorted(result.node_average.keys()):
+    #        (nid, channel) = key
+    #        print("Node", str(nid).rjust(4),
+    #              "channel", channel,
+    #              "rssi", "{:.2f}".format(result.node_average[key].mean()).rjust(6),
+    #              "+-", "{:.2f}".format(result.node_average[key].stddev())
+    #        )
 
     rssi_iter = iter(rssi_results)
 
@@ -492,6 +657,15 @@ def main():
         )
 
     rssi, lqi, prr = analyse.combine_link_results(link_results)
+
+
+    combined_current, total_good_current, bad_current_nodes = analyse.combine_current_results(current_results)
+
+    print("The following nodes has errors in their current measurements:")
+    for (k, v) in bad_current_nodes.items():
+        print("Node {:>3} bad {:>5} badpc {:.2f}%".format(k, v, (v / (v + total_good_current.loc[k, "len"])) * 100))
+
+    # Show diagnostic information
 
     tx_powers = {result.broadcast_power for result in link_results}
 
