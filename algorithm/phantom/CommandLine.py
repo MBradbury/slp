@@ -29,10 +29,10 @@ class CLI(CommandLineCommon.CLI):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.ifilter(
-            lambda (size, c, am, nm, cm, d, nido, lnst, sp, walk_length, lm): walk_length in parameters.walk_hop_lengths[size],
+            lambda (size, c, am, nm, cm, fm, d, nido, lnst, sp, walk_length, lm): walk_length in parameters.walk_hop_lengths[size],
             itertools.product(
                 parameters.sizes, parameters.configurations,
-                parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+                parameters.attacker_models, parameters.noise_models, parameters.communication_models, parameters.fault_models,
                 [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
                 parameters.source_periods,
                 set(itertools.chain(*parameters.walk_hop_lengths.values())), parameters.landmark_nodes
