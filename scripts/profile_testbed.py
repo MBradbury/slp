@@ -308,12 +308,10 @@ class AnalyseTestbedProfile(object):
 
         if self.testbed_name == "flocklab":
 
-            df = measurement_results["powerprofiling.csv"]
+            raw_df = measurement_results["powerprofiling.csv"]
+            raw_df.rename(columns={"node_id": "node", "value_mA": "I"}, inplace=True)
 
-            raw_df = df.rename(columns={"node_id": "node", "value_mA": "I"})
-
-            df = df.groupby(["node_id"])["value_mA"].agg([np.mean, np.std]).reset_index()
-            df.rename(columns={"node_id": "node"}, inplace=True)
+            df = raw_df.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
 
             result = CurrentDraw(df, raw_df, broadcasting_node_id=broadcasting_node_id)
 
@@ -569,10 +567,7 @@ class AnalyseTestbedProfile(object):
         for (broadcasting_node_id, results) in grouped_results.items():
 
             results_iter = iter(results)
-            combined_result = next(results_iter).raw_df
-
-            for result in results_iter:
-                combined_result = combined_result.append(result.raw_df)
+            combined_result = next(results_iter).raw_df.append([result.raw_df for result in results_iter])
 
             combined_results[broadcasting_node_id] = combined_result.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
 
