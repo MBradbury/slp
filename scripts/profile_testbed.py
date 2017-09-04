@@ -216,8 +216,10 @@ class AnalyseTestbedProfile(object):
         with open(result_path, 'rb') as result_file:
             firstn = result_file.read(1024)
 
-            if all(x == "\0" for x in firstn):
-                raise RuntimeError("File ({}) consists of NUL bytes".format(result_path))
+            ratio = sum(x == 0 for x in firstn) / len(firstn)
+
+            if ratio >= 0.5:
+                raise RuntimeError("File ({}) consists of NUL bytes ({}), skipping it".format(result_path, ratio))
 
     def _parse_aggregation(self, results_dir):
         result_file = self._get_result_path(results_dir)
