@@ -29,7 +29,7 @@ class Progress(object):
             estimated_remaining_str = str(datetime.timedelta(seconds=estimated_remaining))
 
             # It is intended to print an extra newline, as this makes the progress more visible.
-            print("Finished {} {} out of {}. Done {}%. Time taken {}, estimated remaining {}\n".format(
+            print("Finished {} {} out of {}. Done {:.2f}%. Time taken {}, estimated remaining {}\n".format(
                 self.description, num + 1, self.total_jobs, ((num + 1) / self.total_jobs) * 100.0,
                 current_time_taken_str, estimated_remaining_str))
 
