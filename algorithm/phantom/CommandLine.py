@@ -20,10 +20,10 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.result_file_path)
 
-        subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("min-max-versus")
-        subparser = self._subparsers.add_parser("dual-min-max-versus")
+        subparser = self._add_argument("table", self._run_table)
+        subparser = self._add_argument("graph", self._run_graph)
+        subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
+        subparser = self._add_argument("dual-min-max-versus", self._run_dual_min_max_versus)
 
     def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
