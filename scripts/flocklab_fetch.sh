@@ -20,7 +20,7 @@ curl -s --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --outpu
 
 if [ ! -f "./testbed_results/flocklab/results.$TESTID.tar.gz" ]
 then
-	echo "Failed to fetch file"
+	echo "Failed to fetch file for $TESTID"
 	exit 1
 fi
 
