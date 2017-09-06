@@ -24,7 +24,7 @@ mkdir -p testbed_results/iotlab
 #rm testbed_results/iotlab/$TESTID/*.ihex
 
 # Now to get some of the other files back from the testbed
-rsync -avz $USER@$SITE:~/.iot-lab/$TESTID/ testbed_results/iotlab/$TESTID/
+rsync -avz --prune-empty-dirs $USER@$SITE:~/.iot-lab/$TESTID/ testbed_results/iotlab/$TESTID/
 
 if [ -d "testbed_results/iotlab/$TESTID" ]
 then
