@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-from __future__ import print_function, division
 
 import argparse
 from collections import defaultdict
 from datetime import datetime
+from functools import partial
 import itertools
 import os
 import pickle
@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from data.util import RunningStats
+from data.progress import Progress
 from data import submodule_loader
 import data.testbed
 
@@ -165,9 +166,8 @@ class LinkResult(object):
         return result
 
 class CurrentDraw(object):
-    def __init__(self, df, raw_df, bad_df=None, broadcasting_node_id=None):
+    def __init__(self, raw_df, bad_df=None, broadcasting_node_id=None):
         self.broadcasting_node_id = broadcasting_node_id
-        self.df = df
         self.raw_df = raw_df
         self.bad_df = bad_df
 
@@ -186,6 +186,8 @@ class AnalyseTestbedProfile(object):
         self.testbed_topology = getattr(testbed, args.topology)()
 
         self.flush = args.flush
+
+        self._job_counter = 0
 
     def _get_testbed(self):
         return submodule_loader.load(data.testbed, self._testbed_args)
@@ -311,9 +313,9 @@ class AnalyseTestbedProfile(object):
             raw_df = measurement_results["powerprofiling.csv"]
             raw_df.rename(columns={"node_id": "node", "value_mA": "I"}, inplace=True)
 
-            df = raw_df.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
+            #df = raw_df.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
 
-            result = CurrentDraw(df, raw_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(raw_df, broadcasting_node_id=broadcasting_node_id)
 
         elif self.testbed_name == "fitiotlab":
 
@@ -341,10 +343,10 @@ class AnalyseTestbedProfile(object):
 
             raw_df = filtered_df[["node", "time", "I_2"]].rename(columns={"I_2": "I"})
 
-            filtered_df = filtered_df.groupby(["node"])["I_2"].agg([np.mean, np.std, len]).reset_index()
+            #filtered_df = filtered_df.groupby(["node"])["I_2"].agg([np.mean, np.std, len]).reset_index()
             removed_df = removed_df.groupby(["node"])["current", "voltage", "power"].agg([np.mean, np.std, len]).reset_index()
 
-            result = CurrentDraw(filtered_df, raw_df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(raw_df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
 
         else:
             raise UnknownTestbedError(self.testbed_name)
@@ -377,7 +379,7 @@ class AnalyseTestbedProfile(object):
             raise UnknownTestbedError(self.testbed_name)
 
 
-    def _do_run(self, results_dir):
+    def _do_run(self, results_dir, progress):
         if not os.path.isdir(results_dir):
             return None
 
@@ -405,6 +407,11 @@ class AnalyseTestbedProfile(object):
         #except (KeyError, UnknownTestbedError):
         #    rssi_extra = None
 
+        if progress is not None:
+            progress.print_progress(self._job_counter)
+
+            self._job_counter += 1
+
         return result, average_current_draw#, rssi_extra
 
     def _run(self, args, map_fn):
@@ -414,9 +421,17 @@ class AnalyseTestbedProfile(object):
             in os.listdir(args.results_dir)
         ]
 
+        if map_fn is map:
+            progress = Progress("run")
+            progress.start(len(files))
+        else:
+            progress = None
+
+        fn = partial(self._do_run, progress=progress)
+
         return [
             x
-            for l in map_fn(self._do_run, files)
+            for l in map_fn(fn, files)
             if l is not None
             for x in l
             if x is not None
@@ -478,126 +493,6 @@ class AnalyseTestbedProfile(object):
 
         return result
 
-    def combine_link_results(self, results):
-        labels = list(self.testbed_topology.nodes.keys())
-
-        tx_powers = {result.broadcast_power for result in results}
-
-        print(labels)
-
-        rssi = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
-        lqi = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
-        prr = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
-
-        # Combine results by broadcast id
-        combined_results = {
-            (label, power): [result for result in results if result.broadcasting_node_id == label and result.broadcast_power == power]
-            for label in labels
-            for power in tx_powers
-        }
-
-        for (sender, power), sender_results in combined_results.items():
-
-            result = None
-
-            if len(sender_results) == 1:
-                result = sender_results[0]
-            if len(sender_results) == 0:
-                continue
-            else:
-                print((sender, power), "has", len(sender_results), "results")
-
-                sender_results_iter = iter(sender_results)
-
-                result = next(sender_results_iter)
-                for sender_result in sender_results_iter:
-                    result = result.combine(sender_result)
-
-
-            result_prr = result.prr()
-
-            for other_nid in result.deliver_at_lqi:
-
-                if sender not in labels or other_nid not in labels:
-                    continue
-
-                rssi[power].set_value(sender, other_nid, result.deliver_at_rssi[other_nid].mean())
-                lqi[power].set_value(sender, other_nid, result.deliver_at_lqi[other_nid].mean())
-                prr[power].set_value(sender, other_nid, result_prr[other_nid])
-
-
-        for power in sorted(tx_powers):
-            print("For power level:", power)
-            print("RSSI:\n", rssi[power])
-            print("LQI:\n", lqi[power])
-            print("PRR:\n", prr[power])
-            print("")
-
-        return rssi, lqi, prr
-
-    def combine_current_results(self, results):
-        grouped_results = defaultdict(list)
-
-        bad_nodes = defaultdict(int)
-
-        total = None
-
-        for result in results:
-            grouped_results[result.broadcasting_node_id].append(result)
-
-            if total is None:
-                total = result.df[["node", "len"]].copy()
-                total.set_index(["node"], inplace=True)
-            else:
-                df = result.df[["node", "len"]]
-                df.set_index(["node"], inplace=True)
-                total = total.add(df, fill_value=0)
-
-            if result.bad_df is not None:
-                bad_df_as_dict = result.bad_df.to_dict(orient='index')
-
-                for value in bad_df_as_dict.values():
-                    node = int(value[('node', '')])
-                    count = int(value[('current', 'len')])
-
-                    bad_nodes[node] += count
-
-        combined_results = {}
-
-        for (broadcasting_node_id, results) in grouped_results.items():
-
-            results_iter = iter(results)
-            combined_result = next(results_iter).raw_df.append([result.raw_df for result in results_iter])
-
-            combined_results[broadcasting_node_id] = combined_result.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
-
-        return combined_results, total, bad_nodes
-
-
-
-    def draw_prr(self, prr):
-        import pygraphviz as pgv
-
-        G = pgv.AGraph(strict=False, directed=True)
-
-        labels = list(prr.columns.values)
-
-        for label in labels:
-            G.add_node(label)
-
-        for index, row in prr.iterrows():
-            for label in labels:
-                if not np.isnan(row[label]):
-                    G.add_edge(index, label, round(row[label], 2))
-
-        G.layout()
-
-        G.draw('prr.png')
-
-
-
-
-
 def main():
     parser = argparse.ArgumentParser(description="Testbed", add_help=True)
 
@@ -614,75 +509,16 @@ def main():
     if not args.parallel:
         results = analyse.run(args)
     else:
-        if sys.version_info.major < 3:
-            raise RuntimeError("Parallel mode only supported with Python 3")
-
         results = analyse.run_parallel(args)
 
-    rssi_results = [result for result in results if isinstance(result, RSSIResult)]
-    link_results = sorted([result for result in results if isinstance(result, LinkResult)], key=lambda x: x.broadcasting_node_id)
-    current_results = [result for result in results if isinstance(result, CurrentDraw)]
+    pickle_path = os.path.join(args.results_dir, "results.pickle")
 
-    if len(rssi_results) == 0:
-        raise RuntimeError("No RSSI results")
-    if len(link_results) == 0:
-        raise RuntimeError("No Link results")
+    print("Saving results to", pickle_path)
 
-    #print("RSSI Results:")
-    #for result in rssi_results:
-    #    for key in sorted(result.node_average.keys()):
-    #        (nid, channel) = key
-    #        print("Node", str(nid).rjust(4),
-    #              "channel", channel,
-    #              "rssi", "{:.2f}".format(result.node_average[key].mean()).rjust(6),
-    #              "+-", "{:.2f}".format(result.node_average[key].stddev())
-    #        )
+    with open(pickle_path, 'wb') as pickle_file:
+        pickle.dump(results, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
-    rssi_iter = iter(rssi_results)
-
-    rssi_result = next(rssi_iter)
-    for result in rssi_iter:
-        rssi_result = rssi_result.combine(result)
-
-    print("Combined RSSI Result:")
-    for key in sorted(rssi_result.node_average.keys()):
-        (nid, channel) = key
-        print("Node", str(nid).rjust(4),
-              "channel", channel,
-              "rssi", "{:.2f}".format(rssi_result.node_average[key].mean()).rjust(6),
-              "+-", "{:.2f}".format(rssi_result.node_average[key].stddev())
-        )
-
-    rssi, lqi, prr = analyse.combine_link_results(link_results)
-
-
-    prr_diff = prr[19] - prr[31]
-
-    print("PRR diff")
-    print(prr_diff)
-
-
-    combined_current, total_good_current, bad_current_nodes = analyse.combine_current_results(current_results)
-
-    print("The following nodes has errors in their current measurements:")
-    for (k, v) in bad_current_nodes.items():
-        print("Node {:>3} bad {:>5} badpc {:.2f}%".format(k, v, (v / (v + total_good_current.loc[k, "len"])) * 100))
-
-    # Show diagnostic information
-
-    tx_powers = {result.broadcast_power for result in link_results}
-
-    link_bcast_nodes = {(result.broadcasting_node_id, result.broadcast_power) for result in link_results}
-    missing_link_bcast_nodes = set(itertools.product(analyse.testbed_topology.nodes.keys(), tx_powers)) - link_bcast_nodes
-
-    if len(missing_link_bcast_nodes) != 0:
-        print("Missing the following link bcast results:")
-        for node, power in missing_link_bcast_nodes:
-            print("Node:", node, "Power:", power)
-
-        print("Nodes:", list(node for (node, power) in missing_link_bcast_nodes))
-
-    #analyse.draw_prr(prr)
+    print("Results saved")
 
 if __name__ == "__main__":
     main()
