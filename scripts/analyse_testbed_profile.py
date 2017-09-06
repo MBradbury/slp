@@ -5,6 +5,7 @@ from collections import defaultdict
 import itertools
 import os.path
 import pickle
+import subprocess
 import sys
 
 import numpy as np
@@ -115,7 +116,7 @@ class ResultsProcessor(object):
 
         # Combine results by broadcast id
         combined_results = {
-            (label, power): [result for result in results if result.broadcasting_node_id == label and result.broadcast_power == power]
+            (label, power): [result for result in self.link_results if result.broadcasting_node_id == label and result.broadcast_power == power]
             for label in labels
             for power in tx_powers
         }
@@ -227,31 +228,89 @@ class ResultsProcessor(object):
     def print_link_info(self, args):
         rssi, lqi, prr = self._get_combined_link_results()
 
+        tx_powers = {result.broadcast_power for result in self.link_results}
+
+        with open("link-info.txt", "w") as link_info_file:
+            with pd.option_context("display.max_rows", None, "display.max_columns", None, "expand_frame_repr", False):
+                for power in sorted(tx_powers):
+                    print("For power level:", power, file=link_info_file)
+                    print("RSSI:\n", rssi[power].round(2).replace(np.nan, ''), file=link_info_file)
+                    print("LQI:\n", lqi[power].round(2).replace(np.nan, ''), file=link_info_file)
+                    print("PRR:\n", prr[power].round(2).replace(np.nan, ''), file=link_info_file)
+                    print("", file=link_info_file)
+
+    def draw_link_heatmap(self, args):
+        import matplotlib.pyplot as plt
+
+        rssi, lqi, prr = self._get_combined_link_results()
+
+        tx_powers = {result.broadcast_power for result in self.link_results}
+
         for power in sorted(tx_powers):
-            print("For power level:", power)
-            print("RSSI:\n", rssi[power])
-            print("LQI:\n", lqi[power])
-            print("PRR:\n", prr[power])
-            print("")
+            df = prr[power]
 
-    def draw_prr(self, args):
-        import pygraphviz as pgv
+            plt.imshow(df, cmap="gray_r", aspect="equal", origin="lower")
+            plt.colorbar()
 
-        G = pgv.AGraph(strict=False, directed=True)
+            plt.ylabel("Sender")
+            plt.xlabel("Receiver")
 
-        labels = list(prr.columns.values)
+            #plt.xlim(min(df.columns), max(df.columns))
+            #plt.ylim(min(df.index), max(df.index))
 
-        for label in labels:
-            G.add_node(label)
+            #plt.yticks(range(len(df.index)), df.index, size='xx-small')
+            #plt.xticks(range(len(df.columns)), df.columns, size='xx-small')
 
-        for index, row in prr.iterrows():
-            for label in labels:
-                if not np.isnan(row[label]):
-                    G.add_edge(index, label, round(row[label], 2))
+            if args.show:
+                plt.show()
 
-        G.layout()
+            plt.savefig("prr-{}.pdf".format(power))
 
-        G.draw('prr.png')
+
+    def draw_link(self, args):
+        import networkx as nx
+        from networkx.drawing.nx_pydot import write_dot
+
+        rssi, lqi, prr = self._get_combined_link_results()
+
+        if args.name == "rssi":
+            result = rssi
+        elif args.name == "prr":
+            result = prr
+        elif args.name == "lqi":
+            result = lqi
+        else:
+            raise RuntimeError("Unknown name {}".format(args.name))
+
+        try:
+            result = result[args.power]
+        except KeyError:
+            raise RuntimeError("No result for {} with power {}".format(args.name, args.power))
+
+        labels = list(result.columns.values)
+
+
+        G = nx.MultiDiGraph()
+        G.add_nodes_from(labels)
+
+        scale = 500
+
+        for node in G:
+            coords = self.testbed_topology.nodes[node]
+
+            x, y, z = coords
+
+            G.node[node]['pos'] = "{},{}".format(x * scale, y * scale)
+
+        for node1, row in result.iterrows():
+            for node2 in labels:
+                if not np.isnan(row[node2]):
+                    G.add_edge(node1, node2, weight=round(row[node2], 2))
+
+        dot_path = "{}-{}.dot".format(args.name, args.power)
+        write_dot(G, dot_path)
+
+        subprocess.check_call("neato -n2 -T png {} > {}".format(dot_path, dot_path.replace(".dot", ".png")), shell=True)
 
 def main():
     parser = argparse.ArgumentParser(description="Testbed", add_help=True)
@@ -275,6 +334,15 @@ def main():
     subparser = add_argument("print-combined-rssi", processor.print_combined_rssi)
     subparser = add_argument("print-current-errors", processor.print_current_errors)
     subparser = add_argument("print-missing-results", processor.print_missing_results)
+    subparser = add_argument("print-link-info", processor.print_link_info)
+
+    subparser = add_argument("draw-link", processor.draw_link)
+    subparser.add_argument("name", type=str, help="The name of the metric to draw", choices=["prr", "lqi", "rssi"])
+    subparser.add_argument("power", type=int, help="The broadcast power level to show", choices=[3, 7, 11, 15, 19, 23, 27, 31])
+    subparser.add_argument("--show", action="store_true", default=False)
+
+    subparser = add_argument("draw-link-heatmap", processor.draw_link_heatmap)
+    subparser.add_argument("--show", action="store_true", default=False)
 
     args = parser.parse_args(sys.argv[1:])
 
