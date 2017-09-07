@@ -286,7 +286,7 @@ class AnalyseTestbedProfile(object):
 
                     continue
 
-                except EOFError:
+                except (EOFError, OSError):
                     print("Failed to load saved results from:", pickle_path)
 
             results[measurement_file] = testbed.parse_measurement(measurement_path)
