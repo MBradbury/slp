@@ -19,6 +19,8 @@ implementation
     uint8_t active_slot;
     bool slot_active;
 
+    uint16_t label;
+
     command error_t Init.init()
     {
         int i;
@@ -29,16 +31,16 @@ implementation
         return SUCCESS;
     }
 
-    command uint8_t get_total_slots()
+    command uint8_t TDMAMultiSlot.get_total_slots()
     {
         return total_slots;
     }
 
-    command error_t set_slot(uint8_t num, uint16_t new_slot)
+    command error_t TDMAMultiSlot.set_slot(uint8_t num, uint16_t new_slot)
     {
-        if (num >= 0 && num < total_slots)
+        if (num < total_slots)
         {
-            const old_slot = slots[num];
+            const uint16_t old_slot = slots[num];
             slots[num] = new_slot;
             signal TDMAMultiSlot.slot_changed(num, old_slot, new_slot);
             call MetricLogging.log_metric_node_slot_change(old_slot, new_slot);
@@ -53,9 +55,9 @@ implementation
 
     command uint16_t TDMAMultiSlot.get_slot(uint8_t num)
     {
-        if (num >= 0 && num < total_slots)
+        if (num < total_slots)
         {
-            return slots[num]
+            return slots[num];
         }
         else
         {
@@ -65,7 +67,7 @@ implementation
 
     command uint16_t TDMAMultiSlot.get_current_slot()
     {
-        if(active_slot == UINT8_MAX) return UINT16_MAX;
+        if(active_slot == UINT8_MAX) return 0;
         return slots[active_slot];
     }
 
@@ -80,14 +82,14 @@ implementation
             if (slots[i] == UINT16_MAX) continue;
             else if (slots[i] > current_slot && slots[i] < next_slot) next_slot = slots[i];
         }
-        return next_slot;
+        return (next_slot == UINT16_MAX) ? 0 : next_slot;
     }
 
     void advance_slot()
     {
         uint16_t current_slot = call TDMAMultiSlot.get_current_slot();
         uint16_t next_slot = UINT16_MAX;
-        uint8_t index = UINT8_MAX;
+        uint8_t idx = UINT8_MAX;
         int i;
         current_slot = (current_slot == UINT16_MAX) ? 0 : current_slot;
         for(i = 0; i < total_slots; i++)
@@ -96,10 +98,12 @@ implementation
             else if (slots[i] > current_slot && slots[i] < next_slot)
             {
                 next_slot = slots[i];
-                index = i;
+                idx = i;
             }
         }
-        active_slot = index;
+        active_slot = idx;
+        /*label = slots[active_slot];*/
+        label = slots[0];
     }
 
     command bool TDMAMultiSlot.is_slot_active()
@@ -144,37 +148,30 @@ implementation
     event void NonSlotTimer.fired()
     {
         const uint32_t now = call LocalTime.get();
-        const uint8_t slot_num = active_slot;
         const uint16_t current_slot = call TDMAMultiSlot.get_current_slot();
         const uint16_t next_slot = call TDMAMultiSlot.get_next_slot();
+
+        if(current_slot != 0) {
+            signal TDMAMultiSlot.slot_finished(active_slot);
+            slot_active = FALSE;
+        }
+
+        //Advance the slot
         advance_slot();
 
-        if(current_slot == UINT16_MAX)
-        {
-            //Act like PreSlotTimer
-            if(next_slot != UINT16_MAX)
-            {
-                call SlotTimer.startOneShotAt(now, next_slot * SLOT_PERIOD_MS);
-            }
-            else
-            {
-                call DissemTimer.startOneShotAt(now, TDMA_NUM_SLOTS * SLOT_PERIOD_MS);
-            }
-        }
-        else if(next_slot == UINT16_MAX)
-        {
-            //Act like PostSlotTimer
-            uint16_t s = TDMA_NUM_SLOTS - (current_slot - 1);
-            signal TDMAMultiSlot.slot_finished(slot_num);
-            slot_active = FALSE;
+        if(next_slot == 0) {
+            uint16_t s = TDMA_NUM_SLOTS - current_slot;
             call DissemTimer.startOneShotAt(now, s * SLOT_PERIOD_MS);
         }
-        else
-        {
-            uint16_t s = next_slot - (current_slot - 1);
-            signal TDMAMultiSlot.slot_finished(slot_num);
-            slot_active = FALSE;
-            call SlotTimer.startOneShotAt(now, s * SLOT_PERIOD_MS);
+        else {
+            uint16_t s;
+            if(current_slot == 0) {
+                s = next_slot;
+            }
+            else {
+                s = next_slot - (current_slot + 1);
+            }
+            call SlotTimer.startOneShotAt(now, s* SLOT_PERIOD_MS);
         }
     }
 }
