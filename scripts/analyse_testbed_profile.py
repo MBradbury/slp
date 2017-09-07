@@ -242,29 +242,41 @@ class ResultsProcessor(object):
     def draw_link_heatmap(self, args):
         import matplotlib.pyplot as plt
 
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+
         rssi, lqi, prr = self._get_combined_link_results()
 
         tx_powers = {result.broadcast_power for result in self.link_results}
 
+        details = [("prr", prr, "%", 0, 1), ("rssi", rssi, "dBm", -100, -50), ("lqi", lqi, "", 40, 115)]
+
         for power in sorted(tx_powers):
-            df = prr[power]
+            for (i, (name, value, label, vmin, vmax)) in enumerate(details, start=1):
 
-            plt.imshow(df, cmap="gray_r", aspect="equal", origin="lower")
-            plt.colorbar()
+                ax = plt.subplot(1, 3, i)
+                im = ax.imshow(value[power], cmap="PiYG", aspect="equal", origin="lower", vmin=vmin, vmax=vmax)
 
-            plt.ylabel("Sender")
-            plt.xlabel("Receiver")
+                plt.title("{} ({})".format(name, label))
+                plt.ylabel("Sender")
+                plt.xlabel("Receiver")
 
-            #plt.xlim(min(df.columns), max(df.columns))
-            #plt.ylim(min(df.index), max(df.index))
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                plt.colorbar(im, cax=cax)
 
-            #plt.yticks(range(len(df.index)), df.index, size='xx-small')
-            #plt.xticks(range(len(df.columns)), df.columns, size='xx-small')
+
+                #plt.xlim(min(df.columns), max(df.columns))
+                #plt.ylim(min(df.index), max(df.index))
+
+                #plt.yticks(range(len(df.index)), df.index, size='xx-small')
+                #plt.xticks(range(len(df.columns)), df.columns, size='xx-small')
+
+            plt.subplots_adjust(wspace=0.35)
+
+            plt.savefig("heatmap-{}.pdf".format(power))
 
             if args.show:
                 plt.show()
-
-            plt.savefig("prr-{}.pdf".format(power))
 
 
     def draw_link(self, args):
