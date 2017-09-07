@@ -166,6 +166,23 @@ class ResultsProcessor(object):
 
         return result
 
+    def _get_link_asymmetry_results(self, result):
+
+        new_result = {}
+
+        for (k, df) in result.items():
+
+            copy = df.copy()
+            copy.fillna(value=np.nan, inplace=True)
+
+            names = list(copy.columns.values)
+
+            for (row, col) in itertools.product(names, repeat=2):
+                copy[row][col] = df[row][col] - df[col][row]
+
+            new_result[k] = copy
+
+        return new_result
 
 
     def print_individual_rssi(self, args):
@@ -239,21 +256,27 @@ class ResultsProcessor(object):
                     print("PRR:\n", prr[power].round(2).replace(np.nan, ''), file=link_info_file)
                     print("", file=link_info_file)
 
-    def draw_link_heatmap(self, args):
+
+    def _draw_link_heatmap_fn(self, args, converter=lambda x: x, min_max=None):
         import matplotlib.pyplot as plt
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        rssi, lqi, prr = self._get_combined_link_results()
+        rssi, lqi, prr = map(converter, self._get_combined_link_results())
 
         tx_powers = {result.broadcast_power for result in self.link_results}
 
-        details = [("prr", prr, "%", 0, 1), ("rssi", rssi, "dBm", -100, -50), ("lqi", lqi, "", 40, 115)]
+        details = [("prr", prr, "%"), ("rssi", rssi, "dBm"), ("lqi", lqi, "")]
 
         for power in sorted(tx_powers):
-            for (i, (name, value, label, vmin, vmax)) in enumerate(details, start=1):
+            for (i, (name, value, label)) in enumerate(details, start=1):
 
-                ax = plt.subplot(1, 3, i)
+                if min_max is None:
+                    vmin, vmax = None, None
+                else:
+                    vmin, vmax = min_max[name]
+
+                ax = plt.subplot(1, len(details), i)
                 im = ax.imshow(value[power], cmap="PiYG", aspect="equal", origin="lower", vmin=vmin, vmax=vmax)
 
                 plt.title("{} ({})".format(name, label))
@@ -263,7 +286,6 @@ class ResultsProcessor(object):
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 plt.colorbar(im, cax=cax)
-
 
                 #plt.xlim(min(df.columns), max(df.columns))
                 #plt.ylim(min(df.index), max(df.index))
@@ -277,6 +299,13 @@ class ResultsProcessor(object):
 
             if args.show:
                 plt.show()
+
+    def draw_link_heatmap(self, args):
+        min_max = {"prr": (0, 1), "rssi": (-100, -50), "lqi": (40, 115)}
+        return self._draw_link_heatmap_fn(args, min_max=min_max)
+
+    def draw_link_asymmetry_heatmap(self, args):
+        return self._draw_link_heatmap_fn(args, self._get_link_asymmetry_results)
 
 
     def draw_link(self, args):
@@ -354,6 +383,9 @@ def main():
     subparser.add_argument("--show", action="store_true", default=False)
 
     subparser = add_argument("draw-link-heatmap", processor.draw_link_heatmap)
+    subparser.add_argument("--show", action="store_true", default=False)
+
+    subparser = add_argument("draw-link-asymmetry-heatmap", processor.draw_link_asymmetry_heatmap)
     subparser.add_argument("--show", action="store_true", default=False)
 
     args = parser.parse_args(sys.argv[1:])
