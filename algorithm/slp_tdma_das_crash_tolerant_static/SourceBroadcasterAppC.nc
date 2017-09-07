@@ -26,6 +26,9 @@ implementation
 
     App.MetricLogging -> MetricLogging;
 
+    components MetricHelpersP as MetricHelpers;
+    App.MetricHelpers -> MetricHelpers;
+
     components new NodeTypeC(6);
     App.NodeType -> NodeTypeC;
     NodeTypeC.MetricLogging -> MetricLogging;
@@ -36,10 +39,10 @@ implementation
 
     MetricLogging.MessageType -> MessageTypeC;
 
-    components TDMAP;
+    components new TDMAMultiSlotP(1);
 
-    App.TDMA -> TDMAP;
-    TDMAP.MetricLogging -> MetricLogging;
+    App.TDMA -> TDMAMultiSlotP;
+    TDMAMultiSlotP.MetricLogging -> MetricLogging;
 
     // Radio Control
     components ActiveMessageC;
