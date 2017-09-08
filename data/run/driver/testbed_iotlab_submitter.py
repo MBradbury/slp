@@ -118,6 +118,7 @@ class Runner(object):
             print("Dry run complete!")
             return
         
+        print("Submitting {} to {}...".format(name, testbed_name))
         subprocess.check_call(" ".join(command), shell=True) 
 
     @staticmethod
