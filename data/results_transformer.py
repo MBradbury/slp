@@ -43,6 +43,8 @@ class EliminateDominatedResultsTransformer(object):
 
         self.dominated_data = None
 
+        self.global_parameter_names = global_parameter_names[:-1]
+
     def transform(self, result_names):
 
         all_result_names = tuple(set(result_names) | set(self.comparison_functions.keys()))
@@ -56,8 +58,6 @@ class EliminateDominatedResultsTransformer(object):
             for module
             in self.algorithm_modules
         ]
-
-        self.global_parameter_names = global_parameter_names[:-1]
 
         for (module, module_result) in zip(self.algorithm_modules, module_results):
             self.safety_factor_indexes[module.name] = module_result.parameter_names.index("safety factor")
@@ -188,12 +188,12 @@ class EliminateDominatedResultsTransformer(object):
         for (global_params, items1) in dominating_data.items():
             for (source_period, items2) in items1.items():
                 for (safety_factor, items3) in items2.items():
-                    for ((algo_name, new_local_params), results) in items3.items():
+                    for ((algo_name, new_local_params), res) in items3.items():
 
                         local_params = list(new_local_params)
                         local_params.insert(self.safety_factor_indexes[algo_name], round(safety_factor, 1))
                         local_params = tuple(local_params)
-                        
-                        res.setdefault(algo_name, {}).setdefault(global_params, {}).setdefault(source_period, {})[local_params] = results
+
+                        res.setdefault(algo_name, {}).setdefault(global_params, {}).setdefault(source_period, {})[local_params] = res
 
         return res

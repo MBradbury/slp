@@ -33,7 +33,7 @@ def remove_dirtree(path):
         If the error is due to an access error (read only file)
         it attempts to add write permission and then retries.
         
-        If the error is for anthat reason it re-raises the error.
+        If the error is for another reason it re-raises the error.
         
         Usage : ``shutil.rmtree(path, onerror=on_rm_tree_error)``
         
@@ -89,20 +89,20 @@ class RunningStats(object):
         self.new_m = 0
         self.old_s = 0
         self.new_s = 0
-    
+
     def clear(self):
         self.n = 0
-        
+
     def push(self, x):
         self.n += 1
-        
+
         if self.n == 1:
             self.old_m = self.new_m = x
             self.old_s = 0
         else:
             self.new_m = self.old_m + (x - self.old_m) / self.n
             self.new_s = self.old_s + (x - self.old_m) * (x - self.new_m)
-            
+
             self.old_m = self.new_m
             self.old_s = self.new_s
 

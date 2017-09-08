@@ -140,10 +140,12 @@ class Runner(object):
         command = ["./scripts/flocklab.sh", "-c", config_path]
 
         print("Submitting xml job:",  " ".join(command), "for a duration of", self.duration)
-        if not self.dry_run:
-            subprocess.check_call(" ".join(command), shell=True)
-        else:
+        if self.dry_run:
             print("Dry run complete!")
+            return
+
+        print("Submitting {}...".format(name))
+        subprocess.check_call(" ".join(command), shell=True)
 
     @staticmethod
     def parse_arguments(module, argv):
