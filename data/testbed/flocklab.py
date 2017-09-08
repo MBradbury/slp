@@ -64,11 +64,20 @@ def parse_measurement(result_path):
         "mean_mA": np.float_,
     }
 
+    compression = None
+
+    # Might want to try loading from compressed file instead
+    result_path_gz = result_path + ".gz"
+    if not os.path.exists(result_path) and os.path.exists(result_path_gz):
+        result_path = result_path_gz
+        compression = "gzip"
+
     df = pandas.read_csv(result_path,
         names=names, header=None,
         dtype=heading_dtypes,
         usecols=usecols,
         comment="#",
+        compression=compression,
     )
 
     return df
