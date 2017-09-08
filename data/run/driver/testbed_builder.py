@@ -45,6 +45,10 @@ class Runner(object):
 
         self.generate_per_node_id_binary = generate_per_node_id_binary
 
+        if generate_per_node_id_binary:
+            from multiprocessing.pool import ThreadPool
+            self.pool = ThreadPool()
+
     def add_job(self, options, name, estimated_time=None):
         print(name)
 
@@ -133,10 +137,12 @@ class Runner(object):
             target_ihex = os.path.join(target_directory, "main.ihex")
 
             print("Creating per node id binaries using '{}'...".format(target_ihex))
-            
-            for node_id in configuration.topology.nodes:
+
+            def fn(node_id):
                 output_ihex = os.path.join(target_directory, "main-{}.ihex".format(node_id))
                 self.create_tos_node_id_ihex(target_ihex, output_ihex, node_id)
+
+            self.pool.map(fn, configuration.topology.nodes)
 
         print("All Done!")
 
@@ -150,7 +156,6 @@ class Runner(object):
         return "TESTBED"
 
     def create_tos_node_id_ihex(self, source, target, node_id):
-
         try:
             (objcopy, objdump) = PLATFORM_TOOLS[self.platform]
         except KeyError:
