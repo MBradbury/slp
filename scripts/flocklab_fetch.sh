@@ -26,6 +26,11 @@ fi
 
 tar xzf testbed_results/flocklab/results.$TESTID.tar.gz --directory testbed_results/flocklab
 
+# Compress the power profile, it tends to be very large!
+cd testbed_results/flocklab/$TESTID
+gzip --best powerprofiling.csv
+cd  -
+
 rm testbed_results/flocklab/results.$TESTID.tar.gz
 
 echo "Saved FlockLab results to testbed_results/flocklab/$TESTID"
