@@ -274,7 +274,7 @@ class AnalyseTestbedProfile(object):
 
             measurement_path = os.path.join(results_dir, measurement_file)
 
-            if not os.path.exists(measurement_path):
+            if not os.path.exists(measurement_path) and not os.path.exists(measurement_path + ".gz"):
                 continue
 
             pickle_path = measurement_path + ".pickle"
