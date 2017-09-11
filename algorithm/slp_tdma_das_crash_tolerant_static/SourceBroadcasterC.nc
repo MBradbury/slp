@@ -342,7 +342,7 @@ implementation
     void process_dissem(void)
     {
         int i;
-        if(call TDMA.get_slot(0) == BOT)
+        if(call TDMA.get_slot(0) == call TDMA.bad_slot())
         {
             const NeighbourInfo* parent_info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
             OtherInfo* other_info;
@@ -389,7 +389,7 @@ implementation
 
     void process_collision(void)
     {
-        if (call TDMA.get_slot(0) != BOT)
+        if (call TDMA.get_slot(0) != call TDMA.bad_slot())
         {
             OnehopList neighbour_info;
             int i,j;
@@ -478,9 +478,9 @@ implementation
         msg.hop = hop;
         NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
-        if(call NodeType.get() == SinkNode) {
-            simdbg("stdout", " "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");
-        }
+        /*if(call NodeType.get() == SinkNode) {*/
+            /*simdbg("stdout", " "); OnehopList_print(&(msg.N)); simdbg_clear("stdout", "\n");*/
+        /*}*/
         /*simdbgverbose("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbgverbose_clear("stdout", "\n");*/
 
         send_Dissem_message(&msg, AM_BROADCAST_ADDR);
@@ -521,7 +521,6 @@ implementation
 
     void send_change_init()
     {
-        simdbg("stdout", "send_change_init() called\n");
         if(start_node)
         {
             int i;
@@ -534,7 +533,7 @@ implementation
             {
                 npar = IDList_minus_parent(&npar, from.ids[i]);
             }
-            simdbg("stdout", "CHANGE HAS BEGUN\n");
+            /*simdbg("stdout", "CHANGE HAS BEGUN\n");*/
             start_node = FALSE;
             NeighbourList_select(&n_info, &neighbours, &onehop);
             msg.a_node = choose(&npar);
@@ -542,7 +541,7 @@ implementation
             msg.len_d = redir_length - 1;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
-            simdbg("stdout", "a_node was %u\n", msg.a_node);
+            /*simdbg("stdout", "a_node was %u\n", msg.a_node);*/
         }
     }
 
@@ -625,9 +624,9 @@ implementation
         const uint32_t now = call LocalTime.get();
         METRIC_START_PERIOD();
         period_counter++;
-        if(call NodeType.get() == SinkNode) {
-            simdbg("stdout", "Sink in dissem\n");
-        }
+        /*if(call NodeType.get() == SinkNode) {*/
+            /*simdbg("stdout", "Sink in dissem\n");*/
+        /*}*/
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(period_counter == get_search_period_count())
         {
@@ -639,7 +638,7 @@ implementation
             send_change_init();
             return FALSE;
         }
-        if(call TDMA.get_slot(0) != BOT || period_counter < get_pre_beacon_periods())
+        if(call TDMA.get_slot(0) != call TDMA.bad_slot() || period_counter < get_pre_beacon_periods())
         {
             call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_dissem_period() * random_float()));
         }
@@ -654,7 +653,7 @@ implementation
 
     event void TDMA.slot_started(uint8_t num)
     {
-        if(call TDMA.get_slot(0) != BOT && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
+        if(call TDMA.get_slot(0) != call TDMA.bad_slot() && call NodeType.get() != SinkNode && period_counter > get_minimum_setup_periods())
         {
             post send_normal();
         }
@@ -666,7 +665,7 @@ implementation
 
     event void SourcePeriodModel.fired()
     {
-        if(call TDMA.get_slot(0) != BOT && period_counter > get_minimum_setup_periods())
+        if(call TDMA.get_slot(0) != call TDMA.bad_slot() && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
 
@@ -787,7 +786,7 @@ implementation
 
         if(rcvd->normal)
         {
-            if(call TDMA.get_slot(0) == BOT && source->slot != BOT)
+            if(call TDMA.get_slot(0) == call TDMA.bad_slot() && source->slot != BOT)
             {
                 OtherInfo* others_source_addr;
 
@@ -896,7 +895,7 @@ implementation
         {
             start_node = TRUE;
             redir_length = get_change_length();
-            simdbg("stdout", "Search messages ended\n");
+            /*simdbg("stdout", "Search messages ended\n");*/
         }
         else if(rcvd->dist == 0 && npar.count == 0)
         {
@@ -913,7 +912,7 @@ implementation
                 msg.a_node = choose(&n);
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent search message again to %u because |npar|=0\n", msg.a_node);
+            /*simdbg("stdout", "Sent search message again to %u because |npar|=0\n", msg.a_node);*/
             call NodeType.set(SearchNode);
         }
         else if(rcvd->dist > 0)
@@ -935,7 +934,7 @@ implementation
                 }
             }
             send_Search_message(&msg, AM_BROADCAST_ADDR);
-            simdbg("stdout", "Sent search message again to %u\n", msg.a_node);
+            /*simdbg("stdout", "Sent search message again to %u\n", msg.a_node);*/
             call NodeType.set(SearchNode);
         }
     }
