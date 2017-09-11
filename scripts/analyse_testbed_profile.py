@@ -48,11 +48,28 @@ class ResultsProcessor(object):
     def _get_testbed(self):
         return submodule_loader.load(data.testbed, self.args.testbed)
 
+    def _combine_current_summary(self, results):
+        if len(results) == 0:
+            raise RuntimeError("There are no items in results")
+        if len(results) == 1:
+            return results[0]
+
+        # Get each result the sum of squares
+        for result in results:
+            result["ss"] = result["var0"] * result["len"] + result["mean"] * result["len"]
+            result["total"] = resul["mean"] * result["len"]
+
+        total = sum(result[["len", "ss", "total"]] for result in results)
+
+        total["mean"] = total["total"] / total["len"]
+        total["var"] = total["ss"] / total["len"] - total["mean"]**2
+        total["std"] = np.sqrt(total["var"])
+
+        return total[["mean", "std", "len"]]
+
     def _combine_current_results(self):
         grouped_results = defaultdict(list)
-
         bad_nodes = defaultdict(int)
-
         total = None
 
         for result in self.current_results:
@@ -70,24 +87,16 @@ class ResultsProcessor(object):
         combined_results = {}
 
         for (broadcasting_node_id, results) in grouped_results.items():
-
-            if len(results) > 1:
-                results_iter = iter(results)
-                combined_result = next(results_iter).raw_df.append([result.raw_df for result in results_iter])
-            elif len(results) == 1:
-                combined_result = results[0].raw_df
-            else:
-                continue
-
-            result = combined_result.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
-            combined_results[broadcasting_node_id] = result
+            combined_result = self._combine_current_summary(results)
+            
+            combined_results[broadcasting_node_id] = combined_result
 
             if total is None:
-                total = result
+                total = combined_result[["node", "len"]]
             else:
-                total = total.add(result, fill_value=0)
+                total = total.add(combined_result[["node", "len"]], fill_value=0)
 
-        return combined_results, total[["node", "len"]], bad_nodes
+        return combined_results, total, bad_nodes
 
     def _get_combined_current_results(self):
         current_path = os.path.join(self.args.results_dir, self.current_path)
@@ -167,7 +176,6 @@ class ResultsProcessor(object):
         return result
 
     def _get_link_asymmetry_results(self, result):
-
         new_result = {}
 
         for (k, df) in result.items():
@@ -334,24 +342,33 @@ class ResultsProcessor(object):
         G = nx.MultiDiGraph()
         G.add_nodes_from(labels)
 
-        scale = 500
+        target_width_pixels = 1024
+
+        xs = [coord[0] for coord in self.testbed_topology.nodes.values()]
+
+        scale = target_width_pixels / (max(xs) - min(xs))
 
         for node in G:
             coords = self.testbed_topology.nodes[node]
 
-            x, y, z = coords
+            x, y = coords[0], coords[1]
 
             G.node[node]['pos'] = "{},{}".format(x * scale, y * scale)
 
         for node1, row in result.iterrows():
             for node2 in labels:
                 if not np.isnan(row[node2]):
-                    G.add_edge(node1, node2, weight=round(row[node2], 2))
+                    G.add_edge(node1, node2, label=round(row[node2], 2))
 
         dot_path = "{}-{}.dot".format(args.name, args.power)
+        png_path = dot_path.replace(".dot", ".png")
+
         write_dot(G, dot_path)
 
-        subprocess.check_call("neato -n2 -T png {} > {}".format(dot_path, dot_path.replace(".dot", ".png")), shell=True)
+        subprocess.check_call("neato -n2 -T png {} > {}".format(dot_path, png_path), shell=True)
+
+        if args.show:
+            subprocess.call("xdg-open {}".format(png_path), shell=True)
 
 def main():
     parser = argparse.ArgumentParser(description="Testbed", add_help=True)
