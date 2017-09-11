@@ -654,44 +654,6 @@ class EuratechAll(Configuration):
             space_behind_sink=True
         )
 
-class GrenobleSmall(Configuration):
-    def __init__(self, *args, **kwargs):
-        from data.testbed.fitiotlab import Grenoble
-        grenoble = Grenoble(subset=[(86, 93), (129, 137), (160, 168), (186, 193)])
-
-        super(GrenobleSmall, self).__init__(
-            grenoble,
-            source_ids={187},
-            sink_id=134,
-            space_behind_sink=False
-        )
-
-class GrenobleAll(Configuration):
-    """A source in the corner and a sink in the centre."""
-    def __init__(self, *args, **kwargs):
-        from data.testbed.fitiotlab import Grenoble
-        grenoble = Grenoble()
-
-        super(GrenobleAll, self).__init__(
-            grenoble,
-            source_ids={10},
-            sink_id=80,
-            space_behind_sink=True
-        )
-
-
-class TwistGuess(Configuration):
-    def __init__(self, *args, **kwargs):
-        from data.testbed.twist import Twist
-        twist = Twist()
-
-        super(TwistGuess, self).__init__(
-            twist,
-            source_ids={11},
-            sink_id=210,
-            space_behind_sink=False
-        )
-
 class FlockLabSinkCentre(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.flocklab import FlockLab
@@ -699,7 +661,7 @@ class FlockLabSinkCentre(Configuration):
 
         super(FlockLabSinkCentre, self).__init__(
             flocklab,
-            source_ids={2},
+            source_ids={1},
             sink_id=23,
             space_behind_sink=True
         )
