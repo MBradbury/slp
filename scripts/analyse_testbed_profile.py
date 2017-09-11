@@ -192,6 +192,14 @@ class ResultsProcessor(object):
 
         return new_result
 
+    def _get_combined_noise_floor(self):
+        rssi_iter = iter(self.rssi_results)
+
+        rssi_result = next(rssi_iter)
+        for result in rssi_iter:
+            rssi_result = rssi_result.combine(result)
+
+        return rssi_result
 
     def print_individual_rssi(self, args):
         print("RSSI Results:")
@@ -205,11 +213,7 @@ class ResultsProcessor(object):
                 )
 
     def print_combined_rssi(self, args):
-        rssi_iter = iter(self.rssi_results)
-
-        rssi_result = next(rssi_iter)
-        for result in rssi_iter:
-            rssi_result = rssi_result.combine(result)
+        rssi_result = self._get_combined_noise_floor()
 
         print("Combined RSSI Result:")
         for key in sorted(rssi_result.node_average.keys()):
@@ -370,6 +374,42 @@ class ResultsProcessor(object):
         if args.show:
             subprocess.call("xdg-open {}".format(png_path), shell=True)
 
+    def draw_noise_floor_heatmap(self, args):
+        import matplotlib.pyplot as plt
+
+        noise_floor = self._get_combined_noise_floor()
+
+        z = {
+            nid: result.mean()
+            for ((nid, channel), result)
+            in noise_floor.node_average.items()
+            if channel == args.channel
+        }
+
+        four = [
+            (nid, coords[0], coords[1], z[nid])
+            for (nid, coords)
+            in self.testbed_topology.nodes.items()
+            if nid in z
+        ]
+
+        n, xs, ys, cs = zip(*four)
+
+        ax = plt.gca()
+        plt.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r")
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+
+        plt.colorbar()
+
+        for (nid, x, y, z) in four:
+            ax.annotate(str(nid), xy=(x, y), horizontalalignment='center', verticalalignment='center')
+
+        plt.savefig("noise-floor-heatmap-{}.pdf".format(args.channel))
+
+        if args.show:
+            plt.show()
+
 def main():
     parser = argparse.ArgumentParser(description="Testbed", add_help=True)
 
@@ -403,6 +443,10 @@ def main():
     subparser.add_argument("--show", action="store_true", default=False)
 
     subparser = add_argument("draw-link-asymmetry-heatmap", processor.draw_link_asymmetry_heatmap)
+    subparser.add_argument("--show", action="store_true", default=False)
+
+    subparser = add_argument("draw-noise-floor-heatmap", processor.draw_noise_floor_heatmap)
+    subparser.add_argument("channel", type=int, choices=[26])
     subparser.add_argument("--show", action="store_true", default=False)
 
     args = parser.parse_args(sys.argv[1:])
