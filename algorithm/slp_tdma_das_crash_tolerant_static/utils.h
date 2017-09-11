@@ -249,9 +249,9 @@ uint16_t rank2(NeighbourList* n_info, IDList* list, am_addr_t id)
     uint16_t i;
     NeighbourList_select(n_info, list, &selected);
     OnehopList_sort_by_hop(&selected);
-    simdbg("stdout", "n_info count: %u, N count: %u\n", n_info->count, list->count);
-    simdbg("stdout", "Rank list: "); OnehopList_print(&selected); simdbg_clear("stdout", "\n");
-    simdbg_clear("stdout", "\n");
+    //simdbg("stdout", "n_info count: %u, N count: %u\n", n_info->count, list->count);
+    //simdbg("stdout", "Rank list: "); OnehopList_print(&selected); simdbg_clear("stdout", "\n");
+    //simdbg_clear("stdout", "\n");
     i = OnehopList_indexOf(&selected, id);
     if(i == UINT16_MAX) return UINT16_MAX;
     else return (selected.count - i); //Inverse
