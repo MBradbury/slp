@@ -3,7 +3,7 @@
 CFLAGS += -I"../common" -I"../common/metrics" -I"../common/fault_model"
 
 # Additional warnings
-CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedef
+CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedefs
 
 CFLAGS += -Wsign-compare -fdiagnostics-show-option
 
