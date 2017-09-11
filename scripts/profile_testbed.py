@@ -166,9 +166,9 @@ class LinkResult(object):
         return result
 
 class CurrentDraw(object):
-    def __init__(self, raw_df, bad_df=None, broadcasting_node_id=None):
+    def __init__(self, summary_df, bad_df=None, broadcasting_node_id=None):
         self.broadcasting_node_id = broadcasting_node_id
-        self.raw_df = raw_df
+        self.summary_df = summary_df
         self.bad_df = bad_df
 
 class AnalyseTestbedProfile(object):
@@ -313,9 +313,9 @@ class AnalyseTestbedProfile(object):
             raw_df = measurement_results["powerprofiling.csv"]
             raw_df.rename(columns={"node_id": "node", "value_mA": "I"}, inplace=True)
 
-            #df = raw_df.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
+            df = raw_df.groupby("node")["I"].agg([np.mean, var0, len]).reset_index()
 
-            result = CurrentDraw(raw_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(df, broadcasting_node_id=broadcasting_node_id)
 
         elif self.testbed_name == "fitiotlab":
 
@@ -343,10 +343,10 @@ class AnalyseTestbedProfile(object):
 
             raw_df = filtered_df[["node", "time", "I_2"]].rename(columns={"I_2": "I"})
 
-            #filtered_df = filtered_df.groupby(["node"])["I_2"].agg([np.mean, np.std, len]).reset_index()
+            df = raw_df.groupby("node")["I"].agg([np.mean, var0, len]).reset_index()
             removed_df = removed_df.groupby(["node"])["current", "voltage", "power"].agg([np.mean, np.std, len]).reset_index()
 
-            result = CurrentDraw(raw_df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
 
         else:
             raise UnknownTestbedError(self.testbed_name)
