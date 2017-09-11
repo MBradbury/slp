@@ -1,4 +1,4 @@
-/*#include "slp_static_assert.h"*/
+#include "slp_static_assert.h"
 
 #define BAD_SLOT UINT16_MAX
 #define BAD_SLOT_INDEX UINT8_MAX
@@ -31,7 +31,7 @@ implementation
     command error_t Init.init(void)
     {
         uint8_t i;
-        /*STATIC_ASSERT_MSG(TOTAL_SLOTS < UINT8_MAX - 1, total_slots_too_large);*/
+        STATIC_ASSERT_MSG(TOTAL_SLOTS < UINT8_MAX - 1, total_slots_too_large);
         for(i = 0; i < TOTAL_SLOTS; i++) {
             slots[i] = BAD_SLOT;
         }
