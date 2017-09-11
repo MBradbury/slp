@@ -1,6 +1,9 @@
 
 interface TDMAMultiSlot
 {
+    command uint16_t bad_slot();
+    command uint16_t dissem_slot();
+
     command uint8_t get_total_slots();
     command uint16_t get_slot(uint8_t num);
     command error_t set_slot(uint8_t num, uint16_t new_slot);
@@ -9,6 +12,7 @@ interface TDMAMultiSlot
 
     command bool is_slot_active();
     command bool is_dissem_next();
+    command bool is_slot_good(uint8_t num);
 
     command void start();
 
