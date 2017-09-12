@@ -51,21 +51,35 @@ class ResultsProcessor(object):
     def _combine_current_summary(self, results):
         if len(results) == 0:
             raise RuntimeError("There are no items in results")
-        if len(results) == 1:
-            return results[0]
+
+        labels = list(self.testbed_topology.nodes.keys())
+
+        dfs = []
 
         # Get each result the sum of squares
         for result in results:
-            result["ss"] = result["var0"] * result["len"] + result["mean"] * result["len"]
-            result["total"] = resul["mean"] * result["len"]
+            df = result.summary_df
 
-        total = sum(result[["len", "ss", "total"]] for result in results)
+            df["ss"] = df["var0"] * df["len"] + df["len"] * df["mean"]**2
+            df["sum"] = df["mean"] * df["len"]
 
-        total["mean"] = total["total"] / total["len"]
+            df = df.set_index("node").reindex(labels, fill_value=0)[["len", "ss", "sum"]]
+
+            dfs.append(df)
+
+        dfs_iter = iter(dfs)
+        total = next(dfs_iter)
+
+        for df in dfs_iter:
+            total = total.add(df, fill_value=0)
+
+        total["mean"] = total["sum"] / total["len"]
         total["var"] = total["ss"] / total["len"] - total["mean"]**2
         total["std"] = np.sqrt(total["var"])
 
-        return total[["mean", "std", "len"]]
+        total = total[["mean", "std", "len"]]
+
+        return total
 
     def _combine_current_results(self):
         grouped_results = defaultdict(list)
@@ -92,9 +106,9 @@ class ResultsProcessor(object):
             combined_results[broadcasting_node_id] = combined_result
 
             if total is None:
-                total = combined_result[["node", "len"]]
+                total = combined_result[["len"]]
             else:
-                total = total.add(combined_result[["node", "len"]], fill_value=0)
+                total = total.add(combined_result[["len"]], fill_value=0)
 
         return combined_results, total, bad_nodes
 
