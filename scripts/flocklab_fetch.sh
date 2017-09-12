@@ -33,4 +33,10 @@ cd  -
 
 rm testbed_results/flocklab/results.$TESTID.tar.gz
 
-echo "Saved FlockLab results to testbed_results/flocklab/$TESTID"
+curl -s --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/testconfiguration.xml --output testbed_results/flocklab/$TESTID/testconfiguration.xml
+
+NAME=$(cat testbed_results/flocklab/$TESTID/testconfiguration.xml | sed 's/xmlns=".*"//g' | xmllint --xpath '/testConf/generalConf/name/text()' - )
+
+mv "testbed_results/flocklab/$TESTID" "testbed_results/flocklab/${NAME}_$TESTID"
+
+echo "Saved FlockLab results $TESTID to testbed_results/flocklab/${NAME}_$TESTID"
