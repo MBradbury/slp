@@ -2,7 +2,7 @@ from __future__ import print_function, division
 
 def parsers():
     return [
-        ("SINGLE", None, ["verbose", "configuration", "attacker model", "seed", "log file", "log converter"]),
+        ("SINGLE", None, ["verbose", "configuration", "attacker model", "fault model", "seed", "log file", "log converter"]),
         ("GUI", "SINGLE", ["gui scale"]),
     ]
 
