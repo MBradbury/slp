@@ -7,7 +7,7 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
    You may need to prefix commands with "sudo" to install using admin privileges.
 
         :::bash
-        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev libffi-dev
+        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev libffi-dev libxml2-utils
 
    Python 2 or 3 is supported, but python 2 is recommended as it is faster.
 
