@@ -750,7 +750,6 @@ def create_specific(name, *args, **kwargs):
             conf_class = try_create_specific(name)
         except BaseException as ex:
             raise RuntimeError("No configurations were found using the name {}. Tried to create a Configuration, but this failed.".format(name), ex)
-
     else:
         conf_class = confs[0]
 
