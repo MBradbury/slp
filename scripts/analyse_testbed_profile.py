@@ -194,13 +194,12 @@ class ResultsProcessor(object):
 
         for (k, df) in result.items():
 
-            copy = df.copy()
-            copy.fillna(value=np.nan, inplace=True)
+            copy = df.fillna(value=np.nan)
 
             names = list(copy.columns.values)
 
             for (row, col) in itertools.product(names, repeat=2):
-                copy[row][col] = df[row][col] - df[col][row]
+                copy.set_value(row, col, df[row][col] - df[col][row])
 
             new_result[k] = copy
 
@@ -309,15 +308,15 @@ class ResultsProcessor(object):
                 plt.ylabel("Sender")
                 plt.xlabel("Receiver")
 
+                #plt.yticks(range(len(value[power].index)), value[power].index, size='xx-small')
+                #plt.xticks(range(len(value[power].columns)), value[power].columns, size='xx-small')
+
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 plt.colorbar(im, cax=cax)
 
                 #plt.xlim(min(df.columns), max(df.columns))
                 #plt.ylim(min(df.index), max(df.index))
-
-                #plt.yticks(range(len(df.index)), df.index, size='xx-small')
-                #plt.xticks(range(len(df.columns)), df.columns, size='xx-small')
 
             plt.subplots_adjust(wspace=0.35)
 
