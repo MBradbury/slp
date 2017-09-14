@@ -454,10 +454,9 @@ class AnalyseTestbedProfile(object):
             date_time = datetime.strptime(date_time, "%Y/%m/%d %H:%M:%S.%f")
 
             (kind, d_or_e, nid, localtime, details) = rest.split(":", 4)
-            nid = int(nid)
-            localtime = int(localtime)
+ 
+            return (date_time, kind, d_or_e, int(nid), int(localtime), details)
 
-            return (date_time, kind, d_or_e, nid, localtime, details)
         except BaseException as ex:
             print("Failed to parse the line:", self._sanitise_string(line))
             print(self._sanitise_string(str(ex)))
