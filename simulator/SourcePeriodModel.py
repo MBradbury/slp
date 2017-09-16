@@ -31,10 +31,10 @@ class PeriodModel(object):
 
         def to_tinyos_format(time):
             """Return the time in milliseconds"""
-            return int(time * 1000)
+            return "UINT32_C({})".format(int(time * 1000))
 
         periods = [
-            "{{{}U, {}U}}".format(to_tinyos_format(end), to_tinyos_format(period))
+            "{{{}, {}}}".format(to_tinyos_format(end), to_tinyos_format(period))
             for ((start, end), period)
             in self.period_times.items()
             if not math.isinf(end)
@@ -48,7 +48,7 @@ class PeriodModel(object):
         ][0]
 
         build_arguments["PERIOD_TIMES_MS"] = "{ " + ", ".join(periods) + " }"
-        build_arguments["PERIOD_ELSE_TIME_MS"] = int(end_period)
+        build_arguments["PERIOD_ELSE_TIME_MS"] = end_period
 
         return build_arguments
 
