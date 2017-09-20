@@ -282,7 +282,7 @@ class ResultsProcessor(object):
                     print("", file=link_info_file)
 
 
-    def _draw_link_heatmap_fn(self, args, converter=lambda x: x, min_max=None):
+    def _draw_link_heatmap_fn(self, args, heatmap_name, converter=lambda x: x, min_max=None):
         import matplotlib.pyplot as plt
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -301,10 +301,16 @@ class ResultsProcessor(object):
                 else:
                     vmin, vmax = min_max[name]
 
-                ax = plt.subplot(1, len(details), i)
+                if args.combine:
+                    ax = plt.subplot(1, len(details), i)
+                else:
+                    ax = plt.gca()
+
                 im = ax.imshow(value[power], cmap="PiYG", aspect="equal", origin="lower", vmin=vmin, vmax=vmax)
 
-                plt.title("{} ({})".format(name, label))
+                title = name if not label else "{} ({})".format(name, label)
+
+                plt.title(title)
                 plt.ylabel("Sender")
                 plt.xlabel("Receiver")
 
@@ -318,19 +324,32 @@ class ResultsProcessor(object):
                 #plt.xlim(min(df.columns), max(df.columns))
                 #plt.ylim(min(df.index), max(df.index))
 
-            plt.subplots_adjust(wspace=0.35)
+                if not args.combine:
 
-            plt.savefig("heatmap-{}.pdf".format(power))
+                    filename = "{}-heatmap-{}-{}.pdf".format(heatmap_name, name, power)
 
-            if args.show:
-                plt.show()
+                    plt.savefig(filename)
+
+                    subprocess.check_call(["pdfcrop", filename, filename])
+
+                    plt.clf()
+
+            if args.combine:
+                plt.subplots_adjust(wspace=0.35)
+
+                plt.savefig("heatmap-{}.pdf".format(power))
+
+                if args.show:
+                    plt.show()
+
+            plt.clf()
 
     def draw_link_heatmap(self, args):
         min_max = {"prr": (0, 1), "rssi": (-100, -50), "lqi": (40, 115)}
-        return self._draw_link_heatmap_fn(args, min_max=min_max)
+        return self._draw_link_heatmap_fn(args, "link", min_max=min_max)
 
     def draw_link_asymmetry_heatmap(self, args):
-        return self._draw_link_heatmap_fn(args, self._get_link_asymmetry_results)
+        return self._draw_link_heatmap_fn(args, "asymmetry-link", converter=self._get_link_asymmetry_results)
 
 
     def draw_link(self, args):
@@ -399,29 +418,84 @@ class ResultsProcessor(object):
             if channel == args.channel
         }
 
-        four = [
-            (nid, coords[0], coords[1], z[nid])
-            for (nid, coords)
+        node_info = [
+            (nid, coord, z[nid])
+            for (nid, coord)
             in self.testbed_topology.nodes.items()
             if nid in z
         ]
 
-        n, xs, ys, cs = zip(*four)
+        n, coords, cs = zip(*node_info)
 
-        ax = plt.gca()
-        plt.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r")
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
+        xs = [coord[0] for coord in coords]
+        ys = [coord[1] for coord in coords]
 
-        plt.colorbar()
+        minx, maxx = min(xs), max(xs)
+        miny, maxy = min(ys), max(ys)
 
-        for (nid, x, y, z) in four:
-            ax.annotate(str(nid), xy=(x, y), horizontalalignment='center', verticalalignment='center')
+        vmin, vmax = -100, -83
 
-        plt.savefig("noise-floor-heatmap-{}.pdf".format(args.channel))
+        cmin, cmax = min(cs), max(cs)
 
-        if args.show:
-            plt.show()
+        try:
+            zs = [coord[2] for coord in coords]
+        except IndexError:
+            zs = None
+
+        if zs is None:
+            ax = plt.gca()
+            plt.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r", vmin=vmin, vmax=vmax)
+            ax.set_yticklabels([])
+            ax.set_xticklabels([])
+
+            plt.colorbar()
+
+            for (nid, coord, c) in node_info:
+                ax.annotate(str(nid), xy=(coord[0], coord[1]), horizontalalignment='center', verticalalignment='center')
+
+            plt.savefig("noise-floor-heatmap-{}.pdf".format(args.channel))
+
+            if args.show:
+                plt.show()
+
+        else:
+            grouped_xy = defaultdict(list)
+
+            for (x, y, z, c) in zip(xs, ys, zs, cs):
+                grouped_xy[z].append((x, y, c))
+
+            fig, axes = plt.subplots(nrows=int(len(grouped_xy)/4), ncols=4)
+
+            for ((i, (z, xys)), ax) in zip(enumerate(sorted(grouped_xy.items(), key=lambda x: x[0]), start=1), axes.flat):
+                xs = [xy[0] for xy in xys]
+                ys = [xy[1] for xy in xys]
+                cs = [xy[2] for xy in xys]
+
+                im = ax.scatter(xs, ys, c=cs, s=300, cmap="PiYG_r", vmin=vmin, vmax=vmax)
+                ax.set_yticklabels([])
+                ax.set_xticklabels([])
+
+                adjust = 0.75
+
+                ax.set_xlim([minx-adjust, maxx+adjust])
+                ax.set_ylim([miny-adjust, maxy+adjust])
+
+                ax.set_title("z={}m".format(z))
+
+                for (nid, coord, c) in node_info:
+                    if np.isclose(coord[2], z):
+                        ax.annotate(str(nid), xy=(coord[0], coord[1]), horizontalalignment='center', verticalalignment='center')
+
+            fig.subplots_adjust(right=0.8)
+            cbar_ax = plt.gcf().add_axes([0.85, 0.15, 0.05, 0.7])
+            fig.colorbar(im, cax=cbar_ax)
+
+            plt.savefig("noise-floor-heatmap-{}.pdf".format(args.channel))
+
+            if args.show:
+                plt.show()
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Testbed", add_help=True)
@@ -454,9 +528,11 @@ def main():
 
     subparser = add_argument("draw-link-heatmap", processor.draw_link_heatmap)
     subparser.add_argument("--show", action="store_true", default=False)
+    subparser.add_argument("--combine", action="store_true", default=False)
 
     subparser = add_argument("draw-link-asymmetry-heatmap", processor.draw_link_asymmetry_heatmap)
     subparser.add_argument("--show", action="store_true", default=False)
+    subparser.add_argument("--combine", action="store_true", default=False)
 
     subparser = add_argument("draw-noise-floor-heatmap", processor.draw_noise_floor_heatmap)
     subparser.add_argument("channel", type=int, choices=[26])
