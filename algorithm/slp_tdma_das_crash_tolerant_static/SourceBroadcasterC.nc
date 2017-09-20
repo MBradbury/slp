@@ -260,7 +260,7 @@ implementation
         call NodeType.register_pair(NormalNode, "NormalNode");
         call NodeType.register_pair(SearchNode, "SearchNode");
         call NodeType.register_pair(ChangeNode, "ChangeNode");
-        call NodeType.register_pair(BackupNode, "BackupNode");
+        call NodeType.register_pair(BackupNode, "CrashNode"); //TODO This is just for colouring while debugging, BackupNode should be added properly to the framework
 
         call FaultModel.register_pair(PathFaultPoint, "PathFaultPoint");
 
@@ -374,7 +374,7 @@ implementation
 
             parent = parent_info->id;
             /*set_hop(parent_info->hop + 1);*/
-            call TDMA.set_slot(0, parent_info->slot - rank2(&n_info, &(other_info->N), TOS_NODE_ID));
+            call TDMA.set_slot(0, parent_info->slot - 2*rank2(&n_info, &(other_info->N), TOS_NODE_ID));
 
             /*simdbgverbose("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbgverbose_clear("stdout", "\n");*/
 
@@ -570,7 +570,7 @@ implementation
         if(backup_adj_node == BOT && call NodeType.get() == NormalNode && dest_addr != TOS_NODE_ID) {
             backup_adj_node = source_addr;
             backup_next_node = dest_addr;
-            simdbg("stdout", "Set as backup node (slot=%u)\n", call TDMA.get_slot(0));
+            simdbg("stdout", "Potential backup node (slot=%u)\n", call TDMA.get_slot(0));
 
             //Do this for search messages
             if(dest_slot == BOT) {
@@ -599,6 +599,15 @@ implementation
                 //Has to be bigger than dest_slot
                 //Has to be smaller than every other node in source_n->N (max_slot)
                 simdbg("stdout", "%u > x > %u\n", max_slot, dest_slot);
+                if(max_slot - dest_slot > 1) {
+                    uint16_t r = rank2(&n_info, &source_n, TOS_NODE_ID);
+                    if(r == BOT) simdbg("stdout", "Rank2 broke\n");
+                    call TDMA.set_slot(0, dest_slot + r);
+                    call NodeType.set(BackupNode);
+                }
+                else {
+                    simdbg("stdout", "Slot difference was not large enough\n");
+                }
             }
         }
 
@@ -847,11 +856,22 @@ implementation
 
         if(rcvd->normal)
         {
+            //XXX Moved adding to others here so that all neighbours will be added
+            //XXX This causes nodes to have only one DAS parent rather than two potentials
+            //Fixed potential parents issue with if statement (wait until slot is assigned before completing OtherList)
+            if(call TDMA.get_slot(0) != call TDMA.bad_slot()) {
+                OtherInfo* others_source_addr;
+                others_source_addr = OtherList_get(&others, source_addr);
+                if(others_source_addr == NULL)
+                {
+                    OtherList_add(&others, OtherInfo_new(source_addr));
+                    others_source_addr = OtherList_get(&others, source_addr);
+                }
+            }
+
             if(call TDMA.get_slot(0) == call TDMA.bad_slot() && source->slot != BOT)
             {
                 OtherInfo* others_source_addr;
-
-                IDList_add(&potential_parents, source_addr);
 
                 others_source_addr = OtherList_get(&others, source_addr);
                 if(others_source_addr == NULL)
@@ -859,6 +879,8 @@ implementation
                     OtherList_add(&others, OtherInfo_new(source_addr));
                     others_source_addr = OtherList_get(&others, source_addr);
                 }
+
+                IDList_add(&potential_parents, source_addr);
 
                 for(i=0; i<rcvd->N.count; i++)
                 {
@@ -1078,17 +1100,27 @@ implementation
         case SinkNode:   x_receive_EmptyNormal(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(EmptyNormal)
 
+    void Normal_receive_Backup(const BackupMessage* const rcvd, am_addr_t source_addr)
+    {
+        METRIC_RCV_BACKUP(rcvd);
+        //If the node is a potential backup node
+        if(backup_adj_node != BOT) {
+            call NodeType.set(BackupNode);
+        }
+    }
+
     void Backup_receive_Backup(const BackupMessage* const rcvd, am_addr_t source_addr)
     {
         METRIC_RCV_BACKUP(rcvd);
+        //Do not need to check if node has backup vars set as it is BackupNode type only
     }
 
     RECEIVE_MESSAGE_BEGIN(Backup, Receive)
+        case NormalNode:    Normal_receive_Backup(rcvd, source_addr); break;
         case BackupNode:    Backup_receive_Backup(rcvd, source_addr); break;
         case SourceNode:
         case SearchNode:
         case ChangeNode:
-        case NormalNode:
         case SinkNode:      break;
     RECEIVE_MESSAGE_END(Backup)
 
