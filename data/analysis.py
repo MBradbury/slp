@@ -3,7 +3,6 @@ from __future__ import print_function, division
 import ast
 import base64
 from collections import OrderedDict, Sequence
-import fnmatch
 from functools import partial
 import gc
 from itertools import islice
@@ -924,7 +923,7 @@ class AnalyzerCommon(object):
 
         return result
 
-    def run(self, summary_file, nprocs=None, **kwargs):
+    def run(self, summary_file, result_finder, nprocs=None, **kwargs):
         """Perform the analysis and write the output to the :summary_file:.
         If :nprocs: is not specified then the number of CPU cores will be used.
         """
@@ -978,7 +977,7 @@ class AnalyzerCommon(object):
 
         # The output files we need to process.
         # These are sorted to give anyone watching the output a sense of progress.
-        files = sorted(fnmatch.filter(os.listdir(self.results_directory), '*.txt'))
+        files = sorted(result_finder(self.results_directory))
 
         total = len(files)
 
@@ -1011,7 +1010,7 @@ class AnalyzerCommon(object):
 
                 progress.print_progress(num)
 
-            print('Finished writing {}'.format(summary_file))
+            print('Finished writing {}'.format(summary_file_path))
 
         inqueue.close()
         inqueue.join_thread()
@@ -1022,7 +1021,7 @@ class AnalyzerCommon(object):
         pool.close()
         pool.join()
 
-    def run_single(self, summary_file, **kwargs):
+    def run_single(self, summary_file, result_finder, **kwargs):
         """Perform the analysis and write the output to the :summary_file:"""
         
         def worker(ipath):
@@ -1046,7 +1045,7 @@ class AnalyzerCommon(object):
 
         # The output files we need to process.
         # These are sorted to give anyone watching the output a sense of progress.
-        files = sorted(fnmatch.filter(os.listdir(self.results_directory), '*.txt'))
+        files = sorted(result_finder(self.results_directory))
 
         with open(summary_file_path, 'w') as out:
 
