@@ -109,7 +109,7 @@ implementation
 
     uint32_t get_tdma_num_slots(void)
     {
-        return ga_slots;
+        return GA_TOTAL_SLOTS;
     }
 
 
@@ -138,7 +138,7 @@ implementation
         {
             call NodeType.init(SinkNode);
         }
-        else if (ga_is_in_slp_path(TOS_NODE_ID))
+        else if (ga_is_in_path(TOS_NODE_ID))
         {
             call NodeType.init(PathNode);
         }
@@ -213,7 +213,7 @@ implementation
             call TDMA.set_slot(ga_slot_assignments[TOS_NODE_ID]);
         }
 
-        if(ga_is_in_slp_path(TOS_NODE_ID)) {
+        if(ga_is_in_path(TOS_NODE_ID)) {
             call FaultModel.fault_point(PathFaultPoint);
         }
     }
