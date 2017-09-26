@@ -136,6 +136,14 @@ class CLI(object):
 
         ###
 
+        subparser = self._add_argument("analyse-testbed", self._run_analyse_testbed, help="Analyse the testbed results of this algorithm.")
+        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
+        subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
+
+        ###
+
         if safety_period_result_path is not None:            
             if isinstance(safety_period_result_path, bool):
                 pass
@@ -663,8 +671,32 @@ class CLI(object):
                              skip_completed_simulations=skip_complete)
 
     def _run_analyse(self, args):
+        import fnmatch
+
+        def results_finder(results_directory):
+            return fnmatch.filter(os.listdir(results_directory), '*.txt')
+
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
         analyzer.run(self.algorithm_module.result_file,
+                     results_finder,
+                     nprocs=args.thread_count,
+                     headers_to_skip=args.headers_to_skip,
+                     keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
+
+    def _run_analyse_testbed(self, args):
+        testbed = submodule_loader.load(data.testbed, args.testbed)
+
+        # First need to run offline processor over all results files
+
+        def results_finder(results_directory):
+            fnmatch.filter(os.listdir(results_directory), '*.txt')
+
+        results_path = os.path.join("testbed_results", testbed.name(), self.algorithm_module.name)
+        result_file = os.path.basename(self.algorithm_module.result_file)
+
+        analyzer = self.algorithm_module.Analysis.Analyzer(results_path)
+        analyzer.run(result_file,
+                     results_finder,
                      nprocs=args.thread_count,
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
@@ -673,7 +705,9 @@ class CLI(object):
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
-        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path, self.time_after_first_normal_to_safety_period, fmt)
+        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path,
+                                                           self.time_after_first_normal_to_safety_period,
+                                                           fmt)
 
         prod = itertools.product(simulator.common.available_noise_models(),
                                  simulator.common.available_communication_models())
