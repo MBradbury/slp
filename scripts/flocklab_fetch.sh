@@ -18,7 +18,7 @@ mkdir -p testbed_results/flocklab
 
 echo "Downloading results..."
 
-curl -s --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
+curl -s -S --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
 
 if [ ! -f "./testbed_results/flocklab/results.$TESTID.tar.gz" ]
 then
