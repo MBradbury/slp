@@ -3,6 +3,7 @@
 import argparse
 from collections import defaultdict
 import itertools
+import math
 import os.path
 import pickle
 import subprocess
@@ -435,8 +436,6 @@ class ResultsProcessor(object):
 
         vmin, vmax = -100, -83
 
-        cmin, cmax = min(cs), max(cs)
-
         try:
             zs = [coord[2] for coord in coords]
         except IndexError:
@@ -453,7 +452,10 @@ class ResultsProcessor(object):
             for (nid, coord, c) in node_info:
                 ax.annotate(str(nid), xy=(coord[0], coord[1]), horizontalalignment='center', verticalalignment='center')
 
-            plt.savefig("noise-floor-heatmap-{}.pdf".format(args.channel))
+            path = "noise-floor-heatmap-{}.pdf".format(args.channel)
+            plt.savefig(path)
+
+            subprocess.check_call(["pdfcrop", path, path])
 
             if args.show:
                 plt.show()
@@ -464,18 +466,18 @@ class ResultsProcessor(object):
             for (x, y, z, c) in zip(xs, ys, zs, cs):
                 grouped_xy[z].append((x, y, c))
 
-            fig, axes = plt.subplots(nrows=int(len(grouped_xy)/4), ncols=4)
+            fig, axes = plt.subplots(nrows=4, ncols=int(math.ceil(len(grouped_xy)/4)), figsize=(math.sqrt(2) * 20, 1 * 20))
 
             for ((i, (z, xys)), ax) in zip(enumerate(sorted(grouped_xy.items(), key=lambda x: x[0]), start=1), axes.flat):
                 xs = [xy[0] for xy in xys]
                 ys = [xy[1] for xy in xys]
                 cs = [xy[2] for xy in xys]
 
-                im = ax.scatter(xs, ys, c=cs, s=300, cmap="PiYG_r", vmin=vmin, vmax=vmax)
+                im = ax.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r", vmin=vmin, vmax=vmax)
                 ax.set_yticklabels([])
                 ax.set_xticklabels([])
 
-                adjust = 0.75
+                adjust = 0.5
 
                 ax.set_xlim([minx-adjust, maxx+adjust])
                 ax.set_ylim([miny-adjust, maxy+adjust])
@@ -490,7 +492,10 @@ class ResultsProcessor(object):
             cbar_ax = plt.gcf().add_axes([0.85, 0.15, 0.05, 0.7])
             fig.colorbar(im, cax=cbar_ax)
 
-            plt.savefig("noise-floor-heatmap-{}.pdf".format(args.channel))
+            path = "noise-floor-heatmap-{}.pdf".format(args.channel)
+            plt.savefig(path)
+
+            subprocess.check_call(["pdfcrop", path, path])
 
             if args.show:
                 plt.show()
@@ -509,9 +514,9 @@ def main():
 
     argument_handlers = {}
 
-    def add_argument(name, fn, **kwargs):
+    def add_argument(name, fn, *args, **kwargs):
         argument_handlers[name] = fn
-        return subparsers.add_parser(name, **kwargs)
+        return subparsers.add_parser(name, *args, **kwargs)
 
     processor = ResultsProcessor()
 
