@@ -170,7 +170,6 @@ class Simulation(object):
         raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
 
     def node_from_topology_nid(self, topology_nid):
-
         ordered_nid = self.configuration.topology.to_ordered_nid(topology_nid)
 
         for node in self.nodes:
@@ -323,7 +322,6 @@ class OfflineSimulation(object):
             self.safety_period = args.safety_period
             
         elif hasattr(args, "source_period"):
-
             try:
                 slowest = args.source_period.slowest()
             except AttributeError:
@@ -386,6 +384,10 @@ class OfflineSimulation(object):
 
         self.enter_start_time = timeit.default_timer()
 
+        # Hide warnings about gui events, when not running in GUI mode
+        if not hasattr(self, "gui"):
+        	self.register_output_handler("G-NC", None)
+
         return self
 
     def __exit__(self, tp, value, tb):
@@ -421,7 +423,6 @@ class OfflineSimulation(object):
         raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
 
     def node_from_topology_nid(self, topology_nid):
-
         ordered_nid = self.configuration.topology.to_ordered_nid(topology_nid)
 
         for node in self.nodes:
@@ -488,6 +489,9 @@ class OfflineSimulation(object):
 
     def run(self):
         """Run the simulator loop."""
+
+        handler_missing = object()
+
         event_count = 0
         try:
             self._pre_run()
@@ -532,9 +536,10 @@ class OfflineSimulation(object):
                     break
 
                 # Handle the event
-                if kind in self._line_handlers:
-                    if self._line_handlers[kind] is not None:
-                        self._line_handlers[kind](log_type, node_id, self.sim_time(), message_line)
+                handler = self._line_handlers.get(kind, handler_missing)
+                if handler is not handler_missing:
+                    if handler is not None:
+                        handler(log_type, node_id, self.sim_time(), message_line)
                 else:
                     print("There is no handler for the kind {}. Unable to process the line '{}'.".format(kind, message_line), file=sys.stderr)
 
