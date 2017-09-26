@@ -7,6 +7,7 @@
 #include "SearchMessage.h"
 #include "ChangeMessage.h"
 #include "EmptyNormalMessage.h"
+#include "BackupMessage.h"
 
 #include "utils.h"
 
@@ -20,6 +21,7 @@
 #define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, BOTTOM, 1)
 #define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_BACKUP(msg) METRIC_RCV(Backup, source_addr, source_addr, BOTTOM, 1)
 
 #define BOT UINT16_MAX
 
@@ -66,6 +68,9 @@ module SourceBroadcasterC
     uses interface AMSend as EmptyNormalSend;
     uses interface Receive as EmptyNormalReceive;
 
+    uses interface AMSend as BackupSend;
+    uses interface Receive as BackupReceive;
+
     uses interface MetricLogging;
     uses interface MetricHelpers;
 
@@ -102,6 +107,10 @@ implementation
     bool start_node = FALSE;
     uint32_t redir_length = 0;
 
+    am_addr_t backup_adj_node = BOT;
+    am_addr_t backup_next_node = BOT;
+    bool backup_done = FALSE;
+
     enum
 	{
 		SourceNode,
@@ -109,6 +118,7 @@ implementation
         NormalNode,
         SearchNode,
         ChangeNode,
+        BackupNode,
 	};
 
     enum
@@ -243,12 +253,14 @@ implementation
         call MessageType.register_pair(SEARCH_CHANNEL, "Search");
         call MessageType.register_pair(CHANGE_CHANNEL, "Change");
         call MessageType.register_pair(EMPTYNORMAL_CHANNEL, "EmptyNormal");
+        call MessageType.register_pair(BACKUP_CHANNEL, "Backup");
 
         call NodeType.register_pair(SourceNode, "SourceNode");
         call NodeType.register_pair(SinkNode, "SinkNode");
         call NodeType.register_pair(NormalNode, "NormalNode");
         call NodeType.register_pair(SearchNode, "SearchNode");
         call NodeType.register_pair(ChangeNode, "ChangeNode");
+        call NodeType.register_pair(BackupNode, "CrashNode"); //TODO This is just for colouring while debugging, BackupNode should be added properly to the framework
 
         call FaultModel.register_pair(PathFaultPoint, "PathFaultPoint");
 
@@ -318,6 +330,7 @@ implementation
     USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Search);
     USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Change);
     USE_MESSAGE_NO_EXTRA_TO_SEND(EmptyNormal);
+    USE_MESSAGE_NO_EXTRA_TO_SEND(Backup);
 
     void init(void)
     {
@@ -361,7 +374,7 @@ implementation
 
             parent = parent_info->id;
             /*set_hop(parent_info->hop + 1);*/
-            call TDMA.set_slot(0, parent_info->slot - rank2(&n_info, &(other_info->N), TOS_NODE_ID));
+            call TDMA.set_slot(0, parent_info->slot - 2*rank2(&n_info, &(other_info->N), TOS_NODE_ID));
 
             /*simdbgverbose("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbgverbose_clear("stdout", "\n");*/
 
@@ -545,6 +558,61 @@ implementation
         }
     }
 
+    void send_backup_init()
+    {
+        if(call NodeType.get() == SinkNode) {
+            //Start the backup path creation process
+        }
+    }
+
+    void set_backup_path(am_addr_t source_addr, am_addr_t dest_addr, uint16_t dest_slot)
+    {
+        if(backup_adj_node == BOT && call NodeType.get() == NormalNode && dest_addr != TOS_NODE_ID) {
+            backup_adj_node = source_addr;
+            backup_next_node = dest_addr;
+            simdbg("stdout", "Potential backup node (slot=%u)\n", call TDMA.get_slot(0));
+
+            //Do this for search messages
+            if(dest_slot == BOT) {
+                NeighbourInfo* dest_info = NeighbourList_get(&n_info, dest_addr);
+                if(dest_info == NULL) {
+                    simdbg("stdout", "Could not get slot info for dest\n");
+                    return;
+                }
+                dest_slot = dest_info->slot;
+            }
+
+            {
+                OtherInfo* source_other;
+                IDList source_n;
+                OnehopList source_n_info;
+                uint16_t max_slot;
+                source_other = OtherList_get(&others, source_addr);
+                if(source_other == NULL) {
+                    simdbg("stdout", "Could not get otherlist\n");
+                    return;
+                }
+                source_n = IDList_minus_parent(&(source_other->N), source_addr);
+                source_n = IDList_minus_parent(&source_n, dest_addr);
+                NeighbourList_select(&n_info, &source_n, &source_n_info);
+                max_slot = OnehopList_min_slot(&source_n_info);
+                //Has to be bigger than dest_slot
+                //Has to be smaller than every other node in source_n->N (max_slot)
+                simdbg("stdout", "%u > x > %u\n", max_slot, dest_slot);
+                if(max_slot - dest_slot > 1) {
+                    uint16_t r = rank2(&n_info, &source_n, TOS_NODE_ID);
+                    if(r == BOT) simdbg("stdout", "Rank2 broke\n");
+                    call TDMA.set_slot(0, dest_slot + r);
+                    call NodeType.set(BackupNode);
+                }
+                else {
+                    simdbg("stdout", "Slot difference was not large enough\n");
+                }
+            }
+        }
+
+    }
+
 	task void send_normal(void)
 	{
 		NormalMessage* message;
@@ -641,6 +709,7 @@ implementation
         if(call TDMA.get_slot(0) != call TDMA.bad_slot() || period_counter < get_pre_beacon_periods())
         {
             call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_dissem_period() * random_float()));
+            if(period_counter < get_pre_beacon_periods()) return FALSE;
         }
 
         if(period_counter > get_pre_beacon_periods())
@@ -739,6 +808,7 @@ implementation
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
         case SearchNode:
         case ChangeNode:
+        case BackupNode:
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
@@ -786,11 +856,22 @@ implementation
 
         if(rcvd->normal)
         {
+            //XXX Moved adding to others here so that all neighbours will be added
+            //XXX This causes nodes to have only one DAS parent rather than two potentials
+            //Fixed potential parents issue with if statement (wait until slot is assigned before completing OtherList)
+            if(call TDMA.get_slot(0) != call TDMA.bad_slot()) {
+                OtherInfo* others_source_addr;
+                others_source_addr = OtherList_get(&others, source_addr);
+                if(others_source_addr == NULL)
+                {
+                    OtherList_add(&others, OtherInfo_new(source_addr));
+                    others_source_addr = OtherList_get(&others, source_addr);
+                }
+            }
+
             if(call TDMA.get_slot(0) == call TDMA.bad_slot() && source->slot != BOT)
             {
                 OtherInfo* others_source_addr;
-
-                IDList_add(&potential_parents, source_addr);
 
                 others_source_addr = OtherList_get(&others, source_addr);
                 if(others_source_addr == NULL)
@@ -798,6 +879,8 @@ implementation
                     OtherList_add(&others, OtherInfo_new(source_addr));
                     others_source_addr = OtherList_get(&others, source_addr);
                 }
+
+                IDList_add(&potential_parents, source_addr);
 
                 for(i=0; i<rcvd->N.count; i++)
                 {
@@ -879,6 +962,7 @@ implementation
         case SourceNode:
         case SearchNode:
         case ChangeNode:
+        case BackupNode:
         case NormalNode: x_receive_Dissem(rcvd, source_addr); break;
         case SinkNode  : Sink_receive_Dissem(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(Dissem)
@@ -888,6 +972,7 @@ implementation
         IDList npar = IDList_minus_parent(&potential_parents, parent);
         IDList_add(&from, source_addr); //TODO: Testing
         METRIC_RCV_SEARCH(rcvd);
+        set_backup_path(source_addr, rcvd->a_node, BOT);
         if(rcvd->a_node != TOS_NODE_ID) return;
         simdbgverbose("stdout", "Received search\n");
 
@@ -944,6 +1029,7 @@ implementation
         case SearchNode:
         case ChangeNode:
         case NormalNode: Normal_receive_Search(rcvd, source_addr); break;
+        case BackupNode:
         case SinkNode:   break;
     RECEIVE_MESSAGE_END(Search)
 
@@ -952,6 +1038,7 @@ implementation
         int i;
         IDList npar;
         METRIC_RCV_CHANGE(rcvd);
+        set_backup_path(source_addr, rcvd->a_node, rcvd->n_slot - 1);
         if(rcvd->a_node != TOS_NODE_ID) return;
         /*npar = IDList_minus_parent(&potential_parents, parent);*/
         npar = IDList_minus_parent(&neighbours, parent);
@@ -990,69 +1077,12 @@ implementation
         simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);
     }
 
-    /*void Normal_receive_Change(const ChangeMessage* const rcvd, am_addr_t source_addr)*/
-    /*{*/
-        /*IDList npar;*/
-        /*METRIC_RCV_CHANGE(rcvd);*/
-        /*if(rcvd->a_node != TOS_NODE_ID) return;*/
-        /*npar = IDList_minus_parent(&potential_parents, parent);*/
-        /*npar = IDList_minus_parent(&npar, source_addr); //TODO: Check if this is necessary*/
-        /*if(rcvd->len_d > 0)*/
-        /*{*/
-            /*ChangeMessage msg;*/
-            /*OnehopList onehop;*/
-            /*simdbgverbose("stdout", "Received change\n");*/
-            /*set_slot(rcvd->n_slot - 1);*/
-            /*//NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing*/
-            /*NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information*/
-            /*NeighbourList_select(&n_info, &neighbours, &onehop);*/
-            /*set_dissem_timer(); //Restart sending dissem messages*/
-            /*msg.n_slot = OnehopList_min_slot(&onehop);*/
-            /*msg.a_node = BOT;*/
-            /*if(npar.count != 0)*/
-            /*{*/
-                /*msg.a_node = choose(&npar);*/
-            /*}*/
-            /*else*/
-            /*{*/
-                /*int i;*/
-                /*OnehopList potential_receivers_list;*/
-                /*IDList potential_receivers = IDList_minus_parent(&neighbours, source_addr);*/
-                /*potential_receivers = IDList_minus_parent(&potential_receivers, parent);*/
-                /*NeighbourList_select(&n_info, &potential_receivers, &potential_receivers_list);*/
-                /*for(i = 0; i < potential_receivers_list.count; i++)*/
-                /*{*/
-                    /*if(potential_receivers_list.info[i].hop < hop)*/
-                    /*{*/
-                        /*IDList_minus_parent(&potential_receivers, potential_receivers_list.info[i].id);*/
-                    /*}*/
-                /*}*/
-                /*[>assert(potential_receivers.count != 0);<]*/
-                /*msg.a_node = choose(&potential_receivers);*/
-            /*}*/
-            /*msg.len_d = rcvd->len_d - 1;*/
-            /*send_Change_message(&msg, AM_BROADCAST_ADDR);*/
-            /*call NodeType.set(ChangeNode);*/
-            /*simdbgverbose("stdout", "Next a_node is %u\n", msg.a_node);*/
-            /*normal = FALSE; //TODO: Testing this*/
-        /*}*/
-        /*else if(rcvd->len_d == 0)*/
-        /*{*/
-            /*normal = FALSE;*/
-            /*set_slot(rcvd->n_slot - 1);*/
-            /*//NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);*/
-            /*set_dissem_timer(); //Restart sending dissem messages*/
-            /*simdbgverbose("stdout", "Change messages ended\n");*/
-            /*call NodeType.set(ChangeNode);*/
-        /*}*/
-        /*simdbgverbose("stdout", "a_node=%u, len_d=%u, n_slot=%u\n", rcvd->a_node, rcvd->len_d, rcvd->n_slot);*/
-    /*}*/
-
     RECEIVE_MESSAGE_BEGIN(Change, Receive)
         case SourceNode: break;
         case SearchNode:
         case ChangeNode:
         case NormalNode: Normal_receive_Change(rcvd, source_addr); break;
+        case BackupNode:
         case SinkNode:   break;
     RECEIVE_MESSAGE_END(Change)
 
@@ -1066,6 +1096,32 @@ implementation
         case SearchNode:
         case ChangeNode:
         case NormalNode:
+        case BackupNode:
         case SinkNode:   x_receive_EmptyNormal(rcvd, source_addr); break;
     RECEIVE_MESSAGE_END(EmptyNormal)
+
+    void Normal_receive_Backup(const BackupMessage* const rcvd, am_addr_t source_addr)
+    {
+        METRIC_RCV_BACKUP(rcvd);
+        //If the node is a potential backup node
+        if(backup_adj_node != BOT) {
+            call NodeType.set(BackupNode);
+        }
+    }
+
+    void Backup_receive_Backup(const BackupMessage* const rcvd, am_addr_t source_addr)
+    {
+        METRIC_RCV_BACKUP(rcvd);
+        //Do not need to check if node has backup vars set as it is BackupNode type only
+    }
+
+    RECEIVE_MESSAGE_BEGIN(Backup, Receive)
+        case NormalNode:    Normal_receive_Backup(rcvd, source_addr); break;
+        case BackupNode:    Backup_receive_Backup(rcvd, source_addr); break;
+        case SourceNode:
+        case SearchNode:
+        case ChangeNode:
+        case SinkNode:      break;
+    RECEIVE_MESSAGE_END(Backup)
+
 }

@@ -101,6 +101,13 @@ implementation
     App.EmptyNormalSend -> EmptyNormalSender;
     App.EmptyNormalReceive -> EmptyNormalReceiver;
 
+    components
+        new AMSenderC(BACKUP_CHANNEL) as BackupSender,
+        new AMReceiverC(BACKUP_CHANNEL) as BackupReceiver;
+
+    App.BackupSend -> BackupSender;
+    App.BackupReceive -> BackupReceiver;
+
     // Message Queue
     components
         new PoolC(NormalMessage, MESSAGE_QUEUE_SIZE) as MessagePool,
