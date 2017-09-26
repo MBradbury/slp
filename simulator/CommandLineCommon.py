@@ -16,6 +16,7 @@ import algorithm
 
 import simulator.common
 import simulator.sim
+import simulator.ArgumentsCommon as ArgumentsCommon
 import simulator.Configuration as Configuration
 
 from data import results, latex, submodule_loader
@@ -135,6 +136,13 @@ class CLI(object):
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
 
         ###
+
+        subparser = self._add_argument("run-testbed-offline", self._run_testbed_offline, help="Process the testbed result files using the offline processor.")
+        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
+
+        ArgumentsCommon.OPTS["configuration"](subparser)
+        ArgumentsCommon.OPTS["attacker model"](subparser)
+        ArgumentsCommon.OPTS["fault model"](subparser)
 
         subparser = self._add_argument("analyse-testbed", self._run_analyse_testbed, help="Analyse the testbed results of this algorithm.")
         subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
@@ -700,6 +708,37 @@ class CLI(object):
                      nprocs=args.thread_count,
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
+
+    def _run_testbed_offline(self, args):
+        testbed = submodule_loader.load(data.testbed, args.testbed)
+        offline = submodule_loader.load(simulator.sim, "offline")
+
+        results_path = os.path.join("testbed_results", testbed.name(), self.algorithm_module.name)
+
+        results_dirs = [d for d in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, d))]
+
+        common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
+
+        for common_result_dir in common_results_dirs:
+            out_path = os.path.join(results_path, common_result_dir + ".txt")
+
+            command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} ".format(
+                self.algorithm_module.name,
+                testbed.name(),
+                os.path.join(results_path, common_result_dir + "_*", "serial.csv"))
+
+            settings = {
+                "--configuration": args.configuration,
+                "--attacker-model": args.attacker_model,
+                "--fault-model": args.fault_model,
+            }
+
+            command += " ".join("{} \"{}\"".format(k, v) for (k, v) in settings.items())
+
+            print("Executing:", command, ">>", out_path)
+            with open(out_path, "w") as stdout_file:
+                subprocess.check_call(command, stdout=stdout_file, shell=True)
+
 
     def _run_safety_table(self, args):
 
