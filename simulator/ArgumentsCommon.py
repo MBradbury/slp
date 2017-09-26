@@ -148,6 +148,8 @@ OPTS = {
 
     "log file":            lambda x, **kwargs: x.add_argument("--log-file",
                                                               type=str,
+                                                              nargs="+",
+                                                              metavar="F",
                                                               required=True),
 
     "log converter":        _add_log_converter,
