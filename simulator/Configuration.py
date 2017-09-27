@@ -629,28 +629,15 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
             space_behind_sink=True
         )
 
-class EuratechSmall5by10Top(Configuration):
-    def __init__(self, *args, **kwargs):
-        from data.testbed.fitiotlab import Euratech
-        euratech = Euratech(subset=[(96, 145)])
-
-        super(EuratechSmall5by10Top, self).__init__(
-            euratech,
-            source_ids={96},
-            sink_id=123,
-            space_behind_sink=False
-        )
-
-class EuratechAll(Configuration):
-    """A source at one end of a rectangular strip and a sink in the middle."""
+class EuratechSinkCentre(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.fitiotlab import Euratech
         euratech = Euratech()
 
-        super(EuratechAll, self).__init__(
+        super(EuratechSinkCentre, self).__init__(
             euratech,
-            source_ids={183},
-            sink_id=148,
+            source_ids={98},
+            sink_id=153,
             space_behind_sink=True
         )
 

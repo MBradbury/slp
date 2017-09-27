@@ -943,12 +943,8 @@ class AnalyzerCommon(object):
             kwargs["verify_seeds"] = False
 
             # Need to remove parameters that testbed runs do not have
-            del self.values["network size"]
-            del self.values["noise model"]
-            del self.values["communication model"]
-            del self.values["distance"]
-            del self.values["node id order"]
-            del self.values["latest node start time"]
+            for name in simulator.common.testbed_missing_global_parameter_names:
+                del self.values[name]
 
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling

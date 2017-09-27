@@ -36,14 +36,18 @@ def extract_average_and_stddev(value):
 
 class Results(object):
     def __init__(self, result_file, parameters, results, results_filter=None,
-                 source_period_normalisation=None, network_size_normalisation=None):
+                 source_period_normalisation=None, network_size_normalisation=None,
+                 testbed=False):
         self.parameter_names = tuple(parameters)
         self.result_names = tuple(results)
         self.result_file_name = result_file
 
         self.data = {}
 
-        self.global_parameter_names = simulator.common.global_parameter_names[:-1]
+        if testbed:
+            self.global_parameter_names = simulator.common.testbed_global_parameter_names[:-1]
+        else:
+            self.global_parameter_names = simulator.common.global_parameter_names[:-1]
 
         # Create attributes that will store all the parameter value for a given parameter
         for param in self.global_parameter_names:
@@ -65,6 +69,21 @@ class Results(object):
             for param in self.global_parameter_names
         ]
 
+    def _get_configuration(self, **kwargs):
+        args = ('network size', 'distance', 'node_id_order')
+        arg_converters = {
+            'network_size': int,
+            'distance': float,
+        }
+
+        arg_values = [
+            arg_converters.get(name, lambda x: x)(kwargs[name])
+            for name in args
+            if name in kwargs
+        ]
+
+        return Configuration.create_specific(kwargs['configuration'], *arg_values)
+
     def _normalise_source_period(self, strategy, dvalues):
 
         src_period = dvalues['source period']
@@ -73,12 +92,9 @@ class Results(object):
             source_period = src_period
 
         elif strategy == "NumSources":
-            config = dvalues['configuration']
-            size = int(dvalues['network size'])
-            distance = float(dvalues['distance'])
-
             # Get the source period normalised wrt the number of sources
-            configuration = Configuration.create_specific(config, size, distance, "topology")
+            configuration = self._get_configuration(**dvalues)
+
             source_period = str(float(src_period) / len(configuration.source_ids))
 
         else:
@@ -114,7 +130,8 @@ class Results(object):
 
                 source_period = self._normalise_source_period(source_period_normalisation, dvalues)
 
-                dvalues['network size'] = self._normalise_network_size(network_size_normalisation, dvalues)
+                if 'network size' in dvalues:
+                    dvalues['network size'] = self._normalise_network_size(network_size_normalisation, dvalues)
 
                 table_key = tuple(dvalues[name] for name in self.global_parameter_names)
 

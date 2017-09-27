@@ -38,9 +38,11 @@ class TableDataFormatter(object):
                 "time taken": ("Time", "(sec)"),
                 "safety period": ("Safety Period", "(sec)"),
                 "wall time": ("Wall Time", "(sec)"),
-                "total wall time": ("Total Wall Time", "(sec)"),
+                "total wall time": ("Total Wall", "Time (sec)"),
                 "first normal sent time": ("FNST", "(sec)"),
                 "event count": ("Event Count", ""),
+                "memory rss": ("Memory", "RSS (MB)"),
+                "memory vms": ("Memory", "VMS (MB)"),
                 
                 "walk length": ("Walk Length", "(hops)"),
                 "walk retries": ("Walk", "Retries"),
@@ -108,6 +110,9 @@ class TableDataFormatter(object):
         elif name in {"sent", "received", "delivered",
                       "fake", "away", "choose", "dummy normal",
                       "normal latency"}:
+            return "${:.0f} \\pm {:.0f}$".format(value[0], self._convert_variance(value[1]))
+        elif name in {"memory rss", "memory vms"}:
+            value = value / (1024 * 1024)
             return "${:.0f} \\pm {:.0f}$".format(value[0], self._convert_variance(value[1]))
         elif isinstance(value, dict):
             return latex.escape(str(value))
