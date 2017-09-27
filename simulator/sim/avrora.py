@@ -272,6 +272,11 @@ def avrora_iter(iterable):
 
         yield "None|AVRORA-ENERGY-STATS:D:{}:None:{}".format(energy.nid, energy.encode())
 
+def print_arguments(module, a):
+    for (k, v) in sorted(vars(a.args).items()):
+        if k not in a.arguments_to_hide:
+            print("{}={}".format(k, v))
+
 def run_simulation(module, a, count=1, print_warnings=False):
     global base64, pickle, re
 

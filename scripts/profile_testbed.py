@@ -202,11 +202,10 @@ class AnalyseTestbedProfile(object):
         if not os.path.isdir(results_dir):
             return None
 
-        for result_file_name in self.testbed_result_file_name:
-            result_file = os.path.join(results_dir, result_file_name)
+        result_file = os.path.join(results_dir, self.testbed_result_file_name)
 
-            if os.path.exists(result_file) and os.path.getsize(result_file) > 0:
-                return result_file
+        if os.path.exists(result_file) and os.path.getsize(result_file) > 0:
+            return result_file
 
         print("Unable to find any result file (greater than 0 bytes) in {} out of {}".format(
             results_dir, self.testbed_result_file_name)

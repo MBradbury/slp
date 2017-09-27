@@ -292,7 +292,8 @@ class Analyse(object):
     }
 
     def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
-                 with_normalised=True, headers_to_skip=None, keep_if_hit_upper_time_bound=False):
+                 with_normalised=True, headers_to_skip=None, keep_if_hit_upper_time_bound=False,
+                 verify_seeds=True):
 
         self.opts = {}
         self.headers_to_skip = headers_to_skip
@@ -403,35 +404,38 @@ class Analyse(object):
             self.removed_rows_due_to_upper_bound = 0
 
         # Remove any duplicated seeds. Their result will be the same so shouldn't be counted.
-        duplicated_seeds_filter = df.duplicated(subset="Seed", keep=False)
-        if duplicated_seeds_filter.any():
-            print("Removing the following duplicated seeds:")
-            print(df["Seed"][duplicated_seeds_filter])
+        if verify_seeds:
+            duplicated_seeds_filter = df.duplicated(subset="Seed", keep=False)
+            if duplicated_seeds_filter.any():
+                print("Removing the following duplicated seeds:")
+                print(df["Seed"][duplicated_seeds_filter])
 
-            print("Checking that duplicate seeds have the same results...")
-            columns_to_check = ["Seed", "Sent", "Received", "Delivered", "Captured", "FirstNormalSentTime", "EventCount"]
-            dupe_seeds = df[columns_to_check][duplicated_seeds_filter].groupby("Seed", sort=False)
+                print("Checking that duplicate seeds have the same results...")
+                columns_to_check = ["Seed", "Sent", "Received", "Delivered", "Captured", "FirstNormalSentTime", "EventCount"]
+                dupe_seeds = df[columns_to_check][duplicated_seeds_filter].groupby("Seed", sort=False)
 
-            for name, group in dupe_seeds:
-                differing = group[group.columns[group.apply(lambda s: len(s.unique()) > 1)]]
+                for name, group in dupe_seeds:
+                    differing = group[group.columns[group.apply(lambda s: len(s.unique()) > 1)]]
 
-                if not differing.empty:
-                    raise RuntimeError("For seed {}, the following columns differ: {}".format(name, differing))
+                    if not differing.empty:
+                        raise RuntimeError("For seed {}, the following columns differ: {}".format(name, differing))
 
-            initial_length = len(df.index)
+                initial_length = len(df.index)
 
-            df.drop_duplicates(subset="Seed", keep="first", inplace=True)
+                df.drop_duplicates(subset="Seed", keep="first", inplace=True)
 
-            current_length = len(df.index)
+                current_length = len(df.index)
 
-            self.removed_rows_due_to_duplicates = initial_length - current_length
+                self.removed_rows_due_to_duplicates = initial_length - current_length
 
-            print("Removed {} out of {} rows as the seeds were duplicated".format(
-                self.removed_rows_due_to_duplicates, initial_length))
+                print("Removed {} out of {} rows as the seeds were duplicated".format(
+                    self.removed_rows_due_to_duplicates, initial_length))
+            else:
+                self.removed_rows_due_to_duplicates = 0
+
+            del duplicated_seeds_filter
         else:
             self.removed_rows_due_to_duplicates = 0
-
-        del duplicated_seeds_filter
 
         if len(df.index) == 0:
             raise EmptyDataFrameError(infile_path)
@@ -545,10 +549,19 @@ class Analyse(object):
 
 
     def _get_configuration(self):
-        return Configuration.create_specific(self.opts['configuration'],
-                                             int(self.opts['network_size']),
-                                             float(self.opts['distance']),
-                                             self.opts['node_id_order'])
+        args = ('network_size', 'distance', 'node_id_order')
+        arg_converters = {
+            'network_size': int,
+            'distance': float,
+        }
+
+        arg_values = [
+            arg_converters.get(name, lambda x: x)(self.opts[name])
+            for name in args
+            if name in self.opts
+        ]
+
+        return Configuration.create_specific(self.opts['configuration'], *arg_values)
 
     def _get_constants_from_opts(self):
         """Get values that do not depend on the contents of the row."""
@@ -795,11 +808,7 @@ class AnalysisResults(object):
         self.dropped_no_sink_delivery = analysis.removed_rows_due_to_no_sink_delivery_count
         self.dropped_duplicates = analysis.removed_rows_due_to_duplicates
 
-    def get_configuration(self):
-        return Configuration.create_specific(self.opts['configuration'],
-                                             int(self.opts['network_size']),
-                                             float(self.opts['distance']),
-                                             self.opts['node_id_order'])
+        self.configuration = analysis._get_configuration()
 
 class AnalyzerCommon(object):
     def __init__(self, results_directory, values, normalised_values=None, filtered_values=None):
@@ -822,7 +831,7 @@ class AnalyzerCommon(object):
         d['repeats']            = lambda x: str(x.number_of_repeats)
 
         # Give everyone access to the number of nodes in the simulation
-        d['num nodes']          = lambda x: str(x.get_configuration().size())
+        d['num nodes']          = lambda x: str(x.configuration.size())
 
         # The options that all simulations must include and the local parameter names
         for parameter in simulator.common.global_parameter_names + local_parameter_names:
@@ -923,10 +932,23 @@ class AnalyzerCommon(object):
 
         return result
 
-    def run(self, summary_file, result_finder, nprocs=None, **kwargs):
+    def run(self, summary_file, result_finder, nprocs=None, testbed=False, **kwargs):
         """Perform the analysis and write the output to the :summary_file:.
         If :nprocs: is not specified then the number of CPU cores will be used.
         """
+
+        if testbed:
+            # Do not attempt to verify that same seed runs have the same results.
+            # The testbed are not deterministic like that!
+            kwargs["verify_seeds"] = False
+
+            # Need to remove parameters that testbed runs do not have
+            del self.values["network size"]
+            del self.values["noise model"]
+            del self.values["communication model"]
+            del self.values["distance"]
+            del self.values["node id order"]
+            del self.values["latest node start time"]
 
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling

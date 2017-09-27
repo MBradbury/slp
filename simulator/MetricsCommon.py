@@ -663,7 +663,8 @@ class MetricsCommon(object):
     @staticmethod
     def compressed_dict_str(dict_result):
         dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result).encode("utf-8")
-        return base64.b64encode(zlib.compress(dict_result_bytes, 9))
+        compressed = base64.b64encode(zlib.compress(dict_result_bytes, 9))
+        return compressed.decode("utf-8")
 
     @staticmethod
     def smaller_list_str(list_result):

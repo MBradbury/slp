@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import argparse
 from collections import defaultdict
 from datetime import timedelta
+import fnmatch
 import functools
 import importlib
 import itertools
@@ -679,8 +680,6 @@ class CLI(object):
                              skip_completed_simulations=skip_complete)
 
     def _run_analyse(self, args):
-        import fnmatch
-
         def results_finder(results_directory):
             return fnmatch.filter(os.listdir(results_directory), '*.txt')
 
@@ -694,10 +693,8 @@ class CLI(object):
     def _run_analyse_testbed(self, args):
         testbed = submodule_loader.load(data.testbed, args.testbed)
 
-        # First need to run offline processor over all results files
-
         def results_finder(results_directory):
-            fnmatch.filter(os.listdir(results_directory), '*.txt')
+            return fnmatch.filter(os.listdir(results_directory), '*.txt')
 
         results_path = os.path.join("testbed_results", testbed.name(), self.algorithm_module.name)
         result_file = os.path.basename(self.algorithm_module.result_file)
@@ -707,7 +704,8 @@ class CLI(object):
                      results_finder,
                      nprocs=args.thread_count,
                      headers_to_skip=args.headers_to_skip,
-                     keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
+                     keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound,
+                     testbed=True)
 
     def _run_testbed_offline(self, args):
         testbed = submodule_loader.load(data.testbed, args.testbed)
@@ -725,7 +723,7 @@ class CLI(object):
             command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} ".format(
                 self.algorithm_module.name,
                 testbed.name(),
-                os.path.join(results_path, common_result_dir + "_*", "serial.csv"))
+                os.path.join(results_path, common_result_dir + "_*", testbed.result_file_name))
 
             settings = {
                 "--configuration": args.configuration,
