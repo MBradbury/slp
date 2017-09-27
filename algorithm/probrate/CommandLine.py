@@ -9,7 +9,7 @@ protectionless = algorithm.import_algorithm("protectionless")
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+        super(CLI, self).__init__(__package__, protectionless.name)
 
     def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
