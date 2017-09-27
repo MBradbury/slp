@@ -25,7 +25,7 @@ class Arguments(ArgumentsCommon):
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        with open(os.path.join('algorithm/slp_tdma_das_ga', self.args.genetic_header), 'r') as gh_file:
+        with open(os.path.join('algorithm/slp_tdma_das_ga/ga-headers', self.args.genetic_header), 'r') as gh_file:
             for line in gh_file:
                 if '#define GA_TOTAL_SLOTS' in line:
                     total_slots = int(line.split(' ')[2].strip())
