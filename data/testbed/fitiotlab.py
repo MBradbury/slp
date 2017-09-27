@@ -1,5 +1,5 @@
 
-result_file_name = ["aggregator_log.stdout"]
+result_file_name = "aggregator_log.stdout"
 
 def name():
     return __name__
