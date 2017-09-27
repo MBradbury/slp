@@ -62,7 +62,7 @@ class CLI(CommandLineCommon.CLI):
             parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
-            parameters.tdma_num_slots, parameters.ga_headers, parameters.simulate_crash
+            parameters.ga_headers
         ))
 
         argument_product = self.add_extra_arguments(argument_product, extras)

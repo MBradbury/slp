@@ -6,5 +6,5 @@ def _setup():
 
 (name, results_path, result_file, result_file_path, graphs_path) = _setup()
 
-local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'genetic header')
+local_parameter_names = ('slot period', 'dissem period', 'genetic header')
 
