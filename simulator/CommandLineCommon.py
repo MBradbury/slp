@@ -224,12 +224,12 @@ class CLI(object):
             return self._testbed_results_file(testbed, algo)
 
     @staticmethod
-    def _create_table(name, result_table_fn, directory="results", param_filter=lambda x: True, orientation='portrait', show=False):
+    def _create_table(name, result_table, directory="results", param_filter=lambda x: True, orientation='portrait', show=False):
         filename = os.path.join(directory, name + ".tex")
 
         with open(filename, 'w') as result_file:
             latex.print_header(result_file, orientation=orientation)
-            result_table_fn(result_file, param_filter)
+            result_table.write_tables(result_file, param_filter)
             latex.print_footer(result_file)
 
         filename_pdf = latex.compile_document(filename)
@@ -245,7 +245,7 @@ class CLI(object):
 
         result_table = fake_result.ResultTable(res)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table.write_tables, **kwargs)
+        self._create_table(self.algorithm_module.name + "-results", result_table, **kwargs)
 
 
     def _create_versus_graph(self, graph_parameters, varying,
@@ -780,7 +780,7 @@ class CLI(object):
 
             filename = '{}-safety'.format(self.algorithm_module.name)
 
-            self._create_table(filename, safety_period_table.write_testbed_tables, directory="testbed_results", show=args.show)
+            self._create_table(filename, safety_period_table, directory="testbed_results", show=args.show)
 
         else:
             prod = itertools.product(simulator.common.available_noise_models(),
@@ -792,7 +792,7 @@ class CLI(object):
 
                 filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
 
-                self._create_table(filename, safety_period_table.write_tables,
+                self._create_table(filename, safety_period_table,
                                    param_filter=lambda (cm, nm, am, fm, c, d, nido, lst): nm == noise_model and cm == comm_model)
 
     def _run_error_table(self, args):
@@ -803,7 +803,7 @@ class CLI(object):
 
         result_table = fake_result.ResultTable(res)
 
-        self._create_table(self.algorithm_module.name + "-error-results", result_table.write_tables, show=args.show)
+        self._create_table(self.algorithm_module.name + "-error-results", result_table, show=args.show)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
@@ -945,7 +945,7 @@ class CLI(object):
 
         result_table = fake_result.ResultTable(result, fmt)
 
-        self._create_table(self.algorithm_module.name + "-time-taken", result_table.write_tables, orientation="landscape", show=args.show)
+        self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape", show=args.show)
 
     def _run_detect_missing(self, args):
         

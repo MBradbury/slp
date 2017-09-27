@@ -30,13 +30,21 @@ class TableGenerator:
             from data_formatter import TableDataFormatter
             self.fmt = TableDataFormatter()
 
+        self.testbed = testbed
+
     def _get_name_and_value(self, result, name):
         return name, result[self._result_names.index(name)]
 
     def _get_just_value(self, result, name):
         return result[self._result_names.index(name)][0]
 
-    def write_tables(self, stream, param_filter=lambda x: True):
+    def write_tables(self, *args, **kwargs):
+        if self.testbed:
+            self._write_testbed_tables(*args, **kwargs)
+        else:
+            self._write_tables(*args, **kwargs)
+
+    def _write_tables(self, stream, param_filter=lambda x: True):
 
         communication_models = sorted(self._results.communication_models)
         noise_models = sorted(self._results.noise_models)
@@ -121,7 +129,7 @@ class TableGenerator:
             print('\\end{table}', file=stream)
             print('', file=stream)
 
-    def write_testbed_tables(self, stream, param_filter=lambda x: True):
+    def _write_testbed_tables(self, stream, param_filter=lambda x: True):
 
         attacker_models = sorted(self._results.attacker_models)
         fault_models = sorted(self._results.fault_models)
