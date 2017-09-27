@@ -20,5 +20,11 @@ then
 
 	experiment-cli get -i $TESTID -p > testbed_results/iotlab/$TESTID/experiment.json
 
-	echo "Saved IoT Lab results to testbed_results/iotlab/$TESTID"
+    name=$(jq -r '.name' testbed_results/iotlab/$TESTID/experiment.json)
+
+    new_name="${name}_$TESTID"
+
+    mv "testbed_results/iotlab/$TESTID" "testbed_results/iotlab/${new_name}"
+
+	echo "Saved IoT Lab results to testbed_results/iotlab/${new_name}"
 fi
