@@ -26,7 +26,7 @@ then
 
     name=$(jq -r '.name' testbed_results/iotlab/$TESTID/experiment.json)
 
-    new_name="${name}_$TESTID"
+    new_name=$(echo "${name}_$TESTID" | sed '0,/-/s//\//')
 
     mv "testbed_results/iotlab/$TESTID" "testbed_results/iotlab/${new_name}"
 
