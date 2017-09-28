@@ -8,6 +8,8 @@ from simulator import CommandLineCommon
 
 import algorithm
 
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+
 protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
 
 from data import results
@@ -20,10 +22,12 @@ class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
         # tafn = super(RunSimulations, self)._get_safety_period(darguments)
 
+        header_params = algorithm_module.get_parameters_in_header(darguments["genetic header"])
+
         network_size = darguments["network size"]
         dissem_period = darguments["dissem period"]
         slot_period = darguments["slot period"]
-        tdma_num_slots = darguments["tdma num slots"]
+        tdma_num_slots = header_params["GA_TOTAL_SLOTS"]
         tdma_period_length = dissem_period + (slot_period * tdma_num_slots)
         ssd = network_size - 1                                                  #XXX Cheap fix until I find the real solution
 
@@ -53,6 +57,11 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
+    # Override default
+    def parameter_names(self):
+        # Remove source period from names
+        return self.global_parameter_names[:-1] + self.algorithm_module.local_parameter_names
+
     def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
@@ -61,13 +70,14 @@ class CLI(CommandLineCommon.CLI):
             parameters.attacker_models, parameters.noise_models,
             parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.slot_period, parameters.dissem_period,
+            parameters.slot_period, parameters.dissem_period,
             parameters.ga_headers
         ))
 
         argument_product = self.add_extra_arguments(argument_product, extras)
 
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        # Can't do this as source period is no longer a parameter
+        #argument_product = self.adjust_source_period_for_multi_source(argument_product)
 
         return argument_product
 

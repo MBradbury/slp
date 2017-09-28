@@ -8,6 +8,8 @@ import simulator.Configuration
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
+algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+
 class Arguments(ArgumentsCommon):
     def __init__(self):
         super(Arguments, self).__init__("SLP TDMA DAS GA", has_safety_period=True)
@@ -22,20 +24,21 @@ class Arguments(ArgumentsCommon):
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
 
+    def virtual_arguments(self):
+        params = algorithm_module.get_parameters_in_header(self.args.genetic_header)
+
+        source_period = self.args.dissem_period + self.args.slot_period * params["GA_TOTAL_SLOTS"]
+        source_period = simulator.SourcePeriodModel.eval_input(str(source_period))
+
+        return {
+            "tdma_num_slots": params["GA_TOTAL_SLOTS"],
+            "source_period": source_period,
+        }
+
     def build_arguments(self):
         result = super(Arguments, self).build_arguments()
 
-        with open(os.path.join('algorithm/slp_tdma_das_ga/ga-headers', self.args.genetic_header), 'r') as gh_file:
-            for line in gh_file:
-                if '#define GA_TOTAL_SLOTS' in line:
-                    total_slots = int(line.split(' ')[2].strip())
-                    source_period = self.args.dissem_period + self.args.slot_period * total_slots
-                    break
-
-        self.args.source_period = simulator.SourcePeriodModel.eval_input(str(source_period))
-        result.update(self.args.source_period.build_arguments())
-
-        result["TDMA_NUM_SLOTS"] = total_slots
+        result["TDMA_NUM_SLOTS"] = self.args.tdma_num_slots
         result["SLOT_PERIOD_MS"] = int(self.args.slot_period * 1000)
         result["DISSEM_PERIOD_MS"] = int(self.args.dissem_period * 1000)
         result["GENETIC_HEADER"] = self.args.genetic_header

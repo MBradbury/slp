@@ -8,3 +8,19 @@ def _setup():
 
 local_parameter_names = ('slot period', 'dissem period', 'genetic header')
 
+def get_parameters_in_header(name):
+    import os.path
+
+    params = {}
+
+    with open(os.path.join("algorithm", "slp_tdma_das_ga", "ga_headers", name), "r") as gh_file:
+        for line in gh_file:
+            if line.startswith("#define "):
+                try:
+                    name, value = line[len("#define "):].split(" ", 1)
+                except ValueError:
+                    continue
+
+                params[name] = int(value)
+
+    return params
