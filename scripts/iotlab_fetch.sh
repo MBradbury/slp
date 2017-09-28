@@ -9,6 +9,8 @@ mkdir -p testbed_results/iotlab
 # Now to get some of the other files back from the testbed
 rsync -avz --prune-empty-dirs $USER@$SITE:~/.iot-lab/$TESTID/ testbed_results/iotlab/$TESTID/
 
+sync
+
 if [ -d "testbed_results/iotlab/$TESTID" ]
 then
 	cd "testbed_results/iotlab/$TESTID"
@@ -19,6 +21,8 @@ then
 	cd - > /dev/null
 
 	experiment-cli get -i $TESTID -p > testbed_results/iotlab/$TESTID/experiment.json
+
+    sync
 
     name=$(jq -r '.name' testbed_results/iotlab/$TESTID/experiment.json)
 
