@@ -18,7 +18,7 @@ from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.result_file_path)
+        super(CLI, self).__init__(__package__, protectionless.name)
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")

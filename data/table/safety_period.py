@@ -11,7 +11,7 @@ from data import latex, results
 
 class TableGenerator:
 
-    def __init__(self, result_file, tafn_to_safety_period, fmt=None):
+    def __init__(self, result_file, tafn_to_safety_period, fmt=None, testbed=False):
         self._result_names = ('received ratio',
                               'normal latency', 'ssd', 'captured',
                               'time after first normal')
@@ -19,7 +19,8 @@ class TableGenerator:
         self._results = results.Results(
             result_file,
             parameters=tuple(),
-            results=self._result_names
+            results=self._result_names,
+            testbed=testbed,
         )
 
         self.tafn_to_safety_period = tafn_to_safety_period
@@ -29,13 +30,21 @@ class TableGenerator:
             from data_formatter import TableDataFormatter
             self.fmt = TableDataFormatter()
 
+        self.testbed = testbed
+
     def _get_name_and_value(self, result, name):
         return name, result[self._result_names.index(name)]
 
     def _get_just_value(self, result, name):
         return result[self._result_names.index(name)][0]
 
-    def write_tables(self, stream, param_filter=lambda x: True):
+    def write_tables(self, *args, **kwargs):
+        if self.testbed:
+            self._write_testbed_tables(*args, **kwargs)
+        else:
+            self._write_tables(*args, **kwargs)
+
+    def _write_tables(self, stream, param_filter=lambda x: True):
 
         communication_models = sorted(self._results.communication_models)
         noise_models = sorted(self._results.noise_models)
@@ -120,6 +129,78 @@ class TableGenerator:
             print('\\end{table}', file=stream)
             print('', file=stream)
 
+    def _write_testbed_tables(self, stream, param_filter=lambda x: True):
+
+        attacker_models = sorted(self._results.attacker_models)
+        fault_models = sorted(self._results.fault_models)
+        configurations = sorted(self._results.configurations, key=configuration_rank)
+
+        product_all = list(itertools.product(
+            configurations, attacker_models, fault_models
+        ))
+
+        print(self._results.data.keys())
+
+        product_filtered = list(itertools.ifilter(
+            lambda x: x in {(c, am, fm) for (c, am, fm) in self._results.data.keys()},
+            product_all
+        ))
+
+        if not any(table_key in self._results.data for table_key in product_all):
+            raise RuntimeError("Could not find any parameter combination in the results")
+
+        for product_filtered_key in product_filtered:
+            if not param_filter(product_filtered_key):
+                #print("Skipping {}".format(product_filtered_key))
+                continue
+
+            (config, attacker_model, fault_model) = product_filtered_key
+
+            print('\\begin{table}[H]', file=stream)
+            print('\\vspace{-0.35cm}', file=stream)
+            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} fault model}}'.format(
+                config, latex.escape(attacker_model), fault_model), file=stream)
+            print('\\centering', file=stream)
+            print('\\begin{tabular}{ | c || c | c | c | c || c || c | }', file=stream)
+            print('\\hline', file=stream)
+            print('Period & Received & Source-Sink   & Latency   & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
+            print('(sec)  & (\\%)    & Distance (hop)& (msec)    & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
+            print('\\hline', file=stream)
+            print('', file=stream)
+
+            data_key = (config, attacker_model, fault_model)
+
+            if data_key not in self._results.data:
+                #print("Skipping {} as it could not be found in the results".format(data_key))
+                continue
+
+            for src_period in sorted(self._results.data[data_key]):
+
+                result = self._results.data[data_key][src_period][tuple()]
+
+                get_name_and_value = partial(self._get_name_and_value, result)
+                get_just_value = partial(self._get_just_value, result)
+
+                safety_period = self.tafn_to_safety_period(
+                    get_just_value('time after first normal'))
+            
+                print('{} & {} & {}'
+                      ' & {} & {}'
+                      ' & {:0.2f} & {} \\tabularnewline'.format(
+                        src_period,
+                        self.fmt.format_value(*get_name_and_value('received ratio')),
+                        self.fmt.format_value(*get_name_and_value('ssd')),
+                        self.fmt.format_value(*get_name_and_value('normal latency')),
+                        self.fmt.format_value(*get_name_and_value('time after first normal')),
+                        safety_period,
+                        self.fmt.format_value(*get_name_and_value('captured'))),
+                      file=stream)
+
+            print('\\hline', file=stream)
+            print('\\end{tabular}', file=stream)
+            print('\\label{{tab:safety-periods-{}}}'.format(config), file=stream)
+            print('\\end{table}', file=stream)
+            print('', file=stream)
 
     def _get_result_mapping(self, result_names, accessor):
         # (size, configuration, attacker model, noise model, communication model, fault model, distance) -> source period -> individual result

@@ -7,7 +7,7 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
    You may need to prefix commands with "sudo" to install using admin privileges.
 
         :::bash
-        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev libffi-dev
+        sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev libffi-dev libxml2-utils
 
    Python 2 or 3 is supported, but python 2 is recommended as it is faster.
 
@@ -72,6 +72,7 @@ Please ensure that you install the python packages using pip after setting up py
         :::bash
         hg clone ssh://hg@bitbucket.org/MBradbury/slp-algorithms-tinyos
 
+        :::bash
         hg clone https://<username>@bitbucket.org/MBradbury/slp-algorithms-tinyos
 
 You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
@@ -79,6 +80,7 @@ You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
 # Setup TinyOS
 
 1. Clone the tinyos fork 
+
         :::bash
         cd ~/wsn
         git clone -b bradbury_2_1_2 https://github.com/MBradbury/tinyos-main.git

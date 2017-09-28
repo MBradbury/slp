@@ -16,7 +16,9 @@ fi
 
 mkdir -p testbed_results/flocklab
 
-curl -s --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
+echo "Downloading results..."
+
+curl -s -S --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
 
 if [ ! -f "./testbed_results/flocklab/results.$TESTID.tar.gz" ]
 then
@@ -24,13 +26,25 @@ then
 	exit 1
 fi
 
+echo "Extracting results..."
+
 tar xzf testbed_results/flocklab/results.$TESTID.tar.gz --directory testbed_results/flocklab
+
+echo "Zipping power profiling..."
 
 # Compress the power profile, it tends to be very large!
 cd testbed_results/flocklab/$TESTID
 gzip --best powerprofiling.csv
-cd  -
+cd  - > /dev/null
 
 rm testbed_results/flocklab/results.$TESTID.tar.gz
 
-echo "Saved FlockLab results to testbed_results/flocklab/$TESTID"
+echo "Downloading configuration..."
+
+curl -s --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/testconfiguration.xml --output testbed_results/flocklab/$TESTID/testconfiguration.xml
+
+NAME=$(cat testbed_results/flocklab/$TESTID/testconfiguration.xml | sed 's/xmlns=".*"//g' | xmllint --xpath '/testConf/generalConf/name/text()' - )
+
+mv "testbed_results/flocklab/$TESTID" "testbed_results/flocklab/${NAME}_$TESTID"
+
+echo "Saved FlockLab results $TESTID to testbed_results/flocklab/${NAME}_$TESTID"

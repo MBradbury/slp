@@ -166,9 +166,9 @@ class LinkResult(object):
         return result
 
 class CurrentDraw(object):
-    def __init__(self, raw_df, bad_df=None, broadcasting_node_id=None):
+    def __init__(self, summary_df, bad_df=None, broadcasting_node_id=None):
         self.broadcasting_node_id = broadcasting_node_id
-        self.raw_df = raw_df
+        self.summary_df = summary_df
         self.bad_df = bad_df
 
 class AnalyseTestbedProfile(object):
@@ -202,11 +202,10 @@ class AnalyseTestbedProfile(object):
         if not os.path.isdir(results_dir):
             return None
 
-        for result_file_name in self.testbed_result_file_name:
-            result_file = os.path.join(results_dir, result_file_name)
+        result_file = os.path.join(results_dir, self.testbed_result_file_name)
 
-            if os.path.exists(result_file) and os.path.getsize(result_file) > 0:
-                return result_file
+        if os.path.exists(result_file) and os.path.getsize(result_file) > 0:
+            return result_file
 
         print("Unable to find any result file (greater than 0 bytes) in {} out of {}".format(
             results_dir, self.testbed_result_file_name)
@@ -313,9 +312,9 @@ class AnalyseTestbedProfile(object):
             raw_df = measurement_results["powerprofiling.csv"]
             raw_df.rename(columns={"node_id": "node", "value_mA": "I"}, inplace=True)
 
-            #df = raw_df.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
+            df = raw_df.groupby("node")["I"].agg([np.mean, var0, len]).reset_index()
 
-            result = CurrentDraw(raw_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(df, broadcasting_node_id=broadcasting_node_id)
 
         elif self.testbed_name == "fitiotlab":
 
@@ -343,10 +342,10 @@ class AnalyseTestbedProfile(object):
 
             raw_df = filtered_df[["node", "time", "I_2"]].rename(columns={"I_2": "I"})
 
-            #filtered_df = filtered_df.groupby(["node"])["I_2"].agg([np.mean, np.std, len]).reset_index()
+            df = raw_df.groupby("node")["I"].agg([np.mean, var0, len]).reset_index()
             removed_df = removed_df.groupby(["node"])["current", "voltage", "power"].agg([np.mean, np.std, len]).reset_index()
 
-            result = CurrentDraw(raw_df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
 
         else:
             raise UnknownTestbedError(self.testbed_name)
@@ -454,10 +453,9 @@ class AnalyseTestbedProfile(object):
             date_time = datetime.strptime(date_time, "%Y/%m/%d %H:%M:%S.%f")
 
             (kind, d_or_e, nid, localtime, details) = rest.split(":", 4)
-            nid = int(nid)
-            localtime = int(localtime)
+ 
+            return (date_time, kind, d_or_e, int(nid), int(localtime), details)
 
-            return (date_time, kind, d_or_e, nid, localtime, details)
         except BaseException as ex:
             print("Failed to parse the line:", self._sanitise_string(line))
             print(self._sanitise_string(str(ex)))

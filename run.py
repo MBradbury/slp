@@ -67,9 +67,7 @@ def main(argv):
         print("@sim:{}".format(a.args.sim))
 
         # Print out the argument settings
-        for (k, v) in sorted(vars(a.args).items()):
-            if k not in a.arguments_to_hide:
-                print("{}={}".format(k, v))
+        sim.print_arguments(module, a)
 
         # Print the header for the results
         metrics_class.print_header()

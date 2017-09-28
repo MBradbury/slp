@@ -18,11 +18,11 @@ implementation
 	const local_end_period_t times[] = PERIOD_TIMES_MS;
 	const uint32_t else_time = PERIOD_ELSE_TIME_MS;
 
-	const unsigned int times_length = ARRAY_LENGTH(times);
-
 	command uint32_t SourcePeriodModel.get()
 	{
 		const uint32_t current_time = call LocalTime.get();
+
+		const unsigned int times_length = ARRAY_LENGTH(times);
 
 		unsigned int i;
 

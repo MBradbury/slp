@@ -10,6 +10,10 @@ global_parameter_names = ('network size', 'configuration',
                           'latest node start time',
                           'source period')
 
+testbed_missing_global_parameter_names = {"network size", "noise model", "communication model", "distance", "node id order", "latest node start time"}
+
+testbed_global_parameter_names = tuple(name for name in global_parameter_names if name not in testbed_missing_global_parameter_names)
+
 def available_noise_models():
     """Gets the names of the noise models available in the noise directory"""
     return ("casino-lab", "meyer-heavy", "ttx4-demo")

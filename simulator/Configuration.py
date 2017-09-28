@@ -629,67 +629,16 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
             space_behind_sink=True
         )
 
-class EuratechSmall5by10Top(Configuration):
-    def __init__(self, *args, **kwargs):
-        from data.testbed.fitiotlab import Euratech
-        euratech = Euratech(subset=[(96, 145)])
-
-        super(EuratechSmall5by10Top, self).__init__(
-            euratech,
-            source_ids={96},
-            sink_id=123,
-            space_behind_sink=False
-        )
-
-class EuratechAll(Configuration):
-    """A source at one end of a rectangular strip and a sink in the middle."""
+class EuratechSinkCentre(Configuration):
     def __init__(self, *args, **kwargs):
         from data.testbed.fitiotlab import Euratech
         euratech = Euratech()
 
-        super(EuratechAll, self).__init__(
+        super(EuratechSinkCentre, self).__init__(
             euratech,
-            source_ids={183},
-            sink_id=148,
+            source_ids={98},
+            sink_id=153,
             space_behind_sink=True
-        )
-
-class GrenobleSmall(Configuration):
-    def __init__(self, *args, **kwargs):
-        from data.testbed.fitiotlab import Grenoble
-        grenoble = Grenoble(subset=[(86, 93), (129, 137), (160, 168), (186, 193)])
-
-        super(GrenobleSmall, self).__init__(
-            grenoble,
-            source_ids={187},
-            sink_id=134,
-            space_behind_sink=False
-        )
-
-class GrenobleAll(Configuration):
-    """A source in the corner and a sink in the centre."""
-    def __init__(self, *args, **kwargs):
-        from data.testbed.fitiotlab import Grenoble
-        grenoble = Grenoble()
-
-        super(GrenobleAll, self).__init__(
-            grenoble,
-            source_ids={10},
-            sink_id=80,
-            space_behind_sink=True
-        )
-
-
-class TwistGuess(Configuration):
-    def __init__(self, *args, **kwargs):
-        from data.testbed.twist import Twist
-        twist = Twist()
-
-        super(TwistGuess, self).__init__(
-            twist,
-            source_ids={11},
-            sink_id=210,
-            space_behind_sink=False
         )
 
 class FlockLabSinkCentre(Configuration):
@@ -699,7 +648,7 @@ class FlockLabSinkCentre(Configuration):
 
         super(FlockLabSinkCentre, self).__init__(
             flocklab,
-            source_ids={2},
+            source_ids={1},
             sink_id=23,
             space_behind_sink=True
         )
@@ -788,7 +737,6 @@ def create_specific(name, *args, **kwargs):
             conf_class = try_create_specific(name)
         except BaseException as ex:
             raise RuntimeError("No configurations were found using the name {}. Tried to create a Configuration, but this failed.".format(name), ex)
-
     else:
         conf_class = confs[0]
 

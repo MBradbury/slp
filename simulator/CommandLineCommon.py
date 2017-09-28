@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import argparse
 from collections import defaultdict
 from datetime import timedelta
+import fnmatch
 import functools
 import importlib
 import itertools
@@ -16,6 +17,7 @@ import algorithm
 
 import simulator.common
 import simulator.sim
+import simulator.ArgumentsCommon as ArgumentsCommon
 import simulator.Configuration as Configuration
 
 from data import results, latex, submodule_loader
@@ -36,13 +38,13 @@ class CLI(object):
 
     global_parameter_names = simulator.common.global_parameter_names
 
-    def __init__(self, package, safety_period_result_path=None, custom_run_simulation_class=None, safety_period_equivalence=None):
+    def __init__(self, package, safety_period_module_name=None, custom_run_simulation_class=None, safety_period_equivalence=None):
         super(CLI, self).__init__()
 
         self.algorithm_module = importlib.import_module(package)
         self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
 
-        self.safety_period_result_path = safety_period_result_path
+        self.safety_period_module_name = safety_period_module_name
         self.custom_run_simulation_class = custom_run_simulation_class
 
         self.safety_period_equivalence = safety_period_equivalence
@@ -136,16 +138,34 @@ class CLI(object):
 
         ###
 
-        if safety_period_result_path is not None:            
-            if isinstance(safety_period_result_path, bool):
-                pass
-            else:
+        subparser = self._add_argument("run-testbed-offline", self._run_testbed_offline, help="Process the testbed result files using the offline processor.")
+        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
+
+        ArgumentsCommon.OPTS["configuration"](subparser)
+        ArgumentsCommon.OPTS["attacker model"](subparser)
+        ArgumentsCommon.OPTS["fault model"](subparser)
+
+        subparser = self._add_argument("analyse-testbed", self._run_analyse_testbed, help="Analyse the testbed results of this algorithm.")
+        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
+        subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
+
+        ###
+
+        if safety_period_module_name is not None:
+            # safety_period_module_name can be True
+            # Only when it is a module name do we add the ability to run this command         
+            if not isinstance(safety_period_module_name, bool):
                 subparser = self._add_argument("safety-table", self._run_safety_table, help="Output protectionless information along with the safety period to be used for those parameter combinations.")
                 subparser.add_argument("--show-stddev", action="store_true")
+                subparser.add_argument("--show", action="store_true", default=False)
+                subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("time-taken-table", self._run_time_taken_table, help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("--show-stddev", action="store_true")
         subparser.add_argument("--show", action="store_true", default=False)
+        subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("error-table", self._run_error_table, help="Creates a table showing the number of simulations in which an error occurred.")
         subparser.add_argument("--show", action="store_true", default=False)
@@ -177,6 +197,31 @@ class CLI(object):
 
     def parameter_names(self):
         return self.global_parameter_names + self.algorithm_module.local_parameter_names
+
+    def _testbed_results_path(self, testbed, module=None):
+        if module is None:
+            module = self.algorithm_module.name
+        return os.path.join("testbed_results", testbed.name(), module.name)
+
+    def _testbed_results_file(self, testbed, module=None):
+        if module is None:
+            module = self.algorithm_module
+        return os.path.join(self._testbed_results_path(testbed, module), module.result_file)
+
+    def get_results_file_path(self, testbed=None):
+        if testbed is not None:
+            testbed = submodule_loader.load(data.testbed, testbed)
+            return self._testbed_results_file(testbed)
+        else:
+            return self.algorithm_module.result_file_path
+
+    def get_safety_period_result_path(self, testbed=None):
+        algo = importlib.import_module("algorithm.{}".format(self.safety_period_module_name))
+        if testbed is None:
+            return algo.result_file_path
+        else:
+            testbed = submodule_loader.load(data.testbed, testbed)
+            return self._testbed_results_file(testbed, algo)
 
     @staticmethod
     def _create_table(name, result_table, directory="results", param_filter=lambda x: True, orientation='portrait', show=False):
@@ -527,13 +572,13 @@ class CLI(object):
             else:
                 RunSimulations = functools.partial(self.custom_run_simulation_class, sim)
 
-        if self.safety_period_result_path is True:
+        if self.safety_period_module_name is True:
             safety_periods = True
-        elif self.safety_period_result_path is None:
+        elif self.safety_period_module_name is None:
             safety_periods = None
         else:
             safety_period_table_generator = safety_period.TableGenerator(
-                self.safety_period_result_path,
+                self.get_safety_period_result_path(),
                 self.time_after_first_normal_to_safety_period)
             
             safety_periods = safety_period_table_generator.safety_periods()
@@ -663,29 +708,92 @@ class CLI(object):
                              skip_completed_simulations=skip_complete)
 
     def _run_analyse(self, args):
+        def results_finder(results_directory):
+            return fnmatch.filter(os.listdir(results_directory), '*.txt')
+
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
         analyzer.run(self.algorithm_module.result_file,
+                     results_finder,
                      nprocs=args.thread_count,
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
 
+    def _run_analyse_testbed(self, args):
+        testbed = submodule_loader.load(data.testbed, args.testbed)
+
+        def results_finder(results_directory):
+            return fnmatch.filter(os.listdir(results_directory), '*.txt')
+
+        results_path = self._testbed_results_path()
+        result_file = os.path.basename(self.algorithm_module.result_file)
+
+        analyzer = self.algorithm_module.Analysis.Analyzer(results_path)
+        analyzer.run(result_file,
+                     results_finder,
+                     nprocs=args.thread_count,
+                     headers_to_skip=args.headers_to_skip,
+                     keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound,
+                     testbed=True)
+
+    def _run_testbed_offline(self, args):
+        testbed = submodule_loader.load(data.testbed, args.testbed)
+
+        results_path = self._testbed_results_path()
+
+        results_dirs = [d for d in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, d))]
+
+        common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
+
+        for common_result_dir in common_results_dirs:
+            out_path = os.path.join(results_path, common_result_dir + ".txt")
+
+            command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} ".format(
+                self.algorithm_module.name,
+                testbed.name(),
+                os.path.join(results_path, common_result_dir + "_*", testbed.result_file_name))
+
+            settings = {
+                "--configuration": args.configuration,
+                "--attacker-model": args.attacker_model,
+                "--fault-model": args.fault_model,
+            }
+
+            command += " ".join("{} \"{}\"".format(k, v) for (k, v) in settings.items())
+
+            print("Executing:", command, ">>", out_path)
+            with open(out_path, "w") as stdout_file:
+                subprocess.check_call(command, stdout=stdout_file, shell=True)
+
+
     def _run_safety_table(self, args):
+        safety_period_result_path = self.get_safety_period_result_path(testbed=args.testbed)
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
-        safety_period_table = safety_period.TableGenerator(self.safety_period_result_path, self.time_after_first_normal_to_safety_period, fmt)
+        safety_period_table = safety_period.TableGenerator(safety_period_result_path,
+                                                           self.time_after_first_normal_to_safety_period,
+                                                           fmt,
+                                                           testbed=args.testbed)
 
-        prod = itertools.product(simulator.common.available_noise_models(),
-                                 simulator.common.available_communication_models())
+        if args.testbed:
+            print("Writing testbed safety period table...")
 
-        for (noise_model, comm_model) in prod:
+            filename = '{}-safety'.format(self.algorithm_module.name)
 
-            print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
+            self._create_table(filename, safety_period_table, directory="testbed_results", show=args.show)
 
-            filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
+        else:
+            prod = itertools.product(simulator.common.available_noise_models(),
+                                     simulator.common.available_communication_models())
 
-            self._create_table(filename, safety_period_table,
-                               param_filter=lambda (cm, nm, am, fm, c, d, nido, lst): nm == noise_model and cm == comm_model)
+            for (noise_model, comm_model) in prod:
+
+                print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
+
+                filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
+
+                self._create_table(filename, safety_period_table,
+                                   param_filter=lambda (cm, nm, am, fm, c, d, nido, lst): nm == noise_model and cm == comm_model)
 
     def _run_error_table(self, args):
         res = results.Results(
@@ -823,12 +931,15 @@ class CLI(object):
         sys.exit(0)
 
     def _run_time_taken_table(self, args):
-        result = results.Results(self.algorithm_module.result_file_path,
+        result_file_path = self.get_results_file_path(testbed=args.testbed)
+
+        result = results.Results(result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('time taken', 'first normal sent time',
                                           'total wall time', 'wall time', 'event count',
                                           'repeats', 'captured', 'reached upper bound',
-                                          'memory rss', 'memory vms'))
+                                          'memory rss', 'memory vms'),
+                                 testbed=args.testbed is not None)
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 

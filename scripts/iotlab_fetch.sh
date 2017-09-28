@@ -6,23 +6,6 @@ TESTID=$3
 
 mkdir -p testbed_results/iotlab
 
-#experiment-cli get -i $TESTID -a
-
-#mv $TESTID.tar.gz testbed_results/iotlab/results.$TESTID.tar.gz
-
-#if [ ! -f "./testbed_results/iotlab/results.$TESTID.tar.gz" ]
-#then
-#	echo "Failed to fetch file"
-#	exit 1
-#fi
-
-#tar xzf testbed_results/iotlab/results.$TESTID.tar.gz --directory testbed_results/iotlab
-
-#rm testbed_results/iotlab/results.$TESTID.tar.gz
-
-# Remove submitted binaries
-#rm testbed_results/iotlab/$TESTID/*.ihex
-
 # Now to get some of the other files back from the testbed
 rsync -avz --prune-empty-dirs $USER@$SITE:~/.iot-lab/$TESTID/ testbed_results/iotlab/$TESTID/
 
@@ -33,7 +16,15 @@ then
 	gunzip aggregator_log.stderr.gz
 	gunzip aggregator_log.stdout.gz
 
-	cd -
+	cd - > /dev/null
 
-	echo "Saved IoT Lab results to testbed_results/iotlab/$TESTID"
+	experiment-cli get -i $TESTID -p > testbed_results/iotlab/$TESTID/experiment.json
+
+    name=$(jq -r '.name' testbed_results/iotlab/$TESTID/experiment.json)
+
+    new_name="${name}_$TESTID"
+
+    mv "testbed_results/iotlab/$TESTID" "testbed_results/iotlab/${new_name}"
+
+	echo "Saved IoT Lab results to testbed_results/iotlab/${new_name}"
 fi

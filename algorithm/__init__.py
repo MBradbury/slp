@@ -3,6 +3,7 @@ import importlib
 from os.path import join as os_path_join
 
 results_directory_name = "results"
+testbed_results_directory_name = "testbed_results"
 graphs_directory_name = "Graphs"
 
 def _setup_algorithm_paths(name):
