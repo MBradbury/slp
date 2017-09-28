@@ -6,7 +6,7 @@ COMPONENT = SourceBroadcasterAppC
 #CFLAGS += -DCC2420X_DEF_RFPOWER=1
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
-CFLAGS += -I ga-headers
+CFLAGS += -I ga_headers
 
 CFLAGS += -DTOSH_DATA_LENGTH=40
 
