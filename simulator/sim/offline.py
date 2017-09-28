@@ -21,7 +21,14 @@ def print_arguments(module, a):
     if len(names) == 1:
         name = os.path.basename(next(iter(names)))
 
-        (configuration, source_period, rf_power) = name.split("-")
+        params = name.split("-")
+
+        # Some testbeds need short names, so the default fault model
+        # may be omitted
+        if len(params) == 4:
+            (configuration, fault_model, source_period, rf_power) = params
+        else:
+            (configuration, source_period, rf_power) = params
 
         source_period = float(source_period.replace("_", "."))
 
@@ -35,10 +42,6 @@ def print_arguments(module, a):
         if k not in a.arguments_to_hide:
             print("{}={}".format(k, v))
 
-    if hasattr(a.args, "virtual_arguments"):
-        for (k, v) in sorted(a.args.virtual_arguments().items()):
-            if k not in a.arguments_to_hide:
-                print("{}={}".format(k, v))
 
 def run_simulation(module, a, count=1, print_warnings=False):
     import copy
