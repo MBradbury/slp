@@ -114,7 +114,8 @@ class Runner(object):
     def _submit_job(self, a, target_directory):
 
         # Remove some things to get the name to be shorter
-        name = name[len("testbed-"):-len("-real")].replace("ReliableFaultModel__-", "")
+        name = target_directory[len("testbed-"):-len("-real")]
+        name = name.replace("ReliableFaultModel__-", "")
 
         configuration = Configuration.create(a.args.configuration, a.args)
 
