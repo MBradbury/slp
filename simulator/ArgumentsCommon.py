@@ -218,6 +218,14 @@ class ArgumentsCommon(object):
             configuration = Configuration.create(self.args.configuration, self.args)
             self.args.source_mobility.setup(configuration)
 
+        # Some algorithm need to calculate parameters though some means
+        # If so then we need to set those calculated parameters
+        if hasattr(self, "virtual_arguments"):
+            virtual_args = self.virtual_arguments()
+
+            for (k, v) in virtual_args.items():
+                setattr(self.args, k, v)
+
         return self.args
 
     def build_arguments(self):
