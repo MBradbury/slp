@@ -37,7 +37,8 @@ class Runner(object):
 
     def _submit_job(self, a, target_directory):
 
-        name = target_directory.replace("/", "-")
+        name = target_directory[len("testbed-"):-len("-real")]
+        name = name.replace("/", "-")
 
         configuration = Configuration.create(a.args.configuration, a.args)
 
