@@ -346,7 +346,7 @@ def models():
     return [f for f in OfflineLogConverter.__subclasses__()]  # pylint: disable=no-member
 
 def names():
-    return [f.__name__ for f in models()]
+    return [f.__name__.lower() for f in models()]
 
 def create_specific(name, *args, **kwargs):
     confs = [cls for cls in models() if cls.__name__.lower() == name.lower()]

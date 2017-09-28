@@ -4,18 +4,20 @@ set terminal pdf enhanced
 
 set style fill solid
 
+set key top left
+
 binwidth = 1
 
 bin(x,width)=width*floor(x/width) + width/2.0
 
 set boxwidth binwidth
 
-set xrange [-105:-35]
-set yrange [0:750]
+set xrange [-35:-105]
+set yrange [0:2000]
 
 set xtics auto
 
-set xlabel "Decibels (dB)"
+set xlabel "Noise (dB)"
 set ylabel "Count"
 
 set output "hist-graph-meyer-heavy.pdf"

@@ -3,6 +3,7 @@
 import argparse
 from collections import defaultdict
 import itertools
+import math
 import os.path
 import pickle
 import subprocess
@@ -48,11 +49,42 @@ class ResultsProcessor(object):
     def _get_testbed(self):
         return submodule_loader.load(data.testbed, self.args.testbed)
 
+    def _combine_current_summary(self, results):
+        if len(results) == 0:
+            raise RuntimeError("There are no items in results")
+
+        labels = list(self.testbed_topology.nodes.keys())
+
+        dfs = []
+
+        # Get each result the sum of squares
+        for result in results:
+            df = result.summary_df
+
+            df["ss"] = df["var0"] * df["len"] + df["len"] * df["mean"]**2
+            df["sum"] = df["mean"] * df["len"]
+
+            df = df.set_index("node").reindex(labels, fill_value=0)[["len", "ss", "sum"]]
+
+            dfs.append(df)
+
+        dfs_iter = iter(dfs)
+        total = next(dfs_iter)
+
+        for df in dfs_iter:
+            total = total.add(df, fill_value=0)
+
+        total["mean"] = total["sum"] / total["len"]
+        total["var"] = total["ss"] / total["len"] - total["mean"]**2
+        total["std"] = np.sqrt(total["var"])
+
+        total = total[["mean", "std", "len"]]
+
+        return total
+
     def _combine_current_results(self):
         grouped_results = defaultdict(list)
-
         bad_nodes = defaultdict(int)
-
         total = None
 
         for result in self.current_results:
@@ -70,24 +102,16 @@ class ResultsProcessor(object):
         combined_results = {}
 
         for (broadcasting_node_id, results) in grouped_results.items():
-
-            if len(results) > 1:
-                results_iter = iter(results)
-                combined_result = next(results_iter).raw_df.append([result.raw_df for result in results_iter])
-            elif len(results) == 1:
-                combined_result = results[0].raw_df
-            else:
-                continue
-
-            result = combined_result.groupby(["node"])["I"].agg([np.mean, np.std, len]).reset_index()
-            combined_results[broadcasting_node_id] = result
+            combined_result = self._combine_current_summary(results)
+            
+            combined_results[broadcasting_node_id] = combined_result
 
             if total is None:
-                total = result
+                total = combined_result[["len"]]
             else:
-                total = total.add(result, fill_value=0)
+                total = total.add(combined_result[["len"]], fill_value=0)
 
-        return combined_results, total[["node", "len"]], bad_nodes
+        return combined_results, total, bad_nodes
 
     def _get_combined_current_results(self):
         current_path = os.path.join(self.args.results_dir, self.current_path)
@@ -167,23 +191,29 @@ class ResultsProcessor(object):
         return result
 
     def _get_link_asymmetry_results(self, result):
-
         new_result = {}
 
         for (k, df) in result.items():
 
-            copy = df.copy()
-            copy.fillna(value=np.nan, inplace=True)
+            copy = df.fillna(value=np.nan)
 
             names = list(copy.columns.values)
 
             for (row, col) in itertools.product(names, repeat=2):
-                copy[row][col] = df[row][col] - df[col][row]
+                copy.set_value(row, col, df[row][col] - df[col][row])
 
             new_result[k] = copy
 
         return new_result
 
+    def _get_combined_noise_floor(self):
+        rssi_iter = iter(self.rssi_results)
+
+        rssi_result = next(rssi_iter)
+        for result in rssi_iter:
+            rssi_result = rssi_result.combine(result)
+
+        return rssi_result
 
     def print_individual_rssi(self, args):
         print("RSSI Results:")
@@ -197,11 +227,7 @@ class ResultsProcessor(object):
                 )
 
     def print_combined_rssi(self, args):
-        rssi_iter = iter(self.rssi_results)
-
-        rssi_result = next(rssi_iter)
-        for result in rssi_iter:
-            rssi_result = rssi_result.combine(result)
+        rssi_result = self._get_combined_noise_floor()
 
         print("Combined RSSI Result:")
         for key in sorted(rssi_result.node_average.keys()):
@@ -257,7 +283,7 @@ class ResultsProcessor(object):
                     print("", file=link_info_file)
 
 
-    def _draw_link_heatmap_fn(self, args, converter=lambda x: x, min_max=None):
+    def _draw_link_heatmap_fn(self, args, heatmap_name, converter=lambda x: x, min_max=None):
         import matplotlib.pyplot as plt
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -276,12 +302,21 @@ class ResultsProcessor(object):
                 else:
                     vmin, vmax = min_max[name]
 
-                ax = plt.subplot(1, len(details), i)
+                if args.combine:
+                    ax = plt.subplot(1, len(details), i)
+                else:
+                    ax = plt.gca()
+
                 im = ax.imshow(value[power], cmap="PiYG", aspect="equal", origin="lower", vmin=vmin, vmax=vmax)
 
-                plt.title("{} ({})".format(name, label))
+                title = name if not label else "{} ({})".format(name, label)
+
+                plt.title(title)
                 plt.ylabel("Sender")
                 plt.xlabel("Receiver")
+
+                #plt.yticks(range(len(value[power].index)), value[power].index, size='xx-small')
+                #plt.xticks(range(len(value[power].columns)), value[power].columns, size='xx-small')
 
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -290,22 +325,32 @@ class ResultsProcessor(object):
                 #plt.xlim(min(df.columns), max(df.columns))
                 #plt.ylim(min(df.index), max(df.index))
 
-                #plt.yticks(range(len(df.index)), df.index, size='xx-small')
-                #plt.xticks(range(len(df.columns)), df.columns, size='xx-small')
+                if not args.combine:
 
-            plt.subplots_adjust(wspace=0.35)
+                    filename = "{}-heatmap-{}-{}.pdf".format(heatmap_name, name, power)
 
-            plt.savefig("heatmap-{}.pdf".format(power))
+                    plt.savefig(filename)
 
-            if args.show:
-                plt.show()
+                    subprocess.check_call(["pdfcrop", filename, filename])
+
+                    plt.clf()
+
+            if args.combine:
+                plt.subplots_adjust(wspace=0.35)
+
+                plt.savefig("heatmap-{}.pdf".format(power))
+
+                if args.show:
+                    plt.show()
+
+            plt.clf()
 
     def draw_link_heatmap(self, args):
         min_max = {"prr": (0, 1), "rssi": (-100, -50), "lqi": (40, 115)}
-        return self._draw_link_heatmap_fn(args, min_max=min_max)
+        return self._draw_link_heatmap_fn(args, "link", min_max=min_max)
 
     def draw_link_asymmetry_heatmap(self, args):
-        return self._draw_link_heatmap_fn(args, self._get_link_asymmetry_results)
+        return self._draw_link_heatmap_fn(args, "asymmetry-link", converter=self._get_link_asymmetry_results)
 
 
     def draw_link(self, args):
@@ -334,24 +379,128 @@ class ResultsProcessor(object):
         G = nx.MultiDiGraph()
         G.add_nodes_from(labels)
 
-        scale = 500
+        target_width_pixels = 1024
+
+        xs = [coord[0] for coord in self.testbed_topology.nodes.values()]
+
+        scale = target_width_pixels / (max(xs) - min(xs))
 
         for node in G:
             coords = self.testbed_topology.nodes[node]
 
-            x, y, z = coords
+            x, y = coords[0], coords[1]
 
             G.node[node]['pos'] = "{},{}".format(x * scale, y * scale)
 
         for node1, row in result.iterrows():
             for node2 in labels:
                 if not np.isnan(row[node2]):
-                    G.add_edge(node1, node2, weight=round(row[node2], 2))
+                    G.add_edge(node1, node2, label=round(row[node2], 2))
 
         dot_path = "{}-{}.dot".format(args.name, args.power)
+        png_path = dot_path.replace(".dot", ".png")
+
         write_dot(G, dot_path)
 
-        subprocess.check_call("neato -n2 -T png {} > {}".format(dot_path, dot_path.replace(".dot", ".png")), shell=True)
+        subprocess.check_call("neato -n2 -T png {} > {}".format(dot_path, png_path), shell=True)
+
+        if args.show:
+            subprocess.call("xdg-open {}".format(png_path), shell=True)
+
+    def draw_noise_floor_heatmap(self, args):
+        import matplotlib.pyplot as plt
+
+        noise_floor = self._get_combined_noise_floor()
+
+        z = {
+            nid: result.mean()
+            for ((nid, channel), result)
+            in noise_floor.node_average.items()
+            if channel == args.channel
+        }
+
+        node_info = [
+            (nid, coord, z[nid])
+            for (nid, coord)
+            in self.testbed_topology.nodes.items()
+            if nid in z
+        ]
+
+        n, coords, cs = zip(*node_info)
+
+        xs = [coord[0] for coord in coords]
+        ys = [coord[1] for coord in coords]
+
+        minx, maxx = min(xs), max(xs)
+        miny, maxy = min(ys), max(ys)
+
+        vmin, vmax = -100, -83
+
+        try:
+            zs = [coord[2] for coord in coords]
+        except IndexError:
+            zs = None
+
+        if zs is None:
+            ax = plt.gca()
+            plt.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r", vmin=vmin, vmax=vmax)
+            ax.set_yticklabels([])
+            ax.set_xticklabels([])
+
+            plt.colorbar()
+
+            for (nid, coord, c) in node_info:
+                ax.annotate(str(nid), xy=(coord[0], coord[1]), horizontalalignment='center', verticalalignment='center')
+
+            path = "noise-floor-heatmap-{}.pdf".format(args.channel)
+            plt.savefig(path)
+
+            subprocess.check_call(["pdfcrop", path, path])
+
+            if args.show:
+                plt.show()
+
+        else:
+            grouped_xy = defaultdict(list)
+
+            for (x, y, z, c) in zip(xs, ys, zs, cs):
+                grouped_xy[z].append((x, y, c))
+
+            fig, axes = plt.subplots(nrows=4, ncols=int(math.ceil(len(grouped_xy)/4)), figsize=(math.sqrt(2) * 20, 1 * 20))
+
+            for ((i, (z, xys)), ax) in zip(enumerate(sorted(grouped_xy.items(), key=lambda x: x[0]), start=1), axes.flat):
+                xs = [xy[0] for xy in xys]
+                ys = [xy[1] for xy in xys]
+                cs = [xy[2] for xy in xys]
+
+                im = ax.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r", vmin=vmin, vmax=vmax)
+                ax.set_yticklabels([])
+                ax.set_xticklabels([])
+
+                adjust = 0.5
+
+                ax.set_xlim([minx-adjust, maxx+adjust])
+                ax.set_ylim([miny-adjust, maxy+adjust])
+
+                ax.set_title("z={}m".format(z))
+
+                for (nid, coord, c) in node_info:
+                    if np.isclose(coord[2], z):
+                        ax.annotate(str(nid), xy=(coord[0], coord[1]), horizontalalignment='center', verticalalignment='center')
+
+            fig.subplots_adjust(right=0.8)
+            cbar_ax = plt.gcf().add_axes([0.85, 0.15, 0.05, 0.7])
+            fig.colorbar(im, cax=cbar_ax)
+
+            path = "noise-floor-heatmap-{}.pdf".format(args.channel)
+            plt.savefig(path)
+
+            subprocess.check_call(["pdfcrop", path, path])
+
+            if args.show:
+                plt.show()
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Testbed", add_help=True)
@@ -365,9 +514,9 @@ def main():
 
     argument_handlers = {}
 
-    def add_argument(name, fn, **kwargs):
+    def add_argument(name, fn, *args, **kwargs):
         argument_handlers[name] = fn
-        return subparsers.add_parser(name, **kwargs)
+        return subparsers.add_parser(name, *args, **kwargs)
 
     processor = ResultsProcessor()
 
@@ -384,8 +533,14 @@ def main():
 
     subparser = add_argument("draw-link-heatmap", processor.draw_link_heatmap)
     subparser.add_argument("--show", action="store_true", default=False)
+    subparser.add_argument("--combine", action="store_true", default=False)
 
     subparser = add_argument("draw-link-asymmetry-heatmap", processor.draw_link_asymmetry_heatmap)
+    subparser.add_argument("--show", action="store_true", default=False)
+    subparser.add_argument("--combine", action="store_true", default=False)
+
+    subparser = add_argument("draw-noise-floor-heatmap", processor.draw_noise_floor_heatmap)
+    subparser.add_argument("channel", type=int, choices=[26])
     subparser.add_argument("--show", action="store_true", default=False)
 
     args = parser.parse_args(sys.argv[1:])

@@ -7,6 +7,7 @@ import importlib
 import os
 import shlex
 import subprocess
+from xml.sax.saxutils import escape as escape_xml
 
 import data.testbed.flocklab as flocklab_topology
 
@@ -39,19 +40,20 @@ class Runner(object):
             return "tmote"
         return platform
 
-    def generate_configuration_xml(self, configuration, config_file, exe_path, duration, **options):
+    def generate_configuration_xml(self, configuration, config_file, exe_path, duration, name, **kwargs):
 
         # See: https://www.flocklab.ethz.ch/wiki/wiki/Public/Man/XmlConfig
         # for the details of the xml config
 
         duration_secs = int(duration.total_seconds())
+        name = escape_xml(name)
 
         print('<?xml version="1.0" encoding="UTF-8"?>', file=config_file)
         print('<!-- $Id: flocklab.xml {} {} $ -->'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S Z%Z"), getpass.getuser()), file=config_file)
         print('', file=config_file)
         print('<testConf xmlns="http://www.flocklab.ethz.ch" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.flocklab.ethz.ch xml/flocklab.xsd">', file=config_file)
         print('    <generalConf>', file=config_file)
-        print('        <name>{name}</name>'.format(**options), file=config_file)
+        print('        <name>{}</name>'.format(name), file=config_file)
         print('        <description>SLP Simulation</description>', file=config_file)
         print('        <scheduleAsap>', file=config_file)
         print('            <durationSecs>{}</durationSecs>'.format(duration_secs), file=config_file)
@@ -65,7 +67,7 @@ class Runner(object):
         print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
         print('        <targetIds>{}</targetIds>'.format(nodes), file=config_file)
         print('        <voltage>3.3</voltage>', file=config_file)
-        print('        <embeddedImageId>{name}</embeddedImageId>'.format(**options), file=config_file)
+        print('        <embeddedImageId>{}</embeddedImageId>'.format(name), file=config_file)
         print('    </targetConf>', file=config_file)        
 
         # serialConf tests show:
@@ -84,9 +86,9 @@ class Runner(object):
         platform = self._get_platform(configuration.topology.platform)
 
         print('    <imageConf>', file=config_file)
-        print('        <embeddedImageId>{name}</embeddedImageId>'.format(**options), file=config_file)
-        print('        <name>{name}</name>'.format(**options), file=config_file)
-        print('        <description>{name}</description>'.format(**options), file=config_file)
+        print('        <embeddedImageId>{}</embeddedImageId>'.format(name), file=config_file)
+        print('        <name>{}</name>'.format(name), file=config_file)
+        print('        <description>{}</description>'.format(name), file=config_file)
         print('        <platform>{}</platform>'.format(platform), file=config_file)
         print('        <os>tinyos</os>', file=config_file)
         print('        <data>{}</data>'.format(encoded_file), file=config_file)
@@ -111,10 +113,8 @@ class Runner(object):
 
     def _submit_job(self, a, target_directory):
 
-        name = target_directory.replace("/", "_").replace("-", "_")
-
         # Remove some things to get the name to be shorter
-        name = name[len("testbed_"):-len("_real")].replace("ReliableFaultModel__", "")
+        name = name[len("testbed-"):-len("-real")].replace("ReliableFaultModel__-", "")
 
         configuration = Configuration.create(a.args.configuration, a.args)
 

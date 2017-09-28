@@ -21,7 +21,7 @@ class Euratech(Topology):
         self.nodes[2] = np.array((3.0, 2.5, 0.0), dtype=np.float64)
         self.nodes[3] = np.array((2.4, 2.5, 0.0), dtype=np.float64)
         self.nodes[4] = np.array((1.8, 2.5, 0.0), dtype=np.float64)
-        self.nodes[5] = np.array((1.2, 2.5, 0.0), dtype=np.float64)
+        self.nodes[5] = np.array((1.2, 2.5, 0.0), dtype=np.float64) # Commented
         self.nodes[6] = np.array((3.6, 2.5, 0.6), dtype=np.float64)
         self.nodes[7] = np.array((3.0, 2.5, 0.6), dtype=np.float64)
         self.nodes[8] = np.array((2.4, 2.5, 0.6), dtype=np.float64)
@@ -88,7 +88,7 @@ class Euratech(Topology):
         self.nodes[71] = np.array((3.6, 2.5, 8.4), dtype=np.float64)
         self.nodes[72] = np.array((3.0, 2.5, 8.4), dtype=np.float64)
         self.nodes[73] = np.array((2.4, 2.5, 8.4), dtype=np.float64)
-        self.nodes[74] = np.array((1.8, 2.5, 8.4), dtype=np.float64)
+        #self.nodes[74] = np.array((1.8, 2.5, 8.4), dtype=np.float64) # Commented
         self.nodes[75] = np.array((1.2, 2.5, 8.4), dtype=np.float64)
         self.nodes[76] = np.array((3.6, 2.5, 9.0), dtype=np.float64)
         self.nodes[77] = np.array((3.0, 2.5, 9.0), dtype=np.float64)
@@ -98,6 +98,7 @@ class Euratech(Topology):
         self.nodes[81] = np.array((3.6, 2.5, 9.6), dtype=np.float64)
         self.nodes[82] = np.array((3.0, 2.5, 9.6), dtype=np.float64)
         self.nodes[83] = np.array((2.4, 2.5, 9.6), dtype=np.float64)
+        self.nodes[84] = np.array((1.8, 2.5, 9.6), dtype=np.float64)
         self.nodes[85] = np.array((1.2, 2.5, 9.6), dtype=np.float64)
         self.nodes[86] = np.array((3.6, 2.5, 10.2), dtype=np.float64)
         self.nodes[87] = np.array((3.0, 2.5, 10.2), dtype=np.float64)
@@ -132,14 +133,14 @@ class Euratech(Topology):
         self.nodes[116] = np.array((3.6, 3.4, 2.4), dtype=np.float64)
         self.nodes[117] = np.array((3.0, 3.4, 2.4), dtype=np.float64)
         self.nodes[118] = np.array((2.4, 3.4, 2.4), dtype=np.float64)
-        self.nodes[119] = np.array((1.8, 3.4, 2.4), dtype=np.float64)
+        self.nodes[119] = np.array((1.8, 3.4, 2.4), dtype=np.float64) # Commented
         self.nodes[120] = np.array((1.2, 3.4, 2.4), dtype=np.float64)
         self.nodes[121] = np.array((3.6, 3.4, 3.0), dtype=np.float64)
         self.nodes[122] = np.array((3.0, 3.4, 3.0), dtype=np.float64)
         self.nodes[123] = np.array((2.4, 3.4, 3.0), dtype=np.float64)
         self.nodes[124] = np.array((1.8, 3.4, 3.0), dtype=np.float64)
         self.nodes[125] = np.array((1.2, 3.4, 3.0), dtype=np.float64)
-        self.nodes[126] = np.array((3.6, 3.4, 3.6), dtype=np.float64)
+        self.nodes[126] = np.array((3.6, 3.4, 3.6), dtype=np.float64) # Commented
         self.nodes[127] = np.array((3.0, 3.4, 3.6), dtype=np.float64)
         self.nodes[128] = np.array((2.4, 3.4, 3.6), dtype=np.float64)
         self.nodes[129] = np.array((1.8, 3.4, 3.6), dtype=np.float64)
@@ -191,6 +192,7 @@ class Euratech(Topology):
         self.nodes[175] = np.array((1.2, 3.4, 9.0), dtype=np.float64)
         self.nodes[176] = np.array((3.6, 3.4, 9.6), dtype=np.float64)
         self.nodes[177] = np.array((3.0, 3.4, 9.6), dtype=np.float64)
+        self.nodes[178] = np.array((3.0, 3.4, 9.6), dtype=np.float64) # Not Present
         self.nodes[179] = np.array((1.8, 3.4, 9.6), dtype=np.float64)
         self.nodes[180] = np.array((1.2, 3.4, 9.6), dtype=np.float64)
         self.nodes[181] = np.array((3.6, 3.4, 10.2), dtype=np.float64)
@@ -213,13 +215,14 @@ class Euratech(Topology):
         self.nodes[198] = np.array((4.2, 3.28, 11.32), dtype=np.float64)
         self.nodes[199] = np.array((4.8, 3.28, 11.32), dtype=np.float64)
         self.nodes[200] = np.array((0.0, 2.67, 11.32), dtype=np.float64)
+        self.nodes[201] = np.array((0.0, 2.67, 11.32), dtype=np.float64) # Not Present
         self.nodes[202] = np.array((1.2, 2.67, 11.32), dtype=np.float64)
         self.nodes[203] = np.array((1.8, 2.67, 11.32), dtype=np.float64)
         self.nodes[204] = np.array((2.4, 2.67, 11.32), dtype=np.float64)
         self.nodes[205] = np.array((3.0, 2.67, 11.32), dtype=np.float64)
         self.nodes[206] = np.array((3.6, 2.67, 11.32), dtype=np.float64)
         self.nodes[207] = np.array((4.2, 2.67, 11.32), dtype=np.float64)
-        self.nodes[208] = np.array((4.8, 2.67, 11.32), dtype=np.float64)
+        self.nodes[208] = np.array((4.8, 2.67, 11.32), dtype=np.float64) # Commented
         self.nodes[209] = np.array((1.1, 0.25, 11.32), dtype=np.float64)
         self.nodes[210] = np.array((1.1, 0.9, 11.32), dtype=np.float64)
         self.nodes[211] = np.array((1.1, 1.55, 11.32), dtype=np.float64)
@@ -252,4 +255,3 @@ class Euratech(Topology):
 
     def __str__(self):
         return "Euratech<>"
-
