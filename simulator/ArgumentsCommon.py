@@ -220,13 +220,18 @@ class ArgumentsCommon(object):
 
         # Some algorithm need to calculate parameters though some means
         # If so then we need to set those calculated parameters
-        if hasattr(self, "virtual_arguments"):
-            virtual_args = self.virtual_arguments()
+        virtual_args = self.virtual_arguments()
 
-            for (k, v) in virtual_args.items():
-                setattr(self.args, k, v)
+        for (k, v) in virtual_args.items():
+            setattr(self.args, k, v)
 
         return self.args
+
+    def virtual_arguments(self):
+        """Override this function to return virtual arguments
+        that are not provided by the user, but instead calculated
+        from other parameters."""
+        return {}
 
     def build_arguments(self):
         result = {}
