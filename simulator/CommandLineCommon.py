@@ -547,9 +547,9 @@ class CLI(object):
 
         extras = [self._get_extra_plural_name(extra) for extra in extras]
 
-        extras_product = itertools.product(extras)
+        extras_product = itertools.product(*extras)
 
-        return itertools.product(argument_product, extras_product)
+        return [x + y for (x, y) in itertools.product(argument_product, extras_product)]
 
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
