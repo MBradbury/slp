@@ -20,19 +20,19 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.name)
 
-        subparser = self._subparsers.add_parser("table")
-        subparser = self._subparsers.add_parser("graph")
-        subparser = self._subparsers.add_parser("min-max-versus")
-        subparser = self._subparsers.add_parser("dual-min-max-versus")
+        subparser = self._add_argument("table", self._run_table)
+        subparser = self._add_argument("graph", self._run_graph)
+        subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
+        subparser = self._add_argument("dual-min-max-versus", self._run_dual_min_max_versus)
 
     def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.ifilter(
-            lambda (size, c, am, nm, cm, d, nido, lnst, sp, walk_length, lm): walk_length in parameters.walk_hop_lengths[size],
+            lambda (size, c, am, nm, cm, fm, d, nido, lnst, sp, walk_length, lm): walk_length in parameters.walk_hop_lengths[size],
             itertools.product(
                 parameters.sizes, parameters.configurations,
-                parameters.attacker_models, parameters.noise_models, parameters.communication_models,
+                parameters.attacker_models, parameters.noise_models, parameters.communication_models, parameters.fault_models,
                 [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
                 parameters.source_periods,
                 set(itertools.chain(*parameters.walk_hop_lengths.values())), parameters.landmark_nodes
