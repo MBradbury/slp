@@ -120,7 +120,7 @@ class Runner(object):
             return
         
         print("Submitting {} to {}...".format(name, testbed_name))
-        subprocess.check_call(" ".join(command), shell=True) 
+        subprocess.check_call(" ".join(command), shell=True)
 
     @staticmethod
     def parse_arguments(module, argv):
