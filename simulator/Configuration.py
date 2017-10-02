@@ -8,6 +8,8 @@ from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, Si
 
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_id, space_behind_sink):
+        super(Configuration, self).__init__()
+
         self.topology = topology
         self.sink_id = topology.to_ordered_nid(sink_id)
         self.source_ids = {topology.to_ordered_nid(source_id) for source_id in source_ids}
@@ -594,10 +596,21 @@ class RandomConnected(Configuration):
         )
 
 class RandomPoissonDiskConnected(Configuration):
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         random = RandomPoissonDisk(*args)
 
         super(RandomPoissonDiskConnected, self).__init__(
+            random,
+            source_ids={len(random.nodes) - 1},
+            sink_id=len(random.nodes) // 2,
+            space_behind_sink=True
+        )
+
+class RandomPoissonDiskConnected1000(Configuration):
+    def __init__(self, *args, **kwargs):
+        random = RandomPoissonDisk(*args[:-1], seed=1000)
+
+        super(RandomPoissonDiskConnected1000, self).__init__(
             random,
             source_ids={len(random.nodes) - 1},
             sink_id=len(random.nodes) // 2,
