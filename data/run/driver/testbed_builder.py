@@ -194,12 +194,12 @@ class Runner(object):
         log_mode = self.testbed.log_mode()
 
         modes = {
-            "printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_BUFFERED": 1},
+            "printf":            {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_BUFFERED": 1},
             "unbuffered_printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UNBUFFERED": 1},
-            "uart_printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UART": 1},
-            "serial": {"USE_SERIAL_MESSAGES": 1},
-            "disabled": {"NO_SERIAL_OUTPUT": 1},
-            "avrora": {"AVRORA_OUTPUT": 1},
+            "uart_printf":       {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UART": 1},
+            "serial":            {"USE_SERIAL_MESSAGES": 1},
+            "disabled":          {"NO_SERIAL_OUTPUT": 1},
+            "avrora":            {"AVRORA_OUTPUT": 1},
         }
 
         try:
