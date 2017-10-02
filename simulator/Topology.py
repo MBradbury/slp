@@ -224,7 +224,7 @@ class Random(Topology):
             return all(
                 self.coord_distance_meters(node, other_node) > 1.0
                 for other_node
-                in self.nodes
+                in self.nodes.values()
             )
 
         max_retries = 20
@@ -247,3 +247,35 @@ class Random(Topology):
 
     def __str__(self):
         return "Random<seed={},network_size={},area={}>".format(self.seed, self.size, self.area)
+
+class RandomPoissonDisk(Topology):
+    def __init__(self, network_size, distance, node_id_order, seed=None):
+        super(RandomPoissonDisk, self).__init__(seed)
+
+        from bridson import poisson_disc_samples
+
+        self.size = network_size
+        self.distance = float(distance)
+
+        rnd = random.Random()
+        rnd.seed(self.seed)
+
+        min_x_pos = 0
+        min_y_pos = 0
+        max_x_pos = network_size * distance * 1.25
+        max_y_pos = network_size * distance * 1.25
+
+        self.area = ((min_x_pos, max_x_pos), (min_y_pos, max_y_pos))
+
+        samples = poisson_disc_samples(width=max_x_pos, height=max_y_pos, r=distance * 0.75, random=rnd.random)
+
+        for (i, coord) in zip(range(network_size**2), samples):
+            self.nodes[i] = np.array(coord, dtype=np.float64)
+
+        if len(self.nodes) != network_size**2:
+            raise RuntimeError("Incorrect network size of {}, expected {}".format(len(self.nodes), network_size**2))
+
+        self._process_node_id_order(node_id_order)
+
+    def __str__(self):
+        return "RandomPoissonDisk<seed={},network_size={},area={}>".format(self.seed, self.size, self.area)
