@@ -45,7 +45,7 @@ class Simulation(object):
             #
             # If we ever get to the point where subsequent runs work well
             # then freeing the memory will be necessary.
-            self.tossim = tossim_module.Tossim({}, should_free=False)
+            self.tossim = tossim_module.Tossim(should_free=False)
 
         self.radio = self.tossim.radio()
 
@@ -472,14 +472,12 @@ class OfflineSimulation(object):
 
         match = self.LINE_RE.match(rest)
         if match is not None:
-            kind = match.group(1)
-            log_type = match.group(2)
-            node_id = ast.literal_eval(match.group(3))
-            node_local_time = ast.literal_eval(match.group(4))
-            message_line = match.group(5)
+            (kind, log_type, node_id, node_local_time, message_line) = match.groups()
+
+            node_id = ast.literal_eval(node_id)
+            node_local_time = ast.literal_eval(node_local_time)
 
             return (current_time, kind, node_local_time, log_type, node_id, message_line)
-
         else:
             return None
 

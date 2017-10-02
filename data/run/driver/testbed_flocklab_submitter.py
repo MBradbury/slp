@@ -45,6 +45,7 @@ class Runner(object):
         alg, rest = name.split("/")
         params = rest.split("-")
 
+        # by removing lowercase characters
         params[0] = "".join(x for x in params[0] if not x.islower())
 
         short_name = "{}/{}".format(alg, "-".join(params))
