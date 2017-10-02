@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import datetime
+from datetime import timedelta
 import os
 
 import algorithm
@@ -27,21 +27,35 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graphs)
 
     def _cluster_time_estimator(self, args, **kwargs):
-        """Estimates how long simulations are run for. Override this in algorithm
-        specific CommandLine if these values are too small or too big. In general
-        these have been good amounts of time to run simulations for. You might want
-        to adjust the number of repeats to get the simulation time in this range."""
-        size = args['network size']
-        if size == 11:
-            return datetime.timedelta(hours=9)
-        elif size == 15:
-            return datetime.timedelta(hours=21)
-        elif size == 21:
-            return datetime.timedelta(hours=42)
-        elif size == 25:
-            return datetime.timedelta(hours=71)
-        else:
-            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+        historical_key_names = ('network size', 'source period')
+        historical = {
+            ('11', '0.125'): timedelta(seconds=2),
+            ('11', '0.25'): timedelta(seconds=2),
+            ('11', '0.5'): timedelta(seconds=2),
+            ('11', '1.0'): timedelta(seconds=3),
+            ('11', '2.0'): timedelta(seconds=3),
+            ('15', '0.125'): timedelta(seconds=6),
+            ('15', '0.25'): timedelta(seconds=6),
+            ('15', '0.5'): timedelta(seconds=7),
+            ('15', '1.0'): timedelta(seconds=8),
+            ('15', '2.0'): timedelta(seconds=9),
+            ('21', '0.125'): timedelta(seconds=31),
+            ('21', '0.25'): timedelta(seconds=29),
+            ('21', '0.5'): timedelta(seconds=32),
+            ('21', '1.0'): timedelta(seconds=32),
+            ('21', '2.0'): timedelta(seconds=34),
+            ('25', '0.125'): timedelta(seconds=71),
+            ('25', '0.25'): timedelta(seconds=70),
+            ('25', '0.5'): timedelta(seconds=73),
+            ('25', '1.0'): timedelta(seconds=82),
+            ('25', '2.0'): timedelta(seconds=70),
+        }
+
+        return self._cluster_time_estimator_from_historical(
+            args, kwargs, historical_key_names, historical,
+            allowance=0.25,
+            max_time=timedelta(days=3)-timedelta(hours=1)
+        )
 
     def _run_table(self, args):
         protectionless_results = results.Results(
