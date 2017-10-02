@@ -639,7 +639,7 @@ class CLI(object):
 
         return [process(*args) for args in argument_product]
 
-    def _cluster_time_estimator(self, args, **kwargs):
+    def _default_cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
@@ -655,6 +655,9 @@ class CLI(object):
             return timedelta(hours=71)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+
+    def _cluster_time_estimator(self, args, **kwargs):
+        return self._default_cluster_time_estimator(args, **kwargs)
 
     def _cluster_time_estimator_from_historical(self, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
         key = tuple(args[name] for name in historical_key_names)
@@ -689,7 +692,7 @@ class CLI(object):
 
         except KeyError:
             print("Unable to find historical time for {}, so using default time estimator.".format(key))
-            return self._cluster_time_estimator(args, **kwargs)
+            return self._default_cluster_time_estimator(args, **kwargs)
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
