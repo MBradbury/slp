@@ -40,21 +40,39 @@ class Runner(object):
             return "tmote"
         return platform
 
+    def short_name(self, name):
+        # Shorten the configuration name
+        alg, rest = name.split("/")
+        params = rest.split("-")
+
+        params[0] = "".join(x for x in params[0] if not x.islower())
+
+        short_name = "{}/{}".format(alg, "-".join(params))
+
+        return short_name
+
     def generate_configuration_xml(self, configuration, config_file, exe_path, duration, name, **kwargs):
 
         # See: https://www.flocklab.ethz.ch/wiki/wiki/Public/Man/XmlConfig
         # for the details of the xml config
 
+        short_name = self.short_name(name)
+
+        if len(short_name) > 45:
+            raise RuntimeError("Name too long at {} characters".format(len(name)))
+
         duration_secs = int(duration.total_seconds())
+        
         name = escape_xml(name)
+        short_name = escape_xml(short_name)
 
         print('<?xml version="1.0" encoding="UTF-8"?>', file=config_file)
         print('<!-- $Id: flocklab.xml {} {} $ -->'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S Z%Z"), getpass.getuser()), file=config_file)
         print('', file=config_file)
         print('<testConf xmlns="http://www.flocklab.ethz.ch" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.flocklab.ethz.ch xml/flocklab.xsd">', file=config_file)
         print('    <generalConf>', file=config_file)
-        print('        <name>{}</name>'.format(name), file=config_file)
-        print('        <description>SLP Simulation</description>', file=config_file)
+        print('        <name>{}</name>'.format(short_name), file=config_file)
+        print('        <description>{}</description>'.format(name), file=config_file)
         print('        <scheduleAsap>', file=config_file)
         print('            <durationSecs>{}</durationSecs>'.format(duration_secs), file=config_file)
         print('        </scheduleAsap>', file=config_file)
@@ -67,7 +85,7 @@ class Runner(object):
         print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
         print('        <targetIds>{}</targetIds>'.format(nodes), file=config_file)
         print('        <voltage>3.3</voltage>', file=config_file)
-        print('        <embeddedImageId>{}</embeddedImageId>'.format(name), file=config_file)
+        print('        <embeddedImageId>{}</embeddedImageId>'.format(short_name), file=config_file)
         print('    </targetConf>', file=config_file)        
 
         # serialConf tests show:
@@ -86,8 +104,8 @@ class Runner(object):
         platform = self._get_platform(configuration.topology.platform)
 
         print('    <imageConf>', file=config_file)
-        print('        <embeddedImageId>{}</embeddedImageId>'.format(name), file=config_file)
-        print('        <name>{}</name>'.format(name), file=config_file)
+        print('        <embeddedImageId>{}</embeddedImageId>'.format(short_name), file=config_file)
+        print('        <name>{}</name>'.format(short_name), file=config_file)
         print('        <description>{}</description>'.format(name), file=config_file)
         print('        <platform>{}</platform>'.format(platform), file=config_file)
         print('        <os>tinyos</os>', file=config_file)
