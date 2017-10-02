@@ -4,7 +4,7 @@ from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
 from data.memoize import memoize
-from simulator.Topology import Line, Grid, Circle, Random, SimpleTree, Ring
+from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring
 
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_id, space_behind_sink):
@@ -590,6 +590,17 @@ class RandomConnected(Configuration):
             random,
             source_ids={len(random.nodes) - 1},
             sink_id=0,
+            space_behind_sink=True
+        )
+
+class RandomPoissonDiskConnected(Configuration):
+    def __init__(self, *args):
+        random = RandomPoissonDisk(*args)
+
+        super(RandomPoissonDiskConnected, self).__init__(
+            random,
+            source_ids={len(random.nodes) - 1},
+            sink_id=len(random.nodes) // 2,
             space_behind_sink=True
         )
 
