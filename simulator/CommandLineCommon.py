@@ -89,6 +89,7 @@ class CLI(object):
         subparser.add_argument("--array", action="store_true", help="Submit multiple arrays jobs (experimental).")
         subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
+        subparser.add_argument("--dry-run", action="store_true", default=False)
 
         subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
@@ -853,10 +854,9 @@ class CLI(object):
         elif 'submit' == args.cluster_mode:
             emails_to_notify = self._get_emails_to_notify(args)
 
-            if args.array:
-                submitter = cluster.array_submitter(emails_to_notify)
-            else:
-                submitter = cluster.submitter(emails_to_notify)
+            submitter_fn = cluster.array_submitter if args.array else cluster.submitter
+
+            submitter = submitter_fn(notify_emails=emails_to_notify, dry_run=args.dry_run)
 
             skip_complete = not args.no_skip_complete
 
