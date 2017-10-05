@@ -67,7 +67,7 @@ implementation
 		}
 		else
 		{
-			*period = NULL;
+			*period = (slp_period_t*)NULL;
 			*length = 0;
 			return FALSE;
 		}
