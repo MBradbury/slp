@@ -41,7 +41,7 @@ implementation
 			}
 		}
 
-		return NULL;
+		return (SequenceNumber*)NULL;
 	}
 
 	SequenceNumber* find_or_add(am_addr_t address)
