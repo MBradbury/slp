@@ -1,5 +1,17 @@
 #include "Common.h"
 
+typedef struct {
+	uint32_t end;
+	uint32_t period;
+} local_end_period_t;
+
+// Arrays can't have a Zero length
+#if PERIOD_TIMES_LEN > 0
+const local_end_period_t times[PERIOD_TIMES_LEN] = PERIOD_TIMES_MS;
+#endif
+
+const uint32_t else_time = PERIOD_ELSE_TIME_MS;
+
 module SourcePeriodModelImplP
 {
 	provides interface SourcePeriodModel;
@@ -10,28 +22,19 @@ module SourcePeriodModelImplP
 }
 implementation
 {
-	typedef struct {
-		uint32_t end;
-		uint32_t period;
-	} local_end_period_t;
-
-	const local_end_period_t times[] = PERIOD_TIMES_MS;
-	const uint32_t else_time = PERIOD_ELSE_TIME_MS;
-
 	command uint32_t SourcePeriodModel.get()
 	{
 		const uint32_t current_time = call LocalTime.get();
 
-		const unsigned int times_length = ARRAY_LENGTH(times);
-
-		unsigned int i;
+		unsigned int i = 0;
 
 		uint32_t period = -1;
 
 		simdbgverbose("stdout", "Called get_source_period current_time=%" PRIu32 " #times=%u\n",
-			current_time, times_length);
+			current_time, PERIOD_TIMES_LEN);
 
-		for (i = 0; i != times_length; ++i)
+#if PERIOD_TIMES_LEN > 0
+		for (i = 0; i != PERIOD_TIMES_LEN; ++i)
 		{
 			//simdbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
 			//	i, current_time, times[i].end, times[i].period);
@@ -42,8 +45,9 @@ implementation
 				break;
 			}
 		}
+#endif
 
-		if (i == times_length)
+		if (i == PERIOD_TIMES_LEN)
 		{
 			period = else_time;
 		}

@@ -35,7 +35,7 @@ class MobilityModel(object):
 
         def to_tinyos_format(time):
             if math.isinf(time):
-                return "(uint32_t)-1"
+                return "UINT32_MAX"
             else:
                 return "{}U".format(int(time * 1000))
 
