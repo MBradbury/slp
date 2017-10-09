@@ -6,8 +6,8 @@ from numpy import mean
 
 class Metrics(MetricsCommon):
 
-    def __init__(self, sim, configuration):
-        super(Metrics, self).__init__(sim, configuration)
+    def __init__(self, *args, **kwargs):
+        super(Metrics, self).__init__(*args, **kwargs)
 
         self.register('M-PE', self._process_PATH_END)
         self.register('M-SD', self._process_SOURCE_DROPPED)
