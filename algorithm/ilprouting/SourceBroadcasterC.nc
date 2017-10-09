@@ -1010,7 +1010,7 @@ implementation
 
 				default:
 				{
-					ERROR_OCCURRED(ERROR_UNKNOWN_MSG_STAGE, "Unknown message stage " PRIu8 "\n", message.stage);
+					ERROR_OCCURRED(ERROR_UNKNOWN_MSG_STAGE, "Unknown message stage %" PRIu8 "\n", message.stage);
 				} break;
 			}
 
