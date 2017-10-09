@@ -21,6 +21,7 @@ interface MetricLogging
 
 	command void log_metric_deliver(
 		const char* message_type,
+		am_addr_t target,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
