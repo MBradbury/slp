@@ -36,10 +36,12 @@ def pairwise(iterable):
     return zip(a, b)
 
 class MetricsCommon(object):
-    def __init__(self, sim, configuration):
+    def __init__(self, sim, configuration, strict=True):
         self.sim = sim
         self.configuration = configuration
         self.topology = configuration.topology
+
+        self.strict = strict
 
         self.source_ids = set() # set(configuration.source_ids)
         self.sink_ids = set() # {configuration.sink_id}
@@ -223,8 +225,17 @@ class MetricsCommon(object):
             # If there is a KeyError on the line with self.normal_sent_time
             # then that means that a message was received, but not recorded as sent.
             key = (top_ultimate_source_id, sequence_number)
-            sent_time = self.normal_sent_time[key]
-            self.normal_latency[key] = time - sent_time
+
+            try:
+                sent_time = self.normal_sent_time[key]
+                self.normal_latency[key] = time - sent_time
+            except KeyError as ex:
+                if not self.strict:
+                    print("Unable to find the normal sent time for key {}.".format(key), file=sys.stderr)
+                    self.normal_latency[key] = None
+                else:
+                    raise
+
             self.normal_receive_time[key] = time
             self.normal_hop_count.append(hop_count)
 
@@ -327,21 +338,27 @@ class MetricsCommon(object):
             return float('NaN')
 
     def average_normal_latency(self):
+        non_null_latency = [x for x in self.normal_latency.values() if x is not None]
+
         # It is possible that the sink has received no Normal messages
-        if len(self.normal_latency) != 0:
-            return np.mean(np.fromiter(iter(self.normal_latency.values()), dtype=float))
+        if len(non_null_latency) != 0:
+            return np.mean(np.fromiter(iter(non_null_latency), dtype=float))
         else:
             return float('inf')
 
     def maximum_normal_latency(self):
-        if len(self.normal_latency) != 0:
-            return max(self.normal_latency.values())
+        non_null_latency = [x for x in self.normal_latency.values() if x is not None]
+
+        if len(non_null_latency) != 0:
+            return max(non_null_latency)
         else:
             return float('inf')
 
     def minimum_normal_latency(self):
-        if len(self.normal_latency) != 0:
-            return min(self.normal_latency.values())
+        non_null_latency = [x for x in self.normal_latency.values() if x is not None]
+
+        if len(non_null_latency) != 0:
+            return min(non_null_latency)
         else:
             return float('inf')
 
@@ -407,7 +424,7 @@ class MetricsCommon(object):
         # so a small tolerance value is used.
 
         if len(set(self.normal_receive_time.keys()) - set(self.normal_sent_time.keys())) > 0:
-            raise RuntimeError("We received a message that was not set (sent: {}) (received {})!".format(
+            raise RuntimeError("We received an unexpected message (sent: {}) (received {})!".format(
                 self.normal_sent_time, self.normal_receive_time
             ))
 
