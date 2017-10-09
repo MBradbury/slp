@@ -747,9 +747,20 @@ class CLI(object):
 
         results_dirs = [d for d in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, d))]
 
+        # All directories that have results for the same parameters
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
 
+        if self.safety_period_module_name is not None:
+            safety_period_result_path = self.get_safety_period_result_path(testbed=args.testbed)
+            safety_period_table = safety_period.TableGenerator(safety_period_result_path,
+                                                               self.time_after_first_normal_to_safety_period,
+                                                               testbed=args.testbed)
+            safety_periods = safety_period_table.safety_periods()
+
         for common_result_dir in common_results_dirs:
+
+            print(common_result_dir)
+
             out_path = os.path.join(results_path, common_result_dir + ".txt")
 
             command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
@@ -763,6 +774,23 @@ class CLI(object):
                 "--fault-model": args.fault_model,
             }
 
+            if self.safety_period_module_name is not None:
+                # The source period will either be the second or third entry in common_result_dir
+                # Depending on if the fault model has been left out
+                params = common_result_dir.split("-")
+
+                if len(params) == 4 + len(self.algorithm_module.local_parameter_names):
+                    (configuration, fault_model, source_period) = params[:3]
+                elif len(params) == 3 + len(self.algorithm_module.local_parameter_names):
+                    (configuration, source_period) = params[:2]
+                else:
+                    raise RuntimeError("Unsure of the source period")
+
+                source_period = source_period.replace("_", ".")
+
+                safety_key = (args.configuration, str(args.attacker_model), str(args.fault_model))
+                settings["--safety-period"] = str(safety_periods[safety_key][source_period])
+            
             command += " ".join("{} \"{}\"".format(k, v) for (k, v) in settings.items())
 
             if args.verbose:
