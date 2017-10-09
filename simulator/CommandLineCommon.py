@@ -142,6 +142,7 @@ class CLI(object):
         subparser = self._add_argument("run-testbed-offline", self._run_testbed_offline, help="Process the testbed result files using the offline processor.")
         subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
 
+        ArgumentsCommon.OPTS["verbose"](subparser)
         ArgumentsCommon.OPTS["configuration"](subparser)
         ArgumentsCommon.OPTS["attacker model"](subparser)
         ArgumentsCommon.OPTS["fault model"](subparser)
@@ -201,7 +202,7 @@ class CLI(object):
 
     def _testbed_results_path(self, testbed, module=None):
         if module is None:
-            module = self.algorithm_module.name
+            module = self.algorithm_module
         return os.path.join("testbed_results", testbed.name(), module.name)
 
     def _testbed_results_file(self, testbed, module=None):
@@ -728,7 +729,7 @@ class CLI(object):
         def results_finder(results_directory):
             return fnmatch.filter(os.listdir(results_directory), '*.txt')
 
-        results_path = self._testbed_results_path()
+        results_path = self._testbed_results_path(testbed)
         result_file = os.path.basename(self.algorithm_module.result_file)
 
         analyzer = self.algorithm_module.Analysis.Analyzer(results_path)
@@ -742,7 +743,7 @@ class CLI(object):
     def _run_testbed_offline(self, args):
         testbed = submodule_loader.load(data.testbed, args.testbed)
 
-        results_path = self._testbed_results_path()
+        results_path = self._testbed_results_path(testbed)
 
         results_dirs = [d for d in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, d))]
 
@@ -751,7 +752,7 @@ class CLI(object):
         for common_result_dir in common_results_dirs:
             out_path = os.path.join(results_path, common_result_dir + ".txt")
 
-            command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} ".format(
+            command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
                 self.algorithm_module.name,
                 testbed.name(),
                 os.path.join(results_path, common_result_dir + "_*", testbed.result_file_name))
@@ -763,6 +764,9 @@ class CLI(object):
             }
 
             command += " ".join("{} \"{}\"".format(k, v) for (k, v) in settings.items())
+
+            if args.verbose:
+                command += " --verbose"
 
             print("Executing:", command, ">>", out_path)
             with open(out_path, "w") as stdout_file:
