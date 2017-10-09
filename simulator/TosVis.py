@@ -323,6 +323,9 @@ class Gui:
         # (amtype, amlen)
         detail = (None, None)
 
+        # TODO: Detect if the results have a target and use that to determine if
+        # _animate_am_receive or _animate_am_snoop should be called.
+
         return self._animate_am_receive(time, node_id, detail)    
 
 ###############################################
