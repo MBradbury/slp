@@ -123,6 +123,14 @@ class Gui:
         elif sim_tool == "avrora":
             self._sim.register_output_handler('AVRORA-TX', self._process_avrora_tx)
             self._sim.register_output_handler('AVRORA-RX', self._process_avrora_rx)
+        elif sim_tool == "offline":
+            # If we are using offline then we need to use the M-C* events
+            self._sim.register_output_handler('M-CB', self._process_metric_communicate_broadcast)
+            self._sim.register_output_handler('M-CD', self._process_metric_communicate_deliver)
+
+            # Leds are not typically enabled, but lets do so anyway
+            self._sim.register_output_handler('LedsC', self._process_message)
+
 
         self._sim.register_output_handler('Fake-Notification', self._process_message)
         self._sim.register_output_handler('G-NC', self._process_message)
@@ -167,7 +175,7 @@ class Gui:
 
     ####################
     def _animate_am_send(self, time, sender, detail):
-        (amtype, amlen, amdst) = detail
+        #(amtype, amlen, amdst) = detail
         (x, y) = self.node_location(sender)
         self.scene.execute(time,
                    'circle(%d,%d,%d,line=LineStyle(color=(1,0,0),dash=(1,1)),delay=.2)'
@@ -175,14 +183,14 @@ class Gui:
 
     ####################
     def _animate_am_receive(self, time, receiver, detail):
-        (amtype, amlen) = detail
+        #(amtype, amlen) = detail
         (x, y) = self.node_location(receiver)
         self.scene.execute(time,
             'circle(%d,%d,%d,line=LineStyle(color=(0,0,1),width=3),delay=.2)'
             % (x, y, 10))
 
     def _animate_am_snoop(self, time, snooper, detail):
-        (amtype, amlen, amtarget, attime) = detail
+        #(amtype, amlen, amtarget, attime) = detail
         (x, y) = self.node_location(snooper)
         self.scene.execute(time,
             'circle(%d,%d,%d,line=LineStyle(color=(0.0,0.5,0.5),width=2),delay=.2)'
@@ -304,6 +312,18 @@ class Gui:
         detail = (None, len(radio_bytes))
 
         return self._animate_am_receive(time, node_id, detail)
+
+    def _process_metric_communicate_broadcast(self, d_or_e, node_id, time, without_dbg):
+        # (amtype, amlen, amdst)
+        detail = (None, None, None)
+
+        return self._animate_am_send(time, node_id, detail)
+
+    def _process_metric_communicate_deliver(self, d_or_e, node_id, time, without_dbg):
+        # (amtype, amlen)
+        detail = (None, None)
+
+        return self._animate_am_receive(time, node_id, detail)    
 
 ###############################################
 class GuiSimulation(Simulation):
