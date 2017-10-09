@@ -6,7 +6,8 @@ import importlib
 
 def parsers():
     return [
-        ("SINGLE", None, ["verbose", "configuration", "attacker model", "fault model", "seed", "log file", "log converter", "nonstrict"]),
+        ("SINGLE", None, ["verbose", "configuration", "attacker model", "fault model", "safety period",
+                          "seed", "log file", "log converter", "nonstrict"]),
         ("GUI", "SINGLE", ["gui scale"]),
     ]
 
