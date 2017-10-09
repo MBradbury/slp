@@ -52,6 +52,7 @@ implementation
 
 	command void MetricLogging.log_metric_deliver(
 		const char* message_type,
+		am_addr_t target,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
@@ -60,8 +61,8 @@ implementation
 		)
 	{
 		simdbg("M-CD", \
-			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number, rssi, lqi);
+			MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
+			MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source_poss_bottom, sequence_number, rssi, lqi);
 	}
 
 	command void MetricLogging.log_attacker_receive(
