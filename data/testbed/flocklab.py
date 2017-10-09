@@ -29,7 +29,7 @@ def build_arguments():
     return {
         # Wait for a short amount of time before running the boot event.
         # This is to help catch all the serial output
-        "DELAYED_BOOT_TIME_MINUTES": 3
+        "DELAYED_BOOT_TIME_MINUTES": 4
     }
 
 def fastserial_supported():
