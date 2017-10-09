@@ -152,6 +152,11 @@ OPTS = {
                                                               metavar="F",
                                                               required=True),
 
+    "nonstrict":           lambda x, **kwargs: x.add_argument("--non-strict",
+                                                              required=False,
+                                                              action="store_true",
+                                                              default=False),
+
     "log converter":        _add_log_converter,
 
     "low powered listening": _add_low_powered_listening,
