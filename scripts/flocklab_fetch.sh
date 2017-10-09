@@ -16,7 +16,7 @@ fi
 
 mkdir -p testbed_results/flocklab
 
-echo "Downloading results..."
+echo "Downloading results for ${TESTID}..."
 
 curl -s -S --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
 
