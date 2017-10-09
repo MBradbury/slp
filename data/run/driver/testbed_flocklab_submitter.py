@@ -48,7 +48,12 @@ class Runner(object):
         # by removing lowercase characters
         params[0] = "".join(x for x in params[0] if not x.islower())
 
-        short_name = "{}/{}".format(alg, "-".join(params))
+        params = "-".join(params)
+
+        # by removing "_APPROACH"
+        params = params.replace("_APPROACH", "")
+
+        short_name = "{}/{}".format(alg, params)
 
         return short_name
 
@@ -60,7 +65,7 @@ class Runner(object):
         short_name = self.short_name(name)
 
         if len(short_name) > 45:
-            raise RuntimeError("Name too long at {} characters".format(len(name)))
+            raise RuntimeError("Name {} too long at {} characters".format(short_name, len(short_name)))
 
         duration_secs = int(duration.total_seconds())
         
