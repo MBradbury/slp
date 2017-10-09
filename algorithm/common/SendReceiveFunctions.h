@@ -242,7 +242,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
-		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", len); \
+		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "'ed " #NAME " of invalid length %" PRIu8 ", expected %" PRIu8 ".\n", len, sizeof(NAME##Message)); \
 		return msg; \
 	} \
  \
@@ -254,7 +254,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	{
 
 #define RECEIVE_MESSAGE_END(NAME) \
-		default: \
+		default: \	
 		{ \
 			ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unknown node type %s. Cannot process " #NAME " message.\n", \
 				call NodeType.current_to_string()); \
@@ -283,7 +283,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
-		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "ed " #NAME " of invalid length %" PRIu8 ".\n", len); \
+		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "'ed " #NAME " of invalid length %" PRIu8 ", expected %" PRIu8 ".\n", len, sizeof(NAME##Message)); \
 		return FALSE; \
 	} \
  \
