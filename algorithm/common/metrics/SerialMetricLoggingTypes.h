@@ -66,6 +66,7 @@ typedef nx_struct metric_deliver_msg {
 
 	nx_uint8_t message_type;
 
+	nx_am_addr_t target;
 	nx_am_addr_t proximate_source;
 	nx_int32_t ultimate_source_poss_bottom;
 	nx_int64_t sequence_number;
