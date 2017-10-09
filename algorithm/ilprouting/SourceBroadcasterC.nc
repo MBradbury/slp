@@ -920,7 +920,7 @@ implementation
 
 			if (info == NULL)
 			{
-				ERROR_OCCURRED(ERROR_UNKNOWN, "Unable to choose a message to send (call MessageQueue.count()=%u).\n",
+				ERROR_OCCURRED(ERROR_FAILED_CHOOSE_MSG, "Unable to choose a message to send (call MessageQueue.count()=%u).\n",
 					call MessageQueue.count());
 				return;
 			}
@@ -1010,7 +1010,7 @@ implementation
 
 				default:
 				{
-					ERROR_OCCURRED(ERROR_UNKNOWN, "Unknown message stage\n");
+					ERROR_OCCURRED(ERROR_UNKNOWN_MSG_STAGE, "Unknown message stage " PRIu8 "\n", message.stage);
 				} break;
 			}
 
@@ -1028,7 +1028,7 @@ implementation
 			{
 				if (message.stage == NORMAL_ROUTE_TO_SINK && call NodeType.get() != SinkNode)
 				{
-					ERROR_OCCURRED(ERROR_UNKNOWN, "Cannot find route to sink.\n");
+					ERROR_OCCURRED(ERROR_NO_ROUTE_TO_SINK, "Cannot find route to sink.\n");
 				}
 
 				// Remove if unable to send
@@ -1048,7 +1048,7 @@ implementation
 					}
 					else
 					{
-						ERROR_OCCURRED(ERROR_UNKNOWN, 
+						ERROR_OCCURRED(ERROR_FAILED_TO_FIND_MSG_ROUTE, 
 							"Removing the message %" PRIu32 " from the pool as we have failed to work out where to send it.\n",
 							message.sequence_number);
 
@@ -1063,7 +1063,7 @@ implementation
 						poll_message.sink_distance_of_sender = sink_distance;
 						poll_message.source_distance_of_sender = source_distance;
 
-						simdbg("stdout", "Couldn't calculate target several times, sending poll to get more info\n");
+						LOG_STDOUT(ILPROUTING_EVENT_SEND_POLL, "Couldn't calculate target several times, sending poll to get more info\n");
 
 						call Neighbours.poll(&poll_message);
 					}
