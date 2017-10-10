@@ -104,6 +104,7 @@ class CLI(object):
         subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
         subparser.add_argument("-g", "--generate-per-node-id-binary", default=False, action="store_true", help="Also create a per node id binary that can be used in deployment")
+        subparser.add_argument("-v", "--verbose", default=False, action="store_true", help="Produce verbose logging output from the testbed binaries")
 
         subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
         subparser.add_argument("--duration", type=str, help="How long you wish to run on the testbed for.", required=True)
@@ -554,7 +555,8 @@ class CLI(object):
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
 
-    def _execute_runner(self, sim, driver, result_path, time_estimator=None, skip_completed_simulations=True):
+    def _execute_runner(self, sim, driver, result_path, time_estimator=None,
+                        skip_completed_simulations=True, verbose=False):
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
         elif driver.mode() == "CYCLEACCURATE":
@@ -587,7 +589,7 @@ class CLI(object):
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations,
             safety_periods=safety_periods,
-            safety_period_equivalence=self.safety_period_equivalence
+            safety_period_equivalence=self.safety_period_equivalence,
         )
 
         extra_argument_names = getattr(runner, "extra_arguments", tuple())
@@ -607,7 +609,8 @@ class CLI(object):
             runner.run(self.algorithm_module.Parameters.repeats,
                        self.parameter_names() + extra_argument_names,
                        argument_product,
-                       time_estimator)
+                       time_estimator,
+                       verbose=verbose)
         except MissingSafetyPeriodError as ex:
             from pprint import pprint
             import traceback
@@ -919,12 +922,13 @@ class CLI(object):
             builder = Builder(
                 testbed,
                 platform=args.platform,
-                generate_per_node_id_binary=args.generate_per_node_id_binary
+                generate_per_node_id_binary=args.generate_per_node_id_binary,
             )
 
             self._execute_runner("real", builder, testbed_directory,
                                  time_estimator=None,
-                                 skip_completed_simulations=False)
+                                 skip_completed_simulations=False,
+                                 verbose=args.verbose)
 
         elif 'submit' == args.testbed_mode:
 

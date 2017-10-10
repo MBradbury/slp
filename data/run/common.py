@@ -42,7 +42,7 @@ class RunSimulationsCommon(object):
 
         self._existing_results = {}
 
-    def run(self, repeats, argument_names, argument_product, time_estimator=None):
+    def run(self, repeats, argument_names, argument_product, time_estimator=None, verbose=False):
 
         if len(argument_names) != len(argument_product[0]):
             raise RuntimeError("Number of argument names ({}) does not equal number of arguments ({})".format(
@@ -85,8 +85,11 @@ class RunSimulationsCommon(object):
 
             opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
 
+            if verbose:
+                opt_items.append("--verbose")
+
             options = 'algorithm.{} {} {} '.format(self.algorithm_module.name, self.sim, self._mode())
-            options +=" ".join(opt_items)
+            options += " ".join(opt_items)
 
             filename = os.path.join(
                 self._result_path,
@@ -237,7 +240,7 @@ class RunTestbedCommon(RunSimulationsCommon):
         # Testbed has no notion of safety period
         super(RunTestbedCommon, self).__init__("real", driver, algorithm_module, result_path, False, None, safety_period_equivalence)
 
-    def run(self, repeats, argument_names, argument_product, time_estimator=None):
+    def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
 
         # Filter out invalid parameters to pass onwards
         to_filter = ('network size', 
@@ -249,7 +252,7 @@ class RunTestbedCommon(RunSimulationsCommon):
 
         # Testbed has no notion of repeats
         # Also no need to estimate time
-        super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)
+        super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None, **kwargs)
 
 class RunCycleAccurateCommon(RunSimulationsCommon):
 
@@ -261,7 +264,7 @@ class RunCycleAccurateCommon(RunSimulationsCommon):
         # Cycle Accurate has no notion of safety period
         super(RunCycleAccurateCommon, self).__init__(sim, driver, algorithm_module, result_path, False, None, safety_period_equivalence)
 
-    def run(self, repeats, argument_names, argument_product, time_estimator=None):
+    def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
 
         # Filter out invalid parameters to pass onwards
         to_filter = ('attacker model', 'noise model',
@@ -272,4 +275,4 @@ class RunCycleAccurateCommon(RunSimulationsCommon):
 
         # Cycle Accurate has no notion of repeats
         # Also no need to estimate time
-        super(RunCycleAccurateCommon, self).run(None, filtered_argument_names, filtered_argument_product, None)
+        super(RunCycleAccurateCommon, self).run(None, filtered_argument_names, filtered_argument_product, None, **kwargs)
