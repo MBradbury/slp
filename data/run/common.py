@@ -234,6 +234,12 @@ class RunTestbedCommon(RunSimulationsCommon):
 
     extra_arguments = ('rf power',)
 
+    # Filter out invalid parameters to pass onwards
+    non_arguments = ('network size', 
+                     'attacker model', 'noise model',
+                     'communication model', 'distance',
+                     'node id order', 'latest node start time')
+
     def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False,
                  safety_periods=None, safety_period_equivalence=None):
         # Do all testbed tasks
@@ -242,13 +248,7 @@ class RunTestbedCommon(RunSimulationsCommon):
 
     def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
 
-        # Filter out invalid parameters to pass onwards
-        to_filter = ('network size', 
-                     'attacker model', 'noise model',
-                     'communication model', 'distance',
-                     'node id order', 'latest node start time')
-
-        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, to_filter)
+        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, self.non_arguments)
 
         # Testbed has no notion of repeats
         # Also no need to estimate time
@@ -258,6 +258,11 @@ class RunCycleAccurateCommon(RunSimulationsCommon):
 
     extra_arguments = ('rf power',)
 
+    # Filter out invalid parameters to pass onwards
+    non_arguments = ('attacker model', 'noise model',
+                     'communication model',
+                     'latest node start time')
+
     def __init__(self, sim, driver, algorithm_module, result_path, skip_completed_simulations=False,
                  safety_periods=None, safety_period_equivalence=None):
         # Do all cycle accurate tasks
@@ -266,12 +271,7 @@ class RunCycleAccurateCommon(RunSimulationsCommon):
 
     def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
 
-        # Filter out invalid parameters to pass onwards
-        to_filter = ('attacker model', 'noise model',
-                     'communication model',
-                     'latest node start time')
-
-        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, to_filter)
+        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, self.non_arguments)
 
         # Cycle Accurate has no notion of repeats
         # Also no need to estimate time
