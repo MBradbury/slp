@@ -234,6 +234,8 @@ class flux(ClusterCommon):
         if notify_emails is not None and len(notify_emails) > 0:
             print("Warning: flux does not currently have email notification setup")
 
+        # WARNING: Use mem instead of pmem when submitting jobs to flux
+
         return self._pbs_submitter(*args, **kwargs)
 
     def array_submitter(self, *args, **kwargs):
