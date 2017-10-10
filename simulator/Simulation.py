@@ -394,7 +394,11 @@ class OfflineSimulation(object):
         pass
 
     def register_output_handler(self, name, function):
-        self._line_handlers[name] = function
+        if name not in self._line_handlers:
+            self._line_handlers[name] = []
+
+        if function is not None:
+            self._line_handlers[name].append(function)
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
@@ -531,14 +535,14 @@ class OfflineSimulation(object):
                 # Stop if the safety period has expired
                 if self._duration_start_time is not None and current_time is not None:
                     current_time_sec = (current_time - self._real_start_time).total_seconds()
-                    
+
                     if (current_time_sec - self._duration_start_time) >= self.safety_period_value:
                         break
 
                 # Handle the event
-                handler = self._line_handlers.get(kind, handler_missing)
-                if handler is not handler_missing:
-                    if handler is not None:
+                handlers = self._line_handlers.get(kind, handler_missing)
+                if handlers is not handler_missing:
+                    for handler in handlers:
                         handler(log_type, node_id, self.sim_time(), message_line)
                 else:
                     print("There is no handler for the kind {}. Unable to process the line '{}'.".format(kind, message_line), file=sys.stderr)
