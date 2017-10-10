@@ -103,7 +103,6 @@ class CLI(object):
 
         subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
-        subparser.add_argument("-g", "--generate-per-node-id-binary", default=False, action="store_true", help="Also create a per node id binary that can be used in deployment")
         subparser.add_argument("-v", "--verbose", default=False, action="store_true", help="Produce verbose logging output from the testbed binaries")
 
         subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
@@ -919,11 +918,7 @@ class CLI(object):
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            builder = Builder(
-                testbed,
-                platform=args.platform,
-                generate_per_node_id_binary=args.generate_per_node_id_binary,
-            )
+            builder = Builder(testbed, platform=args.platform)
 
             self._execute_runner("real", builder, testbed_directory,
                                  time_estimator=None,
