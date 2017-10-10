@@ -5,6 +5,8 @@ from simulator.Topology import Topology
 
 result_file_name = "serial.csv"
 
+generate_per_node_id_binary = False
+
 def name():
     return __name__
 

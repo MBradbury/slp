@@ -35,7 +35,7 @@ PLATFORM_TOOLS = {
 }
 
 class Runner(object):
-    def __init__(self, testbed, platform=None, generate_per_node_id_binary=False):
+    def __init__(self, testbed, platform=None):
         self._progress = Progress("building file")
         self.total_job_size = None
         self._jobs_executed = 0
@@ -43,9 +43,7 @@ class Runner(object):
         self.testbed = testbed
         self.platform = choose_platform(platform, self.testbed.platform())
 
-        self.generate_per_node_id_binary = generate_per_node_id_binary
-
-        if generate_per_node_id_binary:
+        if testbed.generate_per_node_id_binary:
             from multiprocessing.pool import ThreadPool
             self.pool = ThreadPool()
 
@@ -133,7 +131,7 @@ class Runner(object):
                 else:
                     raise
 
-        if self.generate_per_node_id_binary:
+        if self.testbed.generate_per_node_id_binary:
             target_ihex = os.path.join(target_directory, "main.ihex")
 
             print("Creating per node id binaries using '{}'...".format(target_ihex))
