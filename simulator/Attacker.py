@@ -57,7 +57,7 @@ class Attacker(object):
             self._draw(0, self.position)
 
     def _source_ids(self):
-        return self._sim.metrics.source_ids
+        return self._sim.metrics.source_ids()
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         raise NotImplementedError()
