@@ -260,11 +260,11 @@ implementation
 
 			if (value)
 			{
-				simdbg_clear("stdout", "(%" PRIu32 ",%" PRIu32 "): %p", key.seq_no, key.addr, *value);
+				simdbg_clear("stdout", "(" NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC "): %p", key.seq_no, key.addr, *value);
 			}
 			else
 			{
-				simdbg_clear("stdout", "(%" PRIu32 ",%" PRIu32 "): NULL", key.seq_no, key.addr);
+				simdbg_clear("stdout", "(" NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC "): NULL", key.seq_no, key.addr);
 			}
 
 			if (begin + 1 != end)
@@ -406,10 +406,10 @@ implementation
 
 		if (has_enough_messages_to_send())
 		{
+			// TODO: Look at a way to choose to_delay when sink_source_distance == BOTTOM
 			const uint16_t to_delay = (stored_normal_message->source_distance < sink_source_distance)
 				? stored_normal_message->delay
 				: ALPHA;
-			
 
 			call ConsiderTimer.startOneShot(to_delay);
 		}
@@ -526,9 +526,9 @@ implementation
 				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ", %" PRIu16 ") for the message\n",
 					normal_message->sequence_number, normal_message->source_id);
 
-#ifdef SLP_VERBOSE_DEBUG
-				print_dictionary_queue();
-#endif
+//#ifdef SLP_VERBOSE_DEBUG
+//				print_dictionary_queue();
+//#endif
 			}
 		}
 	}
