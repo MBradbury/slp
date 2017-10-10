@@ -515,7 +515,6 @@ class Analyse(object):
                 else:
                     raise RuntimeError("Don't know how to calculate {}".format(filtered_head))
 
-
             if len(columns_to_add) > 0:
                 print("Merging normalised columns with the loaded data...")
                 self.normalised_columns = pd.DataFrame.from_dict(columns_to_add)
@@ -726,7 +725,11 @@ class Analyse(object):
         values = self.find_column(header)
 
         if len(values) == 0:
-            raise RuntimeError("There are no values for {} to be able to average".format(header))
+            # Filtered values may legitimately have no values
+            if header.startswith("filtered"):
+                return None
+            else:
+                raise RuntimeError("There are no values for {} to be able to average".format(header))
 
         first = next(iter(values))
 
@@ -741,7 +744,11 @@ class Analyse(object):
         values = self.find_column(header)
 
         if len(values) == 0:
-            raise RuntimeError("There are no values for {} to be able to find the variance".format(header))
+            # Filtered values may legitimately have no values
+            if header.startswith("filtered"):
+                return None
+            else:
+                raise RuntimeError("There are no values for {} to be able to find the variance".format(header))
 
         first = next(iter(values))
 
@@ -754,6 +761,13 @@ class Analyse(object):
 
     def median_of(self, header):
         values = self.find_column(header)
+
+        if len(values) == 0:
+            # Filtered values may legitimately have no values
+            if header.startswith("filtered"):
+                return None
+            else:
+                raise RuntimeError("There are no values for {} to be able to find the median".format(header))
 
         first = next(iter(values))
 
