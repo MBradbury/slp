@@ -341,6 +341,10 @@ class GuiSimulation(Simulation):
 
         self.gui = Gui(self, args.sim, node_position_scale_factor=args.gui_scale)
 
+        self._check_node_label()
+
+    def _check_node_label(self):
+        """Check that the node label is valid."""
         if self._node_label is not None:
             variables = self.nesc_app.variables.variables()
 
@@ -356,7 +360,6 @@ class GuiSimulation(Simulation):
 
                 raise RuntimeError("The variable {}{} was not present in the list known to python. Close matches: {}".format(
                     self._node_label, san_msg, close))
-
 
     def _during_run(self, event_count):
         if event_count % 10 == 0:
