@@ -46,7 +46,10 @@ class Configuration(object):
     def build_arguments(self):
         build_arguments = {
             "SINK_NODE_IDS": "{" + ",".join(str(self.topology.to_topo_nid(sink_id)) for sink_id in self.sink_ids) + "}",
-            "MAX_TOSSIM_NODES": self.size(),
+
+            # As a node with node id x will be stored in C arrays at x,
+            # we need x + 1 nodes to be specified with tossim
+            "MAX_TOSSIM_NODES": max(self.topology.nodes.keys()) + 1,
         }
 
         if self.space_behind_sink:
