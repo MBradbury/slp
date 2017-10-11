@@ -537,7 +537,12 @@ implementation
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
-		message.algorithm = ALGORITHM;
+		
+#ifdef SPACE_BEHIND_SINK
+		message.algorithm = GenericAlgorithm;
+#else
+		message.algorithm = FurtherAlgorithm;
+#endif
 
 		sequence_number_increment(&away_sequence_counter);
 

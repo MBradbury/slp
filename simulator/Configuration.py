@@ -50,10 +50,8 @@ class Configuration(object):
         }
 
         if self.space_behind_sink:
-            build_arguments["ALGORITHM"] = "GenericAlgorithm"
             build_arguments["SPACE_BEHIND_SINK"] = "1"
         else:
-            build_arguments["ALGORITHM"] = "FurtherAlgorithm"
             build_arguments["NO_SPACE_BEHIND_SINK"] = "1"
 
         return build_arguments
