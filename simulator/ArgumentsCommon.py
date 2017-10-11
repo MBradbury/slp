@@ -192,12 +192,10 @@ class CustomHelpFormatter(argparse.HelpFormatter):
             else:
                 default = action.dest.upper()
                 args_string = self._format_args(action, default)
-                for option_string in action.option_strings[:-1]:
-                    parts.append(option_string)
-
+                parts.extend(action.option_strings[:-1])
                 parts.append('%s %s' % (action.option_strings[-1], args_string))
 
-        return ', '.join(parts)
+            return ', '.join(parts)
 
 class ArgumentsCommon(object):
     def __init__(self, description, has_safety_period=False, has_safety_factor=False):
