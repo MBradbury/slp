@@ -44,11 +44,11 @@ class UnknownTestbedError(RuntimeError):
 
 class RSSIResult(object):
     def __init__(self):
-        self.node_average = defaultdict(RunningStats)
+        self.node_average = {}
         #self.node_smallest = defaultdict(RunningStats)
         #self.node_largest = defaultdict(RunningStats)
 
-        self.total_reads = defaultdict(int)
+        self.total_reads = {}
 
         #self.start_time = None
         #self.stop_time = None
@@ -57,15 +57,21 @@ class RSSIResult(object):
         if kind == "M-RSSI":
             (average, smallest, largest, reads, channel) = map(int, details.split(",", 4))
 
+            key = (nid, channel)
+
+            if key not in self.node_average:
+                self.node_average[key] = RunningStats()
+                self.total_reads[key] = 0
+
             average = _adjust_tinyos_raw_rssi(average)
             #smallest = _adjust_tinyos_raw_rssi(smallest)
             #largest = _adjust_tinyos_raw_rssi(largest)
 
-            self.node_average[(nid, channel)].push(average)
+            self.node_average[key].push(average)
             #self.node_smallest[(nid, channel)].push(smallest)
             #self.node_largest[(nid, channel)].push(largest)
 
-            self.total_reads[(nid, channel)] += reads
+            self.total_reads[key] += reads
 
             #if self.start_time is None:
             #    self.start_time = date_time
