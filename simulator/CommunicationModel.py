@@ -242,21 +242,21 @@ class Ideal(IdealCommunicationModel):
             white_gausian_noise=4.0
         )
 
-class FlockLab7(TestbedCommunicationModel):
-    def __init__(self):
+class FlockLab(TestbedCommunicationModel):
+    def __init__(self, tx_power):
         import data.testbed.flocklab as flocklab
-        super(FlockLab7, self).__init__(
+        super(FlockLab, self).__init__(
             testbed=flocklab,
-            tx_power=7,
+            tx_power=tx_power,
             white_gausian_noise=4.0
         )
 
-class Euratech7(TestbedCommunicationModel):
-    def __init__(self):
+class Euratech(TestbedCommunicationModel):
+    def __init__(self, tx_power):
         import data.testbed.fitiotlab as fitiotlab
-        super(Euratech7, self).__init__(
+        super(Euratech, self).__init__(
             testbed=fitiotlab,
-            tx_power=7,
+            tx_power=tx_power,
             white_gausian_noise=4.0
         )
 
@@ -267,8 +267,6 @@ MODEL_NAME_MAPPING = {
     "high-asymmetry": HighAsymmetry,
     "no-asymmetry": NoAsymmetry,
     "ideal": Ideal,
-    "flocklab7": FlockLab7,
-    "euratech7": Euratech7,
 }
 
 def models():
@@ -279,7 +277,7 @@ def models():
 
 def eval_input(source):
     if source in MODEL_NAME_MAPPING:
-        return MODEL_NAME_MAPPING[source]
+        return MODEL_NAME_MAPPING[source]()
 
     result = restricted_eval(source, models())
 
@@ -287,3 +285,25 @@ def eval_input(source):
         return result
     else:
         raise RuntimeError("The source ({}) is not valid.".format(source))
+
+def available_models():
+    class WildcardCommunicationModelChoice(object):
+        """A special available model that checks if the string provided
+        matches the name of the class.
+
+        >> a = WildcardCommunicationModelChoice(FlockLab)
+        >> a == "FlockLab(tx_power=7)"
+        True
+        """
+        def __init__(self, cls):
+            self.cls = cls
+
+        def __eq__(self, value):
+            return value.startswith(self.cls.__name__)
+
+        def __repr__(self):
+            return self.cls.__name__ + "(...)"
+
+    class_models = [WildcardCommunicationModelChoice(x) for x in models() if x not in MODEL_NAME_MAPPING.values()]
+
+    return list(MODEL_NAME_MAPPING.keys()) + class_models

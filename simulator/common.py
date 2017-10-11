@@ -28,4 +28,4 @@ def available_noise_models():
 
 def available_communication_models():
     """Gets the names of the communication models available"""
-    return CommunicationModel.MODEL_NAME_MAPPING.keys()
+    return CommunicationModel.available_models()
