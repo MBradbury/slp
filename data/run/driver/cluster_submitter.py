@@ -4,6 +4,8 @@ import os
 import subprocess
 
 class Runner(object):
+    required_safety_periods = True
+    
     executable = 'python -OO run.py'
 
     def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None, dry_run=False):

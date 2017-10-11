@@ -8,7 +8,11 @@ import subprocess
 
 from simulator import Configuration
 
+import data.testbed.fitiotlab as fitiotlab
+
 class Runner(object):
+    required_safety_periods = False
+    
     def __init__(self, duration, dry_run=False):
         self.duration = duration
         self.dry_run = dry_run
@@ -28,6 +32,9 @@ class Runner(object):
 
     def mode(self):
         return "TESTBED"
+
+    def testbed_name(self):
+        return fitiotlab.name()
 
     def _get_platform(self, platform):
         """Get a valid platform to pass to experiment-cli"""

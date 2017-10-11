@@ -5,7 +5,9 @@ import subprocess
 
 from data.progress import Progress
 
-class Runner:
+class Runner(object):
+    required_safety_periods = True
+    
     executable = 'python -OO run.py'
 
     def __init__(self):

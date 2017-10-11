@@ -35,6 +35,8 @@ PLATFORM_TOOLS = {
 }
 
 class Runner(object):
+    required_safety_periods = False
+
     def __init__(self, testbed, platform=None):
         self._progress = Progress("building file")
         self.total_job_size = None
@@ -152,6 +154,9 @@ class Runner(object):
 
     def mode(self):
         return "TESTBED"
+
+    def testbed_name(self):
+        return self.testbed.name()
 
     def create_tos_node_id_ihex(self, source, target, node_id):
         try:
