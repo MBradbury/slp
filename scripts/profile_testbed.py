@@ -45,8 +45,8 @@ class UnknownTestbedError(RuntimeError):
 class RSSIResult(object):
     def __init__(self):
         self.node_average = {}
-        #self.node_smallest = defaultdict(RunningStats)
-        #self.node_largest = defaultdict(RunningStats)
+        self.node_smallest = {}
+        #self.node_largest = {}
 
         self.total_reads = {}
 
@@ -59,16 +59,17 @@ class RSSIResult(object):
 
             key = (nid, channel)
 
-            if key not in self.node_average:
-                self.node_average[key] = RunningStats()
-                self.total_reads[key] = 0
-
             average = _adjust_tinyos_raw_rssi(average)
-            #smallest = _adjust_tinyos_raw_rssi(smallest)
+            smallest = _adjust_tinyos_raw_rssi(smallest)
             #largest = _adjust_tinyos_raw_rssi(largest)
 
+            if key not in self.node_average:
+                self.node_average[key] = RunningStats()
+                self.node_smallest[key] = smallest
+                self.total_reads[key] = 0
+
             self.node_average[key].push(average)
-            #self.node_smallest[(nid, channel)].push(smallest)
+            self.node_smallest[key] = min(self.node_smallest[key], smallest)
             #self.node_largest[(nid, channel)].push(largest)
 
             self.total_reads[key] += reads
@@ -91,11 +92,21 @@ class RSSIResult(object):
         keys = set(self.node_average.keys()) | set(other.node_average.keys())
 
         for key in keys:
-            result.node_average[key] = self.node_average[key].combine(other.node_average[key])
-            #result.node_smallest[key] = self.node_smallest[key].combine(other.node_smallest[key])
+            try:
+                self_ave, self_smallest, self_total = self.node_average[key], self.node_smallest[key], self.total_reads[key]
+            except KeyError:
+                self_ave, self_smallest, self_total = RunningStats(), None, 0
+
+            try:
+                other_ave, other_smallest, other_total = other.node_average[key], other.node_smallest[key], other.total_reads[key]
+            except KeyError:
+                other_ave, other_smallest, other_total = RunningStats(), None, 0
+
+            result.node_average[key] = self_ave.combine(other_ave)
+            result.node_smallest[key] = min(x for x in (self_smallest, other_smallest) if x is not None)
             #result.node_largest[key] = self.node_largest[key].combine(other.node_largest[key])
 
-            result.total_reads[key] = self.total_reads[key] + other.total_reads[key]
+            result.total_reads[key] = self_total + other_total
 
         #result.start_time = min(self.start_time, other.start_time)
         #result.stop_time = max(self.stop_time, other.stop_time)
