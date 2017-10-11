@@ -17,7 +17,7 @@ then
     exit 1
 fi
 
-cd "testbed_results/iotlab/$TESTID"
+cd "$BASE_DIR/$TESTID"
 
 gunzip aggregator_log.stderr.gz
 gunzip aggregator_log.stdout.gz
