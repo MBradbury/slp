@@ -194,7 +194,7 @@ class TestbedCommunicationModel(CommunicationModel):
 
         self.noise_floor = np.zeros(num_nodes, dtype=np.float64)
         for node in nodes:
-            self.noise_floor[o2i(node)] = noise_floor.node_average[(node, channel)].mean()
+            self.noise_floor[o2i(node)] = noise_floor.node_smallest[(node, channel)]
 
 
 class LowAsymmetry(LinkLayerCommunicationModel):
