@@ -556,8 +556,11 @@ class CLI(object):
 
     def _execute_runner(self, sim, driver, result_path, time_estimator=None,
                         skip_completed_simulations=True, verbose=False):
+        testbed_name = None
+
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
+            testbed_name = driver.testbed_name()
         elif driver.mode() == "CYCLEACCURATE":
             from data.run.common import RunCycleAccurateCommon as RunSimulations
             RunSimulations = functools.partial(RunSimulations, sim)
@@ -573,14 +576,18 @@ class CLI(object):
             else:
                 RunSimulations = functools.partial(self.custom_run_simulation_class, sim)
 
-        if self.safety_period_module_name is True:
+
+        if not driver.required_safety_periods:
+            safety_periods = False
+        elif self.safety_period_module_name is True:
             safety_periods = True
         elif self.safety_period_module_name is None:
             safety_periods = None
         else:
             safety_period_table_generator = safety_period.TableGenerator(
-                self.get_safety_period_result_path(),
-                self.time_after_first_normal_to_safety_period)
+                self.get_safety_period_result_path(testbed=testbed_name),
+                self.time_after_first_normal_to_safety_period,
+                testbed=testbed_name)
             
             safety_periods = safety_period_table_generator.safety_periods()
 

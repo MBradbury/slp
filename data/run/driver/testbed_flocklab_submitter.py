@@ -9,11 +9,13 @@ import shlex
 import subprocess
 from xml.sax.saxutils import escape as escape_xml
 
-import data.testbed.flocklab as flocklab_topology
+import data.testbed.flocklab as flocklab
 
 from simulator import Configuration
 
 class Runner(object):
+    required_safety_periods = False
+
     def __init__(self, duration, dry_run=False):
         self.duration = duration
         self.dry_run = dry_run
@@ -33,6 +35,9 @@ class Runner(object):
 
     def mode(self):
         return "TESTBED"
+
+    def testbed_name(self):
+        return flocklab.name()
 
     def _get_platform(self, platform):
         """Get a valid platform to pass to the XML file"""
@@ -118,7 +123,7 @@ class Runner(object):
         print('        <data>{}</data>'.format(encoded_file), file=config_file)
         print('    </imageConf>', file=config_file)
 
-        delayed_boot_secs = flocklab_topology.build_arguments().get("DELAYED_BOOT_TIME_MINUTES", 0) * 60
+        delayed_boot_secs = flocklab.build_arguments().get("DELAYED_BOOT_TIME_MINUTES", 0) * 60
 
         print('    <powerProfilingConf>', file=config_file)
         print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
