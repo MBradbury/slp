@@ -222,7 +222,9 @@ class ArgumentsCommon(object):
 
                 parents = (self._subparsers[sim][inherit],) if inherit is not None else tuple()
 
-                parser_sub = subparsers.add_parser(mode, add_help=True, parents=parents, conflict_handler='resolve', formatter_class=CustomHelpFormatter)
+                parser_sub = subparsers.add_parser(mode, add_help=True, parents=parents,
+                                                   conflict_handler='resolve',
+                                                   formatter_class=CustomHelpFormatter)
 
                 self._subparsers[sim][mode] = parser_sub
 
