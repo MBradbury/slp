@@ -27,7 +27,7 @@ class MobilityModel(object):
             if node_id not in nodes:
                 raise RuntimeError("Invalid node id {}.".format(node_id))
 
-            if node_id == self.configuration.sink_id:
+            if node_id in self.configuration.sink_ids:
                 raise RuntimeError("The source node cannot move onto the sink as it cannot detect it")
 
     def build_arguments(self):

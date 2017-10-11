@@ -7,29 +7,35 @@ from data.memoize import memoize
 from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring
 
 class Configuration(object):
-    def __init__(self, topology, source_ids, sink_id, space_behind_sink):
+    def __init__(self, topology, source_ids, sink_ids, space_behind_sink):
         super(Configuration, self).__init__()
 
         self.topology = topology
-        self.sink_id = topology.to_ordered_nid(sink_id)
+        self.sink_ids = {topology.to_ordered_nid(sink_id) for sink_id in sink_ids}
         self.source_ids = {topology.to_ordered_nid(source_id) for source_id in source_ids}
         self.space_behind_sink = space_behind_sink
 
-        if self.sink_id < 0:
-            raise RuntimeError("The sink id must be positive")
+        if any(sink_id < 0 for sink_id in self.sink_ids):
+            raise RuntimeError("All sink ids must be positive")
 
         if any(source_id < 0 for source_id in self.source_ids):
             raise RuntimeError("All source ids must be positive")
 
-        if self.sink_id not in topology.nodes:
+        if any(sink_id not in topology.nodes for sink_id in self.sink_ids):
             raise RuntimeError(
-                "The sink id {} is not present in the available node ids {}".format(
-                    self.sink_id, topology.nodes))
+                "The a sink id {} is not present in the available node ids {}".format(
+                    self.sink_ids, topology.nodes))
 
         if any(source_id not in topology.nodes for source_id in self.source_ids):
             raise RuntimeError(
                 "The a source id {} is not present in the available node ids {}".format(
                     self.source_ids, topology.nodes))
+
+        if len(self.sink_ids) == 0:
+            raise RuntimeError("There must be at least one sink in the configuration")
+
+        if len(self.source_ids) == 0:
+            raise RuntimeError("There must be at least one source in the configuration")
 
         self._dist_matrix = None
         self._dist_matrix_meters = None
@@ -39,7 +45,7 @@ class Configuration(object):
 
     def build_arguments(self):
         build_arguments = {
-            "SINK_NODE_ID": self.topology.to_topo_nid(self.sink_id),
+            "SINK_NODE_IDS": "{" + ",".join(str(self.topology.to_topo_nid(sink_id)) for sink_id in self.sink_ids) + "}",
             "MAX_TOSSIM_NODES": self.size(),
         }
 
@@ -53,8 +59,8 @@ class Configuration(object):
         return build_arguments
 
     def __str__(self):
-        return "Configuration<sink_id={}, source_ids={}, space_behind_sink={}, topology={}>".format(
-            self.sink_id, self.source_ids, self.space_behind_sink, self.topology
+        return "Configuration<sink_ids={}, source_ids={}, space_behind_sink={}, topology={}>".format(
+            self.sink_ids, self.source_ids, self.space_behind_sink, self.topology
         )
 
     def _build_connectivity_matrix(self):
@@ -97,16 +103,21 @@ class Configuration(object):
 
         return self._dist_matrix[i,j]
 
-    def ssd(self, source_id):
+    def ssd(self, sink_id, source_id):
         """The number of hops between the sink and the specified source node"""
+        if sink_id not in self.sink_ids:
+            raise RuntimeError("Invalid sink ({} not in {})".format(sink_id, self.sink_ids))
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
-        return self.node_sink_distance(source_id)
+        return self.node_distance(sink_id, source_id)
 
-    def node_sink_distance(self, ordered_nid):
+    def node_sink_distance(self, ordered_nid, sink_id):
         """The number of hops between the sink and the specified node"""
-        return self.node_distance(ordered_nid, self.sink_id)
+        if sink_id not in self.sink_ids:
+            raise RuntimeError("Invalid sink ({} not in {})".format(sink_id, self.sink_ids))
+
+        return self.node_distance(ordered_nid, sink_id)
 
     def node_source_distance(self, ordered_nid, source_id):
         """The number of hops between the specified source and the specified node"""
@@ -124,16 +135,21 @@ class Configuration(object):
 
         return self._dist_matrix_meters[i,j]
 
-    def ssd_meters(self, source_id):
+    def ssd_meters(self, sink_id, source_id):
         """The number of meters between the sink and the specified source node"""
+        if sink_id not in self.sink_ids:
+            raise RuntimeError("Invalid sink ({} not in {})".format(sink_id, self.sink_ids))
         if source_id not in self.source_ids:
             raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
 
-        return self.node_sink_distance_meters(source_id)
+        return self.node_distance_meters(sink_id, source_id)
 
-    def node_sink_distance_meters(self, node):
+    def node_sink_distance_meters(self, node, sink_id):
         """The number of meters between the sink and the specified node"""
-        return self.topology.node_distance_meters(self.sink_id, node)
+        if sink_id not in self.sink_ids:
+            raise RuntimeError("Invalid sink ({} not in {})".format(sink_id, self.sink_ids))
+
+        return self.topology.node_distance_meters(node, sink_id)
 
     def node_source_distance_meters(self, node, source_id):
         """The number of meters between the specified source and the specified node"""
@@ -222,7 +238,7 @@ class LineSinkCentre(Configuration):
         super(LineSinkCentre, self).__init__(
             line,
             source_ids={0},
-            sink_id=(len(line.nodes) - 1) / 2,
+            sink_ids={(len(line.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -233,7 +249,7 @@ class SimpleTreeSinkEnd(Configuration):
         super(SimpleTreeSinkEnd, self).__init__(
             tree,
             source_ids={0},
-            sink_id=tree.size - 1,
+            sink_ids={tree.size - 1},
             space_behind_sink=True
         )
 
@@ -244,7 +260,7 @@ class SourceCorner(Configuration):
         super(SourceCorner, self).__init__(
             grid,
             source_ids={0},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -255,7 +271,7 @@ class Source2CornerTop(Configuration):
         super(Source2CornerTop, self).__init__(
             grid,
             source_ids={0, 2},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -266,7 +282,7 @@ class Source3CornerTop(Configuration):
         super(Source3CornerTop, self).__init__(
             grid,
             source_ids={0, 2, grid.size+1},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -277,7 +293,7 @@ class SinkCorner(Configuration):
         super(SinkCorner, self).__init__(
             grid,
             source_ids={(len(grid.nodes) - 1) / 2},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
 
@@ -288,7 +304,7 @@ class SinkCorner2Source(Configuration):
         super(SinkCorner2Source, self).__init__(
             grid,
             source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
 
@@ -299,7 +315,7 @@ class SinkCorner3Source(Configuration):
         super(SinkCorner3Source, self).__init__(
             grid,
             source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1, (len(grid.nodes) - 1) / 2 + grid.size},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
 
@@ -310,7 +326,7 @@ class FurtherSinkCorner(Configuration):
         super(FurtherSinkCorner, self).__init__(
             grid,
             source_ids={0},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
 class FurtherSinkCorner2Source(Configuration):
@@ -320,7 +336,7 @@ class FurtherSinkCorner2Source(Configuration):
         super(FurtherSinkCorner2Source, self).__init__(
             grid,
             source_ids={0, 2},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
 class FurtherSinkCorner3Source(Configuration):
@@ -330,7 +346,7 @@ class FurtherSinkCorner3Source(Configuration):
         super(FurtherSinkCorner3Source, self).__init__(
             grid,
             source_ids={0, 2, grid.size+1},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
 
@@ -341,7 +357,7 @@ class SinkSourceOpposite(Configuration):
         super(SinkSourceOpposite, self).__init__(
             grid,
             source_ids={(grid.size * 2) + 2},
-            sink_id=(grid.size * (grid.size - 2)) - 2 - 1,
+            sink_ids={(grid.size * (grid.size - 2)) - 2 - 1},
             space_behind_sink=True
         )
 
@@ -352,7 +368,7 @@ class SinkSourceOpposite2Source(Configuration):
         super(SinkSourceOpposite2Source, self).__init__(
             grid,
             source_ids={(grid.size * 2) + 2, (grid.size * 2) + 4},
-            sink_id=(grid.size * (grid.size - 2)) - 2 - 1,
+            sink_ids={(grid.size * (grid.size - 2)) - 2 - 1},
             space_behind_sink=True
         )
 
@@ -363,7 +379,7 @@ class SinkSourceOpposite3Source(Configuration):
         super(SinkSourceOpposite3Source, self).__init__(
             grid,
             source_ids={(grid.size * 2) + 2, (grid.size * 2) + 4, (grid.size * 2) + grid.size + 3},
-            sink_id=(grid.size * (grid.size - 2)) - 2 - 1,
+            sink_ids={(grid.size * (grid.size - 2)) - 2 - 1},
             space_behind_sink=True
         )
 
@@ -375,7 +391,7 @@ class Generic1(Configuration):
         super(Generic1, self).__init__(
             grid,
             source_ids={(node_count / 2) - (grid.size / 3)},
-            sink_id=(node_count / 2) + (grid.size / 3),
+            sink_ids={(node_count / 2) + (grid.size / 3)},
             space_behind_sink=False
         )
 
@@ -386,7 +402,7 @@ class Generic2(Configuration):
         super(Generic2, self).__init__(
             grid,
             source_ids={(grid.size * (grid.size - 2)) - 2 - 1},
-            sink_id=(grid.size * 2) + 2,
+            sink_ids={(grid.size * 2) + 2},
             space_behind_sink=True
         )
 
@@ -397,7 +413,7 @@ class RingTop(Configuration):
         super(RingTop, self).__init__(
             ring,
             source_ids={ring.diameter - 1},
-            sink_id=0,
+            sink_ids={0},
             space_behind_sink=True
         )
 
@@ -408,7 +424,7 @@ class RingMiddle(Configuration):
         super(RingMiddle, self).__init__(
             ring,
             source_ids={(4 * ring.diameter - 5) / 2 + 1},
-            sink_id=(4 * ring.diameter - 5) / 2,
+            sink_ids={(4 * ring.diameter - 5) / 2},
             space_behind_sink=True
         )
 
@@ -419,7 +435,7 @@ class RingOpposite(Configuration):
         super(RingOpposite, self).__init__(
             ring,
             source_ids={len(ring.nodes) - 1},
-            sink_id=0,
+            sink_ids={0},
             space_behind_sink=True
         )
 
@@ -430,7 +446,7 @@ class CircleSinkCentre(Configuration):
         super(CircleSinkCentre, self).__init__(
             circle,
             source_ids={5},
-            sink_id=circle.ordered_nid_to_topology_nid[circle.centre_node],
+            sink_ids={circle.ordered_nid_to_topology_nid[circle.centre_node]},
             space_behind_sink=True
         )
 
@@ -441,7 +457,7 @@ class CircleSourceCentre(Configuration):
         super(CircleSourceCentre, self).__init__(
             circle,
             source_ids={circle.ordered_nid_to_topology_nid[circle.centre_node]},
-            sink_id=5,
+            sink_ids={5},
             space_behind_sink=False
         )
 
@@ -452,7 +468,7 @@ class CircleEdges(Configuration):
         super(CircleEdges, self).__init__(
             circle,
             source_ids={len(circle.nodes) - 5 - 1},
-            sink_id=5,
+            sink_ids={5},
             space_behind_sink=False
         )
 
@@ -463,7 +479,7 @@ class Source2Corners(Configuration):
         super(Source2Corners, self).__init__(
             grid,
             source_ids={0, len(grid.nodes) - 1},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -474,7 +490,7 @@ class Source3Corners(Configuration):
         super(Source3Corners, self).__init__(
             grid,
             source_ids={grid.size - 1, len(grid.nodes) - grid.size, len(grid.nodes) - 1},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=False
         )
 
@@ -485,7 +501,7 @@ class Source4Corners(Configuration):
         super(Source4Corners, self).__init__(
             grid,
             source_ids={0, grid.size - 1, len(grid.nodes) - grid.size, len(grid.nodes) - 1},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=False
         )
 
@@ -499,7 +515,7 @@ class Source2Edges(Configuration):
                 (grid.size - 1) / 2,
                 len(grid.nodes) - ((grid.size - 1) / 2) - 1
             },
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -517,7 +533,7 @@ class Source4Edges(Configuration):
 
                 len(grid.nodes) - ((grid.size - 1) / 2) - 1
             },
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -528,7 +544,7 @@ class Source2Corner(Configuration):
         super(Source2Corner, self).__init__(
             grid,
             source_ids={3, grid.size * 3},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -539,7 +555,7 @@ class FurtherSinkSource2Corner(Configuration):
         super(FurtherSinkSource2Corner, self).__init__(
             grid,
             source_ids={3, grid.size * 3},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=True
         )
 
@@ -550,7 +566,7 @@ class Source3Corner(Configuration):
         super(Source3Corner, self).__init__(
             grid,
             source_ids={0, 3, grid.size * 3},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -566,7 +582,7 @@ class Source2Corner2OppositeCorner(Configuration):
                 len(grid.nodes) - (grid.size * 3) - 1,
                 len(grid.nodes) - 4,
             },
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -580,7 +596,7 @@ class SourceEdgeCorner(Configuration):
                 ((len(grid.nodes) - 1) / 2) + (grid.size - 1) / 2,
                 len(grid.nodes) - 1
             },
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_ids={(len(grid.nodes) - 1) / 2},
             space_behind_sink=True
         )
 
@@ -591,7 +607,7 @@ class RandomConnected(Configuration):
         super(RandomConnected, self).__init__(
             random,
             source_ids={len(random.nodes) - 1},
-            sink_id=0,
+            sink_ids={0},
             space_behind_sink=True
         )
 
@@ -602,7 +618,7 @@ class RandomPoissonDiskConnected(Configuration):
         super(RandomPoissonDiskConnected, self).__init__(
             random,
             source_ids={len(random.nodes) - 1},
-            sink_id=len(random.nodes) // 2,
+            sink_ids={len(random.nodes) // 2},
             space_behind_sink=True
         )
 
@@ -613,7 +629,7 @@ class RandomPoissonDiskConnected1000(Configuration):
         super(RandomPoissonDiskConnected1000, self).__init__(
             random,
             source_ids={len(random.nodes) - 1},
-            sink_id=len(random.nodes) // 2,
+            sink_ids={len(random.nodes) // 2},
             space_behind_sink=True
         )
 
@@ -625,7 +641,7 @@ class DCSWarwickSrc201Sink208(Configuration):
         super(DCSWarwickSrc201Sink208, self).__init__(
             dcs_warwick,
             source_ids={1},
-            sink_id=2,
+            sink_ids={2},
             space_behind_sink=True
         )
 
@@ -637,7 +653,7 @@ class IndriyaOneFloorSrc31Sink15(Configuration):
         super(IndriyaOneFloorSrc31Sink15, self).__init__(
             indriya,
             source_ids={31},
-            sink_id=15,
+            sink_ids={15},
             space_behind_sink=True
         )
 
@@ -649,7 +665,7 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
         super(IndriyaTwoFloorsSrc31Sink60, self).__init__(
             indriya,
             source_ids={31},
-            sink_id=60,
+            sink_ids={60},
             space_behind_sink=True
         )
 
@@ -661,7 +677,7 @@ class EuratechSinkCentre(Configuration):
         super(EuratechSinkCentre, self).__init__(
             euratech,
             source_ids={98},
-            sink_id=153,
+            sink_ids={153},
             space_behind_sink=True
         )
 
@@ -673,7 +689,7 @@ class FlockLabSinkCentre(Configuration):
         super(FlockLabSinkCentre, self).__init__(
             flocklab,
             source_ids={1},
-            sink_id=23,
+            sink_ids={23},
             space_behind_sink=True
         )
 
@@ -738,7 +754,7 @@ def try_create_specific(name):
             super(NewConfiguration, self).__init__(
                 topology_class(),
                 source_ids={int(source_id)},
-                sink_id=int(sink_id),
+                sink_ids={int(sink_id)},
                 space_behind_sink=False
             )
 

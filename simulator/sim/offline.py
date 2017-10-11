@@ -93,8 +93,13 @@ def run_simulation(module, a, count=1, print_warnings=False):
                 # Create a copy of the provided attacker model
                 attacker = copy.deepcopy(a.args.attacker_model)
 
+                if len(configuration.sink_ids) != 1:
+                    raise RuntimeError("Attacker does not know where to start!")
+
+                attacker_start = next(iter(configuration.sink_ids))
+
                 # Setup each attacker model
-                attacker.setup(sim, configuration.sink_id, ident=0)
+                attacker.setup(sim, attacker_start, ident=0)
 
                 sim.add_attacker(attacker)
 
