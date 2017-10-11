@@ -107,7 +107,7 @@ class MetricsCommon(object):
         if self.strict:
             return self.reported_sink_ids
         else:
-            return {self.configuration.sink_id}
+            return set(self.configuration.sink_ids)
 
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
