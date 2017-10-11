@@ -172,6 +172,33 @@ OPTS = {
                                                               default=255),
 }
 
+class CustomHelpFormatter(argparse.HelpFormatter):
+    """Only show the arguments for the long argument."""
+    def _format_action_invocation(self, action):
+        if not action.option_strings:
+            metavar, = self._metavar_formatter(action, action.dest)(1)
+            return metavar
+
+        else:
+            parts = []
+
+            # if the Optional doesn't take a value, format is:
+            #    -s, --long
+            if action.nargs == 0:
+                parts.extend(action.option_strings)
+
+            # if the Optional takes a value, format is:
+            #    -s, --long ARGS
+            else:
+                default = action.dest.upper()
+                args_string = self._format_args(action, default)
+                for option_string in action.option_strings[:-1]:
+                    parts.append(option_string)
+
+                parts.append('%s %s' % (action.option_strings[-1], args_string))
+
+        return ', '.join(parts)
+
 class ArgumentsCommon(object):
     def __init__(self, description, has_safety_period=False, has_safety_factor=False):
         self._parser = argparse.ArgumentParser(description=description, add_help=True)
@@ -195,7 +222,7 @@ class ArgumentsCommon(object):
 
                 parents = (self._subparsers[sim][inherit],) if inherit is not None else tuple()
 
-                parser_sub = subparsers.add_parser(mode, add_help=True, parents=parents, conflict_handler='resolve')
+                parser_sub = subparsers.add_parser(mode, add_help=True, parents=parents, conflict_handler='resolve', formatter_class=CustomHelpFormatter)
 
                 self._subparsers[sim][mode] = parser_sub
 
