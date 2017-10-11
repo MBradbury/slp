@@ -315,7 +315,12 @@ implementation
 		message.sink_distance = 0;
 		message.sink_source_distance = sink_source_distance;
 		message.max_hop = new_max_hop((sink_source_distance != BOTTOM) ? sink_source_distance : 0);
-		message.algorithm = ALGORITHM;
+		
+#ifdef SPACE_BEHIND_SINK
+		message.algorithm = GenericAlgorithm;
+#else
+		message.algorithm = FurtherAlgorithm;
+#endif
 
 		sequence_number_increment(&away_sequence_counter);
 
