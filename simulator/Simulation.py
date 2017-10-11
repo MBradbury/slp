@@ -241,9 +241,7 @@ class Simulation(object):
 
     def setup_radio(self):
         """Creates radio links for node pairs that are in range."""
-        model = CommunicationModel.eval_input(self.communication_model)
-
-        cm = model()
+        cm = CommunicationModel.eval_input(self.communication_model)
         cm.setup(self)
 
         index_to_ordered = self.configuration.topology.index_to_ordered
