@@ -8,7 +8,7 @@ result_file_name = "serial.csv"
 generate_per_node_id_binary = False
 
 def name():
-    return __name__
+    return __name__.split(".")[-1]
 
 def platform():
     """The hardware platform of the testbed"""
