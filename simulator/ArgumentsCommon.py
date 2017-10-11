@@ -68,19 +68,23 @@ OPTS = {
 
     "seed":                lambda x, **kwargs: x.add_argument("--seed",
                                                               type=int,
-                                                              required=False),
+                                                              required=False,
+                                                              help="The random seed provided to the simulator's PRNG"),
 
     "network size":        lambda x, **kwargs: x.add_argument("-ns", "--network-size",
                                                               type=ArgumentsCommon.type_positive_int,
-                                                              required=True),
+                                                              required=True,
+                                                              help="How large the network should be. Typically causes the network to contain N^2 nodes."),
 
     "distance":            lambda x, **kwargs: x.add_argument("-d", "--distance",
                                                               type=ArgumentsCommon.type_positive_float,
-                                                              default=4.5),
+                                                              default=4.5,
+                                                              help="The distance between nodes. How this is used depends on the configuration specified."),
 
     "node id order":       lambda x, **kwargs: x.add_argument("-nido", "--node-id-order",
                                                               choices=("topology", "randomised"),
-                                                              default="topology"),
+                                                              default="topology",
+                                                              help="With 'topology' node id orders are the same as the topology defines. 'randomised' causes the node ids to be randomised."),
 
     "safety period":       _add_safety_period,
         
@@ -88,12 +92,14 @@ OPTS = {
     "communication model": lambda x, **kwargs: x.add_argument("-cm", "--communication-model",
                                                               type=str,
                                                               choices=simulator.common.available_communication_models(),
-                                                              required=True),
+                                                              required=True,
+                                                              help="The communication model used to model the link quality between nodes. Typically low-asymmetry should be used."),
 
     "noise model":         lambda x, **kwargs: x.add_argument("-nm", "--noise-model",
                                                               type=str,
                                                               choices=simulator.common.available_noise_models(),
-                                                              required=True),
+                                                              required=True,
+                                                              help="Model the background noise in the network. meyer-heavy has high noise, casino-lab has lower noise. See models/noise for ways to graph the noisiness of these models."),
 
     # Only for Avrora
     "radio model":         _add_avrora_radio_model,
@@ -189,7 +195,7 @@ class ArgumentsCommon(object):
 
                 parents = (self._subparsers[sim][inherit],) if inherit is not None else tuple()
 
-                parser_sub = subparsers.add_parser(mode, add_help=False, parents=parents)
+                parser_sub = subparsers.add_parser(mode, add_help=True, parents=parents, conflict_handler='resolve')
 
                 self._subparsers[sim][mode] = parser_sub
 
