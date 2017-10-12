@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
+
 import argparse
 from collections import defaultdict
 from datetime import datetime
@@ -272,6 +274,10 @@ class AnalyseTestbedProfile(object):
         # Or, a single node is broadcasting and the rest and listening.
         result = self._analyse_log_file(converter)
 
+        if isinstance(result, RSSIResult):
+            with open(results_dir + "_rssi.txt", "w") as rssi_log_file:
+                self._create_noise_log(converter, rssi_log_file)
+
         with open(pickle_path, 'wb') as pickle_file:
             pickle.dump(result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -505,6 +511,30 @@ class AnalyseTestbedProfile(object):
             except ValueError as ex:
                 print("Failed to parse: ", self._sanitise_string(line))
                 traceback.print_exc()
+
+        return result
+
+    def _create_noise_log(self, converter, rssi_log_file):
+        result = None
+
+        for line in converter:
+
+            line_result = self._process_line(line)
+            if line_result is None:
+                continue
+
+            (date_time, kind, d_or_e, nid, localtime, details) = line_result
+
+            if kind != "M-RSSI":
+                continue
+
+            (average, smallest, largest, reads, channel) = details.split(",", 4)
+
+            average = _adjust_tinyos_raw_rssi(int(average))
+
+            print_line = ",".join((str(nid), str(average)))
+
+            print(print_line, file=rssi_log_file)
 
         return result
 

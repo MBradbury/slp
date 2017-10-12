@@ -1,5 +1,5 @@
 
-from simulator import CommunicationModel
+from simulator import CommunicationModel, NoiseModel
 
 # Parameters that all simulations must have
 # The source period must come last
@@ -16,7 +16,7 @@ testbed_global_parameter_names = tuple(name for name in global_parameter_names i
 
 def available_noise_models():
     """Gets the names of the noise models available in the noise directory"""
-    return ("casino-lab", "meyer-heavy", "ttx4-demo")
+    return NoiseModel.available_models()
 
     # Querying the files is the best approach. But it is expensive, so lets disable it.
     #import glob
