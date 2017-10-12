@@ -18,6 +18,8 @@ def choose_platform(provided, available):
     if provided is None:
         if isinstance(available, str):
             return available
+        elif isinstance(available, (tuple, list)) and len(available) == 1:
+            return available[0]
         else:
             raise RuntimeError("Unable to choose between the available platforms {}. Please specify one using --platform.".format(available))
     else:
