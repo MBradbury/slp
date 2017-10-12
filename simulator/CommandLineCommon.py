@@ -110,6 +110,15 @@ class CLI(object):
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
         subparser.add_argument("--dry-run", action="store_true", help="Do not actually submit, but check things would progress.")
 
+        subparser = testbed_subparsers.add_parser("run", help="Process the testbed result files using the offline processor.")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        ArgumentsCommon.OPTS["verbose"](subparser)
+        ArgumentsCommon.OPTS["attacker model"](subparser)
+
+        subparser = testbed_subparsers.add_parser("analyse", help="Analyse the testbed results of this algorithm.")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
+        subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
 
         ###
 
@@ -133,20 +142,6 @@ class CLI(object):
         ###
 
         subparser = self._add_argument("analyse", self._run_analyse, help="Analyse the results of this algorithm.")
-        subparser.add_argument("--thread-count", type=int, default=None)
-        subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
-        subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
-
-        ###
-
-        subparser = self._add_argument("run-testbed-offline", self._run_testbed_offline, help="Process the testbed result files using the offline processor.")
-        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
-
-        ArgumentsCommon.OPTS["verbose"](subparser)
-        ArgumentsCommon.OPTS["attacker model"](subparser)
-
-        subparser = self._add_argument("analyse-testbed", self._run_analyse_testbed, help="Analyse the testbed results of this algorithm.")
-        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
@@ -730,9 +725,7 @@ class CLI(object):
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
 
-    def _run_analyse_testbed(self, args):
-        testbed = submodule_loader.load(data.testbed, args.testbed)
-
+    def _run_testbed_analyse(self, testbed, args):
         def results_finder(results_directory):
             return fnmatch.filter(os.listdir(results_directory), '*.txt')
 
@@ -747,8 +740,8 @@ class CLI(object):
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound,
                      testbed=True)
 
-    def _run_testbed_offline(self, args):
-        testbed = submodule_loader.load(data.testbed, args.testbed)
+    def _run_testbed_run(self, testbed, args):
+        import multiprocessing.pool
 
         results_path = self._testbed_results_path(testbed)
 
@@ -763,6 +756,8 @@ class CLI(object):
                                                                self.time_after_first_normal_to_safety_period,
                                                                testbed=args.testbed)
             safety_periods = safety_period_table.safety_periods()
+
+        commands = []
 
         for common_result_dir in common_results_dirs:
 
@@ -806,9 +801,17 @@ class CLI(object):
             if args.verbose:
                 command += " --verbose"
 
+            commands.append((command, out_path))
+
+        def runner(arguments):
+            (command, out_path) = arguments
             print("Executing:", command, ">>", out_path)
             with open(out_path, "w") as stdout_file:
                 subprocess.check_call(command, stdout=stdout_file, shell=True)
+
+        job_pool = multiprocessing.pool.ThreadPool(processes=args.thread_count)
+
+        job_pool.map(runner, commands)
 
 
     def _run_safety_table(self, args):
@@ -950,6 +953,12 @@ class CLI(object):
             self._execute_runner("real", submitter, testbed_directory,
                                  time_estimator=None,
                                  skip_completed_simulations=skip_complete)
+
+        elif 'run' == args.testbed_mode:
+            self._run_testbed_run(testbed, args)
+
+        elif 'analyse' == args.testbed_mode:
+            self._run_tested_analyse(testbed, args)
 
         sys.exit(0)
 
