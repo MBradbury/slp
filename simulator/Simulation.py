@@ -4,7 +4,6 @@ import ast
 from datetime import datetime
 import heapq
 import importlib
-from itertools import islice
 import os
 import random
 import sys
@@ -14,6 +13,7 @@ import numpy as np
 
 import simulator.CommunicationModel as CommunicationModel
 import simulator.MetricsCommon as MetricsCommon
+import simulator.NoiseModel as NoiseModel
 
 class Node(object):
     __slots__ = ('nid', 'location', 'tossim_node')
@@ -271,37 +271,14 @@ class Simulation(object):
 
     def setup_noise_models(self):
         """Create the noise model for each of the nodes in the network."""
-        path = self.noise_model_path()
-
-        # Instead of reading in all the noise data, a limited amount
-        # is used. If we were to use it all it leads to large slowdowns.
-        count = 2500
-
-        noises = list(islice(self._read_noise_from_file(path), count))
-
-        for node in self.nodes:
-            tnode = node.tossim_node
-
-            tnode.addNoiseTraces(noises)
-
-            tnode.createNoiseModel()
-
-    @staticmethod
-    def _read_noise_from_file(path):
-        with open(path, "r") as f:
-            for line in f:
-                if len(line) > 0 and not line.isspace():
-                    yield int(line)
+        nm = NoiseModel.eval_input(self.noise_model)
+        nm.setup(self)
 
     def add_attacker(self, attacker):
         self.attackers.append(attacker)
 
     def any_attacker_found_source(self):
         return self.attacker_found_source
-
-    def noise_model_path(self):
-        """The path to the noise model, specified in the algorithm arguments."""
-        return os.path.join('models', 'noise', self.noise_model + '.txt')
 
 
 class OfflineSimulation(object):
