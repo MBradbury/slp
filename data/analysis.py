@@ -560,6 +560,9 @@ class Analyse(object):
             if name in self.opts
         ]
 
+        # Add a None value for the seed
+        arg_values.append(None)
+
         return Configuration.create_specific(self.opts['configuration'], *arg_values)
 
     def _get_constants_from_opts(self):
