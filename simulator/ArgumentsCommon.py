@@ -74,7 +74,7 @@ OPTS = {
     "network size":        lambda x, **kwargs: x.add_argument("-ns", "--network-size",
                                                               type=ArgumentsCommon.type_positive_int,
                                                               required=True,
-                                                              help="How large the network should be. Typically causes the network to contain N^2 nodes."),
+                                                              help="How large the network should be. Typically causes the network to contain NETWORK_SIZE^2 nodes."),
 
     "distance":            lambda x, **kwargs: x.add_argument("-d", "--distance",
                                                               type=ArgumentsCommon.type_positive_float,
@@ -106,12 +106,16 @@ OPTS = {
 
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
                                                               type=Attacker.eval_input,
-                                                              required=True),
+                                                              choices=Attacker.available_models(),
+                                                              required=True,
+                                                              help="The type of attacker that will try to find the source."),
 
     "fault model":         lambda x, **kwargs: x.add_argument("-fm", "--fault-model",
                                                               type=FaultModel.eval_input,
+                                                              choices=FaultModel.available_models(),
                                                               required=False,
-                                                              default=FaultModel.ReliableFaultModel()),
+                                                              default=FaultModel.ReliableFaultModel(),
+                                                              help="Specify if any faults will occur during program execution. By default no unexpected faults will occur."),
 
     "start time":          lambda x, **kwargs: x.add_argument("-st", "--latest-node-start-time",
                                                               type=ArgumentsCommon.type_positive_float,
