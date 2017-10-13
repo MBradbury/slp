@@ -240,7 +240,15 @@ class Configuration(object):
 
                     return self.topology.to_topo_nid(ord_node_id)
 
-            raise RuntimeError("No way to work out node from {} .".format(topo_node_id_str))
+            choices = [x for a in (self, self.topology) for x in dir(a) if not callable(getattr(a, x)) and not x.startswith("_")]
+
+            import difflib
+
+            close = difflib.get_close_matches(topo_node_id_str, choices, n=5)
+            if len(close) == 0:
+                close = choices
+
+            raise RuntimeError("No way to work out node from '{}', did you mean one of {}.".format(topo_node_id_str, close))
 
 # Coordinates are specified in topology format below
 
