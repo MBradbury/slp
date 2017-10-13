@@ -99,6 +99,7 @@ implementation
 
 	components CTPMetricsP;
 	CTPMetricsP.MetricLogging -> MetricLogging;
+	CTPMetricsP.MetricHelpers -> MetricHelpers;
 	CTPMetricsP.CtpInfo -> CollectionC;
 	CollectionC.CollectionDebug -> CTPMetricsP;
 }
