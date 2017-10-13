@@ -811,7 +811,10 @@ class CLI(object):
 
         job_pool = multiprocessing.pool.ThreadPool(processes=args.thread_count)
 
-        job_pool.map(runner, commands)
+        try:
+            job_pool.map(runner, commands)
+        finally:
+            job_pool.terminate()
 
 
     def _run_safety_table(self, args):
