@@ -276,6 +276,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 { \
 	NAME##Message* const rcvd = (NAME##Message*)payload; \
  \
+	const am_addr_t dest_addr = call AMPacket.destination(msg); \
 	const am_addr_t source_addr = call AMPacket.source(msg); \
 	const int8_t rssi = call MetricHelpers.getRssi(msg); \
 	const int16_t lqi = call MetricHelpers.getLqi(msg); \
@@ -290,7 +291,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	LOG_STDOUT_VERBOSE(EVENT_##KIND##_VALID_PACKET, #KIND "'ed valid " #NAME ".\n"); \
  \
-	METRIC_DELIVER(NAME, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi, lqi); \
+	METRIC_DELIVER(NAME, dest_addr, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi, lqi); \
  \
 	switch (call NodeType.get()) \
 	{
