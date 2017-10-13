@@ -228,7 +228,19 @@ class Configuration(object):
 
                     return self.topology.to_topo_nid(ord_node_id)
 
-            raise RuntimeError("No way to work out node from {}.".format(topo_node_id_str))
+                # For sink_id and source_id look for plurals of them
+                # Then make sure there is only one to choose from
+                if hasattr(attr_source, topo_node_id_str + "s"):
+                    ord_node_ids = getattr(attr_source, topo_node_id_str + "s")
+
+                    if len(ord_node_ids) != 1:
+                        raise RuntimeError("Unable to get a {} because there is not only one of them.".format(topo_node_id_str))
+
+                    ord_node_id = next(iter(ord_node_ids))
+
+                    return self.topology.to_topo_nid(ord_node_id)
+
+            raise RuntimeError("No way to work out node from {} .".format(topo_node_id_str))
 
 # Coordinates are specified in topology format below
 
