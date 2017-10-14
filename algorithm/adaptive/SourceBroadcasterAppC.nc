@@ -85,7 +85,6 @@ implementation
 	FakeMessageGeneratorP.Packet -> ActiveMessageC;
 	FakeMessageGeneratorP.MetricLogging -> MetricLogging;
 	FakeMessageGeneratorP.MetricHelpers -> MetricHelpers;
-	FakeMessageGeneratorP.MetricHelpers -> MetricHelpers;
 
 	components ObjectDetectorP;
 	App.ObjectDetector -> ObjectDetectorP;
