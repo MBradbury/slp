@@ -144,7 +144,8 @@ class IdealCommunicationModel(CommunicationModel):
     def _obtain_link_gain(self, nodes, wireless_range):
         lg = self.link_gain
 
-        for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
+        for ((i, ni), (j, nj)) in combinations(nodes.items(), 2):
+
             if euclidean2_2d(ni, nj) <= wireless_range:
                 lg[i,j] = self.connection_strength
                 lg[j,i] = self.connection_strength
