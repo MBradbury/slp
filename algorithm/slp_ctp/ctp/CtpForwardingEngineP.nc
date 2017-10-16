@@ -496,13 +496,15 @@ implementation {
         call CollectionDebug.logEventMsg(NET_C_FE_SENT_MSG, 
                                          call CollectionPacket.getSequenceNumber(msg), 
                                          call CollectionPacket.getOrigin(msg), 
-                                         call AMPacket.destination(msg));
+                                         call AMPacket.destination(msg),
+                                         msg);
       } else {
         dbg("CtpForwarder", "%s: packet %hu.%hhu for client %hhu dropped.\n", __FUNCTION__, call CollectionPacket.getOrigin(msg), call CollectionPacket.getSequenceNumber(msg), qe->client);
         call CollectionDebug.logEventMsg(NET_C_FE_SENDDONE_FAIL_ACK_SEND, 
                                          call CollectionPacket.getSequenceNumber(msg), 
                                          call CollectionPacket.getOrigin(msg), 
-                                         call AMPacket.destination(msg));
+                                         call AMPacket.destination(msg),
+                                         msg);
       }
     }
     else { 
@@ -512,14 +514,16 @@ implementation {
         call CollectionDebug.logEventMsg(NET_C_FE_FWD_MSG, 
                                          call CollectionPacket.getSequenceNumber(msg), 
                                          call CollectionPacket.getOrigin(msg), 
-                                         call AMPacket.destination(msg));
+                                         call AMPacket.destination(msg),
+                                         msg);
       }
       else {
         dbg("CtpForwarder", "%s: forwarded packet %hu.%hhu dropped.\n", __FUNCTION__, call CollectionPacket.getOrigin(msg), call CollectionPacket.getSequenceNumber(msg));
         call CollectionDebug.logEventMsg(NET_C_FE_SENDDONE_FAIL_ACK_FWD, 
                                          call CollectionPacket.getSequenceNumber(msg), 
                                          call CollectionPacket.getOrigin(msg), 
-                                         call AMPacket.destination(msg));
+                                         call AMPacket.destination(msg),
+                                         msg);
       }
       if (call MessagePool.put(qe->msg) != SUCCESS)
         call CollectionDebug.logEvent(NET_C_FE_PUT_MSGPOOL_ERR);
@@ -538,7 +542,8 @@ implementation {
       call CollectionDebug.logEventMsg(NET_C_FE_SENDDONE_FAIL, 
                                        call CollectionPacket.getSequenceNumber(msg), 
                                        call CollectionPacket.getOrigin(msg), 
-                                       call AMPacket.destination(msg));
+                                       call AMPacket.destination(msg),
+                                       msg);
       startRetxmitTimer(SENDDONE_FAIL_WINDOW, SENDDONE_FAIL_OFFSET);
     }
     else if (hasState(ACK_PENDING) && !call PacketAcknowledgements.wasAcked(msg)) {
@@ -550,7 +555,8 @@ implementation {
         call CollectionDebug.logEventMsg(NET_C_FE_SENDDONE_WAITACK, 
                                          call CollectionPacket.getSequenceNumber(msg), 
                                          call CollectionPacket.getOrigin(msg), 
-                                         call AMPacket.destination(msg));
+                                         call AMPacket.destination(msg),
+                                         msg);
         startRetxmitTimer(SENDDONE_NOACK_WINDOW, SENDDONE_NOACK_OFFSET);
       } else {
         /* Hit max retransmit threshold: drop the packet. */
@@ -632,7 +638,8 @@ implementation {
             call CollectionDebug.logEventMsg(NET_C_FE_LOOP_DETECTED,
                                          call CollectionPacket.getSequenceNumber(m), 
                                          call CollectionPacket.getOrigin(m), 
-                                         call AMPacket.destination(m));
+                                         call AMPacket.destination(m),
+                                         msg);
           }
         }
 
@@ -691,7 +698,8 @@ implementation {
     call CollectionDebug.logEventMsg(NET_C_FE_RCV_MSG,
                                          call CollectionPacket.getSequenceNumber(msg), 
                                          call CollectionPacket.getOrigin(msg), 
-                                     thl--);
+                                     thl--,
+                                     msg);
     if (len > call SubSend.maxPayloadLength()) {
       return msg;
     }
@@ -892,7 +900,7 @@ implementation {
   default command error_t CollectionDebug.logEventDbg(uint8_t type, uint16_t arg1, uint16_t arg2, uint16_t arg3) {
     return SUCCESS;
   }
-  default command error_t CollectionDebug.logEventMsg(uint8_t type, uint16_t msg, am_addr_t origin, am_addr_t node) {
+  default command error_t CollectionDebug.logEventMsg(uint8_t type, uint16_t msg, am_addr_t origin, am_addr_t node, const message_t* packet) {
     return SUCCESS;
   }
   default command error_t CollectionDebug.logEventRoute(uint8_t type, am_addr_t parent, uint8_t hopcount, uint16_t metric) {

@@ -4,14 +4,17 @@ import os
 import subprocess
 
 class Runner(object):
+    required_safety_periods = True
+    
     executable = 'python -OO run.py'
 
-    def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None):
+    def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None, dry_run=False):
         self.cluster_command = cluster_command
         self.prepare_command = prepare_command
         self.job_thread_count = job_thread_count
         self.array_job_variable = array_job_variable
         self.job_repeats = job_repeats
+        self.dry_run = dry_run
 
     def add_job(self, options, name, estimated_time):
         target_directory = name[:-len(".txt")]
@@ -69,4 +72,5 @@ class Runner(object):
 
     def _submit_job(self, command):
         print(command)
-        subprocess.check_call(command, shell=True)
+        if not self.dry_run:
+            subprocess.check_call(command, shell=True)

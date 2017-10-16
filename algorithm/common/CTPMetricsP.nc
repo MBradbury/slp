@@ -68,29 +68,33 @@ implementation
 
 		return SUCCESS;
 	}
-	command error_t CollectionDebug.logEventMsg(uint8_t event_type, uint16_t msg, am_addr_t origin, am_addr_t node) {
+	command error_t CollectionDebug.logEventMsg(uint8_t event_type, uint16_t msg, am_addr_t origin, am_addr_t node, const message_t* packet) {
 		//simdbg("stdout", "logEventMessage %u %u %u %u\n", event_type, msg, origin, node);
 
 		if (event_type == NET_C_FE_SENDDONE_WAITACK || event_type == NET_C_FE_SENT_MSG || event_type == NET_C_FE_FWD_MSG)
 		{
 			// TODO: FIXME
 			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
-			METRIC_BCAST(Normal, SUCCESS, UNKNOWN_SEQNO);
+			METRIC_BCAST(Normal, SUCCESS, UNKNOWN_SEQNO, call MetricHelpers.getTxPower(packet));
 		}
 
 		return SUCCESS;
 	}
-	command error_t CollectionDebug.logEventRoute(uint8_t event_type, am_addr_t parent, uint8_t hopcount, uint16_t metric) {
+	command error_t CollectionDebug.logEventRoute(uint8_t event_type, am_addr_t parent, uint8_t hopcount, uint16_t metric, const message_t* packet) {
 		//simdbg("stdout", "logEventRoute %u %u %u %u\n", event_type, parent, hopcount, metric);
 
 		if (event_type == NET_C_TREE_SENT_BEACON)
 		{
-			METRIC_BCAST(CTPBeacon, SUCCESS, UNKNOWN_SEQNO);
+			METRIC_BCAST(CTPBeacon, SUCCESS, UNKNOWN_SEQNO, call MetricHelpers.getTxPower(packet));
 		}
 
 		else if (event_type == NET_C_TREE_RCV_BEACON)
 		{
-			METRIC_DELIVER(CTPBeacon, parent, BOTTOM, UNKNOWN_SEQNO);
+			//const am_addr_t dest_addr = call AMPacket.destination(msg);
+			const int8_t rssi = call MetricHelpers.getRssi(packet);
+			const int16_t lqi = call MetricHelpers.getLqi(packet);
+
+			METRIC_DELIVER(CTPBeacon, AM_BROADCAST_ADDR, parent, BOTTOM, UNKNOWN_SEQNO, rssi, lqi);
 			METRIC_RCV(CTPBeacon, parent, BOTTOM, UNKNOWN_SEQNO, BOTTOM);
 		}
 

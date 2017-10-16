@@ -27,7 +27,7 @@ class MobilityModel(object):
             if node_id not in nodes:
                 raise RuntimeError("Invalid node id {}.".format(node_id))
 
-            if node_id == self.configuration.sink_id:
+            if node_id in self.configuration.sink_ids:
                 raise RuntimeError("The source node cannot move onto the sink as it cannot detect it")
 
     def build_arguments(self):
@@ -35,7 +35,7 @@ class MobilityModel(object):
 
         def to_tinyos_format(time):
             if math.isinf(time):
-                return "(uint32_t)-1"
+                return "UINT32_MAX"
             else:
                 return "{}U".format(int(time * 1000))
 

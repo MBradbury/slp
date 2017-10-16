@@ -70,9 +70,11 @@ class ClusterCommon(object):
 
 
     def _ram_to_ask_for(self, ram_for_os_mb=2 * 1024):
-        return int(math.floor(((self.ram_per_node * self.ppn) - ram_for_os_mb) / self.ppn)) * self.ppn
+        total_ram = self.ram_per_node * self.ppn
+        app_ram = total_ram - ram_for_os_mb
+        return int(app_ram // self.ppn) * self.ppn
 
-    def _pbs_submitter(self, notify_emails=None):
+    def _pbs_submitter(self, notify_emails=None, dry_run=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_to_ask_for_mb = self._ram_to_ask_for()
@@ -83,14 +85,13 @@ class ClusterCommon(object):
             self.ppn, ram_to_ask_for_mb)
 
         if notify_emails is not None and len(notify_emails) > 0:
-            print("Warning: flux does not currently have email notification setup")
-            cluster_command += " -m ae -M {}".format(",".join(notify_emails))
+            cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
         prepare_command = "cd $PBS_O_WORKDIR"
 
-        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1)
+        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run)
 
-    def _pbs_array_submitter(self, notify_emails=None):
+    def _pbs_array_submitter(self, notify_emails=None, dry_run=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_per_node_mb = self._ram_to_ask_for() / self.ppn
@@ -107,14 +108,14 @@ class ClusterCommon(object):
             num_array_jobs, num_jobs, num_jobs * ram_per_node_mb)
 
         if notify_emails is not None and len(notify_emails) > 0:
-            print("Warning: flux does not currently have email notification setup")
-            cluster_command += " -m ae -M {}".format(",".join(notify_emails))
+            cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
         prepare_command = "cd $PBS_O_WORKDIR"
 
-        return Submitter(cluster_command, prepare_command, num_jobs, job_repeats=num_array_jobs, array_job_variable="$PBS_ARRAYID")
+        return Submitter(cluster_command, prepare_command, num_jobs,
+                         job_repeats=num_array_jobs, array_job_variable="$PBS_ARRAYID", dry_run=dry_run)
 
-    def _sge_submitter(self, notify_emails=None):
+    def _sge_submitter(self, notify_emails=None, dry_run=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         # There is only 24GB available and there are 48 threads that can be used for execution.
@@ -139,9 +140,9 @@ class ClusterCommon(object):
 
         prepare_command = ""
 
-        return Submitter(cluster_command, prepare_command, jobs, job_repeats=1)
+        return Submitter(cluster_command, prepare_command, jobs, job_repeats=1, dry_run=dry_run)
 
-    def _moab_submitter(self, notify_emails=None):
+    def _moab_submitter(self, notify_emails=None, dry_run=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_to_ask_for_mb = self._ram_to_ask_for()
@@ -152,12 +153,11 @@ class ClusterCommon(object):
             self.ppn, ram_to_ask_for_mb)
 
         if notify_emails is not None and len(notify_emails) > 0:
-            print("Warning: flux does not currently have email notification setup")
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
         prepare_command = "cd $PBS_O_WORKDIR"
 
-        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1)
+        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run)
 
 
 class dummy(ClusterCommon):
@@ -177,7 +177,7 @@ class dummy(ClusterCommon):
     def copy_back(self, dirname, user=None):
         raise RuntimeError("Cannot copy back from the dummy cluster")
 
-    def submitter(self, notify_emails=None):
+    def submitter(self, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         class DummySubmitter(Submitter):
@@ -190,6 +190,7 @@ class dummy(ClusterCommon):
         cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
             self.ppn, ram_to_ask_for_mb)
 
+        notify_emails = kwargs.get("notify_emails", None)
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
@@ -197,7 +198,7 @@ class dummy(ClusterCommon):
 
         return DummySubmitter(cluster_command, prepare_command, self.ppn)
 
-    def array_submitter(self, notify_emails=None):
+    def array_submitter(self, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         class DummySubmitter(Submitter):
@@ -212,6 +213,7 @@ class dummy(ClusterCommon):
         cluster_command = "qsub -q serial -j oe -h -t 1-{}%1 -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
             num_array_jobs, num_jobs, num_jobs * ram_per_job_mb)
 
+        notify_emails = kwargs.get("notify_emails", None)
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
@@ -227,11 +229,21 @@ class flux(ClusterCommon):
             rpn=(32 * 1024) / 12 # 32GB per node
         )
 
-    def submitter(self, notify_emails=None):
-        return self._pbs_submitter(notify_emails=notify_emails)
+    def submitter(self, *args, **kwargs):
+        notify_emails = kwargs.get("notify_emails", None)
+        if notify_emails is not None and len(notify_emails) > 0:
+            print("Warning: flux does not currently have email notification setup")
 
-    def array_submitter(self, notify_emails=None):
-        return self._pbs_array_submitter(notify_emails=notify_emails)
+        # WARNING: Use mem instead of pmem when submitting jobs to flux
+
+        return self._pbs_submitter(*args, **kwargs)
+
+    def array_submitter(self, *args, **kwargs):
+        notify_emails = kwargs.get("notify_emails", None)
+        if notify_emails is not None and len(notify_emails) > 0:
+            print("Warning: flux does not currently have email notification setup")
+
+        return self._pbs_array_submitter(*args, **kwargs)
 
 class apocrita(ClusterCommon):
     def __init__(self):
@@ -241,8 +253,8 @@ class apocrita(ClusterCommon):
             rpn=2 * 1024
         )
 
-    def submitter(self, notify_emails=None):
-        return self._sge_submitter(notify_emails=notify_emails)
+    def submitter(self, *args, **kwargs):
+        return self._sge_submitter(*args, **kwargs)
 
 class tinis(ClusterCommon):
     def __init__(self):
@@ -252,11 +264,11 @@ class tinis(ClusterCommon):
             rpn=(64 * 1024) / 16 # 64GB per node
         )
 
-    def submitter(self, notify_emails=None):
-        return self._pbs_submitter(notify_emails=notify_emails)
+    def submitter(self, *args, **kwargs):
+        return self._pbs_submitter(*args, **kwargs)
 
-    def array_submitter(self, notify_emails=None):
-        return self._pbs_array_submitter(notify_emails=notify_emails)
+    def array_submitter(self, *args, **kwargs):
+        return self._pbs_array_submitter(*args, **kwargs)
 
 class orac(ClusterCommon):
     def __init__(self):
@@ -266,8 +278,8 @@ class orac(ClusterCommon):
             rpn=(128 * 1024) / 28 # 128GB per node
         )
 
-    def submitter(self, notify_emails=None):
-        return self._moab_submitter(notify_emails=notify_emails)
+    def submitter(self, *args, **kwargs):
+        return self._moab_submitter(*args, **kwargs)
 
 def available():
     """A list of the names of the available clusters."""

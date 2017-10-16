@@ -4,7 +4,6 @@ import ast
 from datetime import datetime
 import heapq
 import importlib
-from itertools import islice
 import os
 import random
 import sys
@@ -14,6 +13,7 @@ import numpy as np
 
 import simulator.CommunicationModel as CommunicationModel
 import simulator.MetricsCommon as MetricsCommon
+import simulator.NoiseModel as NoiseModel
 
 class Node(object):
     __slots__ = ('nid', 'location', 'tossim_node')
@@ -45,7 +45,7 @@ class Simulation(object):
             #
             # If we ever get to the point where subsequent runs work well
             # then freeing the memory will be necessary.
-            self.tossim = tossim_module.Tossim({}, should_free=False)
+            self.tossim = tossim_module.Tossim(should_free=False)
 
         self.radio = self.tossim.radio()
 
@@ -241,9 +241,7 @@ class Simulation(object):
 
     def setup_radio(self):
         """Creates radio links for node pairs that are in range."""
-        model = CommunicationModel.eval_input(self.communication_model)
-
-        cm = model()
+        cm = CommunicationModel.eval_input(self.communication_model)
         cm.setup(self)
 
         index_to_ordered = self.configuration.topology.index_to_ordered
@@ -273,37 +271,14 @@ class Simulation(object):
 
     def setup_noise_models(self):
         """Create the noise model for each of the nodes in the network."""
-        path = self.noise_model_path()
-
-        # Instead of reading in all the noise data, a limited amount
-        # is used. If we were to use it all it leads to large slowdowns.
-        count = 2500
-
-        noises = list(islice(self._read_noise_from_file(path), count))
-
-        for node in self.nodes:
-            tnode = node.tossim_node
-
-            tnode.addNoiseTraces(noises)
-
-            tnode.createNoiseModel()
-
-    @staticmethod
-    def _read_noise_from_file(path):
-        with open(path, "r") as f:
-            for line in f:
-                if len(line) > 0 and not line.isspace():
-                    yield int(line)
+        nm = NoiseModel.eval_input(self.noise_model)
+        nm.setup(self)
 
     def add_attacker(self, attacker):
         self.attackers.append(attacker)
 
     def any_attacker_found_source(self):
         return self.attacker_found_source
-
-    def noise_model_path(self):
-        """The path to the noise model, specified in the algorithm arguments."""
-        return os.path.join('models', 'noise', self.noise_model + '.txt')
 
 
 class OfflineSimulation(object):
@@ -354,7 +329,7 @@ class OfflineSimulation(object):
 
         metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
 
-        self.metrics = metrics_class(self, configuration)
+        self.metrics = metrics_class(self, configuration, strict=not args.non_strict)
 
         # Record the current user's time this script started executing at
         self.start_time = None
@@ -394,7 +369,11 @@ class OfflineSimulation(object):
         pass
 
     def register_output_handler(self, name, function):
-        self._line_handlers[name] = function
+        if name not in self._line_handlers:
+            self._line_handlers[name] = []
+
+        if function is not None:
+            self._line_handlers[name].append(function)
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
@@ -472,19 +451,17 @@ class OfflineSimulation(object):
 
         match = self.LINE_RE.match(rest)
         if match is not None:
-            kind = match.group(1)
-            log_type = match.group(2)
-            node_id = ast.literal_eval(match.group(3))
-            node_local_time = ast.literal_eval(match.group(4))
-            message_line = match.group(5)
+            (kind, log_type, node_id, node_local_time, message_line) = match.groups()
+
+            node_id = ast.literal_eval(node_id)
+            node_local_time = ast.literal_eval(node_local_time)
 
             return (current_time, kind, node_local_time, log_type, node_id, message_line)
-
         else:
             return None
 
     def trigger_duration_run_start(self, time):
-        if self._duration_start_time is not None:
+        if self._duration_start_time is None:
             self._duration_start_time = time
 
     def run(self):
@@ -531,14 +508,16 @@ class OfflineSimulation(object):
                     break
 
                 # Stop if the safety period has expired
-                if self._duration_start_time is not None and current_time is not None and \
-                   (current_time - self._duration_start_time).total_seconds() >= self.safety_period_value:
-                    break
+                if self._duration_start_time is not None and current_time is not None:
+                    current_time_sec = (current_time - self._real_start_time).total_seconds()
+
+                    if (current_time_sec - self._duration_start_time) >= self.safety_period_value:
+                        break
 
                 # Handle the event
-                handler = self._line_handlers.get(kind, handler_missing)
-                if handler is not handler_missing:
-                    if handler is not None:
+                handlers = self._line_handlers.get(kind, handler_missing)
+                if handlers is not handler_missing:
+                    for handler in handlers:
                         handler(log_type, node_id, self.sim_time(), message_line)
                 else:
                     print("There is no handler for the kind {}. Unable to process the line '{}'.".format(kind, message_line), file=sys.stderr)

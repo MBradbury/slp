@@ -16,7 +16,7 @@ fi
 
 mkdir -p testbed_results/flocklab
 
-echo "Downloading results..."
+echo "Downloading results for ${TESTID}..."
 
 curl -s -S --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
 
@@ -43,7 +43,11 @@ echo "Downloading configuration..."
 
 curl -s --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/testconfiguration.xml --output testbed_results/flocklab/$TESTID/testconfiguration.xml
 
-NAME=$(cat testbed_results/flocklab/$TESTID/testconfiguration.xml | sed 's/xmlns=".*"//g' | xmllint --xpath '/testConf/generalConf/name/text()' - )
+NAME=$(cat testbed_results/flocklab/$TESTID/testconfiguration.xml | sed 's/xmlns=".*"//g' | xmllint --xpath '/testConf/generalConf/description/text()' - )
+
+DIRNAME=$(dirname $NAME)
+
+mkdir -p "testbed_results/flocklab/$DIRNAME"
 
 mv "testbed_results/flocklab/$TESTID" "testbed_results/flocklab/${NAME}_$TESTID"
 

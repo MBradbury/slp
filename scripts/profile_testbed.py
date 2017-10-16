@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
+
 import argparse
 from collections import defaultdict
 from datetime import datetime
@@ -44,11 +46,11 @@ class UnknownTestbedError(RuntimeError):
 
 class RSSIResult(object):
     def __init__(self):
-        self.node_average = defaultdict(RunningStats)
-        #self.node_smallest = defaultdict(RunningStats)
-        #self.node_largest = defaultdict(RunningStats)
+        self.node_average = {}
+        self.node_smallest = {}
+        #self.node_largest = {}
 
-        self.total_reads = defaultdict(int)
+        self.total_reads = {}
 
         #self.start_time = None
         #self.stop_time = None
@@ -57,15 +59,22 @@ class RSSIResult(object):
         if kind == "M-RSSI":
             (average, smallest, largest, reads, channel) = map(int, details.split(",", 4))
 
+            key = (nid, channel)
+
             average = _adjust_tinyos_raw_rssi(average)
-            #smallest = _adjust_tinyos_raw_rssi(smallest)
+            smallest = _adjust_tinyos_raw_rssi(smallest)
             #largest = _adjust_tinyos_raw_rssi(largest)
 
-            self.node_average[(nid, channel)].push(average)
-            #self.node_smallest[(nid, channel)].push(smallest)
+            if key not in self.node_average:
+                self.node_average[key] = RunningStats()
+                self.node_smallest[key] = smallest
+                self.total_reads[key] = 0
+
+            self.node_average[key].push(average)
+            self.node_smallest[key] = min(self.node_smallest[key], smallest)
             #self.node_largest[(nid, channel)].push(largest)
 
-            self.total_reads[(nid, channel)] += reads
+            self.total_reads[key] += reads
 
             #if self.start_time is None:
             #    self.start_time = date_time
@@ -85,11 +94,21 @@ class RSSIResult(object):
         keys = set(self.node_average.keys()) | set(other.node_average.keys())
 
         for key in keys:
-            result.node_average[key] = self.node_average[key].combine(other.node_average[key])
-            #result.node_smallest[key] = self.node_smallest[key].combine(other.node_smallest[key])
+            try:
+                self_ave, self_smallest, self_total = self.node_average[key], self.node_smallest[key], self.total_reads[key]
+            except KeyError:
+                self_ave, self_smallest, self_total = RunningStats(), None, 0
+
+            try:
+                other_ave, other_smallest, other_total = other.node_average[key], other.node_smallest[key], other.total_reads[key]
+            except KeyError:
+                other_ave, other_smallest, other_total = RunningStats(), None, 0
+
+            result.node_average[key] = self_ave.combine(other_ave)
+            result.node_smallest[key] = min(x for x in (self_smallest, other_smallest) if x is not None)
             #result.node_largest[key] = self.node_largest[key].combine(other.node_largest[key])
 
-            result.total_reads[key] = self.total_reads[key] + other.total_reads[key]
+            result.total_reads[key] = self_total + other_total
 
         #result.start_time = min(self.start_time, other.start_time)
         #result.stop_time = max(self.stop_time, other.stop_time)
@@ -254,6 +273,10 @@ class AnalyseTestbedProfile(object):
         # Either is is RSSI measurements, where no nodes are broadcasting.
         # Or, a single node is broadcasting and the rest and listening.
         result = self._analyse_log_file(converter)
+
+        if isinstance(result, RSSIResult):
+            with open(results_dir + "_rssi.txt", "w") as rssi_log_file:
+                self._create_noise_log(converter, rssi_log_file)
 
         with open(pickle_path, 'wb') as pickle_file:
             pickle.dump(result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
@@ -488,6 +511,30 @@ class AnalyseTestbedProfile(object):
             except ValueError as ex:
                 print("Failed to parse: ", self._sanitise_string(line))
                 traceback.print_exc()
+
+        return result
+
+    def _create_noise_log(self, converter, rssi_log_file):
+        result = None
+
+        for line in converter:
+
+            line_result = self._process_line(line)
+            if line_result is None:
+                continue
+
+            (date_time, kind, d_or_e, nid, localtime, details) = line_result
+
+            if kind != "M-RSSI":
+                continue
+
+            (average, smallest, largest, reads, channel) = details.split(",", 4)
+
+            average = _adjust_tinyos_raw_rssi(int(average))
+
+            print_line = ",".join((str(nid), str(average)))
+
+            print(print_line, file=rssi_log_file)
 
         return result
 

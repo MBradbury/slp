@@ -22,6 +22,7 @@ class ResultsProcessor(object):
     results_path = "results.pickle"
     current_path = "current.pickle"
     link_path = "link.pickle"
+    noise_floor_path = "noise_floor.pickle"
 
     def __init__(self):
         self.args = None
@@ -185,8 +186,9 @@ class ResultsProcessor(object):
 
         result = self._combine_link_results()
 
+        # Use a Python 2 compatible pickle
         with open(link_path, 'wb') as pickle_file:
-            pickle.dump(result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(result, pickle_file, protocol=2)
 
         return result
 
@@ -207,11 +209,21 @@ class ResultsProcessor(object):
         return new_result
 
     def _get_combined_noise_floor(self):
+        noise_floor_path = os.path.join(self.args.results_dir, self.noise_floor_path)
+
+        if os.path.exists(noise_floor_path) and not self.args.flush:
+            with open(noise_floor_path, 'rb') as pickle_file:
+                return pickle.load(pickle_file)
+
         rssi_iter = iter(self.rssi_results)
 
         rssi_result = next(rssi_iter)
         for result in rssi_iter:
             rssi_result = rssi_result.combine(result)
+
+        # Use a Python 2 compatible pickle
+        with open(noise_floor_path, 'wb') as pickle_file:
+            pickle.dump(rssi_result, pickle_file, protocol=2)
 
         return rssi_result
 

@@ -57,7 +57,7 @@ class Attacker(object):
             self._draw(0, self.position)
 
     def _source_ids(self):
-        return self._sim.metrics.source_ids
+        return self._sim.metrics.source_ids()
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
         raise NotImplementedError()
@@ -626,3 +626,18 @@ def eval_input(source):
         raise RuntimeError("The source ({}) is not a valid instance of an Attacker.".format(source))
 
     return result
+
+def available_models():
+    class WildcardModelChoice(object):
+        """A special available model that checks if the string provided
+        matches the name of the class."""
+        def __init__(self, cls):
+            self.cls = cls
+
+        def __eq__(self, value):
+            return isinstance(value, self.cls)
+
+        def __repr__(self):
+            return self.cls.__name__ + "(...)"
+
+    return [WildcardModelChoice(x) for x in models()]

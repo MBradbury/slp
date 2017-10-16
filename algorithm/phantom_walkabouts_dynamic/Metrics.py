@@ -3,8 +3,8 @@ from __future__ import print_function, division
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
-    def __init__(self, sim, configuration):
-        super(Metrics, self).__init__(sim, configuration)
+    def __init__(self, *args, **kwargs):
+        super(Metrics, self).__init__(*args, **kwargs)
 
         self.register('Metric-PATH-END', self._process_PATH_END)
         self.register('Metric-SOURCE_DROPPED', self._process_SOURCE_DROPPED)
