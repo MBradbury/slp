@@ -47,7 +47,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.s = s
 
     def setup(self, sim):
-        nodes = sim.configuration.topology.nodes.values()
+        nodes = sim.configuration.topology.nodes.items()
         rng = sim.rng
 
         self._setup(nodes, rng)
@@ -70,7 +70,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         """Check that all nodes are at least d0 distance away from each other.
         This model does not work correctly when nodes are closer than d0."""
 
-        for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
+        for ((i, ni), (j, nj)) in combinations(nodes, 2):
             distance = euclidean2_2d(ni, nj)
             if distance < self.d0:
                 raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
@@ -110,7 +110,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
         d0 = self.d0
         lg = self.link_gain
 
-        for ((i, ni), (j, nj)) in combinations(enumerate(nodes), 2):
+        for ((i, ni), (j, nj)) in combinations(nodes, 2):
             rnd1 = rg(0, 1)
 
             distance = euclidean2_2d(ni, nj)
@@ -130,7 +130,7 @@ class IdealCommunicationModel(CommunicationModel):
         self.noise_floor_pn = noise_floor_pn
 
     def setup(self, sim):
-        nodes = sim.configuration.topology.nodes
+        nodes = sim.configuration.topology.nodes.items()
 
         num_nodes = len(nodes)
 
@@ -145,7 +145,7 @@ class IdealCommunicationModel(CommunicationModel):
     def _obtain_link_gain(self, nodes, wireless_range):
         lg = self.link_gain
 
-        for ((i, ni), (j, nj)) in combinations(nodes.items(), 2):
+        for ((i, ni), (j, nj)) in combinations(nodes, 2):
             if euclidean2_2d(ni, nj) <= wireless_range:
                 lg[i,j] = self.connection_strength
                 lg[j,i] = self.connection_strength
