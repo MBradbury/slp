@@ -137,7 +137,8 @@ class IdealCommunicationModel(CommunicationModel):
         # All nodes have the same noise floor
         self.noise_floor = np.full(num_nodes, self.noise_floor_pn, dtype=np.float64)
 
-        self.link_gain = np.zeros((num_nodes, num_nodes), dtype=np.float64)
+        # Use NaNs to signal that there is no link between these two nodes
+        self.link_gain = np.full((num_nodes, num_nodes), np.nan, dtype=np.float64)
 
         self._obtain_link_gain(nodes, sim.wireless_range)
 
@@ -145,14 +146,9 @@ class IdealCommunicationModel(CommunicationModel):
         lg = self.link_gain
 
         for ((i, ni), (j, nj)) in combinations(nodes.items(), 2):
-
             if euclidean2_2d(ni, nj) <= wireless_range:
                 lg[i,j] = self.connection_strength
                 lg[j,i] = self.connection_strength
-            else:
-                # Use NaNs to signal that there is no link between these two nodes
-                lg[i,j] = float('NaN')
-                lg[j,i] = float('NaN')
 
 class TestbedCommunicationModel(CommunicationModel):
     """The results of a testbed profile records the RSSI between node node and another
