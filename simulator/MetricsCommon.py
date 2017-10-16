@@ -36,13 +36,15 @@ def pairwise(iterable):
     return zip(a, b)
 
 class MetricsCommon(object):
-    def __init__(self, sim, configuration):
+    def __init__(self, sim, configuration, strict=True):
         self.sim = sim
         self.configuration = configuration
         self.topology = configuration.topology
 
-        self.source_ids = set() # set(configuration.source_ids)
-        self.sink_ids = set() # {configuration.sink_id}
+        self.strict = strict
+
+        self.reported_source_ids = set() # set(configuration.source_ids)
+        self.reported_sink_ids = set() # {configuration.sink_id}
 
         self.sent = defaultdict(Counter)
         self.received = defaultdict(Counter)
@@ -94,6 +96,18 @@ class MetricsCommon(object):
         self.register('M-CD', self.process_deliver_event)
 
         self.register('stderr', self.process_error_event)
+
+    def source_ids(self):
+        if self.strict:
+            return self.reported_source_ids
+        else:
+            return set(self.configuration.source_ids)
+
+    def sink_ids(self):
+        if self.strict:
+            return self.reported_sink_ids
+        else:
+            return set(self.configuration.sink_ids)
 
     def _process_node_id(self, ordered_node_id):
         ordered_node_id = int(ordered_node_id)
@@ -147,7 +161,7 @@ class MetricsCommon(object):
             hist.extend([0] * (bin_no - len(hist) + 1))
         hist[bin_no] += 1
 
-        if ord_node_id in self.source_ids and kind == "Normal":
+        if ord_node_id in self.source_ids() and kind == "Normal":
             sequence_number = int(sequence_number)
 
             # There are some times when we do not know the sequence number of the normal message
@@ -183,7 +197,7 @@ class MetricsCommon(object):
         nd = conf._dist_matrix
         ndm = conf._dist_matrix_meters
 
-        for ord_source_id in self.source_ids:
+        for ord_source_id in self.source_ids():
             top_source_id = ttn(ord_source_id)
             idx_source_id = oi(ord_source_id)
 
@@ -214,7 +228,7 @@ class MetricsCommon(object):
 
         self.received[kind][top_node_id] += 1
 
-        if ord_node_id in self.sink_ids and kind == "Normal":
+        if ord_node_id in self.sink_ids() and kind == "Normal":
             time = float(time)
             ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
             sequence_number = int(sequence_number)
@@ -223,8 +237,17 @@ class MetricsCommon(object):
             # If there is a KeyError on the line with self.normal_sent_time
             # then that means that a message was received, but not recorded as sent.
             key = (top_ultimate_source_id, sequence_number)
-            sent_time = self.normal_sent_time[key]
-            self.normal_latency[key] = time - sent_time
+
+            try:
+                sent_time = self.normal_sent_time[key]
+                self.normal_latency[key] = time - sent_time
+            except KeyError as ex:
+                if not self.strict:
+                    print("Unable to find the normal sent time for key {}.".format(key), file=sys.stderr)
+                    self.normal_latency[key] = None
+                else:
+                    raise
+
             self.normal_receive_time[key] = time
             self.normal_hop_count.append(hop_count)
 
@@ -233,7 +256,10 @@ class MetricsCommon(object):
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
     def process_deliver_event(self, d_or_e, node_id, time, detail):
-        (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+        try:
+            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+        except ValueError:
+            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
         ord_prox_src_id, top_prox_src_id = self._process_node_id(proximate_source_id)
@@ -258,7 +284,7 @@ class MetricsCommon(object):
         time = float(time)
 
         if new_name == "SourceNode":
-            self.source_ids.add(ord_node_id)
+            self.reported_source_ids.add(ord_node_id)
 
             self.became_source_times[top_node_id].append(time)
 
@@ -266,7 +292,7 @@ class MetricsCommon(object):
                 attacker.handle_metrics_new_source(ord_node_id)
 
         elif old_name == "SourceNode":
-            self.source_ids.remove(ord_node_id)
+            self.reported_source_ids.remove(ord_node_id)
 
             self.became_normal_after_source_times[top_node_id].append(time)
 
@@ -274,7 +300,7 @@ class MetricsCommon(object):
             if old_name != "<unknown>":
                 raise RuntimeError("SinkNodes MUST be created from no initial node type but was instead from {}".format(old_name))
 
-            self.sink_ids.add(ord_node_id)
+            self.reported_sink_ids.add(ord_node_id)
 
         self.node_transitions[(old_name, new_name)] += 1
 
@@ -327,21 +353,27 @@ class MetricsCommon(object):
             return float('NaN')
 
     def average_normal_latency(self):
+        non_null_latency = [x for x in self.normal_latency.values() if x is not None]
+
         # It is possible that the sink has received no Normal messages
-        if len(self.normal_latency) != 0:
-            return np.mean(np.fromiter(iter(self.normal_latency.values()), dtype=float))
+        if len(non_null_latency) != 0:
+            return np.mean(np.fromiter(iter(non_null_latency), dtype=float))
         else:
             return float('inf')
 
     def maximum_normal_latency(self):
-        if len(self.normal_latency) != 0:
-            return max(self.normal_latency.values())
+        non_null_latency = [x for x in self.normal_latency.values() if x is not None]
+
+        if len(non_null_latency) != 0:
+            return max(non_null_latency)
         else:
             return float('inf')
 
     def minimum_normal_latency(self):
-        if len(self.normal_latency) != 0:
-            return min(self.normal_latency.values())
+        non_null_latency = [x for x in self.normal_latency.values() if x is not None]
+
+        if len(non_null_latency) != 0:
+            return min(non_null_latency)
         else:
             return float('inf')
 
@@ -407,7 +439,7 @@ class MetricsCommon(object):
         # so a small tolerance value is used.
 
         if len(set(self.normal_receive_time.keys()) - set(self.normal_sent_time.keys())) > 0:
-            raise RuntimeError("We received a message that was not set (sent: {}) (received {})!".format(
+            raise RuntimeError("We received an unexpected message (sent: {}) (received {})!".format(
                 self.normal_sent_time, self.normal_receive_time
             ))
 
@@ -460,7 +492,7 @@ class MetricsCommon(object):
             in self.sim.attackers
 
             for ord_source_id
-            in self.source_ids
+            in self.source_ids()
         }
 
     def attacker_sink_distance(self):
@@ -474,7 +506,7 @@ class MetricsCommon(object):
             in self.sim.attackers
 
             for ord_sink_id
-            in self.sink_ids
+            in self.sink_ids()
         }
 
     def attacker_moves(self):
@@ -501,7 +533,7 @@ class MetricsCommon(object):
             in self.sim.attackers
 
             for ord_source_id
-            in self.source_ids
+            in self.source_ids()
         }
 
     def attacker_steps_away(self):
@@ -514,7 +546,7 @@ class MetricsCommon(object):
             in self.sim.attackers
 
             for ord_source_id
-            in self.source_ids
+            in self.source_ids()
         }
 
     def attacker_min_source_distance(self):
@@ -527,7 +559,7 @@ class MetricsCommon(object):
             in self.sim.attackers
 
             for ord_source_id
-            in self.source_ids
+            in self.source_ids()
         }
 
 

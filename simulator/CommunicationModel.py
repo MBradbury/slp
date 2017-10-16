@@ -130,7 +130,7 @@ class IdealCommunicationModel(CommunicationModel):
         self.noise_floor_pn = noise_floor_pn
 
     def setup(self, sim):
-        nodes = sim.configuration.topology.nodes.values()
+        nodes = sim.configuration.topology.nodes
 
         num_nodes = len(nodes)
 
@@ -153,6 +153,48 @@ class IdealCommunicationModel(CommunicationModel):
                 lg[i,j] = float('NaN')
                 lg[j,i] = float('NaN')
 
+class TestbedCommunicationModel(CommunicationModel):
+    """The results of a testbed profile records the RSSI between node node and another
+    This information can be used to provide tossim with the wireless link strengths."""
+
+    def __init__(self, testbed, tx_power, white_gausian_noise):
+        super(TestbedCommunicationModel, self).__init__(white_gausian_noise)
+        self.testbed_name = testbed.name()
+        self.tx_power = tx_power
+
+    def setup(self, sim):
+        import os.path
+        import pickle
+
+        # TODO: raise exception if topology being used
+        # does not match the testbed specified
+
+        nodes = sim.configuration.topology.nodes
+
+        num_nodes = len(nodes)
+        channel = 26 # Assume this channel for the noise floor measurements
+
+        # Get link rssi
+
+        link_path = os.path.join("testbed_results", self.testbed_name, "profile", "link.pickle")
+
+        with open(link_path, 'rb') as pickle_file:
+            rssi, lqi, prr = pickle.load(pickle_file)
+
+        self.link_gain = rssi[self.tx_power]
+
+        # Get per node noise floor
+
+        noise_floor_path = os.path.join("testbed_results", self.testbed_name, "profile", "noise_floor.pickle")
+
+        with open(noise_floor_path, 'rb') as pickle_file:
+            noise_floor = pickle.load(pickle_file)
+
+        o2i = sim.configuration.topology.ordered_index
+
+        self.noise_floor = np.zeros(num_nodes, dtype=np.float64)
+        for node in nodes:
+            self.noise_floor[o2i(node)] = noise_floor.node_smallest[(node, channel)]
 
 
 class LowAsymmetry(LinkLayerCommunicationModel):
@@ -200,6 +242,24 @@ class Ideal(IdealCommunicationModel):
             white_gausian_noise=4.0
         )
 
+class FlockLab(TestbedCommunicationModel):
+    def __init__(self, tx_power):
+        import data.testbed.flocklab as flocklab
+        super(FlockLab, self).__init__(
+            testbed=flocklab,
+            tx_power=tx_power,
+            white_gausian_noise=4.0
+        )
+
+class Euratech(TestbedCommunicationModel):
+    def __init__(self, tx_power):
+        import data.testbed.fitiotlab as fitiotlab
+        super(Euratech, self).__init__(
+            testbed=fitiotlab,
+            tx_power=tx_power,
+            white_gausian_noise=4.0
+        )
+
 # Backwards compatibility:
 # These are the mappings of the old names used to refer to the models
 MODEL_NAME_MAPPING = {
@@ -217,7 +277,7 @@ def models():
 
 def eval_input(source):
     if source in MODEL_NAME_MAPPING:
-        return MODEL_NAME_MAPPING[source]
+        return MODEL_NAME_MAPPING[source]()
 
     result = restricted_eval(source, models())
 
@@ -225,3 +285,25 @@ def eval_input(source):
         return result
     else:
         raise RuntimeError("The source ({}) is not valid.".format(source))
+
+def available_models():
+    class WildcardCommunicationModelChoice(object):
+        """A special available model that checks if the string provided
+        matches the name of the class.
+
+        >> a = WildcardCommunicationModelChoice(FlockLab)
+        >> a == "FlockLab(tx_power=7)"
+        True
+        """
+        def __init__(self, cls):
+            self.cls = cls
+
+        def __eq__(self, value):
+            return value.startswith(self.cls.__name__)
+
+        def __repr__(self):
+            return self.cls.__name__ + "(...)"
+
+    class_models = [WildcardCommunicationModelChoice(x) for x in models() if x not in MODEL_NAME_MAPPING.values()]
+
+    return list(MODEL_NAME_MAPPING.keys()) + class_models

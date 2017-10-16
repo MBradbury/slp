@@ -47,6 +47,7 @@ class PeriodModel(object):
             if math.isinf(end)
         ][0]
 
+        build_arguments["PERIOD_TIMES_LEN"] = len(periods)
         build_arguments["PERIOD_TIMES_MS"] = "{ " + ", ".join(periods) + " }"
         build_arguments["PERIOD_ELSE_TIME_MS"] = end_period
 

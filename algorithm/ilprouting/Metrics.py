@@ -6,8 +6,8 @@ ERROR_RTX_FAILED = 1001
 ERROR_RTX_FAILED_TRYING_OTHER = 1002
 
 class Metrics(MetricsCommon):
-    def __init__(self, sim, configuration):
-        super(Metrics, self).__init__(sim, configuration)
+    def __init__(self, *args, **kwargs):
+        super(Metrics, self).__init__(*args, **kwargs)
 
     @staticmethod
     def items():

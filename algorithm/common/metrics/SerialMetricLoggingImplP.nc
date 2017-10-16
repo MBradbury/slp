@@ -183,6 +183,7 @@ implementation
 
 	command void MetricLogging.log_metric_deliver(
 		const char* message_type,
+		am_addr_t target,
 		am_addr_t proximate_source,
 		int32_t ultimate_source_poss_bottom,
 		SequenceNumberWithBottom sequence_number,
@@ -195,6 +196,7 @@ implementation
 		msg->type = AM_METRIC_DELIVER_MSG;
 
 		msg->message_type = call MessageType.from_string(message_type);
+		msg->target = target;
 		msg->proximate_source = proximate_source;
 		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
 		msg->sequence_number = sequence_number;

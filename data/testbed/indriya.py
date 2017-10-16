@@ -3,6 +3,8 @@ import numpy as np
 
 from simulator.Topology import Topology
 
+generate_per_node_id_binary = False
+
 def name():
     return __name__
 

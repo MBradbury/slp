@@ -1,6 +1,8 @@
 
 result_file_name = "aggregator_log.stdout"
 
+generate_per_node_id_binary = True
+
 def name():
     return __name__
 

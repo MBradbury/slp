@@ -11,7 +11,9 @@ from data.progress import Progress
 from simulator import Builder
 from simulator import Configuration
 
-class Runner:
+class Runner(object):
+    required_safety_periods = True
+
     def __init__(self):
         self._progress = Progress("building file")
         self.total_job_size = None

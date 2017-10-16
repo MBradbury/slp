@@ -208,7 +208,7 @@ def _run_parallel(sim, module, a, argv):
     sys.stderr.flush()
 
     # Use a thread pool for a number of reasons:
-    # 1. We don't need the GIL-free nature of a process pool as our work is done is subprocesses
+    # 1. We don't need the GIL-free nature of a process pool as our work is done in subprocesses
     # 2. If this process hangs the threads will terminate when this process is killed.
     #    The process pool would stay alive.
     job_pool = multiprocessing.pool.ThreadPool(processes=parallel_instances)

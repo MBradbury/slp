@@ -68,19 +68,23 @@ OPTS = {
 
     "seed":                lambda x, **kwargs: x.add_argument("--seed",
                                                               type=int,
-                                                              required=False),
+                                                              required=False,
+                                                              help="The random seed provided to the simulator's PRNG"),
 
     "network size":        lambda x, **kwargs: x.add_argument("-ns", "--network-size",
                                                               type=ArgumentsCommon.type_positive_int,
-                                                              required=True),
+                                                              required=True,
+                                                              help="How large the network should be. Typically causes the network to contain NETWORK_SIZE^2 nodes."),
 
     "distance":            lambda x, **kwargs: x.add_argument("-d", "--distance",
                                                               type=ArgumentsCommon.type_positive_float,
-                                                              default=4.5),
+                                                              default=4.5,
+                                                              help="The distance between nodes. How this is used depends on the configuration specified."),
 
     "node id order":       lambda x, **kwargs: x.add_argument("-nido", "--node-id-order",
                                                               choices=("topology", "randomised"),
-                                                              default="topology"),
+                                                              default="topology",
+                                                              help="With 'topology' node id orders are the same as the topology defines. 'randomised' causes the node ids to be randomised."),
 
     "safety period":       _add_safety_period,
         
@@ -88,24 +92,30 @@ OPTS = {
     "communication model": lambda x, **kwargs: x.add_argument("-cm", "--communication-model",
                                                               type=str,
                                                               choices=simulator.common.available_communication_models(),
-                                                              required=True),
+                                                              required=True,
+                                                              help="The communication model used to model the link quality between nodes. Typically low-asymmetry should be used."),
 
     "noise model":         lambda x, **kwargs: x.add_argument("-nm", "--noise-model",
                                                               type=str,
                                                               choices=simulator.common.available_noise_models(),
-                                                              required=True),
+                                                              required=True,
+                                                              help="Model the background noise in the network. meyer-heavy has high noise, casino-lab has lower noise. See models/noise for ways to graph the noisiness of these models."),
 
     # Only for Avrora
     "radio model":         _add_avrora_radio_model,
 
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
                                                               type=Attacker.eval_input,
-                                                              required=True),
+                                                              choices=Attacker.available_models(),
+                                                              required=True,
+                                                              help="The type of attacker that will try to find the source."),
 
     "fault model":         lambda x, **kwargs: x.add_argument("-fm", "--fault-model",
                                                               type=FaultModel.eval_input,
+                                                              choices=FaultModel.available_models(),
                                                               required=False,
-                                                              default=FaultModel.ReliableFaultModel()),
+                                                              default=FaultModel.ReliableFaultModel(),
+                                                              help="Specify if any faults will occur during program execution. By default no unexpected faults will occur."),
 
     "start time":          lambda x, **kwargs: x.add_argument("-st", "--latest-node-start-time",
                                                               type=ArgumentsCommon.type_positive_float,
@@ -152,6 +162,11 @@ OPTS = {
                                                               metavar="F",
                                                               required=True),
 
+    "nonstrict":           lambda x, **kwargs: x.add_argument("--non-strict",
+                                                              required=False,
+                                                              action="store_true",
+                                                              default=False),
+
     "log converter":        _add_log_converter,
 
     "low powered listening": _add_low_powered_listening,
@@ -160,6 +175,31 @@ OPTS = {
                                                               type=ArgumentsCommon.type_positive_int,
                                                               default=255),
 }
+
+class CustomHelpFormatter(argparse.HelpFormatter):
+    """Only show the arguments for the long argument."""
+    def _format_action_invocation(self, action):
+        if not action.option_strings:
+            metavar, = self._metavar_formatter(action, action.dest)(1)
+            return metavar
+
+        else:
+            parts = []
+
+            # if the Optional doesn't take a value, format is:
+            #    -s, --long
+            if action.nargs == 0:
+                parts.extend(action.option_strings)
+
+            # if the Optional takes a value, format is:
+            #    -s, --long ARGS
+            else:
+                default = action.dest.upper()
+                args_string = self._format_args(action, default)
+                parts.extend(action.option_strings[:-1])
+                parts.append('%s %s' % (action.option_strings[-1], args_string))
+
+            return ', '.join(parts)
 
 class ArgumentsCommon(object):
     def __init__(self, description, has_safety_period=False, has_safety_factor=False):
@@ -184,7 +224,9 @@ class ArgumentsCommon(object):
 
                 parents = (self._subparsers[sim][inherit],) if inherit is not None else tuple()
 
-                parser_sub = subparsers.add_parser(mode, add_help=False, parents=parents)
+                parser_sub = subparsers.add_parser(mode, add_help=True, parents=parents,
+                                                   conflict_handler='resolve',
+                                                   formatter_class=CustomHelpFormatter)
 
                 self._subparsers[sim][mode] = parser_sub
 

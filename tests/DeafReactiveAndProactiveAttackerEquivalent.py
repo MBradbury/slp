@@ -6,7 +6,7 @@ import subprocess
 
 def run_simulation(attacker_model):
 
-    command = "./run.py algorithm.adaptive_spr SINGLE -cm low-asymmetry -nm meyer-heavy -ns 11 -c SourceCorner -safety 50 --source-period 1 --approach PB_FIXED1_APPROACH -am \"{}\" --seed 44".format(
+    command = "./run.py algorithm.adaptive_spr tossim SINGLE -cm low-asymmetry -nm meyer-heavy -ns 11 -c SourceCorner -safety 50 --source-period 1 --approach PB_FIXED1_APPROACH -am \"{}\" --seed 44".format(
             attacker_model)
 
     proc = subprocess.Popen(

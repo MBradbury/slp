@@ -3,6 +3,9 @@
 
 #define UNKNOWN_NODE_TYPE UINT8_MAX
 
+const am_addr_t sink_node_ids[] = SINK_NODE_IDS;
+const size_t num_sinks = ARRAY_SIZE(sink_node_ids);
+
 generic module NodeTypeP(uint8_t maximum_node_types)
 {
 	provides interface NodeType;
@@ -132,7 +135,15 @@ implementation
 
 	command bool NodeType.is_node_sink(void)
 	{
-		return call NodeType.is_topology_node_id(SINK_NODE_ID);
+		size_t i;
+		for (i = 0; i != num_sinks; ++i)
+		{
+			if (call NodeType.is_topology_node_id(sink_node_ids[i]))
+			{
+				return TRUE;
+			}
+		}
+		return FALSE;
 	}
 
 	command bool NodeType.is_topology_node_id(uint16_t topo_nid)

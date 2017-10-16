@@ -18,6 +18,8 @@ def choose_platform(provided, available):
     if provided is None:
         if isinstance(available, str):
             return available
+        elif isinstance(available, (tuple, list)) and len(available) == 1:
+            return available[0]
         else:
             raise RuntimeError("Unable to choose between the available platforms {}. Please specify one using --platform.".format(available))
     else:
@@ -35,7 +37,9 @@ PLATFORM_TOOLS = {
 }
 
 class Runner(object):
-    def __init__(self, testbed, platform=None, generate_per_node_id_binary=False):
+    required_safety_periods = False
+
+    def __init__(self, testbed, platform=None):
         self._progress = Progress("building file")
         self.total_job_size = None
         self._jobs_executed = 0
@@ -43,9 +47,7 @@ class Runner(object):
         self.testbed = testbed
         self.platform = choose_platform(platform, self.testbed.platform())
 
-        self.generate_per_node_id_binary = generate_per_node_id_binary
-
-        if generate_per_node_id_binary:
+        if testbed.generate_per_node_id_binary:
             from multiprocessing.pool import ThreadPool
             self.pool = ThreadPool()
 
@@ -133,7 +135,7 @@ class Runner(object):
                 else:
                     raise
 
-        if self.generate_per_node_id_binary:
+        if self.testbed.generate_per_node_id_binary:
             target_ihex = os.path.join(target_directory, "main.ihex")
 
             print("Creating per node id binaries using '{}'...".format(target_ihex))
@@ -154,6 +156,9 @@ class Runner(object):
 
     def mode(self):
         return "TESTBED"
+
+    def testbed_name(self):
+        return self.testbed.name()
 
     def create_tos_node_id_ihex(self, source, target, node_id):
         try:
@@ -194,12 +199,12 @@ class Runner(object):
         log_mode = self.testbed.log_mode()
 
         modes = {
-            "printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_BUFFERED": 1},
+            "printf":            {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_BUFFERED": 1},
             "unbuffered_printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UNBUFFERED": 1},
-            "uart_printf": {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UART": 1},
-            "serial": {"USE_SERIAL_MESSAGES": 1},
-            "disabled": {"NO_SERIAL_OUTPUT": 1},
-            "avrora": {"AVRORA_OUTPUT": 1},
+            "uart_printf":       {"USE_SERIAL_PRINTF": 1, "SERIAL_PRINTF_UART": 1},
+            "serial":            {"USE_SERIAL_MESSAGES": 1},
+            "disabled":          {"NO_SERIAL_OUTPUT": 1},
+            "avrora":            {"AVRORA_OUTPUT": 1},
         }
 
         try:

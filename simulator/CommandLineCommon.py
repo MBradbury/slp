@@ -89,6 +89,7 @@ class CLI(object):
         subparser.add_argument("--array", action="store_true", help="Submit multiple arrays jobs (experimental).")
         subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
+        subparser.add_argument("--dry-run", action="store_true", default=False)
 
         subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
@@ -102,13 +103,22 @@ class CLI(object):
 
         subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
-        subparser.add_argument("-g", "--generate-per-node-id-binary", default=False, action="store_true", help="Also create a per node id binary that can be used in deployment")
+        subparser.add_argument("-v", "--verbose", default=False, action="store_true", help="Produce verbose logging output from the testbed binaries")
 
         subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
         subparser.add_argument("--duration", type=str, help="How long you wish to run on the testbed for.", required=True)
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
         subparser.add_argument("--dry-run", action="store_true", help="Do not actually submit, but check things would progress.")
 
+        subparser = testbed_subparsers.add_parser("run", help="Process the testbed result files using the offline processor.")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        ArgumentsCommon.OPTS["verbose"](subparser)
+        ArgumentsCommon.OPTS["attacker model"](subparser)
+
+        subparser = testbed_subparsers.add_parser("analyse", help="Analyse the testbed results of this algorithm.")
+        subparser.add_argument("--thread-count", type=int, default=None)
+        subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
+        subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
 
         ###
 
@@ -132,21 +142,6 @@ class CLI(object):
         ###
 
         subparser = self._add_argument("analyse", self._run_analyse, help="Analyse the results of this algorithm.")
-        subparser.add_argument("--thread-count", type=int, default=None)
-        subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
-        subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
-
-        ###
-
-        subparser = self._add_argument("run-testbed-offline", self._run_testbed_offline, help="Process the testbed result files using the offline processor.")
-        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
-
-        ArgumentsCommon.OPTS["configuration"](subparser)
-        ArgumentsCommon.OPTS["attacker model"](subparser)
-        ArgumentsCommon.OPTS["fault model"](subparser)
-
-        subparser = self._add_argument("analyse-testbed", self._run_analyse_testbed, help="Analyse the testbed results of this algorithm.")
-        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="This is the name of the testbed")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
@@ -200,7 +195,7 @@ class CLI(object):
 
     def _testbed_results_path(self, testbed, module=None):
         if module is None:
-            module = self.algorithm_module.name
+            module = self.algorithm_module
         return os.path.join("testbed_results", testbed.name(), module.name)
 
     def _testbed_results_file(self, testbed, module=None):
@@ -554,9 +549,13 @@ class CLI(object):
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
 
-    def _execute_runner(self, sim, driver, result_path, time_estimator=None, skip_completed_simulations=True):
+    def _execute_runner(self, sim, driver, result_path, time_estimator=None,
+                        skip_completed_simulations=True, verbose=False):
+        testbed_name = None
+
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
+            testbed_name = driver.testbed_name()
         elif driver.mode() == "CYCLEACCURATE":
             from data.run.common import RunCycleAccurateCommon as RunSimulations
             RunSimulations = functools.partial(RunSimulations, sim)
@@ -572,14 +571,18 @@ class CLI(object):
             else:
                 RunSimulations = functools.partial(self.custom_run_simulation_class, sim)
 
-        if self.safety_period_module_name is True:
+
+        if not driver.required_safety_periods:
+            safety_periods = False
+        elif self.safety_period_module_name is True:
             safety_periods = True
         elif self.safety_period_module_name is None:
             safety_periods = None
         else:
             safety_period_table_generator = safety_period.TableGenerator(
-                self.get_safety_period_result_path(),
-                self.time_after_first_normal_to_safety_period)
+                self.get_safety_period_result_path(testbed=testbed_name),
+                self.time_after_first_normal_to_safety_period,
+                testbed=testbed_name)
             
             safety_periods = safety_period_table_generator.safety_periods()
 
@@ -587,7 +590,7 @@ class CLI(object):
             driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations,
             safety_periods=safety_periods,
-            safety_period_equivalence=self.safety_period_equivalence
+            safety_period_equivalence=self.safety_period_equivalence,
         )
 
         extra_argument_names = getattr(runner, "extra_arguments", tuple())
@@ -607,7 +610,8 @@ class CLI(object):
             runner.run(self.algorithm_module.Parameters.repeats,
                        self.parameter_names() + extra_argument_names,
                        argument_product,
-                       time_estimator)
+                       time_estimator,
+                       verbose=verbose)
         except MissingSafetyPeriodError as ex:
             from pprint import pprint
             import traceback
@@ -639,7 +643,7 @@ class CLI(object):
 
         return [process(*args) for args in argument_product]
 
-    def _cluster_time_estimator(self, args, **kwargs):
+    def _default_cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
@@ -655,6 +659,9 @@ class CLI(object):
             return timedelta(hours=71)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+
+    def _cluster_time_estimator(self, args, **kwargs):
+        return self._default_cluster_time_estimator(args, **kwargs)
 
     def _cluster_time_estimator_from_historical(self, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
         key = tuple(args[name] for name in historical_key_names)
@@ -689,7 +696,7 @@ class CLI(object):
 
         except KeyError:
             print("Unable to find historical time for {}, so using default time estimator.".format(key))
-            return self._cluster_time_estimator(args, **kwargs)
+            return self._default_cluster_time_estimator(args, **kwargs)
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
@@ -718,13 +725,11 @@ class CLI(object):
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
 
-    def _run_analyse_testbed(self, args):
-        testbed = submodule_loader.load(data.testbed, args.testbed)
-
+    def _run_testbed_analyse(self, testbed, args):
         def results_finder(results_directory):
             return fnmatch.filter(os.listdir(results_directory), '*.txt')
 
-        results_path = self._testbed_results_path()
+        results_path = self._testbed_results_path(testbed)
         result_file = os.path.basename(self.algorithm_module.result_file)
 
         analyzer = self.algorithm_module.Analysis.Analyzer(results_path)
@@ -735,34 +740,81 @@ class CLI(object):
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound,
                      testbed=True)
 
-    def _run_testbed_offline(self, args):
-        testbed = submodule_loader.load(data.testbed, args.testbed)
+    def _run_testbed_run(self, testbed, args):
+        import multiprocessing.pool
 
-        results_path = self._testbed_results_path()
+        results_path = self._testbed_results_path(testbed)
 
         results_dirs = [d for d in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, d))]
 
+        # All directories that have results for the same parameters
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
 
+        if self.safety_period_module_name is not None:
+            safety_period_result_path = self.get_safety_period_result_path(testbed=args.testbed)
+            safety_period_table = safety_period.TableGenerator(safety_period_result_path,
+                                                               self.time_after_first_normal_to_safety_period,
+                                                               testbed=args.testbed)
+            safety_periods = safety_period_table.safety_periods()
+
+        commands = []
+
         for common_result_dir in common_results_dirs:
+
+            print(common_result_dir)
+
             out_path = os.path.join(results_path, common_result_dir + ".txt")
 
-            command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} ".format(
+            command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
                 self.algorithm_module.name,
                 testbed.name(),
                 os.path.join(results_path, common_result_dir + "_*", testbed.result_file_name))
 
             settings = {
-                "--configuration": args.configuration,
                 "--attacker-model": args.attacker_model,
-                "--fault-model": args.fault_model,
             }
 
+            # The source period will either be the second or third entry in common_result_dir
+            # Depending on if the fault model has been left out
+            params = common_result_dir.split("-")
+
+            if len(params) == 4 + len(self.algorithm_module.local_parameter_names):
+                (configuration, fault_model, source_period) = params[:3]
+                fault_model = fault_model.replace("_", "(", 1)[:-1] + ")"
+            elif len(params) == 3 + len(self.algorithm_module.local_parameter_names):
+                (configuration, source_period) = params[:2]
+                fault_model = "ReliableFaultModel()"
+            else:
+                raise RuntimeError("Unsure of arguments that the testbed job was run with")
+
+            settings["--configuration"] = configuration
+            settings["--fault-model"] = fault_model
+
+            if self.safety_period_module_name is not None:
+                source_period = source_period.replace("_", ".")
+
+                safety_key = (configuration, str(args.attacker_model), fault_model)
+                settings["--safety-period"] = str(safety_periods[safety_key][source_period])
+            
             command += " ".join("{} \"{}\"".format(k, v) for (k, v) in settings.items())
 
+            if args.verbose:
+                command += " --verbose"
+
+            commands.append((command, out_path))
+
+        def runner(arguments):
+            (command, out_path) = arguments
             print("Executing:", command, ">>", out_path)
             with open(out_path, "w") as stdout_file:
                 subprocess.check_call(command, stdout=stdout_file, shell=True)
+
+        job_pool = multiprocessing.pool.ThreadPool(processes=args.thread_count)
+
+        try:
+            job_pool.map(runner, commands)
+        finally:
+            job_pool.terminate()
 
 
     def _run_safety_table(self, args):
@@ -850,10 +902,9 @@ class CLI(object):
         elif 'submit' == args.cluster_mode:
             emails_to_notify = self._get_emails_to_notify(args)
 
-            if args.array:
-                submitter = cluster.array_submitter(emails_to_notify)
-            else:
-                submitter = cluster.submitter(emails_to_notify)
+            submitter_fn = cluster.array_submitter if args.array else cluster.submitter
+
+            submitter = submitter_fn(notify_emails=emails_to_notify, dry_run=args.dry_run)
 
             skip_complete = not args.no_skip_complete
 
@@ -880,15 +931,12 @@ class CLI(object):
             print("Removing existing testbed directory and creating a new one")
             recreate_dirtree(testbed_directory)
 
-            builder = Builder(
-                testbed,
-                platform=args.platform,
-                generate_per_node_id_binary=args.generate_per_node_id_binary
-            )
+            builder = Builder(testbed, platform=args.platform)
 
             self._execute_runner("real", builder, testbed_directory,
                                  time_estimator=None,
-                                 skip_completed_simulations=False)
+                                 skip_completed_simulations=False,
+                                 verbose=args.verbose)
 
         elif 'submit' == args.testbed_mode:
 
@@ -908,6 +956,12 @@ class CLI(object):
             self._execute_runner("real", submitter, testbed_directory,
                                  time_estimator=None,
                                  skip_completed_simulations=skip_complete)
+
+        elif 'run' == args.testbed_mode:
+            self._run_testbed_run(testbed, args)
+
+        elif 'analyse' == args.testbed_mode:
+            self._run_tested_analyse(testbed, args)
 
         sys.exit(0)
 
