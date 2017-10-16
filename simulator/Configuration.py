@@ -307,6 +307,17 @@ class Source3CornerTop(Configuration):
             space_behind_sink=True
         )
 
+class Source3CornerTopLinear(Configuration):
+    def __init__(self, *args):
+        grid = Grid(*args)
+
+        super(Source3CornerTopLinear, self).__init__(
+            grid,
+            source_ids={0, 2, 4},
+            sink_id=(len(grid.nodes) - 1) / 2,
+            space_behind_sink=True
+        )
+
 class SinkCorner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
@@ -337,6 +348,17 @@ class SinkCorner3Source(Configuration):
             grid,
             source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1, (len(grid.nodes) - 1) / 2 + grid.size},
             sink_ids={len(grid.nodes) - 1},
+            space_behind_sink=False
+        )
+
+class SinkCorner3SourceLinear(Configuration):
+    def __init__(self, *args):
+        grid = Grid(*args)
+
+        super(SinkCorner3SourceLinear, self).__init__(
+            grid,
+            source_ids={(len(grid.nodes) - 1)/2 - 2,(len(grid.nodes) - 1)/2, (len(grid.nodes) - 1)/2 + 2},
+            sink_id=len(grid.nodes) - 1,
             space_behind_sink=False
         )
 
