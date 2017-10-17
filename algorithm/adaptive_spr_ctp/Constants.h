@@ -8,7 +8,7 @@ enum Channels
 	CHOOSE_CHANNEL = 3,
 	FAKE_CHANNEL = 4,
 	BEACON_CHANNEL = 5,
-    INFORM_CHANNEL = 6,
+    NOTIFY_CHANNEL = 6,
 };
 
 #define SLP_MAX_NUM_SINKS 1

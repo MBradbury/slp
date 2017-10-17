@@ -7,7 +7,7 @@
 #include "FakeMessage.h"
 #include "NormalMessage.h"
 #include "BeaconMessage.h"
-#include "InformMessage.h"
+#include "NotifyMessage.h"
 
 #include <Timer.h>
 #include <TinyError.h>
@@ -17,7 +17,7 @@
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
-#define METRIC_RCV_INFORM(msg) METRIC_RCV(Inform, source_addr, msg->source_id, UNKNOWN_SEQNO, msg->source_distance + 1)
+#define METRIC_RCV_NOTIFY(msg) METRIC_RCV(Notify, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
 #define AWAY_DELAY_MS (SOURCE_PERIOD_MS / 4)
 
@@ -33,8 +33,10 @@ void distance_update(distance_container_t* find, distance_container_t const* giv
 
 void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
+#ifdef TOSSIM
 	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
 		i, address, contents->distance);
+#endif
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
@@ -53,8 +55,8 @@ module SourceBroadcasterC
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
+	uses interface Timer<TMilli> as ChooseSenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
-	uses interface Timer<TMilli> as InformSenderTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -81,8 +83,8 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
-	uses interface AMSend as InformSend;
-	uses interface Receive as InformReceive;
+	uses interface AMSend as NotifySend;
+	uses interface Receive as NotifyReceive;
 
 	uses interface MetricLogging;
 	uses interface MetricHelpers;
@@ -93,6 +95,10 @@ module SourceBroadcasterC
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
+
+#ifdef LOW_POWER_LISTENING
+	uses interface LowPowerListening; 
+#endif
 }
 
 implementation
@@ -107,13 +113,14 @@ implementation
 	SequenceNumber away_sequence_counter;
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
+	SequenceNumber notify_sequence_counter;
 
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
 
 	int32_t sink_distance;
 
-	bool sink_received_away_reponse;
+	bool sink_received_choose_reponse;
 
 	int32_t first_source_distance;
 
@@ -283,11 +290,11 @@ implementation
 
 		sink_distance = BOTTOM;
 
-		sink_received_away_reponse = FALSE;
+		sink_received_choose_reponse = FALSE;
 
 		first_source_distance = BOTTOM;
 
-		away_messages_to_send = 2;
+		away_messages_to_send = 3;
 
 		extra_to_send = 0;
 
@@ -298,6 +305,7 @@ implementation
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);
+		sequence_number_init(&notify_sequence_counter);
 
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
@@ -307,7 +315,7 @@ implementation
 		call MessageType.register_pair(CHOOSE_CHANNEL, "Choose");
 		call MessageType.register_pair(FAKE_CHANNEL, "Fake");
 		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
-		call MessageType.register_pair(INFORM_CHANNEL, "Inform");
+		call MessageType.register_pair(NOTIFY_CHANNEL, "Notify");
 
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
@@ -321,6 +329,13 @@ implementation
 			call NodeType.init(SinkNode);
 			sink_distance = 0;
 			call RootControl.setRoot();
+
+			// Sink always listens
+#ifdef LOW_POWER_LISTENING
+			call LowPowerListening.setLocalWakeupInterval(0);
+#endif
+
+			call AwaySenderTimer.startOneShot(1 * 1000);
 		}
 		else
 		{
@@ -353,6 +368,13 @@ implementation
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
 
+	USE_MESSAGE_NO_TARGET(Normal);
+	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Away);
+	USE_MESSAGE(Choose);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Fake);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Notify);
+
 	event void ObjectDetector.detect()
 	{
 		// A sink node cannot become a source node
@@ -360,9 +382,19 @@ implementation
 		{
 			call NodeType.set(SourceNode);
 
-			call InformSenderTimer.startOneShot((int)ceil((SOURCE_PERIOD_MS / 4) * random_float()));
-
 			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
+
+			{
+				NotifyMessage message;
+				message.source_id = TOS_NODE_ID;
+				message.sequence_number = sequence_number_next(&notify_sequence_counter);
+				message.source_distance = 0;
+
+				if (send_Notify_message(&message, AM_BROADCAST_ADDR))
+				{
+					sequence_number_increment(&notify_sequence_counter);
+				}
+			}
 		}
 	}
 
@@ -380,13 +412,6 @@ implementation
 	{
 		return 75U + (uint32_t)(50U * random_float());
 	}
-
-	USE_MESSAGE_NO_TARGET(Normal);
-	USE_MESSAGE_WITH_CALLBACK(Away);
-	USE_MESSAGE(Choose);
-	USE_MESSAGE(Fake);
-	USE_MESSAGE(Beacon);
-	USE_MESSAGE(Inform);
 
 	void become_Normal(void)
 	{
@@ -471,6 +496,26 @@ implementation
 		}
 	}
 
+	event void ChooseSenderTimer.fired()
+	{
+		ChooseMessage message;
+		message.sequence_number = sequence_number_next(&choose_sequence_counter);
+		message.source_id = TOS_NODE_ID;
+		message.sink_distance = 0;
+		
+#ifdef SPACE_BEHIND_SINK
+		message.algorithm = GenericAlgorithm;
+#else
+		message.algorithm = FurtherAlgorithm;
+#endif
+
+		extra_to_send = 2;
+		if (send_Choose_message(&message, AM_BROADCAST_ADDR))
+		{
+			sequence_number_increment(&choose_sequence_counter);
+		}
+	}
+
 	event void BeaconSenderTimer.fired()
 	{
 		BeaconMessage message;
@@ -497,32 +542,6 @@ implementation
 		}
 	}
 
-	event void InformSenderTimer.fired()
-	{
-		InformMessage message;
-		bool result;
-
-		simdbgverbose("stdout", "InformSenderTimer fired.\n");
-
-		if (busy)
-		{
-			simdbgverbose("stdout", "Device is busy rescheduling inform\n");
-			call InformSenderTimer.startOneShot(beacon_send_wait());
-			return;
-		}
-		
-		message.source_id = TOS_NODE_ID;
-		message.source_distance = 0;
-
-		result = send_Inform_message(&message, AM_BROADCAST_ADDR);
-		if (!result)
-		{
-			simdbgverbose("stdout", "Send failed rescheduling inform\n");
-			call InformSenderTimer.startOneShot(beacon_send_wait());
-		}
-	}
-
-
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
@@ -540,24 +559,15 @@ implementation
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
-
-				/*// Having the sink forward the normal message helps set up
-				// the source distance gradients.
-				// However, we don't want to keep doing this as it benefits the attacker.
-				{
-					NormalMessage forwarding_message = *rcvd;
-					forwarding_message.source_distance += 1;
-					forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-					forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
-
-					send_Normal_message(&forwarding_message);
-				}*/
 			}
 
 			// Keep sending away messages until we get a valid response
-			if (!sink_received_away_reponse)
+			if (!sink_received_choose_reponse)
 			{
-				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
+				if (!call ChooseSenderTimer.isRunning())
+				{
+					call ChooseSenderTimer.startOneShot(AWAY_DELAY_MS);
+				}
 			}			
 		}
 	}
@@ -623,7 +633,7 @@ implementation
 		return TRUE;
 	}
 
-	bool Fake_receive_Normal(NormalMessage* const rcvd, am_addr_t source_addr)
+	bool Fake_intercept_Normal(NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -648,14 +658,9 @@ implementation
 		case NormalNode: return Normal_intercept_Normal(rcvd, source_addr);
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: return Fake_receive_Normal(rcvd, source_addr);
+		case PermFakeNode: return Fake_intercept_Normal(rcvd, source_addr);
 	INTERCEPT_MESSAGE_END(Normal)
 
-
-	void Sink_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
-	{
-		sink_received_away_reponse = TRUE;
-	}
 
 	void Source_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -697,21 +702,6 @@ implementation
 
 			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
 
-			if (rcvd->sink_distance == 0)
-			{
-				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
-
-				if (neighbour == NULL || neighbour->contents.distance == BOTTOM ||
-					first_source_distance == BOTTOM || neighbour->contents.distance <= first_source_distance)
-				{
-					become_Fake(rcvd, TempFakeNode);
-
-					// When receiving choose messages we do not want to reprocess this
-					// away message.
-					sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
-				}
-			}
-
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
 			forwarding_message.algorithm = algorithm;
@@ -746,7 +736,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Away, Receive)
-		case SinkNode: Sink_receive_Away(rcvd, source_addr); break;
+		case SinkNode: break;
 		case SourceNode: Source_receive_Away(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Away(rcvd, source_addr); break;
 
@@ -778,7 +768,7 @@ implementation
 
 	void Sink_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_received_away_reponse = TRUE;
+		sink_received_choose_reponse = TRUE;
 	}
 
 	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
@@ -792,22 +782,32 @@ implementation
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
 		{
-			am_addr_t target;
-
 			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_CHOOSE(rcvd);
 
-			target = fake_walk_target();
-
-			if (target == AM_BROADCAST_ADDR)
+			if (rcvd->sink_distance == 0)
 			{
-				become_Fake(rcvd, PermFakeNode);
+				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
+
+				if (neighbour == NULL || neighbour->contents.distance == BOTTOM ||
+					first_source_distance == BOTTOM || neighbour->contents.distance <= first_source_distance)
+				{
+					become_Fake(rcvd, TempFakeNode);
+				}
 			}
 			else
 			{
-				//dbg("stdout", "Becoming a TFS because there is a node %u that can be next.\n", target);
-				become_Fake(rcvd, TempFakeNode);
+				const am_addr_t target = fake_walk_target();
+
+				if (target == AM_BROADCAST_ADDR)
+				{
+					become_Fake(rcvd, PermFakeNode);
+				}
+				else
+				{
+					become_Fake(rcvd, TempFakeNode);
+				}
 			}
 		}
 	}
@@ -825,7 +825,7 @@ implementation
 
 	void Sink_snoop_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_received_away_reponse = TRUE;
+		sink_received_choose_reponse = TRUE;
 	}
 
 	void x_snoop_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
@@ -849,10 +849,9 @@ implementation
 	RECEIVE_MESSAGE_END(Choose)
 
 
-
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_received_away_reponse = TRUE;
+		sink_received_choose_reponse = TRUE;
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -949,37 +948,54 @@ implementation
 		case PermFakeNode: x_receive_Beacon(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
 
-	void x_receive_Inform(const InformMessage* const rcvd, am_addr_t source_addr)
+
+	void x_receive_Notify(const NotifyMessage* const rcvd, am_addr_t source_addr)
 	{
-		simdbgverbose("stdout", "Received inform from %u via %u walked %u\n",
-			rcvd->source_id, source_addr, rcvd->source_distance);
-
-		if (first_source_distance == BOTTOM || (rcvd->source_distance + 1) < first_source_distance)
+		if (sequence_number_before(&notify_sequence_counter, rcvd->sequence_number))
 		{
-			InformMessage forwarding_message = *rcvd;
-
-			METRIC_RCV_INFORM(rcvd);
-
-			first_source_distance = rcvd->source_distance + 1;
-			call Leds.led1On();
-
-			simdbgverbose("stdout", "Forwarding inform (srcdist of %u is %u)\n",
-				rcvd->source_id, *call SourceDistances.get(rcvd->source_id));
-
+			NotifyMessage forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
 
-			send_Inform_message(&forwarding_message, AM_BROADCAST_ADDR);
+			sequence_number_update(&notify_sequence_counter, rcvd->sequence_number);
+
+			METRIC_RCV_NOTIFY(rcvd);
+
+			send_Notify_message(&forwarding_message, AM_BROADCAST_ADDR);
+
+			if (first_source_distance == BOTTOM)
+			{
+				first_source_distance = rcvd->source_distance + 1;
+				call Leds.led1On();
+
+				call BeaconSenderTimer.startOneShot(beacon_send_wait());
+			}
 		}
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Inform, Receive)
-		case SinkNode:
+	void Sink_receive_Notify(const NotifyMessage* const rcvd, am_addr_t source_addr)
+	{
+		x_receive_Notify(rcvd, source_addr);
+
+		// Keep sending away messages until we get a valid response
+		if (!sink_received_choose_reponse)
+		{
+			if (!call ChooseSenderTimer.isRunning())
+			{
+				call ChooseSenderTimer.startOneShot(AWAY_DELAY_MS);
+			}
+		}
+	}
+
+	RECEIVE_MESSAGE_BEGIN(Notify, Receive)
+		case SinkNode: Sink_receive_Notify(rcvd, source_addr); break;
+
 		case SourceNode:
 		case NormalNode:
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: x_receive_Inform(rcvd, source_addr); break;
-	RECEIVE_MESSAGE_END(Inform)
+		case PermFakeNode: x_receive_Notify(rcvd, source_addr); break;
+	RECEIVE_MESSAGE_END(Notify)
+
 
 	event uint32_t FakeMessageGenerator.initialStartDelay()
 	{
@@ -1002,7 +1018,8 @@ implementation
 			return get_tfs_period();
 
 		default:
-			ERROR_OCCURRED(ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE, "Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
+			ERROR_OCCURRED(ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE,
+				"Called FakeMessageGenerator.calculatePeriod on non-fake node.\n");
 			return 0;
 		}
 	}
