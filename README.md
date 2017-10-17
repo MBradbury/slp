@@ -348,6 +348,11 @@ You can then analyse the results like so:
 
 Which will generate a result summary at "slp-algorithms-tinyos/results/<algorithm>/<algorithm>-results.csv".
 
+As some of the analysis can be very expensive it is recommended to skip certain fields.
+```bash
+./create <algorithm> analyse -S SentHeatMap ReceivedHeatMap
+```
+
 ## Resubmitting Jobs
 
 If for any reason you need to go back and submit more of the same jobs that you have run before there are a few tricks.
