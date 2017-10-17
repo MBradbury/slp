@@ -65,8 +65,8 @@ class CLI(CommandLineCommon.CLI):
                 'sent', 'delivered', 'time taken',
                 #'energy impact',
                 #'energy impact per node',
-                'energy impact per node per second',
-                'norm(norm(sent,time taken),num_nodes)',
+                #'energy impact per node per second',
+                'norm(norm(sent,time taken),network size)',
                 'normal latency', 'ssd', 'attacker distance',
             ))
 
@@ -84,7 +84,7 @@ class CLI(CommandLineCommon.CLI):
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             #'good move ratio': ('Good Move Ratio (%)', 'right top'),
-            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per node per second', 'right top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per node per second', 'right top'),
         }
 
         varying = [

@@ -52,10 +52,10 @@ class Analyzer(AnalyzerCommon):
 
             ('TimeTaken', 'source_period'),
 
-            ('energy_impact', '1'),
-            ('energy_impact', 'num_nodes'),
-            (('energy_impact', 'num_nodes'), 'TimeTaken'),
-            ('daily_allowance_used', '1'),
+            #('energy_impact', '1'),
+            #('energy_impact', 'num_nodes'),
+            #(('energy_impact', 'num_nodes'), 'TimeTaken'),
+            #('daily_allowance_used', '1'),
             
             #('good_move_ratio', '1'),
         )
