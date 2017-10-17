@@ -13,7 +13,7 @@ from data.table import fake_result
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
+        super(CLI, self).__init__(__package__, protectionless_ctp.name)
 
         subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("--show", action="store_true", default=False)
