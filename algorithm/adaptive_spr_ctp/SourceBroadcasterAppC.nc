@@ -43,6 +43,10 @@ implementation
 	App.AMPacket -> ActiveMessageC;
 	App.Packet -> ActiveMessageC;
 
+#ifdef LOW_POWER_LISTENING
+	App.LowPowerListening -> ActiveMessageC;
+#endif
+
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
