@@ -329,7 +329,10 @@ class OfflineSimulation(object):
 
         metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
 
-        self.metrics = metrics_class(self, configuration, strict=not args.non_strict)
+        # Allow flexibility wth some missing metric values
+        non_strict_metrics = hasattr(args, "non_strict") and args.non_strict
+
+        self.metrics = metrics_class(self, configuration, strict=not non_strict_metrics)
 
         # Record the current user's time this script started executing at
         self.start_time = None
