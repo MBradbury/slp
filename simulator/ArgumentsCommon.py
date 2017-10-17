@@ -50,7 +50,10 @@ def _add_low_powered_listening(parser, **kwargs):
 def _add_avrora_radio_model(parser, **kwargs):
     import simulator.AvroraRadioModel as AvroraRadioModel
 
-    parser.add_argument("-rm", "--radio-model", type=AvroraRadioModel.eval_input, required=True)
+    parser.add_argument("-rm", "--radio-model",
+                        type=AvroraRadioModel.eval_input,
+                        choices=AvroraRadioModel.available_models(),
+                        required=True)
 
 def _add_log_converter(parser, **kwargs):
     import simulator.OfflineLogConverter as OfflineLogConverter

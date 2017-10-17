@@ -42,3 +42,18 @@ def eval_input(source):
         return result
     else:
         raise RuntimeError("The medium model ({}) is not valid.".format(source))
+
+def available_models():
+    class WildcardModelChoice(object):
+        """A special available model that checks if the string provided
+        matches the name of the class."""
+        def __init__(self, cls):
+            self.cls = cls
+
+        def __eq__(self, value):
+            return isinstance(value, self.cls)
+
+        def __repr__(self):
+            return self.cls.__name__ + "(...)"
+
+    return [WildcardModelChoice(x) for x in models()]
