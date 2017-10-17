@@ -17,7 +17,7 @@
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
-#define METRIC_RCV_NOTIFY(msg) METRIC_RCV(Notify, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
+#define METRIC_RCV_NOTIFY(msg) METRIC_RCV(Notify, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
 #define AWAY_DELAY_MS (SOURCE_PERIOD_MS / 4)
 
@@ -327,7 +327,7 @@ implementation
 
 			// Sink always listens
 #ifdef LOW_POWER_LISTENING
-			call LowPowerListening.setLocalWakeupInterval(0); 
+			call LowPowerListening.setLocalWakeupInterval(0);
 #endif
 
 			call AwaySenderTimer.startOneShot(1 * 1000);
@@ -346,7 +346,7 @@ implementation
 		{
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
-			call ObjectDetector.start_later(3 * 1000);
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
@@ -745,11 +745,11 @@ implementation
 		}
 	}
 
+
 	void Sink_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_received_choose_reponse = TRUE;
 	}
-
 
 	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -788,7 +788,7 @@ implementation
 				{
 					become_Fake(rcvd, TempFakeNode);
 				}
-			}			
+			}
 		}
 	}
 

@@ -47,13 +47,13 @@ implementation
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
 	components new TimerMilliC() as AwaySenderTimer;
+	components new TimerMilliC() as ChooseSenderTimer;
 	components new TimerMilliC() as BeaconSenderTimer;
-	components new TimerMilliC() as InformSenderTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
+	App.ChooseSenderTimer -> ChooseSenderTimer;
 	App.BeaconSenderTimer -> BeaconSenderTimer;
-	App.InformSenderTimer -> InformSenderTimer;
 
 	// Networking
 	components
@@ -87,11 +87,11 @@ implementation
 	App.BeaconReceive -> BeaconReceiver;
 
 	components
-		new AMSenderC(INFORM_CHANNEL) as InformSender,
-		new AMReceiverC(INFORM_CHANNEL) as InformReceiver;
+		new AMSenderC(NOTIFY_CHANNEL) as NotifySender,
+		new AMReceiverC(NOTIFY_CHANNEL) as NotifyReceiver;
 
-	App.InformSend -> InformSender;
-	App.InformReceive -> InformReceiver;
+	App.NotifySend -> NotifySender;
+	App.NotifyReceive -> NotifyReceiver;
 
 
 	components FakeMessageGeneratorP;
