@@ -37,6 +37,8 @@ def pairwise(iterable):
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration, strict=True):
+        super(MetricsCommon, self).__init__()
+
         self.sim = sim
         self.configuration = configuration
         self.topology = configuration.topology
@@ -844,8 +846,8 @@ class AvroraPacketSummary(object):
 
 class AvroraMetricsCommon(MetricsCommon):
     """Contains metrics specific to the Avrora simulator."""
-    def __init__(self, sim, configuration):
-        super(AvroraMetricsCommon, self).__init__(sim, configuration)
+    def __init__(self, *args, **kwargs):
+        super(AvroraMetricsCommon, self).__init__(*args, **kwargs)
 
         self.avrora_sim_cycles = None
         self.avrora_packet_summary = {}
@@ -966,8 +968,8 @@ class AvroraMetricsCommon(MetricsCommon):
 
 class FakeMetricsCommon(MetricsCommon):
     """Contains fake message techniques specified metrics."""
-    def __init__(self, sim, configuration):
-        super(FakeMetricsCommon, self).__init__(sim, configuration)
+    def __init__(self, *args, **kwargs):
+        super(FakeMetricsCommon, self).__init__(*args, **kwargs)
 
     def times_fake_node_changed_to_fake(self):
         total_count = 0
@@ -1002,8 +1004,8 @@ class FakeMetricsCommon(MetricsCommon):
 
 class TreeMetricsCommon(MetricsCommon):
     """Contains tree routing specific metrics."""
-    def __init__(self, sim, configuration):
-        super(TreeMetricsCommon, self).__init__(sim, configuration)
+    def __init__(self, *args, **kwargs):
+        super(TreeMetricsCommon, self).__init__(*args, **kwargs)
 
         self.parent_changes = Counter()
         self.true_parent_changes = Counter()
@@ -1048,8 +1050,8 @@ class TreeMetricsCommon(MetricsCommon):
 
 class RssiMetricsCommon(MetricsCommon):
     """For algorithms that measure the RSSI."""
-    def __init__(self, sim, configuration):
-        super(RssiMetricsCommon, self).__init__(sim, configuration)
+    def __init__(self, *args, **kwargs):
+        super(RssiMetricsCommon, self).__init__(*args, **kwargs)
 
         self.register('M-RSSI', self.process_rssi_event)
 
@@ -1082,9 +1084,9 @@ def import_algorithm_metrics(module_name, simulator):
     if mixin_class is None:
         return algo_module.Metrics
 
-    class Metrics(algo_module.Metrics, mixin_class):
-        def __init__(self, sim, configuration):
-            super(Metrics, self).__init__(sim, configuration)
+    class MixinMetrics(algo_module.Metrics, mixin_class):
+        def __init__(self, *args, **kwargs):
+            super(MixinMetrics, self).__init__(*args, **kwargs)
 
         @staticmethod
         def items():
@@ -1092,4 +1094,4 @@ def import_algorithm_metrics(module_name, simulator):
             d.update(mixin_class.items())
             return d
 
-    return Metrics
+    return MixinMetrics
