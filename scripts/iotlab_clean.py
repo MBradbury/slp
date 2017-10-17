@@ -4,6 +4,8 @@ from __future__ import print_function
 import os
 import sys
 
+from data.util import remove_dirtree
+
 directory = sys.argv[1]
 
 contents = list(sorted(os.listdir(directory)))
@@ -31,4 +33,5 @@ for run in contents:
 		if bad:
 			print(run, "is bad")
 
+			remove_dirtree(os.path.join(directory, "bad", run))
 			os.rename(os.path.join(directory, run), os.path.join(directory, "bad", run))
