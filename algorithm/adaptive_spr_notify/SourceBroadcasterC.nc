@@ -93,7 +93,7 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
 #ifdef LOW_POWER_LISTENING
-	uses interface LowPowerListening; 
+	uses interface LowPowerListening;
 #endif
 }
 
