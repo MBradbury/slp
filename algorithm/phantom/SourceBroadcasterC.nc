@@ -26,7 +26,7 @@ void distance_container_update(distance_container_t* find, distance_container_t 
 
 void distance_container_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
-	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
+	simdbg_clear(name, "[%zu] => addr=%u / dist=%d",
 		i, address, contents->distance);
 }
 
