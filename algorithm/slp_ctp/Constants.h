@@ -1,7 +1,7 @@
 #ifndef SLP_CONSTANTS_H
 #define SLP_CONSTANTS_H
 
-enum Channels
+enum Channel
 {
 	NORMAL_CHANNEL = 0xee,
 };

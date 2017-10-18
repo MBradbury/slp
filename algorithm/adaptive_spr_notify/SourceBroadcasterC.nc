@@ -99,11 +99,6 @@ module SourceBroadcasterC
 
 implementation
 {
-	enum
-	{
-		SourceNode, SinkNode, NormalNode, TempFakeNode, TailFakeNode, PermFakeNode
-	};
-
 	distance_neighbours_t neighbours;
 
 	SequenceNumber away_sequence_counter;
