@@ -12,6 +12,7 @@ import os
 import subprocess
 import sys
 import time
+from types import ModuleType
 
 import algorithm
 
@@ -215,7 +216,7 @@ class CLI(object):
         if testbed is None:
             return algo.result_file_path
         else:
-            testbed = submodule_loader.load(data.testbed, testbed)
+            testbed = testbed if isinstance(testbed, ModuleType) else submodule_loader.load(data.testbed, testbed)
             return self._testbed_results_file(testbed, algo)
 
     @staticmethod
@@ -757,10 +758,10 @@ class CLI(object):
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
 
         if self.safety_period_module_name is not None:
-            safety_period_result_path = self.get_safety_period_result_path(testbed=args.testbed)
+            safety_period_result_path = self.get_safety_period_result_path(testbed=testbed)
             safety_period_table = safety_period.TableGenerator(safety_period_result_path,
                                                                self.time_after_first_normal_to_safety_period,
-                                                               testbed=args.testbed)
+                                                               testbed=testbed)
             safety_periods = safety_period_table.safety_periods()
 
         commands = []
