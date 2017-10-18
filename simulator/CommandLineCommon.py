@@ -767,8 +767,6 @@ class CLI(object):
 
         for common_result_dir in common_results_dirs:
 
-            print(common_result_dir)
-
             out_path = os.path.join(results_path, common_result_dir + ".txt")
 
             command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
