@@ -9,6 +9,13 @@ enum Channel
 	POLL_CHANNEL = 4,
 };
 
+enum NodeType
+{
+    SourceNode = 0,
+    SinkNode = 1,
+    NormalNode = 2,
+};
+
 #define SLP_MAX_NUM_SOURCES 5
 #define SLP_MAX_NUM_SINKS 1
 
