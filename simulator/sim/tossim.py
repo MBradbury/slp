@@ -95,6 +95,10 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
             try:
                 sim.metrics.print_results()
+
+                if print_warnings:
+                    sim.metrics.print_warnings()
+
             except Exception as ex:
                 import traceback
 
@@ -106,8 +110,5 @@ def run_simulation(module, a, count=1, print_warnings=False):
                 print(all_args, file=sys.stderr)
                 
                 return 52
-
-            if print_warnings:
-                sim.metrics.print_warnings()
 
     return 0

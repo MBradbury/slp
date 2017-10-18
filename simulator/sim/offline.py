@@ -114,11 +114,16 @@ def run_simulation(module, a, count=1, print_warnings=False):
                     print(traceback.format_exc(), file=sys.stderr)
                     print("For parameters:", file=sys.stderr)
                     print(all_args, file=sys.stderr)
+                    print("In file: {}".format(log_file), file=sys.stderr)
 
                     return 51
 
                 try:
                     sim.metrics.print_results()
+
+                    if print_warnings:
+                        sim.metrics.print_warnings()
+
                 except Exception as ex:
                     import traceback
 
@@ -128,10 +133,8 @@ def run_simulation(module, a, count=1, print_warnings=False):
                     print(traceback.format_exc(), file=sys.stderr)
                     print("For parameters:", file=sys.stderr)
                     print(all_args, file=sys.stderr)
+                    print("In file: {}".format(log_file), file=sys.stderr)
                     
                     return 52
-
-                if print_warnings:
-                    sim.metrics.print_warnings()
 
     return 0
