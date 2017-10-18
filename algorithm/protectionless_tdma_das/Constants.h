@@ -3,7 +3,7 @@
 
 #define MESSAGE_QUEUE_SIZE 15
 
-enum Channels
+enum Channel
 {
 	NORMAL_CHANNEL = 1,
     DISSEM_CHANNEL = 2,

@@ -1,7 +1,7 @@
 #ifndef SLP_CONSTANTS_H
 #define SLP_CONSTANTS_H
 
-enum Channels
+enum Channel
 {
 	NORMAL_CHANNEL = 1,
 	AWAY_CHANNEL = 2,
@@ -9,6 +9,16 @@ enum Channels
 	FAKE_CHANNEL = 4,
 	BEACON_CHANNEL = 5,
 	NOTIFY_CHANNEL = 6,
+};
+
+enum NodeType
+{
+    SourceNode = 0,
+    SinkNode = 1,
+    NormalNode = 2,
+    TempFakeNode = 3,
+    TailFakeNode = 4,
+    PermFakeNode = 5,
 };
 
 #define BOTTOM (-1)
