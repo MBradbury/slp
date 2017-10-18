@@ -377,6 +377,10 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
                 try:
                     sim.metrics.print_results()
+
+                    if print_warnings:
+                        sim.metrics.print_warnings()
+
                 except Exception as ex:
                     import traceback
 
@@ -391,9 +395,6 @@ def run_simulation(module, a, count=1, print_warnings=False):
                     proc.kill()
                     
                     return 52
-
-                if print_warnings:
-                    sim.metrics.print_warnings()
 
 class JouleAndCycles(object):
     __slots__ = ('joule', 'cycles')
