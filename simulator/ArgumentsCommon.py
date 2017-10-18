@@ -33,18 +33,20 @@ def _add_safety_period(parser, has_safety_period=False, has_safety_factor=False,
                                 required=False,
                                 default=1.0)
 
-def _add_low_powered_listening(parser, **kwargs):
-    parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), required=False, default="disabled")
-    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=None,
+def _add_low_power_listening(parser, **kwargs):
+    parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), default="disabled",
+                        help="Enables or disables low power listening. By default LPL is disabled and the radio will always be on.")
+
+    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, default=None,
                         help="This is the period for which a node will turn the radio off.")
 
-    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, required=False, default=None,
+    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, default=None,
                         help="This is a global setting, that configures a messages to be transmitted within a given wakeup period.")
 
-    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, required=False, default=None,
+    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, default=None,
                         help="How long should the radio be kept on after a message is received.")
 
-    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, required=False, default=None,
+    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, default=None,
                         help="The maximum number of CCA checks performed on each wakeup.")
 
 def _add_avrora_radio_model(parser, **kwargs):
@@ -59,6 +61,33 @@ def _add_log_converter(parser, **kwargs):
     import simulator.OfflineLogConverter as OfflineLogConverter
 
     parser.add_argument("--log-converter", type=str, choices=OfflineLogConverter.names(), required=True)
+
+def _add_cc2420(parser, **kwargs):
+    # See http://www.ti.com/lit/ds/symlink/cc2420.pdf section 28
+    # This is for chips with a CC2420 only
+    # TOSSIM DOES NOT SIMULATE THIS!
+    parser.add_argument("--rf-power",
+                        type=int,
+                        choices=[3, 7, 11, 15, 19, 23, 27, 31],
+                        default=31,
+                        help="Used to set the power levels for the CC2420 radio chip. 3 is low, 31 is high. Default: 31"),
+
+    # See http://www.ti.com/lit/ds/symlink/cc2420.pdf section 26
+    parser.add_argument("--channel",
+                        type=int,
+                        choices=list(range(11, 27)), # Channels 11 - 26 inclusive
+                        default=26,
+                        help="The IEEE 802.15.4 rf channel the CC2420 radio chip broadcasts on within the 2.4GHz band. Default: 26"),
+
+    parser.add_argument("--acks",
+                        choices=["none", "software", "hardware"],
+                        default="software",
+                        help="CC2420 packet ack strategy. Default: software")
+
+    parser.add_argument("--address-recognition",
+                        choices=["none", "software", "hardware"],
+                        default="software",
+                        help="CC2420 address recognition strategy. Default: software")
 
 OPTS = {
     "configuration":       lambda x, **kwargs: x.add_argument("-c", "--configuration",
@@ -126,15 +155,7 @@ OPTS = {
                                                               default=1.0,
                                                               help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified."),
 
-    # See http://www.ti.com/lit/ds/symlink/cc2420.pdf section 28
-    # This is for chips with a CC2420 only
-    # TOSSIM DOES NOT SIMULATE THIS!
-    "rf power":            lambda x, **kwargs: x.add_argument("--rf-power",
-                                                              type=int,
-                                                              choices=[3, 7, 11, 15, 19, 23, 27, 31],
-                                                              required=False,
-                                                              default=None,
-                                                              help="Used to set the power levels for the CC2420 radio chip. 3 is low, 31 is high."),
+    "cc2420":            _add_cc2420,
 
     "gui node label":      lambda x, **kwargs: x.add_argument("--gui-node-label",
                                                               type=str,
@@ -172,7 +193,7 @@ OPTS = {
 
     "log converter":        _add_log_converter,
 
-    "low powered listening": _add_low_powered_listening,
+    "low power listening": _add_low_power_listening,
 
     "max buffer size":     lambda x, **kwargs: x.add_argument("--max-buffer-size",
                                                               type=ArgumentsCommon.type_positive_int,
@@ -353,6 +374,30 @@ class ArgumentsCommon(object):
             if self.args.rf_power is not None:
                 # TODO: consider setting the values for alternate drivers (CC2420X, ...)
                 result['CC2420_DEF_RFPOWER'] = self.args.rf_power
+
+        if hasattr(self.args, 'channel'):
+            if self.args.channel is not None:
+                result["CC2420_DEF_CHANNEL"] = self.args.channel
+
+        if hasattr(self.args, 'acks'):
+            if self.args.acks == "none":
+                result["CC2420_NO_ACKNOWLEDGEMENTS"] = 1
+            elif self.args.acks == "hardware":
+                result["CC2420_HW_ACKNOWLEDGEMENTS"] = 1
+
+                if self.args.address_recognition != "hardware":
+                    raise RuntimeError("Hardware acks implies hardware address recognition")
+
+            else:
+                assert self.args.acks == "software"
+
+        if hasattr(self.args, 'address_recognition'):
+            if self.args.address_recognition == "none":
+                result["CC2420_NO_ADDRESS_RECOGNITION"] = 1
+            elif self.args.address_recognition == "hardware":
+                result["CC2420_HW_ADDRESS_RECOGNITION"] = 1
+            else:
+                assert self.args.address_recognition == "software"
 
         return result
 
