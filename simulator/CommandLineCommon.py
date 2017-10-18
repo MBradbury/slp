@@ -745,7 +745,13 @@ class CLI(object):
 
         results_path = self._testbed_results_path(testbed)
 
-        results_dirs = [d for d in os.listdir(results_path) if os.path.isdir(os.path.join(results_path, d))]
+        excluded_dirs = {"bad"}
+
+        results_dirs = [
+            d
+            for d in os.listdir(results_path)
+            if os.path.isdir(os.path.join(results_path, d)) and d not in excluded_dirs
+        ]
 
         # All directories that have results for the same parameters
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
@@ -961,7 +967,7 @@ class CLI(object):
             self._run_testbed_run(testbed, args)
 
         elif 'analyse' == args.testbed_mode:
-            self._run_tested_analyse(testbed, args)
+            self._run_testbed_analyse(testbed, args)
 
         sys.exit(0)
 
