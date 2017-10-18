@@ -4,7 +4,7 @@ def parsers():
     return [
         ("SINGLE", None, ["verbose", "configuration",
         				  "fault model",
-                          "low powered listening", "rf power"]),
+                          "low power listening", "cc2420"]),
     ]
 
 def build(module, a):

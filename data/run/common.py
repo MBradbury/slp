@@ -232,7 +232,7 @@ def filter_arguments(argument_names, argument_product, to_filter):
 
 class RunTestbedCommon(RunSimulationsCommon):
 
-    extra_arguments = ('rf power',)
+    extra_arguments = ('rf power', 'low power listening')
 
     # Filter out invalid parameters to pass onwards
     non_arguments = ('network size', 
@@ -256,7 +256,7 @@ class RunTestbedCommon(RunSimulationsCommon):
 
 class RunCycleAccurateCommon(RunSimulationsCommon):
 
-    extra_arguments = ('rf power',)
+    extra_arguments = ('rf power', 'low power listening')
 
     # Filter out invalid parameters to pass onwards
     non_arguments = ('attacker model', 'noise model',
