@@ -19,7 +19,8 @@ def print_version():
 
 def print_arguments(module_name, a):
     # Try to extract parameters from the log file name
-    names = {name.rsplit("_", 1)[0] for name in a.args.log_file}
+
+    names = {os.path.dirname(name).rsplit("_", 1)[0] for name in a.args.log_file}
 
     if len(names) == 1:
         name = os.path.basename(next(iter(names)))
@@ -33,6 +34,8 @@ def print_arguments(module_name, a):
         if len(params) == 4 + len(local_parameter_names):
             (configuration, fault_model, source_period) = params[:3]
             del params[:3]
+
+            fault_model = fault_model.replace("_", "(", 1)[:-1] + ")"
 
         elif len(params) == 3 + len(local_parameter_names):
             (configuration, source_period) = params[:2]
@@ -66,15 +69,12 @@ def print_arguments(module_name, a):
         if k not in a.arguments_to_hide:
             print("{}={}".format(k, v))
 
-
-def run_simulation(module, a, count=1, print_warnings=False):
+def run_one_file(log_file, module, a, count=1, print_warnings=False):
     import copy
     import sys
 
     import simulator.Configuration as Configuration
     import simulator.OfflineLogConverter as OfflineLogConverter
-
-    configuration = Configuration.create(a.args.configuration, a.args)
 
     # Get the correct Simulation constructor
     if a.args.mode == "SINGLE":
@@ -84,57 +84,70 @@ def run_simulation(module, a, count=1, print_warnings=False):
     else:
         raise RuntimeError("Unknown mode {}".format(a.args.mode))
 
-    for log_file in a.args.log_file:
-        if a.args.verbose:
-            print("Analysing log file {}".format(log_file), file=sys.stderr)
-        with OfflineLogConverter.create_specific(a.args.log_converter, log_file) as converted_event_log:
-            with OfflineSimulation(module, configuration, a.args, event_log=converted_event_log) as sim:
+    configuration = Configuration.create(a.args.configuration, a.args)
 
-                # Create a copy of the provided attacker model
-                attacker = copy.deepcopy(a.args.attacker_model)
+    if a.args.verbose:
+        print("Analysing log file {}".format(log_file), file=sys.stderr)
 
-                if len(configuration.sink_ids) != 1:
-                    raise RuntimeError("Attacker does not know where to start!")
+    with OfflineLogConverter.create_specific(a.args.log_converter, log_file) as converted_event_log:
+        with OfflineSimulation(module, configuration, a.args, event_log=converted_event_log) as sim:
 
-                attacker_start = next(iter(configuration.sink_ids))
+            # Create a copy of the provided attacker model
+            attacker = copy.deepcopy(a.args.attacker_model)
 
-                # Setup each attacker model
-                attacker.setup(sim, attacker_start, ident=0)
+            if len(configuration.sink_ids) != 1:
+                raise RuntimeError("Attacker does not know where to start!")
 
-                sim.add_attacker(attacker)
+            attacker_start = next(iter(configuration.sink_ids))
 
-                try:
-                    sim.run()
-                except Exception as ex:
-                    import traceback
+            # Setup each attacker model
+            attacker.setup(sim, attacker_start, ident=0)
 
-                    all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+            sim.add_attacker(attacker)
 
-                    print("Killing run due to {}".format(ex), file=sys.stderr)
-                    print(traceback.format_exc(), file=sys.stderr)
-                    print("For parameters:", file=sys.stderr)
-                    print(all_args, file=sys.stderr)
-                    print("In file: {}".format(log_file), file=sys.stderr)
+            try:
+                sim.run()
+            except Exception as ex:
+                import traceback
 
-                    return 51
+                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
 
-                try:
-                    sim.metrics.print_results()
+                print("Killing run due to {}".format(ex), file=sys.stderr)
+                print(traceback.format_exc(), file=sys.stderr)
+                print("For parameters:", file=sys.stderr)
+                print(all_args, file=sys.stderr)
+                print("In file: {}".format(log_file), file=sys.stderr)
 
-                    if print_warnings:
-                        sim.metrics.print_warnings()
+                return 51
 
-                except Exception as ex:
-                    import traceback
+            try:
+                sim.metrics.print_results()
 
-                    all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+                if print_warnings:
+                    sim.metrics.print_warnings()
 
-                    print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
-                    print(traceback.format_exc(), file=sys.stderr)
-                    print("For parameters:", file=sys.stderr)
-                    print(all_args, file=sys.stderr)
-                    print("In file: {}".format(log_file), file=sys.stderr)
-                    
-                    return 52
+            except Exception as ex:
+                import traceback
+
+                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+
+                print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
+                print(traceback.format_exc(), file=sys.stderr)
+                print("For parameters:", file=sys.stderr)
+                print(all_args, file=sys.stderr)
+                print("In file: {}".format(log_file), file=sys.stderr)
+                
+                return 52
 
     return 0
+
+def run_simulation(module, a, count=1, print_warnings=False):
+    overall_return = 0
+
+    for log_file in a.args.log_file:
+        ret = run_one_file(log_file, module, a, count=count, print_warnings=print_warnings)
+
+        if ret != 0:
+            overall_return = ret
+
+    return overall_return
