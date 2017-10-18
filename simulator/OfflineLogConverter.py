@@ -11,7 +11,10 @@ import pandas
 from data.restricted_eval import restricted_eval
 
 def _sanitise_string(input_string):
-    return re.sub("((\x00)|(\\x00)|(\\\\x00))+", r"\1..\1", input_string)
+    if len(input_string) > 120:
+        input_string = input_string[:120] + "..."
+
+    return input_string
 
 class OfflineLogConverter(object):
     def __init__(self, *args, **kwargs):
@@ -119,6 +122,8 @@ class FitIotLab(OfflineLogConverter, LineLogConverter):
         return (node_time, output)
 
     def _process_file(self, log_file):
+        self._check_nul_byte_log_file(log_file)
+
         for line in log_file:
             try:
                 output = self._process_line(line)
@@ -128,6 +133,17 @@ class FitIotLab(OfflineLogConverter, LineLogConverter):
                 continue
 
             self.processed_lines.append(output)
+
+    def _check_nul_byte_log_file(self, log_file):
+        firstn = log_file.read(1024)
+
+        # Reset file back to the beginning
+        log_file.seek(0)
+
+        ratio = sum(x == 0 for x in firstn) / len(firstn)
+
+        if ratio >= 0.5:
+            raise RuntimeError("File ({}) consists of NUL bytes ({}), skipping it".format(log_file.name, ratio))
 
 class Avrora(OfflineLogConverter):
 
