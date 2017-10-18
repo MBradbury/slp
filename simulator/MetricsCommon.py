@@ -327,6 +327,17 @@ class MetricsCommon(object):
         self.delivered_rssi[key].push(int(rssi))
         self.delivered_lqi[key].push(int(lqi))
 
+        # Check that the normal message that has been delivered has a ultimate source
+        # that we believe to be a source.
+        if __debug__:
+            if kind == "Normal" and int(ultimate_source_id) not in self.source_ids():
+                message = "Node {} received a Normal message from {} which is not a source id ({})".format(
+                    node_id, ultimate_source_id, self.source_ids())
+                if self.strict:
+                    raise RuntimeError(message)
+                else:
+                    print("WARNING:", message, file=sys.stderr)
+
     def process_node_change_event(self, d_or_e, node_id, time, detail):
         (old_name, new_name) = detail.split(',')
 
