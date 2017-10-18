@@ -134,6 +134,7 @@ class Gui:
 
         self._sim.register_output_handler('Fake-Notification', self._process_message)
         self._sim.register_output_handler('M-NC', self._process_message)
+        self._sim.register_output_handler('M-PC', self._process_parent_change)
         self._sim.register_output_handler('G-A', self._process_message)
         self._sim.register_output_handler('DAS-State', self._process_message)
 
@@ -326,7 +327,16 @@ class Gui:
         # TODO: Detect if the results have a target and use that to determine if
         # _animate_am_receive or _animate_am_snoop should be called.
 
-        return self._animate_am_receive(time, node_id, detail)    
+        return self._animate_am_receive(time, node_id, detail)
+
+    def _process_parent_change(self, d_or_e, node_id, time, without_dbg):
+        (old_parent, new_parent) = map(int, without_dbg.split(","))
+
+        time = self._sim.sim_time()
+        node_id = int(node_id)
+
+        self._animate_arrow(time, node_id, ("-", node_id, old_parent, (0,0,0)))
+        self._animate_arrow(time, node_id, ("+", node_id, new_parent, (0,0,0)))
 
 ###############################################
 class GuiSimulation(Simulation):
