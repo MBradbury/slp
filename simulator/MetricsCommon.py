@@ -99,6 +99,54 @@ class MetricsCommon(object):
 
         self.register('stderr', self.process_error_event)
 
+        if not self.strict:
+            self._non_strict_setup()
+
+    def _non_strict_setup(self):
+        """Set up any variables that may be missing in non-strict cases.
+        For example testbed serial aggregators may miss important info."""
+        import os.path
+        import re
+
+        # Find the node and message, name and name associations
+        source_dir = self.sim.module_name.replace(".", "/")
+
+        register_pair = re.compile(r"call (MessageType|NodeType)\.register_pair\(([A-Za-z_]+), \"([A-Za-z]+)\"\)")
+
+        matches = []
+        names_assoc = {}
+
+        with open(os.path.join(source_dir, 'SourceBroadcasterC.nc'), "r") as source_file:
+            for line in source_file:
+                match = register_pair.findall(line)
+                if match:
+                    matches.extend(match)
+
+        # Find the variable values
+        names = "|".join(var_name for (kind, var_name, str_name) in matches)
+
+        register_pair = re.compile(r"({})\s*=\s*([0-9]+)".format(names))
+
+        with open(os.path.join(source_dir, 'Constants.h'), "r") as source_file:
+            for line in source_file:
+                match = register_pair.findall(line)
+                if match:
+                    for (name, value) in match:
+                        names_assoc[name] = int(value)
+
+        # Set the types
+        for (kind, var_name, str_name) in matches:
+            var = names_assoc[var_name]
+
+            if kind == "MessageType":
+                self.message_types[var] = str_name
+
+            elif kind == "NodeType":
+                self.node_types[var] = str_name
+
+            else:
+                assert False
+
     def source_ids(self):
         if self.strict:
             return self.reported_source_ids
