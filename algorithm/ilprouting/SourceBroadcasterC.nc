@@ -108,11 +108,6 @@ module SourceBroadcasterC
 
 implementation
 {
-	enum
-	{
-		SourceNode, SinkNode, NormalNode
-	};
-
 	bool busy;
 	message_t packet;
 
