@@ -136,7 +136,7 @@ class Simulation(object):
             args = line[:-1].split(':', 3)
             
             # (d_or_e, node_id, time, detail) = args
-            
+
             function(*args)
 
         self.tossim.addCallback(name, process_one_line)
