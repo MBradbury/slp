@@ -89,7 +89,6 @@ implementation
 	{
 		// One event to handle metrics and other for the GUI
 		simdbg("M-NC", "%s,%s\n", old_type_str, new_type_str);
-		simdbg("G-NC", "%s,%s\n", old_type_str, new_type_str);
 	}
 
 	command void MetricLogging.log_metric_node_type_add(

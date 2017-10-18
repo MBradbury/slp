@@ -133,7 +133,7 @@ class Gui:
 
 
         self._sim.register_output_handler('Fake-Notification', self._process_message)
-        self._sim.register_output_handler('G-NC', self._process_message)
+        self._sim.register_output_handler('M-NC', self._process_message)
         self._sim.register_output_handler('G-A', self._process_message)
         self._sim.register_output_handler('DAS-State', self._process_message)
 
