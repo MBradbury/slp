@@ -41,8 +41,9 @@ def main(argv):
 
     # Set the thread count, but only for jobs that need it
     if hasattr(a.args, "thread_count") and a.args.thread_count is None:
-        import multiprocessing
-        a.args.thread_count = multiprocessing.cpu_count()
+        import psutil
+        # Set the number of usable CPUs
+        a.args.thread_count = len(psutil.Process().cpu_affinity())
 
     # When doing cluster array jobs only print out this header information on the first job
     if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
