@@ -17,6 +17,7 @@ class Analyzer(AnalyzerCommon):
     @staticmethod
     def results_header():
         d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
+        d["fitness function"]         = lambda x: x.opts["fitness_function"]
 
         AnalyzerCommon.common_results(d)
 
