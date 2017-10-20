@@ -207,6 +207,7 @@ class CLI(CommandLineCommon.CLI):
                 yextractor=scalar_extractor)
 
             g.nokey = True
+            g.yaxis_label = yaxis_label
             g.key_position = key_position
             g.xextractor = xextractor
             g.vextractor = vextractor
