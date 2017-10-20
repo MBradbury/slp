@@ -204,7 +204,6 @@ class GrapherBase(object):
         value = []
 
         for name in index_name:
-
             try:
                 idx = names.index(name)
 

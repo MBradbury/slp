@@ -173,33 +173,43 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph_bar(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (ms)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'left top'),
-            'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'attacker distance': ('Meters', 'left top'),
+            'normal latency': ('Normal Message Latency (ms)', 'right top'),
+            'ssd': ('Sink-Source Distance (hops)', 'right top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'sent': ('Total Messages Sent', 'right top'),
+            'received ratio': ('Receive Ratio (%)', 'right top'),
+            'attacker distance': ('Meters', 'right top'),
         }
 
-        vary = "fitness function"
+        vary = "genetic header"
+
+        parameters = self.algorithm_module.local_parameter_names
+        if vary not in parameters:
+            parameters += (vary,)
 
         slp_tdma_das_ga_results = results.Results(
             self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names + (vary,),
+            parameters=parameters + ('fitness function',),
             results=tuple(graph_parameters.keys()))
 
+        def xextractor(xname):
+            return "/".join(x.replace("slot-with-path-", "").replace("low-asymmetry", "low") for x in xname)
+
+        def vextractor(vvalue):
+            return int(vvalue.replace(".h", "").replace("dist", "").replace("slot", ""))
+
         for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-            name = '{}-v-{}'.format(yaxis.replace(" ", "_"), "ff")#vary.replace(" ", "-"))
+            name = '{}-v-{}'.format(yaxis.replace(" ", "_"), "gh")#vary.replace(" ", "-"))
 
             g = bar.Grapher(
                 self.algorithm_module.graphs_path, name,
-                xaxis='communication model', yaxis=yaxis, vary=vary,
+                xaxis=('communication model', 'fitness function'), yaxis=yaxis, vary=vary,
                 yextractor=scalar_extractor)
 
-            #g.xaxis_label = 'Network Size'
-            #g.yaxis_label = yaxis_label
-            g.vary_label = vary.title()
+            g.nokey = True
             g.key_position = key_position
+            g.xextractor = xextractor
+            g.vextractor = vextractor
 
             g.create(slp_tdma_das_ga_results)
 
