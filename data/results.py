@@ -171,7 +171,7 @@ class Results(object):
         else:
             try:
                 return ast.literal_eval(value)
-            except ValueError:
+            except (ValueError, SyntaxError):
                 # If the value is a string, check if the value is a parameter
                 # If it is then just return the string value of the parameter
                 if name in self.parameter_names:

@@ -16,6 +16,9 @@ try:
 except ImportError:
     from shutilwhich import which
 
+import simulator.Attacker as Attacker
+import simulator.FaultModel as FaultModel
+
 def test_gnuplot_version(name):
     result = subprocess.check_output([name, "--version"]).strip()
 
@@ -68,6 +71,35 @@ class GrapherBase(object):
     def __init__(self, output_directory):
         self.output_directory = output_directory
 
+    @staticmethod
+    def _shorten_long_names(key_names, key_values):
+        # Some of these values get much too long
+        very_long_parameter_names = {
+            'attacker model': Attacker.eval_input,
+            'fault model': FaultModel.eval_input,
+        }
+
+        key_values = list(key_values)
+
+        for (long_name, creator) in very_long_parameter_names.items():
+            index = key_names.index(long_name)
+
+            long_string = key_values[index]
+            key_values[index] = creator(long_string).short_name()
+
+        return tuple(key_values)
+
+    @staticmethod
+    def _sanitize_path_name(name):
+        name = str(name)
+
+        chars = "'\""
+
+        for char in chars:
+            name = name.replace(char, "_")
+
+        return name
+
     def _create_graphs(self, subdir):
         gnuplot = get_gnuplot_binary_name()
 
@@ -87,14 +119,14 @@ class GrapherBase(object):
                 try:
                     out = subprocess.check_output(args1, cwd=root, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as ex:
-                    outqueue.put((args1, root, out, ex))
-                    raise RuntimeError("Failed to {} in '{}' with {}".format(args2, root, out), ex)
+                    outqueue.put((args1, root, None, ex))
+                    raise RuntimeError("Failed to {} in '{}'".format(args2, root), ex)
 
                 try:
                     out = subprocess.check_output(args2, cwd=root, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as ex:
-                    outqueue.put((args2, root, out, ex))
-                    raise RuntimeError("Failed to {} in '{}' with {}".format(args2, root, out), ex)
+                    outqueue.put((args2, root, None, ex))
+                    raise RuntimeError("Failed to {} in '{}'".format(args2, root), ex)
 
         nprocs = multiprocessing.cpu_count()
 
