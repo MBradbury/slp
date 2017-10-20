@@ -214,7 +214,7 @@ class GrapherBase(object):
                 del values[idx]
             except:
                 if not allow_missing:
-                    raise
+                    raise ValueError("'{}' is not in list {}".format(index_name, names))
 
         names = tuple(names)
         values = tuple(values)
