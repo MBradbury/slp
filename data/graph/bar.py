@@ -14,7 +14,7 @@ class Grapher(GrapherBase):
 
     _key_names_base = simulator.common.global_parameter_names
 
-    def __init__(self, output_directory, result_name, xaxis, yaxis, vary, yextractor=None, xextractor=None):
+    def __init__(self, output_directory, result_name, xaxis, yaxis, vary, yextractor=None, xextractor=None, vextractor=None):
         super(Grapher, self).__init__(output_directory)
 
         self.result_name = result_name
@@ -23,7 +23,7 @@ class Grapher(GrapherBase):
         self.yaxis = yaxis
         self.vary = vary
 
-        self.xaxis_label = xaxis.title()
+        self.xaxis_label = xaxis.title() if isinstance(xaxis, str) or not isinstance(vary, collections.Sequence) else " / ".join(x.title() for x in xaxis)
         self.yaxis_label = yaxis.title()
         self.vary_label =  vary.title()
         self.vary_prefix = ''
@@ -31,6 +31,7 @@ class Grapher(GrapherBase):
 
         self.yextractor = yextractor if yextractor is not None else lambda x: x
         self.xextractor = xextractor if xextractor is not None else lambda x: x
+        self.vextractor = vextractor if vextractor is not None else lambda x: x
 
         self.error_bars = False
 
@@ -88,6 +89,8 @@ class Grapher(GrapherBase):
                     (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
 
                     yvalue = results[ simulation_results.result_names.index(self.yaxis) ]
+
+                    vvalue = self.vextractor(vvalue)
 
                     dat.setdefault((key_names, values), {})[(xvalue, vvalue)] = self._value_extractor(yvalue)
 
