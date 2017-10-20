@@ -59,6 +59,8 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
     uses interface FaultModel;
+
+    provides interface SourcePeriodConverter;
 }
 
 implementation
@@ -193,6 +195,11 @@ implementation
 
             call NodeType.set(NormalNode);
         }
+    }
+
+    command uint32_t SourcePeriodConverter.convert(uint32_t period)
+    {
+        return (uint32_t)ceil((DISSEM_PERIOD_MS + SLOT_PERIOD_MS*GA_TOTAL_SLOTS)/(period/1000.0));
     }
 
     //Startup Events}}}

@@ -89,6 +89,7 @@ implementation
 
     components SourcePeriodModelP;
     App.SourcePeriodModel -> SourcePeriodModelP;
+    SourcePeriodModelP.SourcePeriodConverter -> App;
 
     components
         new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos;

@@ -58,10 +58,10 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    # Override default
-    def parameter_names(self):
-        # Remove source period from names
-        return self.global_parameter_names[:-1] + self.algorithm_module.local_parameter_names
+    # # Override default
+    # def parameter_names(self):
+        # # Remove source period from names
+        # return self.global_parameter_names[:-1] + self.algorithm_module.local_parameter_names
 
     def _argument_product(self, extras=None):
         parameters = self.algorithm_module.Parameters
@@ -72,7 +72,7 @@ class CLI(CommandLineCommon.CLI):
             parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.slot_period, parameters.dissem_period,
-            parameters.ga_headers
+            parameters.ga_headers, parameters.source_periods
         ))
 
         argument_product = self.add_extra_arguments(argument_product, extras)
