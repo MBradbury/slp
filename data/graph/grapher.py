@@ -48,7 +48,7 @@ def get_gnuplot_binary_name():
     for name in possible_names:
         if which(name) is not None:
 
-            if not test_gnuplot_pdfterm_support(name):
+            if not test_gnuplot_version(name):
                 version_too_old = True
                 continue
 
