@@ -16,12 +16,18 @@ module SourcePeriodModelImplP
 {
 	provides interface SourcePeriodModel;
 
-	uses interface LocalTime<TMilli>;
+	uses interface SourcePeriodConverter;
 
 	uses interface Timer<TMilli> as EventTimer;
+	uses interface LocalTime<TMilli>;
 }
 implementation
 {
+	default command uint32_t SourcePeriodConverter.convert(uint32_t period)
+	{
+		return period;
+	}
+
 	command uint32_t SourcePeriodModel.get()
 	{
 		const uint32_t current_time = call LocalTime.get();
@@ -55,7 +61,7 @@ implementation
 		simdbgverbose("stdout", "Providing source period %" PRIu32 " at time=%" PRIu32 "\n",
 			period, current_time);
 
-		return period;
+		return call SourcePeriodConverter.convert(period);
 	}
 
 	command void SourcePeriodModel.startPeriodic()
