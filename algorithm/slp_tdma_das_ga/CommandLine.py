@@ -210,6 +210,7 @@ class CLI(CommandLineCommon.CLI):
             g.key_position = key_position
             g.xextractor = xextractor
             g.vextractor = vextractor
+            g.xtics_around_cluster = True
 
             g.create(slp_tdma_das_ga_results)
 
