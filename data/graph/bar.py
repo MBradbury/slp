@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import collections
+import math
 import os
 
 import data.util
@@ -22,9 +23,9 @@ class Grapher(GrapherBase):
         self.yaxis = yaxis
         self.vary = vary
 
-        self.xaxis_label = xaxis
-        self.yaxis_label = yaxis
-        self.vary_label =  vary.title() if not isinstance(vary, collections.Sequence) else "/".join(x.title() for x in vary)
+        self.xaxis_label = xaxis.title()
+        self.yaxis_label = yaxis.title()
+        self.vary_label =  vary.title()
         self.vary_prefix = ''
         self.vvalue_label_converter = None
 
@@ -33,12 +34,20 @@ class Grapher(GrapherBase):
 
         self.error_bars = False
 
+        self.yaxis_font = None
+        self.xaxis_font = None
+
+        self.ylabel_font = None
+        self.xlabel_font = None
+
         self.nokey = False
         self.key_position = 'right top'
         self.key_font = None
         self.key_spacing = None
         self.key_width = None
         self.key_height = None
+
+        self.histogram_cluster_gap = None
 
         self.missing_value_string = '?'
 
@@ -169,13 +178,27 @@ class Grapher(GrapherBase):
             if self.yaxis_label is not None:
                 graph_p.write('set ylabel "{}"\n'.format(self.yaxis_label))
 
+            histogram_cluster_gap = self.histogram_cluster_gap
+            if histogram_cluster_gap is None:
+                histogram_cluster_gap = int(math.ceil(len(vvalues) / 50))
+
             graph_p.write('set style data histogram\n')
-            graph_p.write('set style histogram cluster gap 1\n')
+            graph_p.write('set style histogram cluster gap {}\n'.format(histogram_cluster_gap))
             graph_p.write('set style fill solid border -1\n')
 
             #graph_p.write('set xtic rotate by -90 scale 0\n')
 
-            graph_p.write('set xtics font ",8"\n')
+            if self.ylabel_font is not None:
+                graph_p.write('set ylabel font "{}"\n'.format(self.ylabel_font))
+
+            if self.xlabel_font is not None:
+                graph_p.write('set xlabel font "{}"\n'.format(self.xlabel_font))
+
+            if self.yaxis_font is not None:
+                graph_p.write('set ytics font {}\n'.format(self.yaxis_font))
+
+            if self.xaxis_font is not None:
+                graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
 
             if self.nokey:
                 graph_p.write('set nokey\n')
