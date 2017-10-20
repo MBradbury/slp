@@ -48,6 +48,7 @@ class Grapher(GrapherBase):
         self.key_width = None
         self.key_height = None
 
+        self.xtics_around_cluster = False
         self.histogram_cluster_gap = None
 
         self.missing_value_string = '?'
@@ -183,7 +184,7 @@ class Grapher(GrapherBase):
 
             histogram_cluster_gap = self.histogram_cluster_gap
             if histogram_cluster_gap is None:
-                histogram_cluster_gap = int(math.ceil(len(vvalues) / 50))
+                histogram_cluster_gap = int(math.ceil(len(vvalues) / 25))
 
             graph_p.write('set style data histogram\n')
             graph_p.write('set style histogram cluster gap {}\n'.format(histogram_cluster_gap))
@@ -220,6 +221,11 @@ class Grapher(GrapherBase):
                 if self.key_height is not None:
                     graph_p.write('set key height {}\n'.format(self.key_height))
 
+            if self.xtics_around_cluster:
+                graph_p.write('set boxwidth 1\n')
+                graph_p.write('set format x ""\n')
+                graph_p.write('set xtics nomirror out (' + ','.join('"" {}'.format(i - 0.5) for i in range(len(xvalues) + 1)) + ')\n')
+
             # When all data is positive, make sure to include
             # 0 on the y axis.
             graph_p.write('set yrange [0:]\n')
@@ -236,7 +242,7 @@ class Grapher(GrapherBase):
                 else:
                     vary_title = "{}{}".format(self._vvalue_label(vvalues[ x - 1 ]), self.vary_prefix)
 
-                plots.append('"graph.dat" using {ycol}:xticlabels(1) ti "{title}"'.format(ycol=x + 1, title=vary_title))
+                plots.append('"graph.dat" using {ycol}:xtic(1) ti "{title}"'.format(ycol=x + 1, title=vary_title))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
