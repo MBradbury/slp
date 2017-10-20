@@ -468,6 +468,11 @@ class CLI(object):
     def _get_extra_plural_name(self, name):
         parameters = self.algorithm_module.Parameters
 
+        non_plural_names = ["low power listening"]
+
+        if name in non_plural_names:
+            return getattr(parameters, name.replace(" ", "_"))
+
         for appendix in ("s", "es", ""):
             try:
                 return getattr(parameters, name.replace(" ", "_") + appendix)
