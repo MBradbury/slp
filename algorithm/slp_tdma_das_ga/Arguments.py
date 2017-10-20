@@ -32,6 +32,7 @@ class Arguments(ArgumentsCommon):
 
         return {
             "tdma_num_slots": params["GA_TOTAL_SLOTS"],
+            "fitness_function": params["GA_FITNESS_FUNCTION"],
             "source_period": source_period,
         }
 

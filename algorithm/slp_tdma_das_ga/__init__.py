@@ -21,6 +21,20 @@ def get_parameters_in_header(name):
                 except ValueError:
                     continue
 
-                params[name] = int(value)
+                try:
+                    if int(value) != float(value):
+                        params[name] = float(value)
+                    else:
+                        params[name] = int(value)
+                except ValueError:
+                    try:
+                        if value[0] == '"' and value[-1] == '"':
+                            params[name] = value[1:-1]
+                        else:
+                            params[name] = str(value)
+                    except TypeError:
+                        params[name] = str(value)
+
+
 
     return params
