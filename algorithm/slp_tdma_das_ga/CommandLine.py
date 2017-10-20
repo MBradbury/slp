@@ -14,7 +14,7 @@ protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
 
 from data import results
 from data.run.common import RunSimulationsCommon
-from data.graph import summary, versus, baseline_versus
+from data.graph import summary, versus, baseline_versus, bar
 from data.table import safety_period
 from data.util import scalar_extractor
 
@@ -39,6 +39,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
+        subparser = self._add_argument("graph-bar", self._run_graph_bar)
 
     def _cluster_time_estimator(self, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -169,3 +170,40 @@ class CLI(CommandLineCommon.CLI):
                     os.path.join(self.algorithm_module.graphs_path, name),
                     os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
+
+    def _run_graph_bar(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'attacker distance': ('Meters', 'left top'),
+        }
+
+        vary = "fitness function"
+
+        slp_tdma_das_ga_results = results.Results(
+            self.algorithm_module.result_file_path,
+            parameters=self.algorithm_module.local_parameter_names + (vary,),
+            results=tuple(graph_parameters.keys()))
+
+        for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+            name = '{}-v-{}'.format(yaxis.replace(" ", "_"), "ff")#vary.replace(" ", "-"))
+
+            g = bar.Grapher(
+                self.algorithm_module.graphs_path, name,
+                xaxis='communication model', yaxis=yaxis, vary=vary,
+                yextractor=scalar_extractor)
+
+            #g.xaxis_label = 'Network Size'
+            #g.yaxis_label = yaxis_label
+            g.vary_label = vary.title()
+            g.key_position = key_position
+
+            g.create(slp_tdma_das_ga_results)
+
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path, name),
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
+            ).run()

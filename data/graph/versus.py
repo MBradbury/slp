@@ -1,6 +1,9 @@
 from __future__ import print_function, division
 
-import os, itertools, math, collections
+import collections
+import itertools
+import math
+import os
 
 import numpy as np
 
@@ -9,18 +12,6 @@ from data import latex
 from data.graph.grapher import GrapherBase
 
 import simulator.common
-import simulator.Attacker as Attacker
-import simulator.FaultModel as FaultModel
-
-def _sanitize_path_name(name):
-    name = str(name)
-
-    chars = "'\""
-
-    for char in chars:
-        name = name.replace(char, "_")
-
-    return name
 
 class Grapher(GrapherBase):
 
@@ -311,19 +302,9 @@ class Grapher(GrapherBase):
 
     def _create_plot(self, key_names, key_values, values):
 
-        key_values = list(key_values)
+        key_values = self._shorten_long_names(key_names, key_values)
 
-        # Some of these values get much too long
-        very_long_parameter_names = {'attacker model': Attacker.eval_input, 'fault model': FaultModel.eval_input}
-
-        for (long_name, creator) in very_long_parameter_names.items():
-            index = key_names.index(long_name)
-
-            long_string = key_values[index]
-            key_values[index] = creator(long_string).short_name()
-
-
-        dir_name = os.path.join(self.output_directory, self.result_name, *map(_sanitize_path_name, key_values))
+        dir_name = os.path.join(self.output_directory, self.result_name, *map(self._sanitize_path_name, key_values))
 
         print("Currently in {}".format(dir_name))
 
