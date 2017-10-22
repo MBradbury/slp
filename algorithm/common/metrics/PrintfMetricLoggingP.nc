@@ -26,9 +26,9 @@ implementation
 #else
 #	error "Serial Printf needs to be buffered or unbuffered, but is neither."
 #endif
+#endif
 
 	// Time
 	components LocalTimeMilliC;
 	App.LocalTime -> LocalTimeMilliC;
-#endif
 }

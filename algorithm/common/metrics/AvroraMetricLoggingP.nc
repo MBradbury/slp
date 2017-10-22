@@ -12,14 +12,13 @@ configuration AvroraMetricLoggingP
 }
 implementation
 {
-	components AvroraMetricLoggingImplP as App;
+	components PrintfMetricLoggingImplP as App;
 
 	MetricLogging = App;
 
 	App.MessageType = MessageType;
 
 	components AvroraPrintfC;
-	App.AvroraPrintf -> AvroraPrintfC;
 
 	// Time
 	components LocalTimeMilliC;
