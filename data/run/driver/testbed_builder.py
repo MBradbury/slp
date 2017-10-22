@@ -34,6 +34,7 @@ PLATFORM_TOOLS = {
     "wsn430v14": ("msp430-objcopy", "msp430-objdump"),
     "micaz":     ("avr-objcopy", "avr-objdump"),
     "telosb":    ("msp430-objcopy", "msp430-objdump"),
+    "z1":        ("msp430-objcopy", "msp430-objdump"),
 }
 
 class Runner(object):
@@ -119,7 +120,12 @@ class Runner(object):
         )
         for name in files_to_copy:
             try:
-                shutil.copy(os.path.join(module_path, "build", self.platform, name), target_directory)
+                src = os.path.join(module_path, "build", self.platform, name)
+                dest = target_directory
+                
+                shutil.copy(src, dest)
+
+                #print("Copying {} -> {}".format(src, dest))
             except IOError as ex:
                 # Ignore expected fails
                 if name not in {"main.srec", "wiring-check.xml"}:

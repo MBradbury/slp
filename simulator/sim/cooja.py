@@ -52,7 +52,7 @@ def cooja_command(module, a, configuration):
 
     target_directory = module.replace(".", "/")
 
-    csc_file = os.path.join(target_directory, "sim.csc")
+    csc_file = os.path.join(target_directory, "build", "sim.csc")
 
     if not os.path.exists(csc_file):
         raise RuntimeError("The csc file does not exist at {}".format(csc_file))
