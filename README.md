@@ -140,19 +140,49 @@ You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
 
       You should see an output that contains "*** Successfully built micaz TOSSIM library".
 
-# Set up Avrora (optional if only using TinyOS)
+# Set up Avrora (optional if only using TOSSIM)
 
   1. Make sure a suitable version of Java is installed
 
   2. Go to https://sourceforge.net/projects/avrora/ and download the latest avrora jar
 
-  3. Edit ~/.bashrc to export en environment variable called "AVRORA_JAR_PATH" which contains
+  3. Edit ~/.bashrc to export an environment variable called "AVRORA_JAR_PATH" which contains
      the path to the Avrora jar. An example path is shown below.
 
      :::bash
      export AVRORA_JAR_PATH="/home/matt/wsn/avrora/avrora-beta-1.7.117.jar"
 
-## Updating from upstream
+# Set up COOJA (optional if only using TOSSIM)
+
+  COOJA is a simulator that comes with Contiki. If you are writing your code using
+  TinyOS you will typically use the TOSSIM simulator, so will not need COOJA.
+
+  1. Clone the contiki repository
+
+       :::bash
+       cd ~/wsn
+       git clone git@github.com:contiki-os/contiki.git -b release-3-1
+
+  2. Install dependencies
+
+       :::bash
+       sudo apt-get update
+       sudo apt-get install ant
+
+  3. Build COOJA
+
+       :::bash
+       cd ~/wsn/contiki/tools/cooja
+       ant jar
+
+  4. Edit ~/.bashrc to export an environment variable called "CONTIKI_DIR" which contains
+     the path to the contiki repository. An example path is shown below.
+
+       :::bash
+       export CONTIKI_DIR="/home/matt/wsn/contiki"
+
+
+# Updating from upstream
 
 Ideally you will have forked the slp-algorithms-tinyos repository.
 You will want to pull updates from it by doing the following:
