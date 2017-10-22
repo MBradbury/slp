@@ -28,11 +28,17 @@ def fastserial_supported():
 
 def create_csc(csc, target_directory, a):
     """Output simulation csc"""
+    import os.path
 
     from simulator import Configuration
 
     def pcsc(*args, **kwargs):
         print(*args, file=csc, **kwargs)
+
+    firmware_path = os.path.join(target_directory, "main.exe")
+
+    if not os.path.exists(firmware_path):
+        raise RuntimeError("The firmware at {} is missing".format(firmware_path))
 
     pcsc('<?xml version="1.0" encoding="UTF-8"?>')
     pcsc('<simconf>')
@@ -54,7 +60,7 @@ def create_csc(csc, target_directory, a):
     pcsc('    </events>')
     pcsc('    <motetype>')
     pcsc(a.args.platform.cooja_csc())
-    pcsc('      <firmware EXPORT="copy">{}/main.exe</firmware>'.format(target_directory))
+    pcsc('      <firmware EXPORT="copy">{}</firmware>'.format(firmware_path))
     pcsc('    </motetype>')
 
     # Output topology file
@@ -121,5 +127,5 @@ log.testOK(); /* Report test success and quit */
 def post_build_actions(target_directory, a):
     import os.path
 
-    with open(os.path.join(target_directory, "sim.csc"), "w") as csc:
+    with open(os.path.join(target_directory, "build", "sim.csc"), "w") as csc:
         create_csc(csc, target_directory, a)

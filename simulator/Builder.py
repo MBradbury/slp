@@ -4,12 +4,15 @@ from __future__ import print_function
 import subprocess
 import sys
 
-ALLOWED_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14")
+ALLOWED_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14", "z1")
 #ALLOWED_PLATFORMS = [
 #    name
 #    for name in os.listdir(os.path.join(os.environ["TOSDIR"], "platforms"))
 #    if os.path.isdir(os.path.join(os.environ["TOSDIR"], "platforms", name))
 #]
+
+# z1 doesn't seem to support fastserial
+FASTSERIAL_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14")
 
 def build_sim(directory, platform="micaz", **kwargs):
 
@@ -61,6 +64,8 @@ def build_actual(directory, platform, enable_fast_serial=False, **kwargs):
 
     if "USE_SERIAL_MESSAGES" in kwargs:
         make_options["USE_SERIAL_MESSAGES"] = 1
+
+    enable_fast_serial &= platform in FASTSERIAL_PLATFORMS
 
     fastserial_opt = "fastserial" if enable_fast_serial else ""
 
