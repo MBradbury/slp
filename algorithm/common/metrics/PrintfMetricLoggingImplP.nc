@@ -19,9 +19,7 @@ module PrintfMetricLoggingImplP
 
 	uses interface MessageType;
 
-#ifdef USE_SERIAL_PRINTF
 	uses interface LocalTime<TMilli>;
-#endif
 }
 implementation
 {
@@ -33,9 +31,19 @@ implementation
 		int16_t distance
 		)
 	{
-		simdbg("M-CR",
-			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," SEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, sequence_number, distance);
+		if (sequence_number == BOTTOM)
+		{
+			simdbg("M-CR",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC ",-1," DISTANCE_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, distance);
+		}
+		else
+		{
+			const SequenceNumber seqno = (SequenceNumber)sequence_number;
+			simdbg("M-CR",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," NXSEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, seqno, distance);
+		}
 	}
 
 	command void MetricLogging.log_metric_bcast(
@@ -45,9 +53,19 @@ implementation
 		uint8_t tx_power
 		)
 	{
-		simdbg("M-CB",
-			MESSAGE_TYPE_SPEC ",%" PRIu8 "," SEQUENCE_NUMBER_SPEC ",%" PRIu8 "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), status, sequence_number, tx_power);
+		if (sequence_number == BOTTOM)
+		{
+			simdbg("M-CB",
+				MESSAGE_TYPE_SPEC ",%" PRIu8 ",-1,%" PRIu8 "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), status, tx_power);
+		}
+		else
+		{
+			const SequenceNumber seqno = (SequenceNumber)sequence_number;
+			simdbg("M-CB",
+				MESSAGE_TYPE_SPEC ",%" PRIu8 "," NXSEQUENCE_NUMBER_SPEC ",%" PRIu8 "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), status, seqno, tx_power);
+		}
 	}
 
 	command void MetricLogging.log_metric_deliver(
@@ -60,9 +78,19 @@ implementation
 		int16_t lqi
 		)
 	{
-		simdbg("M-CD", \
-			MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source_poss_bottom, sequence_number, rssi, lqi);
+		if (sequence_number == BOTTOM)
+		{
+			simdbg("M-CD", \
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source_poss_bottom, rssi, lqi);
+		}
+		else
+		{
+			const SequenceNumber seqno = (SequenceNumber)sequence_number;
+			simdbg("M-CD", \
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source_poss_bottom, seqno, rssi, lqi);
+		}
 	}
 
 	command void MetricLogging.log_attacker_receive(
@@ -75,9 +103,19 @@ implementation
 		int16_t lqi
 		)
 	{
-		simdbg("A-R",
-			MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," SEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
-			MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, sequence_number, rssi, lqi);
+		if (sequence_number == BOTTOM)
+		{
+			simdbg("A-R",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, rssi, lqi);
+		}
+		else
+		{
+			const SequenceNumber seqno = (SequenceNumber)sequence_number;
+			simdbg("A-R",
+				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, seqno, rssi, lqi);
+		}
 	}
 
 	command void MetricLogging.log_metric_node_change(
