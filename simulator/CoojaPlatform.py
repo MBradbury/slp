@@ -1,4 +1,29 @@
 
+
+class MSP430Node(object):
+    def node_interface_configs(self, **kwargs):
+        return """
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspClock
+        <deviation>1.0</deviation>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspMoteID
+        <id>{nid}</id>
+      </interface_config>""".format(**kwargs)
+
+class MicaZNode(object):
+    def node_interface_configs(self, **kwargs):
+        return """
+      <interface_config>
+        org.contikios.cooja.avrmote.interfaces.MicaZID
+        <id>{nid}</id>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.avrmote.interfaces.MicaClock
+        <deviation>1.0</deviation>
+      </interface_config>""".format(**kwargs)
+
 class CoojaPlatform(object):
     def __init__(self):
         pass
@@ -12,7 +37,7 @@ class CoojaPlatform(object):
 
         return str(self) == str(other)
 
-class Sky(CoojaPlatform):
+class Sky(CoojaPlatform, MSP430Node):
     def __init__(self):
         super(Sky, self).__init__()
 
@@ -39,7 +64,7 @@ class Sky(CoojaPlatform):
     def platform(self):
         return "telosb"
 
-class MicaZ(CoojaPlatform):
+class MicaZ(CoojaPlatform, MicaZNode):
     def __init__(self):
         super(MicaZ, self).__init__()
 
@@ -59,7 +84,7 @@ class MicaZ(CoojaPlatform):
     def platform(self):
         return "micaz"
 
-class Z1(CoojaPlatform):
+class Z1(CoojaPlatform, MSP430Node):
     def __init__(self):
         super(Z1, self).__init__()
 
