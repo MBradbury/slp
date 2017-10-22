@@ -75,14 +75,9 @@ def create_csc(csc, target_directory, a):
         pcsc('        <y>{}</y>'.format(y))
         pcsc('        <z>0.0</z>')
         pcsc('      </interface_config>')
-        pcsc('      <interface_config>')
-        pcsc('        org.contikios.cooja.mspmote.interfaces.MspClock')
-        pcsc('        <deviation>1.0</deviation>')
-        pcsc('      </interface_config>')
-        pcsc('      <interface_config>')
-        pcsc('        org.contikios.cooja.mspmote.interfaces.MspMoteID')
-        pcsc('        <id>{}</id>'.format(nid))
-        pcsc('      </interface_config>')
+
+        pcsc(a.args.platform.node_interface_configs(nid=nid))
+
         pcsc('      <motetype_identifier>{}</motetype_identifier>'.format(a.args.platform.platform()))
         pcsc('    </mote>')
 
