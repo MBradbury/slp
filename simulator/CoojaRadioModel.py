@@ -92,6 +92,8 @@ class DirectedGraphRadioModel(CoojaRadioModel):
 
         return result
 
+# TODO: Implement a TestbedRadioModel based on DirectedGraphRadioModel and TestbedCommunicationModel
+
 class MRMRadioModel(CoojaRadioModel):
     """Multi-path Ray-tracer medium"""
     def __init__(self):
@@ -100,6 +102,7 @@ class MRMRadioModel(CoojaRadioModel):
 
     def cooja_csc(self):
         return "org.contikios.mrm.MRM"
+
 
 def models():
     """A list of the names of the available radio models."""
