@@ -1,11 +1,13 @@
 from __future__ import print_function
 
+import simulator.CoojaPlatform as CoojaPlatform
+
 def name():
     return __name__
 
 def platform():
     """The hardware platform of the testbed"""
-    return ("micaz", "z1", "telosb")
+    return [model().platform() for model in CoojaPlatform.models()]
 
 def log_mode():
     # Avrora has a special log mode that involves
@@ -13,7 +15,7 @@ def log_mode():
     # in a variable that is watched by avrora.
     # When that variable is changed, the address of the
     # buffer it contains will be printed.
-    return "printf"
+    return "unbuffered_printf"
 
 def url():
     return "http://www.contiki-os.org"
@@ -86,13 +88,16 @@ def create_csc(csc, target_directory, a):
         slowest_source_period = a.args.source_period if isinstance(a.args.source_period, float) else a.args.source_period.slowest()
         seconds_to_run = configuration.size() * 4.0 * slowest_source_period
 
+    # See: https://github.com/contiki-os/contiki/wiki/Using-Cooja-Test-Scripts-to-Automate-Simulations
+    # for documentation on this scripting language
+
     pcsc('  <plugin>')
     pcsc('    org.contikios.cooja.plugins.ScriptRunner')
     pcsc('    <plugin_config>')
     pcsc('      <script>')
     pcsc("""
 /* Make test automatically timeout after the safety period (milliseconds) */
-TIMEOUT({seconds_to_run});
+TIMEOUT({milliseconds_to_run}, log.log("last msg: " + msg + "\\n")); /* milliseconds. print last msg at timeout */
 
 while (true)
 {{
@@ -102,7 +107,7 @@ while (true)
 }}
 log.testOK(); /* Report test success and quit */
 """.format(
-        seconds_to_run=seconds_to_run * 1000,
+        milliseconds_to_run=int(seconds_to_run * 1000),
 ))
     pcsc('      </script>')
     pcsc('      <active>true</active>')
