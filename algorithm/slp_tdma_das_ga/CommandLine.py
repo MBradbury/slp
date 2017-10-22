@@ -179,6 +179,8 @@ class CLI(CommandLineCommon.CLI):
             'sent': ('Total Messages Sent', 'right top'),
             'received ratio': ('Receive Ratio (%)', 'right top'),
             'attacker distance': ('Meters', 'right top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per Node per Second', 'left top'),
         }
 
         vary = "genetic header"
