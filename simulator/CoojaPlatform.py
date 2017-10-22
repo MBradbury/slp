@@ -39,6 +39,27 @@ class Sky(CoojaPlatform):
     def platform(self):
         return "telosb"
 
+class MicaZ(CoojaPlatform):
+    def __init__(self):
+        super(MicaZ, self).__init__()
+
+    def cooja_csc(self):
+        return """org.contikios.cooja.avrmote.MicaZMoteType
+      <identifier>{platform}</identifier>
+      <description>A node type of {platform}</description>
+      <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
+      <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaZID</moteinterface>
+      <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaZLED</moteinterface>
+      <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaZRadio</moteinterface>
+      <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaClock</moteinterface>
+      <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaSerial</moteinterface>
+      <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
+      <moteinterface>org.contikios.cooja.interfaces.MoteAttributes</moteinterface>""".format(platform=self.platform())
+
+    def platform(self):
+        return "micaz"
+
+
 def models():
     """A list of the names of the available radio models."""
     return [subcls for subcls in CoojaPlatform.__subclasses__()]  # pylint: disable=no-member
