@@ -4,7 +4,7 @@ generate_per_node_id_binary = False
 
 def parsers():
     raw_single_common = ["verbose", "seed", "configuration", "network size", "distance",
-                         "noise model", "fault model", "node id order", "safety period", "start time",
+                         "fault model", "node id order", "safety period", "start time",
                          "low power listening", "cooja", "cc2420"]
 
     return [
