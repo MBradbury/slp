@@ -57,6 +57,24 @@ def _add_avrora_radio_model(parser, **kwargs):
                         choices=AvroraRadioModel.available_models(),
                         required=True)
 
+    parser.add_argument("--max-buffer-size",
+                        type=ArgumentsCommon.type_positive_int,
+                        default=255),
+
+def _add_cooja_radio_model(parser, **kwargs):
+    import simulator.CoojaRadioModel as CoojaRadioModel
+    import simulator.CoojaPlatform as CoojaPlatform
+
+    parser.add_argument("-rm", "--radio-model",
+                        type=CoojaRadioModel.eval_input,
+                        choices=CoojaRadioModel.available_models(),
+                        required=True)
+
+    parser.add_argument("-p", "--platform",
+                        type=CoojaPlatform.eval_input,
+                        choices=CoojaPlatform.available_models(),
+                        required=True)
+
 def _add_log_converter(parser, **kwargs):
     import simulator.OfflineLogConverter as OfflineLogConverter
 
@@ -134,7 +152,9 @@ OPTS = {
                                                               help="Model the background noise in the network. meyer-heavy has high noise, casino-lab has lower noise. See models/noise for ways to graph the noisiness of these models."),
 
     # Only for Avrora
-    "radio model":         _add_avrora_radio_model,
+    "avrora":             _add_avrora_radio_model,
+
+    "cooja":               _add_cooja_radio_model,
 
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
                                                               type=Attacker.eval_input,
@@ -194,10 +214,6 @@ OPTS = {
     "log converter":        _add_log_converter,
 
     "low power listening": _add_low_power_listening,
-
-    "max buffer size":     lambda x, **kwargs: x.add_argument("--max-buffer-size",
-                                                              type=ArgumentsCommon.type_positive_int,
-                                                              default=255),
 }
 
 class CustomHelpFormatter(argparse.HelpFormatter):

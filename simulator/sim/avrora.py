@@ -9,9 +9,8 @@ generate_per_node_id_binary = False
 
 def parsers():
     raw_single_common = ["verbose", "seed", "configuration", "network size", "distance",
-                         "noise model", "radio model", "fault model", "node id order", "safety period", "start time",
-                         "low power listening", "cc2420",
-                         "max buffer size"]
+                         "noise model", "fault model", "node id order", "safety period", "start time",
+                         "low power listening", "avrora", "cc2420"]
 
     return [
         ("SINGLE", None, raw_single_common + ["attacker model"]),
@@ -30,7 +29,7 @@ def supports_parallel():
 
 def build(module, a):
     import data.cycle_accurate
-    from data.run.driver.cycle_accurate_builder import Runner as Builder
+    from data.run.driver.avrora_builder import Runner as Builder
 
     from data import submodule_loader
 

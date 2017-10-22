@@ -53,7 +53,7 @@ def avrora_version():
 
 def contiki_version():
     try:
-        ver = subprocess.check_output("git describe --tags --always ; git rev-parse HEAD", shell=True, cwd=os.environ["CONTIKI"])
+        ver = subprocess.check_output("git describe --tags --always ; git rev-parse HEAD", shell=True, cwd=os.environ["CONTIKI_DIR"])
         ver = ver.decode("utf-8").strip().replace("\n", " ")
     except subprocess.CalledProcessError:
         ver = "<unknown contiki git rev>"
