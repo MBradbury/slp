@@ -59,6 +59,29 @@ class MicaZ(CoojaPlatform):
     def platform(self):
         return "micaz"
 
+class Z1(CoojaPlatform):
+    def __init__(self):
+        super(Z1, self).__init__()
+
+    def cooja_csc(self):
+        return """org.contikios.cooja.mspmote.Z1MoteType
+      <identifier>{platform}</identifier>
+      <description>A node type of {platform}</description>
+      <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
+      <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
+      <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
+      <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
+      <moteinterface>org.contikios.cooja.interfaces.MoteAttributes</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspClock</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspMoteID</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspButton</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.Msp802154Radio</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDefaultSerial</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspLED</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>""".format(platform=self.platform())
+
+    def platform(self):
+        return "z1"
 
 def models():
     """A list of the names of the available radio models."""
