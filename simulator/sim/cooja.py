@@ -68,8 +68,6 @@ def cooja_iter(iterable):
     for line in iterable:
         line = line.rstrip()
 
-        print(line)
-
         time_us, rest = line.split("|", 1)
 
         time_s = float(time_us) / 1000000.0
