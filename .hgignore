@@ -12,7 +12,7 @@ build
 linkgain.out
 topology.out
 topology.txt
-cluster/
+./cluster/
 */Graphs/*
 results/*/*.csv
 results/old/*
@@ -22,10 +22,9 @@ results/
 *.aux
 *.log
 *.tex
-./testbed/*
+./testbed/
 Parameters.py
-testbed_results/
-cycle_accurate/*
+./testbed_results/
 *.exe
 *.elf
 *.ihex
