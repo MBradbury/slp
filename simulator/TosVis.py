@@ -123,7 +123,7 @@ class Gui:
         elif sim_tool == "avrora":
             self._sim.register_output_handler('AVRORA-TX', self._process_avrora_tx)
             self._sim.register_output_handler('AVRORA-RX', self._process_avrora_rx)
-        elif sim_tool == "offline":
+        elif sim_tool in ("offline", "cooja"):
             # If we are using offline then we need to use the M-C* events
             self._sim.register_output_handler('M-CB', self._process_metric_communicate_broadcast)
             self._sim.register_output_handler('M-CD', self._process_metric_communicate_deliver)
