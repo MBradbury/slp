@@ -942,7 +942,6 @@ implementation
 		}
 
 		info = choose_message_to_send();
-
 		if (info == NULL)
 		{
 			ERROR_OCCURRED(ERROR_FAILED_CHOOSE_MSG, "Unable to choose a message to send (call MessageQueue.count()=%u).\n",
@@ -1046,6 +1045,7 @@ implementation
 			info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
 			message.source_distance_of_sender = source_distance;
+			message.time_taken_to_send = call LocalTime.get() - info->time_added;
 
 			send_Normal_message(&message, next, &info->ack_requested);
 		}
@@ -1074,7 +1074,7 @@ implementation
 				else
 				{
 					ERROR_OCCURRED(ERROR_FAILED_TO_FIND_MSG_ROUTE, 
-						"Removing the message %" PRIu32 " from the pool as we have failed to work out where to send it.\n",
+						"Removing the message " NXSEQUENCE_NUMBER_SPEC " from the pool as we have failed to work out where to send it.\n",
 						message.sequence_number);
 
 					put_back_in_pool(info);
@@ -1146,6 +1146,8 @@ implementation
 		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
 		update_distances_from_Normal(rcvd, source_addr);
+
+		simdbg("stdout", "Recived a Normal that took %" PRIu32 "ms to send.\n", rcvd->time_taken_to_send);
 
 		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{

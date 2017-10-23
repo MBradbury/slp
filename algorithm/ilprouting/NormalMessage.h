@@ -29,6 +29,8 @@ typedef nx_struct {
 
   nx_uint8_t stage;
 
+  nx_uint32_t time_taken_to_send;
+
 } NormalMessage;
 
 inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
