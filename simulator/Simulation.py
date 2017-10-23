@@ -348,7 +348,7 @@ class OfflineSimulation(object):
 
         self._event_log = event_log
 
-        if args.verbose:
+        if args.mode == "GUI" or args.verbose:
             self.register_output_handler("stdout", self._stdout_printer)
         else:
             self.register_output_handler("stdout", None)
