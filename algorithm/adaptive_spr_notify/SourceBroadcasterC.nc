@@ -2,6 +2,7 @@
 #include "Common.h"
 #include "SendReceiveFunctions.h"
 #include "NeighbourDetail.h"
+#include "HopDistance.h"
 
 #include "AwayChooseMessage.h"
 #include "FakeMessage.h"
@@ -15,20 +16,20 @@
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
 #define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
+#define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, UNKNOWN_HOP_DISTANCE)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
 #define METRIC_RCV_NOTIFY(msg) METRIC_RCV(Notify, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 
 #define AWAY_DELAY_MS (SOURCE_PERIOD_MS / 4)
 
 typedef struct
 {
-	int16_t distance;
+	hop_distance_t distance;
 } distance_container_t;
 
 void distance_update(distance_container_t* find, distance_container_t const* given)
 {
-	find->distance = minbot(find->distance, given->distance);
+	find->distance = hop_distance_min(find->distance, given->distance);
 }
 
 void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
@@ -99,6 +100,8 @@ module SourceBroadcasterC
 
 implementation
 {
+	#include "HopDistanceDebug.h"
+
 	distance_neighbours_t neighbours;
 
 	SequenceNumber away_sequence_counter;
@@ -109,11 +112,11 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
 
-	int32_t sink_distance;
+	hop_distance_t sink_distance;
 
 	bool sink_received_choose_reponse;
 
-	int32_t first_source_distance;
+	hop_distance_t first_source_distance;
 
 	unsigned int away_messages_to_send;
 
@@ -180,7 +183,7 @@ implementation
 	{
 		uint32_t duration = SOURCE_PERIOD_MS;
 
-		if (sink_distance == BOTTOM || sink_distance <= 1)
+		if (sink_distance == UNKNOWN_HOP_DISTANCE || sink_distance <= 1)
 		{
 			duration -= AWAY_DELAY_MS;
 		}
@@ -228,7 +231,7 @@ implementation
 		distance_neighbours_t local_neighbours;
 		init_distance_neighbours(&local_neighbours);
 
-		if (first_source_distance != BOTTOM)
+		if (first_source_distance != UNKNOWN_HOP_DISTANCE)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -279,11 +282,11 @@ implementation
 		busy = FALSE;
 		call Packet.clear(&packet);
 
-		sink_distance = BOTTOM;
+		sink_distance = UNKNOWN_HOP_DISTANCE;
 
 		sink_received_choose_reponse = FALSE;
 
-		first_source_distance = BOTTOM;
+		first_source_distance = UNKNOWN_HOP_DISTANCE;
 
 		away_messages_to_send = 3;
 
@@ -546,9 +549,9 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (first_source_distance == BOTTOM)
+			if (first_source_distance == UNKNOWN_HOP_DISTANCE)
 			{
-				first_source_distance = rcvd->source_distance + 1;
+				first_source_distance = hop_distance_increment(rcvd->source_distance);
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
@@ -574,9 +577,9 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (first_source_distance == BOTTOM)
+			if (first_source_distance == UNKNOWN_HOP_DISTANCE)
 			{
-				first_source_distance = rcvd->source_distance + 1;
+				first_source_distance = hop_distance_increment(rcvd->source_distance);
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
@@ -675,7 +678,7 @@ implementation
 
 			METRIC_RCV_AWAY(rcvd);
 
-			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+			sink_distance = hop_distance_min(sink_distance, hop_distance_increment(rcvd->sink_distance));
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
@@ -700,7 +703,7 @@ implementation
 
 			METRIC_RCV_AWAY(rcvd);
 
-			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+			sink_distance = hop_distance_min(sink_distance, hop_distance_increment(rcvd->sink_distance));
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_distance += 1;
@@ -753,7 +756,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		sink_distance = hop_distance_min(sink_distance, hop_distance_increment(rcvd->sink_distance));
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
 		{
@@ -765,8 +768,8 @@ implementation
 			{
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
-				if (neighbour == NULL || neighbour->contents.distance == BOTTOM ||
-					first_source_distance == BOTTOM || neighbour->contents.distance <= first_source_distance)
+				if (neighbour == NULL || neighbour->contents.distance == UNKNOWN_HOP_DISTANCE ||
+					first_source_distance == UNKNOWN_HOP_DISTANCE || neighbour->contents.distance <= first_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 				}
@@ -810,7 +813,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		sink_distance = hop_distance_min(sink_distance, hop_distance_increment(rcvd->sink_distance));
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Choose, Snoop)
@@ -937,9 +940,9 @@ implementation
 
 			send_Notify_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (first_source_distance == BOTTOM)
+			if (first_source_distance == UNKNOWN_HOP_DISTANCE)
 			{
-				first_source_distance = rcvd->source_distance + 1;
+				first_source_distance = hop_distance_increment(rcvd->source_distance);
 				call Leds.led1On();
 
 				call BeaconSenderTimer.startOneShot(beacon_send_wait());
