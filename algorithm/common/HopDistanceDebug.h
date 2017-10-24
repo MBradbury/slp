@@ -5,7 +5,7 @@ hop_distance_t hop_distance_min_check(hop_distance_t a, hop_distance_t b, const 
 {
     if (a < UNKNOWN_HOP_DISTANCE || b < UNKNOWN_HOP_DISTANCE)
     {
-        ERROR_OCCURRED(0, "Bad minbot setting %" PRIi16 " or %" PRIi16 " In %s at %d\n", a, b, file, line);
+        ERROR_OCCURRED(ERROR_BAD_HOP_DISTANCE, "Bad min setting %" PRIi16 " or %" PRIi16 " In %s at %d\n", a, b, file, line);
     }
 
     return hop_distance_min_nocheck(a, b);
@@ -15,7 +15,7 @@ hop_distance_t hop_distance_increment_check(hop_distance_t a, const char* file, 
 {
     if (a < UNKNOWN_HOP_DISTANCE)
     {
-        ERROR_OCCURRED(0, "Bad botinc setting %" PRIi16 " In %s at %d\n", a, file, line);
+        ERROR_OCCURRED(ERROR_BAD_HOP_DISTANCE, "Bad increment setting %" PRIi16 " In %s at %d\n", a, file, line);
     }
 
     return hop_distance_increment_nocheck(a);
