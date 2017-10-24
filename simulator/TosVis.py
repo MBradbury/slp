@@ -4,6 +4,8 @@ import re
 
 from simulator.Simulation import Simulation, OfflineSimulation
 
+AM_BROADCAST_ADDR = 65535
+
 ###############################################
 class DebugAnalyzer:
     LED     = 0
@@ -319,13 +321,27 @@ class Gui:
         return self._animate_am_send(time, node_id, detail)
 
     def _process_metric_communicate_deliver(self, d_or_e, node_id, time, without_dbg):
-        # (amtype, amlen)
-        detail = (None, None)
+        without_dbg_split = without_dbg.split(',')
+        try:
+            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = without_dbg_split
+        except ValueError:
+            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = without_dbg_split
 
-        # TODO: Detect if the results have a target and use that to determine if
-        # _animate_am_receive or _animate_am_snoop should be called.
+            # Assume target is this node
+            target = node_id
 
-        return self._animate_am_receive(time, node_id, detail)
+        target = int(target)
+
+        if target == node_id or target == AM_BROADCAST_ADDR:
+            # (amtype, amlen)
+            detail = (None, None)
+            return self._animate_am_receive(time, node_id, detail)
+
+        else:
+            # (amtype, amlen, amtarget, attime)
+            detail = (None, None, None, None)
+            return self._animate_am_snoop(time, node_id, detail)
+
 
     def _process_parent_change(self, d_or_e, node_id, time, without_dbg):
         (old_parent, new_parent) = map(int, without_dbg.split(","))
