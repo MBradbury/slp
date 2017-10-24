@@ -2,6 +2,7 @@
 #define SLP_MESSAGES_NORMALMESSAGE_H
 
 #include "SequenceNumber.h"
+#include "HopDistance.h"
 
 typedef enum {
 	NORMAL_ROUTE_AVOID_SINK = 0,
@@ -17,10 +18,10 @@ typedef nx_struct {
 
   // The number of hops that this message
   // has travelled from the source. 
-  nx_uint16_t source_distance;
-  nx_int16_t sink_source_distance;
+  nx_hop_distance_t source_distance;
+  nx_hop_distance_t sink_source_distance;
 
-  nx_int16_t source_distance_of_sender;
+  nx_hop_distance_t source_distance_of_sender;
 
   // The id of the node that sent this message
   nx_am_addr_t source_id;
