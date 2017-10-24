@@ -17,6 +17,8 @@ an attacker who does nothing and an attacker who does nothing and schedules an
 event every second. It is expected that these two models should produce the same
 result.
 
+See: https://github.com/tinyos/tinyos-main/issues/419
+
 =PrintfClient=
 
 See http://comments.gmane.org/gmane.os.tinyos.users/41337 for instructions to build the dependencies for PrintfClient.
@@ -35,6 +37,12 @@ reduce to size of the libs, but these are the original commands from
 the Makefile)
 -copy both .so files where your JRE can see them (e.g. on my computer
 it's /opt/java/jre/lib/amd64)
+
+=TinyOS Contrib=
+
+There has been much work on TinyOS over the years. The following is a link to a repository of previous work:
+
+https://github.com/tyll/tinyos-2.x-contrib
 
 =Testbeds=
 
