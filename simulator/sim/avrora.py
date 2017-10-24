@@ -140,6 +140,9 @@ def avrora_command(module, a, configuration):
 
 def avrora_iter(iterable):
     from datetime import datetime
+    import sys
+
+    import Queue
 
     results_start = "------------------------------------------------------------------------------"
     results_end = "=============================================================================="
@@ -164,6 +167,8 @@ def avrora_iter(iterable):
     avrora_energy_stats = None
 
     energy_stats_buffer = []
+
+    line_buffer = Queue.PriorityQueue(maxsize=1024)
 
     for line in iterable:
         line = line.rstrip()
@@ -220,11 +225,20 @@ def avrora_iter(iterable):
             else:
                 fullstr = "{}|{}".format(stime_str, log)
 
-            yield fullstr
+            line_buffer.put((node_time, fullstr))
+
+            if line_buffer.full():
+                yield line_buffer.get_nowait()[1]
+
+            #yield fullstr
 
         else:
             # After the end the simulation has finished and avrora metrics are being printed
             # We need to capture, parser and convert these
+
+            # Finish printing the rest of the line buffer
+            while not line_buffer.empty():
+                yield line_buffer.get_nowait()[1]
 
             if not avrora_sim_cycles:
                 match = SIMULATED_TIME_RE.match(line)
