@@ -116,9 +116,10 @@ class Gui:
 
         self._debug_analyzer = DebugAnalyzer()
 
+        self._sim.register_output_handler('LedsC', self._process_message)
+
         # Setup a pipe for monitoring dbg messages
         if sim_tool == "tossim":
-            self._sim.register_output_handler('LedsC', self._process_message)
             self._sim.register_output_handler('AM', self._process_message)
         elif sim_tool == "avrora":
             self._sim.register_output_handler('AVRORA-TX', self._process_avrora_tx)
@@ -127,9 +128,6 @@ class Gui:
             # If we are using offline then we need to use the M-C* events
             self._sim.register_output_handler('M-CB', self._process_metric_communicate_broadcast)
             self._sim.register_output_handler('M-CD', self._process_metric_communicate_deliver)
-
-            # Leds are not typically enabled, but lets do so anyway
-            self._sim.register_output_handler('LedsC', self._process_message)
 
 
         self._sim.register_output_handler('Fake-Notification', self._process_message)
@@ -395,3 +393,8 @@ class GuiOfflineSimulation(OfflineSimulation):
             event_log=event_log)
         
         self.gui = Gui(self, args.sim, node_position_scale_factor=args.gui_scale)
+
+    def _during_run(self, event_count):
+        time = self.sim_time()
+
+        self.gui.scene.execute(time, "updateText('events', text='events: {}')".format(event_count))
