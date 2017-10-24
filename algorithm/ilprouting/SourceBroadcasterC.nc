@@ -1,6 +1,7 @@
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
+#include "HopDistance.h"
 
 #include "NeighbourDetail.h"
 
@@ -17,13 +18,13 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
-#define METRIC_RCV_POLL(msg) METRIC_RCV(Poll, source_addr, BOTTOM, UNKNOWN_SEQNO, BOTTOM)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
+#define METRIC_RCV_POLL(msg) METRIC_RCV(Poll, source_addr, BOTTOM, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
 
 void ni_update(ni_container_t* find, ni_container_t const* given)
 {
-	find->sink_distance = minbot(find->sink_distance, given->sink_distance);
-	find->source_distance = minbot(find->source_distance, given->source_distance);
+	find->sink_distance = hop_distance_min(find->sink_distance, given->sink_distance);
+	find->source_distance = hop_distance_min(find->source_distance, given->source_distance);
 	find->backtracks_from += given->backtracks_from;
 }
 
@@ -110,6 +111,8 @@ module SourceBroadcasterC
 
 implementation
 {
+	#include "HopDistanceDebug.h"
+
 	bool busy;
 	message_t packet;
 
@@ -117,9 +120,9 @@ implementation
 	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
 
-	int16_t sink_distance;
-	int16_t source_distance;
-	int16_t sink_source_distance;
+	hop_distance_t sink_distance;
+	hop_distance_t source_distance;
+	hop_distance_t sink_source_distance;
 
 	am_addr_t previously_sent_to;
 
@@ -150,9 +153,9 @@ implementation
 		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
 
 		busy = FALSE;
-		sink_distance = BOTTOM;
-		source_distance = BOTTOM;
-		sink_source_distance = BOTTOM;
+		sink_distance = UNKNOWN_HOP_DISTANCE;
+		source_distance = UNKNOWN_HOP_DISTANCE;
+		sink_source_distance = UNKNOWN_HOP_DISTANCE;
 
 		previously_sent_to = AM_BROADCAST_ADDR;
 
@@ -243,8 +246,8 @@ implementation
 
 			call NodeType.set(NormalNode);
 
-			source_distance = BOTTOM;
-			sink_source_distance = BOTTOM;
+			source_distance = UNKNOWN_HOP_DISTANCE;
+			sink_source_distance = UNKNOWN_HOP_DISTANCE;
 		}
 	}
 
@@ -408,7 +411,7 @@ implementation
 			simdbgverbose("stdout", "Overwriting message in the queue with a message of the same seq no and source id\n");
 		}
 
-		memcpy(&item->msg, msg, sizeof(*item));
+		item->msg = *msg;
 
 		stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
 
@@ -682,8 +685,8 @@ implementation
 
 	int16_t neighbour_source_distance(const ni_container_t * neighbour)
 	{
-		return neighbour->source_distance == BOTTOM
-					? source_distance+1
+		return neighbour->source_distance == UNKNOWN_HOP_DISTANCE
+					? hop_distance_increment(source_distance)
 					: neighbour->source_distance;
 	}
 
@@ -732,7 +735,7 @@ implementation
 			CHOOSE_NEIGHBOURS_WITH_PREDICATE(
 				neighbour_source_distance(neighbour) > source_distance &&
 				
-				(neighbour->sink_distance != BOTTOM && sink_distance != BOTTOM &&
+				(neighbour->sink_distance != UNKNOWN_HOP_DISTANCE && sink_distance != UNKNOWN_HOP_DISTANCE &&
 					neighbour->sink_distance >= sink_distance) &&
 
 				(FT[i] || neighbour->backtracks_from == lowest_num_backtracks) &&
@@ -747,7 +750,7 @@ implementation
 			CHOOSE_NEIGHBOURS_WITH_PREDICATE(
 				neighbour_source_distance(neighbour) > source_distance &&
 
-				(sink_distance != BOTTOM && sink_source_distance != BOTTOM && sink_distance * 2 > sink_source_distance) &&
+				(sink_distance != UNKNOWN_HOP_DISTANCE && sink_source_distance != UNKNOWN_HOP_DISTANCE && sink_distance * 2 > sink_source_distance) &&
 
 				(FT[i] || neighbour->backtracks_from == lowest_num_backtracks) &&
 
@@ -758,7 +761,7 @@ implementation
 		}
 
 		// If this is the source and the sink distance and ssd are unknown, just allow everyone.
-		if (call NodeType.get() == SourceNode && (sink_distance == BOTTOM || sink_source_distance == BOTTOM))
+		if (call NodeType.get() == SourceNode && (sink_distance == UNKNOWN_HOP_DISTANCE || sink_source_distance == UNKNOWN_HOP_DISTANCE))
 		{
 			CHOOSE_NEIGHBOURS_WITH_PREDICATE(TRUE);
 		}
@@ -789,7 +792,7 @@ implementation
 			// Do not send back to the previous node
 			address != info->proximate_source &&
 
-			(neighbour->sink_distance == BOTTOM || neighbour->sink_distance >= sink_distance)
+			(neighbour->sink_distance == UNKNOWN_HOP_DISTANCE || neighbour->sink_distance >= sink_distance)
 		);
 
 		if (local_neighbours.size > 0)
@@ -821,10 +824,10 @@ implementation
 
 		// Try sending to neighbours that are closer to the sink and further from the source
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
-			neighbour->sink_distance != BOTTOM && sink_distance != BOTTOM &&
+			neighbour->sink_distance != UNKNOWN_HOP_DISTANCE && sink_distance != UNKNOWN_HOP_DISTANCE &&
 			neighbour->sink_distance < sink_distance &&
 
-			neighbour->source_distance != BOTTOM && source_distance != BOTTOM &&
+			neighbour->source_distance != UNKNOWN_HOP_DISTANCE && source_distance != UNKNOWN_HOP_DISTANCE &&
 			neighbour->source_distance >= source_distance &&
 
 			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
@@ -832,7 +835,7 @@ implementation
 
 		// Try sending to neighbours closer to the sink
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
-			neighbour->sink_distance != BOTTOM && sink_distance != BOTTOM &&
+			neighbour->sink_distance != UNKNOWN_HOP_DISTANCE && sink_distance != UNKNOWN_HOP_DISTANCE &&
 			neighbour->sink_distance < sink_distance &&
 
 			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
@@ -840,7 +843,7 @@ implementation
 
 		// Try sliding about same-sink distance nodes
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
-			neighbour->sink_distance != BOTTOM && sink_distance != BOTTOM &&
+			neighbour->sink_distance != UNKNOWN_HOP_DISTANCE && sink_distance != UNKNOWN_HOP_DISTANCE &&
 			neighbour->sink_distance == sink_distance &&
 
 			!neighbour_present(bad_neighbours, bad_neighbours_size, address)
@@ -974,7 +977,7 @@ implementation
 
 				if (!success)
 				{
-					if (sink_source_distance != BOTTOM && source_distance != BOTTOM && source_distance < sink_source_distance)
+					if (sink_source_distance != UNKNOWN_HOP_DISTANCE && source_distance != UNKNOWN_HOP_DISTANCE && source_distance < sink_source_distance)
 					{
 						// We are too close to the source and it is likely that we haven't yet gone
 						// around the sink. So lets try backtracking and finding another route.
@@ -1108,6 +1111,8 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
 
+		ASSERT_MESSAGE(message.sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, message.sink_distance);
+
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			// Failed to send away message, so schedule to retry
@@ -1129,25 +1134,28 @@ implementation
 
 	void update_distances_from_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, BOTTOM, rcvd->source_distance_of_sender, (rcvd->stage == NORMAL_ROUTE_AVOID_SINK_BACKTRACK));
+		UPDATE_NEIGHBOURS(source_addr, UNKNOWN_HOP_DISTANCE, rcvd->source_distance_of_sender, (rcvd->stage == NORMAL_ROUTE_AVOID_SINK_BACKTRACK));
 
 		// When sending messages away from the sink, we cannot be sure of getting
 		// a reliable source distance gradient. So do not record it.
 		if (rcvd->stage != NORMAL_ROUTE_FROM_SINK)
 		{
-			source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
+			const hop_distance_t source_distance_of_sender = hop_distance_increment(rcvd->source_distance_of_sender);
+			source_distance = hop_distance_min(source_distance, source_distance_of_sender);
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 	}
 
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
+		ASSERT_MESSAGE(rcvd->source_distance >= 0, "dsrc=" HOP_DISTANCE_SPEC, rcvd->source_distance);
+
 		update_distances_from_Normal(rcvd, source_addr);
 
-		simdbg("stdout", "Recived a Normal that took %" PRIu32 "ms to send.\n", rcvd->time_taken_to_send);
+		simdbg("stdout", "Received a Normal that took %" PRIu32 "ms to send.\n", rcvd->time_taken_to_send);
 
 		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
@@ -1170,7 +1178,7 @@ implementation
 		}
 		else
 		{
-			// It is possible that we get a message that we have previously 
+			// It is possible that we get a message that we have previously received
 			// If we do nothing the route will terminate
 			//
 			// Note there is a chance that we receive the message, and the sender
@@ -1204,6 +1212,10 @@ implementation
 
 				record_received_message(msg, NORMAL_ROUTE_TO_SINK);
 			}
+			else if (rcvd->stage == NORMAL_ROUTE_AVOID_SINK_1_CLOSER)
+			{
+				ASSERT_MESSAGE(rcvd->stage != NORMAL_ROUTE_AVOID_SINK_1_CLOSER, "Do not expect to receive a message with this stage.");
+			}
 			else
 			{
 				__builtin_unreachable();
@@ -1215,8 +1227,10 @@ implementation
 	{
 		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
+		ASSERT_MESSAGE(rcvd->source_distance >= 0, "dsrc=" HOP_DISTANCE_SPEC, rcvd->source_distance);
+
 		update_distances_from_Normal(rcvd, source_addr);
-		sink_source_distance = minbot(sink_source_distance, source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, source_distance);
 
 		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
@@ -1266,13 +1280,15 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, BOTTOM, 0);
+		ASSERT_MESSAGE(rcvd->sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, rcvd->sink_distance);
 
-		sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, UNKNOWN_HOP_DISTANCE, 0);
+
+		sink_distance = hop_distance_min(sink_distance, hop_distance_increment(rcvd->sink_distance));
 
 		if (call NodeType.get() == SourceNode)
 		{
-			sink_source_distance = minbot(sink_source_distance, sink_distance);
+			sink_source_distance = hop_distance_min(sink_source_distance, sink_distance);
 		}
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
@@ -1285,6 +1301,8 @@ implementation
 
 			message = *rcvd;
 			message.sink_distance += 1;
+
+			ASSERT_MESSAGE(message.sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, message.sink_distance);
 
 			send_Away_message(&message, AM_BROADCAST_ADDR);
 
@@ -1315,40 +1333,46 @@ implementation
 
 	event void Neighbours.rcv_poll(const PollMessage* rcvd, am_addr_t source_addr)
 	{
+		const int16_t sink_distance_of_sender_p1 = hop_distance_increment(rcvd->sink_distance_of_sender);
+		const int16_t source_distance_of_sender_p1 = hop_distance_increment(rcvd->source_distance_of_sender);
+
 		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender, 0);
 
 		METRIC_RCV_POLL(rcvd);
 
-		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance_of_sender));
-		source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
+		sink_distance = hop_distance_min(sink_distance, sink_distance_of_sender_p1);
+		source_distance = hop_distance_min(source_distance, source_distance_of_sender_p1);
 
 		if (call NodeType.get() == SourceNode)
 		{
-			sink_source_distance = minbot(sink_source_distance, sink_distance);
+			sink_source_distance = hop_distance_min(sink_source_distance, sink_distance);
 		}
 		if (call NodeType.get() == SinkNode)
 		{
-			sink_source_distance = minbot(sink_source_distance, source_distance);
+			sink_source_distance = hop_distance_min(sink_source_distance, source_distance);
 		}
 	}
 
 	event void Neighbours.rcv_beacon(const BeaconMessage* rcvd, am_addr_t source_addr)
 	{
+		const int16_t sink_distance_of_sender_p1 = hop_distance_increment(rcvd->sink_distance_of_sender);
+		const int16_t source_distance_of_sender_p1 = hop_distance_increment(rcvd->source_distance_of_sender);
+
 		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender, 0);
 
 		METRIC_RCV_BEACON(rcvd);
 
-		sink_distance = minbot(sink_distance, botinc(rcvd->sink_distance_of_sender));
-		source_distance = minbot(source_distance, botinc(rcvd->source_distance_of_sender));
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_distance = hop_distance_min(sink_distance, sink_distance_of_sender_p1);
+		source_distance = hop_distance_min(source_distance, source_distance_of_sender_p1);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (call NodeType.get() == SourceNode)
 		{
-			sink_source_distance = minbot(sink_source_distance, sink_distance);
+			sink_source_distance = hop_distance_min(sink_source_distance, sink_distance);
 		}
 		if (call NodeType.get() == SinkNode)
 		{
-			sink_source_distance = minbot(sink_source_distance, source_distance);
+			sink_source_distance = hop_distance_min(sink_source_distance, source_distance);
 		}
 
 #ifdef LOW_POWER_LISTENING

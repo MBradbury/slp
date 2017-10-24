@@ -1,6 +1,8 @@
 #ifndef SLP_CONSTANTS_H
 #define SLP_CONSTANTS_H
 
+#include "HopDistance.h"
+
 enum Channel
 {
 	NORMAL_CHANNEL = 1,
@@ -43,8 +45,8 @@ enum NodeType
 
 typedef struct
 {
-	int16_t sink_distance;
-	int16_t source_distance;
+	hop_distance_t sink_distance;
+	hop_distance_t source_distance;
 	uint16_t backtracks_from;
 } ni_container_t;
 
