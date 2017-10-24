@@ -2,6 +2,7 @@
 #define SLP_MESSAGES_NOTIFYMESSAGE_H
 
 #include "SequenceNumber.h"
+#include "HopDistance.h"
 
 typedef nx_struct NotifyMessage {
   NXSequenceNumber sequence_number;
@@ -9,7 +10,7 @@ typedef nx_struct NotifyMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
-  nx_uint16_t source_distance;
+  nx_hop_distance_t source_distance;
 
 } NotifyMessage;
 
