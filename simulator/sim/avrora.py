@@ -230,8 +230,6 @@ def avrora_iter(iterable):
             if line_buffer.full():
                 yield line_buffer.get_nowait()[1]
 
-            #yield fullstr
-
         else:
             # After the end the simulation has finished and avrora metrics are being printed
             # We need to capture, parser and convert these
