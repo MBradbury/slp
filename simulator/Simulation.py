@@ -530,6 +530,9 @@ class OfflineSimulation(object):
 
                 event_count += 1
 
+                if hasattr(self, "_during_run"):
+                    self._during_run(event_count)
+
         finally:
             self._post_run(event_count)
 
