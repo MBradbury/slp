@@ -337,10 +337,18 @@ class MetricsCommon(object):
         # that we believe to be a source.
         if __debug__:
             if kind == "Normal":
-                ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
-                if ord_ultimate_source_id not in self.source_ids():
-                    message = "Node {} received a Normal message from {} which is not a source id ({})".format(
-                        node_id, ord_ultimate_source_id, self.source_ids())
+                try:
+                    ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
+                    if ord_ultimate_source_id not in self.source_ids():
+                        message = "Node {} received a Normal message from {} which is not a source id ({})".format(
+                            node_id, ord_ultimate_source_id, self.source_ids())
+                        if self.strict:
+                            raise RuntimeError(message)
+                        else:
+                            print("WARNING:", message, file=sys.stderr)
+                except KeyError:
+                    message = "Node {} received a Normal message from {} which is not a valid ordered node id".format(
+                            node_id, ultimate_source_id)
                     if self.strict:
                         raise RuntimeError(message)
                     else:
