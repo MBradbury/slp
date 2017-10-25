@@ -127,7 +127,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
+		METRIC_BOOT();
 
 		busy = FALSE;
 		call Packet.clear(&packet);

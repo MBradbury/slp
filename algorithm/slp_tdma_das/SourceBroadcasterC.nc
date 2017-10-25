@@ -236,7 +236,7 @@ implementation
         children = IDList_new();
         from = IDList_new();
 
-		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
+		METRIC_BOOT();
 
         call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
         call MessageType.register_pair(DISSEM_CHANNEL, "Dissem");

@@ -42,7 +42,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		LOG_STDOUT(EVENT_BOOTED, "booted\n");
+		METRIC_BOOT();
 
 		total = 0;
 		smallest = UINT16_MAX;

@@ -141,6 +141,15 @@ implementation
 		}
 	}
 
+	command void MetricLogging.log_metric_boot()
+	{
+		SERIAL_START_SEND(metric_boot_msg_t)
+
+		msg->type = AM_METRIC_BOOT;
+
+		SERIAL_END_SEND(metric_boot_msg_t)
+	}
+
 	command void MetricLogging.log_metric_receive(
 		const char* message_type,
 		am_addr_t proximate_source,

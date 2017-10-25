@@ -28,6 +28,7 @@ enum {
     AM_METRIC_FAULT_POINT_MSG = 61,
 
     AM_METRIC_RSSI_MSG = 62,
+    AM_METRIC_BOOT_MSG = 63,
 };
 
 #define MAXIMUM_NODE_TYPE_NAME_LENGTH 20
@@ -38,6 +39,11 @@ enum {
 	nx_am_id_t type; /* This is the type of debug/metric message*/ \
 	nx_am_addr_t node_id; \
 	nx_uint32_t local_time;
+
+typedef nx_struct metric_boot_msg {
+	METRIC_LOGGING_HEADER
+
+} metric_boot_msg_t;
 
 typedef nx_struct metric_receive_msg {
 	METRIC_LOGGING_HEADER

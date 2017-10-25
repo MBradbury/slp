@@ -186,7 +186,7 @@ implementation
 
 	event void Boot.booted()
 	{
-		LOG_STDOUT_VERBOSE(EVENT_BOOTED, "booted\n");
+		METRIC_BOOT();
 
 		init_distance_neighbours(&neighbours);
 

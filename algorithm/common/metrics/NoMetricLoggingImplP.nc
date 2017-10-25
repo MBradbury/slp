@@ -8,6 +8,11 @@ module NoMetricLoggingImplP
 }
 implementation
 {
+	command void MetricLogging.log_metric_boot()
+	{
+
+	}
+
 	command void MetricLogging.log_metric_receive(
 		const char* message_type,
 		am_addr_t proximate_source,

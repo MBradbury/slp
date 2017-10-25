@@ -4,6 +4,8 @@
 
 interface MetricLogging
 {
+	command void log_metric_boot();
+
 	command void log_metric_receive(
 		const char* message_type,
 		am_addr_t proximate_source,
