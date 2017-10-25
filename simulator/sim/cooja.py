@@ -3,6 +3,12 @@ from __future__ import print_function, division
 generate_per_node_id_binary = False
 
 def parsers():
+    # WARNING!!
+    # Avrora cannot support a "node id order" of randomised until there is a way for a node
+    # to find out its topology id during simulation.
+    # Allowing randomised will break the ability to build one binary and use
+    # it with different random seeds
+
     raw_single_common = ["verbose", "seed", "configuration", "network size", "distance",
                          "fault model", "node id order", "safety period", "start time",
                          "low power listening", "cooja", "cc2420"]
@@ -98,6 +104,9 @@ def run_simulation(module, a, count=1, print_warnings=False):
         import subprocess
 
     from simulator import Configuration
+
+    if a.args.node_id_order != "topology":
+        raise RuntimeError("COOJA does not support a nido other than topology")
 
     configuration = Configuration.create(a.args.configuration, a.args)
 

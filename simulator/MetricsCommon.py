@@ -25,6 +25,7 @@ from itertools import tee
 import numpy as np
 
 import simulator.Attacker
+from simulator.Topology import OrderedId
 
 from data.util import RunningStats
 
@@ -163,8 +164,8 @@ class MetricsCommon(object):
             return set(self.configuration.sink_ids)
 
     def _process_node_id(self, ordered_node_id):
-        ordered_node_id = int(ordered_node_id)
-        return ordered_node_id, self.topology.to_topo_nid(ordered_node_id)
+        ordered_node_id = OrderedId(int(ordered_node_id))
+        return ordered_node_id, self.topology.o2t(ordered_node_id)
 
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
@@ -241,18 +242,18 @@ class MetricsCommon(object):
         conf = self.configuration
         topo = conf.topology
 
-        oi = topo.ordered_index
-        ttn = topo.to_topo_nid
+        o2i = topo.o2i
+        o2t = topo.o2t
 
-        idx_proximate_source_id = oi(ord_proximate_source_id)
-        idx_node_id = oi(ord_node_id)
+        idx_proximate_source_id = o2i(ord_proximate_source_id).nid
+        idx_node_id = o2i(ord_node_id).nid
 
         nd = conf._dist_matrix
         ndm = conf._dist_matrix_meters
 
         for ord_source_id in self.source_ids():
-            top_source_id = ttn(ord_source_id)
-            idx_source_id = oi(ord_source_id)
+            top_source_id = o2t(ord_source_id)
+            idx_source_id = o2i(ord_source_id).nid
 
             # Not all topologies know the distance in hops
             if nd is not None:
@@ -304,7 +305,9 @@ class MetricsCommon(object):
             self.normal_receive_time[key] = time
             self.normal_hop_count.append(hop_count)
 
-        self._record_direction_received(kind, ord_node_id, int(proximate_source_id),
+        ord_proximate_source_id, top_proximate_source_id = self._process_node_id(proximate_source_id)
+
+        self._record_direction_received(kind, ord_node_id, ord_proximate_source_id,
                                         self.received_from_further_hops, self.received_from_closer_or_same_hops,
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
@@ -333,13 +336,15 @@ class MetricsCommon(object):
         # Check that the normal message that has been delivered has a ultimate source
         # that we believe to be a source.
         if __debug__:
-            if kind == "Normal" and int(ultimate_source_id) not in self.source_ids():
-                message = "Node {} received a Normal message from {} which is not a source id ({})".format(
-                    node_id, ultimate_source_id, self.source_ids())
-                if self.strict:
-                    raise RuntimeError(message)
-                else:
-                    print("WARNING:", message, file=sys.stderr)
+            if kind == "Normal":
+                ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
+                if ord_ultimate_source_id not in self.source_ids():
+                    message = "Node {} received a Normal message from {} which is not a source id ({})".format(
+                        node_id, ord_ultimate_source_id, self.source_ids())
+                    if self.strict:
+                        raise RuntimeError(message)
+                    else:
+                        print("WARNING:", message, file=sys.stderr)
 
     def process_node_booted(self, d_or_e, node_id, time, detail):
         ord_node_id, top_node_id = self._process_node_id(node_id)
@@ -550,11 +555,11 @@ class MetricsCommon(object):
         return self.sim.any_attacker_found_source()
 
     def attacker_source_distance(self):
-        ttn = self.topology.to_topo_nid
+        o2t = self.topology.o2t
         ndm = self.configuration.node_distance_meters
 
         return {
-            (ttn(ord_source_id), attacker.ident): ndm(ord_source_id, attacker.position)
+            (o2t(ord_source_id), attacker.ident): ndm(ord_source_id, attacker.position)
 
             for attacker
             in self.sim.attackers
@@ -564,11 +569,11 @@ class MetricsCommon(object):
         }
 
     def attacker_sink_distance(self):
-        ttn = self.topology.to_topo_nid
+        o2t = self.topology.o2t
         ndm = self.configuration.node_distance_meters
 
         return {
-            (ttn(ord_sink_id), attacker.ident): ndm(ord_sink_id, attacker.position)
+            (o2t(ord_sink_id), attacker.ident): ndm(ord_sink_id, attacker.position)
 
             for attacker
             in self.sim.attackers
@@ -592,10 +597,10 @@ class MetricsCommon(object):
         }
 
     def attacker_steps_towards(self):
-        ttn = self.topology.to_topo_nid
+        o2t = self.topology.o2t
 
         return {
-            (ttn(ord_source_id), attacker.ident): attacker.steps_towards[ord_source_id]
+            (o2t(ord_source_id), attacker.ident): attacker.steps_towards[ord_source_id]
 
             for attacker
             in self.sim.attackers
@@ -605,10 +610,10 @@ class MetricsCommon(object):
         }
 
     def attacker_steps_away(self):
-        ttn = self.topology.to_topo_nid
+        o2t = self.topology.o2t
 
         return {
-            (ttn(ord_source_id), attacker.ident): attacker.steps_away[ord_source_id]
+            (o2t(ord_source_id), attacker.ident): attacker.steps_away[ord_source_id]
 
             for attacker
             in self.sim.attackers
@@ -618,10 +623,10 @@ class MetricsCommon(object):
         }
 
     def attacker_min_source_distance(self):
-        ttn = self.topology.to_topo_nid
+        o2t = self.topology.o2t
 
         return {
-            (ttn(ord_source_id), attacker.ident): attacker.min_source_distance[ord_source_id]
+            (o2t(ord_source_id), attacker.ident): attacker.min_source_distance[ord_source_id]
 
             for attacker
             in self.sim.attackers

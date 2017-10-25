@@ -4,15 +4,15 @@ from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
 from data.memoize import memoize
-from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring
+from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring, TopologyId, OrderedId, IndexId
 
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_ids, space_behind_sink):
         super(Configuration, self).__init__()
 
         self.topology = topology
-        self.sink_ids = {topology.to_ordered_nid(sink_id) for sink_id in sink_ids}
-        self.source_ids = {topology.to_ordered_nid(source_id) for source_id in source_ids}
+        self.sink_ids = {topology.t2o(TopologyId(sink_id)) for sink_id in sink_ids}
+        self.source_ids = {topology.t2o(TopologyId(source_id)) for source_id in source_ids}
         self.space_behind_sink = space_behind_sink
 
         if any(sink_id < 0 for sink_id in self.sink_ids):
@@ -45,11 +45,11 @@ class Configuration(object):
 
     def build_arguments(self):
         build_arguments = {
-            "SINK_NODE_IDS": "{" + ",".join(str(self.topology.to_topo_nid(sink_id)) for sink_id in self.sink_ids) + "}",
+            "SINK_NODE_IDS": "{" + ",".join(str(self.topology.o2t(sink_id)) for sink_id in self.sink_ids) + "}",
 
             # As a node with node id x will be stored in C arrays at x,
             # we need x + 1 nodes to be specified with tossim
-            "MAX_TOSSIM_NODES": max(self.topology.nodes.keys()) + 1,
+            "MAX_TOSSIM_NODES": max(oid.nid for oid in self.topology.nodes) + 1,
         }
 
         if self.space_behind_sink:
@@ -97,10 +97,10 @@ class Configuration(object):
 
     def node_distance(self, ordered_nidi, ordered_nidj):
         """Get the distance between two ordered nodes in hops."""
-        oi = self.topology.ordered_index
+        o2i = self.topology.o2i
 
-        i = oi(ordered_nidi)
-        j = oi(ordered_nidj)
+        i = o2i(ordered_nidi).nid
+        j = o2i(ordered_nidj).nid
 
         return self._dist_matrix[i,j]
 
@@ -129,10 +129,10 @@ class Configuration(object):
 
     def node_distance_meters(self, ordered_nidi, ordered_nidj):
         """Get the distance between two ordered nodes in meters."""
-        oi = self.topology.ordered_index
+        o2i = self.topology.o2i
 
-        i = oi(ordered_nidi)
-        j = oi(ordered_nidj)
+        i = o2i(ordered_nidi).nid
+        j = o2i(ordered_nidj).nid
 
         return self._dist_matrix_meters[i,j]
 
@@ -164,8 +164,8 @@ class Configuration(object):
     def shortest_path(self, node_from, node_to):
         """Returns a list of nodes that will take you from node_from to node_to along the shortest path."""
 
-        from_idx = self.topology.ordered_index(node_from)
-        to_idx = self.topology.ordered_index(node_to)
+        from_idx = self.topology.o2i(node_from)
+        to_idx = self.topology.o2i(node_to)
 
         path = []
 
@@ -174,14 +174,14 @@ class Configuration(object):
 
         while node_idx != from_idx:
             # Add current node to path
-            node = self.topology.index_to_ordered(node_idx)
+            node = self.topology.i2o(node_idx)
             path.append(node)
 
             # Get next in path
-            node_idx = self._predecessors[from_idx, node_idx]
+            node_idx = IndexId(self._predecessors[from_idx.nid, node_idx.nid])
 
         # Add final node to path
-        node = self.topology.index_to_ordered(node_idx)
+        node = self.topology.o2i(node_idx)
         path.append(node)
 
         # Reverse the path
@@ -211,10 +211,10 @@ class Configuration(object):
         This value could either be the topology node id as an integer,
         or it could be an attribute of the topology or configuration (e.g., 'sink_id')."""
         try:
-            topo_node_id = int(topo_node_id_str)
+            topo_node_id = TopologyId(int(topo_node_id_str))
 
-            ord_node_id = self.topology.to_ordered_nid(topo_node_id)
-
+            # Check valid node
+            ord_node_id = self.topology.t2o(topo_node_id)
             if ord_node_id not in self.topology.nodes:
                 raise RuntimeError("The node id {} is not a valid node id".format(topo_node_id))
 
@@ -224,9 +224,9 @@ class Configuration(object):
             attr_sources = (self, self.topology)
             for attr_source in attr_sources:
                 if hasattr(attr_source, topo_node_id_str):
-                    ord_node_id = int(getattr(attr_source, topo_node_id_str))
+                    ord_node_id = getattr(attr_source, topo_node_id_str)
 
-                    return self.topology.to_topo_nid(ord_node_id)
+                    return self.topology.o2t(ord_node_id)
 
                 # For sink_id and source_id look for plurals of them
                 # Then make sure there is only one to choose from
@@ -238,7 +238,7 @@ class Configuration(object):
 
                     ord_node_id = next(iter(ord_node_ids))
 
-                    return self.topology.to_topo_nid(ord_node_id)
+                    return self.topology.o2t(ord_node_id)
 
             choices = [x for a in (self, self.topology) for x in dir(a) if not callable(getattr(a, x)) and not x.startswith("_")]
 
@@ -259,7 +259,7 @@ class LineSinkCentre(Configuration):
         super(LineSinkCentre, self).__init__(
             line,
             source_ids={0},
-            sink_ids={(len(line.nodes) - 1) / 2},
+            sink_ids={(len(line.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -281,7 +281,7 @@ class SourceCorner(Configuration):
         super(SourceCorner, self).__init__(
             grid,
             source_ids={0},
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -292,7 +292,7 @@ class Source2CornerTop(Configuration):
         super(Source2CornerTop, self).__init__(
             grid,
             source_ids={0, 2},
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -303,7 +303,7 @@ class Source3CornerTop(Configuration):
         super(Source3CornerTop, self).__init__(
             grid,
             source_ids={0, 2, grid.size+1},
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -314,7 +314,7 @@ class Source3CornerTopLinear(Configuration):
         super(Source3CornerTopLinear, self).__init__(
             grid,
             source_ids={0, 2, 4},
-            sink_id=(len(grid.nodes) - 1) / 2,
+            sink_id=(len(grid.nodes) - 1) // 2,
             space_behind_sink=True
         )
 
@@ -324,7 +324,7 @@ class SinkCorner(Configuration):
 
         super(SinkCorner, self).__init__(
             grid,
-            source_ids={(len(grid.nodes) - 1) / 2},
+            source_ids={(len(grid.nodes) - 1) // 2},
             sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
@@ -335,7 +335,7 @@ class SinkCorner2Source(Configuration):
 
         super(SinkCorner2Source, self).__init__(
             grid,
-            source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1},
+            source_ids={(len(grid.nodes) - 1)//2 - 1, (len(grid.nodes) - 1)//2 + 1},
             sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
@@ -346,7 +346,7 @@ class SinkCorner3Source(Configuration):
 
         super(SinkCorner3Source, self).__init__(
             grid,
-            source_ids={(len(grid.nodes) - 1)/2 - 1,(len(grid.nodes) - 1)/2 + 1, (len(grid.nodes) - 1) / 2 + grid.size},
+            source_ids={(len(grid.nodes) - 1)//2 - 1, (len(grid.nodes) - 1)//2 + 1, (len(grid.nodes) - 1) // 2 + grid.size},
             sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
@@ -357,7 +357,7 @@ class SinkCorner3SourceLinear(Configuration):
 
         super(SinkCorner3SourceLinear, self).__init__(
             grid,
-            source_ids={(len(grid.nodes) - 1)/2 - 2,(len(grid.nodes) - 1)/2, (len(grid.nodes) - 1)/2 + 2},
+            source_ids={(len(grid.nodes) - 1)//2 - 2, (len(grid.nodes) - 1)//2, (len(grid.nodes) - 1)//2 + 2},
             sink_id=len(grid.nodes) - 1,
             space_behind_sink=False
         )
@@ -433,8 +433,8 @@ class Generic1(Configuration):
 
         super(Generic1, self).__init__(
             grid,
-            source_ids={(node_count / 2) - (grid.size / 3)},
-            sink_ids={(node_count / 2) + (grid.size / 3)},
+            source_ids={(node_count // 2) - (grid.size // 3)},
+            sink_ids={(node_count // 2) + (grid.size // 3)},
             space_behind_sink=False
         )
 
@@ -466,8 +466,8 @@ class RingMiddle(Configuration):
 
         super(RingMiddle, self).__init__(
             ring,
-            source_ids={(4 * ring.diameter - 5) / 2 + 1},
-            sink_ids={(4 * ring.diameter - 5) / 2},
+            source_ids={(4 * ring.diameter - 5) // 2 + 1},
+            sink_ids={(4 * ring.diameter - 5) // 2},
             space_behind_sink=True
         )
 
@@ -522,7 +522,7 @@ class Source2Corners(Configuration):
         super(Source2Corners, self).__init__(
             grid,
             source_ids={0, len(grid.nodes) - 1},
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -533,7 +533,7 @@ class Source3Corners(Configuration):
         super(Source3Corners, self).__init__(
             grid,
             source_ids={grid.size - 1, len(grid.nodes) - grid.size, len(grid.nodes) - 1},
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=False
         )
 
@@ -544,7 +544,7 @@ class Source4Corners(Configuration):
         super(Source4Corners, self).__init__(
             grid,
             source_ids={0, grid.size - 1, len(grid.nodes) - grid.size, len(grid.nodes) - 1},
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=False
         )
 
@@ -555,10 +555,10 @@ class Source2Edges(Configuration):
         super(Source2Edges, self).__init__(
             grid,
             source_ids={
-                (grid.size - 1) / 2,
-                len(grid.nodes) - ((grid.size - 1) / 2) - 1
+                (grid.size - 1) // 2,
+                len(grid.nodes) - ((grid.size - 1) // 2) - 1
             },
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -569,14 +569,14 @@ class Source4Edges(Configuration):
         super(Source4Edges, self).__init__(
             grid,
             source_ids={
-                (grid.size - 1) / 2,
+                (grid.size - 1) // 2,
 
-                ((len(grid.nodes) - 1) / 2) - (grid.size - 1) / 2,
-                ((len(grid.nodes) - 1) / 2) + (grid.size - 1) / 2,
+                ((len(grid.nodes) - 1) // 2) - (grid.size - 1) // 2,
+                ((len(grid.nodes) - 1) // 2) + (grid.size - 1) // 2,
 
-                len(grid.nodes) - ((grid.size - 1) / 2) - 1
+                len(grid.nodes) - ((grid.size - 1) // 2) - 1
             },
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -587,7 +587,7 @@ class Source2Corner(Configuration):
         super(Source2Corner, self).__init__(
             grid,
             source_ids={3, grid.size * 3},
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -609,7 +609,7 @@ class Source3Corner(Configuration):
         super(Source3Corner, self).__init__(
             grid,
             source_ids={0, 3, grid.size * 3},
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -625,7 +625,7 @@ class Source2Corner2OppositeCorner(Configuration):
                 len(grid.nodes) - (grid.size * 3) - 1,
                 len(grid.nodes) - 4,
             },
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -636,10 +636,10 @@ class SourceEdgeCorner(Configuration):
         super(SourceEdgeCorner, self).__init__(
             grid,
             source_ids={
-                ((len(grid.nodes) - 1) / 2) + (grid.size - 1) / 2,
+                ((len(grid.nodes) - 1) // 2) + (grid.size - 1) // 2,
                 len(grid.nodes) - 1
             },
-            sink_ids={(len(grid.nodes) - 1) / 2},
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 

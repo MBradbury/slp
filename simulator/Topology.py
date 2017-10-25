@@ -1,3 +1,4 @@
+from __future__ import division
 
 from collections import OrderedDict
 import itertools
@@ -12,6 +13,42 @@ try:
 except ImportError:
     from scipy.spatial.distance import euclidean as euclidean2_2d
 
+class NodeId(object):
+    __slots__ = ("nid",)
+
+    def __init__(self, nid):
+        if not isinstance(nid, int):
+            raise TypeError("nid is not an int it is a", type(nid))
+
+        self.nid = nid
+
+    def __hash__(self):
+        return hash(self.nid)
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self.nid == other.nid
+
+    def __repr__(self):
+        return repr(self.nid)
+
+class OrderedId(NodeId):
+    def __init__(self, nid):
+        if isinstance(nid, OrderedId):
+            nid = nid.nid
+        super(OrderedId, self).__init__(nid)
+
+class TopologyId(NodeId):
+    def __init__(self, nid):
+        if isinstance(nid, TopologyId):
+            nid = nid.nid
+        super(TopologyId, self).__init__(nid)
+
+class IndexId(NodeId):
+    def __init__(self, nid):
+        if isinstance(nid, IndexId):
+            nid = nid.nid
+        super(IndexId, self).__init__(nid)
+
 class Topology(object):
     def __init__(self, seed=None):
         self.nodes = OrderedDict()
@@ -23,6 +60,12 @@ class Topology(object):
         self.seed = seed
 
     def node_distance_meters(self, node1, node2):
+        if not isinstance(node1, OrderedId):
+            raise TypeError("node1 is not an OrderedId it is a", type(node1))
+
+        if not isinstance(node2, OrderedId):
+            raise TypeError("node2 is not an OrderedId it is a", type(node2))
+
         """Gets the node distance in meters using ordered node ids"""
         return euclidean2_2d(self.nodes[node1], self.nodes[node2])
 
@@ -30,28 +73,39 @@ class Topology(object):
     def coord_distance_meters(coord1, coord2):
         return euclidean2_2d(coord1, coord2)
 
-    def to_topo_nid(self, ordered_nid):
+    def o2t(self, ordered_nid):
         """Converts a ordered node id to a topology node id"""
+        if not isinstance(ordered_nid, OrderedId):
+            raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
+
         return self.ordered_nid_to_topology_nid[ordered_nid]
 
-    def to_ordered_nid(self, topology_nid):
+    def t2o(self, topology_nid):
         """Converts an topology node id to an ordered node id"""
+        if not isinstance(topology_nid, TopologyId):
+            raise TypeError("topology_nid is not an TopologyId it is a", type(topology_nid))
+
         return self.topology_nid_to_ordered_nid[topology_nid]
 
-    def ordered_index(self, ordered_nid):
+    def o2i(self, ordered_nid):
         """Get the index that an ordered node id will be stored in"""
-        #return self.ordered_ids.index(ordered_nid)
+        if not isinstance(ordered_nid, OrderedId):
+            raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
+
         return self.ordered_ids_reverse_mapping[ordered_nid]
 
-    def index_to_ordered(self, node_idx):
+    def i2o(self, node_idx):
         """Get the ordered node id from a node index"""
-        return self.ordered_ids[node_idx]
+        if not isinstance(node_idx, IndexId):
+            raise TypeError("node_idx is not an IndexId it is a", type(node_idx).name)
+
+        return self.ordered_ids[node_idx.nid]
 
     def _process_node_id_order(self, node_id_order):
         if node_id_order == "topology":
 
-            self.topology_nid_to_ordered_nid = {nid: nid for nid in self.nodes.keys()}
-            self.ordered_nid_to_topology_nid = {nid: nid for nid in self.nodes.keys()}
+            self.topology_nid_to_ordered_nid = {TopologyId(nid): OrderedId(nid) for nid in self.nodes.keys()}
+            self.ordered_nid_to_topology_nid = {OrderedId(nid): TopologyId(nid) for nid in self.nodes.keys()}
 
         elif node_id_order == "randomised":
 
@@ -63,24 +117,21 @@ class Topology(object):
 
             rnd.shuffle(shuffled_nids)
 
-            self.topology_nid_to_ordered_nid = {nid: shuffled_nid for (nid, shuffled_nid) in zip(nids, shuffled_nids)}
-            self.ordered_nid_to_topology_nid = {shuffled_nid: nid for (nid, shuffled_nid) in zip(nids, shuffled_nids)}
-
-            new_nodes = OrderedDict()
-
-            for (nid, loc) in self.nodes.items():
-
-                new_nid = self.topology_nid_to_ordered_nid[nid]
-
-                new_nodes[new_nid] = loc
-
-            self.nodes = new_nodes
+            self.topology_nid_to_ordered_nid = {TopologyId(nid): OrderedId(shuffled_nid) for (nid, shuffled_nid) in zip(nids, shuffled_nids)}
+            self.ordered_nid_to_topology_nid = {OrderedId(shuffled_nid): TopologyId(nid) for (nid, shuffled_nid) in zip(nids, shuffled_nids)}
 
         else:
             raise RuntimeError("Unknown node id order {}".format(node_id_order))
 
+        new_nodes = OrderedDict()
+
+        for (nid, loc) in self.nodes.items():
+            new_nodes[self.t2o(TopologyId(nid))] = loc
+
+        self.nodes = new_nodes
+
         self.ordered_ids = list(self.nodes.keys())
-        self.ordered_ids_reverse_mapping = {nid: idx for (idx, nid) in enumerate(self.ordered_ids)}
+        self.ordered_ids_reverse_mapping = {nid: IndexId(idx) for (idx, nid) in enumerate(self.ordered_ids)}
 
 class Line(Topology):
     def __init__(self, size, distance, node_id_order, seed=None):
@@ -96,7 +147,7 @@ class Line(Topology):
 
         self._process_node_id_order(node_id_order)
 
-        self.centre_node = self.topology_nid_to_ordered_nid[(len(self.nodes) - 1) / 2]
+        self.centre_node = self.t2o(TopologyId((len(self.nodes) - 1) // 2))
 
     def __str__(self):
         return "Line<size={}>".format(self.size)
@@ -115,11 +166,11 @@ class Grid(Topology):
 
         self._process_node_id_order(node_id_order)
 
-        self.top_left = self.topology_nid_to_ordered_nid[0]
-        self.top_right = self.topology_nid_to_ordered_nid[size - 1]
-        self.centre_node = self.topology_nid_to_ordered_nid[(len(self.nodes) - 1) / 2]
-        self.bottom_left = self.topology_nid_to_ordered_nid[len(self.nodes) - size]
-        self.bottom_right = self.topology_nid_to_ordered_nid[len(self.nodes) - 1]
+        self.top_left = self.t2o(TopologyId(0))
+        self.top_right = self.t2o(TopologyId(size - 1))
+        self.centre_node = self.t2o(TopologyId((len(self.nodes) - 1) // 2))
+        self.bottom_left = self.t2o(TopologyId(len(self.nodes) - size))
+        self.bottom_right = self.t2o(TopologyId(len(self.nodes) - 1))
 
     def __str__(self):
         return "Grid<size={}>".format(self.size)
@@ -153,7 +204,7 @@ class Circle(Topology):
 
         self._process_node_id_order(node_id_order)
 
-        self.centre_node = self.topology_nid_to_ordered_nid[self.centre_node]
+        self.centre_node = self.t2o(self.centre_node)
 
     def __str__(self):
         return "Circle<diameter={}>".format(self.diameter_in_hops)

@@ -14,6 +14,7 @@ import numpy as np
 import simulator.CommunicationModel as CommunicationModel
 import simulator.MetricsCommon as MetricsCommon
 import simulator.NoiseModel as NoiseModel
+from simulator.Topology import IndexId
 
 class Node(object):
     __slots__ = ('nid', 'location', 'tossim_node')
@@ -155,9 +156,9 @@ class Simulation(object):
     def _create_nodes(self, topology):
         """Creates nodes and initialize their boot times"""
         for (ordered_nid, loc) in topology.nodes.items():
-            tossim_node = self.tossim.getNode(ordered_nid)
+            tossim_node = self.tossim.getNode(ordered_nid.nid)
 
-            tossim_node.setTag(topology.to_topo_nid(ordered_nid))
+            tossim_node.setTag(topology.o2t(ordered_nid).nid)
 
             self.nodes.append(Node(ordered_nid, loc, tossim_node))
 
@@ -171,7 +172,7 @@ class Simulation(object):
         raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
 
     def node_from_topology_nid(self, topology_nid):
-        ordered_nid = self.configuration.topology.to_ordered_nid(topology_nid)
+        ordered_nid = self.configuration.topology.t2o(topology_nid)
 
         for node in self.nodes:
             if node.nid == ordered_nid:
@@ -245,7 +246,7 @@ class Simulation(object):
         cm = CommunicationModel.eval_input(self.communication_model)
         cm.setup(self)
 
-        index_to_ordered = self.configuration.topology.index_to_ordered
+        i2o = self.configuration.topology.i2o
         isnan = np.isnan
 
         wgn = cm.white_gausian_noise
@@ -260,13 +261,13 @@ class Simulation(object):
                 continue
 
             # Convert from the indexes to the ordered node ids
-            nidi = index_to_ordered(i)
-            nidj = index_to_ordered(j)
+            nidi = i2o(IndexId(i)).nid
+            nidj = i2o(IndexId(j)).nid
 
             radio_add(nidi, nidj, gain)
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
-            nidi = index_to_ordered(i)
+            nidi = i2o(IndexId(i)).nid
 
             radio_setNoise(nidi, noise_floor, wgn)
 
@@ -405,7 +406,7 @@ class OfflineSimulation(object):
         raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
 
     def node_from_topology_nid(self, topology_nid):
-        ordered_nid = self.configuration.topology.to_ordered_nid(topology_nid)
+        ordered_nid = self.configuration.topology.t2o(topology_nid)
 
         for node in self.nodes:
             if node.nid == ordered_nid:
