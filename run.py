@@ -130,15 +130,15 @@ def _run_parallel(sim, module, a, argv):
 
     print_lock = Lock()
 
-    def subprocess_args_with_seed_44(subprocess_args):
+    def subprocess_args_with_seed(subprocess_args, seed=44):
         subprocess_args = list(subprocess_args)
 
         try:
             seed_index = subprocess_args.index('--seed')
-            subprocess_args[seed_index + 1] = '44'
+            subprocess_args[seed_index + 1] = str(seed)
         except ValueError:
             subprocess_args.append('--seed')
-            subprocess_args.append('44')
+            subprocess_args.append(str(seed))
 
         return subprocess_args
 
@@ -192,7 +192,8 @@ def _run_parallel(sim, module, a, argv):
     new_args = convert_parallel_args_to_single(argv, sim)
 
     subprocess_args = ["python", "-OO", "-m", "simulator.DoRun"] + new_args
-    subprocess_args_44 = subprocess_args_with_seed_44(subprocess_args)
+    subprocess_args_100 = subprocess_args_with_seed(subprocess_args, seed=100)
+    subprocess_args_44 = subprocess_args_with_seed(subprocess_args, seed=44)
 
     if a.args.mode == "CLUSTER":
         if a.args.job_id is not None:
@@ -217,7 +218,7 @@ def _run_parallel(sim, module, a, argv):
     # Always run with a seed of 44 first and second.
     # This allows us to do compatibility checks.
     # It also allows us to test the determinism of this set of parameters.
-    all_args = [subprocess_args_44, subprocess_args_44] + [subprocess_args] * a.args.job_size
+    all_args = [subprocess_args_100, subprocess_args_44, subprocess_args_44] + [subprocess_args] * a.args.job_size
 
     try:
         result = job_pool.map_async(runner, all_args)
