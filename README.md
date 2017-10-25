@@ -162,6 +162,8 @@ You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
        :::bash
        cd ~/wsn
        git clone git@github.com:contiki-os/contiki.git -b release-3-1
+       cd contiki
+       git submodule update --init
 
   2. Install dependencies
 
