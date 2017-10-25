@@ -47,12 +47,13 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.s = s
 
     def setup(self, sim):
-        nodes = sim.configuration.topology.nodes.items()
+        topology = sim.configuration.topology
+        nodes = list(sim.configuration.topology.nodes.items())
         rng = sim.rng
 
-        self._setup(nodes, rng)
+        self._setup(topology, nodes, rng)
 
-    def _setup(self, nodes, rng):
+    def _setup(self, topology, nodes, rng):
         """Provide a second setup function to help test this model against the Java version"""
         if __debug__:
             self._check_nodes(nodes)
@@ -62,9 +63,9 @@ class LinkLayerCommunicationModel(CommunicationModel):
         self.noise_floor = np.full(num_nodes, self.noise_floor_pn, dtype=np.float64)
         self.link_gain = np.empty((num_nodes, num_nodes), dtype=np.float64)
 
-        self._obtain_radio_pt_pn(nodes, rng)
+        self._obtain_radio_pt_pn(topology, nodes, rng)
 
-        self._obtain_link_gain(nodes, rng)
+        self._obtain_link_gain(topology, nodes, rng)
 
     def _check_nodes(self, nodes):
         """Check that all nodes are at least d0 distance away from each other.
@@ -76,7 +77,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
                 raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
                     distance, i, ni, j, nj, self.d0))
 
-    def _obtain_radio_pt_pn(self, nodes, rng):
+    def _obtain_radio_pt_pn(self, topology, nodes, rng):
         s = self.s
         t00 = 0.0
         t01 = 0.0
@@ -95,14 +96,18 @@ class LinkLayerCommunicationModel(CommunicationModel):
         nf = self.noise_floor
         lg = self.link_gain
 
-        for i in xrange(len(nodes)):
+        o2i = topology.o2i
+
+        for (oid, coord) in nodes:
+            i = o2i(oid).nid
+
             rnd1 = rg(0, 1)
             rnd2 = rg(0, 1)
 
             nf[i] += t00 * rnd1
             lg[i:] = t01 * rnd1 + t11 * rnd2
 
-    def _obtain_link_gain(self, nodes, rng):
+    def _obtain_link_gain(self, topology, nodes, rng):
         rg = rng.gauss
         ple10 = self.path_loss_exponent * 10.0
         ssd = self.shadowing_stddev
@@ -110,7 +115,12 @@ class LinkLayerCommunicationModel(CommunicationModel):
         d0 = self.d0
         lg = self.link_gain
 
-        for ((i, ni), (j, nj)) in combinations(nodes, 2):
+        o2i = topology.o2i
+
+        for ((oidi, ni), (oidj, nj)) in combinations(nodes, 2):
+            i = o2i(oidi).nid
+            j = o2i(oidj).nid
+
             rnd1 = rg(0, 1)
 
             distance = euclidean2_2d(ni, nj)
@@ -130,7 +140,8 @@ class IdealCommunicationModel(CommunicationModel):
         self.noise_floor_pn = noise_floor_pn
 
     def setup(self, sim):
-        nodes = sim.configuration.topology.nodes.items()
+        topology = sim.configuration.topology
+        nodes = list(topology.nodes.items())
 
         num_nodes = len(nodes)
 
@@ -140,13 +151,18 @@ class IdealCommunicationModel(CommunicationModel):
         # Use NaNs to signal that there is no link between these two nodes
         self.link_gain = np.full((num_nodes, num_nodes), np.nan, dtype=np.float64)
 
-        self._obtain_link_gain(nodes, sim.wireless_range)
+        self._obtain_link_gain(topology, nodes, sim.wireless_range)
 
-    def _obtain_link_gain(self, nodes, wireless_range):
+    def _obtain_link_gain(self, topology, nodes, wireless_range):
         lg = self.link_gain
 
-        for ((i, ni), (j, nj)) in combinations(nodes, 2):
+        o2i = topology.o2i
+
+        for ((oidi, ni), (oidj, nj)) in combinations(nodes, 2):
             if euclidean2_2d(ni, nj) <= wireless_range:
+                i = o2i(oidi).nid
+                j = o2i(oidj).nid
+
                 lg[i,j] = self.connection_strength
                 lg[j,i] = self.connection_strength
 
@@ -166,7 +182,8 @@ class TestbedCommunicationModel(CommunicationModel):
         # TODO: raise exception if topology being used
         # does not match the testbed specified
 
-        nodes = sim.configuration.topology.nodes
+        topology = sim.configuration.topology
+        nodes = topology.nodes
 
         num_nodes = len(nodes)
         channel = 26 # Assume this channel for the noise floor measurements
@@ -187,11 +204,11 @@ class TestbedCommunicationModel(CommunicationModel):
         with open(noise_floor_path, 'rb') as pickle_file:
             noise_floor = pickle.load(pickle_file)
 
-        o2i = sim.configuration.topology.ordered_index
+        o2i = topology.o2i
 
         self.noise_floor = np.zeros(num_nodes, dtype=np.float64)
         for node in nodes:
-            self.noise_floor[o2i(node)] = noise_floor.node_smallest[(node, channel)]
+            self.noise_floor[o2i(node).nid] = noise_floor.node_smallest[(node, channel)]
 
 
 class LowAsymmetry(LinkLayerCommunicationModel):

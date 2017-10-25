@@ -318,6 +318,9 @@ class ArgumentsCommon(object):
     def build_arguments(self):
         result = {}
 
+        # WARNING
+        # All node ids passed to the simulation MUST be topology ids!
+
         #if hasattr(self.args, 'seed'):
         #  result["SLP_SEED"] = "UINT32_C({})".format(self.args.seed)
 
@@ -356,7 +359,7 @@ class ArgumentsCommon(object):
 
             (source_id,) = configuration.source_ids
 
-            result["SOURCE_NODE_ID"] = configuration.topology.to_topo_nid(source_id)
+            result["SOURCE_NODE_ID"] = configuration.topology.o2t(source_id)
 
         if hasattr(self.args, 'fault_model'):
           result.update(self.args.fault_model.build_arguments())

@@ -13,6 +13,7 @@ except ImportError:
 
 import simulator.CommunicationModel as CM
 import simulator.Configuration
+from simulator.Topology import TopologyId
 
 class TestConfigurationDistances(unittest.TestCase):
 
@@ -20,8 +21,8 @@ class TestConfigurationDistances(unittest.TestCase):
         configurationt = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "topology")
         configurationr = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "randomised")
 
-        self.assertEqual(configurationt.sink_id, configurationr.topology.to_topo_nid(configurationr.sink_id))
-        self.assertEqual(configurationt.source_ids, set(map(configurationr.topology.to_topo_nid, configurationr.source_ids)))
+        self.assertEqual(configurationt.sink_ids, set(map(configurationr.topology.o2t, configurationr.sink_id2)))
+        self.assertEqual(configurationt.source_ids, set(map(configurationr.topology.o2t, configurationr.source_ids)))
 
     def test_size(self):
         sizes = [11, 15, 21, 25]
@@ -35,7 +36,7 @@ class TestConfigurationDistances(unittest.TestCase):
 
     def test_ssd_topology(self):
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "topology")
-        source_id = 0
+        source_id = TopologyId(0)
 
         self.assertIn(source_id, configuration.source_ids)
         self.assertEqual(configuration.ssd(source_id), 10)
@@ -45,8 +46,8 @@ class TestConfigurationDistances(unittest.TestCase):
 
     def test_ssd_randomised(self):
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "randomised")
-        source_id = 0
-        adjusted_source_id = configuration.topology.to_ordered_nid(source_id)
+        source_id = TopologyId(0)
+        adjusted_source_id = configuration.topology.t2o(source_id)
 
         self.assertIn(adjusted_source_id, configuration.source_ids)
         self.assertEqual(configuration.ssd(adjusted_source_id), 10)
@@ -57,8 +58,8 @@ class TestConfigurationDistances(unittest.TestCase):
 
     def test_node_distance(self):
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "topology")
-        from_nid = 1
-        to_nid = 15
+        from_nid = TopologyId(1)
+        to_nid = TopologyId(15)
         topology_result = configuration.node_distance(from_nid, to_nid)
 
         expected_result = 4
@@ -66,8 +67,8 @@ class TestConfigurationDistances(unittest.TestCase):
         self.assertEqual(topology_result, expected_result)
 
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "randomised")
-        from_nid = configuration.topology.to_ordered_nid(from_nid)
-        to_nid = configuration.topology.to_ordered_nid(to_nid)
+        from_nid = configuration.topology.t2o(from_nid)
+        to_nid = configuration.topology.t2o(to_nid)
         randomised_result = configuration.node_distance(from_nid, to_nid)
 
         self.assertEqual(randomised_result, expected_result)
@@ -76,8 +77,8 @@ class TestConfigurationDistances(unittest.TestCase):
 
     def test_node_distance_meters(self):
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "topology")
-        from_nid = 1
-        to_nid = 15
+        from_nid = TopologyId(1)
+        to_nid = TopologyId(15)
         topology_result = configuration.node_distance_meters(from_nid, to_nid)
 
         from_coords = np.array((0 * 4.5, 1 * 4.5), dtype=np.float64)
@@ -87,8 +88,8 @@ class TestConfigurationDistances(unittest.TestCase):
         self.assertEqual(topology_result, expected_result)
 
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "randomised")
-        from_nid = configuration.topology.to_ordered_nid(from_nid)
-        to_nid = configuration.topology.to_ordered_nid(to_nid)
+        from_nid = configuration.topology.t2o(from_nid)
+        to_nid = configuration.topology.t2o(to_nid)
         randomised_result = configuration.node_distance_meters(from_nid, to_nid)
 
         self.assertEqual(randomised_result, expected_result)
@@ -97,7 +98,7 @@ class TestConfigurationDistances(unittest.TestCase):
 
     def test_ssd_meters(self):
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "topology")
-        source = 0
+        source = TopologyId(0)
         topology_result = configuration.ssd_meters(source)
 
         from_coords = np.array((0 * 4.5, 0 * 4.5), dtype=np.float64)
@@ -107,7 +108,7 @@ class TestConfigurationDistances(unittest.TestCase):
         self.assertEqual(topology_result, expected_result)
 
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "randomised")
-        source = configuration.topology.to_ordered_nid(source)
+        source = configuration.topology.t2o(source)
         randomised_result = configuration.ssd_meters(source)
 
         self.assertEqual(randomised_result, expected_result)
@@ -116,8 +117,8 @@ class TestConfigurationDistances(unittest.TestCase):
 
     def test_shortest_path(self):
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "topology")
-        from_nid = 1
-        to_nid = 15
+        from_nid = TopologyId(1)
+        to_nid = TopologyId(15)
         topology_result = configuration.shortest_path(from_nid, to_nid)
 
         expected_result = ([1, 12, 13, 14, 15], [1, 2, 13, 14, 15], [1, 2, 3, 14, 15], [1, 2, 3, 4, 15])
@@ -125,15 +126,15 @@ class TestConfigurationDistances(unittest.TestCase):
         self.assertIn(topology_result, expected_result)
 
         configuration = simulator.Configuration.create_specific('SourceCorner', 11, 4.5, "randomised")
-        from_nid = configuration.topology.to_ordered_nid(from_nid)
-        to_nid = configuration.topology.to_ordered_nid(to_nid)
+        from_nid = configuration.topology.t2o(from_nid)
+        to_nid = configuration.topology.t2o(to_nid)
         randomised_result = configuration.shortest_path(from_nid, to_nid)
 
-        expected_result = tuple(list(map(configuration.topology.to_ordered_nid, result)) for result in expected_result)
+        expected_result = tuple(list(map(configuration.topology.t2o, result)) for result in expected_result)
 
         self.assertIn(randomised_result, expected_result)
 
-        self.assertEqual(topology_result, map(configuration.topology.to_topo_nid, randomised_result))
+        self.assertEqual(topology_result, map(configuration.topology.o2t, randomised_result))
 
 
 if __name__ == "__main__":

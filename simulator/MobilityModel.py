@@ -45,7 +45,8 @@ class MobilityModel(object):
 
         for (node_idx, (node_id, intervals)) in enumerate(self.active_times.items()):
 
-            indexes.append("{}U".format(self.configuration.topology.to_topo_nid(node_id)))
+            # Node IDs must be passed in topology order!
+            indexes.append("{}U".format(self.configuration.topology.o2t(node_id)))
 
             period = [
                 #"[{node_idx}][{interval_idx}].from = {from_time}, [{node_idx}][{interval_idx}].to = {to_time}".format(

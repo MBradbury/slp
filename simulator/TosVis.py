@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import re
 
 from simulator.Simulation import Simulation, OfflineSimulation
+from simulator.Topology import OrderedId
 
 AM_BROADCAST_ADDR = 65535
 
@@ -144,6 +145,7 @@ class Gui:
         return (initial_position + loc[0] * factor, initial_position + loc[1] * factor)
 
     def node_location(self, ordered_nid):
+        ordered_nid = OrderedId(ordered_nid)
         return self._adjust_location(self._sim.node_from_ordered_nid(ordered_nid).location)
 
     ####################
