@@ -933,7 +933,7 @@ implementation
 		// If we don't have any messages to send, then there is nothing to do
 		if (!has_enough_messages_to_send())
 		{
-			ERROR_OCCURRED(ERROR_NO_MESSAGES, "Unable to consider messages to send as we have no messages to send.\n");
+			LOG_STDOUT(ILPROUTING_NO_MESSAGES, "Unable to consider messages to send as we have no messages to send.\n");
 			return;
 		}
 
@@ -1043,6 +1043,8 @@ implementation
 
 		if (success)
 		{
+			error_t result;
+
 			simdbgverbose("stdout", "Sending message to %u\n", next);
 
 			info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
@@ -1050,7 +1052,17 @@ implementation
 			message.source_distance_of_sender = source_distance;
 			message.time_taken_to_send = call LocalTime.get() - info->time_added;
 
-			send_Normal_message(&message, next, &info->ack_requested);
+			result = send_Normal_message_ex(&message, next, &info->ack_requested);
+			if (result != SUCCESS)
+			{
+				// Do not penalise failing to send the message here
+				info->rtx_attempts += 1;
+
+				// If we failed to send the message, try again in a bit
+				call ConsiderTimer.startOneShot(ALPHA_RETRY);
+
+				ERROR_OCCURRED(ERROR_FAILED_TO_SEND_NORMAL, "Failed to send Normal with %" PRIu8 ", retrying\n", result);
+			}
 		}
 		else
 		{
@@ -1104,12 +1116,11 @@ implementation
 	event void AwaySenderTimer.fired()
 	{
 		AwayMessage message;
-
-		simdbgverbose("stdout", "AwaySenderTimer fired.\n");
-
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
+
+		//simdbgverbose("stdout", "AwaySenderTimer fired.\n");
 
 		ASSERT_MESSAGE(message.sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, message.sink_distance);
 
