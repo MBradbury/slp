@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-#import os
+import os
 import subprocess
 import sys
 
@@ -14,6 +14,22 @@ ALLOWED_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14", "z1")
 # z1 doesn't seem to support fastserial
 FASTSERIAL_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14")
 
+def make_clean(directory):
+    to_remove = ("topology.txt", "app.c", "ident_flags.txt", "main.elf", "main.exe",
+                 "main.ihex", "main.srec", "tos_image.xml", "wiring-check.xml", "TOSSIM.pyo")
+    for file_to_remove in to_remove:
+        try:
+            os.remove(os.path.join(directory, file_to_remove))
+        except OSError:
+            pass
+
+    return subprocess.check_call("make clean",
+        cwd=directory,
+        shell=True,
+        stdout=sys.stderr,
+        stderr=sys.stderr
+        )
+
 def build_sim(directory, platform="micaz", **kwargs):
 
     if platform not in ALLOWED_PLATFORMS:
@@ -21,6 +37,8 @@ def build_sim(directory, platform="micaz", **kwargs):
 
     max_nodes = kwargs["MAX_TOSSIM_NODES"]
     del kwargs["MAX_TOSSIM_NODES"]
+
+    make_clean(directory)
 
     flags = " ".join("-D{}={!r}".format(k, v) for (k, v) in kwargs.items())
 
@@ -51,6 +69,8 @@ def build_actual(directory, platform, enable_fast_serial=False, **kwargs):
         raise RuntimeError("Unknown build platform {}. Only {} are allowed.".format(platform, ALLOWED_PLATFORMS))
 
     del kwargs["MAX_TOSSIM_NODES"]
+
+    make_clean(directory)
 
     flags = " ".join("-D{}={!r}".format(k, v) for (k, v) in kwargs.items())
 
