@@ -68,4 +68,9 @@ enum ApplicationSLPEvents
     ILPROUTING_EVENT_SEND_POLL = 3001,
 };
 
+enum GenericMetrics
+{
+    METRIC_GENERIC_TIME_TAKEN_TO_SEND = 1,
+};
+
 #endif // SLP_CONSTANTS_H

@@ -218,4 +218,12 @@ implementation
 				"%" PRIu16 ",%" PRIu16 ",%" PRIu16 ",%" PRIu16 ",%" PRIu8 "\n",
 				average, smallest, largest, reads, channel);
 	}
+
+	command void MetricLogging.log_metric_generic(
+		uint16_t code,
+		const char* message
+		)
+	{
+		simdbg("M-G", "%" PRIu16 ",%s\n", code, message);
+	}
 }

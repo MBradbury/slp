@@ -100,4 +100,9 @@ interface MetricLogging
 		uint8_t channel
 		);
 
+	// Allow arbitrary data logging
+	command void log_metric_generic(
+		uint16_t code,
+		const char* message
+		);
 }

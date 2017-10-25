@@ -406,4 +406,29 @@ implementation
 
 		SERIAL_END_SEND(metric_rssi_msg_t)
 	}
+
+	command void MetricLogging.log_metric_generic(
+		uint16_t kind,
+		const char* message
+		)
+	{
+		uint8_t message_length = strlen(message);
+
+		SERIAL_START_SEND(metric_generic_msg_t)
+
+		msg->type = AM_METRIC_GENERIC_MSG;
+		
+		msg->kind = kind;
+
+		if (message_length > MAX_GENERIC_METRIC_MESSAGE_LENGTH)
+		{
+			message_length = MAX_GENERIC_METRIC_MESSAGE_LENGTH;
+		}
+
+		msg->data_length = message_length;
+
+		memcpy(&msg->data, message, message_length);
+
+		SERIAL_END_SEND(metric_generic_msg_t)
+	}
 }

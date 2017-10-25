@@ -77,6 +77,19 @@
 #define METRIC_RSSI(RSSI_AVERAGE, RSSI_SMALLEST, RSSI_LARGEST, RSSI_READS, CHANNEL) \
     call MetricLogging.log_metric_rssi(RSSI_AVERAGE, RSSI_SMALLEST, RSSI_LARGEST, RSSI_READS, CHANNEL)
 
+
+#if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
+#define METRIC_GENERIC(CODE, MESSAGE, ...) \
+	call MetricLogging.log_metric_generic(CODE, MESSAGE)
+#else
+#define METRIC_GENERIC(CODE, MESSAGE, ...) \
+	do { \
+		char stdout_message[256]; \
+		snprintf(stdout_message, ARRAY_SIZE(stdout_message), MESSAGE, ##__VA_ARGS__); \
+		call MetricLogging.log_metric_generic(CODE, stdout_message); \
+	} while (FALSE)
+#endif
+
 // No need to format messages when using serial message as the string will not be used.
 #if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \
