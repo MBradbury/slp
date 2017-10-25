@@ -17,7 +17,7 @@ class DebugAnalyzer:
     ARROW   = 5
     AM_SNOOP = 6
 
-    LED_RE    = re.compile(r'LEDS: Led(\d) (.*)\.')
+    LED_RE    = re.compile(r'(\d),(on|off)')
     AMSEND_RE = re.compile(r'AM: Sending packet \(id=(\d+), len=(\d+)\) to (\d+)')
     AMRECV_RE = re.compile(r'Received active message \(0x[0-9a-f]*\) of type (\d+) and length (\d+)')
     AMSNOOP_RE = re.compile(r'Snooped on active message of type (\d+) and length (\d+) for (\d+) @ (.+)\.')
