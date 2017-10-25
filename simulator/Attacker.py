@@ -4,6 +4,8 @@ from collections import Counter, deque
 
 import numpy as np
 
+from simulator.Topology import OrderedId
+
 from data.restricted_eval import restricted_eval
 
 # When an attacker receives any of these messages,
@@ -47,6 +49,9 @@ class Attacker(object):
 
         self._sim.register_output_handler('A-R', self.process_attacker_rcv_event)
 
+        if not isinstance(start_node_id, OrderedId):
+            raise TypeError("start_node_id must be a OrderedId but is", type(start_node_id))
+
         self.position = start_node_id
         self._has_found_source = self.found_source_slow()
         self.moves = 0
@@ -70,7 +75,7 @@ class Attacker(object):
         if self._has_found_source:
             return False
 
-        node_id = int(node_id)
+        node_id = OrderedId(int(node_id))
 
         # Don't want to process this message if we are not on the correct node
         if self.position != node_id:
@@ -85,8 +90,8 @@ class Attacker(object):
             return False
 
         time = float(time)
-        prox_from_id = int(prox_from_id)
-        ult_from_id = int(ult_from_id)
+        prox_from_id = OrderedId(int(prox_from_id))
+        ult_from_id = OrderedId(int(ult_from_id))
         sequence_number = int(sequence_number)
 
         # Record the time we received this message to allow calculation
