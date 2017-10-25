@@ -2,6 +2,8 @@ from __future__ import print_function, division
 
 from simulator.MetricsCommon import MetricsCommon
 
+import numpy as np
+
 ERROR_RTX_FAILED = 1001
 ERROR_RTX_FAILED_TRYING_OTHER = 1002
 
@@ -27,6 +29,14 @@ class Metrics(MetricsCommon):
 
         self._time_taken_to_send.setdefault(message, {})[key] = int(time_taken_to_send_ms)
 
+    def average_time_taken_to_send(self):
+        return {
+            messages: (round(np.mean(rest.values()), 1), round(np.std(rest.values()), 1))
+
+            for (messages, rest)
+            in self._time_taken_to_send.items()
+        }
+
 
     @staticmethod
     def items():
@@ -38,5 +48,7 @@ class Metrics(MetricsCommon):
 
         d["FailedRtx"]              = lambda x: x.errors[ERROR_RTX_FAILED] + x.errors[ERROR_RTX_FAILED_TRYING_OTHER]
         d["FailedAvoidSink"]        = lambda x: x.errors[ERROR_RTX_FAILED_TRYING_OTHER] / x.num_normal_sent_if_finished()
+
+        d["TimeTakenToSend"]        = lambda x: MetricsCommon.compressed_dict_str(x.average_time_taken_to_send())
 
         return d
