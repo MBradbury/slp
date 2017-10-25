@@ -29,6 +29,8 @@ enum {
 
     AM_METRIC_RSSI_MSG = 62,
     AM_METRIC_BOOT_MSG = 63,
+
+    AM_METRIC_GENERIC_MSG = 64,
 };
 
 #define MAXIMUM_NODE_TYPE_NAME_LENGTH 20
@@ -39,6 +41,10 @@ enum {
 	nx_am_id_t type; /* This is the type of debug/metric message*/ \
 	nx_am_addr_t node_id; \
 	nx_uint32_t local_time;
+
+enum {
+	METRIC_LOGGING_HEADER_LENGTH = sizeof(nx_am_id_t) + sizeof(nx_am_addr_t) + sizeof(nx_uint32_t)
+};
 
 typedef nx_struct metric_boot_msg {
 	METRIC_LOGGING_HEADER
@@ -171,5 +177,19 @@ typedef nx_struct metric_rssi_msg {
 	nx_uint8_t channel;
 
 } metric_rssi_msg_t;
+
+
+enum {
+	MAX_GENERIC_METRIC_MESSAGE_LENGTH = TOSH_DATA_LENGTH - METRIC_LOGGING_HEADER_LENGTH - sizeof(nx_uint16_t) - sizeof(nx_uint8_t)
+};
+
+typedef nx_struct metric_generic_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_uint16_t kind;
+	nx_uint8_t data_length;
+	nx_uint8_t data[MAX_GENERIC_METRIC_MESSAGE_LENGTH];
+
+} metric_generic_msg_t;
 
 #endif // SLP_SERIAL_METRIC_LOGGING_H

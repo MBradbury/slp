@@ -90,7 +90,10 @@ class MetricsCommon(object):
         self.delivered_rssi = defaultdict(RunningStats)
         self.delivered_lqi = defaultdict(RunningStats)
 
+        self._generic_handlers = {}
+
         self.register('M-B', self.process_node_booted)
+        self.register('M-G', self.process_generic)
         self.register('M-NC', self.process_node_change_event)
 
         self.register('M-NTA', self.process_node_type_add)
@@ -169,6 +172,9 @@ class MetricsCommon(object):
 
     def register(self, name, function):
         self.sim.register_output_handler(name, function)
+
+    def register_generic(self, identifier, function):
+        self._generic_handlers[identifier] = function
 
     def _time_to_bin(self, time):
         return int(math.floor(time / self._time_bin_width))
@@ -357,6 +363,17 @@ class MetricsCommon(object):
     def process_node_booted(self, d_or_e, node_id, time, detail):
         ord_node_id, top_node_id = self._process_node_id(node_id)
         self.node_booted_at[ord_node_id] = float(time)
+
+    def process_generic(self, d_or_e, node_id, time, detail):
+        (kind, data) = detail.split(",", 1)
+        kind = int(kind)
+
+        handler = self._generic_handlers.get(kind, None)
+
+        if handler is None:
+            return
+
+        handler(d_or_e, node_id, time, data)
 
     def process_node_change_event(self, d_or_e, node_id, time, detail):
         (old_name, new_name) = detail.split(',')

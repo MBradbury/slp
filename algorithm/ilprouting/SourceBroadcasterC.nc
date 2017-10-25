@@ -1155,13 +1155,15 @@ implementation
 
 		update_distances_from_Normal(rcvd, source_addr);
 
-		simdbg("stdout", "Received a Normal that took %" PRIu32 "ms to send.\n", rcvd->time_taken_to_send);
-
 		if (!call LruNormalSeqNos.lookup(seq_no_lookup))
 		{
 			call LruNormalSeqNos.insert(seq_no_lookup);
 
 			METRIC_RCV_NORMAL(rcvd);
+
+			METRIC_GENERIC(METRIC_GENERIC_TIME_TAKEN_TO_SEND,
+				TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32,
+				rcvd->source_id, rcvd->sequence_number, source_addr, rcvd->time_taken_to_send);
 
 			// If we are routing from the sink, only do so for a short number of hops
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
