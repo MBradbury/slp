@@ -48,6 +48,8 @@ class MetricsCommon(object):
         self.reported_source_ids = set() # set(configuration.source_ids)
         self.reported_sink_ids = set() # {configuration.sink_id}
 
+        self.node_booted_at = {}
+
         self.sent = defaultdict(Counter)
         self.received = defaultdict(Counter)
         self.delivered = defaultdict(Counter)
@@ -87,6 +89,7 @@ class MetricsCommon(object):
         self.delivered_rssi = defaultdict(RunningStats)
         self.delivered_lqi = defaultdict(RunningStats)
 
+        self.register('M-B', self.process_node_booted)
         self.register('M-NC', self.process_node_change_event)
 
         self.register('M-NTA', self.process_node_type_add)
@@ -337,6 +340,10 @@ class MetricsCommon(object):
                     raise RuntimeError(message)
                 else:
                     print("WARNING:", message, file=sys.stderr)
+
+    def process_node_booted(self, d_or_e, node_id, time, detail):
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        self.node_booted_at[ord_node_id] = float(time)
 
     def process_node_change_event(self, d_or_e, node_id, time, detail):
         (old_name, new_name) = detail.split(',')
@@ -679,6 +686,10 @@ class MetricsCommon(object):
         else:
             return self.sim_time() >= self.sim.upper_bound_safety_period
 
+    def detected_boot_events_percentage(self):
+        return len(self.node_booted_at) / self.sim.configuration.size()
+
+
     def rcvd_closer_or_same_hops_all(self):
         return dict(sum(self.received_from_closer_or_same_hops.values(), Counter()))
 
@@ -829,6 +840,8 @@ class MetricsCommon(object):
 
         d["FaultsOccured"]                 = lambda x: x.faults_occurred()
 
+        d["DetectedBoots"]                 = lambda x: x.detected_boot_events_percentage()
+
         # Link quality metrics
         #d["DeliveredRssi"]                 = lambda x: MetricsCommon.compressed_dict_str(x.delivered_rssi_stats())
         #d["DeliveredLqi"]                  = lambda x: MetricsCommon.compressed_dict_str(x.delivered_lqi_stats())
@@ -884,6 +897,10 @@ class MetricsCommon(object):
             print("Reached Upper Bound:", file=stream)
             print("\tSimulation reached the upper bound, likely because the safety period was not triggered.", file=stream)
             print("\tEnsure that a Normal message is sent in your simulation.", file=stream)
+
+        if len(self.node_booted_at) != self.sim.configuration.size():
+            print("Some node's boot events were missed:", file=stream)
+            print("\tMissing:", set(self.sim.configuration.topology.nodes.keys()) - set(self.node_booted_at.keys()))
 
     def memory_info(self, attr):
         """Memory usage of the current process in bytes."""
