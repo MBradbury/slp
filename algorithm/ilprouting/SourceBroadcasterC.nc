@@ -1033,7 +1033,7 @@ implementation
 				message.stage = NORMAL_ROUTE_AVOID_SINK;
 
 				success = find_next_in_to_sink_route(info, &next);
-			};
+			} break;
 
 			default:
 			{
