@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 
+ALLOWED_TOSSIM_PLATFORMS = ("micaz",)
 ALLOWED_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14", "z1")
 #ALLOWED_PLATFORMS = [
 #    name
@@ -32,8 +33,8 @@ def make_clean(directory):
 
 def build_sim(directory, platform="micaz", **kwargs):
 
-    if platform not in ALLOWED_PLATFORMS:
-        raise RuntimeError("Unknown build platform {}. Only {} are allowed.".format(platform, ALLOWED_PLATFORMS))
+    if platform not in ALLOWED_TOSSIM_PLATFORMS:
+        raise RuntimeError("Unknown build platform {}. Only {} are allowed.".format(platform, ALLOWED_TOSSIM_PLATFORMS))
 
     max_nodes = kwargs["MAX_TOSSIM_NODES"]
     del kwargs["MAX_TOSSIM_NODES"]
