@@ -9,6 +9,19 @@ TOSSIM will calculate something based on the length of a message, irrespective o
 the compile-time maximum size. So if a message size changes size, do not expect
 a simulation seed to produce the same results.
 
+=Field Order in messages=
+
+Make sure to order the fields in your messages in order of decreasing size.
+Certain CPUs are unable to access words at odd memory locations.
+For example:
+
+nx_struct S1 { nx_uint8_t a; nx_uint32_t b; };
+
+a will be located at an even memory address and b will be at an odd one.
+MSP430 CPUs will fail to read the value of b because it needs to be on
+an even memory address. Because this is an nx_struct it is packed and no padding
+bytes will be added.
+
 =Proactive Attackers=
 
 Currently proactive attackers that schedule the attacker to do something at a
