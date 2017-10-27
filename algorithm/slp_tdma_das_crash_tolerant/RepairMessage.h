@@ -13,6 +13,6 @@ typedef nx_struct RepairMessage {
 } RepairMessage;
 
 inline SequenceNumberWithBottom Repair_get_sequence_number(const RepairMessage* msg) { return BOTTOM; }
-inline int32_t Repair_get_source_id(const RepairMessage* msg) { return msg->source_id; }
+inline am_addr_t Repair_get_source_id(const RepairMessage* msg) { return msg->source_id; }
 
 #endif /* SLP_MESSAGES_REPAIRMESSAGE_H */

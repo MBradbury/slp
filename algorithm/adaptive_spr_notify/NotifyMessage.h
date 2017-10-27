@@ -15,6 +15,6 @@ typedef nx_struct NotifyMessage {
 } NotifyMessage;
 
 inline SequenceNumberWithBottom Notify_get_sequence_number(const NotifyMessage* msg) { return msg->sequence_number; }
-inline int32_t Notify_get_source_id(const NotifyMessage* msg) { return msg->source_id; }
+inline am_addr_t Notify_get_source_id(const NotifyMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_NOTIFYMESSAGE_H

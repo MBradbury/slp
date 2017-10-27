@@ -15,6 +15,6 @@ typedef nx_struct ChooseMessage {
 } ChooseMessage;
 
 inline SequenceNumberWithBottom Choose_get_sequence_number(const ChooseMessage* msg) { return msg->sequence_number; }
-inline int32_t Choose_get_source_id(const ChooseMessage* msg) { return msg->source_id; }
+inline am_addr_t Choose_get_source_id(const ChooseMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_AWAYCHOOSEMESSAGE_H

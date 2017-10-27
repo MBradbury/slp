@@ -10,6 +10,6 @@ typedef nx_struct BackupMessage {
 } BackupMessage;
 
 inline SequenceNumberWithBottom Backup_get_sequence_number(const BackupMessage* msg) { return BOTTOM; }
-inline int32_t Backup_get_source_id(const BackupMessage* msg) { return BOTTOM; }
+inline am_addr_t Backup_get_source_id(const BackupMessage* msg) { return AM_BROADCAST_ADDR; }
 
 #endif /* SLP_MESSAGES_BACKUPMESSAGE_H */

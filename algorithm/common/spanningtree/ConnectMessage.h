@@ -15,6 +15,6 @@ typedef nx_struct ConnectMessage {
 } ConnectMessage;
 
 inline SequenceNumberWithBottom Connect_get_sequence_number(const ConnectMessage* msg) { return UNKNOWN_SEQNO; }
-inline int32_t Connect_get_source_id(const ConnectMessage* msg) { return BOTTOM; }
+inline am_addr_t Connect_get_source_id(const ConnectMessage* msg) { return AM_BROADCAST_ADDR; }
 
 #endif // SLP_MESSAGES_CONNECTMESSAGE_H

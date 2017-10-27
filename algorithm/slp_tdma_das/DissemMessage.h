@@ -10,6 +10,6 @@ typedef nx_struct DissemMessage {
 } DissemMessage;
 
 inline SequenceNumberWithBottom Dissem_get_sequence_number(const DissemMessage* msg) { return BOTTOM; }
-inline int32_t Dissem_get_source_id(const DissemMessage* msg) { return BOTTOM; }
+inline am_addr_t Dissem_get_source_id(const DissemMessage* msg) { return AM_BROADCAST_ADDR; }
 
 #endif /* SLP_MESSAGES_DISSEMMESSAGE_H */

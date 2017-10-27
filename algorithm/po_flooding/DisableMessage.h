@@ -15,6 +15,6 @@ typedef nx_struct DisableMessage {
 } DisableMessage;
 
 inline SequenceNumberWithBottom Disable_get_sequence_number(const DisableMessage* msg) { return msg->sequence_number; }
-inline int32_t Disable_get_source_id(const DisableMessage* msg) { return msg->source_id; }
+inline am_addr_t Disable_get_source_id(const DisableMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_DISABLEMESSAGE_H

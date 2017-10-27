@@ -13,6 +13,6 @@ typedef nx_struct FakeMessage {
 } FakeMessage;
 
 inline SequenceNumberWithBottom Fake_get_sequence_number(const FakeMessage* msg) { return msg->sequence_number; }
-inline int32_t Fake_get_source_id(const FakeMessage* msg) { return msg->source_id; }
+inline am_addr_t Fake_get_source_id(const FakeMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_FAKEMESSAGE_H

@@ -11,6 +11,6 @@ typedef nx_struct
 } PollMessage;
 
 inline SequenceNumberWithBottom Poll_get_sequence_number(const PollMessage* msg) { return BOTTOM; }
-inline int32_t Poll_get_source_id(const PollMessage* msg) { return BOTTOM; }
+inline am_addr_t Poll_get_source_id(const PollMessage* msg) { return AM_BROADCAST_ADDR; }
 
 #endif // SLP_MESSAGES_POLLMESSAGE_H

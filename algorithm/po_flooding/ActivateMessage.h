@@ -15,6 +15,6 @@ typedef nx_struct ActivateMessage {
 } ActivateMessage;
 
 inline SequenceNumberWithBottom Activate_get_sequence_number(const ActivateMessage* msg) { return msg->sequence_number; }
-inline int32_t Activate_get_source_id(const ActivateMessage* msg) { return msg->source_id; }
+inline am_addr_t Activate_get_source_id(const ActivateMessage* msg) { return msg->source_id; }
 
 #endif // SLP_MESSAGES_ACTIVATEMESSAGE_H
