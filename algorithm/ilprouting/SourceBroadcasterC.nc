@@ -374,7 +374,6 @@ implementation
 
 	error_t record_received_message(message_t* msg, uint8_t switch_stage)
 	{
-		bool success;
 		message_queue_info_t* item;
 		NormalMessage* stored_normal_message;
 
@@ -384,9 +383,15 @@ implementation
 
 		if (!item)
 		{
-			const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+			bool success;
+			SeqNoWithAddr seq_no_lookup;
 
-			const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
+			const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+			if (!rcvd)
+			{
+				ERROR_OCCURRED(ERROR_PACKET_HAS_NO_PAYLOAD, "In record_received_message: Packet has no payload.\n");
+				return FAIL;
+			}
 
 			item = call MessagePool.get();
 			if (!item)
@@ -395,6 +400,9 @@ implementation
 
 				return ENOMEM;
 			}
+
+			seq_no_lookup.seq_no = rcvd->sequence_number;
+			seq_no_lookup.addr = rcvd->source_id;
 
 			success = call MessageQueue.put(seq_no_lookup, item);
 			if (!success)
@@ -411,7 +419,7 @@ implementation
 			simdbgverbose("stdout", "Overwriting message in the queue with a message of the same seq no and source id\n");
 		}
 
-		item->msg = *msg;
+		memcpy(&item->msg, msg, sizeof(*msg));
 
 		stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
 
@@ -646,10 +654,17 @@ implementation
 
 			if (j == skippable_neighbours_size)
 			{
-				skippable_neighbours_size += 1;
+				if (skippable_neighbours_size == RTX_ATTEMPTS)
+				{
+					ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours internal buffer full\n");
+				}
+				else
+				{
+					skippable_neighbours_size += 1;
 
-				skippable_neighbours[j] = bad_neighbour;
-				skippable_neighbours_count[j] = 1;
+					skippable_neighbours[j] = bad_neighbour;
+					skippable_neighbours_count[j] = 1;
+				}
 			}
 			else
 			{
@@ -662,6 +677,12 @@ implementation
 		{
 			if (skippable_neighbours_count[i] >= BAD_NEIGHBOUR_THRESHOLD)
 			{
+				if (*bad_neighbours_size == RTX_ATTEMPTS)
+				{
+					ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours output buffer full\n");
+					break;
+				}
+
 				bad_neighbours[*bad_neighbours_size] = skippable_neighbours[i];
 				*bad_neighbours_size += 1;
 			}
@@ -918,7 +939,98 @@ implementation
 	}
 
 
-	event void ConsiderTimer.fired()
+	bool process_message(NormalMessage* message, message_queue_info_t* info, am_addr_t* next)
+	{
+		bool success = FALSE;
+
+		// If we have hit the maximum walk distance, switch to routing to sink
+		if (message->source_distance >= SLP_MAX_WALK_LENGTH)
+		{
+			message->stage = NORMAL_ROUTE_TO_SINK;
+
+			simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK for " NXSEQUENCE_NUMBER_SPEC " as max walk length has been hit\n",
+				message->sequence_number);
+		}
+
+		switch (message->stage)
+		{
+			case NORMAL_ROUTE_AVOID_SINK:
+			{
+				success = find_next_in_avoid_sink_route(info, next);
+
+				simdbgverbose("stdout", "Found next for " NXSEQUENCE_NUMBER_SPEC " in avoid sink route with " TOS_NODE_ID_SPEC " ret %u\n",
+					message->sequence_number, *next, success);
+
+				if (!success)
+				{
+					if (sink_source_distance != UNKNOWN_HOP_DISTANCE && source_distance != UNKNOWN_HOP_DISTANCE && source_distance < sink_source_distance)
+					{
+						// We are too close to the source and it is likely that we haven't yet gone
+						// around the sink. So lets try backtracking and finding another route.
+
+						message->stage = NORMAL_ROUTE_AVOID_SINK_BACKTRACK;
+
+						success = find_next_in_avoid_sink_backtrack_route(info, next);
+
+						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", *next);
+					}
+					else
+					{
+						// When we are done with avoiding the sink, we need to head to it
+						// No neighbours left to choose from, when far from the source
+
+						message->stage = NORMAL_ROUTE_TO_SINK;
+
+						success = find_next_in_to_sink_route(info, next);
+
+						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
+					}
+				}
+			} break;
+
+			case NORMAL_ROUTE_AVOID_SINK_BACKTRACK:
+			{
+				// Received a message after backtracking, now need to pick a better direction to send it in.
+				
+				message->stage = NORMAL_ROUTE_AVOID_SINK;
+
+				success = find_next_in_avoid_sink_route(info, next);
+
+				simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", *next);
+
+			} break;
+
+			case NORMAL_ROUTE_TO_SINK:
+			{
+				success = find_next_in_to_sink_route(info, next);
+			} break;
+
+			case NORMAL_ROUTE_FROM_SINK:
+			{
+				// AM_BROADCAST_ADDR is valid for this function
+				success = find_next_in_from_sink_route(info, next);
+			} break;
+
+			case NORMAL_ROUTE_AVOID_SINK_1_CLOSER:
+			{
+				// We want to avoid the sink in the future,
+				// while allowing it to get 1 hop closer this time.
+				
+				message->stage = NORMAL_ROUTE_AVOID_SINK;
+
+				success = find_next_in_to_sink_route(info, next);
+			} break;
+
+			default:
+			{
+				ERROR_OCCURRED(ERROR_UNKNOWN_MSG_STAGE, "Unknown message stage %" PRIu8 "\n", message->stage);
+			} break;
+		}
+
+		return success;
+	}
+
+	task void consider_message_to_send()
 	{
 		am_addr_t next = AM_BROADCAST_ADDR;
 		bool success = FALSE;
@@ -957,89 +1069,7 @@ implementation
 		message = *info_msg;
 		message.source_distance += 1;
 
-		// If we have hit the maximum walk distance, switch to routing to sink
-		if (message.source_distance >= SLP_MAX_WALK_LENGTH)
-		{
-			message.stage = NORMAL_ROUTE_TO_SINK;
-
-			simdbgverbose("stdout", "Switching to NORMAL_ROUTE_TO_SINK for " NXSEQUENCE_NUMBER_SPEC " as max walk length has been hit\n",
-				message.sequence_number);
-		}
-
-		switch (message.stage)
-		{
-			case NORMAL_ROUTE_AVOID_SINK:
-			{
-				success = find_next_in_avoid_sink_route(info, &next);
-
-				simdbgverbose("stdout", "Found next for " NXSEQUENCE_NUMBER_SPEC " in avoid sink route with " TOS_NODE_ID_SPEC " ret %u\n",
-					message.sequence_number, next, success);
-
-				if (!success)
-				{
-					if (sink_source_distance != UNKNOWN_HOP_DISTANCE && source_distance != UNKNOWN_HOP_DISTANCE && source_distance < sink_source_distance)
-					{
-						// We are too close to the source and it is likely that we haven't yet gone
-						// around the sink. So lets try backtracking and finding another route.
-
-						message.stage = NORMAL_ROUTE_AVOID_SINK_BACKTRACK;
-
-						success = find_next_in_avoid_sink_backtrack_route(info, &next);
-
-						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", next);
-					}
-					else
-					{
-						// When we are done with avoiding the sink, we need to head to it
-						// No neighbours left to choose from, when far from the source
-
-						message.stage = NORMAL_ROUTE_TO_SINK;
-
-						success = find_next_in_to_sink_route(info, &next);
-
-						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", next);
-					}
-				}
-			} break;
-
-			case NORMAL_ROUTE_AVOID_SINK_BACKTRACK:
-			{
-				// Received a message after backtracking, now need to pick a better direction to send it in.
-				
-				message.stage = NORMAL_ROUTE_AVOID_SINK;
-
-				success = find_next_in_avoid_sink_route(info, &next);
-
-				simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", next);
-
-			} break;
-
-			case NORMAL_ROUTE_TO_SINK:
-			{
-				success = find_next_in_to_sink_route(info, &next);
-			} break;
-
-			case NORMAL_ROUTE_FROM_SINK:
-			{
-				// AM_BROADCAST_ADDR is valid for this function
-				success = find_next_in_from_sink_route(info, &next);
-			} break;
-
-			case NORMAL_ROUTE_AVOID_SINK_1_CLOSER:
-			{
-				// We want to avoid the sink in the future,
-				// while allowing it to get 1 hop closer this time.
-				
-				message.stage = NORMAL_ROUTE_AVOID_SINK;
-
-				success = find_next_in_to_sink_route(info, &next);
-			} break;
-
-			default:
-			{
-				ERROR_OCCURRED(ERROR_UNKNOWN_MSG_STAGE, "Unknown message stage %" PRIu8 "\n", message.stage);
-			} break;
-		}
+		success = process_message(&message, info, &next);
 
 		if (success)
 		{
@@ -1113,7 +1143,12 @@ implementation
 		}
 	}
 
-	event void AwaySenderTimer.fired()
+	event void ConsiderTimer.fired()
+	{
+		post consider_message_to_send();
+	}
+
+	task void send_next_away_message()
 	{
 		AwayMessage message;
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
@@ -1141,6 +1176,11 @@ implementation
 				call AwaySenderTimer.startOneShot(SINK_AWAY_DELAY_MS);
 			}
 		}
+	}
+
+	event void AwaySenderTimer.fired()
+	{
+		post send_next_away_message();
 	}
 
 	void update_distances_from_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
