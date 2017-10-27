@@ -2,6 +2,7 @@
 #define SLP_METRIC_LOGGING_H
 
 #include "SerialMetricLoggingTypes.h"
+#include "pp.h"
 
 #if defined(USE_SERIAL_MESSAGES) || defined(NO_SERIAL_OUTPUT)
 
@@ -82,12 +83,17 @@
 #define METRIC_GENERIC(CODE, MESSAGE, ...) \
 	call MetricLogging.log_metric_generic(CODE, MESSAGE)
 #else
-#define METRIC_GENERIC(CODE, MESSAGE, ...) \
+#define METRIC_GENERIC_0(CODE, MESSAGE, ...) \
 	do { \
-		char stdout_message[256]; \
+		char stdout_message[128]; \
 		snprintf(stdout_message, ARRAY_SIZE(stdout_message), MESSAGE, ##__VA_ARGS__); \
 		call MetricLogging.log_metric_generic(CODE, stdout_message); \
 	} while (FALSE)
+
+#define METRIC_GENERIC_1(CODE, MESSAGE) \
+	call MetricLogging.log_metric_generic(CODE, MESSAGE)
+
+#define METRIC_GENERIC(...) PPCAT(METRIC_GENERIC_, IS_2(NARGS(__VA_ARGS__)))(__VA_ARGS__)
 #endif
 
 // No need to format messages when using serial message as the string will not be used.
@@ -95,12 +101,17 @@
 #define ERROR_OCCURRED(CODE, MESSAGE, ...) \
 	call MetricLogging.log_error_occurred(CODE, MESSAGE)
 #else
-#define ERROR_OCCURRED(CODE, MESSAGE, ...) \
+#define ERROR_OCCURRED_0(CODE, MESSAGE, ...) \
 	do { \
-		char error_message[256]; \
+		char error_message[128]; \
 		snprintf(error_message, ARRAY_SIZE(error_message), MESSAGE, ##__VA_ARGS__); \
 		call MetricLogging.log_error_occurred(CODE, error_message); \
 	} while (FALSE)
+
+#define ERROR_OCCURRED_1(CODE, MESSAGE) \
+	call MetricLogging.log_error_occurred(CODE, MESSAGE)
+
+#define ERROR_OCCURRED(...) PPCAT(ERROR_OCCURRED_, IS_2(NARGS(__VA_ARGS__)))(__VA_ARGS__)
 #endif
 
 // No need to format messages when using serial message as the string will not be used.
@@ -108,12 +119,17 @@
 #define LOG_STDOUT(CODE, MESSAGE, ...) \
 	call MetricLogging.log_stdout(CODE, MESSAGE)
 #else
-#define LOG_STDOUT(CODE, MESSAGE, ...) \
+#define LOG_STDOUT_0(CODE, MESSAGE, ...) \
 	do { \
-		char stdout_message[256]; \
+		char stdout_message[128]; \
 		snprintf(stdout_message, ARRAY_SIZE(stdout_message), MESSAGE, ##__VA_ARGS__); \
 		call MetricLogging.log_stdout(CODE, stdout_message); \
 	} while (FALSE)
+
+#define LOG_STDOUT_1(CODE, MESSAGE) \
+	call MetricLogging.log_stdout(CODE, MESSAGE)
+
+#define LOG_STDOUT(...) PPCAT(LOG_STDOUT_, IS_2(NARGS(__VA_ARGS__)))(__VA_ARGS__)
 #endif
 
 #ifdef SLP_VERBOSE_DEBUG
