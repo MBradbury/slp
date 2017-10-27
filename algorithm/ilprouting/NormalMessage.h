@@ -16,6 +16,11 @@ typedef enum {
 typedef nx_struct {
   NXSequenceNumber sequence_number;
 
+  // How many milliseconds elapsed between this message
+  // being added to the queue on the sender and the sender
+  // actually sending it.
+  nx_uint32_t time_taken_to_send;
+
   // The number of hops that this message
   // has travelled from the source. 
   nx_hop_distance_t source_distance;
@@ -29,8 +34,6 @@ typedef nx_struct {
   nx_uint16_t delay;
 
   nx_uint8_t stage;
-
-  nx_uint32_t time_taken_to_send;
 
 } NormalMessage;
 
