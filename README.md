@@ -123,14 +123,32 @@ You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
       Add a file called "/etc/apt/sources.list.d/tinyprod-debian.list" with the following contents:
 
         deb http://tinyprod.net/repos/debian wheezy main
-        deb http://tinyprod.net/repos/debian msp430-46 main
         deb http://tinyos.stanford.edu/tinyos/dists/ubuntu lucid main
 
    3. Install the dependencies
 
         :::bash
         sudo apt-get update
-        sudo apt-get install nesc tinyos-tools msp430-46 avr-tinyos
+        sudo apt-get install nesc tinyos-tools
+
+      If you are working with avrora, cooja or deploying to a testbed then you will want to install
+      the necessary cross compilers. There are two options here, either use the TinyOS packaged
+      compilers or use your operating system's toolchain.
+
+      Some issues have been observed with the MSP430 4.6.3 version distributed with both
+      TinyOS and Debian. Alternately you could download the latest MSP430-GCC from TI at
+      <http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/latest/index_FDS.html>.
+
+      TinyOS:
+
+        ::bash
+        deb http://tinyprod.net/repos/debian msp430-46 main
+        sudo apt-get install msp430-46 avr-tinyos
+
+      Debian:
+
+        :::bash
+        sudo apt-get-install gcc-msp430 gcc-avr
 
    4. Test tinyos worked
 
