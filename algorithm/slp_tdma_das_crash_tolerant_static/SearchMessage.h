@@ -9,6 +9,6 @@ typedef nx_struct SearchMessage {
 } SearchMessage;
 
 inline SequenceNumberWithBottom Search_get_sequence_number(const SearchMessage* msg) { return BOTTOM; }
-inline int32_t Search_get_source_id(const SearchMessage* msg) { return BOTTOM; }
+inline am_addr_t Search_get_source_id(const SearchMessage* msg) { return AM_BROADCAST_ADDR; }
 
 #endif /* SLP_MESSAGES_SEARCHMESSAGE_H */

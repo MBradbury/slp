@@ -22,7 +22,7 @@ typedef AwayChooseMessage AwayMessage;
 typedef AwayChooseMessage ChooseMessage;
 
 inline SequenceNumberWithBottom AwayChoose_get_sequence_number(const AwayChooseMessage* msg) { return msg->sequence_number; }
-inline int32_t AwayChoose_get_source_id(const AwayChooseMessage* msg) { return msg->source_id; }
+inline am_addr_t AwayChoose_get_source_id(const AwayChooseMessage* msg) { return msg->source_id; }
 
 #define Away_get_sequence_number AwayChoose_get_sequence_number
 #define Away_get_source_id AwayChoose_get_source_id

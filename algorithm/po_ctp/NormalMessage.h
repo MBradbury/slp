@@ -14,7 +14,7 @@ typedef nx_struct NormalMessage {
 } NormalMessage;
 
 inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
-inline int32_t Normal_get_source_id(const NormalMessage* msg) { return msg->source_id; }
+inline am_addr_t Normal_get_source_id(const NormalMessage* msg) { return msg->source_id; }
 
 typedef NormalMessage NormalFloodMessage;
 

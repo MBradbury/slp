@@ -9,6 +9,6 @@ typedef nx_struct EmptyNormalMessage {
 } EmptyNormalMessage;
 
 inline SequenceNumberWithBottom EmptyNormal_get_sequence_number(const EmptyNormalMessage* msg) { return BOTTOM; }
-inline int32_t EmptyNormal_get_source_id(const EmptyNormalMessage* msg) { return BOTTOM; }
+inline am_addr_t EmptyNormal_get_source_id(const EmptyNormalMessage* msg) { return AM_BROADCAST_ADDR; }
 
 #endif // SLP_MESSAGES_EMPTYNORMALMESSAGE_H

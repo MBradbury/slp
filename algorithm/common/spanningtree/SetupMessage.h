@@ -15,6 +15,6 @@ typedef nx_struct SetupMessage {
 } SetupMessage;
 
 inline SequenceNumberWithBottom Setup_get_sequence_number(const SetupMessage* msg) { return UNKNOWN_SEQNO; }
-inline int32_t Setup_get_source_id(const SetupMessage* msg) { return BOTTOM; }
+inline am_addr_t Setup_get_source_id(const SetupMessage* msg) { return AM_BROADCAST_ADDR; }
 
 #endif // SLP_MESSAGES_SETUPMESSAGE_H
