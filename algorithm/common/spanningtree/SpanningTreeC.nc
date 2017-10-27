@@ -140,6 +140,7 @@ implementation {
     new CircularBufferC(spanning_tree_data_header_t, SLP_SEND_QUEUE_SIZE) as SentCache;
 
   Routing.SentCache -> SentCache;
+  SentCache.Compare -> Routing.SpanningTreeHeaderCompare;
 
   // LinkEstimator wiring
 

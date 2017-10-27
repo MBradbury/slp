@@ -10,6 +10,8 @@ module SpanningTreeRoutingP
         interface Intercept[uint8_t id];
 
         interface Packet;
+
+        interface Compare<spanning_tree_data_header_t> as SpanningTreeHeaderCompare;
     }
 
     uses {
@@ -360,5 +362,14 @@ implementation
     event void LinkEstimator.evicted(am_addr_t neighbor)
     {
         
+    }
+
+    // Compare
+
+    command bool SpanningTreeHeaderCompare.equals(const spanning_tree_data_header_t* a, const spanning_tree_data_header_t* b)
+    {
+        return a->ultimate_source == b->ultimate_source &&
+               a->seqno == b->seqno &&
+               a->sub_id == b->sub_id;
     }
 }
