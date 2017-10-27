@@ -14,6 +14,7 @@ module SourceBroadcasterC
 	uses interface Boot;
 	uses interface Leds;
 
+	uses interface Packet;
 	uses interface AMPacket;
 
 	uses interface SplitControl as RadioControl;
