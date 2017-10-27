@@ -2,7 +2,7 @@
 generic module SetP(typedef Value, uint16_t MAX_SIZE)
 {
   provides interface Set<Value>;
-  uses interface Init;
+  provides interface Init;
 
   uses interface Compare<Value>;
 }
