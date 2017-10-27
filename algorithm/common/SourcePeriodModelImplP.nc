@@ -74,10 +74,15 @@ implementation
 		call EventTimer.stop();
 	}
 
+	task void signal_source_period_model()
+	{
+		signal SourcePeriodModel.fired();
+	}
+
 	event void EventTimer.fired()
 	{
 		call EventTimer.startOneShot(call SourcePeriodModel.get());
 
-		signal SourcePeriodModel.fired();
+		post signal_source_period_model();
 	}
 }
