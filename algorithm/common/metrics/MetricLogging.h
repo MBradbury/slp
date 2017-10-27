@@ -153,6 +153,8 @@ enum SLPErrorCodes {
 
     ERROR_BAD_HOP_DISTANCE = 19,
 
+    ERROR_NO_MEMORY = 20,
+
 	// Fake message based algorithm error codes
 	ERROR_CALLED_FMG_CALC_PERIOD_ON_NON_FAKE_NODE = 101,
 	ERROR_SEND_FAKE_PERIOD_ZERO = 102,
