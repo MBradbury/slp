@@ -1,6 +1,6 @@
 generic configuration SetC(typedef Value, uint16_t MAX_SIZE)
 {
-	provides interface Set;
+	provides interface Set<Value>;
 
 	uses interface Compare<Value>;
 }
