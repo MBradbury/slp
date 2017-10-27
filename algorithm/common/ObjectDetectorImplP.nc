@@ -85,6 +85,11 @@ implementation
 		}
 	}
 
+	task void signal_stopped_detecting()
+	{
+		signal ObjectDetector.stoppedDetecting();
+	}
+
 	command void ObjectDetector.start()
 	{
 		start_delay = 0;
@@ -100,7 +105,7 @@ implementation
 	command void ObjectDetector.stop()
 	{
 		detected = FALSE;
-		signal ObjectDetector.stoppedDetecting();
+		post signal_stopped_detecting();
 
 		call DetectionTimer.stop();
 		call ExpireTimer.stop();
@@ -146,7 +151,7 @@ implementation
 		simdbgverbose("stdout", "Stopped detecting an object.\n");
 
 		detected = FALSE;
-		signal ObjectDetector.stoppedDetecting();
+		post signal_stopped_detecting();
 
 		++current_index;
 

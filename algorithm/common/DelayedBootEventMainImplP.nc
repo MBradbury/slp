@@ -16,19 +16,24 @@ module DelayedBootEventMainImplP
 }
 implementation
 {
+	task void signal_booted()
+	{
+		signal Boot.booted();
+	}
+
 	event void OriginalBoot.booted()
 	{		
 #if defined(TESTBED)
 		call DelayTimer.startOneShot(DELAYED_BOOT_TIME_MINUTES * UINT32_C(60) * UINT32_C(1000));
 #else
-		signal Boot.booted();
+		post signal_booted();
 #endif
 	}
 
 #if defined(TESTBED)
 	event void DelayTimer.fired()
 	{
-		signal Boot.booted();
+		post signal_booted();
 	}
 #endif
 }
