@@ -132,8 +132,8 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
         return_code = proc.wait()
 
-        #if return_code:
-        #    raise subprocess.CalledProcessError(return_code, command)
+        if return_code:
+            raise subprocess.CalledProcessError(return_code, command)
 
     else:
         import copy
@@ -185,8 +185,8 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
                 return_code = proc.wait()
 
-                #if return_code:
-                #    raise subprocess.CalledProcessError(return_code, command)
+                if return_code:
+                    raise subprocess.CalledProcessError(return_code, command)
 
                 try:
                     sim.metrics.print_results()
