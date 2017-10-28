@@ -98,7 +98,7 @@ def create_csc(csc, target_directory, a):
     pcsc('      <script>')
     pcsc("""
 /* Make test automatically timeout after the safety period (milliseconds) */
-TIMEOUT({milliseconds_to_run}, log.log("last msg: " + msg + "\\n")); /* milliseconds. print last msg at timeout */
+TIMEOUT({milliseconds_to_run}, log.testOK()); /* milliseconds. print last msg at timeout */
 
 while (true)
 {{
