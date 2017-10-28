@@ -39,14 +39,14 @@ implementation
 		if (sequence_number == BOTTOM)
 		{
 			simdbg("M-CR",
-				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC ",-1," DISTANCE_SPEC "\n",
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",-1," DISTANCE_SPEC "\n",
 				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, distance);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("M-CR",
-				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_SPEC "," NXSEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," DISTANCE_SPEC "\n",
 				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, seqno, distance);
 		}
 	}
@@ -54,6 +54,7 @@ implementation
 	command void MetricLogging.log_metric_bcast(
 		const char* message_type,
 		error_t status,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		uint8_t tx_power
 		)
@@ -61,15 +62,15 @@ implementation
 		if (sequence_number == BOTTOM)
 		{
 			simdbg("M-CB",
-				MESSAGE_TYPE_SPEC ",%" PRIu8 ",-1,%" PRIu8 "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), status, tx_power);
+				MESSAGE_TYPE_SPEC ",%" PRIu8 "," TOS_NODE_ID_SPEC ",-1,%" PRIu8 "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), status, ultimate_source, tx_power);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("M-CB",
-				MESSAGE_TYPE_SPEC ",%" PRIu8 "," NXSEQUENCE_NUMBER_SPEC ",%" PRIu8 "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), status, seqno, tx_power);
+				MESSAGE_TYPE_SPEC ",%" PRIu8 "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%" PRIu8 "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), status, ultimate_source, seqno, tx_power);
 		}
 	}
 
@@ -77,7 +78,7 @@ implementation
 		const char* message_type,
 		am_addr_t target,
 		am_addr_t proximate_source,
-		int32_t ultimate_source_poss_bottom,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		int8_t rssi,
 		int16_t lqi
@@ -86,15 +87,15 @@ implementation
 		if (sequence_number == BOTTOM)
 		{
 			simdbg("M-CD", \
-				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1," RSSI_SPEC "," LQI_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source_poss_bottom, rssi, lqi);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",-1," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source, rssi, lqi);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("M-CD", \
-				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source_poss_bottom, seqno, rssi, lqi);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source, seqno, rssi, lqi);
 		}
 	}
 
@@ -102,7 +103,7 @@ implementation
 		const char* message_type,
 		const message_t* msg,
 		am_addr_t proximate_source,
-		int32_t ultimate_source_poss_bottom,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		int8_t rssi,
 		int16_t lqi
@@ -111,15 +112,15 @@ implementation
 		if (sequence_number == BOTTOM)
 		{
 			simdbg("A-R",
-				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC ",-1," RSSI_SPEC "," LQI_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, rssi, lqi);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",-1," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, rssi, lqi);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("A-R",
-				MESSAGE_TYPE_SPEC "," PROXIMATE_SOURCE_SPEC "," ULTIMATE_SOURCE_POSS_BOTTOM_SPEC "," NXSEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source_poss_bottom, seqno, rssi, lqi);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, seqno, rssi, lqi);
 		}
 	}
 
