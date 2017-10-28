@@ -102,9 +102,9 @@ TIMEOUT({milliseconds_to_run}, log.log("last msg: " + msg + "\\n")); /* millisec
 
 while (true)
 {{
-    YIELD();
-
     java.lang.System.err.println(time + "|" + msg);
+
+    YIELD();
 }}
 log.testOK(); /* Report test success and quit */
 """.format(
