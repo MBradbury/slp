@@ -660,7 +660,7 @@ implementation
 				}
 				else
 				{
-					skippable_neighbours_size += 1;
+					skippable_neighbours_size += UINT8_C(1);
 
 					skippable_neighbours[j] = bad_neighbour;
 					skippable_neighbours_count[j] = 1;
@@ -668,7 +668,7 @@ implementation
 			}
 			else
 			{
-				skippable_neighbours_count[j] += 1;
+				skippable_neighbours_count[j] += UINT8_C(1);
 			}
 		}
 
@@ -684,7 +684,7 @@ implementation
 				}
 
 				bad_neighbours[*bad_neighbours_size] = skippable_neighbours[i];
-				*bad_neighbours_size += 1;
+				*bad_neighbours_size += UINT8_C(1);
 			}
 		}
 	}
@@ -1086,7 +1086,7 @@ implementation
 			if (result != SUCCESS)
 			{
 				// Do not penalise failing to send the message here
-				info->rtx_attempts += 1;
+				info->rtx_attempts += UINT8_C(1);
 
 				// If we failed to send the message, try again in a bit
 				call ConsiderTimer.startOneShot(ALPHA_RETRY);
@@ -1102,7 +1102,7 @@ implementation
 			}
 
 			// Remove if unable to send
-			info->calculate_target_attempts -= 1;
+			info->calculate_target_attempts -= UINT8_C(1);
 
 			if (info->calculate_target_attempts == 0)
 			{
@@ -1191,8 +1191,8 @@ implementation
 		// a reliable source distance gradient. So do not record it.
 		if (rcvd->stage != NORMAL_ROUTE_FROM_SINK)
 		{
-			const hop_distance_t source_distance_of_sender = hop_distance_increment(rcvd->source_distance_of_sender);
-			source_distance = hop_distance_min(source_distance, source_distance_of_sender);
+			const hop_distance_t source_distance_of_sender_p1 = hop_distance_increment(rcvd->source_distance_of_sender);
+			source_distance = hop_distance_min(source_distance, source_distance_of_sender_p1);
 		}
 
 		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
@@ -1333,11 +1333,14 @@ implementation
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		ASSERT_MESSAGE(rcvd->sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, rcvd->sink_distance);
+		const hop_distance_t rcvd_sink_distance = rcvd->sink_distance;
+		const hop_distance_t rcvd_sink_distance_p1 = hop_distance_increment(rcvd->sink_distance);
 
-		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance, UNKNOWN_HOP_DISTANCE, 0);
+		ASSERT_MESSAGE(rcvd->sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, rcvd_sink_distance);
 
-		sink_distance = hop_distance_min(sink_distance, hop_distance_increment(rcvd->sink_distance));
+		UPDATE_NEIGHBOURS(source_addr, rcvd_sink_distance, UNKNOWN_HOP_DISTANCE, 0);
+
+		sink_distance = hop_distance_min(sink_distance, rcvd_sink_distance_p1);
 
 		if (call NodeType.get() == SourceNode)
 		{
@@ -1353,7 +1356,7 @@ implementation
 			METRIC_RCV_AWAY(rcvd);
 
 			message = *rcvd;
-			message.sink_distance += 1;
+			message.sink_distance = rcvd_sink_distance_p1;
 
 			ASSERT_MESSAGE(message.sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, message.sink_distance);
 
