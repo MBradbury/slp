@@ -49,7 +49,7 @@ class MetricsCommon(object):
         self.reported_source_ids = set() # set(configuration.source_ids)
         self.reported_sink_ids = set() # {configuration.sink_id}
 
-        self.node_booted_at = {}
+        self.node_booted_at = defaultdict(list)
 
         self.sent = defaultdict(Counter)
         self.received = defaultdict(Counter)
@@ -202,7 +202,11 @@ class MetricsCommon(object):
         self.message_types[int(ident)] = name
 
     def process_bcast_event(self, d_or_e, node_id, time, detail):
-        (kind, status, sequence_number, tx_power) = detail.split(',')
+        try:
+            (kind, status, ultimate_source_id, sequence_number, tx_power) = detail.split(',')
+        except ValueError:
+            (kind, status, sequence_number, tx_power) = detail.split(',')
+            ultimate_source_id = None
 
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
         if status != "0":
@@ -232,6 +236,25 @@ class MetricsCommon(object):
 
                 # Handle starting the duration timeout in the simulation running
                 self.sim.trigger_duration_run_start(time)
+
+        if __debug__:
+            if kind == "Normal" and ultimate_source_id is not None:
+                try:
+                    ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
+                    if ord_ultimate_source_id not in self.source_ids():
+                        message = "Node {} bcast a Normal message from {} which is not a source id ({}). Detail: {}".format(
+                            node_id, ord_ultimate_source_id, self.source_ids(), detail)
+                        if self.strict:
+                            raise RuntimeError(message)
+                        else:
+                            print("WARNING:", message, file=sys.stderr)
+                except KeyError:
+                    message = "Node {} bcast a Normal message from {} which is not a valid ordered node id. Detail: {}".format(
+                            node_id, ultimate_source_id, detail)
+                    if self.strict:
+                        raise RuntimeError(message)
+                    else:
+                        print("WARNING:", message, file=sys.stderr)
 
     def _record_direction_received(self, kind, ord_node_id, ord_proximate_source_id,
                                    further_hops, closer_or_same_hops,
@@ -346,15 +369,15 @@ class MetricsCommon(object):
                 try:
                     ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
                     if ord_ultimate_source_id not in self.source_ids():
-                        message = "Node {} received a Normal message from {} which is not a source id ({})".format(
-                            node_id, ord_ultimate_source_id, self.source_ids())
+                        message = "Node {} received a Normal message from {} which is not a source id ({}). Detail: {}".format(
+                            node_id, ord_ultimate_source_id, self.source_ids(), detail)
                         if self.strict:
                             raise RuntimeError(message)
                         else:
                             print("WARNING:", message, file=sys.stderr)
                 except KeyError:
-                    message = "Node {} received a Normal message from {} which is not a valid ordered node id".format(
-                            node_id, ultimate_source_id)
+                    message = "Node {} received a Normal message from {} which is not a valid ordered node id. Detail: {}".format(
+                            node_id, ultimate_source_id, detail)
                     if self.strict:
                         raise RuntimeError(message)
                     else:
@@ -362,7 +385,7 @@ class MetricsCommon(object):
 
     def process_node_booted(self, d_or_e, node_id, time, detail):
         ord_node_id, top_node_id = self._process_node_id(node_id)
-        self.node_booted_at[ord_node_id] = float(time)
+        self.node_booted_at[ord_node_id].append(float(time))
 
     def process_generic(self, d_or_e, node_id, time, detail):
         (kind, data) = detail.split(",", 1)
@@ -716,8 +739,11 @@ class MetricsCommon(object):
         else:
             return self.sim_time() >= self.sim.upper_bound_safety_period
 
-    def detected_boot_events_percentage(self):
-        return len(self.node_booted_at) / self.sim.configuration.size()
+    def detected_boot_events(self):
+        return len(self.node_booted_at)
+
+    def detected_boot_events_total(self):
+        return sum(len(l) for l in self.node_booted_at.values())
 
 
     def rcvd_closer_or_same_hops_all(self):
@@ -870,7 +896,8 @@ class MetricsCommon(object):
 
         d["FaultsOccured"]                 = lambda x: x.faults_occurred()
 
-        d["DetectedBoots"]                 = lambda x: x.detected_boot_events_percentage()
+        d["DetectedBoots"]                 = lambda x: x.detected_boot_events()
+        d["DetectedTotalBoots"]            = lambda x: x.detected_boot_events_total()
 
         # Link quality metrics
         #d["DeliveredRssi"]                 = lambda x: MetricsCommon.compressed_dict_str(x.delivered_rssi_stats())
@@ -931,6 +958,11 @@ class MetricsCommon(object):
         if len(self.node_booted_at) != self.sim.configuration.size():
             print("Some node's boot events were missed:", file=stream)
             print("\tMissing:", set(self.sim.configuration.topology.nodes.keys()) - set(self.node_booted_at.keys()))
+            print("\tExtra:", set(self.node_booted_at.keys()) - set(self.sim.configuration.topology.nodes.keys()))
+
+        for (nid, events) in self.node_booted_at.items():
+            if len(events) > 1:
+                print("Multiple boot events ({}) detected for {}".format(len(events), nid), file=stream)
 
     def memory_info(self, attr):
         """Memory usage of the current process in bytes."""

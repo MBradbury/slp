@@ -174,6 +174,7 @@ implementation
 	command void MetricLogging.log_metric_bcast(
 		const char* message_type,
 		error_t status,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		uint8_t tx_power
 		)
@@ -184,6 +185,7 @@ implementation
 
 		msg->message_type = call MessageType.from_string(message_type);
 		msg->status = status;
+		msg->ultimate_source = ultimate_source;
 		msg->sequence_number = sequence_number;
 		msg->tx_power = tx_power;
 
@@ -194,7 +196,7 @@ implementation
 		const char* message_type,
 		am_addr_t target,
 		am_addr_t proximate_source,
-		int32_t ultimate_source_poss_bottom,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		int8_t rssi,
 		int16_t lqi
@@ -207,7 +209,7 @@ implementation
 		msg->message_type = call MessageType.from_string(message_type);
 		msg->target = target;
 		msg->proximate_source = proximate_source;
-		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
+		msg->ultimate_source = ultimate_source;
 		msg->sequence_number = sequence_number;
 		msg->rssi = rssi;
 		msg->lqi = lqi;
@@ -219,7 +221,7 @@ implementation
 		const char* message_type,
 		const message_t* wsn_msg,
 		am_addr_t proximate_source,
-		int32_t ultimate_source_poss_bottom,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		int8_t rssi,
 		int16_t lqi
@@ -231,7 +233,7 @@ implementation
 
 		msg->message_type = call MessageType.from_string(message_type);
 		msg->proximate_source = proximate_source;
-		msg->ultimate_source_poss_bottom = ultimate_source_poss_bottom;
+		msg->ultimate_source = ultimate_source;
 		msg->sequence_number = sequence_number;
 		msg->rssi = rssi;
 		msg->lqi = lqi;

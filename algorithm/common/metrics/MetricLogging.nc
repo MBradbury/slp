@@ -17,6 +17,7 @@ interface MetricLogging
 	command void log_metric_bcast(
 		const char* message_type,
 		error_t status,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		uint8_t tx_power
 		);
@@ -25,7 +26,7 @@ interface MetricLogging
 		const char* message_type,
 		am_addr_t target,
 		am_addr_t proximate_source,
-		int32_t ultimate_source_poss_bottom,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		int8_t rssi,
 		int16_t lqi
@@ -35,7 +36,7 @@ interface MetricLogging
 		const char* message_type,
 		const message_t* msg,
 		am_addr_t proximate_source,
-		int32_t ultimate_source_poss_bottom,
+		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		int8_t rssi,
 		int16_t lqi
