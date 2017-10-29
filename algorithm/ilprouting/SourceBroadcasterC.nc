@@ -1214,7 +1214,7 @@ implementation
 
 			METRIC_GENERIC(METRIC_GENERIC_TIME_TAKEN_TO_SEND,
 				TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32,
-				rcvd->source_id, rcvd->sequence_number, source_addr, rcvd->time_taken_to_send);
+				seq_no_lookup.addr, seq_no_lookup.seq_no, source_addr, (uint32_t)rcvd->time_taken_to_send);
 
 			// If we are routing from the sink, only do so for a short number of hops
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
@@ -1358,7 +1358,7 @@ implementation
 			message = *rcvd;
 			message.sink_distance = rcvd_sink_distance_p1;
 
-			ASSERT_MESSAGE(message.sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, message.sink_distance);
+			ASSERT_MESSAGE(rcvd_sink_distance_p1 >= 0, "dsink=" HOP_DISTANCE_SPEC, (hop_distance_t)message.sink_distance);
 
 			send_Away_message(&message, AM_BROADCAST_ADDR);
 
