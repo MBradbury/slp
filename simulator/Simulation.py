@@ -365,7 +365,8 @@ class OfflineSimulation(object):
 
         # Hide warnings about gui events, when not running in GUI mode
         if not hasattr(self, "gui"):
-        	self.register_output_handler("G-NC", None)
+            self.register_output_handler("G-NC", None)
+            self.register_output_handler("LedsC", None)
 
         return self
 
