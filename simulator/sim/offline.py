@@ -110,11 +110,12 @@ def run_one_file(log_file, module, a, count=1, print_warnings=False):
             except Exception as ex:
                 import traceback
 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
 
                 print("Killing run due to {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
                 print("For parameters:", file=sys.stderr)
+                print("With seed:", sim.seed, file=sys.stderr)
                 print(all_args, file=sys.stderr)
                 print("In file: {}".format(log_file), file=sys.stderr)
 
@@ -129,11 +130,12 @@ def run_one_file(log_file, module, a, count=1, print_warnings=False):
             except Exception as ex:
                 import traceback
 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items() if k not in a.arguments_to_hide)
+                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
 
                 print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
                 print("For parameters:", file=sys.stderr)
+                print("With seed:", sim.seed, file=sys.stderr)
                 print(all_args, file=sys.stderr)
                 print("In file: {}".format(log_file), file=sys.stderr)
                 
