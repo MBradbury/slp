@@ -36,11 +36,13 @@ implementation
 		int16_t distance
 		)
 	{
-		if (sequence_number == BOTTOM)
+		if (sequence_number <= UNKNOWN_SEQNO)
 		{
+			const char* sequence_number_str = sequence_number == UNKNOWN_SEQNO ? "-1" : "-2";
+
 			simdbg("M-CR",
-				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",-1," DISTANCE_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, distance);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",%s," DISTANCE_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, sequence_number_str, distance);
 		}
 		else
 		{
@@ -59,11 +61,13 @@ implementation
 		uint8_t tx_power
 		)
 	{
-		if (sequence_number == BOTTOM)
+		if (sequence_number <= UNKNOWN_SEQNO)
 		{
+			const char* sequence_number_str = sequence_number == UNKNOWN_SEQNO ? "-1" : "-2";
+
 			simdbg("M-CB",
-				MESSAGE_TYPE_SPEC ",%" PRIu8 "," TOS_NODE_ID_SPEC ",-1,%" PRIu8 "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), status, ultimate_source, tx_power);
+				MESSAGE_TYPE_SPEC ",%" PRIu8 "," TOS_NODE_ID_SPEC ",%s,%" PRIu8 "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), status, ultimate_source, sequence_number_str, tx_power);
 		}
 		else
 		{
@@ -84,11 +88,13 @@ implementation
 		int16_t lqi
 		)
 	{
-		if (sequence_number == BOTTOM)
+		if (sequence_number <= UNKNOWN_SEQNO)
 		{
+			const char* sequence_number_str = sequence_number == UNKNOWN_SEQNO ? "-1" : "-2";
+
 			simdbg("M-CD", \
-				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",-1," RSSI_SPEC "," LQI_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source, rssi, lqi);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",%s," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source, sequence_number_str, rssi, lqi);
 		}
 		else
 		{
@@ -109,11 +115,13 @@ implementation
 		int16_t lqi
 		)
 	{
-		if (sequence_number == BOTTOM)
+		if (sequence_number <= UNKNOWN_SEQNO)
 		{
+			const char* sequence_number_str = sequence_number == UNKNOWN_SEQNO ? "-1" : "-2";
+
 			simdbg("A-R",
-				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",-1," RSSI_SPEC "," LQI_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, rssi, lqi);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",%s," RSSI_SPEC "," LQI_SPEC "\n",
+				MESSAGE_TYPE_CONVERTER(message_type), proximate_source, ultimate_source, sequence_number_str, rssi, lqi);
 		}
 		else
 		{
