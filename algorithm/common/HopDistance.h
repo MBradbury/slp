@@ -6,7 +6,7 @@ typedef nx_int16_t nx_hop_distance_t;
 
 #define HOP_DISTANCE_SPEC "%" PRIi16
 
-#define UNKNOWN_HOP_DISTANCE (-1)
+#define UNKNOWN_HOP_DISTANCE INT16_C(-1)
 
 inline hop_distance_t hop_distance_increment_nocheck(hop_distance_t x)
 {
