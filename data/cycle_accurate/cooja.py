@@ -21,7 +21,11 @@ def url():
     return "http://www.contiki-os.org"
 
 def build_arguments():
-    return {}
+    return {
+        # Enable GUI output all the time, otherwise SINGLE and GUI
+        # runs will differ even if the seeds are the same
+        "SLP_USES_GUI_OUPUT": 1,
+    }
 
 def fastserial_supported():
     return True
