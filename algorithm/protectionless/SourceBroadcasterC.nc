@@ -7,7 +7,7 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
 
 module SourceBroadcasterC
 {
@@ -35,6 +35,10 @@ module SourceBroadcasterC
 
 implementation
 {
+#ifdef SLP_DEBUG
+	#include "HopDistanceDebug.h"
+#endif
+
 	bool busy;
 	message_t packet;
 
@@ -137,11 +141,11 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			simdbgverbose("SourceBroadcasterC", "Received unseen Normal seqno=" NXSEQUENCE_NUMBER_SPEC " from %u.\n",
+			simdbgverbose("SourceBroadcasterC", "Received unseen Normal seqno=" NXSEQUENCE_NUMBER_SPEC " from " TOS_NODE_ID_SPEC ".\n",
 				rcvd->sequence_number, source_addr);
 
 			forwarding_message = *rcvd;
-			forwarding_message.source_distance += 1;
+			forwarding_message.source_distance = hop_distance_increment(forwarding_message.source_distance);
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
