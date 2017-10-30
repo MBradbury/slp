@@ -54,7 +54,7 @@ def cooja_command(module, a, configuration):
     try:
         cooja_path = os.path.join(os.environ["CONTIKI_DIR"], "tools", "cooja", "dist", "cooja.jar")
     except KeyError:
-        raise RuntimeError("Unable to find the environment variable AVRORA_JAR_PATH so cannot run avrora.")
+        raise RuntimeError("Unable to find the environment variable CONTIKI_DIR so cannot run cooja.")
 
     target_directory = module.replace(".", "/")
 
