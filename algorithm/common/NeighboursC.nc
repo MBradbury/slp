@@ -13,7 +13,7 @@ generic configuration NeighboursC(
 }
 implementation
 {
-	components new NeighboursImplC(Info, MAX_SIZE, NBeaconMessage, NPollMessage) as App;
+	components new NeighboursImplC(Info, NBeaconMessage, NPollMessage) as App;
 
 	Neighbours = App;
 
