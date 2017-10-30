@@ -2,7 +2,7 @@ from __future__ import print_function, division
 
 def parsers():
     return [
-        ("SINGLE", None, ["verbose", "seed", "configuration", "network size", "distance",
+        ("SINGLE", None, ["verbose", "debug", "seed", "configuration", "network size", "distance",
                           "node id order", "safety period",
                           "communication model", "noise model", "attacker model", "fault model",
                           "start time"]),

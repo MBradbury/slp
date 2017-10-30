@@ -116,6 +116,9 @@ OPTS = {
     "verbose":             lambda x, **kwargs: x.add_argument("-v", "--verbose",
                                                               action="store_true"),
 
+    "debug":               lambda x, **kwargs: x.add_argument("--debug",
+                                                              action="store_true"),
+
     "seed":                lambda x, **kwargs: x.add_argument("--seed",
                                                               type=int,
                                                               required=False,
@@ -279,7 +282,7 @@ class ArgumentsCommon(object):
         self.args = None
 
         # Don't show these arguments when printing the argument values before showing the results
-        self.arguments_to_hide = {"job_id", "verbose", "gui_node_label", "gui_scale", "mode", "seed", "thread_count"}
+        self.arguments_to_hide = {"job_id", "verbose", "debug", "gui_node_label", "gui_scale", "mode", "seed", "thread_count"}
 
     def add_argument(self, *args, **kwargs):
         for sim in self._subparsers:
@@ -326,6 +329,9 @@ class ArgumentsCommon(object):
 
         if self.args.verbose:
             result["SLP_VERBOSE_DEBUG"] = 1
+
+        if hasattr(self.args, "debug") and self.args.debug:
+            result["SLP_DEBUG"] = 1
 
         # Only enable things like LEDS for the cases that we will use them
         # We could enable them for the testbed, but we get better reliability and performance by not doing so
