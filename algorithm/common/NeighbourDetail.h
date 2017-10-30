@@ -47,7 +47,7 @@
 				find = &neighbours->data[neighbours->size]; \
  \
 				find->address = address; \
-				memcpy(&find->contents, new_detail, sizeof(TYPE)); \
+				find->contents = *new_detail; \
  \
 				neighbours->size += 1; \
 			} \
