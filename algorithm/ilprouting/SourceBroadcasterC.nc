@@ -587,7 +587,8 @@ implementation
 			{
 				const NormalMessage* const normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
-				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ", %" PRIu16 ") for the message\n",
+				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND,
+					"Unable to find the dict key (" NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ") for the message\n",
 					normal_message->sequence_number, normal_message->source_id);
 
 //#ifdef SLP_VERBOSE_DEBUG
