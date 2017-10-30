@@ -416,7 +416,7 @@ implementation
 				(uint32_t)rcvd->time_taken_to_send, (uint16_t)rcvd->delay);
 		}
 
-		memcpy(&item->msg, msg, sizeof(*msg));
+		item->msg = *msg;
 
 		stored_normal_message = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
 
