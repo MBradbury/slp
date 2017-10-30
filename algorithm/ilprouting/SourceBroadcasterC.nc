@@ -134,20 +134,6 @@ implementation
 
 	// Rest
 
-	// Produces a random float between 0 and 1
-	float random_float(void)
-	{
-		// There appears to be problem with the 32 bit random number generator
-		// in TinyOS that means it will not generate numbers in the full range
-		// that a 32 bit integer can hold. So use the 16 bit value instead.
-		// With the 16 bit integer we get better float values to compared to the
-		// fake source probability.
-		// Ref: https://github.com/tinyos/tinyos-main/issues/248
-		const uint16_t rnd = call Random.rand16();
-
-		return ((float)rnd) / UINT16_MAX;
-	}
-
 	event void Boot.booted()
 	{
 		METRIC_BOOT();
@@ -341,6 +327,10 @@ implementation
 		return begin[0];
 	}
 
+	enum {
+		SLP_PR_SEND_DIRECT_TO_SINK_INT = (uint16_t)(UINT16_MAX * SLP_PR_SEND_DIRECT_TO_SINK)
+	};
+
 	bool source_should_send_to_sink(void)
 	{
 		// Wait for a few messages to head out before doing this.
@@ -350,7 +340,7 @@ implementation
 			return FALSE;
 		}
 
-		return random_float() <= SLP_PR_SEND_DIRECT_TO_SINK;
+		return call Random.rand16() <= SLP_PR_SEND_DIRECT_TO_SINK_INT;
 	}
 
 	void put_back_in_pool(message_queue_info_t* info)
