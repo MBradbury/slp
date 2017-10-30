@@ -5,9 +5,9 @@ typedef struct {
 } slp_period_t;
 
 // indexes contains node ids in topology format
-const am_addr_t indexes[] = SOURCE_DETECTED_INDEXES;
-const slp_period_t periods[SOURCE_DETECTED_NUM_NODES][SOURCE_DETECTED_NUM_CHANGES] = SOURCE_DETECTED_PERIODS;
-const uint32_t periods_lengths[] = SOURCE_DETECTED_PERIODS_LENGTHS;
+static const am_addr_t indexes[] = SOURCE_DETECTED_INDEXES;
+static const slp_period_t periods[SOURCE_DETECTED_NUM_NODES][SOURCE_DETECTED_NUM_CHANGES] = SOURCE_DETECTED_PERIODS;
+static const uint32_t periods_lengths[] = SOURCE_DETECTED_PERIODS_LENGTHS;
 
 module ObjectDetectorImplP
 {
