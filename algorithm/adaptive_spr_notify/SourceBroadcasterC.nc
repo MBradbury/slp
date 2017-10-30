@@ -129,27 +129,18 @@ implementation
 
 	Algorithm algorithm;
 
-	// Produces a random float between 0 and 1
-	float random_float(void)
+	uint16_t random_interval(uint16_t min, uint16_t max)
 	{
-		// There appears to be problem with the 32 bit random number generator
-		// in TinyOS that means it will not generate numbers in the full range
-		// that a 32 bit integer can hold. So use the 16 bit value instead.
-		// With the 16 bit integer we get better float values to compared to the
-		// fake source probability.
-		// Ref: https://github.com/tinyos/tinyos-main/issues/248
-		const uint16_t rnd = call Random.rand16();
-
-		return ((float)rnd) / UINT16_MAX;
+		return min + call Random.rand16() / (UINT16_MAX / (max - min + 1) + 1);
 	}
 
 	bool pfs_can_become_normal(void)
 	{
 		switch (algorithm)
 		{
-		case GenericAlgorithm:	return TRUE;
-		case FurtherAlgorithm:	return FALSE;
-		default:				return FALSE;
+		case GenericAlgorithm:  return TRUE;
+		case FurtherAlgorithm:  return FALSE;
+		default:                return FALSE;
 		}
 	}
 
@@ -165,7 +156,7 @@ implementation
 		return 1 + (call Random.rand16() % 2);
 
 #else
-#	error "Technique not specified"
+#   error "Technique not specified"
 #endif
 	}
 
@@ -174,7 +165,7 @@ implementation
 		const uint32_t distance = get_dist_to_pull_back();
 
 		//simdbgverbose("stdout", "get_tfs_num_msg_to_send=%u, (Dsrc=%d, Dsink=%d, Dss=%d)\n",
-		//	distance, source_distance, sink_distance, sink_source_distance);
+		//  distance, source_distance, sink_distance, sink_source_distance);
 
 		return distance;
 	}
@@ -213,12 +204,27 @@ implementation
 		const uint32_t seq_inc = source_fake_sequence_increments + 1;
 		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
 
-		const double ratio = seq_inc / (double)counter;
+		uint32_t result_period;
 
+		ASSERT_MESSAGE(seq_inc <= counter, "Seen more fake than has been generated.");
+
+		// The double version:
+		/*const double ratio = seq_inc / (double)counter;
 		const uint32_t result_period = ceil(SOURCE_PERIOD_MS * ratio);
+		//simdbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
+		//  result_period, counter, seq_inc, ratio);
+		*/
 
-		simdbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
-			result_period, counter, seq_inc, ratio);
+		// The integer version:
+		// TODO: Consider how to handle integer overflow
+		if (seq_inc == counter)
+		{
+			result_period = SOURCE_PERIOD_MS;
+		}
+		else
+		{
+			result_period = (SOURCE_PERIOD_MS * seq_inc) / counter;
+		}
 
 		return result_period;
 	}
@@ -401,7 +407,7 @@ implementation
 
 	uint32_t beacon_send_wait(void)
 	{
-		return 75U + (uint32_t)(50U * random_float());
+		return 75U + random_interval(0, 50);
 	}
 
 	void become_Normal(void)
@@ -604,7 +610,7 @@ implementation
 				{
 					call ChooseSenderTimer.startOneShot(AWAY_DELAY_MS);
 				}
-			}			
+			}
 		}
 	}
 
