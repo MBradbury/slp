@@ -12,7 +12,7 @@
 #define BEACON_RETRY_SEND_DELAY 65
 
 generic module NeighboursImplC(
-	typedef Info, uint8_t MAX_SIZE,
+	typedef Info,
 	typedef BeaconMessage,
 	typedef PollMessage)
 {
