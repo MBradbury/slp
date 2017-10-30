@@ -416,7 +416,14 @@ implementation
 		}
 		else
 		{
-			simdbgverbose("stdout", "Overwriting message in the queue with a message of the same seq no and source id\n");
+			const NormalMessage* current = (NormalMessage*)call NormalSend.getPayload(&item->msg, sizeof(NormalMessage));
+			const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+
+			LOG_STDOUT(ILPROUTING_OVERWRITING_QUEUED_NORMAL,
+				"Overwriting Normal message (" NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ") [tts=%" PRIu32 ",delay=%" PRIu16 "] with the same [tts=%" PRIu32 ",delay=%" PRIu16 "]\n",
+				rcvd->sequence_number, rcvd->source_id,
+				(uint32_t)current->time_taken_to_send, (uint16_t)current->delay,
+				(uint32_t)rcvd->time_taken_to_send, (uint16_t)rcvd->delay);
 		}
 
 		memcpy(&item->msg, msg, sizeof(*msg));
@@ -436,10 +443,37 @@ implementation
 
 		if (has_enough_messages_to_send())
 		{
-			// TODO: Look at a way to choose to_delay when sink_source_distance == BOTTOM
-			const uint16_t to_delay = (stored_normal_message->source_distance < sink_source_distance)
-				? stored_normal_message->delay
-				: ALPHA;
+			uint16_t to_delay;
+
+			// If this message is passed the sink, then do not add extra delay
+			if (sink_source_distance != UNKNOWN_HOP_DISTANCE &&
+				stored_normal_message->source_distance >= sink_source_distance)
+			{
+				to_delay = ALPHA;
+			}
+			else
+			{
+				const uint16_t delay = stored_normal_message->delay;
+				const uint32_t time_taken_to_send = stored_normal_message->time_taken_to_send;
+
+				// If it took the previous sender more time to get this message delivered
+				// than the amount we should delay it for, then just use alpha.
+				// Otherwise, use the delay minus the extra time that has already been used
+				if (time_taken_to_send >= delay)
+				{
+					to_delay = ALPHA;
+				}
+				else
+				{
+					// Make sure that there is a minimum delay of ALPHA
+					to_delay = max(ALPHA, delay - time_taken_to_send);
+				}
+			}
+
+			METRIC_GENERIC(METRIC_GENERIC_NEXT_NORMAL_DELAY,
+				NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32 ",%" PRIu16 ",%" PRIu16,
+				stored_normal_message->sequence_number, stored_normal_message->source_id,
+				(uint32_t)stored_normal_message->time_taken_to_send, (uint16_t)stored_normal_message->delay, to_delay);
 
 			call ConsiderTimer.startOneShot(to_delay);
 		}
