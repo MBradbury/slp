@@ -9,7 +9,7 @@ def parsers():
     # Allowing randomised will break the ability to build one binary and use
     # it with different random seeds
 
-    raw_single_common = ["verbose", "seed", "configuration", "network size", "distance",
+    raw_single_common = ["verbose", "debug", "seed", "configuration", "network size", "distance",
                          "fault model", "node id order", "safety period", "start time",
                          "low power listening", "cooja", "cc2420"]
 
