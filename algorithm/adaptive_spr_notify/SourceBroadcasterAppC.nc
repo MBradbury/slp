@@ -15,10 +15,12 @@ implementation
 	components DelayedBootEventMainP as MainC;
 	components LedsWhenGuiC as LedsC;
 	components RandomC;
+	components CrcC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 	App.Random -> RandomC;
+	App.Crc -> CrcC;
 
 	components MetricLoggingP as MetricLogging;
 	App.MetricLogging -> MetricLogging;

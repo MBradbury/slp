@@ -1,14 +1,13 @@
 #ifndef SLP_SENDRECEIVEFUNCTIONS_H
 #define SLP_SENDRECEIVEFUNCTIONS_H
 
+#include <inttypes.h>
+
 // Include tos/types/message.h to get TOSH_DATA_LENGTH defined
-#include "message.h"
+#include <message.h>
 
 #include "MetricLogging.h"
-
 #include "pp.h"
-
-#include <inttypes.h>
 
 #define MSG_GET_NAME(TYPE, NAME) PPCAT(PPCAT(TYPE, _get_), NAME)
 #define MSG_GET(TYPE, NAME, MSG) MSG_GET_NAME(TYPE, NAME)(MSG)
@@ -16,6 +15,16 @@
 #define SEND_LED_ON call Leds.led0On()
 #define SEND_LED_OFF call Leds.led0Off()
 
+// I've been having problems with messages arriving corrupted
+// It looks like the steps that TinyOS takes to ensure message
+// delivery are not sufficient.
+//
+// This code adds a 16 bit crc to the send of messages sent with
+// this interface and will check it is valid when a message
+// is received.
+//
+// To disable this simply define SLP_NO_CRC_CHECKS before including
+// this file. <algorithm>/Common.h is probably a good place to do so.
 #ifndef SLP_NO_CRC_CHECKS
 #	define PAYLOAD_LENGTH(NAME) (sizeof(NAME##Message) + sizeof(uint16_t))
 #	define SET_CRC(NAME, message) *(nx_uint16_t*)(message + 1) = call Crc.crc16(message, sizeof(NAME##Message))
