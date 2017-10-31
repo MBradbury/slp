@@ -112,7 +112,9 @@ module SourceBroadcasterC
 
 implementation
 {
+#ifdef SLP_DEBUG
 	#include "HopDistanceDebug.h"
+#endif
 
 	bool busy;
 	message_t packet;
