@@ -416,6 +416,25 @@ implementation
 		SERIAL_END_SEND(metric_rssi_msg_t)
 	}
 
+	command void MetricLogging.log_metric_bad_crc(
+		const char* message_type,
+		const void* payload,
+		uint8_t msg_size,
+		uint16_t rcvd_crc,
+		uint16_t calc_crc
+		)
+	{
+		SERIAL_START_SEND(metric_rssi_msg_t)
+
+		msg->type = AM_METRIC_BAD_CRC_MSG;
+		
+		msg->message_type = call MessageType.from_string(message_type);
+		msg->rcvd_crc = rcvd_crc;
+		msg->calc_crc = calc_crc;
+
+		SERIAL_END_SEND(metric_rssi_msg_t)
+	}
+
 	command void MetricLogging.log_metric_generic(
 		uint16_t kind,
 		const char* message

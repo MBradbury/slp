@@ -268,6 +268,22 @@ implementation
 				average, smallest, largest, reads, channel);
 	}
 
+	command void MetricLogging.log_metric_bad_crc(
+		const char* message_type,
+		const void* payload,
+		uint8_t msg_size,
+		uint16_t rcvd_crc,
+		uint16_t calc_crc
+		)
+	{
+		char payload_str[TOSH_DATA_LENGTH * 2 + 1];
+		snprintf_hex_buffer(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
+
+		simdbgerror("stderr",
+			"%" PRIu16 "," MESSAGE_TYPE_SPEC ",%04X,%04X,%s\n",
+			ERROR_INVALID_CRC, MESSAGE_TYPE_CONVERTER(message_type), rcvd_crc, calc_crc, payload_str);
+	}
+
 	command void MetricLogging.log_metric_generic(
 		uint16_t code,
 		const char* message

@@ -108,6 +108,14 @@ interface MetricLogging
 		uint8_t channel
 		);
 
+	command void log_metric_bad_crc(
+		const char* message_type,
+		const void* payload,
+		uint8_t msg_size,
+		uint16_t rcvd_crc,
+		uint16_t calc_crc
+		);
+
 	// Allow arbitrary data logging
 	command void log_metric_generic(
 		uint16_t code,
