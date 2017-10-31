@@ -18,8 +18,8 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
-#define METRIC_RCV_POLL(msg) METRIC_RCV(Poll, source_addr, BOTTOM, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, AM_BROADCAST_ADDR, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
+#define METRIC_RCV_POLL(msg) METRIC_RCV(Poll, source_addr, AM_BROADCAST_ADDR, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
 
 void ni_update(ni_container_t* find, ni_container_t const* given)
 {
@@ -685,7 +685,7 @@ implementation
 				}
 				else
 				{
-					skippable_neighbours_size += UINT8_C(1);
+					skippable_neighbours_size++;
 
 					skippable_neighbours[j] = bad_neighbour;
 					skippable_neighbours_count[j] = 1;
@@ -693,7 +693,7 @@ implementation
 			}
 			else
 			{
-				skippable_neighbours_count[j] += UINT8_C(1);
+				skippable_neighbours_count[j]++;
 			}
 		}
 
@@ -709,7 +709,7 @@ implementation
 				}
 
 				bad_neighbours[*bad_neighbours_size] = skippable_neighbours[i];
-				*bad_neighbours_size += UINT8_C(1);
+				(*bad_neighbours_size)++;
 			}
 		}
 	}

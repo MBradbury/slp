@@ -55,6 +55,8 @@ class MetricsCommon(object):
         self.received = defaultdict(Counter)
         self.delivered = defaultdict(Counter)
 
+        self.messages_broadcast = OrderedDict()
+
         self._time_bin_width = 0.5
         self.sent_over_time = defaultdict(list)
 
@@ -220,7 +222,7 @@ class MetricsCommon(object):
 
     def process_bcast_event(self, d_or_e, node_id, time, detail):
         try:
-            (kind, status, ultimate_source_id, sequence_number, tx_power) = detail.split(',')
+            (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
         except ValueError:
             (kind, status, sequence_number, tx_power) = detail.split(',')
             ultimate_source_id = None
@@ -228,6 +230,11 @@ class MetricsCommon(object):
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
         if status != "0":
             return
+
+        key = (str(node_id), kind, ultimate_source_id, sequence_number)
+        if key not in self.messages_broadcast:
+            self.messages_broadcast[key] = list()
+        self.messages_broadcast[key].append(hex_buffer)
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
         time = float(time)
@@ -351,9 +358,27 @@ class MetricsCommon(object):
 
     def process_deliver_event(self, d_or_e, node_id, time, detail):
         try:
-            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
         except ValueError:
             (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+
+        if __debug__:
+            try:
+                sent_hex_buffers = self.messages_broadcast[(proximate_source_id, kind, ultimate_source_id, sequence_number)]
+
+                if all(sent_hex_buffer != hex_buffer for sent_hex_buffer in sent_hex_buffers):
+                    sent_hex_buffer_str = "\n".join("\t{}".format(sent_hex_buffer) for sent_hex_buffer in sent_hex_buffers)
+
+                    raise RuntimeError("The received hex buffer does not match any sent buffer for prox-src={}, kind={}, ult-src={}, seq-no={}\nSent:\n{}\nReceived:\n\t{}".format(
+                        proximate_source_id, kind, ultimate_source_id, sequence_number,
+                        sent_hex_buffer_str,
+                        hex_buffer))
+
+            except KeyError as ex:
+                print("Received {} but unable to find a matching key".format(hex_buffer), file=sys.stderr)
+                for (k, v) in self.messages_broadcast.items():
+                    print("{}: {}".format(k, v), file=sys.stderr)
+                raise
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
         ord_prox_src_id, top_prox_src_id = self._process_node_id(proximate_source_id)

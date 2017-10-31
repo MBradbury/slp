@@ -16,6 +16,8 @@ interface MetricLogging
 
 	command void log_metric_bcast(
 		const char* message_type,
+		const void* payload,
+		uint8_t msg_size,
 		error_t status,
 		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
@@ -24,6 +26,9 @@ interface MetricLogging
 
 	command void log_metric_deliver(
 		const char* message_type,
+		const message_t* msg,
+		const void* payload,
+		uint8_t msg_size,
 		am_addr_t target,
 		am_addr_t proximate_source,
 		am_addr_t ultimate_source,
@@ -35,6 +40,8 @@ interface MetricLogging
 	command void log_attacker_receive(
 		const char* message_type,
 		const message_t* msg,
+		const void* payload,
+		uint8_t msg_size,
 		am_addr_t proximate_source,
 		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,

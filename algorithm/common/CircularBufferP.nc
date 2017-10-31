@@ -23,7 +23,7 @@ implementation
 		values[idx] = item;
 
 		if (size != BUFFER_SIZE)
-			size += 1;
+			size++;
 	}
 
 	command bool Cache.lookup(value_t item)
