@@ -48,7 +48,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, sizeof(*tosend), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -56,7 +56,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, sizeof(*tosend), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -104,7 +104,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, sizeof(*tosend), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -112,7 +112,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, sizeof(*tosend), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -154,7 +154,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, sizeof(*tosend), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -162,7 +162,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, sizeof(*tosend), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -175,6 +175,8 @@ inline bool send_##NAME##_message(const NAME##Message* tosend) \
 #define SEND_DONE_NO_EXTRA_TO_SEND(NAME, CALLBACK) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
 { \
+	message_t msg_copy = *msg; \
+ \
 	LOG_STDOUT_VERBOSE(EVENT_SEND_DONE, #NAME " Send sendDone with status %i.\n", error); \
  \
 	if (&packet == msg) \
@@ -183,12 +185,14 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 		busy = FALSE; \
 	} \
  \
-	(CALLBACK)(msg, error); \
+	(CALLBACK)(&msg_copy, error); \
 }
 
 #define SEND_DONE(NAME, CALLBACK) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
 { \
+	message_t msg_copy = *msg; \
+ \
 	LOG_STDOUT_VERBOSE(EVENT_SEND_DONE, #NAME " Send sendDone with status %i.\n", error); \
  \
 	if (&packet == msg) \
@@ -212,12 +216,14 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 		} \
 	} \
  \
-	(CALLBACK)(msg, error); \
+	(CALLBACK)(&msg_copy, error); \
 }
 
 #define SEND_DONE_NO_TARGET(NAME, CALLBACK) \
 event void NAME##Send.sendDone(message_t* msg, error_t error) \
 { \
+	message_t msg_copy = *msg; \
+ \
 	LOG_STDOUT_VERBOSE(EVENT_SEND_DONE, #NAME " Send sendDone with status %i.\n", error); \
  \
 	if (&packet == msg) \
@@ -226,7 +232,7 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 		busy = FALSE; \
 	} \
  \
-	(CALLBACK)(msg, error); \
+	(CALLBACK)(&msg_copy, error); \
 }
 
 #define RECEIVE_MESSAGE_BEGIN(NAME, KIND) \
@@ -239,10 +245,10 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	const int8_t rssi = call MetricHelpers.getRssi(msg); \
 	const int16_t lqi = call MetricHelpers.getLqi(msg); \
  \
-    const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
-    const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
+	const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
+	const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
  \
- 	ATTACKER_RCV(NAME, msg, source_addr, ultimate_source, sequence_number, rssi, lqi); \
+ 	ATTACKER_RCV(NAME, msg, payload, len, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
@@ -253,7 +259,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
  \
 	LOG_STDOUT_VERBOSE(EVENT_##KIND##_VALID_PACKET, #KIND "'ed valid " #NAME ".\n"); \
  \
-	METRIC_DELIVER(NAME, dest_addr, source_addr, ultimate_source, sequence_number, rssi, lqi); \
+	METRIC_DELIVER(NAME, msg, payload, len, dest_addr, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \
 	switch (call NodeType.get()) \
 	{
@@ -285,7 +291,10 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	const int8_t rssi = call MetricHelpers.getRssi(msg); \
 	const int16_t lqi = call MetricHelpers.getLqi(msg); \
  \
- 	ATTACKER_RCV(NAME, msg, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi, lqi); \
+	const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
+	const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
+ \
+ 	ATTACKER_RCV(NAME, msg, payload, len, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \
 	if (len != sizeof(NAME##Message)) \
 	{ \
@@ -295,7 +304,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
  \
 	LOG_STDOUT_VERBOSE(EVENT_##KIND##_VALID_PACKET, #KIND "'ed valid " #NAME ".\n"); \
  \
-	METRIC_DELIVER(NAME, dest_addr, source_addr, MSG_GET(NAME, source_id, rcvd), MSG_GET(NAME, sequence_number, rcvd), rssi, lqi); \
+	METRIC_DELIVER(NAME, msg, payload, len, dest_addr, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \
 	switch (call NodeType.get()) \
 	{

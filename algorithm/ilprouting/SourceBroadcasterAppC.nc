@@ -19,7 +19,7 @@ implementation
 	components DelayedBootEventMainP as MainC;
 	components LedsWhenGuiC as LedsC;
 	components RandomC;
-	
+
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 	App.Random -> RandomC;

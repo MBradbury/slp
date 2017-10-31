@@ -75,7 +75,7 @@ implementation
 		{
 			// TODO: FIXME
 			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
-			METRIC_BCAST(Normal, SUCCESS, UNKNOWN_SEQNO, call MetricHelpers.getTxPower(packet));
+			METRIC_BCAST(Normal, NULL, 0, SUCCESS, UNKNOWN_SEQNO, call MetricHelpers.getTxPower(packet));
 		}
 
 		return SUCCESS;
@@ -85,7 +85,7 @@ implementation
 
 		if (event_type == NET_C_TREE_SENT_BEACON)
 		{
-			METRIC_BCAST(CTPBeacon, SUCCESS, UNKNOWN_SEQNO, call MetricHelpers.getTxPower(packet));
+			METRIC_BCAST(CTPBeacon, NULL, 0, SUCCESS, UNKNOWN_SEQNO, call MetricHelpers.getTxPower(packet));
 		}
 
 		else if (event_type == NET_C_TREE_RCV_BEACON)
@@ -94,7 +94,7 @@ implementation
 			const int8_t rssi = call MetricHelpers.getRssi(packet);
 			const int16_t lqi = call MetricHelpers.getLqi(packet);
 
-			METRIC_DELIVER(CTPBeacon, AM_BROADCAST_ADDR, parent, BOTTOM, UNKNOWN_SEQNO, rssi, lqi);
+			METRIC_DELIVER(CTPBeacon, packet, NULL, 0, AM_BROADCAST_ADDR, parent, BOTTOM, UNKNOWN_SEQNO, rssi, lqi);
 			METRIC_RCV(CTPBeacon, parent, BOTTOM, UNKNOWN_SEQNO, BOTTOM);
 		}
 

@@ -173,6 +173,8 @@ implementation
 
 	command void MetricLogging.log_metric_bcast(
 		const char* message_type,
+		const void* payload,
+		uint8_t msg_size,
 		error_t status,
 		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
@@ -194,6 +196,9 @@ implementation
 
 	command void MetricLogging.log_metric_deliver(
 		const char* message_type,
+		const message_t* msg,
+		const void* payload,
+		uint8_t msg_size,
 		am_addr_t target,
 		am_addr_t proximate_source,
 		am_addr_t ultimate_source,
@@ -220,6 +225,8 @@ implementation
 	command void MetricLogging.log_attacker_receive(
 		const char* message_type,
 		const message_t* wsn_msg,
+		const void* payload,
+		uint8_t msg_size,
 		am_addr_t proximate_source,
 		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,

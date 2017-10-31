@@ -23,6 +23,33 @@ module PrintfMetricLoggingImplP
 }
 implementation
 {
+	void snprintf_hex_buffer(char* buf, uint8_t buf_len, const void* payload, uint8_t payload_len)
+	{
+		static const char* hex_str = "0123456789ABCDEF";
+
+		const uint8_t* const payload_u8 = (const uint8_t*)payload;
+		uint8_t i;
+
+		if (buf_len < payload_len * 2 + 1)
+		{
+			buf[0] = '\0';
+			return;
+		}
+
+		buf[payload_len * 2] = '\0';
+
+		if (!payload)
+		{
+			return;
+		}
+
+		for (i = 0; i != payload_len; ++i)
+		{
+			buf[i * 2 + 0] = hex_str[(payload_u8[i] >> 4) & 0x0F];
+			buf[i * 2 + 1] = hex_str[(payload_u8[i]     ) & 0x0F];
+		}
+	}
+
 	command void MetricLogging.log_metric_boot()
 	{
 		simdbg("M-B", "booted\n");
@@ -55,31 +82,39 @@ implementation
 
 	command void MetricLogging.log_metric_bcast(
 		const char* message_type,
+		const void* payload,
+		uint8_t msg_size,
 		error_t status,
 		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
 		uint8_t tx_power
 		)
 	{
+		char payload_str[TOSH_DATA_LENGTH * 2 + 1];
+		snprintf_hex_buffer(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
+
 		if (sequence_number <= UNKNOWN_SEQNO)
 		{
 			const char* sequence_number_str = sequence_number == UNKNOWN_SEQNO ? "-1" : "-2";
 
 			simdbg("M-CB",
-				MESSAGE_TYPE_SPEC ",%" PRIu8 "," TOS_NODE_ID_SPEC ",%s,%" PRIu8 "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), status, ultimate_source, sequence_number_str, tx_power);
+				MESSAGE_TYPE_SPEC ",%" PRIu8 "," TOS_NODE_ID_SPEC ",%s,%" PRIu8 ",%s\n",
+				MESSAGE_TYPE_CONVERTER(message_type), status, ultimate_source, sequence_number_str, tx_power, payload_str);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("M-CB",
-				MESSAGE_TYPE_SPEC ",%" PRIu8 "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%" PRIu8 "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), status, ultimate_source, seqno, tx_power);
+				MESSAGE_TYPE_SPEC ",%" PRIu8 "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%" PRIu8 ",%s\n",
+				MESSAGE_TYPE_CONVERTER(message_type), status, ultimate_source, seqno, tx_power, payload_str);
 		}
 	}
 
 	command void MetricLogging.log_metric_deliver(
 		const char* message_type,
+		const message_t* msg,
+		const void* payload,
+		uint8_t msg_size,
 		am_addr_t target,
 		am_addr_t proximate_source,
 		am_addr_t ultimate_source,
@@ -88,26 +123,31 @@ implementation
 		int16_t lqi
 		)
 	{
+		char payload_str[TOSH_DATA_LENGTH * 2 + 1];
+		snprintf_hex_buffer(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
+
 		if (sequence_number <= UNKNOWN_SEQNO)
 		{
 			const char* sequence_number_str = sequence_number == UNKNOWN_SEQNO ? "-1" : "-2";
 
 			simdbg("M-CD", \
-				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",%s," RSSI_SPEC "," LQI_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source, sequence_number_str, rssi, lqi);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC ",%s," RSSI_SPEC "," LQI_SPEC ",%s\n",
+				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source, sequence_number_str, rssi, lqi, payload_str);
 		}
 		else
 		{
 			const SequenceNumber seqno = (SequenceNumber)sequence_number;
 			simdbg("M-CD", \
-				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC "\n",
-				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source, seqno, rssi, lqi);
+				MESSAGE_TYPE_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," RSSI_SPEC "," LQI_SPEC ",%s\n",
+				MESSAGE_TYPE_CONVERTER(message_type), target, proximate_source, ultimate_source, seqno, rssi, lqi, payload_str);
 		}
 	}
 
 	command void MetricLogging.log_attacker_receive(
 		const char* message_type,
 		const message_t* msg,
+		const void* payload,
+		uint8_t msg_size,
 		am_addr_t proximate_source,
 		am_addr_t ultimate_source,
 		SequenceNumberWithBottom sequence_number,
