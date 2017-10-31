@@ -27,6 +27,9 @@ implementation
 	components RandomC;
 	App.Random -> RandomC;
 
+    components CrcC;
+    App.Crc -> CrcC;
+
 #ifdef METRIC_LOGGING_NEEDS_LOCALTIME
 	components LocalTimeMilliC;
 	App.LocalTime -> LocalTimeMilliC;

@@ -16,6 +16,21 @@
 #define SEND_LED_ON call Leds.led0On()
 #define SEND_LED_OFF call Leds.led0Off()
 
+#ifdef SLP_DEBUG
+#	define PAYLOAD_LENGTH(NAME) (sizeof(NAME##Message) + sizeof(uint16_t))
+#	define SET_CRC(NAME, message) *(nx_uint16_t*)(message + 1) = call Crc.crc16(message, sizeof(NAME##Message))
+#	define CHECK_CRC(NAME) \
+	{ \
+		const uint16_t rcvd_crc = *(nx_uint16_t*)(rcvd + 1); \
+ 		const uint16_t calc_crc = call Crc.crc16(rcvd, sizeof(NAME##Message)); \
+ 		ASSERT_MESSAGE(rcvd_crc == calc_crc, "%" PRIu16 " = %" PRIu16, rcvd_crc, calc_crc); \
+ 	}
+#else
+#	define PAYLOAD_LENGTH(NAME) sizeof(NAME##Message)
+#	define SET_CRC(NAME)
+#	define CHECK_CRC(NAME)
+#endif
+
 #define SEND_MESSAGE(NAME) \
 error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) \
 { \
@@ -23,7 +38,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 	{ \
 		error_t status; \
  \
-		void* const void_message = call NAME##Send.getPayload(&packet, sizeof(NAME##Message)); \
+		void* const void_message = call NAME##Send.getPayload(&packet, PAYLOAD_LENGTH(NAME)); \
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
@@ -41,14 +56,16 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 			tosend = message; \
 		} \
  \
-		status = call NAME##Send.send(target, &packet, sizeof(NAME##Message)); \
+ 		SET_CRC(NAME, message); \
+ \
+		status = call NAME##Send.send(target, &packet, PAYLOAD_LENGTH(NAME)); \
 		if (status == SUCCESS) \
 		{ \
 			SEND_LED_ON; \
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, tosend, sizeof(*tosend), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, message, PAYLOAD_LENGTH(NAME), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -56,7 +73,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) 
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, tosend, sizeof(*tosend), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, PAYLOAD_LENGTH(NAME), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -73,7 +90,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 	{ \
 		error_t status; \
  \
-		void* const void_message = call NAME##Send.getPayload(&packet, sizeof(NAME##Message)); \
+		void* const void_message = call NAME##Send.getPayload(&packet, PAYLOAD_LENGTH(NAME)); \
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
@@ -97,14 +114,16 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 			*ack_request = call NAME##PacketAcknowledgements.requestAck(&packet) == SUCCESS; \
 		} \
  \
-		status = call NAME##Send.send(target, &packet, sizeof(NAME##Message)); \
+ 		SET_CRC(NAME, message); \
+ \
+		status = call NAME##Send.send(target, &packet, PAYLOAD_LENGTH(NAME)); \
 		if (status == SUCCESS) \
 		{ \
 			SEND_LED_ON; \
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, tosend, sizeof(*tosend), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, message, PAYLOAD_LENGTH(NAME), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -112,7 +131,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target, 
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, tosend, sizeof(*tosend), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, PAYLOAD_LENGTH(NAME), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -129,7 +148,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 	{ \
 		error_t status; \
  \
-		void* const void_message = call NAME##Send.getPayload(&packet, sizeof(NAME##Message)); \
+		void* const void_message = call NAME##Send.getPayload(&packet, PAYLOAD_LENGTH(NAME)); \
 		NAME##Message* const message = (NAME##Message*)void_message; \
 		if (message == NULL) \
 		{ \
@@ -147,14 +166,16 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 			tosend = message; \
 		} \
  \
-		status = call NAME##Send.send(&packet, sizeof(NAME##Message)); \
+ 		SET_CRC(NAME, message); \
+ \
+		status = call NAME##Send.send(&packet, PAYLOAD_LENGTH(NAME)); \
 		if (status == SUCCESS) \
 		{ \
 			SEND_LED_ON; \
 			busy = TRUE; \
 		} \
  \
-		METRIC_BCAST(NAME, tosend, sizeof(*tosend), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, message, PAYLOAD_LENGTH(NAME), status, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return status; \
 	} \
@@ -162,7 +183,7 @@ error_t send_##NAME##_message_ex(const NAME##Message* tosend) \
 	{ \
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_BUSY, "Broadcast " #NAME " busy, not sending " #NAME " message.\n"); \
  \
-		METRIC_BCAST(NAME, tosend, sizeof(*tosend), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
+		METRIC_BCAST(NAME, tosend, PAYLOAD_LENGTH(NAME), EBUSY, MSG_GET(NAME, source_id, tosend), MSG_GET(NAME, sequence_number, tosend), call MetricHelpers.getTxPower(&packet)); \
  \
 		return EBUSY; \
 	} \
@@ -248,12 +269,14 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
 	const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
  \
+ 	CHECK_CRC(NAME); \
+ \
  	ATTACKER_RCV(NAME, msg, payload, len, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \
-	if (len != sizeof(NAME##Message)) \
+	if (len != PAYLOAD_LENGTH(NAME)) \
 	{ \
 		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "'ed " #NAME " of invalid length %" PRIu8 ", expected %" PRIu8 ".\n", \
-			len, (uint8_t)sizeof(NAME##Message)); \
+			len, (uint8_t)PAYLOAD_LENGTH(NAME)); \
 		return msg; \
 	} \
  \
@@ -294,11 +317,14 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
 	const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
  \
+ 	CHECK_CRC(NAME); \
+ \
  	ATTACKER_RCV(NAME, msg, payload, len, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \
-	if (len != sizeof(NAME##Message)) \
+	if (len != PAYLOAD_LENGTH(NAME)) \
 	{ \
-		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "'ed " #NAME " of invalid length %" PRIu8 ", expected %" PRIu8 ".\n", len, (uint8_t)sizeof(NAME##Message)); \
+		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "'ed " #NAME " of invalid length %" PRIu8 ", expected %" PRIu8 ".\n", \
+			len, (uint8_t)PAYLOAD_LENGTH(NAME)); \
 		return FALSE; \
 	} \
  \
@@ -328,7 +354,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 
 
 #define USE_MESSAGE_WITH_CALLBACK(NAME) \
-	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
+	STATIC_ASSERT_MSG(PAYLOAD_LENGTH(NAME) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
 	SEND_MESSAGE(NAME); \
 	void send_##NAME##_done(message_t* msg, error_t error); \
 	SEND_DONE(NAME, send_##NAME##_done)
@@ -338,7 +364,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	inline void send_##NAME##_done(message_t* msg, error_t error) {}
 
 #define USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(NAME) \
-	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
+	STATIC_ASSERT_MSG(PAYLOAD_LENGTH(NAME) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
 	SEND_MESSAGE(NAME); \
 	void send_##NAME##_done(message_t* msg, error_t error); \
 	SEND_DONE_NO_EXTRA_TO_SEND(NAME, send_##NAME##_done)
@@ -348,7 +374,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	inline void send_##NAME##_done(message_t* msg, error_t error) {}
 
 #define USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(NAME) \
-	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
+	STATIC_ASSERT_MSG(PAYLOAD_LENGTH(NAME) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
 	SEND_MESSAGE_ACK_REQUEST(NAME); \
 	void send_##NAME##_done(message_t* msg, error_t error); \
 	SEND_DONE_NO_EXTRA_TO_SEND(NAME, send_##NAME##_done)
@@ -358,7 +384,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	inline void send_##NAME##_done(message_t* msg, error_t error) {}
 
 #define USE_MESSAGE_NO_TARGET_WITH_CALLBACK(NAME) \
-	STATIC_ASSERT_MSG(sizeof(NAME##Message) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
+	STATIC_ASSERT_MSG(PAYLOAD_LENGTH(NAME) <= TOSH_DATA_LENGTH, Need_to_increase_the_TOSH_DATA_LENGTH_for_##NAME##Message); \
 	SEND_MESSAGE_NO_TARGET(NAME); \
 	void send_##NAME##_done(message_t* msg, error_t error); \
 	SEND_DONE_NO_TARGET(NAME, send_##NAME##_done)
