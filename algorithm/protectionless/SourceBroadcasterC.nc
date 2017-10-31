@@ -1,6 +1,7 @@
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
+#include "HopDistance.h"
 
 #include "NormalMessage.h"
 
