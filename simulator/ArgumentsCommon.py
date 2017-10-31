@@ -155,8 +155,9 @@ OPTS = {
                                                               help="Model the background noise in the network. meyer-heavy has high noise, casino-lab has lower noise. See models/noise for ways to graph the noisiness of these models."),
 
     # Only for Avrora
-    "avrora":             _add_avrora_radio_model,
+    "avrora":              _add_avrora_radio_model,
 
+    # Only for Cooja
     "cooja":               _add_cooja_radio_model,
 
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
@@ -178,7 +179,8 @@ OPTS = {
                                                               default=1.0,
                                                               help="Used to specify the latest possible start time in seconds. Start times will be chosen in the inclusive random range [0, x] where x is the value specified."),
 
-    "cc2420":            _add_cc2420,
+    # Only for nodes with a CC2420
+    "cc2420":              _add_cc2420,
 
     "gui node label":      lambda x, **kwargs: x.add_argument("--gui-node-label",
                                                               type=str,
@@ -214,7 +216,7 @@ OPTS = {
                                                               action="store_true",
                                                               default=False),
 
-    "log converter":        _add_log_converter,
+    "log converter":       _add_log_converter,
 
     "low power listening": _add_low_power_listening,
 }
