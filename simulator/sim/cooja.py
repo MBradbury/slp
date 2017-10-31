@@ -4,7 +4,7 @@ generate_per_node_id_binary = False
 
 def parsers():
     # WARNING!!
-    # Avrora cannot support a "node id order" of randomised until there is a way for a node
+    # Cooja cannot support a "node id order" of randomised until there is a way for a node
     # to find out its topology id during simulation.
     # Allowing randomised will break the ability to build one binary and use
     # it with different random seeds
