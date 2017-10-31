@@ -31,6 +31,8 @@ enum {
     AM_METRIC_BOOT_MSG = 63,
 
     AM_METRIC_GENERIC_MSG = 64,
+
+    AM_METRIC_BAD_CRC_MSG = 65,
 };
 
 #define MAXIMUM_NODE_TYPE_NAME_LENGTH 20
@@ -179,6 +181,14 @@ typedef nx_struct metric_rssi_msg {
 
 } metric_rssi_msg_t;
 
+typedef nx_struct metric_bad_crc_msg {
+	METRIC_LOGGING_HEADER
+
+	nx_uint8_t message_type;
+	nx_uint16_t rcvd_crc;
+	nx_uint16_t calc_crc;
+
+} metric_bad_crc_msg_t;
 
 enum {
 	MAX_GENERIC_METRIC_MESSAGE_LENGTH = TOSH_DATA_LENGTH - METRIC_LOGGING_HEADER_LENGTH - sizeof(nx_uint16_t) - sizeof(nx_uint8_t)

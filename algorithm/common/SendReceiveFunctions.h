@@ -34,7 +34,7 @@
  		const uint16_t calc_crc = call Crc.crc16(rcvd, sizeof(NAME##Message)); \
  		if (rcvd_crc != calc_crc) \
  		{ \
- 			ERROR_OCCURRED(ERROR_INVALID_CRC, #NAME ",%" PRIu16 ",%" PRIu16 "\n", rcvd_crc, calc_crc); \
+ 			call MetricLogging.log_metric_bad_crc(#NAME, payload, len, rcvd_crc, calc_crc); \
  			return msg; \
  		} \
  	}
