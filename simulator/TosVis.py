@@ -325,7 +325,7 @@ class Gui:
     def _process_metric_communicate_deliver(self, d_or_e, node_id, time, without_dbg):
         without_dbg_split = without_dbg.split(',')
         try:
-            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = without_dbg_split
+            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = without_dbg_split
         except ValueError:
             (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = without_dbg_split
 
