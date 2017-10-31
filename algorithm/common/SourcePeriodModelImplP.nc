@@ -34,7 +34,7 @@ implementation
 
 		unsigned int i = 0;
 
-		uint32_t period = -1;
+		uint32_t period = UINT32_MAX;
 
 		simdbgverbose("stdout", "Called get_source_period current_time=%" PRIu32 " #times=%u\n",
 			current_time, PERIOD_TIMES_LEN);
