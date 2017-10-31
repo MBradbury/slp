@@ -16,14 +16,18 @@
 #define SEND_LED_ON call Leds.led0On()
 #define SEND_LED_OFF call Leds.led0Off()
 
-#ifdef SLP_DEBUG
+#ifndef SLP_NO_CRC_CHECKS
 #	define PAYLOAD_LENGTH(NAME) (sizeof(NAME##Message) + sizeof(uint16_t))
 #	define SET_CRC(NAME, message) *(nx_uint16_t*)(message + 1) = call Crc.crc16(message, sizeof(NAME##Message))
 #	define CHECK_CRC(NAME) \
 	{ \
 		const uint16_t rcvd_crc = *(nx_uint16_t*)(rcvd + 1); \
  		const uint16_t calc_crc = call Crc.crc16(rcvd, sizeof(NAME##Message)); \
- 		ASSERT_MESSAGE(rcvd_crc == calc_crc, "%" PRIu16 " = %" PRIu16, rcvd_crc, calc_crc); \
+ 		if (rcvd_crc != calc_crc) \
+ 		{ \
+ 			ERROR_OCCURRED(ERROR_INVALID_CRC, #NAME ",%" PRIu16 ",%" PRIu16 "\n", rcvd_crc, calc_crc); \
+ 			return msg; \
+ 		} \
  	}
 #else
 #	define PAYLOAD_LENGTH(NAME) sizeof(NAME##Message)
