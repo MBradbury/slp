@@ -19,7 +19,7 @@
 #ifndef SLP_NO_CRC_CHECKS
 #	define PAYLOAD_LENGTH(NAME) (sizeof(NAME##Message) + sizeof(uint16_t))
 #	define SET_CRC(NAME, message) *(nx_uint16_t*)(message + 1) = call Crc.crc16(message, sizeof(NAME##Message))
-#	define CHECK_CRC(NAME) \
+#	define CHECK_CRC(NAME, rcvd) \
 	{ \
 		const uint16_t rcvd_crc = *(nx_uint16_t*)(rcvd + 1); \
  		const uint16_t calc_crc = call Crc.crc16(rcvd, sizeof(NAME##Message)); \
@@ -31,8 +31,8 @@
  	}
 #else
 #	define PAYLOAD_LENGTH(NAME) sizeof(NAME##Message)
-#	define SET_CRC(NAME)
-#	define CHECK_CRC(NAME)
+#	define SET_CRC(NAME, message)
+#	define CHECK_CRC(NAME, rcvd)
 #endif
 
 #define SEND_MESSAGE(NAME) \
@@ -273,7 +273,7 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
 	const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
  \
- 	CHECK_CRC(NAME); \
+ 	CHECK_CRC(NAME, rcvd); \
  \
  	ATTACKER_RCV(NAME, msg, payload, len, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \
@@ -321,7 +321,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
 	const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
  \
- 	CHECK_CRC(NAME); \
+ 	CHECK_CRC(NAME, rcvd); \
  \
  	ATTACKER_RCV(NAME, msg, payload, len, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \
