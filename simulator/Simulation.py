@@ -354,6 +354,8 @@ class OfflineSimulation(object):
         else:
             self.register_output_handler("stdout", None)
 
+        self.debug = hasattr(args, "debug") and args.debug
+
         import re
         self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.+)\s*')
 
@@ -474,11 +476,16 @@ class OfflineSimulation(object):
 
         handler_missing = object()
 
+        log_file = open("output.log", "w") if self.debug else None
+
         event_count = 0
         try:
             self._pre_run()
 
             for line in self._event_log:
+
+                if self.debug:
+                    print(line.rstrip(), file=log_file)
 
                 result = self._parse_line(line)
 
@@ -537,6 +544,9 @@ class OfflineSimulation(object):
 
         finally:
             self._post_run(event_count)
+
+            if log_file is not None:
+                log_file.close()
 
     def _stdout_printer(self, log_type, node_id, sim_time, message):
         print(message)
