@@ -5,7 +5,7 @@ configuration LedsWhenGuiC
 }
 implementation
 {
-#ifdef SLP_USES_GUI_OUPUT
+#if defined(SLP_USES_GUI_OUPUT) && SLP_USES_GUI_OUPUT
   components LedsC;
 #else
   components NoLedsC as LedsC;

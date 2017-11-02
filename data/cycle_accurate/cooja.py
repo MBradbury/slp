@@ -22,11 +22,10 @@ def url():
 
 def build_arguments():
     return {
-        # DO NOT enable this
         # Cooja does its own detection of Leds being on or not
         # This detection is cheaper than using the serial output
-        # on the nodes
-        #"SLP_USES_GUI_OUPUT": 1,
+        # on the nodes. So we disable logging Led output here.
+        "SLP_USES_GUI_OUPUT": 0,
     }
 
 def fastserial_supported():
