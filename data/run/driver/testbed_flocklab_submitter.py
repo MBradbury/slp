@@ -137,6 +137,28 @@ class Runner(object):
         print('        </profConf>', file=config_file)
         print('    </powerProfilingConf>', file=config_file)
 
+        # We want to trace the actions of the Led pins for two reasons:
+        # 1. To enable GUI support for displaying the Leds
+        # 2. Led 2 is used to indicate if the radio is on or off
+        print('    <gpioTracingConf>', file=config_file)
+        print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
+        print('        <pinConf>', file=config_file)
+        print('            <pin>LED1</pin>', file=config_file)
+        print('            <edge>both</edge>', file=config_file)
+        print('            <mode>continuous</mode>', file=config_file)
+        print('        </pinConf>', file=config_file)
+        print('        <pinConf>', file=config_file)
+        print('            <pin>LED2</pin>', file=config_file)
+        print('            <edge>both</edge>', file=config_file)
+        print('            <mode>continuous</mode>', file=config_file)
+        print('        </pinConf>', file=config_file)
+        print('        <pinConf>', file=config_file)
+        print('            <pin>LED3</pin>', file=config_file)
+        print('            <edge>both</edge>', file=config_file)
+        print('            <mode>continuous</mode>', file=config_file)
+        print('        </pinConf>', file=config_file)
+        print('    </gpioTracingConf>', file=config_file)
+
         print('</testConf>', file=config_file)
 
 
