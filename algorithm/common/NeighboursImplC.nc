@@ -3,14 +3,6 @@
 #include "Common.h"
 #include "SendReceiveFunctions.h"
 
-#define BEACON_FAST_SEND_DELAY_FIXED 35
-#define BEACON_FAST_SEND_DELAY_RANDOM 50
-
-#define BEACON_SHORT_SEND_DELAY_FIXED 15
-#define BEACON_SHORT_SEND_DELAY_RANDOM 10
-
-#define BEACON_RETRY_SEND_DELAY 65
-
 generic module NeighboursImplC(
 	typedef Info,
 	typedef BeaconMessage,
@@ -45,6 +37,17 @@ generic module NeighboursImplC(
 }
 implementation
 {
+#define BEACON_FAST_SEND_DELAY_FIXED 35
+#define BEACON_FAST_SEND_DELAY_RANDOM 50
+
+#define BEACON_SHORT_SEND_DELAY_FIXED 15
+#define BEACON_SHORT_SEND_DELAY_RANDOM 10
+
+#define BEACON_RETRY_SEND_DELAY 65
+
+#define MIN_MESSAGES_BEFORE_EVICT 12
+#define EVICT_DELIVERY_THRESHOLD_PC 10
+
 	// Neighbour management
 
 	command uint16_t Neighbours.max_size()
@@ -110,7 +113,7 @@ implementation
 
 		if (!stored_info)
 		{
-			const NeighboursRtxInfo def = {0, 0, 0};
+			static const NeighboursRtxInfo def = {0, 0, 0};
 
 			bool put_result = call NeighbourRtxDict.put(address, def);
 
@@ -145,14 +148,14 @@ implementation
 	{
 		const uint16_t total_tx = info->rtx_success + info->rtx_failure;
 
-		// Wait for at least 12 transmission before considering evictions
-		if (total_tx < 12)
+		// Wait for at least MIN_MESSAGES_BEFORE_EVICT transmission before considering evictions
+		if (total_tx < MIN_MESSAGES_BEFORE_EVICT)
 		{
 			return;
 		}
 
-		// If 10% or less delivery ratio, then evict
-		if (info->rtx_success <= total_tx / 10)
+		// If EVICT_DELIVERY_THRESHOLD_PC% or less delivery ratio, then evict
+		if (info->rtx_success <= total_tx / EVICT_DELIVERY_THRESHOLD_PC)
 		{
 			// Neighbour is pinned, so cannot evict
 			if ((info->flags & NEIGHBOUR_INFO_PIN) != 0)
@@ -176,7 +179,7 @@ implementation
 
 		if (!stored_info)
 		{
-			const NeighboursRtxInfo def = {0, 0, 0};
+			static const NeighboursRtxInfo def = {0, 0, 0};
 
 			bool put_result = call NeighbourRtxDict.put(address, def);
 
