@@ -41,7 +41,7 @@ def _add_low_power_listening(parser, **kwargs):
                         help="This is the period for which a node will turn the radio off.")
 
     parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, default=None,
-                        help="This is a global setting, that configures a messages to be transmitted within a given wakeup period.")
+                        help="This is a global setting, that configures the period a messages is retransmitted over after being sent.")
 
     parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, default=None,
                         help="How long should the radio be kept on after a message is received.")
