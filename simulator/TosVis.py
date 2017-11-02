@@ -127,7 +127,15 @@ class Gui:
         elif sim_tool == "avrora":
             self._sim.register_output_handler('AVRORA-TX', self._process_avrora_tx)
             self._sim.register_output_handler('AVRORA-RX', self._process_avrora_rx)
-        elif sim_tool in ("offline", "cooja"):
+        elif sim_tool in "cooja":
+            # If we are using cooja then we need to use the M-C* events
+            self._sim.register_output_handler('M-CB', self._process_metric_communicate_broadcast)
+            self._sim.register_output_handler('M-CD', self._process_metric_communicate_deliver)
+
+            # Cooja uses a custom mechanism to detect leds turning on and off
+            self._sim.register_output_handler('LedsCooja', self._process_leds_cooja)            
+
+        elif sim_tool == "offline":
             # If we are using offline then we need to use the M-C* events
             self._sim.register_output_handler('M-CB', self._process_metric_communicate_broadcast)
             self._sim.register_output_handler('M-CD', self._process_metric_communicate_deliver)
@@ -353,6 +361,21 @@ class Gui:
 
         self._animate_arrow(time, node_id, ("-", node_id, old_parent, (0,0,0)))
         self._animate_arrow(time, node_id, ("+", node_id, new_parent, (0,0,0)))
+
+    def _process_leds_cooja(self, d_or_e, node_id, time, without_dbg):
+        def convertled(s):
+            s = int(s)
+            if s == 0 or s == 1:
+                return s
+            raise RuntimeError("Invalid Led string {}".format(s))
+
+        (led0, led1, led2) = map(convertled, without_dbg.split(","))
+
+        time = self._sim.sim_time()
+
+        self._animate_leds(time, node_id, (0, led0))
+        self._animate_leds(time, node_id, (1, led1))
+        self._animate_leds(time, node_id, (2, led2))
 
 ###############################################
 class GuiSimulation(Simulation):
