@@ -22,9 +22,11 @@ def url():
 
 def build_arguments():
     return {
-        # Enable GUI output all the time, otherwise SINGLE and GUI
-        # runs will differ even if the seeds are the same
-        "SLP_USES_GUI_OUPUT": 1,
+        # DO NOT enable this
+        # Cooja does its own detection of Leds being on or not
+        # This detection is cheaper than using the serial output
+        # on the nodes
+        #"SLP_USES_GUI_OUPUT": 1,
     }
 
 def fastserial_supported():
@@ -33,6 +35,7 @@ def fastserial_supported():
 def create_csc(csc, target_directory, a):
     """Output simulation csc"""
     import os.path
+    from xml.sax.saxutils import escape
 
     from simulator import Configuration
 
@@ -100,9 +103,44 @@ def create_csc(csc, target_directory, a):
     pcsc('    org.contikios.cooja.plugins.ScriptRunner')
     pcsc('    <plugin_config>')
     pcsc('      <script>')
-    pcsc("""
+    pcsc(escape("""
 /* Make test automatically timeout after the safety period (milliseconds) */
 TIMEOUT({milliseconds_to_run}, log.testOK()); /* milliseconds. print last msg at timeout */
+
+// Detect Leds changing on the motes
+// Doing this in Cooja is cheaper than doing it on the motes
+function LedObserver(node)
+{{
+    this.node = node;
+    this.green = null;
+    this.yellow = null;
+    this.red = null;
+    this.update = function(o, arg)
+    {{
+        var mmled = o;
+
+        var g = mmled.isGreenOn() ? 1 : 0;  // Led1
+        var y = mmled.isRedOn() ? 1 : 0;    // Led0
+        var r = mmled.isYellowOn() ? 1 : 0; // Led2
+
+        if (this.green != g || this.red != r || this.yellow != y)
+        {{
+            this.green = g;
+            this.red = r;
+            this.yellow = y;
+
+            java.lang.System.err.println(sim.getSimulationTime() + "|LedsCooja:D:" + this.node.getID() + ":None:" + y + "," + g + "," + r);
+        }}
+    }};
+}}
+
+allMotes = sim.getMotes();
+for (var i = 0; i < allMotes.length; i++)
+{{
+    ledObserver = new java.util.Observer(new LedObserver(allMotes[i]));
+
+    allMotes[i].getInterfaces().getLED().addObserver(ledObserver);
+}}
 
 while (true)
 {{
@@ -113,7 +151,7 @@ while (true)
 log.testOK(); /* Report test success and quit */
 """.format(
         milliseconds_to_run=int(seconds_to_run * 1000),
-))
+)))
     pcsc('      </script>')
     pcsc('      <active>true</active>')
     pcsc('    </plugin_config>')
