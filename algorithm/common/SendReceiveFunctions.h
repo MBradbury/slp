@@ -231,6 +231,8 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
  \
 	if (&packet == msg) \
 	{ \
+		SEND_LED_OFF; \
+ \
 		if (extra_to_send > 0) \
 		{ \
 			if (send_##NAME##_message(NULL, call AMPacket.destination(msg))) \
@@ -239,13 +241,11 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 			} \
 			else \
 			{ \
-				SEND_LED_OFF; \
 				busy = FALSE; \
 			} \
 		} \
 		else \
 		{ \
-			SEND_LED_OFF; \
 			busy = FALSE; \
 		} \
 	} \
