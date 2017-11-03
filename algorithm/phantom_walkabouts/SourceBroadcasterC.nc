@@ -168,6 +168,8 @@ module SourceBroadcasterC
 	uses interface Random;
 
 	uses interface ParameterInit<uint16_t> as SeedInit;
+
+	uses interface Crc;
 }
 
 implementation 
