@@ -26,6 +26,7 @@ def build_arguments():
         # This detection is cheaper than using the serial output
         # on the nodes. So we disable logging Led output here.
         "SLP_USES_GUI_OUPUT": 0,
+        "SLP_LEDS_RECORD_NO_SERIAL": 1,
     }
 
 def fastserial_supported():

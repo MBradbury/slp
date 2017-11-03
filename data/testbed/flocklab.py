@@ -31,7 +31,11 @@ def build_arguments():
     return {
         # Wait for a short amount of time before running the boot event.
         # This is to help catch all the serial output
-        "DELAYED_BOOT_TIME_MINUTES": 4
+        "DELAYED_BOOT_TIME_MINUTES": 4,
+
+        # Flocklab Leds do not use serial logging to output led state.
+        # Instead GPIO tracing is used to record Led state
+        "SLP_LEDS_RECORD_NO_SERIAL": 1
     }
 
 def fastserial_supported():
