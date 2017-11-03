@@ -369,13 +369,12 @@ class Gui:
                 return s
             raise RuntimeError("Invalid Led string {}".format(s))
 
-        (led0, led1, led2) = map(convertled, without_dbg.split(","))
+        leds = map(convertled, without_dbg.split(","))
 
         time = self._sim.sim_time()
 
-        self._animate_leds(time, node_id, (0, led0))
-        self._animate_leds(time, node_id, (1, led1))
-        self._animate_leds(time, node_id, (2, led2))
+        for i, ledi in enumerate(leds):
+            self._animate_leds(time, node_id, (i, ledi))
 
 ###############################################
 class GuiSimulation(Simulation):
