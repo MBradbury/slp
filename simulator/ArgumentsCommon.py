@@ -37,6 +37,9 @@ def _add_low_power_listening(parser, **kwargs):
     parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), default="disabled",
                         help="Enables or disables low power listening. By default LPL is disabled and the radio will always be on.")
 
+    parser.add_argument("--lpl-custom", type=str, default=None,
+                        help="The custom module that will be used to provide LPL.")
+
     parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, default=None,
                         help="This is the period for which a node will turn the radio off.")
 
@@ -376,6 +379,9 @@ class ArgumentsCommon(object):
 
             if self.args.low_power_listening == "enabled":
                 result["LOW_POWER_LISTENING"] = 1
+
+                if self.args.lpl_custom is not None:
+                    result["CUSTOM_LOW_POWER_LISTENING"] = self.args.lpl_custom
 
                 # See SystemLowPowerListeningP.nc for how this macro is used
                 if self.args.lpl_remote_wakeup is not None:
