@@ -1,3 +1,13 @@
+# Introduction
+
+This repository contains code implementing several source location privacy protocol for wireless sensor networks.
+The instructions below will inform you how to setup the dependencies to be able to simulate and deploy these algorithms.
+
+# Reproducing Results
+
+The code in this repository has been used to generate the results for several academic papers.
+Please see the doc/papers directory for information on how to run experiments for specific papers.
+
 # Setup System Requirements
 
 The following commands will get you set up with TinyOS and the slp-algorithms-tinyos framework on your local machine.
