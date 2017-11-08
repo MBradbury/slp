@@ -42,7 +42,7 @@ def create_csc(csc, target_directory, a):
     def pcsc(*args, **kwargs):
         print(*args, file=csc, **kwargs)
 
-    firmware_path = os.path.join(target_directory, "main.exe")
+    firmware_path = os.path.abspath(os.path.join(target_directory, "main.elf"))
 
     if not os.path.exists(firmware_path):
         raise RuntimeError("The firmware at {} is missing".format(firmware_path))
@@ -66,8 +66,7 @@ def create_csc(csc, target_directory, a):
     pcsc('      <logoutput>40000</logoutput>')
     pcsc('    </events>')
     pcsc('    <motetype>')
-    pcsc(a.args.platform.cooja_csc())
-    pcsc('      <firmware EXPORT="copy">{}</firmware>'.format(firmware_path))
+    pcsc(a.args.platform.cooja_csc(firmware_path))
     pcsc('    </motetype>')
 
     # Output topology file
@@ -163,6 +162,8 @@ log.testOK(); /* Report test success and quit */
 
 def post_build_actions(target_directory, a):
     import os.path
+
+    a.args.platform.post_build(target_directory, a)
 
     with open(os.path.join(target_directory, "build", "sim.csc"), "w") as csc:
         create_csc(csc, target_directory, a)
