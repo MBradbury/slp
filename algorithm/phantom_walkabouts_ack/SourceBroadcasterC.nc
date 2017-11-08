@@ -18,9 +18,6 @@
 #include <unistd.h>
 #include <string.h>
 
-//#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-//#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
-
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->landmark_distance))
 
@@ -208,6 +205,18 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+	// return how many 1 in a number
+	int16_t bitcount(int16_t n)
+	{
+		int16_t count = 0;
+		while(n)
+		{
+			count++;
+			n &= (n-1);
+		}
+		return count;
+	}
+
 	void sink_location_check()
 	{
 		sink_location = (CONFIGURATION >= 1 && CONFIGURATION <= 3) ? Centre : Others ;
@@ -299,107 +308,25 @@ implementation
 			//		TOS_NODE_ID, landmark_sink_distance, landmark_bottom_left_distance, landmark_bottom_right_distance);
 		}
 
-		if (possible_sets == (CloserSet | FurtherSet | CloserSideSet | FurtherSideSet))
-		{	
-			uint16_t rnd = call Random.rand16() % 4;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else if (rnd == 2)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == ( FurtherSet | CloserSideSet | FurtherSideSet))
+		if (possible_sets != UnknownSet)
 		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return FurtherSet;
-			else if (rnd == 1)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet  | CloserSideSet | FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return CloserSideSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet | FurtherSet  | FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (CloserSet | FurtherSet | CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 3;
-			if(rnd == 0)			return CloserSet;
-			else if (rnd == 1)		return FurtherSet;
-			else					return CloserSideSet;			
-		}
-
-		else if (possible_sets == (CloserSet|CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return CloserSet;
-			else					return CloserSideSet;
-		}
-
-		else if (possible_sets == (CloserSet|FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return CloserSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (FurtherSet|FurtherSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return FurtherSet;
-			else					return FurtherSideSet;
-		}
-
-		else if (possible_sets == (FurtherSet|CloserSideSet))
-		{
-			uint16_t rnd = call Random.rand16() % 2;
-			if(rnd == 0)			return FurtherSet;
-			else					return CloserSideSet;
-		}
-
-		else if (possible_sets == CloserSet)
-		{
-			return CloserSet;
-		}
-		else if (possible_sets == FurtherSet)
-		{
-			return FurtherSet;
-		}
-
-		else if (possible_sets == CloserSideSet)
-		{
-			return CloserSideSet;
-		}
-		else if (possible_sets == FurtherSideSet)
-		{
-			return FurtherSideSet;
+			uint16_t rnd = call Random.rand16() % bitcount(possible_sets) + 1;
+			return (possible_sets >> rnd) + 1;
 		}
 		else
 		{
-			//do not retrun UnknownSet, because flooding sometimes is not relaiable;
+			//do not retrun UnknownSet, because flooding sometimes is not relaiable
 			if (sink_location == Centre)
 			{
 				return CloserSet;
 			}
 			else
 			{
-				uint16_t rnd = call Random.rand16() % 2;
-				if(rnd == 0)			return CloserSideSet;
-				else					return FurtherSideSet;
+				return (call Random.rand16() % 2 == 0) ? CloserSideSet : FurtherSideSet;
 			}
 		}
 	}
+
 
 	am_addr_t random_walk_target(SetType further_or_closer_set, BiasedType biased_direction, const am_addr_t* to_ignore, size_t to_ignore_length)
 	{
@@ -490,7 +417,11 @@ implementation
 					//	simdbg("stdout", "bias direction is H\n");
 					}
 					else
-						simdbgerror("stdout","bias_direction error!\n");
+					{					
+						//ranomly choose H or V
+						bias_direction = (brn < 50)? V : H;
+						//simdbgerror("stdout","bias_direction error!\n");
+					}
 
 					chosen_address = neighbour->address;
 
@@ -505,7 +436,7 @@ implementation
 						neighbour = &local_neighbours.data[k];
 						if(biased_direction == H)
 						{
-							if (landmark_bottom_left_distance < neighbour->contents.bottom_left_distance && brn < BIASED_NO)
+							if (landmark_bottom_left_distance <= neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
@@ -514,7 +445,7 @@ implementation
 						}
 						else		//biased_direction is V
 						{
-							if (landmark_bottom_left_distance > neighbour->contents.bottom_left_distance && brn < BIASED_NO)
+							if (landmark_bottom_left_distance >= neighbour->contents.bottom_left_distance && brn < BIASED_NO)
 							{
 								chosen_address = neighbour->address;
 								break;
