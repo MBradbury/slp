@@ -130,7 +130,6 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
-	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
@@ -188,7 +187,7 @@ implementation
 	uint32_t get_source_period()
 	{
 		assert(call NodeType.get() == SourceNode);
-		return call SourcePeriodModel.get();
+		return SOURCE_PERIOD_MS;
 	}
 
 	// Produces a random float between 0 and 1
@@ -328,7 +327,8 @@ implementation
 	}
 
 
-	am_addr_t random_walk_target(SetType further_or_closer_set, BiasedType biased_direction, const am_addr_t* to_ignore, size_t to_ignore_length)
+	am_addr_t random_walk_target(SetType further_or_closer_set, BiasedType biased_direction,
+		                         const am_addr_t* to_ignore, size_t to_ignore_length)
 	{
 		am_addr_t chosen_address;
 		uint32_t k;
@@ -341,7 +341,9 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (landmark_bottom_left_distance != UNKNOWN_HOP_DISTANCE && landmark_bottom_right_distance != UNKNOWN_HOP_DISTANCE && further_or_closer_set != UnknownSet)
+		if (landmark_bottom_left_distance != UNKNOWN_HOP_DISTANCE &&
+			landmark_bottom_right_distance != UNKNOWN_HOP_DISTANCE &&
+			further_or_closer_set != UnknownSet)
 		{
 			for (k = 0; k != neighbours.size; ++k)
 			{
@@ -441,7 +443,6 @@ implementation
 								chosen_address = neighbour->address;
 								break;
 							}
-							else	;
 						}
 						else		//biased_direction is V
 						{
@@ -450,7 +451,6 @@ implementation
 								chosen_address = neighbour->address;
 								break;
 							}
-							else	;
 						}
 						chosen_address = neighbour->address;
 					}
@@ -596,22 +596,18 @@ implementation
 			bool success;
 			SeqNoWithAddr seq_no_lookup;
 			const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
-			//const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
 			if (!rcvd)
 			{
 				return FAIL;
 			}
 
-			//const SeqNoWithAddr seq_no_lookup = {rcvd->sequence_number, rcvd->source_id};
-
 			//simdbg("stdout","bd: %d\n", rcvd->biased_direction);
 
 			item = call MessagePool.get();
 			if (!item)
 			{
-				//ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
-
+				ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
 				return ENOMEM;
 			}
 
@@ -621,7 +617,7 @@ implementation
 			success = call MessageQueue.put(seq_no_lookup, item);
 			if (!success)
 			{
-				//ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
+				ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
 
 				call MessagePool.put(item);
 
@@ -632,8 +628,6 @@ implementation
 		{
 			simdbgverbose("stdout", "Overwriting message in the queue with a message of the same seq no and source id\n");
 		}
-
-		//memcpy(&item->msg, msg, sizeof(*item));
 
 		item->msg = *msg;
 
@@ -753,7 +747,8 @@ implementation
 				if (forwarding_message.further_or_closer_set == UnknownSet)
 				{
 					forwarding_message.further_or_closer_set = random_walk_direction();
-				}				
+				}
+
 				if (TOS_NODE_ID == source_addr)
 				{
 					forwarding_message.biased_direction = UnknownBiasType;
@@ -776,7 +771,9 @@ implementation
 				}
 
 				if (target == AM_BROADCAST_ADDR)
+				{
 					return;
+				}
 
 				forwarding_message.broadcast = (target == AM_BROADCAST_ADDR);
 
@@ -952,10 +949,6 @@ implementation
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
 		}
-	}
-
-	event void SourcePeriodModel.fired()
-	{
 	}
 
 	event void BroadcastNormalTimer.fired()

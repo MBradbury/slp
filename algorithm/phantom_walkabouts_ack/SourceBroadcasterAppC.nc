@@ -98,10 +98,6 @@ implementation
 	App.ObjectDetector -> ObjectDetectorP;
 	ObjectDetectorP.NodeType -> NodeTypeC;
 
-	// SourcePeriodModel - for source periods
-	components SourcePeriodModelP;
-	App.SourcePeriodModel -> SourcePeriodModelP;
-
 	components
 		new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos,
 		new SequenceNumbersC(SLP_MAX_NUM_AWAY_MESSAGES) as AwaySeqNos;
