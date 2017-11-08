@@ -70,9 +70,13 @@ def cooja_command(module, a, configuration):
 
 def cooja_iter(iterable):
     from datetime import datetime
+    import sys
 
     for line in iterable:
         line = line.rstrip()
+
+        if line.startswith('Exception'):
+            raise RuntimeError("Cooja exception: {}".format(line))
 
         time_us, rest = line.split("|", 1)
 

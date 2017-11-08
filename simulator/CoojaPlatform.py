@@ -41,10 +41,11 @@ class Sky(CoojaPlatform, MSP430Node):
     def __init__(self):
         super(Sky, self).__init__()
 
-    def cooja_csc(self):
+    def cooja_csc(self, firmware):
         return """org.contikios.cooja.mspmote.SkyMoteType
       <identifier>{platform}</identifier>
       <description>A node type of {platform}</description>
+      <firmware>{firmware}</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -59,19 +60,28 @@ class Sky(CoojaPlatform, MSP430Node):
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspSerial</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.SkyLED</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>
-      <moteinterface>org.contikios.cooja.mspmote.interfaces.SkyTemperature</moteinterface>""".format(platform=self.platform())
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.SkyTemperature</moteinterface>""".format(
+        platform=self.platform(),
+        firmware=firmware)
 
     def platform(self):
         return "telosb"
+
+    def post_build(self):
+        pass
 
 class MicaZ(CoojaPlatform, MicaZNode):
     def __init__(self):
         super(MicaZ, self).__init__()
 
-    def cooja_csc(self):
+    def cooja_csc(self, firmware):
+        # The firmware needs to have a .elf extension instead of .exe
+        firmware = firmware.replace(".exe", ".elf")
+
         return """org.contikios.cooja.avrmote.MicaZMoteType
       <identifier>{platform}</identifier>
       <description>A node type of {platform}</description>
+      <firmware>{firmware}</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaZID</moteinterface>
       <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaZLED</moteinterface>
@@ -79,19 +89,29 @@ class MicaZ(CoojaPlatform, MicaZNode):
       <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaClock</moteinterface>
       <moteinterface>org.contikios.cooja.avrmote.interfaces.MicaSerial</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Mote2MoteRelations</moteinterface>
-      <moteinterface>org.contikios.cooja.interfaces.MoteAttributes</moteinterface>""".format(platform=self.platform())
+      <moteinterface>org.contikios.cooja.interfaces.MoteAttributes</moteinterface>""".format(
+        platform=self.platform(),
+        firmware=firmware)
 
     def platform(self):
         return "micaz"
+
+    def post_build(self, target_directory, a):
+        # The MicaZ platform needs the binary file to have the extension .elf
+        import os.path
+        import shutil
+
+        shutil.copyfile(os.path.join(target_directory, "main.exe"), os.path.join(target_directory, "main.elf"))
 
 class Z1(CoojaPlatform, MSP430Node):
     def __init__(self):
         super(Z1, self).__init__()
 
-    def cooja_csc(self):
+    def cooja_csc(self, firmware):
         return """org.contikios.cooja.mspmote.Z1MoteType
       <identifier>{platform}</identifier>
       <description>A node type of {platform}</description>
+      <firmware>{firmware}</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -103,10 +123,15 @@ class Z1(CoojaPlatform, MSP430Node):
       <moteinterface>org.contikios.cooja.mspmote.interfaces.Msp802154Radio</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDefaultSerial</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspLED</moteinterface>
-      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>""".format(platform=self.platform())
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>""".format(
+        platform=self.platform(),
+        firmware=firmware)
 
     def platform(self):
         return "z1"
+
+    def post_build(self):
+        pass
 
 def models():
     """A list of the names of the available radio models."""
