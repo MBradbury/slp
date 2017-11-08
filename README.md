@@ -193,7 +193,7 @@ You should end up with a path to this repo such as ~/wsn/slp-algorithms-tinyos.
        cd contiki
        git submodule update --init
 
-  If you wish to simulate MicaZ nodes you will need to use this fork instead: <https://github.com/MBradbury/contiki.git>.
+  If you wish to simulate MicaZ nodes you will need to use this fork and the master branch instead: <https://github.com/MBradbury/contiki.git>.
   This is due to a number of bugs in Cooja's MicaZ code.
 
   2. Install dependencies
