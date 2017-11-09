@@ -16,6 +16,8 @@ implementation
 	components NoMetricLoggingP as ProvidedMetricLogging;
 #elif defined(CYCLEACCURATE_AVRORA) && defined(AVRORA_OUTPUT)
 	components AvroraMetricLoggingP as ProvidedMetricLogging;
+#elif defined(CYCLEACCURATE_COOJA) && defined(COOJA_OUTPUT)
+    components CoojaMetricLoggingP as ProvidedMetricLogging;
 #else
 #	error "No known combination to wire up metric logging"
 #endif

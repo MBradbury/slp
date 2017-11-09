@@ -12,7 +12,7 @@
 #define simdbgerror(name, fmtstr, ...)
 #define simdbgerror_clear(name, fmtstr, ...)
 
-#elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF) || defined(AVRORA_OUTPUT)
+#elif defined(TOSSIM) || defined(USE_SERIAL_PRINTF) || defined(AVRORA_OUTPUT) || defined(COOJA_OUTPUT)
 
 #include "printf.h"
 
@@ -37,6 +37,21 @@
 
 #if defined(USE_SERIAL_PRINTF) || (defined(CYCLEACCURATE_AVRORA) && defined(AVRORA_OUTPUT))
 #	define METRIC_LOGGING_NEEDS_LOCALTIME
+#endif
+
+// Any metric logging command that might want VA_ARGS can't have them
+// as the nesC commands do not support them.
+// To work around this we need to snprintf into a buffer before passing
+// that buffer to the logging function.
+#if defined(AVRORA_MAX_BUFFER_SIZE)
+#define METRIC_MAX_BUFFER_SIZE AVRORA_MAX_BUFFER_SIZE
+#elif defined(COOJA_MAX_BUFFER_SIZE)
+#define METRIC_MAX_BUFFER_SIZE COOJA_MAX_BUFFER_SIZE
+#elif defined(METRIC_MAX_BUFFER_SIZE)
+// Do nothing
+#else
+// Default buffer size in bytes
+#define METRIC_MAX_BUFFER_SIZE 128
 #endif
 
 #define METRIC_BOOT() call MetricLogging.log_metric_boot()
@@ -81,7 +96,7 @@
 #else
 #define METRIC_GENERIC_0(CODE, MESSAGE, ...) \
 	do { \
-		char stdout_message[128]; \
+		char stdout_message[METRIC_MAX_BUFFER_SIZE]; \
 		snprintf(stdout_message, ARRAY_SIZE(stdout_message), MESSAGE, ##__VA_ARGS__); \
 		call MetricLogging.log_metric_generic(CODE, stdout_message); \
 	} while (FALSE)
@@ -99,7 +114,7 @@
 #else
 #define ERROR_OCCURRED_0(CODE, MESSAGE, ...) \
 	do { \
-		char error_message[128]; \
+		char error_message[METRIC_MAX_BUFFER_SIZE]; \
 		snprintf(error_message, ARRAY_SIZE(error_message), MESSAGE, ##__VA_ARGS__); \
 		call MetricLogging.log_error_occurred(CODE, error_message); \
 	} while (FALSE)
@@ -117,7 +132,7 @@
 #else
 #define LOG_STDOUT_0(CODE, MESSAGE, ...) \
 	do { \
-		char stdout_message[128]; \
+		char stdout_message[METRIC_MAX_BUFFER_SIZE]; \
 		snprintf(stdout_message, ARRAY_SIZE(stdout_message), MESSAGE, ##__VA_ARGS__); \
 		call MetricLogging.log_stdout(CODE, stdout_message); \
 	} while (FALSE)
