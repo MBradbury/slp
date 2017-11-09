@@ -134,10 +134,14 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
         proc.stderr.close()
 
-        return_code = proc.wait()
+        try:
+            return_code = proc.wait(timeout=1)
 
-        if return_code:
-            raise subprocess.CalledProcessError(return_code, command)
+            if return_code:
+                raise subprocess.CalledProcessError(return_code, command)
+
+        except subprocess.TimeoutExpired:
+            proc.kill()
 
     else:
         import copy
@@ -188,10 +192,14 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
                 proc.stderr.close()
 
-                return_code = proc.wait()
+                try:
+                    return_code = proc.wait(timeout=1)
 
-                if return_code:
-                    raise subprocess.CalledProcessError(return_code, command)
+                    if return_code:
+                        raise subprocess.CalledProcessError(return_code, command)
+
+                except subprocess.TimeoutExpired:
+                    proc.kill()
 
                 try:
                     sim.metrics.print_results()
