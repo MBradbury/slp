@@ -8,6 +8,10 @@ The instructions below will inform you how to setup the dependencies to be able 
 The code in this repository has been used to generate the results for several academic papers.
 Please see the [docs/papers](./doc/papers) directory for information on how to run experiments for specific papers.
 
+# Syntax Highlighting
+
+nesC is a C derivative. Syntax highlighting for Sublime Text 3 is maintained at <https://github.com/MBradbury/Packages/blob/master/C%2B%2B/nesC.sublime-syntax>.
+
 # Setup System Requirements
 
 The following commands will get you set up with TinyOS and the slp-algorithms-tinyos framework on your local machine.
