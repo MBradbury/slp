@@ -26,7 +26,7 @@ def supports_parallel():
 
 def build(module, a):
     import data.cycle_accurate
-    from data.run.driver.cycle_accurate_builder import Runner as Builder
+    from data.run.driver.cooja_builder import Runner as Builder
 
     from data import submodule_loader
 
@@ -34,7 +34,7 @@ def build(module, a):
 
     cooja = submodule_loader.load(data.cycle_accurate, "cooja")
 
-    builder = Builder(cooja, platform=a.args.platform.platform())
+    builder = Builder(cooja, max_buffer_size=a.args.max_buffer_size, platform=a.args.platform.platform())
     builder.total_job_size = 1
     
     #(a, module, module_path, target_directory)
@@ -85,6 +85,11 @@ def cooja_iter(iterable):
         node_time = datetime.fromtimestamp(time_s)
 
         stime_str = node_time.strftime("%Y/%m/%d %H:%M:%S.%f")
+
+        # When running in cooja log output mode, an extra "DEBUG: " gets prepended
+        # remove this here.
+        if rest.startswith("DEBUG: "):
+            rest = rest[len("DEBUG: "):]
 
         yield stime_str + "|" + rest
 

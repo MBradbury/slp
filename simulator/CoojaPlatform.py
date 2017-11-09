@@ -37,6 +37,9 @@ class CoojaPlatform(object):
 
         return str(self) == str(other)
 
+    def post_build(self, target_directory, a):
+        pass
+
 class Sky(CoojaPlatform, MSP430Node):
     def __init__(self):
         super(Sky, self).__init__()
@@ -66,9 +69,6 @@ class Sky(CoojaPlatform, MSP430Node):
 
     def platform(self):
         return "telosb"
-
-    def post_build(self):
-        pass
 
 class MicaZ(CoojaPlatform, MicaZNode):
     def __init__(self):
@@ -129,9 +129,6 @@ class Z1(CoojaPlatform, MSP430Node):
 
     def platform(self):
         return "z1"
-
-    def post_build(self):
-        pass
 
 def models():
     """A list of the names of the available radio models."""
