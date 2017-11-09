@@ -4,8 +4,8 @@ CFLAGS += -I"../common" -I"../common/metrics" -I"../common/fault_model"
 
 # Additional warnings
 CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat=2 -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable
-CFLAGS += -Wsign-compare -Wlogical-op -Wdouble-promotion -fdiagnostics-show-option
-
+CFLAGS += -Wsign-compare -fdiagnostics-show-option
+#CFLAGS += -Wlogical-op -Wdouble-promotion
 #CFLAGS += -Wno-unused-local-typedefs
 
 ifndef CYCLEACCURATE
@@ -21,6 +21,10 @@ endif
 
 ifeq ($(CYCLEACCURATE), avrora)
 CFLAGS += -I$(TOSDIR)/lib/avrora
+endif
+
+ifeq ($(CYCLEACCURATE), cooja)
+CFLAGS += -I$(TOSDIR)/lib/cooja
 endif
 
 ifeq ($(TESTBED), flocklab)

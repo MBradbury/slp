@@ -6,16 +6,12 @@ def name():
     return __name__
 
 def platform():
-    """The hardware platform of the testbed"""
+    """The hardware platforms of the simulator"""
     return [model().platform() for model in CoojaPlatform.models()]
 
 def log_mode():
-    # Avrora has a special log mode that involves
-    # storing the address of the buffer to be printed
-    # in a variable that is watched by avrora.
-    # When that variable is changed, the address of the
-    # buffer it contains will be printed.
-    return "unbuffered_printf"
+    return "cooja"
+    #return "unbuffered_printf"
 
 def url():
     return "http://www.contiki-os.org"
@@ -42,7 +38,7 @@ def create_csc(csc, target_directory, a):
     def pcsc(*args, **kwargs):
         print(*args, file=csc, **kwargs)
 
-    firmware_path = os.path.abspath(os.path.join(target_directory, "main.elf"))
+    firmware_path = os.path.abspath(os.path.join(target_directory, "main.exe"))
 
     if not os.path.exists(firmware_path):
         raise RuntimeError("The firmware at {} is missing".format(firmware_path))

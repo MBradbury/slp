@@ -211,6 +211,7 @@ class Runner(object):
             "serial":            {"USE_SERIAL_MESSAGES": 1},
             "disabled":          {"NO_SERIAL_OUTPUT": 1},
             "avrora":            {"AVRORA_OUTPUT": 1},
+            "cooja":             {"COOJA_OUTPUT": 1},
         }
 
         try:

@@ -78,6 +78,10 @@ def _add_cooja_radio_model(parser, **kwargs):
                         choices=CoojaPlatform.available_models(),
                         required=True)
 
+    parser.add_argument("--max-buffer-size",
+                        type=ArgumentsCommon.type_positive_int,
+                        default=128),
+
 def _add_log_converter(parser, **kwargs):
     import simulator.OfflineLogConverter as OfflineLogConverter
 
