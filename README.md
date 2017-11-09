@@ -6,7 +6,7 @@ The instructions below will inform you how to setup the dependencies to be able 
 # Reproducing Results
 
 The code in this repository has been used to generate the results for several academic papers.
-Please see the doc/papers directory for information on how to run experiments for specific papers.
+Please see the [docs/papers](./doc/papers) directory for information on how to run experiments for specific papers.
 
 # Setup System Requirements
 
