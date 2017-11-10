@@ -12,6 +12,7 @@
 
 #include <Timer.h>
 #include <TinyError.h>
+#include <scale.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->sink_distance))
@@ -207,27 +208,16 @@ implementation
 		const uint32_t seq_inc = source_fake_sequence_increments + 1;
 		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
 
-		uint32_t result_period;
+		// result_period = SOURCE_PERIOD_MS * (seq_inc/counter) // accounts for overflow
+		const uint32_t result_period = scale32(SOURCE_PERIOD_MS, seq_inc, counter);
 
 		ASSERT_MESSAGE(seq_inc <= counter, "Seen more fake than has been generated.");
 
 		// The double version:
 		/*const double ratio = seq_inc / (double)counter;
-		const uint32_t result_period = ceil(SOURCE_PERIOD_MS * ratio);
-		//simdbgverbose("stdout", "get_pfs_period=%u (sent=%u, rcvd=%u, x=%f)\n",
-		//  result_period, counter, seq_inc, ratio);
-		*/
-
-		// The integer version:
-		// TODO: Consider how to handle integer overflow
-		if (seq_inc == counter)
-		{
-			result_period = SOURCE_PERIOD_MS;
-		}
-		else
-		{
-			result_period = (SOURCE_PERIOD_MS * seq_inc) / counter;
-		}
+		const uint32_t result_period2 = ceil(SOURCE_PERIOD_MS * ratio);
+		simdbgverbose("stdout", "get_pfs_period=%u, %u (sent=%u, rcvd=%u, x=%f)\n",
+		  result_period, result_period2, counter, seq_inc, ratio);*/
 
 		return result_period;
 	}
