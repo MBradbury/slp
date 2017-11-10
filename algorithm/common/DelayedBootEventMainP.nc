@@ -19,4 +19,7 @@ implementation {
 #endif
 
 	Boot = DelayedBootEventMainImplP;
+
+    components MetricLoggingP as MetricLogging;
+    DelayedBootEventMainImplP.MetricLogging -> MetricLogging;
 }

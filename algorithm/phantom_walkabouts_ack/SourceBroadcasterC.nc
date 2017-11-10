@@ -813,8 +813,6 @@ implementation
 
 	event void Boot.booted()
 	{
-		METRIC_BOOT();
-
 		reach_borderline = FALSE;
 
 		landmark_bottom_left_distance = UNKNOWN_HOP_DISTANCE;

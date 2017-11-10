@@ -42,8 +42,6 @@ implementation
 
 	event void Boot.booted()
 	{
-		METRIC_BOOT();
-
 		total = 0;
 		smallest = UINT16_MAX;
 		largest = 0;

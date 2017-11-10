@@ -124,8 +124,6 @@ implementation
     //Startup Events
 	event void Boot.booted()
 	{
-		METRIC_BOOT();
-
         call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
         call MessageType.register_pair(EMPTYNORMAL_CHANNEL, "EmptyNormal");
 

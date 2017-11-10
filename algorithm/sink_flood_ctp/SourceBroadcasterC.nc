@@ -65,8 +65,6 @@ implementation
 
 	event void Boot.booted()
 	{
-		METRIC_BOOT();
-
 		sequence_number_init(&fake_sequence_counter);
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
