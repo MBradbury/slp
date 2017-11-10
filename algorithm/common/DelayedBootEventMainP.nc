@@ -10,15 +10,13 @@ implementation {
 	components MainC;
 	MainC.SoftwareInit = SoftwareInit;
 
-	DelayedBootEventMainImplP.OriginalBoot -> MainC;
+	DelayedBootEventMainImplP.OriginalBoot -> MainC.Boot;
+    Boot = DelayedBootEventMainImplP.Boot;
 
 #if defined(TESTBED)
 	components new TimerMilliC() as DelayTimer;
-
 	DelayedBootEventMainImplP.DelayTimer -> DelayTimer;
 #endif
-
-	Boot = DelayedBootEventMainImplP;
 
     components MetricLoggingP as MetricLogging;
     DelayedBootEventMainImplP.MetricLogging -> MetricLogging;
