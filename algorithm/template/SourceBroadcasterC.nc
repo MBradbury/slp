@@ -127,8 +127,6 @@ implementation
 
 	event void Boot.booted()
 	{
-		METRIC_BOOT();
-
 		busy = FALSE;
 		call Packet.clear(&packet);
 

@@ -567,8 +567,6 @@ implementation
 
 	event void Boot.booted()
 	{
-		METRIC_BOOT();
-
 		init_distance_neighbours(&neighbours);
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");

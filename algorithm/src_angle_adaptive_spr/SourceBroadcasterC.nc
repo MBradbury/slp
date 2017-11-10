@@ -590,8 +590,6 @@ implementation
 
 	event void Boot.booted()
 	{
-		METRIC_BOOT();
-
 		sequence_number_init(&away_sequence_counter);
 		sequence_number_init(&choose_sequence_counter);
 		sequence_number_init(&fake_sequence_counter);

@@ -139,8 +139,6 @@ implementation
 
 	event void Boot.booted()
 	{
-		METRIC_BOOT();
-
 		busy = FALSE;
 		sink_distance = UNKNOWN_HOP_DISTANCE;
 		source_distance = UNKNOWN_HOP_DISTANCE;
