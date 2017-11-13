@@ -25,9 +25,9 @@
 
 typedef struct
 {
-	int16_t bottom_left_distance;
-	int16_t bottom_right_distance;
-	int16_t sink_distance;
+	hop_distance_t bottom_left_distance;
+	hop_distance_t bottom_right_distance;
+	hop_distance_t sink_distance;
 } distance_container_t;
 
 void distance_update(distance_container_t* find, distance_container_t const* given)
@@ -76,7 +76,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 { \
 	if (rcvd->name != UNKNOWN_HOP_DISTANCE) \
 	{ \
-		landmark_bottom_left_distance = hop_distance_min(landmark_bottom_left_distance, botinc(rcvd->name)); \
+		landmark_bottom_left_distance = hop_distance_min(landmark_bottom_left_distance, hop_distance_increment(rcvd->name)); \
 	} \
 }
 
@@ -84,7 +84,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 { \
 	if (rcvd->name != UNKNOWN_HOP_DISTANCE) \
 	{ \
-		landmark_bottom_right_distance = hop_distance_min(landmark_bottom_right_distance, botinc(rcvd->name)); \
+		landmark_bottom_right_distance = hop_distance_min(landmark_bottom_right_distance, hop_distance_increment(rcvd->name)); \
 	} \
 }
 
@@ -92,7 +92,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distanc
 { \
 	if (rcvd->name != UNKNOWN_HOP_DISTANCE) \
 	{ \
-		landmark_sink_distance = hop_distance_min(landmark_sink_distance, botinc(rcvd->name)); \
+		landmark_sink_distance = hop_distance_min(landmark_sink_distance, hop_distance_increment(rcvd->name)); \
 	} \
 }
 
@@ -163,15 +163,15 @@ implementation
 
 	bool reach_borderline;
 
-	int16_t landmark_bottom_left_distance;
-	int16_t landmark_bottom_right_distance;
-	int16_t landmark_sink_distance;
+	hop_distance_t landmark_bottom_left_distance;
+	hop_distance_t landmark_bottom_right_distance;
+	hop_distance_t landmark_sink_distance;
 
 	int16_t srw_count;	//short random walk count.
 	int16_t lrw_count;	//long random walk count.
 
-	int16_t random_walk_hops ;
-	int16_t long_random_walk_hops;
+	hop_distance_t random_walk_hops;
+	hop_distance_t long_random_walk_hops;
 
 	distance_neighbours_t neighbours;
 
@@ -751,8 +751,7 @@ implementation
 
 				if (TOS_NODE_ID == source_addr)
 				{
-					forwarding_message.biased_direction = UnknownBiasType;
-					target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, NULL, 0);
+					target = random_walk_target(forwarding_message.further_or_closer_set, UnknownBiasType, NULL, 0);
 					forwarding_message.biased_direction = bias_direction;
 					//simdbg("stdout", "bd = %d\n", forwarding_message.biased_direction);
 				}			
