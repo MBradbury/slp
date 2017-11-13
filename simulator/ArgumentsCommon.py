@@ -82,6 +82,11 @@ def _add_cooja_radio_model(parser, **kwargs):
                         type=ArgumentsCommon.type_positive_int,
                         default=128),
 
+    parser.add_argument("--clock-deviation",
+                        type=ArgumentsCommon.type_deviation,
+                        default=1.0,
+                        help="The deviation of the nodes clock in the range (0,1] (default 1.0)")
+
 def _add_log_converter(parser, **kwargs):
     import simulator.OfflineLogConverter as OfflineLogConverter
 
@@ -465,4 +470,11 @@ class ArgumentsCommon(object):
         x = float(x)
         if x < 0:
             raise argparse.ArgumentTypeError("{} must be positive".format(x))
+        return x
+
+    @staticmethod
+    def type_deviation(x):
+        x = float(x)
+        if x <= 0.0 or x > 1.0:
+            raise argparse.ArgumentTypeError("{} not in range (0.0, 1.0]".format(x))
         return x
