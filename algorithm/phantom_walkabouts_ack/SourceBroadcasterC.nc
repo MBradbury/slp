@@ -757,15 +757,17 @@ implementation
 				}			
 				else
 				{
-					target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &source_addr, 1);
+					const am_addr_t proximate_source = call AMPacket.source(&info->msg);
+
+					target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &proximate_source, 1);
 					if (reach_borderline == TRUE && forwarding_message.further_or_closer_set != CloserSet)
 					{
 						//simdbg("stdout", "reach_borderline!\n");
 						forwarding_message.further_or_closer_set = CloserSet;
-						target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &source_addr, 1);
+						target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &proximate_source, 1);
 					}
 					//simdbg("stdout", "[%d]::forwarding_message.biased_direction =%d\n", TOS_NODE_ID, forwarding_message.biased_direction);
-					//target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &source_addr, 1);
+					//target = random_walk_target(forwarding_message.further_or_closer_set, forwarding_message.biased_direction, &proximate_source, 1);
 					//simdbg("stdout", "choose the target %d\n", target);
 				}
 
