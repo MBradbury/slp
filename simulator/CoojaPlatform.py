@@ -5,7 +5,7 @@ class MSP430Node(object):
         return """
       <interface_config>
         org.contikios.cooja.mspmote.interfaces.MspClock
-        <deviation>1.0</deviation>
+        <deviation>{deviation}</deviation>
       </interface_config>
       <interface_config>
         org.contikios.cooja.mspmote.interfaces.MspMoteID
@@ -21,7 +21,7 @@ class MicaZNode(object):
       </interface_config>
       <interface_config>
         org.contikios.cooja.avrmote.interfaces.MicaClock
-        <deviation>1.0</deviation>
+        <deviation>{deviation}</deviation>
       </interface_config>""".format(**kwargs)
 
 class CoojaPlatform(object):

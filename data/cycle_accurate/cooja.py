@@ -78,7 +78,7 @@ def create_csc(csc, target_directory, a):
         pcsc('        <z>0.0</z>')
         pcsc('      </interface_config>')
 
-        pcsc(a.args.platform.node_interface_configs(nid=nid))
+        pcsc(a.args.platform.node_interface_configs(nid=nid, deviation=a.args.clock_deviation))
 
         pcsc('      <motetype_identifier>{}</motetype_identifier>'.format(a.args.platform.platform()))
         pcsc('    </mote>')
