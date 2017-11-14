@@ -2,7 +2,7 @@
 import argparse
 from random import SystemRandom
 
-import simulator.Attacker as Attacker
+import simulator.AttackerConfiguration as AttackerConfiguration
 import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
@@ -173,8 +173,8 @@ OPTS = {
     "cooja":               _add_cooja_radio_model,
 
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
-                                                              type=Attacker.eval_input,
-                                                              choices=Attacker.available_models(),
+                                                              type=AttackerConfiguration.eval_input,
+                                                              choices=AttackerConfiguration.available_models(),
                                                               required=True,
                                                               help="The type of attacker that will try to find the source."),
 
