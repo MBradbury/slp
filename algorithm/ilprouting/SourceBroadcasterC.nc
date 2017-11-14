@@ -663,24 +663,30 @@ implementation
 	{
 		uint8_t i, j;
 
-		am_addr_t skippable_neighbours[RTX_ATTEMPTS];
-		uint8_t skippable_neighbours_count[RTX_ATTEMPTS];
+		am_addr_t skippable_neighbours[RTX_ATTEMPTS+1];
+		uint8_t skippable_neighbours_count[RTX_ATTEMPTS+1];
 		uint8_t skippable_neighbours_size = 0;
+
+		const uint8_t max_bad_neighbours = *bad_neighbours_size;
+
+		*bad_neighbours_size = 0;
 
 		// Count how many neighbours turn up
 		for (i = 0; i != failed_neighbour_sends_length(info); ++i)
 		{
 			const am_addr_t bad_neighbour = info->failed_neighbour_sends[i];
 
+			// Check that this bad neighbour has already been recorded
 			for (j = 0; j != skippable_neighbours_size; ++j)
 			{
 				if (skippable_neighbours[j] == bad_neighbour)
 					break;
 			}
 
+			// Not seen this address before
 			if (j == skippable_neighbours_size)
 			{
-				if (skippable_neighbours_size == RTX_ATTEMPTS)
+				if (skippable_neighbours_size == ARRAY_SIZE(skippable_neighbours))
 				{
 					ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours internal buffer full\n");
 				}
@@ -692,6 +698,7 @@ implementation
 					skippable_neighbours_count[j] = 1;
 				}
 			}
+			// Seen this address before, so increment the counter
 			else
 			{
 				skippable_neighbours_count[j]++;
@@ -701,16 +708,19 @@ implementation
 		// Copy neighbours that are bad to the list
 		for (i = 0; i != skippable_neighbours_size; ++i)
 		{
-			if (skippable_neighbours_count[i] >= BAD_NEIGHBOUR_THRESHOLD)
+			if (skippable_neighbours_count[i] < BAD_NEIGHBOUR_THRESHOLD)
 			{
-				if (*bad_neighbours_size == RTX_ATTEMPTS)
-				{
-					ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours output buffer full\n");
-					break;
-				}
+				continue;
+			}
 
-				bad_neighbours[*bad_neighbours_size] = skippable_neighbours[i];
-				(*bad_neighbours_size)++;
+			bad_neighbours[*bad_neighbours_size] = skippable_neighbours[i];
+			(*bad_neighbours_size)++;
+
+			// Stop copying if we have filled the output buffer
+			if (*bad_neighbours_size == max_bad_neighbours)
+			{
+				ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours output buffer full\n");
+				break;
 			}
 		}
 	}
@@ -764,8 +774,8 @@ implementation
 		static const bool FT[] = {FALSE, TRUE};
 		uint8_t i;
 
-		am_addr_t bad_neighbours[RTX_ATTEMPTS];
-		uint8_t bad_neighbours_size = 0;
+		am_addr_t bad_neighbours[RTX_ATTEMPTS+1];
+		uint8_t bad_neighbours_size = ARRAY_SIZE(bad_neighbours);
 
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
@@ -859,8 +869,8 @@ implementation
 
 		bool success = FALSE;
 
-		am_addr_t bad_neighbours[RTX_ATTEMPTS];
-		uint8_t bad_neighbours_size = 0;
+		am_addr_t bad_neighbours[RTX_ATTEMPTS+1];
+		uint8_t bad_neighbours_size = ARRAY_SIZE(bad_neighbours);
 
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
