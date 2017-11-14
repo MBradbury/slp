@@ -48,7 +48,6 @@ def print_arguments(module, a):
             print("{}={}".format(k, v))
 
 def run_simulation(module, a, count=1, print_warnings=False):
-    import copy
     import sys
 
     import simulator.Configuration as Configuration
@@ -66,13 +65,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
     for n in range(count):
         with Simulation(module, configuration, a.args) as sim:
 
-            # Create a copy of the provided attacker model
-            attacker = copy.deepcopy(a.args.attacker_model)
-
-            # Setup each attacker model
-            attacker.setup(sim, ident=0)
-
-            sim.add_attacker(attacker)
+            a.args.attacker_model.setup(sim)
 
             try:
                 sim.run()

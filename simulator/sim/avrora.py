@@ -347,8 +347,6 @@ def run_simulation(module, a, count=1, print_warnings=False):
             proc.terminate()
 
     else:
-        import copy
-
         if a.args.mode == "SINGLE":
             from simulator.Simulation import OfflineSimulation
         elif a.args.mode == "GUI":
@@ -362,13 +360,8 @@ def run_simulation(module, a, count=1, print_warnings=False):
             proc_iter = iter(proc.stdout.readline, '')
 
             with OfflineSimulation(module, configuration, a.args, event_log=avrora_iter(proc_iter)) as sim:
-                # Create a copy of the provided attacker model
-                attacker = copy.deepcopy(a.args.attacker_model)
-
-                # Setup each attacker model
-                attacker.setup(sim, ident=0)
-
-                sim.add_attacker(attacker)
+                
+                a.args.attacker_model.setup(sim)
 
                 try:
                     sim.run()
