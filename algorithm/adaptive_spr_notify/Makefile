@@ -1,6 +1,7 @@
 COMPONENT = SourceBroadcasterAppC
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
+CFLAGS += -I"./lpl"
 
 include ../common/makefile.common
 

@@ -44,7 +44,11 @@ implementation
 	App.RadioControl -> ActiveMessageC;
 
 #ifdef LOW_POWER_LISTENING
-	App.LowPowerListening -> ActiveMessageC;
+	components SLPDutyCycleC;
+	App.SLPDutyCycleControl -> SLPDutyCycleC.SplitControl;
+	App.SLPDutyCycle -> SLPDutyCycleC.SLPDutyCycle;
+
+	App.PacketTimeStamp -> ActiveMessageC;
 #endif
 
 
