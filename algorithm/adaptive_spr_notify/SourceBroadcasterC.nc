@@ -96,7 +96,10 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
 #ifdef LOW_POWER_LISTENING
-	uses interface LowPowerListening;
+	uses interface SplitControl as SLPDutyCycleControl;
+	uses interface SLPDutyCycle;
+
+	uses interface PacketTimeStamp<TMilli,uint32_t>;
 #endif
 }
 
@@ -320,11 +323,6 @@ implementation
 			call NodeType.init(SinkNode);
 			sink_distance = 0;
 
-			// Sink always listens
-#ifdef LOW_POWER_LISTENING
-			call LowPowerListening.setLocalWakeupInterval(0);
-#endif
-
 			call AwaySenderTimer.startOneShot(1 * 1000);
 		}
 		else
@@ -342,6 +340,18 @@ implementation
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
 			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
+
+#ifdef LOW_POWER_LISTENING
+			// All non-sinks should consider duty cycling
+			if (call NodeType.get() != SinkNode)
+			{
+				call SLPDutyCycleControl.start();
+			}
+			else
+			{
+				call SLPDutyCycleControl.stop();
+			}
+#endif
 		}
 		else
 		{
@@ -355,6 +365,16 @@ implementation
 	{
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
+
+#ifdef LOW_POWER_LISTENING
+	event void SLPDutyCycleControl.startDone(error_t err)
+	{
+	}
+
+	event void SLPDutyCycleControl.stopDone(error_t err)
+	{
+	}
+#endif
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Away);
@@ -530,11 +550,26 @@ implementation
 		}
 	}
 
-
-
-
-	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	bool set_first_source_distance(hop_distance_t source_distance)
 	{
+		if (first_source_distance == UNKNOWN_HOP_DISTANCE)
+		{
+			first_source_distance = hop_distance_increment(source_distance);
+			call Leds.led1On();
+
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+
+
+	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	{
+		call SLPDutyCycle.received_Normal(msg, SOURCE_PERIOD_MS);
+
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -546,13 +581,7 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (first_source_distance == UNKNOWN_HOP_DISTANCE)
-			{
-				first_source_distance = hop_distance_increment(rcvd->source_distance);
-				call Leds.led1On();
-
-				call BeaconSenderTimer.startOneShot(beacon_send_wait());
-			}
+			set_first_source_distance(rcvd->source_distance);
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
@@ -563,8 +592,10 @@ implementation
 		}
 	}
 
-	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		call SLPDutyCycle.received_Normal(msg, SOURCE_PERIOD_MS);
+
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -574,24 +605,17 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			if (first_source_distance == UNKNOWN_HOP_DISTANCE)
+			if (set_first_source_distance(rcvd->source_distance))
 			{
-				first_source_distance = hop_distance_increment(rcvd->source_distance);
-				call Leds.led1On();
-
-				call BeaconSenderTimer.startOneShot(beacon_send_wait());
-
 				// Having the sink forward the normal message helps set up
 				// the source distance gradients.
 				// However, we don't want to keep doing this as it benefits the attacker.
-				{
-					NormalMessage forwarding_message = *rcvd;
-					forwarding_message.source_distance += 1;
-					forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-					forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
+				NormalMessage forwarding_message = *rcvd;
+				forwarding_message.source_distance += 1;
+				forwarding_message.fake_sequence_number = source_fake_sequence_counter;
+				forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
-					send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
-				}
+				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
 
 			// Keep sending away messages until we get a valid response
@@ -605,8 +629,10 @@ implementation
 		}
 	}
 
-	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Fake_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		call SLPDutyCycle.received_Normal(msg, SOURCE_PERIOD_MS);
+
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
@@ -629,11 +655,11 @@ implementation
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
 		case SourceNode: break;
-		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
-		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Normal(msg, rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: Fake_receive_Normal(rcvd, source_addr); break;
+		case PermFakeNode: Fake_receive_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 
@@ -824,8 +850,10 @@ implementation
 	RECEIVE_MESSAGE_END(Choose)
 
 
-	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		call SLPDutyCycle.received_Fake(msg, UINT32_MAX);
+
 		sink_received_choose_reponse = TRUE;
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
@@ -840,8 +868,10 @@ implementation
 		}
 	}
 
-	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Source_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		call SLPDutyCycle.received_Fake(msg, UINT32_MAX);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
@@ -851,8 +881,10 @@ implementation
 		}
 	}
 
-	void Normal_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		call SLPDutyCycle.received_Fake(msg, UINT32_MAX);
+
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
 			FakeMessage forwarding_message = *rcvd;
@@ -865,9 +897,11 @@ implementation
 		}
 	}
 
-	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Fake_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		const uint8_t type = call NodeType.get();
+
+		call SLPDutyCycle.received_Fake(msg, UINT32_MAX);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -898,12 +932,12 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
-		case SinkNode: Sink_receive_Fake(rcvd, source_addr); break;
-		case SourceNode: Source_receive_Fake(rcvd, source_addr); break;
-		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Fake(msg, rcvd, source_addr); break;
+		case SourceNode: Source_receive_Fake(msg, rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Fake(msg, rcvd, source_addr); break;
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
+		case PermFakeNode: Fake_receive_Fake(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 
@@ -924,8 +958,10 @@ implementation
 	RECEIVE_MESSAGE_END(Beacon)
 
 
-	void x_receive_Notify(const NotifyMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Notify(message_t* msg, const NotifyMessage* const rcvd, am_addr_t source_addr)
 	{
+		call SLPDutyCycle.received_Normal(msg, SOURCE_PERIOD_MS);
+
 		if (sequence_number_before(&notify_sequence_counter, rcvd->sequence_number))
 		{
 			NotifyMessage forwarding_message = *rcvd;
@@ -937,19 +973,13 @@ implementation
 
 			send_Notify_message(&forwarding_message, AM_BROADCAST_ADDR);
 
-			if (first_source_distance == UNKNOWN_HOP_DISTANCE)
-			{
-				first_source_distance = hop_distance_increment(rcvd->source_distance);
-				call Leds.led1On();
-
-				call BeaconSenderTimer.startOneShot(beacon_send_wait());
-			}
+			set_first_source_distance(rcvd->source_distance);
 		}
 	}
 
-	void Sink_receive_Notify(const NotifyMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Notify(message_t* msg, const NotifyMessage* const rcvd, am_addr_t source_addr)
 	{
-		x_receive_Notify(rcvd, source_addr);
+		x_receive_Notify(msg, rcvd, source_addr);
 
 		// Keep sending away messages until we get a valid response
 		if (!sink_received_choose_reponse)
@@ -962,13 +992,13 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Notify, Receive)
-		case SinkNode: Sink_receive_Notify(rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Notify(msg, rcvd, source_addr); break;
 
 		case SourceNode:
 		case NormalNode:
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: x_receive_Notify(rcvd, source_addr); break;
+		case PermFakeNode: x_receive_Notify(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Notify)
 
 
