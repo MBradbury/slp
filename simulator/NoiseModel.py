@@ -89,19 +89,21 @@ class TestbedTraceNoiseModel(NoiseModel):
 
 # Backwards compatibility:
 # These are the mappings of the old names used to refer to the models
+# Use lambda to create these lazily
 MODEL_NAME_MAPPING = {
-    "meyer-heavy": FileTraceNoiseModel("models/noise/meyer-heavy.txt", count=2500),
-    "casino-lab": FileTraceNoiseModel("models/noise/casino-lab.txt", count=2500),
-    "ttx4-demo": FileTraceNoiseModel("models/noise/ttx4-demo.txt", count=2500),
+    "meyer-heavy": lambda: FileTraceNoiseModel("models/noise/meyer-heavy.txt", count=2500),
+    "casino-lab": lambda: FileTraceNoiseModel("models/noise/casino-lab.txt", count=2500),
+    "ttx4-demo": lambda: FileTraceNoiseModel("models/noise/ttx4-demo.txt", count=2500),
 }
 
 def models():
     """A list of the names of the available noise models."""
-    return [subcls for subcls in NoiseModel.__subclasses__()]  # pylint: disable=no-member
+    return NoiseModel.__subclasses__()  # pylint: disable=no-member
 
 def eval_input(source):
-    if source in MODEL_NAME_MAPPING:
-        return MODEL_NAME_MAPPING[source]
+    result = MODEL_NAME_MAPPING.get(source, None)
+    if result is not None:
+        return result()
 
     result = restricted_eval(source, models())
 

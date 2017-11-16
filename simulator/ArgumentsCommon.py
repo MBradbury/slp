@@ -78,6 +78,8 @@ def _add_cooja_radio_model(parser, **kwargs):
                         choices=CoojaPlatform.available_models(),
                         required=True)
 
+    # COOJA doesn't like debug strings longer than 128 bytes
+    # Anything longer than this will get "..." appended.
     parser.add_argument("--max-buffer-size",
                         type=ArgumentsCommon.type_positive_int,
                         default=128),
