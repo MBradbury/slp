@@ -568,12 +568,14 @@ implementation
 
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		call SLPDutyCycle.received_Normal(msg, SOURCE_PERIOD_MS);
+		const bool is_new = call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number);
+
+		call SLPDutyCycle.received_Normal(msg, is_new);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (is_new)
 		{
 			NormalMessage forwarding_message;
 
@@ -594,12 +596,14 @@ implementation
 
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		call SLPDutyCycle.received_Normal(msg, SOURCE_PERIOD_MS);
+		const bool is_new = call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number);
+
+		call SLPDutyCycle.received_Normal(msg, is_new);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (is_new)
 		{
 			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
@@ -631,12 +635,14 @@ implementation
 
 	void Fake_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		call SLPDutyCycle.received_Normal(msg, SOURCE_PERIOD_MS);
+		const bool is_new = call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number);
+
+		call SLPDutyCycle.received_Normal(msg, is_new);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (is_new)
 		{
 			NormalMessage forwarding_message;
 
@@ -852,11 +858,13 @@ implementation
 
 	void Sink_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		call SLPDutyCycle.received_Fake(msg, UINT32_MAX);
+		const bool is_new = sequence_number_before(&fake_sequence_counter, rcvd->sequence_number);
+
+		call SLPDutyCycle.received_Fake(msg, is_new);
 
 		sink_received_choose_reponse = TRUE;
 
-		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		if (is_new)
 		{
 			FakeMessage forwarding_message = *rcvd;
 
@@ -870,9 +878,11 @@ implementation
 
 	void Source_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		call SLPDutyCycle.received_Fake(msg, UINT32_MAX);
+		const bool is_new = sequence_number_before(&fake_sequence_counter, rcvd->sequence_number);
 
-		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		call SLPDutyCycle.received_Fake(msg, is_new);
+
+		if (is_new)
 		{
 			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 			source_fake_sequence_increments += 1;
@@ -883,9 +893,11 @@ implementation
 
 	void Normal_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		call SLPDutyCycle.received_Fake(msg, UINT32_MAX);
+		const bool is_new = sequence_number_before(&fake_sequence_counter, rcvd->sequence_number);
 
-		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		call SLPDutyCycle.received_Fake(msg, is_new);
+
+		if (is_new)
 		{
 			FakeMessage forwarding_message = *rcvd;
 
@@ -900,10 +912,11 @@ implementation
 	void Fake_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		const uint8_t type = call NodeType.get();
+		const bool is_new = sequence_number_before(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, UINT32_MAX);
+		call SLPDutyCycle.received_Fake(msg, is_new);
 
-		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
+		if (is_new)
 		{
 			FakeMessage forwarding_message = *rcvd;
 
@@ -960,9 +973,12 @@ implementation
 
 	void x_receive_Notify(message_t* msg, const NotifyMessage* const rcvd, am_addr_t source_addr)
 	{
-		call SLPDutyCycle.received_Normal(msg, SOURCE_PERIOD_MS);
+		const bool is_new = sequence_number_before(&notify_sequence_counter, rcvd->sequence_number);
 
-		if (sequence_number_before(&notify_sequence_counter, rcvd->sequence_number))
+		call SLPDutyCycle.normal_expected_interval(SOURCE_PERIOD_MS);
+		call SLPDutyCycle.received_Normal(msg, is_new);
+
+		if (is_new)
 		{
 			NotifyMessage forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
