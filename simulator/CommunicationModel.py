@@ -290,8 +290,9 @@ def models():
             for subsubcls in subcls.__subclasses__()]  # pylint: disable=no-member
 
 def eval_input(source):
-    if source in MODEL_NAME_MAPPING:
-        return MODEL_NAME_MAPPING[source]()
+    result = MODEL_NAME_MAPPING.get(source, None)
+    if result is not None:
+        return result()
 
     result = restricted_eval(source, models())
 

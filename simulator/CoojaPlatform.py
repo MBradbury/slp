@@ -37,6 +37,9 @@ class CoojaPlatform(object):
 
         return str(self) == str(other)
 
+    def __ne__(self, other):
+        return not self == other
+
     def post_build(self, target_directory, a):
         pass
 

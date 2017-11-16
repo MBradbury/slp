@@ -173,9 +173,11 @@ class MetricsCommon(object):
         return ordered_node_id, self.topology.o2t(ordered_node_id)
 
     def register(self, name, function):
+        """Register a callback :function: for the event with name :name:"""
         self.sim.register_output_handler(name, function)
 
     def register_generic(self, identifier, function):
+        """Register a callback for a generic event."""
         self._generic_handlers[identifier] = function
 
     def _time_to_bin(self, time):

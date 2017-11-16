@@ -359,7 +359,7 @@ class Indriya(OfflineLogConverter, SerialMessageLogConverter):
 
 def models():
     """A list of the available models."""
-    return [f for f in OfflineLogConverter.__subclasses__()]  # pylint: disable=no-member
+    return OfflineLogConverter.__subclasses__()  # pylint: disable=no-member
 
 def names():
     return [f.__name__.lower() for f in models()]
