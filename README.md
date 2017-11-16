@@ -292,6 +292,16 @@ These are two examples of how to specify variables for regular components and ge
 ./run.py algorithm.adaptive_spr_notify tossim GUI -cm low-asymmetry -ns 11 -c SourceCorner -nm meyer-heavy -safety 50 -am "SeqNosReactiveAttacker()" --source-period 1 --approach PB_FIXED1_APPROACH --gui-node-label '/*SourceBroadcasterAppC.NodeTypeC.NodeTypeP*/NodeTypeP$0$current_type'
 ```
 
+# Running locally
+
+To run a large combination of parameters locally you can use the following command
+```bash
+./create.py <algorithm> run <sim>
+```
+
+You will first need to edit your algorithm's Parameters.py file to contain the parameter
+combinations that you wish to run.
+
 # Running on the cluster
 
 In order to run your code on the cluster you will first need to checkout the files as described above.
