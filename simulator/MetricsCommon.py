@@ -31,7 +31,7 @@ from data.util import RunningStats
 
 # From: https://docs.python.org/3/library/itertools.html#recipes
 def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
     a, b = tee(iterable, 2)
     next(b, None)
     return zip(a, b)
@@ -1231,6 +1231,73 @@ class RssiMetricsCommon(MetricsCommon):
     def items():
         d = OrderedDict()
 
+        return d
+
+class DutyCycleMetricsCommon(MetricsCommon):
+    """For algorithms that duty cycle the radio."""
+    def __init__(self, *args, **kwargs):
+        super(DutyCycleMetricsCommon, self).__init__(*args, **kwargs)
+
+        self._duty_cycle_state = {}
+        self._duty_cycle = defaultdict(int)
+
+        # Duty cycle is indicated by the blue led / led 2
+        # When led is on the radio is on and vice verse
+        self.register('LedsC', self._process_leds_event)
+        self.register('LedsCooja', self._process_leds_cooja_event)
+
+    def _process_leds_event(self, d_or_e, node_id, time, detail):
+        (led, status) = detail.split(',')
+
+        if led == "2":
+            self._process_duty_cycle(node_id, time, status == "on")
+
+    def _process_leds_cooja_event(self, d_or_e, node_id, time, detail):
+        status = detail.split(",")[2]
+
+        self._process_duty_cycle(node_id, time, status == "1")
+
+    def _process_duty_cycle(self, node_id, time, state):
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        time = self.sim_time()
+
+        (previous_state, previous_time) = self._duty_cycle_state.get(ord_node_id, (None, None))
+
+        # Check if state has changed, if not do nothing
+        if previous_state == state:
+            return
+
+        # We want to catch True to False transitions
+        if previous_state is True and state is False:
+            self._duty_cycle[ord_node_id] += (time - previous_time)
+
+        self._duty_cycle_state[ord_node_id] = (state, time)
+
+    def _calculate_node_duty_cycle(self, node_id):
+        start_time = next(iter(self.node_booted_at[node_id]))
+        end_time = self.sim_time()
+
+        (state, state_time) = self._duty_cycle_state[node_id]
+
+        duty_time = self._duty_cycle[node_id]
+
+        # If the last transition was to turn the radio on
+        # Then we need to count this time up to the end time
+        if state is True:
+            duty_time += (end_time - state_time)
+
+        return duty_time / (end_time - start_time)
+
+    def duty_cycle(self):
+        return {
+            nid: round(self._calculate_node_duty_cycle(nid), 5)
+            for nid in self._duty_cycle_state.keys()
+        }
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+        d["DutyCycle"]                     = lambda x: MetricsCommon.compressed_dict_str(x.duty_cycle())
         return d
 
 
