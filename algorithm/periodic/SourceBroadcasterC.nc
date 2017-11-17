@@ -89,7 +89,7 @@ implementation
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
 			call ObjectDetector.start();
-			call BroadcastTimer.startOneShot(get_broadcast_period());
+			call BroadcastTimer.startPeriodic(get_broadcast_period());
 		}
 		else
 		{
@@ -162,8 +162,6 @@ implementation
 
 	event void BroadcastTimer.fired()
 	{
-		call BroadcastTimer.startOneShot(get_broadcast_period());
-
 		simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
 
 		if (!call MessageQueue.empty())
@@ -226,6 +224,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
+		case SourceNode: break;
 		case SinkNode: Sink_receive_Normal(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Normal(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
