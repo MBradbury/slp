@@ -167,8 +167,6 @@ module SourceBroadcasterC
 	 
 	uses interface Random;
 
-	uses interface ParameterInit<uint16_t> as SeedInit;
-
 	uses interface Crc;
 }
 
@@ -649,9 +647,6 @@ implementation
 		{
 			call NodeType.init(NormalNode);
 		}
-
-		random_seed = (uint32_t)sim_time();
-		call SeedInit.init(random_seed);
 
 		call RadioControl.start();
 	}
