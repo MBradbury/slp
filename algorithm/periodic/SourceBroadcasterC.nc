@@ -9,7 +9,7 @@
 #include <TinyError.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_DUMMYNORMAL(msg) METRIC_RCV(DummyNormal, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_DUMMYNORMAL(msg) METRIC_RCV(DummyNormal, source_addr, source_addr, UNKNOWN_SEQNO, 1)
 
 module SourceBroadcasterC
 {
@@ -147,7 +147,7 @@ implementation
 
 			if (call MessageQueue.enqueue(message) != SUCCESS)
 			{
-				simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+				ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
 			}
 			else
 			{
@@ -203,7 +203,7 @@ implementation
 
 				if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
 				{
-					simdbgerror("stdout", "Failed to enqueue, should not happen!\n");
+					ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
 				}
 			}
 			else
