@@ -11,4 +11,7 @@ enum Channel
 
 #define SLP_MAX_NUM_SOURCES 20
 
+// Disable using CRC checks
+#define SLP_NO_CRC_CHECKS
+
 #endif // SLP_CONSTANTS_H
