@@ -29,6 +29,8 @@ from simulator.Topology import OrderedId
 
 from data.util import RunningStats
 
+AM_BROADCAST_ADDR = 65535
+
 # From: https://docs.python.org/3/library/itertools.html#recipes
 def pairwise(iterable):
     """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
@@ -156,6 +158,11 @@ class MetricsCommon(object):
             else:
                 assert False
 
+    def finish(self):
+        """Called when the simulation has finished.
+        Perform any post simulation actions here."""
+        pass
+
     def source_ids(self):
         if self.strict:
             return self.reported_source_ids
@@ -169,6 +176,9 @@ class MetricsCommon(object):
             return set(self.configuration.sink_ids)
 
     def _process_node_id(self, ordered_node_id):
+        if int(ordered_node_id) == AM_BROADCAST_ADDR:
+            return None, None
+
         ordered_node_id = OrderedId(int(ordered_node_id))
         return ordered_node_id, self.topology.o2t(ordered_node_id)
 
@@ -604,7 +614,7 @@ class MetricsCommon(object):
 
         if len(self.normal_sent_time) > 1 and np.isclose(max(self.normal_sent_time.values()), end_time, atol=0.07):
             send_modifier = 1
-        
+
         return len(self.normal_receive_time) / (len(self.normal_sent_time) - send_modifier)
 
     def attacker_receive_ratio(self, attacker):
@@ -1154,8 +1164,8 @@ class FakeMetricsCommon(MetricsCommon):
         
         d["FakeSent"]               = lambda x: x.number_sent("Fake")
 
-        for (short, long) in sorted(fake_node_types.items(), key=lambda x: x[0]):
-            d[short]                    = lambda x: x.times_node_changed_to(long)
+        for (fake_short, fake_long) in sorted(fake_node_types.items(), key=lambda x: x[0]):
+            d[fake_short]           = lambda x: x.times_node_changed_to(fake_long)
 
         d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=fake_node_types.values())
         d["FakeToFake"]             = lambda x: x.times_fake_node_changed_to_fake()
@@ -1188,8 +1198,7 @@ class TreeMetricsCommon(MetricsCommon):
 
         self.parent_changes[top_node_id] += 1
 
-        # 65535 is AM_BROADCAST_ADDR
-        if current_parent != 65535:
+        if current_parent != AM_BROADCAST_ADDR:
             self.true_parent_changes[top_node_id] += 1
 
     def total_parent_changes(self):
@@ -1274,6 +1283,12 @@ class DutyCycleMetricsCommon(MetricsCommon):
         self._duty_cycle_state[ord_node_id] = (state, time)
 
     def _calculate_node_duty_cycle(self, node_id):
+
+        # TODO: Calculate start time from the first_normal_sent_time
+        # so the duty cycle is only calculated for when the nodes
+        # are actually duty cycling.
+        #start_time = self.first_normal_sent_time()
+
         start_time = next(iter(self.node_booted_at[node_id]))
         end_time = self.sim_time()
 
@@ -1299,6 +1314,91 @@ class DutyCycleMetricsCommon(MetricsCommon):
         d = OrderedDict()
         d["DutyCycle"]                     = lambda x: MetricsCommon.compressed_dict_str(x.duty_cycle())
         return d
+
+
+class MessageTimeGrapher(MetricsCommon):
+    def __init__(self, *args, **kwargs):
+        super(MessageTimeGrapher, self).__init__(*args, **kwargs)
+
+        self.register('M-CB', self.log_time_bcast_event)
+        self.register('M-CD', self.log_time_deliver_event)
+
+        self._bcasts = defaultdict(list)
+        self._delivers = defaultdict(list)
+
+    def log_time_bcast_event(self, d_or_e, node_id, time, detail):
+        (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
+
+        # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
+        if status != "0":
+            return
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        sequence_number = int(sequence_number)
+
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
+
+        self._bcasts[kind].append((time, ord_node_id, ord_ultimate_source_id, sequence_number))
+
+    def log_time_deliver_event(self, d_or_e, node_id, time, detail):
+        try:
+            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
+        except ValueError:
+            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        sequence_number = int(sequence_number)
+
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
+
+        self._delivers[kind].append((time, ord_node_id, ord_ultimate_source_id, sequence_number))
+
+    def _message_type_to_colour(self, kind):
+        return {
+            "Normal": "blue",
+            "Fake": "red",
+            "Away": "magenta",
+            "Choose": "green",
+            "Notify": "cyan",
+            "Beacon": "black",
+            "Poll": "yellow",
+        }[kind]
+
+    def _plot(self, values, filename):
+        import matplotlib.pyplot as plt
+        from matplotlib.font_manager import FontProperties
+
+        fig, ax = plt.subplots()
+
+        for (kind, values) in values.items():
+
+            xy = [(time, ord_node_id.nid) for (time, ord_node_id, ord_ultimate_source_id, sequence_number) in values]
+
+            xs, ys = zip(*xy)
+
+            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=10)
+
+        # From: https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
+        box = ax.get_position()
+        ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
+
+        font_prop = FontProperties()
+        font_prop.set_size("small")
+
+        legend = ax.legend(loc="upper center", bbox_to_anchor=(0.45,-0.15), ncol=6, prop=font_prop)
+
+        plt.xlabel("Time (seconds)")
+        plt.ylabel("Node ID")
+
+        plt.savefig(filename)
+
+    def finish(self):
+        self._plot(self._bcasts, "bcasts.pdf")
+        self._plot(self._delivers, "delivers.pdf")
 
 
 def import_algorithm_metrics(module_name, simulator):

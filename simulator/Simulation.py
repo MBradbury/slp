@@ -121,6 +121,8 @@ class Simulation(object):
 
     def __exit__(self, tp, value, tb):
 
+        self.metrics.finish()
+
         # Turn off to allow subsequent simulations
         for node in self.nodes:
             node.tossim_node.turnOff()
@@ -373,7 +375,7 @@ class OfflineSimulation(object):
         return self
 
     def __exit__(self, tp, value, tb):
-        pass
+        self.metrics.finish()
 
     def register_output_handler(self, name, function):
         if name not in self._line_handlers:
@@ -485,7 +487,7 @@ class OfflineSimulation(object):
             for line in self._event_log:
 
                 if self.debug:
-                    print(line.rstrip(), file=log_file)
+                    print(line, file=log_file)
 
                 result = self._parse_line(line)
 
