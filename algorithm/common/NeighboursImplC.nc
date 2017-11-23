@@ -164,7 +164,7 @@ implementation
 			}
 			else
 			{
-				simdbg("stdout", "Evicting %u due to %u out of %u\n",
+				simdbgverbose("stdout", "Evicting %u due to %u out of %u\n",
 					address, info->rtx_success, total_tx);
 
 				call NeighbourDict.remove(address);
