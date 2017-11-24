@@ -36,3 +36,5 @@ Parameters.py
 */wiring-check.xml
 app.c
 */*/*.java
+COOJA.testlog
+
