@@ -25,28 +25,28 @@
 
 typedef struct
 {
-	hop_distance_t distance;
+	hop_distance_t source_distance;
 } distance_container_t;
 
 void distance_update(distance_container_t* find, distance_container_t const* given)
 {
-	find->distance = hop_distance_min(find->distance, given->distance);
+	find->source_distance = hop_distance_min(find->source_distance, given->source_distance);
 }
 
 void distance_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
 {
 #ifdef TOSSIM
 	simdbg_clear(name, "[%u] => addr=%u / dist=%d",
-		i, address, contents->distance);
+		i, address, contents->source_distance);
 #endif
 }
 
 DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_update, distance_print, SLP_MAX_1_HOP_NEIGHBOURHOOD);
 
-#define UPDATE_NEIGHBOURS(rcvd, source_addr, name) \
+#define UPDATE_NEIGHBOURS(addr, source_distance) \
 { \
-	const distance_container_t dist = { rcvd->name }; \
-	insert_distance_neighbour(&neighbours, source_addr, &dist); \
+	const distance_container_t dist = { source_distance }; \
+	insert_distance_neighbour(&neighbours, addr, &dist); \
 }
 
 module SourceBroadcasterC
@@ -95,9 +95,9 @@ module SourceBroadcasterC
 
 	uses interface SequenceNumbers as NormalSeqNos;
 
+	uses interface SLPDutyCycle;
 #ifdef LOW_POWER_LISTENING
 	uses interface SplitControl as SLPDutyCycleControl;
-	uses interface SLPDutyCycle;
 
 	uses interface PacketTimeStamp<TMilli,uint32_t>;
 #endif
@@ -239,7 +239,7 @@ implementation
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
-				if (neighbour->contents.distance >= first_source_distance)
+				if (neighbour->contents.source_distance >= first_source_distance)
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
 				}
@@ -397,6 +397,7 @@ implementation
 				message.source_id = TOS_NODE_ID;
 				message.sequence_number = sequence_number_next(&notify_sequence_counter);
 				message.source_distance = 0;
+				message.source_period = SOURCE_PERIOD_MS;
 
 				if (send_Notify_message(&message, AM_BROADCAST_ADDR))
 				{
@@ -797,8 +798,8 @@ implementation
 			{
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
-				if (neighbour == NULL || neighbour->contents.distance == UNKNOWN_HOP_DISTANCE ||
-					first_source_distance == UNKNOWN_HOP_DISTANCE || neighbour->contents.distance <= first_source_distance)
+				if (neighbour == NULL || neighbour->contents.source_distance == UNKNOWN_HOP_DISTANCE ||
+					first_source_distance == UNKNOWN_HOP_DISTANCE || neighbour->contents.source_distance <= first_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 				}
@@ -956,7 +957,7 @@ implementation
 
 	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, source_distance_of_sender);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
 	}
@@ -975,7 +976,7 @@ implementation
 	{
 		const bool is_new = sequence_number_before(&notify_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.normal_expected_interval(SOURCE_PERIOD_MS);
+		call SLPDutyCycle.normal_expected_interval(rcvd->source_period);
 		call SLPDutyCycle.received_Normal(msg, is_new);
 
 		if (is_new)
@@ -1065,9 +1066,11 @@ implementation
 		ChooseMessage message;
 		const am_addr_t target = fake_walk_target();
 
+		assert(sizeof(message) == original_size);
+
 		memcpy(&message, original, sizeof(message));
 
-		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to %u.\n", target);
+		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to " TOS_NODE_ID_SPEC ".\n", target);
 
 		// When finished sending fake messages from a TFS
 

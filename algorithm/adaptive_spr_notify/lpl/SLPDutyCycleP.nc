@@ -99,6 +99,7 @@ implementation
     void initializeSend();
     void startOnTimer();
     void startOffTimer();
+    void startOffTimerFromMessage();
     bool isDutyCycling();
     bool finishSplitControlRequests();
     
@@ -130,7 +131,7 @@ implementation
 
         if (is_new)
         {
-            startOffTimer();
+            startOffTimerFromMessage();
         }
     }
 
@@ -234,8 +235,6 @@ implementation
 
         call SendState.toIdle();
         call SendDoneTimer.stop();
-
-        //startOffTimer();
 
         return call SubSend.cancel(msg);
     }
@@ -360,8 +359,6 @@ implementation
         call SendState.toIdle();
         call SendDoneTimer.stop();
 
-        //startOffTimer();
-
         signal Send.sendDone(msg, error);
     }
     
@@ -375,7 +372,6 @@ implementation
      */
     event message_t *SubReceive.receive(message_t* msg, void* payload, uint8_t len)
     {
-        //startOffTimer();
         return signal Receive.receive(msg, payload, len);
     }
     
@@ -494,7 +490,9 @@ implementation
     
     /***************** Timer Events ****************/
     event void OnTimer.fired()
-    {
+    {        
+        startOffTimer();
+
         post startRadio();
 
         /*if(isDutyCycling())
@@ -592,9 +590,9 @@ implementation
 
         if (state == S_TURNING_OFF)
         {
-          call SplitControlState.forceState(S_OFF);
-          signal SplitControl.stopDone(SUCCESS);
-          return TRUE;
+            call SplitControlState.forceState(S_OFF);
+            signal SplitControl.stopDone(SUCCESS);
+            return TRUE;
         }
         else if (state == S_TURNING_ON)
         {
@@ -611,28 +609,53 @@ implementation
 
     void startOnTimer()
     {
-        const uint32_t now = call LocalTime.get();
-        const uint32_t last_group_start = call NormalMessageTimingAnalysis.last_group_start();
-        const uint32_t next_group_wait = call NormalMessageTimingAnalysis.next_group_wait();
-        const uint32_t early_wakeup_duration = call NormalMessageTimingAnalysis.early_wakeup_duration();
+        if (!call OnTimer.isRunning())
+        {
+            //const uint32_t now = call LocalTime.get();
+            //const uint32_t last_group_start = call NormalMessageTimingAnalysis.last_group_start();
+            const uint32_t next_group_wait = call NormalMessageTimingAnalysis.next_group_wait();
+            const uint32_t early_wakeup_duration = call NormalMessageTimingAnalysis.early_wakeup_duration();
+            const uint32_t awake_duration = call NormalMessageTimingAnalysis.awake_duration();
 
-        const uint32_t start = next_group_wait - early_wakeup_duration - (now - last_group_start);
+            const uint32_t start = next_group_wait - early_wakeup_duration - awake_duration;//(now - last_group_start);
 
-        simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
-        call OnTimer.startOneShot(start);
+            simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
+            call OnTimer.startOneShot(start);
+        }
     }
 
+    // OnTimer has just fired, start off timer
     void startOffTimer()
     {
-        const uint32_t now = call LocalTime.get();
-        const uint32_t last_group_start = call NormalMessageTimingAnalysis.last_group_start();
-        const uint32_t awake_duration = call NormalMessageTimingAnalysis.awake_duration();
+        if (!call OffTimer.isRunning())
+        {
+            const uint32_t early_wakeup_duration = call NormalMessageTimingAnalysis.early_wakeup_duration();
+            const uint32_t awake_duration = call NormalMessageTimingAnalysis.awake_duration();
 
-        const uint32_t start = awake_duration - (now - last_group_start);
+            const uint32_t start = early_wakeup_duration + awake_duration;
 
-        simdbg("stdout", "Starting off timer in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
-            start, awake_duration, now, last_group_start);
-        call OffTimer.startOneShot(start);
+            //simdbg("stdout", "Starting off timer in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
+            //    start, awake_duration, now, last_group_start);
+            simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
+            call OffTimer.startOneShot(start);
+        }
+    }
+
+    // Just received a message, consider when to turn off
+    void startOffTimerFromMessage()
+    {
+        if (!call OffTimer.isRunning())
+        {
+            const uint32_t now = call LocalTime.get();
+            const uint32_t last_group_start = call NormalMessageTimingAnalysis.last_group_start(); // This is the current group
+            const uint32_t awake_duration = call NormalMessageTimingAnalysis.awake_duration();
+
+            const uint32_t start = awake_duration - (now - last_group_start);
+
+            simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
+                start, awake_duration, now, last_group_start);
+            call OffTimer.startOneShot(start);
+        }
     }
     
 

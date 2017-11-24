@@ -62,8 +62,8 @@ implementation
     components new TimerMilliC() as OffTimerC;
     components new TimerMilliC() as SendDoneTimerC;
     SLPDutyCycleP.OffTimer -> OffTimerC;
-    SLPDutyCycleP.SendDoneTimer -> SendDoneTimerC;
     SLPDutyCycleP.OnTimer -> OnTimerC;
+    SLPDutyCycleP.SendDoneTimer -> SendDoneTimerC;
 
     components SystemLowPowerListeningC;  
     SLPDutyCycleP.SystemLowPowerListening -> SystemLowPowerListeningC;

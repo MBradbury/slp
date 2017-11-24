@@ -49,6 +49,9 @@ implementation
 	App.SLPDutyCycle -> SLPDutyCycleC.SLPDutyCycle;
 
 	App.PacketTimeStamp -> ActiveMessageC;
+#else
+	components DummyDutyCycleC;
+	App.SLPDutyCycle -> DummyDutyCycleC.SLPDutyCycle;
 #endif
 
 

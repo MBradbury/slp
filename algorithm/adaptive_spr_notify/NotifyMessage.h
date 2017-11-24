@@ -12,6 +12,8 @@ typedef nx_struct NotifyMessage {
 
   nx_hop_distance_t source_distance;
 
+  nx_uint32_t source_period;
+
 } NotifyMessage;
 
 inline SequenceNumberWithBottom Notify_get_sequence_number(const NotifyMessage* msg) { return msg->sequence_number; }
