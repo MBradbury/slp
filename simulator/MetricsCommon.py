@@ -77,6 +77,8 @@ class MetricsCommon(object):
         self.normal_latency = {}
         self.normal_hop_count = []
 
+        self.receive_time = {}
+
         self.total_wall_time = None
         self.wall_time = None
         self.event_count = None
@@ -335,14 +337,14 @@ class MetricsCommon(object):
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
+        time = float(time)
         kind = self.message_kind_to_string(kind)
         sequence_number = self.parse_sequence_number(sequence_number)
+        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
 
         self.received[kind][top_node_id] += 1
 
         if ord_node_id in self.sink_ids() and kind == "Normal":
-            time = float(time)
-            ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
             hop_count = int(hop_count)
 
             # If there is a KeyError on the line with self.normal_sent_time
@@ -367,6 +369,9 @@ class MetricsCommon(object):
         self._record_direction_received(kind, ord_node_id, ord_proximate_source_id,
                                         self.received_from_further_hops, self.received_from_closer_or_same_hops,
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
+
+        #self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, OrderedDict())[(ord_ultimate_source_id, sequence_number)] = time
+        self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, []).append(time)
 
     def process_deliver_event(self, d_or_e, node_id, time, detail):
         try:
@@ -579,6 +584,17 @@ class MetricsCommon(object):
         else:
             return float('inf')
 
+    def message_receive_interval(self):
+        #self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, {})[(ord_ultimate_source_id, sequence_number)] = time
+
+        return {
+            kind: {
+                nid: round(np.mean([b - a for (a, b) in pairwise(values1)]), 6)
+
+                for (nid, values1) in values.items()
+            }
+            for (kind, values) in self.receive_time.items()
+        }
 
 
     def receive_ratio(self):
@@ -913,6 +929,8 @@ class MetricsCommon(object):
         d["NormalSinkSourceHops"]          = lambda x: x.average_sink_source_hops()
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
+
+        d["MessageReceiveInterval"]        = lambda x: str(x.message_receive_interval())
 
         d["NodeWasSource"]                 = lambda x: MetricsCommon.smaller_dict_str(x.node_was_source())
         d["NodeTransitions"]               = lambda x: MetricsCommon.smaller_dict_str(dict(x.node_transitions))
@@ -1325,6 +1343,8 @@ class MessageTimeGrapher(MetricsCommon):
 
         self._bcasts = defaultdict(list)
         self._delivers = defaultdict(list)
+        self._attacker_delivers = {}
+        self._attacker_history = defaultdict(list)
 
     def log_time_bcast_event(self, d_or_e, node_id, time, detail):
         (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
@@ -1335,12 +1355,9 @@ class MessageTimeGrapher(MetricsCommon):
 
         time = float(time)
         kind = self.message_kind_to_string(kind)
-        sequence_number = int(sequence_number)
-
         ord_node_id, top_node_id = self._process_node_id(node_id)
-        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
 
-        self._bcasts[kind].append((time, ord_node_id, ord_ultimate_source_id, sequence_number))
+        self._bcasts[kind].append((time, ord_node_id))
 
     def log_time_deliver_event(self, d_or_e, node_id, time, detail):
         try:
@@ -1350,12 +1367,9 @@ class MessageTimeGrapher(MetricsCommon):
 
         time = float(time)
         kind = self.message_kind_to_string(kind)
-        sequence_number = int(sequence_number)
-
         ord_node_id, top_node_id = self._process_node_id(node_id)
-        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
 
-        self._delivers[kind].append((time, ord_node_id, ord_ultimate_source_id, sequence_number))
+        self._delivers[kind].append((time, ord_node_id))
 
     def _message_type_to_colour(self, kind):
         return {
@@ -1365,40 +1379,75 @@ class MessageTimeGrapher(MetricsCommon):
             "Choose": "green",
             "Notify": "cyan",
             "Beacon": "black",
-            "Poll": "yellow",
+            "Poll": "xkcd:orange",
         }[kind]
 
-    def _plot(self, values, filename):
+    def _plot(self, values, filename, line_values=None, y2label=None):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
 
         fig, ax = plt.subplots()
 
-        for (kind, values) in values.items():
-
-            xy = [(time, ord_node_id.nid) for (time, ord_node_id, ord_ultimate_source_id, sequence_number) in values]
-
-            xs, ys = zip(*xy)
-
-            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=10)
-
         # From: https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
         box = ax.get_position()
         ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
+
+        for (kind, values) in sorted(values.items(), key=lambda x: x[0]):
+            xy = [(time, ord_node_id.nid) for (time, ord_node_id) in values]
+            xs, ys = zip(*xy)
+            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=10)
+
+        if line_values is not None:
+            xs, ys = zip(*line_values)
+
+            if y2label is None:
+                ax.plot(xs, ys)
+            else:
+                ax2 = ax.twinx()
+                ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
+
+                ax2.plot(xs, ys)
+
+                ax2.set_ylabel(y2label)
+
+                ymin, ymax = 0, max(ys)
+                ymin -= 0.05 * (ymax - ymin)
+                ymax += 0.05 * (ymax - ymin)
+                ax2.set_ylim(bottom=ymin, top=ymax)
+
+        node_ids = [node_id.nid for node_id in self.topology.nodes]
+        ymin, ymax = min(node_ids), max(node_ids)
+        ymin -= 0.05 * (ymax - ymin)
+        ymax += 0.05 * (ymax - ymin)
+        ax.set_ylim(bottom=ymin, top=ymax)
 
         font_prop = FontProperties()
         font_prop.set_size("small")
 
         legend = ax.legend(loc="upper center", bbox_to_anchor=(0.45,-0.15), ncol=6, prop=font_prop)
 
-        plt.xlabel("Time (seconds)")
-        plt.ylabel("Node ID")
+        ax.set_xlabel("Time (seconds)")
+        ax.set_ylabel("Node ID")
 
         plt.savefig(filename)
 
     def finish(self):
         self._plot(self._bcasts, "bcasts.pdf")
         self._plot(self._delivers, "delivers.pdf")
+
+        for (attacker_id, values) in self._attacker_delivers.items():
+            line_values = [(time, node_id.nid) for (time, node_id) in self._attacker_history[attacker_id]]
+            self._plot(values, "attacker{}_delivers_nid.pdf".format(attacker_id), line_values=line_values)
+
+        for source_id in self.configuration.source_ids:
+            for (attacker_id, values) in self._attacker_delivers.items():
+                line_values = [
+                    (time, self.configuration.node_source_distance_meters(node_id, source_id))
+                    for (time, node_id)
+                    in self._attacker_history[attacker_id]
+                ]
+                self._plot(values, "attacker{}_delivers_dsrcm{}.pdf".format(attacker_id, source_id),
+                           line_values=line_values, y2label="Source {} Distance (meters)".format(source_id))
 
 
 def import_algorithm_metrics(module_name, simulator):
