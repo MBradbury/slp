@@ -90,6 +90,11 @@ class Attacker(object):
         if self._has_gui:
             self._draw(0, self.position)
 
+        self._has_metrics_attacker_delivers = hasattr(self._sim.metrics, "_attacker_delivers")
+
+        if self._has_metrics_attacker_delivers:
+            self._sim.metrics._attacker_history[self.ident].append((0.0, self.position))
+
     def _source_ids(self):
         return self._sim.metrics.source_ids()
 
@@ -112,13 +117,17 @@ class Attacker(object):
 
         (msg_type, prox_from_id, ult_from_id, sequence_number, rssi, lqi) = detail.split(',')
 
+        time = float(time)
         msg_type = self._sim.metrics.message_kind_to_string(msg_type)
+
+        # Record when messages have been delivered when requested
+        if self._has_metrics_attacker_delivers:
+            self._sim.metrics._attacker_delivers.setdefault(self.ident, {}).setdefault(msg_type, []).append((time, self.position))
 
         # Doesn't want to process this message if this is a message the attacker knows to ignore
         if msg_type in MESSAGES_TO_IGNORE:
             return False
 
-        time = float(time)
         prox_from_id = OrderedId(int(prox_from_id))
         ult_from_id = OrderedId(int(ult_from_id))
         sequence_number = int(sequence_number)
@@ -141,7 +150,7 @@ class Attacker(object):
         # If a tuple is returned then we are moving to a different location than the sender
         # of the message that we just received.
         if isinstance(should_move, tuple):
-            (time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = should_move
+            (old_time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number) = should_move
             should_move = True
 
         if should_move:
@@ -200,6 +209,9 @@ class Attacker(object):
     
         if self._has_gui:
             self._draw(time, self.position)
+
+        if self._has_metrics_attacker_delivers:
+            self._sim.metrics._attacker_history[self.ident].append((time, self.position))
 
     def _draw(self, time, node_id):
         """Updates the attacker position on the GUI if one is present."""
