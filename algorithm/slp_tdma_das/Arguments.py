@@ -34,8 +34,9 @@ class Arguments(ArgumentsCommon):
             raise RuntimeError("Configuration must have one and only one source")
 
         (source_id,) = configuration.source_ids
+        (sink_id,) = configuration.sink_ids
 
-        ssd_hops = configuration.ssd(source_id)
+        ssd_hops = configuration.ssd(sink_id, source_id)
 
         result["SLOT_PERIOD_MS"] = int(self.args.slot_period * 1000)
         result["DISSEM_PERIOD_MS"] = int(self.args.dissem_period * 1000)
