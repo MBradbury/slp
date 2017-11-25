@@ -69,7 +69,7 @@ implementation
 
 	command SequenceNumber SequenceNumbers.next(am_addr_t address)
 	{
-		const SequenceNumber* result = find_or_add(address);
+		const SequenceNumber* const result = find_or_add(address);
 
 #if SLP_VERBOSE_DEBUG
 		assert(result != NULL);
@@ -80,7 +80,7 @@ implementation
 
 	command void SequenceNumbers.increment(am_addr_t address)
 	{
-		SequenceNumber* result = find_or_add(address);
+		SequenceNumber* const result = find_or_add(address);
 
 #if SLP_VERBOSE_DEBUG
 		assert(result != NULL);
@@ -91,7 +91,7 @@ implementation
 
 	command bool SequenceNumbers.before(am_addr_t address, SequenceNumber other)
 	{
-		const SequenceNumber* result = find_or_add(address);
+		const SequenceNumber* const result = find_or_add(address);
 
 #if SLP_VERBOSE_DEBUG
 		assert(result != NULL);
@@ -102,13 +102,24 @@ implementation
 
 	command void SequenceNumbers.update(am_addr_t address, SequenceNumber other)
 	{
-		SequenceNumber* result = find_or_add(address);
+		SequenceNumber* const result = find_or_add(address);
 
 #if SLP_VERBOSE_DEBUG
 		assert(result != NULL);
 #endif
 
 		sequence_number_update(result, other);
+	}
+
+	command bool SequenceNumbers.before_and_update(am_addr_t address, SequenceNumber other)
+	{
+		SequenceNumber* const result = find_or_add(address);
+
+#if SLP_VERBOSE_DEBUG
+		assert(result != NULL);
+#endif
+
+		return sequence_number_before_and_update(result, other);
 	}
 
 	command am_addr_t* SequenceNumbers.beginKeys()

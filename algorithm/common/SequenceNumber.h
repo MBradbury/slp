@@ -35,4 +35,18 @@ inline void sequence_number_update(SequenceNumber* left, const SequenceNumber ri
 	*left = right;
 }
 
+inline bool sequence_number_before_and_update(SequenceNumber* left, const SequenceNumber right) __attribute__((nonnull(1)))
+{
+    bool result;
+    atomic
+    {
+        result = sequence_number_before(left, right);
+        if (result)
+        {
+            sequence_number_update(left, right);
+        }
+    }
+    return result;
+}
+
 #endif // SLP_SEQUENCENUMBER_H
