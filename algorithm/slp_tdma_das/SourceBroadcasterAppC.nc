@@ -14,11 +14,13 @@ implementation
     // Low levels events such as boot and LED control
     components DelayedBootEventMainP as MainC;
     components LedsWhenGuiC as LedsC;
+    components CrcC;
     components RandomC;
     components LocalTimeMilliC;
     
     App.Boot -> MainC;
     App.Leds -> LedsC;
+    App.Crc -> CrcC;
     App.Random -> RandomC;
     App.LocalTime -> LocalTimeMilliC;
 
