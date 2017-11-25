@@ -551,7 +551,7 @@ class OfflineSimulation(object):
                 log_file.close()
 
     def _stdout_printer(self, log_type, node_id, sim_time, message):
-        print(message)
+        print("{} @ {} : {}".format(sim_time, node_id, message))
 
     def add_attacker(self, attacker):
         self.attackers.append(attacker)
