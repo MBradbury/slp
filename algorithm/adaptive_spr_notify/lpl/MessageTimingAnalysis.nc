@@ -8,4 +8,10 @@ interface MessageTimingAnalysis
     command uint32_t next_group_wait();
     command uint32_t early_wakeup_duration();
     command uint32_t awake_duration();
+
+    event void on_timer_fired();
+    event void off_timer_fired();
+
+    command bool waiting_to_turn_on();
+    command bool waiting_to_turn_off();
 }

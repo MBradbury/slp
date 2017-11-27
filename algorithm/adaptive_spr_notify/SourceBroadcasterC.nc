@@ -404,6 +404,8 @@ implementation
 					sequence_number_increment(&notify_sequence_counter);
 				}
 			}
+
+			METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_START, "");
 		}
 	}
 

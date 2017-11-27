@@ -1260,6 +1260,9 @@ class RssiMetricsCommon(MetricsCommon):
 
         return d
 
+
+METRIC_GENERIC_DUTY_CYCLE_START = 2013
+
 class DutyCycleMetricsCommon(MetricsCommon):
     """For algorithms that duty cycle the radio."""
     def __init__(self, *args, **kwargs):
@@ -1267,11 +1270,14 @@ class DutyCycleMetricsCommon(MetricsCommon):
 
         self._duty_cycle_state = {}
         self._duty_cycle = defaultdict(int)
+        self._duty_cycle_start = None
 
         # Duty cycle is indicated by the blue led / led 2
         # When led is on the radio is on and vice verse
         self.register('LedsC', self._process_leds_event)
         self.register('LedsCooja', self._process_leds_cooja_event)
+
+        self.register_generic(METRIC_GENERIC_DUTY_CYCLE_START, self._process_duty_cycle_start)
 
     def _process_leds_event(self, d_or_e, node_id, time, detail):
         (led, status) = detail.split(',')
@@ -1286,7 +1292,6 @@ class DutyCycleMetricsCommon(MetricsCommon):
 
     def _process_duty_cycle(self, node_id, time, state):
         ord_node_id, top_node_id = self._process_node_id(node_id)
-        time = self.sim_time()
 
         (previous_state, previous_time) = self._duty_cycle_state.get(ord_node_id, (None, None))
 
@@ -1294,11 +1299,19 @@ class DutyCycleMetricsCommon(MetricsCommon):
         if previous_state == state:
             return
 
-        # We want to catch True to False transitions
-        if previous_state is True and state is False:
+        time = self.sim_time()
+
+        # We want to catch True to False transitions, once duty cycling has started
+        if previous_state is True and state is False and self._duty_cycle_start is not None:
             self._duty_cycle[ord_node_id] += (time - previous_time)
 
         self._duty_cycle_state[ord_node_id] = (state, time)
+
+    def _process_duty_cycle_start(self, d_or_e, node_id, time, data):
+        self._duty_cycle_start = self.sim_time()
+
+        for (node_id, (previous_state, previous_time)) in self._duty_cycle_state.items():
+            self._duty_cycle_state[node_id] = (previous_state, self._duty_cycle_start)
 
     def _calculate_node_duty_cycle(self, node_id):
 
@@ -1307,7 +1320,7 @@ class DutyCycleMetricsCommon(MetricsCommon):
         # are actually duty cycling.
         #start_time = self.first_normal_sent_time()
 
-        start_time = next(iter(self.node_booted_at[node_id]))
+        start_time = self._duty_cycle_start
         end_time = self.sim_time()
 
         (state, state_time) = self._duty_cycle_state[node_id]
@@ -1330,7 +1343,8 @@ class DutyCycleMetricsCommon(MetricsCommon):
     @staticmethod
     def items():
         d = OrderedDict()
-        d["DutyCycle"]                     = lambda x: MetricsCommon.compressed_dict_str(x.duty_cycle())
+        d["DutyCycleStart"]                = lambda x: str(x._duty_cycle_start)
+        d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle())
         return d
 
 

@@ -6,11 +6,18 @@ generic module MessageTimingAnalysisP()
 
     uses interface Timer<TMilli> as DetectTimer;
 
+    uses interface Timer<TMilli> as OnTimer;
+    uses interface Timer<TMilli> as OffTimer;
+
     uses interface MetricLogging;
     uses interface LocalTime<TMilli>;
 }
 implementation
 {
+    void startOnTimer();
+    void startOffTimer();
+    void startOffTimerFromMessage();
+
     uint32_t expected_interval_ms;
     uint32_t previous_group_time_ms;
 
@@ -32,8 +39,8 @@ implementation
         seen = 0;
 
         // Set a minimum group wait time here
-        max_group_ms = 150;
-        early_wakeup_duration_ms = 150;
+        max_group_ms = 100;
+        early_wakeup_duration_ms = 100;
 
         message_received = FALSE;
         missed_messages = 0;
@@ -140,6 +147,11 @@ implementation
                 max_group_ms = max(max_group_ms, group_diff);
             }
         }
+
+        if (is_new)
+        {
+            startOffTimerFromMessage();
+        }
     }
 
     // At what time did the previous group start?
@@ -172,5 +184,84 @@ implementation
     command uint32_t MessageTimingAnalysis.awake_duration()
     {
         return max_group_ms;
+    }
+
+    event void OnTimer.fired()
+    {
+        startOffTimer();
+
+        signal MessageTimingAnalysis.on_timer_fired();
+    }
+
+    event void OffTimer.fired()
+    {    
+        startOnTimer();
+
+        signal MessageTimingAnalysis.off_timer_fired();
+    }
+
+    void startOnTimer()
+    {
+        if (!call OnTimer.isRunning())
+        {
+            //const uint32_t now = call LocalTime.get();
+            //const uint32_t last_group_start = call MessageTimingAnalysis.last_group_start();
+            const uint32_t next_group_wait = call MessageTimingAnalysis.next_group_wait();
+            const uint32_t early_wakeup_duration = call MessageTimingAnalysis.early_wakeup_duration();
+            const uint32_t awake_duration = call MessageTimingAnalysis.awake_duration();
+
+            const uint32_t start = (next_group_wait == UINT32_MAX)
+                ? 10
+                : next_group_wait - early_wakeup_duration - awake_duration;//(now - last_group_start);
+
+            simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
+            call OnTimer.startOneShot(start);
+        }
+    }
+
+    // OnTimer has just fired, start off timer
+    void startOffTimer()
+    {
+        if (!call OffTimer.isRunning())
+        {
+            if (call MessageTimingAnalysis.next_group_wait() != UINT32_MAX)
+            {
+                const uint32_t early_wakeup_duration = call MessageTimingAnalysis.early_wakeup_duration();
+                const uint32_t awake_duration = call MessageTimingAnalysis.awake_duration();
+
+                const uint32_t start = early_wakeup_duration + awake_duration;
+
+                simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
+                call OffTimer.startOneShot(start);
+            }
+        }
+    }
+
+    // Just received a message, consider when to turn off
+    void startOffTimerFromMessage()
+    {
+        const uint32_t now = call LocalTime.get();
+
+        if (!call OffTimer.isRunning())
+        {
+            const uint32_t last_group_start = call MessageTimingAnalysis.last_group_start(); // This is the current group
+            const uint32_t awake_duration = call MessageTimingAnalysis.awake_duration();
+
+            const uint32_t start = awake_duration - (now - last_group_start);
+
+            simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
+                start, awake_duration, now, last_group_start);
+            call OffTimer.startOneShot(start);
+        }
+    }
+
+    command bool MessageTimingAnalysis.waiting_to_turn_on()
+    {
+        return call OnTimer.isRunning();
+    }
+
+    command bool MessageTimingAnalysis.waiting_to_turn_off()
+    {
+        return call OffTimer.isRunning();
     }
 }

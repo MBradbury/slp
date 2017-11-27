@@ -58,11 +58,7 @@ implementation
     //SLPDutyCycleP.ByteIndicator -> CC2420TransmitC.ByteIndicator;
     SLPDutyCycleP.PacketIndicator -> CC2420ReceiveC.PacketIndicator;
 
-    components new TimerMilliC() as OnTimerC;
-    components new TimerMilliC() as OffTimerC;
     components new TimerMilliC() as SendDoneTimerC;
-    SLPDutyCycleP.OffTimer -> OffTimerC;
-    SLPDutyCycleP.OnTimer -> OnTimerC;
     SLPDutyCycleP.SendDoneTimer -> SendDoneTimerC;
 
     components SystemLowPowerListeningC;  

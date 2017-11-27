@@ -19,4 +19,9 @@ implementation
 
     components new TimerMilliC() as DetectTimer;
     MessageTimingAnalysisP.DetectTimer -> DetectTimer;
+
+    components new TimerMilliC() as OnTimerC;
+    components new TimerMilliC() as OffTimerC;
+    MessageTimingAnalysisP.OffTimer -> OffTimerC;
+    MessageTimingAnalysisP.OnTimer -> OnTimerC;
 }
