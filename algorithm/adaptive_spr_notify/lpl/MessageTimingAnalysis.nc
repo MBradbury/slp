@@ -12,6 +12,5 @@ interface MessageTimingAnalysis
     event void on_timer_fired();
     event void off_timer_fired();
 
-    command bool waiting_to_turn_on();
-    command bool waiting_to_turn_off();
+    command bool can_turn_off();
 }
