@@ -1,4 +1,6 @@
 
+//#include <scale.h>
+
 generic module MessageTimingAnalysisP()
 {
     provides interface MessageTimingAnalysis;
@@ -39,8 +41,8 @@ implementation
         seen = 0;
 
         // Set a minimum group wait time here
-        max_group_ms = 100;
-        early_wakeup_duration_ms = 100;
+        max_group_ms = 25;
+        early_wakeup_duration_ms = 75;
 
         message_received = FALSE;
         missed_messages = 0;
@@ -59,24 +61,21 @@ implementation
             missed_messages += 1;
         }
 
-        /*if (!message_received)
+        if (!message_received)
         {
-            const uint32_t max_value = (expected_interval_ms != UINT32_MAX) ? expected_interval_ms/2 : 300;
+            const uint32_t max_value = (expected_interval_ms != UINT32_MAX)
+                ? expected_interval_ms/2
+                : 300;
 
-            early_wakeup_duration_ms = min(early_wakeup_duration_ms * 2, max_value);
-            max_group_ms = min(max_group_ms * 2, max_value);
+            early_wakeup_duration_ms = min(early_wakeup_duration_ms + 5, max_value);
         }
         else
         {
-            const uint32_t min_value = 50;
-
-            early_wakeup_duration_ms = max(early_wakeup_duration_ms/2, min_value);
-            max_group_ms = max(max_group_ms/2, min_value);
-        }*/
+            //early_wakeup_duration_ms = max(early_wakeup_duration_ms - 5, 75);
+        }
 
         message_received = FALSE;
     }
-
 
     void update(uint32_t timestamp_ms)
     {
@@ -204,15 +203,13 @@ implementation
     {
         if (!call OnTimer.isRunning())
         {
-            //const uint32_t now = call LocalTime.get();
-            //const uint32_t last_group_start = call MessageTimingAnalysis.last_group_start();
             const uint32_t next_group_wait = call MessageTimingAnalysis.next_group_wait();
             const uint32_t early_wakeup_duration = call MessageTimingAnalysis.early_wakeup_duration();
             const uint32_t awake_duration = call MessageTimingAnalysis.awake_duration();
 
             const uint32_t start = (next_group_wait == UINT32_MAX)
-                ? 10
-                : next_group_wait - early_wakeup_duration - awake_duration;//(now - last_group_start);
+                ? 1
+                : next_group_wait - early_wakeup_duration - awake_duration;
 
             simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
             call OnTimer.startOneShot(start);
@@ -255,13 +252,8 @@ implementation
         }
     }
 
-    command bool MessageTimingAnalysis.waiting_to_turn_on()
+    command bool MessageTimingAnalysis.can_turn_off()
     {
-        return call OnTimer.isRunning();
-    }
-
-    command bool MessageTimingAnalysis.waiting_to_turn_off()
-    {
-        return call OffTimer.isRunning();
+        return call OnTimer.isRunning() && !call OffTimer.isRunning();
     }
 }

@@ -1,7 +1,4 @@
 
-#include "Lpl.h"
-#include "DefaultLpl.h"
-
 module SLPDutyCycleP
 {
     provides
@@ -61,14 +58,13 @@ implementation
         S_TURNING_OFF,
     };
     
-    /**
-     * Send States
-     */
+    // Send State
     enum {
-        S_IDLE,
-        S_SENDING,
+        S_LPL_NOT_SENDING,    // DEFAULT
+        S_LPL_SENDING,        // 1. Sending messages
+        S_LPL_CLEAN_UP,       // 2. Clean up the transmission
     };
-    
+
     enum {
         ONE_MESSAGE = 0,
     };
@@ -81,18 +77,12 @@ implementation
     
     /** TRUE if the radio is duty cycling and not always on */
     bool dutyCycling;
-
-    /** The number of times the CCA has been sampled in this wakeup period */
-    uint16_t ccaChecks;
-
-    uint16_t sleepInterval;
     
     /***************** Prototypes ***************/
     task void send();
     task void resend();
     task void startRadio();
     task void stopRadio();
-    //task void getCca();
     
     void initializeSend();
     bool isDutyCycling();
@@ -272,8 +262,7 @@ implementation
 
         finishSplitControlRequests();
 
-        if (call SendState.isState(S_LPL_FIRST_MESSAGE) ||
-            call SendState.isState(S_LPL_SENDING))
+        if (call SendState.isState(S_LPL_SENDING))
         {
             initializeSend();
         }
@@ -288,17 +277,11 @@ implementation
 
         call SendDoneTimer.stop();
 
-        /*if (call SendState.isState(S_LPL_FIRST_MESSAGE) ||
-            call SendState.isState(S_LPL_SENDING))
+        if (call SendState.isState(S_LPL_SENDING))
         {
             // We're in the middle of sending a message; start the radio back up
             post startRadio();
         }
-        else
-        {
-            call OffTimer.stop();
-            call SendDoneTimer.stop();
-        }*/
     }
     
     /***************** SubSend Events ***************/
@@ -331,9 +314,8 @@ implementation
         call SendState.toIdle();
         call SendDoneTimer.stop();
 
-        // If the on timer is running, then the radio was off when the send started
-        // So lets turn it back off now
-        //post stopRadio(); // TODO: FIXME
+        // Attempt to turn the radio off if possible
+        post stopRadio();
 
         signal Send.sendDone(msg, error);
     }
@@ -421,8 +403,8 @@ implementation
 
         // Can only turn off if we are not sending 
         if (!isDutyCycling() ||
-            call NormalMessageTimingAnalysis.waiting_to_turn_off() ||
-            call FakeMessageTimingAnalysis.waiting_to_turn_off() ||
+            !call NormalMessageTimingAnalysis.can_turn_off() ||
+            !call FakeMessageTimingAnalysis.can_turn_off() ||
             call SendState.getState() != S_LPL_NOT_SENDING)
         {
             return;
