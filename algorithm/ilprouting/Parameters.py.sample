@@ -36,6 +36,8 @@ configurations = [
 
 repeats = 750
 
+fault_models = ["ReliableFaultModel()"]
+
 attacker_models = ['SeqNosOOOReactiveAttacker()']
 
 latest_node_start_time = 1.0 # in seconds
