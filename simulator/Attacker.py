@@ -271,11 +271,11 @@ class DeafAttackerWithEvent(Attacker):
     """An attacker that does nothing when it receives a message.
     This attacker also inserts a callback every period seconds."""
     def __init__(self, period, **kwargs):
-        super(DeafAttackerWithEvent, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._period = period
 
     def setup(self, *args, **kwargs):
-        super(DeafAttackerWithEvent, self).setup(*args, **kwargs)
+        super().setup(*args, **kwargs)
 
         self._sim.tossim.register_event_callback(self._callback, self._period)
 
@@ -296,7 +296,7 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
     """
 
     def __init__(self, **kwargs):
-        super(IgnorePreviousLocationReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._previous_location = None
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -307,7 +307,7 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
 
 class IgnorePastNLocationsReactiveAttacker(Attacker):
     def __init__(self, memory_size, **kwargs):
-        super(IgnorePastNLocationsReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._memory_size = memory_size
         self._previous_locations = deque(maxlen=memory_size)
 
@@ -319,7 +319,7 @@ class IgnorePastNLocationsReactiveAttacker(Attacker):
 
 class TimeSensitiveReactiveAttacker(Attacker):
     def __init__(self, wait_time_secs, **kwargs):
-        super(TimeSensitiveReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._previous_location = None
         self._last_moved_time = None
         self._wait_time_secs = wait_time_secs
@@ -340,7 +340,7 @@ class SeqNoReactiveAttacker(Attacker):
     """
 
     def __init__(self, **kwargs):
-        super(SeqNoReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -358,7 +358,7 @@ class SeqNosReactiveAttacker(Attacker):
     that can be sent from multiple sources.
     """
     def __init__(self, **kwargs):
-        super(SeqNosReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -378,7 +378,7 @@ class SeqNosOOOReactiveAttacker(Attacker):
     are sent out-of-order.
     """
     def __init__(self, **kwargs):
-        super(SeqNosOOOReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = set()
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -396,7 +396,7 @@ class SingleTypeReactiveAttacker(Attacker):
     It also has access to the ultimate sender and sequence number header fields.
     """
     def __init__(self, msg_type, **kwargs):
-        super(SingleTypeReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
         self._msg_type = msg_type
 
@@ -417,7 +417,7 @@ class SingleSourceZoomingAttacker(Attacker):
     present, then it will ignore messages from that node in the future.
     """
     def __init__(self, **kwargs):
-        super(SingleSourceZoomingAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
         self._current_node_target = None
         self._discarded_node_targets = {}
@@ -449,7 +449,7 @@ class SingleSourceZoomingAttacker(Attacker):
 
 class CollaborativeSeqNosReactiveAttacker(Attacker):
     def __init__(self, **kwargs):
-        super(CollaborativeSeqNosReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
 
     def _other_attackers_responded(self, seqno_key, sequence_number):
@@ -474,7 +474,7 @@ class CollaborativeSeqNosReactiveAttacker(Attacker):
 class TimedBacktrackingAttacker(Attacker):
     """An attacker that backtracks to the previous node after a certain amount of time where no messages are received."""
     def __init__(self, wait_time_secs, **kwargs):
-        super(TimedBacktrackingAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._wait_time_secs = wait_time_secs
 
         self._sequence_numbers = {}
@@ -504,7 +504,7 @@ class TimedBacktrackingAttacker(Attacker):
 
 class RHMAttacker(Attacker):
     def __init__(self, clear_period, history_window_size, moves_per_period, **kwargs):
-        super(RHMAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self._clear_period = clear_period
         self._moves_per_period = moves_per_period
@@ -521,7 +521,7 @@ class RHMAttacker(Attacker):
         self._started_clear_event = False
 
     def setup(self, *args, **kwargs):
-        super(RHMAttacker, self).setup(*args, **kwargs)
+        super().setup(*args, **kwargs)
 
         self._set_next_message_count_wait()
 
@@ -581,7 +581,7 @@ class RHMAttacker(Attacker):
 
 class RHMPeriodAttacker(Attacker):
     def __init__(self, dissem_period_length, clear_periods, history_window_size, moves_per_period, **kwargs):
-        super(RHMPeriodAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self._dissem_period_length = dissem_period_length
         self._clear_periods = clear_periods
@@ -600,7 +600,7 @@ class RHMPeriodAttacker(Attacker):
         self._period_count = 0
 
     def setup(self, *args, **kwargs):
-        super(RHMPeriodAttacker, self).setup(*args, **kwargs)
+        super().setup(*args, **kwargs)
 
         self._sim.register_output_handler('M-SP', self.process_start_period)
 

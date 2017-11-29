@@ -18,17 +18,17 @@ class UDGMRadioModel(CoojaRadioModel):
         self.rx_success = rx_success
 
     def cooja_csc(self):
-        return """org.contikios.cooja.radiomediums.UDGM
-      <transmitting_range>{}</transmitting_range>
-      <interference_range>{}</interference_range>
-      <success_ratio_tx>{}</success_ratio_tx>
-      <success_ratio_rx>{}</success_ratio_rx>""".format(self.tx_range, self.inter_range, self.tx_success, self.rx_success)
+        return f"""org.contikios.cooja.radiomediums.UDGM
+      <transmitting_range>{self.tx_range}</transmitting_range>
+      <interference_range>{self.inter_range}</interference_range>
+      <success_ratio_tx>{self.tx_success}</success_ratio_tx>
+      <success_ratio_rx>{self.rx_success}</success_ratio_rx>"""
 
     def __str__(self):
         attrs = ("tx_range", "inter_range", "tx_success", "rx_success")
-        attr_str = ",".join("{}={}".format(attr, getattr(self, attr)) for attr in attrs)
+        attr_str = ",".join(f"{attr}={getattr(self, attr)}" for attr in attrs)
 
-        return "{}({})".format(type(self).__name__, attr_str)
+        return f"{type(self).__name__}({attr_str})"
 
 class UDGMConstantLossRadioModel(CoojaRadioModel):
     """Unit Disk Graph Model - Constant Loss"""
@@ -40,17 +40,17 @@ class UDGMConstantLossRadioModel(CoojaRadioModel):
         self.rx_success = rx_success
 
     def cooja_csc(self):
-        return """org.contikios.cooja.radiomediums.UDGMConstantLoss
-      <transmitting_range>{}</transmitting_range>
-      <interference_range>{}</interference_range>
-      <success_ratio_tx>{}</success_ratio_tx>
-      <success_ratio_rx>{}</success_ratio_rx>""".format(self.tx_range, self.inter_range, self.tx_success, self.rx_success)
+        return f"""org.contikios.cooja.radiomediums.UDGMConstantLoss
+      <transmitting_range>{self.tx_range}</transmitting_range>
+      <interference_range>{self.inter_range}</interference_range>
+      <success_ratio_tx>{self.tx_success}</success_ratio_tx>
+      <success_ratio_rx>{self.rx_success}</success_ratio_rx>"""
 
     def __str__(self):
         attrs = ("tx_range", "inter_range", "tx_success", "rx_success")
-        attr_str = ",".join("{}={}".format(attr, getattr(self, attr)) for attr in attrs)
+        attr_str = ",".join(f"{attr}={getattr(self, attr)}" for attr in attrs)
 
-        return "{}({})".format(type(self).__name__, attr_str)
+        return f"{type(self).__name__}({attr_str})"
 
 class DirectedGraphRadioModel(CoojaRadioModel):
     def __init__(self):
@@ -69,7 +69,7 @@ class DirectedGraphRadioModel(CoojaRadioModel):
 
         for (source, src_edges) in self.edges.items():
             for (dest, signal, lqi, delay, ratio, channel) in src_edges:
-                result += """
+                result += f"""
       <edge>
         <source>{source}</source>
         <dest>
@@ -81,14 +81,7 @@ class DirectedGraphRadioModel(CoojaRadioModel):
           <delay>{delay}</delay>
           <channel>{channel}</channel>
         </dest>
-      </edge>""".format(
-        source=source,
-        dest=dest,
-        ratio=ratio,
-        signal=signal,
-        lqi=lqi,
-        delay=delay,
-        channel=channel)
+      </edge>"""
 
         return result
 
@@ -114,7 +107,7 @@ def eval_input(source):
     if isinstance(result, CoojaRadioModel):
         return result
     else:
-        raise RuntimeError("The radio model ({}) is not valid.".format(source))
+        raise RuntimeError(f"The radio model ({source}) is not valid.")
 
 def available_models():
     class WildcardModelChoice(object):
