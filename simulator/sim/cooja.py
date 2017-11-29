@@ -153,61 +153,54 @@ def run_simulation(module, a, count=1, print_warnings=False):
             raise RuntimeError("Unknown mode {}".format(a.args.mode))
 
         for n in range(count):
-            proc = subprocess.Popen(command, stderr=subprocess.PIPE, universal_newlines=True)
+            with subprocess.Popen(command, stderr=subprocess.PIPE, universal_newlines=True) as proc:
 
-            proc_iter = iter(proc.stderr.readline, '')
+                proc_iter = iter(proc.stderr.readline, '')
 
-            with OfflineSimulation(module, configuration, a.args, event_log=cooja_iter(proc_iter)) as sim:
-                
-                a.args.attacker_model.setup(sim)
-
-                try:
-                    sim.run()
-                except Exception as ex:
-                    import traceback
+                with OfflineSimulation(module, configuration, a.args, event_log=cooja_iter(proc_iter)) as sim:
                     
-                    all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                    a.args.attacker_model.setup(sim)
 
-                    print("Killing run due to {}".format(ex), file=sys.stderr)
-                    print(traceback.format_exc(), file=sys.stderr)
-                    print("For parameters:", file=sys.stderr)
-                    print("With seed:", sim.seed, file=sys.stderr)
-                    print(all_args, file=sys.stderr)
+                    try:
+                        sim.run()
+                    except Exception as ex:
+                        import traceback
+                        
+                        all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
 
-                    # Make sure to kill the avrora java process
-                    proc.kill()
+                        print("Killing run due to {}".format(ex), file=sys.stderr)
+                        print(traceback.format_exc(), file=sys.stderr)
+                        print("For parameters:", file=sys.stderr)
+                        print("With seed:", sim.seed, file=sys.stderr)
+                        print(all_args, file=sys.stderr)
 
-                    return 51
+                        return 51
 
-                proc.stderr.close()
+                    proc.stderr.close()
 
-                try:
-                    return_code = proc.wait(timeout=1)
+                    try:
+                        return_code = proc.wait(timeout=1)
+                        if return_code:
+                            raise subprocess.CalledProcessError(return_code, command)
 
-                    if return_code:
-                        raise subprocess.CalledProcessError(return_code, command)
+                    except subprocess.TimeoutExpired:
+                        pass
 
-                except subprocess.TimeoutExpired:
-                    proc.terminate()
+                    try:
+                        sim.metrics.print_results()
 
-                try:
-                    sim.metrics.print_results()
+                        if print_warnings:
+                            sim.metrics.print_warnings()
 
-                    if print_warnings:
-                        sim.metrics.print_warnings()
+                    except Exception as ex:
+                        import traceback
 
-                except Exception as ex:
-                    import traceback
+                        all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
 
-                    all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
-
-                    print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
-                    print(traceback.format_exc(), file=sys.stderr)
-                    print("For parameters:", file=sys.stderr)
-                    print("With seed:", sim.seed, file=sys.stderr)
-                    print(all_args, file=sys.stderr)
-
-                    # Make sure to kill the avrora java process
-                    proc.kill()
-                    
-                    return 52
+                        print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
+                        print(traceback.format_exc(), file=sys.stderr)
+                        print("For parameters:", file=sys.stderr)
+                        print("With seed:", sim.seed, file=sys.stderr)
+                        print(all_args, file=sys.stderr)
+                        
+                        return 52

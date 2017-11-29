@@ -207,7 +207,7 @@ class MetricsCommon(object):
         elif sequence_number == -1:
             return None
         else:
-            self._warning_or_error("The sequence number is an invalid unknown of {}".format(sequence_number))
+            self._warning_or_error(f"The sequence number is an invalid unknown of {sequence_number}")
             return None
 
     def process_node_type_add(self, d_or_e, node_id, time, detail):
@@ -1244,12 +1244,11 @@ class RssiMetricsCommon(MetricsCommon):
     def process_rssi_event(self, d_or_e, node_id, time, detail):
         (average, smallest, largest, reads, channel) = detail.split(',')
 
-        print("RSSI on {} at {} : {}".format(node_id, time, detail))
+        print(f"RSSI on {node_id} at {time} : {detail}")
 
     @staticmethod
     def items():
         d = OrderedDict()
-
         return d
 
 
@@ -1394,6 +1393,11 @@ class DutyCycleMetricsGrapher(MetricsCommon):
 
         plt.savefig("dutycycle.pdf")
 
+    @staticmethod
+    def items():
+        d = OrderedDict()
+        return d
+
 
 
 class MessageTimeMetricsGrapher(MetricsCommon):
@@ -1517,7 +1521,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
 
         for (attacker_id, values) in self._attacker_delivers.items():
             line_values = [(time, node_id.nid) for (time, node_id) in self._attacker_history[attacker_id]]
-            self._plot_message_events(values, "attacker{}_delivers_nid.pdf".format(attacker_id), line_values=line_values)
+            self._plot_message_events(values, f"attacker{attacker_id}_delivers_nid.pdf", line_values=line_values)
 
         for source_id in self.configuration.source_ids:
             for (attacker_id, values) in self._attacker_delivers.items():
@@ -1526,8 +1530,13 @@ class MessageTimeMetricsGrapher(MetricsCommon):
                     for (time, node_id)
                     in self._attacker_history[attacker_id]
                 ]
-                self._plot_message_events(values, "attacker{}_delivers_dsrcm{}.pdf".format(attacker_id, source_id),
-                           line_values=line_values, y2label="Source {} Distance (meters)".format(source_id))
+                self._plot_message_events(values, f"attacker{attacker_id}_delivers_dsrcm{source_id}.pdf",
+                           line_values=line_values, y2label=f"Source {source_id} Distance (meters)")
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+        return d
 
 EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
@@ -1546,7 +1555,7 @@ def import_algorithm_metrics(module_name, simulator, extra_metrics=None):
 
     mixin_class = simulator_to_mixin.get(simulator, None)
 
-    algo_module = importlib.import_module("{}.Metrics".format(module_name))
+    algo_module = importlib.import_module(f"{module_name}.Metrics")
 
     if mixin_class is None and len(extra_metrics) == 0:
         return algo_module.Metrics
