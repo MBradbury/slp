@@ -930,7 +930,7 @@ class MetricsCommon(object):
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
 
-        d["MessageReceiveInterval"]        = lambda x: str(x.message_receive_interval())
+        #d["MessageReceiveInterval"]        = lambda x: str(x.message_receive_interval())
 
         d["NodeWasSource"]                 = lambda x: MetricsCommon.smaller_dict_str(x.node_was_source())
         d["NodeTransitions"]               = lambda x: MetricsCommon.smaller_dict_str(dict(x.node_transitions))
