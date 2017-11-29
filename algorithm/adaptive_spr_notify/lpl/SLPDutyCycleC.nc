@@ -71,9 +71,6 @@ implementation
     SLPDutyCycleP.RadioPowerState -> RadioPowerStateC;
     SLPDutyCycleP.SplitControlState -> SplitControlStateC;
 
-    components ActiveMessageC;
-    SLPDutyCycleP.PacketTimeStamp -> ActiveMessageC;
-
     components LocalTimeMilliC;
     SLPDutyCycleP.LocalTime -> LocalTimeMilliC;
 
