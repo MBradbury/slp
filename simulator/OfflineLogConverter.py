@@ -224,10 +224,6 @@ class Avrora(OfflineLogConverter):
                     # Then its one of our debug log messages
                     return "{}|{}".format(dtime_str, log)
 
-    # Python 2 support
-    def next(self):
-        return self.__next__()
-
 class SerialMessageLogConverter(object):
     AM_EVENT_OCCURRED_MSG = 48
     AM_ERROR_OCCURRED_MSG = 49

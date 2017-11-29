@@ -2,6 +2,7 @@ from __future__ import print_function, division
 
 from collections import Counter, OrderedDict, defaultdict
 import base64
+from itertools import zip_longest, tee
 import math
 import pickle
 import sys
@@ -12,15 +13,6 @@ try:
     import psutil
 except ImportError:
     psutil = None
-
-try:
-    # Python 2
-    from itertools import izip_longest
-except ImportError:
-    # Python 3
-    from itertools import zip_longest as izip_longest
-
-from itertools import tee
 
 import numpy as np
 
@@ -756,7 +748,7 @@ class MetricsCommon(object):
 
             res_lst = []
 
-            for (start, stop) in izip_longest(started_times, stopped_times):
+            for (start, stop) in zip_longest(started_times, stopped_times):
                 if stop is None:
                     stop = float('inf')
 
@@ -1465,7 +1457,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, values) in sorted(values.items(), key=lambda x: x[0]):
             xy = [(time, ord_node_id.nid) for (time, ord_node_id) in values]
             xs, ys = zip(*xy)
-            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=10, zorder=2)
+            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=7, zorder=2)
 
         if line_values is not None:
             xs, ys = zip(*line_values)
