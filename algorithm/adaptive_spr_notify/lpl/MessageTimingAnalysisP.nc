@@ -118,7 +118,7 @@ implementation
         update(expected_interval_ms);
     }
 
-    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, bool valid_timestamp, bool is_new)
+    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, bool is_new)
     {
         // Difference between this message and the last group message
         const uint32_t group_diff = (previous_group_time_ms != UINT32_MAX && previous_group_time_ms <= timestamp_ms)
@@ -127,8 +127,8 @@ implementation
 
         message_received = TRUE;
 
-        LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received v=%d at=%" PRIu32 " expected=%" PRIu32 " gd=%" PRIu32 "\n",
-            TOS_NODE_ID, valid_timestamp, timestamp_ms, expected_interval_ms, group_diff);
+        LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received at=%" PRIu32 " expected=%" PRIu32 " gd=%" PRIu32 "\n",
+            TOS_NODE_ID, timestamp_ms, expected_interval_ms, group_diff);
 
         if (is_new)
         {
