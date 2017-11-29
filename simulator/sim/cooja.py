@@ -11,7 +11,7 @@ def parsers():
 
     raw_single_common = ["verbose", "debug", "seed", "configuration", "network size", "distance",
                          "fault model", "node id order", "safety period", "start time",
-                         "low power listening", "cooja", "cc2420"]
+                         "low power listening", "cooja", "cc2420", "extra metrics"]
 
     return [
         ("SINGLE", None, raw_single_common + ["attacker model"]),
@@ -106,11 +106,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
     import re
     import shlex
     import sys
-
-    try:
-        import subprocess32 as subprocess
-    except ImportError:
-        import subprocess
+    import subprocess
 
     from simulator import Configuration
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function, division
 
 import importlib
@@ -49,7 +49,7 @@ def main(argv):
     if a.args.mode != "CLUSTER" or a.args.job_id is None or a.args.job_id == 1:
         from datetime import datetime
 
-        metrics_class = MetricsCommon.import_algorithm_metrics(module, a.args.sim)
+        metrics_class = MetricsCommon.import_algorithm_metrics(module, a.args.sim, a.args.extra_metrics)
 
         # Print out the versions of slp-algorithms-tinyos and tinyos being used
         print("@version:python={}".format(VersionDetection.python_version()))
@@ -115,11 +115,7 @@ def _run_parallel(sim, module, a, argv):
     import multiprocessing.pool
     from threading import Lock
     import traceback
-
-    try:
-        import subprocess32 as subprocess
-    except ImportError:
-        import subprocess
+    import subprocess
 
     # Some simulators don't support running in parallel
     # only allow parallel instances for those that do
