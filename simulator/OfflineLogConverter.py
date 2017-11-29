@@ -183,20 +183,20 @@ class Avrora(OfflineLogConverter):
         while True:
             line = next(self._log_file_iter)
 
-            if not started and line.startswith(self.results_start):
-                started = True
+            if not self.started and line.startswith(self.results_start):
+                self.started = True
                 #print("started")
                 continue
 
-            if not started:
+            if not self.started:
                 continue
 
             if line.startswith(self.results_end):
-                ended = True
+                self.ended = True
                 #print("ended")
                 continue
 
-            if started and not ended:
+            if self.started and not self.ended:
                 match = self.RESULT_LINE_RE.match(line)
 
                 node = int(match.group(1))

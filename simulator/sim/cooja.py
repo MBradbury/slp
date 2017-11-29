@@ -130,7 +130,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
         proc_iter = iter(proc.stderr.readline, '')
 
-        for line in avrora_iter(proc_iter):
+        for line in cooja_iter(proc_iter):
             print(line)
 
         proc.stderr.close()

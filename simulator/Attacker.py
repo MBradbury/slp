@@ -247,7 +247,7 @@ class Attacker(object):
         if short:
             params = ",".join(repr(getattr(self, "_" + name)) for name in self_as_params)
         else:
-            params = ",".join("{}={!r}".format(name, getattr(self, "_" + name)) for param in self_as_params)
+            params = ",".join("{}={!r}".format(name, getattr(self, "_" + name)) for name in self_as_params)
 
         # Only display "start_location" if it is the default value
         # This maintains compatibility with previous results files
@@ -597,7 +597,7 @@ class RHMPeriodAttacker(Attacker):
         self._next_message_count_wait = None
 
         self._during_dissem = False
-        self._period_count = 0;
+        self._period_count = 0
 
     def setup(self, *args, **kwargs):
         super(RHMPeriodAttacker, self).setup(*args, **kwargs)

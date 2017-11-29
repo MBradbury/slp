@@ -123,7 +123,7 @@ class RandomWalkMobilityModel(MobilityModel):
 
         max_length = int(self.max_time / self.duration)
 
-        for i in xrange(max_length):
+        for i in range(max_length):
             neighbours = list(configuration.one_hop_neighbours(path[-1]))
 
             path.append(rng.choice(neighbours))
@@ -184,7 +184,7 @@ class RoundNetworkEdgeMobilityModel(MobilityModel):
 
         max_length = int(self.max_time / self.duration)
 
-        for i in xrange(max_length):
+        for i in range(max_length):
             try:
                 prev = path[-2]
             except IndexError:

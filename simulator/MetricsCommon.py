@@ -32,7 +32,7 @@ def pairwise(iterable):
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration, strict=True):
-        super(MetricsCommon, self).__init__()
+        super().__init__()
 
         self.sim = sim
         self.configuration = configuration
@@ -1034,7 +1034,7 @@ class AvroraPacketSummary(object):
 class AvroraMetricsCommon(MetricsCommon):
     """Contains metrics specific to the Avrora simulator."""
     def __init__(self, *args, **kwargs):
-        super(AvroraMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.avrora_sim_cycles = None
         self.avrora_packet_summary = {}
@@ -1156,7 +1156,7 @@ class AvroraMetricsCommon(MetricsCommon):
 class FakeMetricsCommon(MetricsCommon):
     """Contains fake message techniques specified metrics."""
     def __init__(self, *args, **kwargs):
-        super(FakeMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def times_fake_node_changed_to_fake(self):
         total_count = 0
@@ -1192,7 +1192,7 @@ class FakeMetricsCommon(MetricsCommon):
 class TreeMetricsCommon(MetricsCommon):
     """Contains tree routing specific metrics."""
     def __init__(self, *args, **kwargs):
-        super(TreeMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.parent_changes = Counter()
         self.true_parent_changes = Counter()
@@ -1237,7 +1237,7 @@ class TreeMetricsCommon(MetricsCommon):
 class RssiMetricsCommon(MetricsCommon):
     """For algorithms that measure the RSSI."""
     def __init__(self, *args, **kwargs):
-        super(RssiMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.register('M-RSSI', self.process_rssi_event)
 
@@ -1258,7 +1258,7 @@ METRIC_GENERIC_DUTY_CYCLE_START = 2013
 class DutyCycleMetricsCommon(MetricsCommon):
     """For algorithms that duty cycle the radio."""
     def __init__(self, *args, **kwargs):
-        super(DutyCycleMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._duty_cycle_state = {}
         self._duty_cycle_states = defaultdict(list)
@@ -1344,10 +1344,10 @@ class DutyCycleMetricsCommon(MetricsCommon):
 
 class DutyCycleMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
-        super(DutyCycleMetricsGrapher, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def finish(self):
-        super(DutyCycleMetricsGrapher, self).finish()
+        super().finish()
 
         if isinstance(self, DutyCycleMetricsCommon):
             self._plot_duty_cycle()
@@ -1398,7 +1398,7 @@ class DutyCycleMetricsGrapher(MetricsCommon):
 
 class MessageTimeMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
-        super(MessageTimeMetricsGrapher, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.register('M-CB', self.log_time_bcast_event)
         self.register('M-CD', self.log_time_deliver_event)
@@ -1506,7 +1506,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         plt.savefig(filename)
 
     def finish(self):
-        super(MessageTimeMetricsGrapher, self).finish()
+        super().finish()
 
         self._plot_message_events(self._bcasts, "bcasts.pdf")
         self._plot_message_events(self._delivers, "delivers.pdf")
@@ -1555,7 +1555,7 @@ def import_algorithm_metrics(module_name, simulator, extra_metrics=None):
 
     class MixinMetrics(algo_module.Metrics, *super_classes):
         def __init__(self, *args, **kwargs):
-            super(MixinMetrics, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
 
         @staticmethod
         def items():

@@ -33,13 +33,13 @@ class FaultModel(object):
 
 class FaultPointModel(FaultModel):
     def __init__(self, fault_point_probs, base_probability=0.0, requires_nesc_variables=False):
-        super(FaultPointModel, self).__init__(requires_nesc_variables=requires_nesc_variables)
+        super().__init__(requires_nesc_variables=requires_nesc_variables)
         self.fault_points = {}
         self.fault_point_probs = fault_point_probs if fault_point_probs is not None else {}
         self.base_probability = base_probability
 
     def setup(self, sim):
-        super(FaultPointModel, self).setup(sim)
+        super().setup(sim)
         sim.register_output_handler("M-FPA", self._fault_point_add)
         sim.register_output_handler("M-FP", self._fault_point_occurred)
 
@@ -99,12 +99,12 @@ class FaultPointModel(FaultModel):
 class ReliableFaultModel(FaultModel):
     """The default fault mobility model, nothing bad happens."""
     def __init__(self):
-        super(ReliableFaultModel, self).__init__()
+        super().__init__()
 
 class NodeCrashFaultModel(FaultModel):
     """This model will crash the specified node at the specified time."""
     def __init__(self, node_id, crash_time):
-        super(NodeCrashFaultModel, self).__init__()
+        super().__init__()
 
         # The node to crash, this may be a string representing a landmark node
         self.node_id = node_id
@@ -116,7 +116,7 @@ class NodeCrashFaultModel(FaultModel):
         self.crash_time = crash_time
 
     def setup(self, sim):
-        super(NodeCrashFaultModel, self).setup(sim)
+        super().setup(sim)
 
         # convert the provided node id to a topology node id.
         # For example the node_id might be 'sink_id', this will convert it
@@ -142,7 +142,7 @@ class NodeCrashFaultModel(FaultModel):
 class NodeCrashVariableFaultModel(FaultModel):
     """This model will crash any node with a specified variable set to the given value."""
     def __init__(self, variable_name, variable_value, check_interval=1):
-        super(NodeCrashVariableFaultModel, self).__init__(requires_nesc_variables=True)
+        super().__init__(requires_nesc_variables=True)
 
         # The name of the variable to watch
         self.variable_name = variable_name
@@ -157,7 +157,7 @@ class NodeCrashVariableFaultModel(FaultModel):
         self.variables = None
 
     def setup(self, sim):
-        super(NodeCrashVariableFaultModel, self).setup(sim)
+        super().setup(sim)
 
         # Create the dict of variables and node ids
         self.variables = {}
@@ -191,10 +191,10 @@ class NodeCrashTypeFaultModel(FaultModel):
     """This model will listen for a node change event changing to 'CrashNode' in order to crash that node."""
 
     def __init__(self):
-        super(NodeCrashTypeFaultModel, self).__init__()
+        super().__init__()
 
     def setup(self, sim):
-        super(NodeCrashTypeFaultModel, self).setup(sim)
+        super().setup(sim)
 
         # Register a listener for node change events
         sim.register_output_handler("M-NC", self._crash_node_listener)
@@ -212,7 +212,7 @@ class NodeCrashTypeFaultModel(FaultModel):
 class BitFlipFaultModel(FaultModel):
     """This model will flip a bit in the specified variable on the specified node at the specified time."""
     def __init__(self, node_id, variable_name, flip_time):
-        super(BitFlipFaultModel, self).__init__(requires_nesc_variables=True)
+        super().__init__(requires_nesc_variables=True)
 
         # The node on which to flip a bit, this may be a string representing a landmark node
         self.node_id = node_id
@@ -228,7 +228,7 @@ class BitFlipFaultModel(FaultModel):
         self.flip_time = flip_time
 
     def setup(self, sim):
-        super(BitFlipFaultModel, self).setup(sim)
+        super().setup(sim)
 
         # convert the provided node id to a topology node id.
         # For example the node_id might be 'sink_id', this will convert it
@@ -264,7 +264,7 @@ class BitFlipFaultModel(FaultModel):
 class NodeCrashFaultPointModel(FaultPointModel):
     """This model will crash a node at the fault point."""
     def __init__(self, fault_point_probs, base_probability=0.0):
-        super(NodeCrashFaultPointModel, self).__init__(fault_point_probs, base_probability=base_probability)
+        super().__init__(fault_point_probs, base_probability=base_probability)
 
     def fault_occurred(self, fault_point_name, node):
         # On fault, turn node off to simulate crash
@@ -273,11 +273,11 @@ class NodeCrashFaultPointModel(FaultPointModel):
 class BitFlipFaultPointModel(FaultPointModel):
     """This model will flip a bit in a specified variable at the fault point."""
     def __init__(self, fault_point_probs, variable, base_probability=0.0):
-        super(BitFlipFaultPointModel, self).__init__(fault_point_probs, base_probability=base_probability, requires_nesc_variables=True)
+        super().__init__(fault_point_probs, base_probability=base_probability, requires_nesc_variables=True)
         self.variable = variable
 
     def setup(self, sim):
-        super(BitFlipFaultModel, self).setup(sim)
+        super().setup(sim)
 
         # Check variable actually exists before starting
         sim.node_from_ordered_nid(0).tossim_node.getVariable(self.variable)
@@ -302,7 +302,7 @@ class BitFlipFaultPointModel(FaultPointModel):
 class NescFaultModel(FaultModel):
     """Wires up a NesC Fault Model."""
     def __init__(self, fault_model_name):
-        super(NescFaultModel, self).__init__()
+        super().__init__()
 
         self.fault_model_name = fault_model_name
 
