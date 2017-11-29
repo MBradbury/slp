@@ -45,7 +45,8 @@ def build_sim(directory, platform="micaz", **kwargs):
 
     make_options = {
         "SLP_PARAMETER_CFLAGS": flags,
-        "MAX_TOSSIM_NODES": max_nodes
+        "MAX_TOSSIM_NODES": max_nodes,
+        "PYTHON_BINARY": sys.executable
     }
 
     make_options_string = " ".join('{}={!r}'.format(k, v) for (k, v) in make_options.items())

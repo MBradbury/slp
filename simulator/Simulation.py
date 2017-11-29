@@ -102,7 +102,7 @@ class Simulation(object):
 
         self.attackers = []
 
-        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
+        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim, args.extra_metrics)
 
         self.metrics = metrics_class(self, configuration)
 
@@ -330,7 +330,7 @@ class OfflineSimulation(object):
 
         self.configuration = configuration
 
-        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
+        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim, args.extra_metrics)
 
         # Allow flexibility wth some missing metric values
         non_strict_metrics = hasattr(args, "non_strict") and args.non_strict

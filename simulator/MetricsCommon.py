@@ -1269,6 +1269,7 @@ class DutyCycleMetricsCommon(MetricsCommon):
         super(DutyCycleMetricsCommon, self).__init__(*args, **kwargs)
 
         self._duty_cycle_state = {}
+        self._duty_cycle_states = defaultdict(list)
         self._duty_cycle = defaultdict(int)
         self._duty_cycle_start = None
 
@@ -1306,6 +1307,7 @@ class DutyCycleMetricsCommon(MetricsCommon):
             self._duty_cycle[ord_node_id] += (time - previous_time)
 
         self._duty_cycle_state[ord_node_id] = (state, time)
+        self._duty_cycle_states[ord_node_id].append((state, time))
 
     def _process_duty_cycle_start(self, d_or_e, node_id, time, data):
         self._duty_cycle_start = self.sim_time()
@@ -1348,9 +1350,63 @@ class DutyCycleMetricsCommon(MetricsCommon):
         return d
 
 
-class MessageTimeGrapher(MetricsCommon):
+class DutyCycleMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
-        super(MessageTimeGrapher, self).__init__(*args, **kwargs)
+        super(DutyCycleMetricsGrapher, self).__init__(*args, **kwargs)
+
+    def finish(self):
+        super(DutyCycleMetricsGrapher, self).finish()
+
+        if isinstance(self, DutyCycleMetricsCommon):
+            self._plot_duty_cycle()
+
+    def _plot_duty_cycle(self):
+        import matplotlib.pyplot as plt
+        from matplotlib.font_manager import FontProperties
+
+        fig, ax = plt.subplots()
+
+        # From: https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
+        box = ax.get_position()
+        ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
+
+        for node_id in self.topology.nodes:
+            states = self._duty_cycle_states[node_id]
+            states = [(False, 0)] + states + [(states[-1][0], self.sim_time())]
+
+            combined = [(atime, btime, astate) for ((astate, atime), (bstate, btime)) in pairwise(states)]
+
+            for (start, stop, state) in combined:
+                colour = "mediumaquamarine" if state else "lightgray"
+
+                ax.hlines(node_id.nid, start, stop, colour, linewidth=4)
+
+        node_ids = [node_id.nid for node_id in self.topology.nodes]
+        ymin, ymax = min(node_ids), max(node_ids)
+        ymin -= 0.05 * (ymax - ymin)
+        ymax += 0.05 * (ymax - ymin)
+        ax.set_ylim(bottom=ymin, top=ymax)
+
+        xmin, xmax = 0, self.sim_time()
+        xmin -= 0.05 * (ymax - ymin)
+        xmax += 0.05 * (ymax - ymin)
+        ax.set_xlim(left=xmin, right=xmax)
+
+        font_prop = FontProperties()
+        font_prop.set_size("small")
+
+        legend = ax.legend(loc="upper center", bbox_to_anchor=(0.45,-0.15), ncol=6, prop=font_prop)
+
+        ax.set_xlabel("Time (seconds)")
+        ax.set_ylabel("Node ID")
+
+        plt.savefig("dutycycle.pdf")
+
+
+
+class MessageTimeMetricsGrapher(MetricsCommon):
+    def __init__(self, *args, **kwargs):
+        super(MessageTimeMetricsGrapher, self).__init__(*args, **kwargs)
 
         self.register('M-CB', self.log_time_bcast_event)
         self.register('M-CD', self.log_time_deliver_event)
@@ -1396,7 +1452,7 @@ class MessageTimeGrapher(MetricsCommon):
             "Poll": "xkcd:orange",
         }[kind]
 
-    def _plot(self, values, filename, line_values=None, y2label=None):
+    def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
 
@@ -1409,7 +1465,7 @@ class MessageTimeGrapher(MetricsCommon):
         for (kind, values) in sorted(values.items(), key=lambda x: x[0]):
             xy = [(time, ord_node_id.nid) for (time, ord_node_id) in values]
             xs, ys = zip(*xy)
-            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=10)
+            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=10, zorder=2)
 
         if line_values is not None:
             xs, ys = zip(*line_values)
@@ -1420,7 +1476,7 @@ class MessageTimeGrapher(MetricsCommon):
                 ax2 = ax.twinx()
                 ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-                ax2.plot(xs, ys)
+                ax2.plot(xs, ys, zorder=2)
 
                 ax2.set_ylabel(y2label)
 
@@ -1428,6 +1484,18 @@ class MessageTimeGrapher(MetricsCommon):
                 ymin -= 0.05 * (ymax - ymin)
                 ymax += 0.05 * (ymax - ymin)
                 ax2.set_ylim(bottom=ymin, top=ymax)
+
+        if with_dutycycle:
+            for node_id in self.topology.nodes:
+                states = self._duty_cycle_states[node_id]
+                states = [(False, 0)] + states + [(states[-1][0], self.sim_time())]
+
+                combined = [(atime, btime, astate) for ((astate, atime), (bstate, btime)) in pairwise(states)]
+
+                for (start, stop, state) in combined:
+                    colour = "mediumaquamarine" if state else "lightgray"
+
+                    ax.hlines(node_id.nid, start, stop, colour, linewidth=4, zorder=1)
 
         node_ids = [node_id.nid for node_id in self.topology.nodes]
         ymin, ymax = min(node_ids), max(node_ids)
@@ -1446,12 +1514,18 @@ class MessageTimeGrapher(MetricsCommon):
         plt.savefig(filename)
 
     def finish(self):
-        self._plot(self._bcasts, "bcasts.pdf")
-        self._plot(self._delivers, "delivers.pdf")
+        super(MessageTimeMetricsGrapher, self).finish()
+
+        self._plot_message_events(self._bcasts, "bcasts.pdf")
+        self._plot_message_events(self._delivers, "delivers.pdf")
+
+        if isinstance(self, DutyCycleMetricsCommon):
+            self._plot_message_events(self._bcasts, "bcasts_duty.pdf", with_dutycycle=True)
+            self._plot_message_events(self._delivers, "delivers_duty.pdf", with_dutycycle=True)
 
         for (attacker_id, values) in self._attacker_delivers.items():
             line_values = [(time, node_id.nid) for (time, node_id) in self._attacker_history[attacker_id]]
-            self._plot(values, "attacker{}_delivers_nid.pdf".format(attacker_id), line_values=line_values)
+            self._plot_message_events(values, "attacker{}_delivers_nid.pdf".format(attacker_id), line_values=line_values)
 
         for source_id in self.configuration.source_ids:
             for (attacker_id, values) in self._attacker_delivers.items():
@@ -1460,11 +1534,13 @@ class MessageTimeGrapher(MetricsCommon):
                     for (time, node_id)
                     in self._attacker_history[attacker_id]
                 ]
-                self._plot(values, "attacker{}_delivers_dsrcm{}.pdf".format(attacker_id, source_id),
+                self._plot_message_events(values, "attacker{}_delivers_dsrcm{}.pdf".format(attacker_id, source_id),
                            line_values=line_values, y2label="Source {} Distance (meters)".format(source_id))
 
+EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher)
+EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
-def import_algorithm_metrics(module_name, simulator):
+def import_algorithm_metrics(module_name, simulator, extra_metrics=None):
     """Get the class to be used to gather metrics on the simulation.
     This will mixin metric gathering for certain simulator tools if necessary.
     If not, the regular metrics class will be provided."""
@@ -1474,21 +1550,26 @@ def import_algorithm_metrics(module_name, simulator):
         "avrora": AvroraMetricsCommon,
     }
 
+    extra_metrics = [] if extra_metrics is None else [cls for cls in EXTRA_METRICS if cls.__name__ in extra_metrics]
+
     mixin_class = simulator_to_mixin.get(simulator, None)
 
     algo_module = importlib.import_module("{}.Metrics".format(module_name))
 
-    if mixin_class is None:
+    if mixin_class is None and len(extra_metrics) == 0:
         return algo_module.Metrics
 
-    class MixinMetrics(algo_module.Metrics, mixin_class):
+    super_classes = ([] if mixin_class is None else [mixin_class]) + extra_metrics
+
+    class MixinMetrics(algo_module.Metrics, *super_classes):
         def __init__(self, *args, **kwargs):
             super(MixinMetrics, self).__init__(*args, **kwargs)
 
         @staticmethod
         def items():
             d = algo_module.Metrics.items()
-            d.update(mixin_class.items())
+            for cls in super_classes:
+                d.update(cls.items())
             return d
 
     return MixinMetrics

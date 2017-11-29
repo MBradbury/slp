@@ -68,7 +68,7 @@ def create_csc(csc, target_directory, a):
     # Output topology file
     configuration = Configuration.create(a.args.configuration, a.args)
 
-    for (nid, (x, y)) in sorted(configuration.topology.nodes.items(), key=lambda k: k[0]):
+    for (nid, (x, y)) in sorted(configuration.topology.nodes.items(), key=lambda k: k[0].nid):
         pcsc('    <mote>')
         pcsc('      <breakpoints />')
         pcsc('      <interface_config>')

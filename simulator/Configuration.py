@@ -15,10 +15,10 @@ class Configuration(object):
         self.source_ids = {topology.t2o(TopologyId(source_id)) for source_id in source_ids}
         self.space_behind_sink = space_behind_sink
 
-        if any(sink_id < 0 for sink_id in self.sink_ids):
+        if any(sink_id.nid < 0 for sink_id in self.sink_ids):
             raise RuntimeError("All sink ids must be positive")
 
-        if any(source_id < 0 for source_id in self.source_ids):
+        if any(source_id.nid < 0 for source_id in self.source_ids):
             raise RuntimeError("All source ids must be positive")
 
         if any(sink_id not in topology.nodes for sink_id in self.sink_ids):

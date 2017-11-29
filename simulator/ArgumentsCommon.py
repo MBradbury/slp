@@ -7,6 +7,7 @@ import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 import simulator.FaultModel as FaultModel
+import simulator.MetricsCommon as MetricsCommon
 import simulator.sim
 
 from data import submodule_loader
@@ -229,6 +230,14 @@ OPTS = {
                                                               required=False,
                                                               action="store_true",
                                                               default=False),
+
+    "extra metrics":       lambda x, **kwargs: x.add_argument("--extra-metrics",
+                                                              required=False,
+                                                              nargs="+",
+                                                              metavar="M",
+                                                              type=str,
+                                                              choices=MetricsCommon.EXTRA_METRICS_CHOICES,
+                                                              default=None),
 
     "log converter":       _add_log_converter,
 
