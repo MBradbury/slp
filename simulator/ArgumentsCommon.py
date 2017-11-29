@@ -155,7 +155,7 @@ OPTS = {
                                                               help="With 'topology' node id orders are the same as the topology defines. 'randomised' causes the node ids to be randomised."),
 
     "safety period":       _add_safety_period,
-        
+
 
     "communication model": lambda x, **kwargs: x.add_argument("-cm", "--communication-model",
                                                               type=str,
@@ -392,7 +392,7 @@ class ArgumentsCommon(object):
             result["SOURCE_NODE_ID"] = configuration.topology.o2t(source_id)
 
         if hasattr(self.args, 'fault_model'):
-          result.update(self.args.fault_model.build_arguments())
+            result.update(self.args.fault_model.build_arguments())
 
         if hasattr(self.args, 'low_power_listening'):
 

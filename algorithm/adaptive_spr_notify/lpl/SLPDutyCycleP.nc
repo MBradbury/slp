@@ -117,12 +117,10 @@ implementation
 
     command void SLPDutyCycle.received_Fake(message_t* msg, bool is_new)
     {
-        const bool valid_timestamp = call PacketTimeStamp.isValid(msg);
+        const bool valid_timestamp = FALSE && call PacketTimeStamp.isValid(msg);
         const uint32_t rcvd_time = valid_timestamp ? call PacketTimeStamp.timestamp(msg) : call LocalTime.get();
 
         call FakeMessageTimingAnalysis.received(rcvd_time, valid_timestamp, is_new);
-
-        //LOG_STDOUT(0, "received Fake %d %" PRIu32 " expected %" PRIu32 "\n", valid_timestamp, rcvd_time, expected_delay);
     }
 
     /***************** StdControl Commands ****************/

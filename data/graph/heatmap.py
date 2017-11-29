@@ -40,7 +40,7 @@ class Grapher(GrapherBase):
     def _create_plot(self, global_params, src_period, params, results):
         def chunks(l, n):
             """ Yield successive n-sized chunks from l."""
-            for i in xrange(0, len(l), n):
+            for i in range(0, len(l), n):
                 yield l[i:i+n]
 
         # Pop the source period off the end of the parameters

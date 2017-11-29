@@ -148,7 +148,7 @@ def avrora_iter(iterable):
     from datetime import datetime
     import sys
 
-    import Queue
+    from queue import PriorityQueue
 
     results_start = "------------------------------------------------------------------------------"
     results_end = "=============================================================================="
@@ -174,7 +174,7 @@ def avrora_iter(iterable):
 
     energy_stats_buffer = []
 
-    line_buffer = Queue.PriorityQueue(maxsize=1024)
+    line_buffer = PriorityQueue(maxsize=1024)
 
     for line in iterable:
         line = line.rstrip()

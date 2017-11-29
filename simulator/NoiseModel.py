@@ -16,8 +16,7 @@ class FileTraceNoiseModel(NoiseModel):
         self.count = count
 
         if not os.path.exists(self.log_file):
-            # TODO: FileNotFoundError in Python 3
-            raise RuntimeError("File not found {}".format(self.log_file))
+            raise FileNotFoundError("File not found {}".format(self.log_file))
 
     def setup(self, sim):
         noises = list(islice(self._read_noise_from_file(), self.count))
@@ -44,8 +43,7 @@ class TestbedTraceNoiseModel(NoiseModel):
         self.count = count
 
         if not os.path.exists(self.log_file):
-            # TODO: FileNotFoundError in Python 3
-            raise RuntimeError("File not found {}".format(self.log_file))
+            raise FileNotFoundError("File not found {}".format(self.log_file))
 
     def setup(self, sim):
         noises = self._read_enough_for_each_node(sim.nodes)

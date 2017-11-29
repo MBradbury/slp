@@ -38,7 +38,7 @@ class WiLabT(Topology):
 
         floor_distance = 20.0
 
-        for nid in xrange(1, 139):
+        for nid in range(1, 139):
             self.nodes[nid] = np.array((-100, -100), dtype=np.float64)
 
         self._process_node_id_order("topology")

@@ -11,7 +11,7 @@ class CoojaRadioModel(object):
 class UDGMRadioModel(CoojaRadioModel):
     """Unit Disk Graph Model - Distance Loss"""
     def __init__(self, tx_range, inter_range, tx_success, rx_success):
-        super(UDGMRadioModel, self).__init__()
+        super().__init__()
         self.tx_range = tx_range
         self.inter_range = inter_range
         self.tx_success = tx_success
@@ -33,7 +33,7 @@ class UDGMRadioModel(CoojaRadioModel):
 class UDGMConstantLossRadioModel(CoojaRadioModel):
     """Unit Disk Graph Model - Constant Loss"""
     def __init__(self, tx_range, inter_range, tx_success, rx_success):
-        super(UDGMRadioModel, self).__init__()
+        super().__init__()
         self.tx_range = tx_range
         self.inter_range = inter_range
         self.tx_success = tx_success
@@ -54,7 +54,7 @@ class UDGMConstantLossRadioModel(CoojaRadioModel):
 
 class DirectedGraphRadioModel(CoojaRadioModel):
     def __init__(self):
-        super(DirectedGraphRadioModel, self).__init__()
+        super().__init__()
 
         self.edges = {}
 
@@ -97,7 +97,7 @@ class DirectedGraphRadioModel(CoojaRadioModel):
 class MRMRadioModel(CoojaRadioModel):
     """Multi-path Ray-tracer medium"""
     def __init__(self):
-        super(MRMRadioModel, self).__init__()
+        super().__init__()
         raise NotImplementedError("There are loads of parameters to this...")
 
     def cooja_csc(self):
