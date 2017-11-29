@@ -229,18 +229,30 @@ class Attacker(object):
         self._sim.gui.scene.execute(time, 'circle({},{},5,ident={!r},{})'.format(x, y, shape_id, options))
 
     def _build_str(self, short=False):
-        self_as = inspect.getargspec(self.__init__)
-        attacker_as = inspect.getargspec(Attacker.__init__)
+        self_as = inspect.signature(self.__init__)
+        attacker_as = inspect.signature(Attacker.__init__)
+
+        # Remove the self parameter
+        self_as_params = [
+            name
+            for (name, param) in self_as.parameters.items()
+            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD) and param.name != 'self'
+        ]
+        attacker_as_params = [
+            name
+            for (name, param) in attacker_as.parameters.items()
+            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD) and param.name != 'self'
+        ]
 
         if short:
-            params = ",".join(repr(getattr(self, "_" + param)) for param in self_as.args[1:])
+            params = ",".join(repr(getattr(self, "_" + name)) for name in self_as_params)
         else:
-            params = ",".join("{}={!r}".format(param, getattr(self, "_" + param)) for param in self_as.args[1:])
+            params = ",".join("{}={!r}".format(name, getattr(self, "_" + name)) for param in self_as_params)
 
         # Only display "start_location" if it is the default value
         # This maintains compatibility with previous results files
-        attacker_names = ",".join("{}={!r}".format(param, getattr(self, "_" + param)) for param in attacker_as.args[1:]
-                          if param != "start_location" or self._start_location != "only_sink")
+        attacker_names = ",".join("{}={!r}".format(name, getattr(self, "_" + name)) for name in attacker_as_params
+                          if name != "start_location" or self._start_location != "only_sink")
 
         return "{}({})".format(type(self).__name__, ",".join(x for x in (params, attacker_names) if len(x) > 0))
 
