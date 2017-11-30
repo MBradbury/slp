@@ -24,7 +24,7 @@ class Runner(object):
         target_directory = name[:-len(".txt")]
 
         if not os.path.exists(target_directory):
-            raise RuntimeError("The directory for this job does not exist ({})".format(target_directory))
+            raise FileNotFoundError(f"The directory for this job does not exist ({target_directory})")
 
         options = shlex.split(options)
         module, argv = options[0], options[1:]
@@ -58,7 +58,7 @@ class Runner(object):
         # by removing "_APPROACH"
         params = params.replace("_APPROACH", "")
 
-        short_name = "{}/{}".format(alg, params)
+        short_name = f"{alg}/{params}"
 
         return short_name
 
@@ -70,7 +70,7 @@ class Runner(object):
         short_name = self.short_name(name)
 
         if len(short_name) > 45:
-            raise RuntimeError("Name {} too long at {} characters".format(short_name, len(short_name)))
+            raise RuntimeError(f"Name {short_name} too long at {len(short_name)} characters")
 
         duration_secs = int(duration.total_seconds())
         
@@ -196,13 +196,12 @@ class Runner(object):
             print("Dry run complete!")
             return
 
-        print("Submitting {}...".format(name))
+        print(f"Submitting {name}...")
         subprocess.check_call(" ".join(command), shell=True)
 
     @staticmethod
     def parse_arguments(module, argv):
-        arguments_module = importlib.import_module("{}.Arguments".format(module))
-
+        arguments_module = importlib.import_module(f"{module}.Arguments")
         a = arguments_module.Arguments()
         a.parse(argv)
         return a

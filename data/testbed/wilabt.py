@@ -17,7 +17,7 @@ def url():
     return "http://doc.ilabt.iminds.be/ilabt-documentation/wilabfacility.html"
 
 def submitter(*args, **kwargs):
-    raise RuntimeError("{} does not support automatic submission".format(name()))
+    raise RuntimeError(f"{name()} does not support automatic submission")
 
 def build_arguments():
     return {}

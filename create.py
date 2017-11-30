@@ -21,8 +21,8 @@ if __name__ == "__main__":
     algorithm_name = args[0]
     args = args[1:]
 
-    algorithm = importlib.import_module("algorithm.{}".format(algorithm_name))
-    CommandLine = importlib.import_module("algorithm.{}.CommandLine".format(algorithm_name))
+    algorithm = importlib.import_module(f"algorithm.{algorithm_name}")
+    CommandLine = importlib.import_module(f"algorithm.{algorithm_name}.CommandLine")
 
     # Raise all numpy errors
     np.seterr(all='raise')
