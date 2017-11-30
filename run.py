@@ -140,50 +140,50 @@ def _run_parallel(sim, module, a, argv):
 
 
     def runner(args):
-        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        try:
-            (stdoutdata, stderrdata) = process.communicate()
+        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+            try:
+                (stdoutdata, stderrdata) = process.communicate()
 
-            # Multiple processes may be attempting to write out at the same
-            # time, so this needs to be protected with a lock.
-            #
-            # Also the streams write method needs to be called directly,
-            # as print has issues with newline printing and multithreading.
-            with print_lock:
-                sys.stdout.write(stdoutdata)
-                sys.stdout.flush()
-
-                sys.stderr.write(stderrdata)
-                sys.stderr.flush()
-
-            if process.returncode != 0:
-                error_message = f"Bad return code {process.returncode} (with args: '{args}')"
-
-                # Negative return code indicates process terminated by signal
-                # Do our best to add that information
-                if process.returncode < 0:
-                    try:
-                        import signal
-                        signals = {getattr(signal, n): n for n in dir(signal) if n.startswith("SIG") and not n.startswith("SIG_")}
-                        signal_name = signals.get(-process.returncode, None)
-                        if signal_name:
-                            error_message += f". Process killed by signal {signal_name}({-process.returncode})"
-                    except:
-                        # Ignore any exceptions that occur, we are just trying to help the users
-                        pass
-
+                # Multiple processes may be attempting to write out at the same
+                # time, so this needs to be protected with a lock.
+                #
+                # Also the streams write method needs to be called directly,
+                # as print has issues with newline printing and multithreading.
                 with print_lock:
-                    print(error_message, file=sys.stderr)
-                    sys.stderr.flush()
-                raise RuntimeError(error_message)
+                    sys.stdout.write(stdoutdata)
+                    sys.stdout.flush()
 
-        except (KeyboardInterrupt, SystemExit) as ex:
-            with print_lock:
-                print(f"Killing process due to {ex}", file=sys.stderr)
-                sys.stdout.flush()
-                sys.stderr.flush()
-            process.kill()
-            raise
+                    sys.stderr.write(stderrdata)
+                    sys.stderr.flush()
+
+                if process.returncode != 0:
+                    error_message = f"Bad return code {process.returncode} (with args: '{args}')"
+
+                    # Negative return code indicates process terminated by signal
+                    # Do our best to add that information
+                    if process.returncode < 0:
+                        try:
+                            import signal
+                            signals = {getattr(signal, n): n for n in dir(signal) if n.startswith("SIG") and not n.startswith("SIG_")}
+                            signal_name = signals.get(-process.returncode, None)
+                            if signal_name:
+                                error_message += f". Process killed by signal {signal_name}({-process.returncode})"
+                        except:
+                            # Ignore any exceptions that occur, we are just trying to help the users
+                            pass
+
+                    with print_lock:
+                        print(error_message, file=sys.stderr)
+                        sys.stderr.flush()
+                    raise RuntimeError(error_message)
+
+            except (KeyboardInterrupt, SystemExit) as ex:
+                with print_lock:
+                    print(f"Killing process due to {ex}", file=sys.stderr)
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                process.kill()
+                raise
 
     new_args = convert_parallel_args_to_single(argv, sim)
 

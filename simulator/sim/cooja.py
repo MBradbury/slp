@@ -126,23 +126,23 @@ def run_simulation(module, a, count=1, print_warnings=False):
         if count != 1:
             raise RuntimeError("Cannot run cooja multiple times in RAW mode")
 
-        proc = subprocess.Popen(command, stderr=subprocess.PIPE, universal_newlines=True)
+        with subprocess.Popen(command, stderr=subprocess.PIPE, universal_newlines=True) as proc:
 
-        proc_iter = iter(proc.stderr.readline, '')
+            proc_iter = iter(proc.stderr.readline, '')
 
-        for line in cooja_iter(proc_iter):
-            print(line)
+            for line in cooja_iter(proc_iter):
+                print(line)
 
-        proc.stderr.close()
+            proc.stderr.close()
 
-        try:
-            return_code = proc.wait(timeout=1)
+            try:
+                return_code = proc.wait(timeout=1)
 
-            if return_code:
-                raise subprocess.CalledProcessError(return_code, command)
+                if return_code:
+                    raise subprocess.CalledProcessError(return_code, command)
 
-        except subprocess.TimeoutExpired:
-            proc.terminate()
+            except subprocess.TimeoutExpired:
+                proc.terminate()
 
     else:
         if a.args.mode == "SINGLE":
