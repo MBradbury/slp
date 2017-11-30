@@ -74,8 +74,8 @@ implementation
     components LocalTimeMilliC;
     SLPDutyCycleP.LocalTime -> LocalTimeMilliC;
 
-    components new MessageTimingAnalysisC() as NormalMessageTimingAnalysis;
-    components new MessageTimingAnalysisC() as FakeMessageTimingAnalysis;
+    components new MessageTimingAnalysisP() as NormalMessageTimingAnalysis;
+    components new MessageTimingAnalysisP() as FakeMessageTimingAnalysis;
     SLPDutyCycleP.NormalMessageTimingAnalysis -> NormalMessageTimingAnalysis;
     SLPDutyCycleP.FakeMessageTimingAnalysis -> FakeMessageTimingAnalysis;
 }
