@@ -174,6 +174,8 @@ def run_simulation(module, a, count=1, print_warnings=False):
                         print("With seed:", sim.seed, file=sys.stderr)
                         print(all_args, file=sys.stderr)
 
+                        proc.kill()
+
                         return 51
 
                     proc.stderr.close()
@@ -184,7 +186,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
                             raise subprocess.CalledProcessError(return_code, command)
 
                     except subprocess.TimeoutExpired:
-                        pass
+                        proc.terminate()
 
                     try:
                         sim.metrics.print_results()
@@ -202,5 +204,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
                         print("For parameters:", file=sys.stderr)
                         print("With seed:", sim.seed, file=sys.stderr)
                         print(all_args, file=sys.stderr)
+
+                        proc.kill()
                         
                         return 52
