@@ -10,7 +10,7 @@ def load(parent, name):
     modules = {modname: importer for (importer, modname, ispkg) in pkgutil.iter_modules(parent.__path__)}
 
     if name not in modules:
-        raise RuntimeError("{} is not a valid name in {}".format(name, modules.keys()))
+        raise RuntimeError(f"{name} is not a valid name in {modules.keys()}")
 
     return modules[name].find_module(name).load_module(name)
 

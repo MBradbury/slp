@@ -25,7 +25,7 @@ def main(argv):
             print("You can only run algorithms in the algorithm or cluster module.", file=sys.stderr)
             return 2
 
-    Arguments = importlib.import_module("{}.Arguments".format(module))
+    Arguments = importlib.import_module(f"{module}.Arguments")
 
     a = Arguments.Arguments()
     a.parse(argv[2:])
@@ -52,20 +52,20 @@ def main(argv):
         metrics_class = MetricsCommon.import_algorithm_metrics(module, a.args.sim, a.args.extra_metrics)
 
         # Print out the versions of slp-algorithms-tinyos and tinyos being used
-        print("@version:python={}".format(VersionDetection.python_version()))
-        print("@version:numpy={}".format(VersionDetection.numpy_version()))
+        print(f"@version:python={VersionDetection.python_version()}")
+        print(f"@version:numpy={VersionDetection.numpy_version()}")
 
-        print("@version:slp-algorithms={}".format(VersionDetection.slp_algorithms_version()))
+        print(f"@version:slp-algorithms={VersionDetection.slp_algorithms_version()}")
         
         sim.print_version()
 
         # Print other potentially useful meta data
-        print("@date:{}".format(str(datetime.now())))
-        print("@host:{}".format(os.uname()))
+        print(f"@date:{str(datetime.now())}")
+        print(f"@host:{os.uname()}")
 
         # Record what algorithm is being run and under what simulator
-        print("@module:{}".format(module))
-        print("@sim:{}".format(a.args.sim))
+        print(f"@module:{module}")
+        print(f"@sim:{a.args.sim}")
 
         # Print out the argument settings
         sim.print_arguments(module, a)
@@ -157,7 +157,7 @@ def _run_parallel(sim, module, a, argv):
                 sys.stderr.flush()
 
             if process.returncode != 0:
-                error_message = "Bad return code {} (with args: '{}')".format(process.returncode, args)
+                error_message = f"Bad return code {process.returncode} (with args: '{args}')"
 
                 # Negative return code indicates process terminated by signal
                 # Do our best to add that information
@@ -167,7 +167,7 @@ def _run_parallel(sim, module, a, argv):
                         signals = {getattr(signal, n): n for n in dir(signal) if n.startswith("SIG") and not n.startswith("SIG_")}
                         signal_name = signals.get(-process.returncode, None)
                         if signal_name:
-                            error_message += ". Process killed by signal {}({})".format(signal_name, -process.returncode)
+                            error_message += f". Process killed by signal {signal_name}({-process.returncode})"
                     except:
                         # Ignore any exceptions that occur, we are just trying to help the users
                         pass
@@ -179,7 +179,7 @@ def _run_parallel(sim, module, a, argv):
 
         except (KeyboardInterrupt, SystemExit) as ex:
             with print_lock:
-                print("Killing process due to {}".format(ex), file=sys.stderr)
+                print(f"Killing process due to {ex}", file=sys.stderr)
                 sys.stdout.flush()
                 sys.stderr.flush()
             process.kill()
@@ -193,15 +193,15 @@ def _run_parallel(sim, module, a, argv):
 
     if a.args.mode == "CLUSTER":
         if a.args.job_id is not None:
-            print("Starting cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+            print(f"Starting cluster array job id {a.args.job_id} at {datetime.now()}", file=sys.stderr)
         else:
-            print("Starting cluster job at {}".format(datetime.now()), file=sys.stderr)
+            print(f"Starting cluster job at {datetime.now()}", file=sys.stderr)
     elif a.args.mode == "PARALLEL":
-        print("Starting parallel job at {}".format(datetime.now()), file=sys.stderr)
+        print(f"Starting parallel job at {datetime.now()}", file=sys.stderr)
     else:
-        raise RuntimeError("Unknown job type of {}".format(a.args.mode))
+        raise RuntimeError(f"Unknown job type of {a.args.mode}")
 
-    print("Creating a process pool with {} processes.".format(parallel_instances), file=sys.stderr)
+    print(f"Creating a process pool with {parallel_instances} processes.", file=sys.stderr)
 
     sys.stderr.flush()
 
@@ -229,11 +229,11 @@ def _run_parallel(sim, module, a, argv):
             print("The map_async was not successful", file=sys.stderr)
 
     except (KeyboardInterrupt, SystemExit) as ex:
-        print("Killing thread pool due to {} at {}".format(ex, datetime.now()), file=sys.stderr)
+        print(f"Killing thread pool due to {ex} at {datetime.now()}", file=sys.stderr)
         job_pool.terminate()
         raise
     except Exception as ex:
-        print("Encountered: {} at {}".format(ex, datetime.now()), file=sys.stderr)
+        print(f"Encountered: {ex} at {datetime.now()}", file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
         job_pool.terminate()
         raise
@@ -242,13 +242,13 @@ def _run_parallel(sim, module, a, argv):
 
         if a.args.mode == "CLUSTER":
             if a.args.job_id is not None:
-                print("Finished cluster array job id {} at {}".format(a.args.job_id, datetime.now()), file=sys.stderr)
+                print(f"Finished cluster array job id {a.args.job_id} at {datetime.now()}", file=sys.stderr)
             else:
-                print("Finished cluster job at {}".format(datetime.now()), file=sys.stderr)
+                print(f"Finished cluster job at {datetime.now()}", file=sys.stderr)
         elif a.args.mode == "PARALLEL":
-            print("Finished parallel job at {}".format(datetime.now()), file=sys.stderr)
+            print(f"Finished parallel job at {datetime.now()}", file=sys.stderr)
         else:
-            raise RuntimeError("Unknown job type of {}".format(a.args.mode))
+            raise RuntimeError(f"Unknown job type of {a.args.mode}")
 
         sys.stdout.flush()
         sys.stderr.flush()

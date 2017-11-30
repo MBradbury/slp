@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 def name():
     return __name__
@@ -44,4 +43,4 @@ def post_build_actions(target_directory, a):
     with open(os.path.join(target_directory, "topology.txt"), "w") as topo_file:
         for (nid, (x, y)) in sorted(configuration.topology.nodes.items(), key=lambda k: k[0]):
             z = 0
-            print("node{} {} {} {}".format(nid, x, y, z), file=topo_file)
+            print(f"node{nid} {x} {y} {z}", file=topo_file)

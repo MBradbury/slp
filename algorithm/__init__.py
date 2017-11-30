@@ -9,7 +9,7 @@ graphs_directory_name = "Graphs"
 def _setup_algorithm_paths(name):
     results_path = os_path_join(results_directory_name, name)
 
-    result_file = "{}-results.csv".format(name)
+    result_file = f"{name}-results.csv"
 
     result_file_path = os_path_join(results_path, result_file)
 
@@ -18,7 +18,7 @@ def _setup_algorithm_paths(name):
     return (name, results_path, result_file, result_file_path, graphs_path)
 
 def import_algorithm(name):
-    algorithm_module = importlib.import_module("algorithm.{}".format(name))
-    algorithm_module.Analysis = importlib.import_module("algorithm.{}.Analysis".format(name))
+    algorithm_module = importlib.import_module(f"algorithm.{name}")
+    algorithm_module.Analysis = importlib.import_module(f"algorithm.{name}.Analysis")
 
     return algorithm_module

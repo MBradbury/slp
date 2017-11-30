@@ -14,7 +14,7 @@ def log_mode():
     return "printf"
 
 def submitter(*args, **kwargs):
-    raise RuntimeError("{} does not support automatic submission".format(name()))
+    raise RuntimeError(f"{name()} does not support automatic submission")
 
 def build_arguments():
     return {}
