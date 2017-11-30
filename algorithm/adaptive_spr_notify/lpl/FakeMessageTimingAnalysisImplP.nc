@@ -1,7 +1,7 @@
 
 //#include <scale.h>
 
-generic module MessageTimingAnalysisImplP()
+generic module FakeMessageTimingAnalysisImplP()
 {
     provides interface MessageTimingAnalysis;
     provides interface Init;
@@ -105,8 +105,8 @@ implementation
             }
         }
 
-        //simdbg("stdout", "New average %" PRIu32 " old %" PRIu32 " n %" PRIu32 " value %" PRIu32,
-        //    average_us, old_average, seen, timestamp_us);
+        simdbg("stdout", "New average %" PRIu32 " old %" PRIu32 " n %" PRIu32 " value %" PRIu32,
+            average_us, old_average, seen, timestamp_us);
     }
 
     command void MessageTimingAnalysis.expected_interval(uint32_t interval_ms)
@@ -127,8 +127,8 @@ implementation
 
         message_received = TRUE;
 
-        //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received at=%" PRIu32 " expected=%" PRIu32 " gd=%" PRIu32 "\n",
-        //    TOS_NODE_ID, timestamp_ms, expected_interval_ms, group_diff);
+        LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received at=%" PRIu32 " expected=%" PRIu32 " gd=%" PRIu32 "\n",
+            TOS_NODE_ID, timestamp_ms, expected_interval_ms, group_diff);
 
         if (is_new)
         {
@@ -211,7 +211,7 @@ implementation
                 ? 1
                 : next_group_wait - early_wakeup_duration - awake_duration;
 
-            //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
+            simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
             call OnTimer.startOneShot(start);
         }
     }
@@ -228,7 +228,7 @@ implementation
 
                 const uint32_t start = early_wakeup_duration + awake_duration;
 
-                //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
+                simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
                 call OffTimer.startOneShot(start);
             }
         }
@@ -246,8 +246,8 @@ implementation
 
             const uint32_t start = awake_duration - (now - last_group_start);
 
-            //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
-            //    start, awake_duration, now, last_group_start);
+            simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
+                start, awake_duration, now, last_group_start);
             call OffTimer.startOneShot(start);
         }
     }

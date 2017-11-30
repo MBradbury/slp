@@ -4,7 +4,8 @@
 #include "NeighbourDetail.h"
 #include "HopDistance.h"
 
-#include "AwayChooseMessage.h"
+#include "AwayMessage.h"
+#include "ChooseMessage.h"
 #include "FakeMessage.h"
 #include "NormalMessage.h"
 #include "BeaconMessage.h"
@@ -431,7 +432,7 @@ implementation
 		call FakeMessageGenerator.stop();
 	}
 
-	void become_Fake(const AwayChooseMessage* message, uint8_t fake_type)
+	void become_Fake(const ChooseMessage* message, uint8_t fake_type)
 	{
 #ifdef SLP_VERBOSE_DEBUG
 		assert(fake_type == PermFakeNode || fake_type == TempFakeNode || fake_type == TailFakeNode);
@@ -507,6 +508,28 @@ implementation
 		}
 	}
 
+	bool any_further_neighbours()
+	{
+		uint16_t i;
+		bool any_further = TRUE;
+
+		if (first_source_distance == UNKNOWN_HOP_DISTANCE || neighbours.size == 0)
+		{
+			return FALSE;
+		}
+
+		// If all neighbours are closer to the sink, we need
+		// to ask all neighbours to become a TFS
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			const hop_distance_t neighbour_source_distance = neighbours.data[i].contents.source_distance;
+
+			any_further &= (neighbour_source_distance >= first_source_distance);
+		}
+
+		return any_further;
+	}
+
 	event void ChooseSenderTimer.fired()
 	{
 		ChooseMessage message;
@@ -519,6 +542,9 @@ implementation
 #else
 		message.algorithm = FurtherAlgorithm;
 #endif
+
+		message.any_further = any_further_neighbours();
+
 
 		extra_to_send = 2;
 		if (send_Choose_message(&message, AM_BROADCAST_ADDR))
@@ -573,6 +599,8 @@ implementation
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
+
 		call SLPDutyCycle.received_Normal(msg, is_new);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
@@ -598,6 +626,8 @@ implementation
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
+
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
 		call SLPDutyCycle.received_Normal(msg, is_new);
 
@@ -635,6 +665,8 @@ implementation
 	void Fake_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
+
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
 		call SLPDutyCycle.received_Normal(msg, is_new);
 
@@ -786,11 +818,29 @@ implementation
 			{
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
-				if (neighbour == NULL || neighbour->contents.source_distance == UNKNOWN_HOP_DISTANCE ||
-					first_source_distance == UNKNOWN_HOP_DISTANCE || neighbour->contents.source_distance <= first_source_distance)
+				if (!rcvd->any_further ||
+					first_source_distance == UNKNOWN_HOP_DISTANCE ||
+					neighbour == NULL ||
+					neighbour->contents.source_distance == UNKNOWN_HOP_DISTANCE ||
+					neighbour->contents.source_distance <= first_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 				}
+#if 1 || defined(SLP_VERBOSE_DEBUG)
+				else
+				{
+					if (neighbour == NULL)
+					{
+						LOG_STDOUT(0, "Normal could have become FAKE but didn't fsd=" HOP_DISTANCE_SPEC ", n=%p\n",
+							first_source_distance, neighbour);
+					}
+					else
+					{
+						LOG_STDOUT(0, "Normal could have become FAKE but didn't fsd=" HOP_DISTANCE_SPEC ", n=%p, nd=" HOP_DISTANCE_SPEC "\n",
+							first_source_distance, neighbour, neighbour->contents.source_distance);
+					}
+				}
+#endif
 			}
 			else
 			{
@@ -957,6 +1007,8 @@ implementation
 	{
 		const bool is_new = sequence_number_before_and_update(&notify_sequence_counter, rcvd->sequence_number);
 
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
+
 		call SLPDutyCycle.normal_expected_interval(rcvd->source_period);
 		call SLPDutyCycle.received_Normal(msg, is_new);
 
@@ -1054,6 +1106,7 @@ implementation
 		// When finished sending fake messages from a TFS
 
 		message.sink_distance += 1;
+		message.any_further = any_further_neighbours();
 
 		extra_to_send = 2;
 		send_Choose_message(&message, target);
