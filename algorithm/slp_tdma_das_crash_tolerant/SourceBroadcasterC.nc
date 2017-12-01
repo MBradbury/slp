@@ -43,6 +43,7 @@ module SourceBroadcasterC
 {
     uses interface Boot;
     uses interface Leds;
+    uses interface Crc;
     uses interface Random;
     uses interface LocalTime<TMilli>;
 

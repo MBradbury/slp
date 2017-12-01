@@ -14,17 +14,22 @@ implementation
     // Low levels events such as boot and LED control
     components DelayedBootEventMainP as MainC;
     components LedsWhenGuiC as LedsC;
+    components CrcC;
     components RandomC;
     components LocalTimeMilliC;
     
     App.Boot -> MainC;
     App.Leds -> LedsC;
+    App.Crc -> CrcC;
     App.Random -> RandomC;
     App.LocalTime -> LocalTimeMilliC;
 
     components MetricLoggingP as MetricLogging;
 
     App.MetricLogging -> MetricLogging;
+
+    components MetricHelpersP as MetricHelpers;
+    App.MetricHelpers -> MetricHelpers;
 
     components new NodeTypeC(6);
     App.NodeType -> NodeTypeC;
