@@ -43,7 +43,7 @@ class CLI(object):
         super(CLI, self).__init__()
 
         self.algorithm_module = importlib.import_module(package)
-        self.algorithm_module.Analysis = importlib.import_module("{}.Analysis".format(package))
+        self.algorithm_module.Analysis = importlib.import_module(f"{package}.Analysis")
 
         self.safety_period_module_name = safety_period_module_name
         self.custom_run_simulation_class = custom_run_simulation_class
@@ -56,7 +56,7 @@ class CLI(object):
             raise RuntimeError("self.algorithm_module.local_parameter_names must be a tuple! If there is only one element, have your forgotten the comma?")
 
         try:
-            self.algorithm_module.Parameters = importlib.import_module("{}.Parameters".format(package))
+            self.algorithm_module.Parameters = importlib.import_module(f"{package}.Parameters")
         except ImportError:
             print("Failed to import Parameters. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
@@ -120,18 +120,6 @@ class CLI(object):
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
-
-        ###
-
-        subparser = self._add_argument("cycle_accurate", self._run_cycle_accurate)
-        subparser.add_argument("name", type=str, choices=submodule_loader.list_available(data.cycle_accurate), help="This is the name of the cycle accurate simulator")
-
-        cycleaccurate_subparsers = subparser.add_subparsers(title="cycle accurate mode", dest="cycle_accurate_mode")
-
-        subparser = cycleaccurate_subparsers.add_parser("build", help="Build the binaries used to run jobs on the cycle accurate simulator. One set of binaries will be created per parameter combination you request.")
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
-        subparser.add_argument("--platform", type=str, default=None)
-        subparser.add_argument("--max-buffer-size", type=int, default=256)
 
         ###
 
@@ -220,7 +208,7 @@ class CLI(object):
             return self._testbed_results_file(testbed, algo)
 
     @staticmethod
-    def _create_table(name, result_table, directory="results", param_filter=lambda x: True, orientation='portrait', show=False):
+    def _create_table(name, result_table, directory="results", param_filter=lambda *args: True, orientation='portrait', show=False):
         filename = os.path.join(directory, name + ".tex")
 
         with open(filename, 'w') as result_file:
@@ -278,7 +266,7 @@ class CLI(object):
                     if hasattr(g, attr_name):
                         setattr(g, attr_name, attr_value)
                     else:
-                        print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
+                        print(f"WARNING: The grapher does not have an attribute of name {attr_name}, not setting it.")
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
@@ -454,7 +442,7 @@ class CLI(object):
                 if hasattr(g, attr_name):
                     setattr(g, attr_name, attr_value)
                 else:
-                    print("WARNING: The grapher does not have an attribute of name {}, not setting it.".format(attr_name))
+                    print(f"WARNING: The grapher does not have an attribute of name {attr_name}, not setting it.")
 
             if custom_yaxis_range_max is not None:
                 g.yaxis_range_max = custom_yaxis_range_max
@@ -479,7 +467,7 @@ class CLI(object):
             except AttributeError:
                 continue
         else:
-            raise RuntimeError("Unable to find plural of {}".format(name))
+            raise RuntimeError(f"Unable to find plural of {name}")
 
         return None
 
@@ -527,7 +515,7 @@ class CLI(object):
                 except AttributeError:
                     continue
             else:
-                raise RuntimeError("Unable to find plural of {}".format(local_name))
+                raise RuntimeError(f"Unable to find plural of {local_name}")
 
         if extras:
             for extra_name in extras:
@@ -695,13 +683,13 @@ class CLI(object):
 
             if max_time is not None:
                 if calculated_time > max_time:
-                    print("Warning: The estimated cluster time is {}, overriding this with the maximum {}".format(calculated_time, max_time))
+                    print(f"Warning: The estimated cluster time is {calculated_time}, overriding this with the maximum {max_time}")
                     calculated_time = max_time
 
             return calculated_time
 
         except KeyError:
-            print("Unable to find historical time for {}, so using default time estimator.".format(key))
+            print(f"Unable to find historical time for {key}, so using default time estimator.")
             return self._default_cluster_time_estimator(args, **kwargs)
 
     def _run_run(self, args):
@@ -840,7 +828,7 @@ class CLI(object):
         if args.testbed:
             print("Writing testbed safety period table...")
 
-            filename = '{}-safety'.format(self.algorithm_module.name)
+            filename = f'{self.algorithm_module.name}-safety'
 
             self._create_table(filename, safety_period_table, directory="testbed_results", show=args.show)
 
@@ -850,12 +838,12 @@ class CLI(object):
 
             for (noise_model, comm_model) in prod:
 
-                print("Writing results table for the {} noise model and {} communication model".format(noise_model, comm_model))
+                print(f"Writing results table for the {noise_model} noise model and {comm_model} communication model")
 
                 filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
 
                 self._create_table(filename, safety_period_table,
-                                   param_filter=lambda (cm, nm, am, fm, c, d, nido, lst): nm == noise_model and cm == comm_model)
+                                   param_filter=lambda cm, nm, am, fm, c, d, nido, lst, noise_model=noise_model, comm_model=comm_model: nm == noise_model and cm == comm_model)
 
     def _run_error_table(self, args):
         res = results.Results(
@@ -891,8 +879,8 @@ class CLI(object):
         if 'build' == args.cluster_mode:
             print("Removing existing cluster directory and creating a new one")
             recreate_dirtree(cluster_directory)
-            touch("{}/__init__.py".format(os.path.dirname(cluster_directory)))
-            touch("{}/__init__.py".format(cluster_directory))
+            touch(os.path.join(os.path.dirname(cluster_directory), "__init__.py"))
+            touch(os.path.join(cluster_directory, "__init__.py"))
 
             skip_complete = not args.no_skip_complete
 
@@ -926,7 +914,7 @@ class CLI(object):
             cluster.copy_back(self.algorithm_module.name, user=args.user)
 
         else:
-            raise RuntimeError("Unknown cluster mode {}".format(args.cluster_mode))
+            raise RuntimeError(f"Unknown cluster mode {args.cluster_mode}")
 
         sys.exit(0)
 
@@ -975,25 +963,6 @@ class CLI(object):
 
         sys.exit(0)
 
-    def _run_cycle_accurate(self, args):
-        cycle_accurate_directory = os.path.join("cycle_accurate", self.algorithm_module.name)
-
-        cycle_accurate = submodule_loader.load(data.cycle_accurate, args.name)
-
-        if 'build' == args.cycle_accurate_mode:
-            from data.run.driver.cycle_accurate_builder import Runner as Builder
-
-            print("Removing existing cycle accurate directory and creating a new one")
-            recreate_dirtree(cycle_accurate_directory)
-
-            builder = Builder(cycle_accurate, platform=args.platform, max_buffer_size=args.max_buffer_size)
-
-            self._execute_runner(args.sim, builder, cycle_accurate_directory,
-                                 time_estimator=None,
-                                 skip_completed_simulations=False)
-
-        sys.exit(0)
-
     def _run_time_taken_table(self, args):
         result_file_path = self.get_results_file_path(testbed=args.testbed)
 
@@ -1031,7 +1000,7 @@ class CLI(object):
                 print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, arguments)]))
                 print()
 
-        print("Loading {} to check for missing runs...".format(self.algorithm_module.result_file_path))
+        print(f"Loading {self.algorithm_module.result_file_path} to check for missing runs...")
 
         for (parameter_values, repeats_performed) in repeats.items():
 
@@ -1045,7 +1014,7 @@ class CLI(object):
 
                 print("performed={} missing={} ".format(repeats_performed, repeats_missing), end="")
 
-                print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, parameter_values)]))
+                print(", ".join([f"{n}={str(v)}" for (n,v) in zip(parameter_names, parameter_values)]))
                 print()
 
     def _run_graph_heatmap(self, args):

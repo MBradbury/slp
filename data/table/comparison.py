@@ -69,7 +69,7 @@ class ResultTable(BaseResultTable):
                             (size, config, src_period), ex
                         ))
 
-    def write_tables(self, stream, param_filter=lambda x: True):
+    def write_tables(self, stream, param_filter=lambda *args: True):
         print('\\vspace{-0.3cm}', file=stream)
 
         for configuration in sorted(self.configurations, key=configuration_rank):
@@ -90,9 +90,9 @@ class ResultTable(BaseResultTable):
 
                         items = self.diff[table_key][comp_param][source_period].items()
 
-                        items = [(k, v) for (k, v) in items if param_filter(k)]
+                        items = [(k, v) for (k, v) in items if param_filter(*k)]
 
-                        for (params, results) in sorted(items, key=lambda (x, y): x):
+                        for (params, results) in sorted(items, key=lambda item: item[0]):
                             to_print = [self._var_fmt("source period", source_period)]
 
                             for name, value in zip(self.results.parameter_names, params):

@@ -124,7 +124,7 @@ class Topology(object):
             self.ordered_nid_to_topology_nid = {OrderedId(shuffled_nid): TopologyId(nid) for (nid, shuffled_nid) in zip(nids, shuffled_nids)}
 
         else:
-            raise RuntimeError("Unknown node id order {}".format(node_id_order))
+            raise RuntimeError(f"Unknown node id order {node_id_order}")
 
         new_nodes = OrderedDict()
 
@@ -153,7 +153,7 @@ class Line(Topology):
         self.centre_node = self.t2o(TopologyId((len(self.nodes) - 1) // 2))
 
     def __str__(self):
-        return "Line<size={}>".format(self.size)
+        return f"Line<size={self.size}>"
 
 class Grid(Topology):
     def __init__(self, size, distance, node_id_order, seed=None):
@@ -176,7 +176,7 @@ class Grid(Topology):
         self.bottom_right = self.t2o(TopologyId(len(self.nodes) - 1))
 
     def __str__(self):
-        return "Grid<size={}>".format(self.size)
+        return f"Grid<size={self.size}>"
 
 class Circle(Topology):
     def __init__(self, diameter, distance, node_id_order, seed=None):
@@ -210,7 +210,7 @@ class Circle(Topology):
         self.centre_node = self.t2o(self.centre_node)
 
     def __str__(self):
-        return "Circle<diameter={}>".format(self.diameter_in_hops)
+        return f"Circle<diameter={self.diameter_in_hops}>"
 
 class Ring(Topology):
     def __init__(self, diameter, distance, node_id_order, seed=None):
@@ -228,7 +228,7 @@ class Ring(Topology):
         self._process_node_id_order(node_id_order)
 
     def __str__(self):
-        return "Ring<diameter={}>".format(self.diameter)
+        return f"Ring<diameter={self.diameter}>"
 
 class SimpleTree(Topology):
     """Creates a tree with a single branch."""
@@ -247,7 +247,7 @@ class SimpleTree(Topology):
         self._process_node_id_order(node_id_order)
 
     def __str__(self):
-        return "SimpleTree<size={}>".format(self.size)
+        return f"SimpleTree<size={self.size}>"
 
 class Random(Topology):
     def __init__(self, network_size, distance, node_id_order, seed=None):
@@ -300,7 +300,7 @@ class Random(Topology):
         self._process_node_id_order("topology")
 
     def __str__(self):
-        return "Random<seed={},network_size={},area={}>".format(self.seed, self.size, self.area)
+        return f"Random<seed={self.seed},network_size={self.size},area={self.area}>"
 
 class RandomPoissonDisk(Topology):
     def __init__(self, network_size, distance, node_id_order, seed=None):
@@ -327,9 +327,9 @@ class RandomPoissonDisk(Topology):
             self.nodes[i] = np.array(coord, dtype=np.float64)
 
         if len(self.nodes) != network_size**2:
-            raise RuntimeError("Incorrect network size of {}, expected {}".format(len(self.nodes), network_size**2))
+            raise RuntimeError(f"Incorrect network size of {len(self.nodes)}, expected {network_size**2}")
 
         self._process_node_id_order(node_id_order)
 
     def __str__(self):
-        return "RandomPoissonDisk<seed={},network_size={},area={}>".format(self.seed, self.size, self.area)
+        return f"RandomPoissonDisk<seed={self.seed},network_size={self.size},area={self.area}>"

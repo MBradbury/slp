@@ -16,6 +16,7 @@ class Transformer(ast.NodeTransformer):
         'Num',        # allow numbers too
         'List',       # and list literals
         'Dict',       # and dicts...
+        'Set',        # and set literals
 
         'keyword',    # Keyword arguments
     }
@@ -25,7 +26,7 @@ class Transformer(ast.NodeTransformer):
 
     def visit_Name(self, node):
         if node.id not in self._allowed_names:
-            raise RuntimeError("Name access to {} is not allowed".format(node.id))
+            raise RuntimeError(f"Name access to {node.id} is not allowed")
 
         # traverse to child nodes
         return self.generic_visit(node)
@@ -33,7 +34,7 @@ class Transformer(ast.NodeTransformer):
     def generic_visit(self, node):
         nodetype = type(node).__name__
         if nodetype not in self.ALLOWED_NODE_TYPES:
-            raise RuntimeError("Invalid expression: {} not allowed".format(nodetype))
+            raise RuntimeError(f"Invalid expression: {nodetype} not allowed")
 
         return super(Transformer, self).generic_visit(node)
 

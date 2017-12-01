@@ -1,5 +1,3 @@
-from __future__ import print_function, division
-
 from collections import Counter, deque
 import inspect
 
@@ -672,10 +670,10 @@ def eval_input(source):
     result = restricted_eval(source, models())
 
     if result in models():
-        raise RuntimeError("The source ({}) is not valid. (Did you forget the brackets after the name?)".format(source))
+        raise RuntimeError(f"The source ({source}) is not valid. (Did you forget the brackets after the name?)")
 
     if not isinstance(result, Attacker):
-        raise RuntimeError("The source ({}) is not a valid instance of an Attacker.".format(source))
+        raise RuntimeError(f"The source ({source}) is not a valid instance of an Attacker.")
 
     return result
 
