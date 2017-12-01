@@ -82,9 +82,9 @@ class FaultPointModel(FaultModel):
     def _draw(self, node_id):
         """Marks all nodes that have faulted in the GUI."""
         (x, y) = self.sim.gui.node_location(node_id)
-        shape_id = "faultednode{}".format(node_id)
+        shape_id = f"faultednode{node_id}"
         color = "0,0,0"
-        options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
+        options = f'line=LineStyle(color=({color})),fill=FillStyle(color=({color}))'
         time = self.sim.sim_time()
 
         self.sim.gui.scene.execute(time, 'delshape({!r})'.format(shape_id))
@@ -204,7 +204,7 @@ class NodeCrashTypeFaultModel(FaultModel):
     def _crash_node_listener(self, log_type, node_id, current_time, detail):
         (from_node_type, to_node_type) = detail.split(",")
 
-        if to_node_type == "CrashNode":
+        if self.sim.metrics.node_kind_to_string(to_node_type) == "CrashNode":
             node_id = OrderedId(int(node_id))
             node = self.sim.node_from_ordered_nid(node_id)
             #print("Turning off node {} to simulate crash because node_type=CrashNode".format(int(node_id)), file=sys.stderr)
@@ -332,10 +332,10 @@ def eval_input(source):
     result = restricted_eval(source, models())
 
     if result in models():
-        raise RuntimeError("The fault model ({}) is not valid. (Did you forget the brackets after the name?)".format(source))
+        raise RuntimeError(f"The fault model ({source}) is not valid. (Did you forget the brackets after the name?)")
 
     if not isinstance(result, FaultModel):
-        raise RuntimeError("The fault model ({}) is not valid.".format(source))
+        raise RuntimeError(f"The fault model ({source}) is not valid.")
 
     return result
 

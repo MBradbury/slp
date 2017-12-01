@@ -171,7 +171,7 @@ class Simulation(object):
             if node.nid == ordered_nid:
                 return node
 
-        raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
+        raise RuntimeError(f"Unable to find a node with ordered_nid of {ordered_nid}")
 
     def node_from_topology_nid(self, topology_nid):
         ordered_nid = self.configuration.topology.t2o(topology_nid)
@@ -180,7 +180,7 @@ class Simulation(object):
             if node.nid == ordered_nid:
                 return node
 
-        raise RuntimeError("Unable to find a node with topology_nid of {}".format(topology_nid))
+        raise RuntimeError(f"Unable to find a node with topology_nid of {topology_nid}")
 
     def _pre_run(self):
         """Called before the simulator run loop starts"""
