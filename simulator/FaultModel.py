@@ -2,6 +2,8 @@ from __future__ import division, print_function
 
 import sys
 
+from simulator.Topology import OrderedId
+
 from data.restricted_eval import restricted_eval
 
 class FaultModel(object):
@@ -65,7 +67,7 @@ class FaultPointModel(FaultModel):
         probability = self.fault_point_probs.get(fault_point_name, self.base_probability)
 
         if self.sim.rng.random() < probability:
-            node_id = int(node_id)
+            node_id = OrderedId(int(node_id))
             node = self.sim.node_from_ordered_nid(node_id)
             self.fault_occurred(fault_point_name, node)
 
@@ -203,7 +205,8 @@ class NodeCrashTypeFaultModel(FaultModel):
         (from_node_type, to_node_type) = detail.split(",")
 
         if to_node_type == "CrashNode":
-            node = self.sim.node_from_ordered_nid(int(node_id))
+            node_id = OrderedId(int(node_id))
+            node = self.sim.node_from_ordered_nid(node_id)
             #print("Turning off node {} to simulate crash because node_type=CrashNode".format(int(node_id)), file=sys.stderr)
             node.tossim_node.turnOff()
 
