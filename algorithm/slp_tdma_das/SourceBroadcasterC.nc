@@ -237,8 +237,6 @@ implementation
         children = IDList_new();
         from = IDList_new();
 
-		METRIC_BOOT();
-
         call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
         call MessageType.register_pair(DISSEM_CHANNEL, "Dissem");
         call MessageType.register_pair(SEARCH_CHANNEL, "Search");
