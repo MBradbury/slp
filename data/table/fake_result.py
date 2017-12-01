@@ -68,9 +68,9 @@ class ResultTable(object):
             for source_period in source_periods:
                 items = self.results.data[table_key][source_period].items()
 
-                items = [(k, v) for (k, v) in items if param_filter(k)]
+                items = [(k, v) for (k, v) in items if param_filter(*k)]
 
-                for (params, results) in sorted(items, key=lambda (x, y): x):
+                for (params, results) in sorted(items, key=lambda item: item[0]):
                     to_print = [self.fmt.format_value("source period", source_period)]
 
                     for (name, value) in zip(self.results.parameter_names, params):

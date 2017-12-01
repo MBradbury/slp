@@ -376,7 +376,7 @@ class MetricsCommon(object):
                 sent_hex_buffers = self.messages_broadcast[(proximate_source_id, kind, ultimate_source_id, sequence_number)]
 
                 if all(sent_hex_buffer != hex_buffer for sent_hex_buffer in sent_hex_buffers):
-                    sent_hex_buffer_str = "\n".join("\t{}".format(sent_hex_buffer) for sent_hex_buffer in sent_hex_buffers)
+                    sent_hex_buffer_str = "\n".join(f"\t{sent_hex_buffer}" for sent_hex_buffer in sent_hex_buffers)
 
                     raise RuntimeError("The received hex buffer does not match any sent buffer for prox-src={}, kind={}, ult-src={}, seq-no={}\nSent:\n{}\nReceived:\n\t{}".format(
                         proximate_source_id, kind, ultimate_source_id, sequence_number,
@@ -386,7 +386,7 @@ class MetricsCommon(object):
             except KeyError as ex:
                 print("Received {} but unable to find a matching key".format(hex_buffer), file=sys.stderr)
                 for (k, v) in self.messages_broadcast.items():
-                    print("{}: {}".format(k, v), file=sys.stderr)
+                    print(f"{k}: {v}", file=sys.stderr)
                 raise
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
@@ -455,7 +455,7 @@ class MetricsCommon(object):
 
         if new_name == "SinkNode":
             if old_name != "<unknown>":
-                raise RuntimeError("SinkNodes MUST be created from no initial node type but was instead from {}".format(old_name))
+                raise RuntimeError(f"SinkNodes MUST be created from no initial node type but was instead from {old_name}")
 
             self.reported_sink_ids.add(ord_node_id)
 
@@ -1011,7 +1011,7 @@ class MetricsCommon(object):
 
         for (nid, events) in self.node_booted_at.items():
             if len(events) > 1:
-                print("Multiple boot events ({}) detected for {}".format(len(events), nid), file=stream)
+                print(f"Multiple boot events ({len(events)}) detected for {nid}", file=stream)
 
     def memory_info(self, attr):
         """Memory usage of the current process in bytes."""
@@ -1118,8 +1118,8 @@ class AvroraMetricsCommon(MetricsCommon):
 
         d["TotalJoules"]                   = lambda x: x.total_joules()
 
-        for component in ["CPU", "Yellow", "Green", "Red", "Radio", "SensorBoard", "flash"]:
-            d["Total{}Joules".format(component)] = lambda x, component=component: x.total_component_joules(component)
+        for component in ("CPU", "Yellow", "Green", "Red", "Radio", "SensorBoard", "flash"):
+            d[f"Total{component}Joules"] = lambda x, component=component: x.total_component_joules(component)
 
         # CPU and radio percent
         d["AverageCPUActivePC"]            = lambda x: x.average_cpu_state("Active")
@@ -1175,7 +1175,7 @@ class FakeMetricsCommon(MetricsCommon):
         d["FakeSent"]               = lambda x: x.number_sent("Fake")
 
         for (fake_short, fake_long) in sorted(fake_node_types.items(), key=lambda x: x[0]):
-            d[fake_short]           = lambda x: x.times_node_changed_to(fake_long)
+            d[fake_short]           = lambda x, fake_long=fake_long: x.times_node_changed_to(fake_long)
 
         d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=fake_node_types.values())
         d["FakeToFake"]             = lambda x: x.times_fake_node_changed_to_fake()
@@ -1303,8 +1303,8 @@ class DutyCycleMetricsCommon(MetricsCommon):
     def _process_duty_cycle_start(self, d_or_e, node_id, time, data):
         self._duty_cycle_start = self.sim_time()
 
-        for (node_id, (previous_state, previous_time)) in self._duty_cycle_state.items():
-            self._duty_cycle_state[node_id] = (previous_state, self._duty_cycle_start)
+        for (nid, (previous_state, previous_time)) in self._duty_cycle_state.items():
+            self._duty_cycle_state[nid] = (previous_state, self._duty_cycle_start)
 
     def _calculate_node_duty_cycle(self, node_id):
 
@@ -1541,7 +1541,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
 EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
-def import_algorithm_metrics(module_name, simulator, extra_metrics=None):
+def import_algorithm_metrics(module_name, sim, extra_metrics=None):
     """Get the class to be used to gather metrics on the simulation.
     This will mixin metric gathering for certain simulator tools if necessary.
     If not, the regular metrics class will be provided."""
@@ -1553,7 +1553,7 @@ def import_algorithm_metrics(module_name, simulator, extra_metrics=None):
 
     extra_metrics = [] if extra_metrics is None else [cls for cls in EXTRA_METRICS if cls.__name__ in extra_metrics]
 
-    mixin_class = simulator_to_mixin.get(simulator, None)
+    mixin_class = simulator_to_mixin.get(sim, None)
 
     algo_module = importlib.import_module(f"{module_name}.Metrics")
 

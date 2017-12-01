@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import collections
+import itertools
 import math
 import os
 
@@ -9,6 +10,8 @@ from data import latex
 from data.graph.grapher import GrapherBase
 
 import simulator.common
+
+import numpy as np
 
 class Grapher(GrapherBase):
 
@@ -27,7 +30,7 @@ class Grapher(GrapherBase):
         self.yaxis_label = yaxis.title()
         self.vary_label =  vary.title()
         self.vary_prefix = ''
-        self.vvalue_label_converter = None
+        self.vvalue_label_converter = lambda x: x
 
         self.yextractor = yextractor if yextractor is not None else lambda x: x
         self.xextractor = xextractor if xextractor is not None else lambda x: x
@@ -63,10 +66,7 @@ class Grapher(GrapherBase):
                 return self.yextractor(yvalue)
 
     def _vvalue_label(self, vvalue_label):
-        if self.vvalue_label_converter is not None:
-            return latex.escape(self.vvalue_label_converter(vvalue_label))
-        else:
-            return latex.escape(vvalue_label)
+        return latex.escape(self.vvalue_label_converter(vvalue_label))
 
     def create(self, simulation_results):
         print('Removing existing directories')
@@ -155,7 +155,6 @@ class Grapher(GrapherBase):
                     yvalue = values.get((xvalue, vvalue), None)
 
                     if self.error_bars:
-
                         if yvalue is not None and not isinstance(yvalue, np.ndarray):
                             raise RuntimeError("Cannot display error bars for {} as no stddev is included in the results".format(dir_name))
 
