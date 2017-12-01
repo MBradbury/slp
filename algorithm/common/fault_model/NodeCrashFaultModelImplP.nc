@@ -5,6 +5,8 @@ module NodeCrashFaultModelImplP
 {
     provides interface FaultModel;
 
+    provides interface Init;
+
     uses interface MetricLogging;
     uses interface FaultModelTypes;
 
@@ -12,6 +14,15 @@ module NodeCrashFaultModelImplP
 }
 implementation
 {
+    bool crashed;
+
+    command error_t Init.init()
+    {
+        crashed = FALSE;
+
+        return SUCCESS;
+    }
+
     command bool FaultModel.register_pair(uint8_t ident, const char* name)
     {
         return call FaultModelTypes.register_pair(ident, name);
@@ -29,12 +40,17 @@ implementation
 
     command void FaultModel.fault_point(uint8_t ident)
     {
-        //METRIC_FAULT_POINT(ident);
+        crashed = TRUE;
+
         call RadioControl.stop();
     }
 
     event void RadioControl.startDone(error_t error)
     {
+        if (crashed)
+        {
+            call RadioControl.stop();
+        }
     }
 
     event void RadioControl.stopDone(error_t error)
