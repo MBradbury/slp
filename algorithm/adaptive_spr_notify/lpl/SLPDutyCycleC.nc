@@ -58,11 +58,7 @@ implementation
     //SLPDutyCycleP.ByteIndicator -> CC2420TransmitC.ByteIndicator;
     SLPDutyCycleP.PacketIndicator -> CC2420ReceiveC.PacketIndicator;
 
-    components new TimerMilliC() as OnTimerC;
-    components new TimerMilliC() as OffTimerC;
     components new TimerMilliC() as SendDoneTimerC;
-    SLPDutyCycleP.OffTimer -> OffTimerC;
-    SLPDutyCycleP.OnTimer -> OnTimerC;
     SLPDutyCycleP.SendDoneTimer -> SendDoneTimerC;
 
     components SystemLowPowerListeningC;  
@@ -75,14 +71,11 @@ implementation
     SLPDutyCycleP.RadioPowerState -> RadioPowerStateC;
     SLPDutyCycleP.SplitControlState -> SplitControlStateC;
 
-    components ActiveMessageC;
-    SLPDutyCycleP.PacketTimeStamp -> ActiveMessageC;
-
     components LocalTimeMilliC;
     SLPDutyCycleP.LocalTime -> LocalTimeMilliC;
 
-    components new MessageTimingAnalysisC() as NormalMessageTimingAnalysis;
-    components new MessageTimingAnalysisC() as FakeMessageTimingAnalysis;
+    components new MessageTimingAnalysisP() as NormalMessageTimingAnalysis;
+    components new FakeMessageTimingAnalysisP() as FakeMessageTimingAnalysis;
     SLPDutyCycleP.NormalMessageTimingAnalysis -> NormalMessageTimingAnalysis;
     SLPDutyCycleP.FakeMessageTimingAnalysis -> FakeMessageTimingAnalysis;
 }

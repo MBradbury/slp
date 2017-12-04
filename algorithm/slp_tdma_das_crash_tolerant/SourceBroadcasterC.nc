@@ -43,6 +43,7 @@ module SourceBroadcasterC
 {
     uses interface Boot;
     uses interface Leds;
+    uses interface Crc;
     uses interface Random;
     uses interface LocalTime<TMilli>;
 
@@ -264,8 +265,6 @@ implementation
         children = IDList_new();
         from = IDList_new();
         crash_suspects = IDList_new();
-
-        METRIC_BOOT();
 
         call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
         call MessageType.register_pair(DISSEM_CHANNEL, "Dissem");

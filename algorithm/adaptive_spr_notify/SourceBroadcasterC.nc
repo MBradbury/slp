@@ -4,7 +4,8 @@
 #include "NeighbourDetail.h"
 #include "HopDistance.h"
 
-#include "AwayChooseMessage.h"
+#include "AwayMessage.h"
+#include "ChooseMessage.h"
 #include "FakeMessage.h"
 #include "NormalMessage.h"
 #include "BeaconMessage.h"
@@ -179,14 +180,14 @@ implementation
 
 	uint32_t get_tfs_duration(void)
 	{
-		uint32_t duration = SOURCE_PERIOD_MS;
+		const uint32_t duration = SOURCE_PERIOD_MS;
 
-		if (sink_distance == UNKNOWN_HOP_DISTANCE || sink_distance <= 1)
+		/*if (sink_distance == UNKNOWN_HOP_DISTANCE || sink_distance <= 1)
 		{
 			duration -= AWAY_DELAY_MS;
 		}
 
-		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);*/
 
 		return duration;
 	}
@@ -404,6 +405,8 @@ implementation
 					sequence_number_increment(&notify_sequence_counter);
 				}
 			}
+
+			METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_START, "");
 		}
 	}
 
@@ -429,7 +432,7 @@ implementation
 		call FakeMessageGenerator.stop();
 	}
 
-	void become_Fake(const AwayChooseMessage* message, uint8_t fake_type)
+	void become_Fake(const ChooseMessage* message, uint8_t fake_type)
 	{
 #ifdef SLP_VERBOSE_DEBUG
 		assert(fake_type == PermFakeNode || fake_type == TempFakeNode || fake_type == TailFakeNode);
@@ -505,6 +508,28 @@ implementation
 		}
 	}
 
+	bool any_further_neighbours()
+	{
+		uint16_t i;
+		bool any_further = TRUE;
+
+		if (first_source_distance == UNKNOWN_HOP_DISTANCE || neighbours.size == 0)
+		{
+			return FALSE;
+		}
+
+		// If all neighbours are closer to the sink, we need
+		// to ask all neighbours to become a TFS
+		for (i = 0; i != neighbours.size; ++i)
+		{
+			const hop_distance_t neighbour_source_distance = neighbours.data[i].contents.source_distance;
+
+			any_further &= (neighbour_source_distance >= first_source_distance);
+		}
+
+		return any_further;
+	}
+
 	event void ChooseSenderTimer.fired()
 	{
 		ChooseMessage message;
@@ -517,6 +542,9 @@ implementation
 #else
 		message.algorithm = FurtherAlgorithm;
 #endif
+
+		message.any_further = any_further_neighbours();
+
 
 		extra_to_send = 2;
 		if (send_Choose_message(&message, AM_BROADCAST_ADDR))
@@ -569,9 +597,11 @@ implementation
 
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const bool is_new = call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number);
+		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Normal(msg, is_new);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
+
+		call SLPDutyCycle.received_Normal(msg, is_new, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -579,8 +609,6 @@ implementation
 		if (is_new)
 		{
 			NormalMessage forwarding_message;
-
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -597,17 +625,17 @@ implementation
 
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const bool is_new = call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number);
+		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Normal(msg, is_new);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
+
+		call SLPDutyCycle.received_Normal(msg, is_new, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
 		if (is_new)
 		{
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-
 			METRIC_RCV_NORMAL(rcvd);
 
 			if (set_first_source_distance(rcvd->source_distance))
@@ -636,9 +664,11 @@ implementation
 
 	void Fake_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const bool is_new = call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number);
+		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Normal(msg, is_new);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
+
+		call SLPDutyCycle.received_Normal(msg, is_new, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -646,8 +676,6 @@ implementation
 		if (is_new)
 		{
 			NormalMessage forwarding_message;
-
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -677,11 +705,9 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
+		if (sequence_number_before_and_update(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
-
-			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_AWAY(rcvd);
 
@@ -700,11 +726,9 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
+		if (sequence_number_before_and_update(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
-
-			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_AWAY(rcvd);
 
@@ -725,11 +749,9 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
+		if (sequence_number_before_and_update(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
-
-			sequence_number_update(&away_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_AWAY(rcvd);
 
@@ -788,21 +810,37 @@ implementation
 
 		sink_distance = hop_distance_min(sink_distance, hop_distance_increment(rcvd->sink_distance));
 
-		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number))
+		if (sequence_number_before_and_update(&choose_sequence_counter, rcvd->sequence_number))
 		{
-			sequence_number_update(&choose_sequence_counter, rcvd->sequence_number);
-
 			METRIC_RCV_CHOOSE(rcvd);
 
 			if (rcvd->sink_distance == 0)
 			{
 				distance_neighbour_detail_t* neighbour = find_distance_neighbour(&neighbours, source_addr);
 
-				if (neighbour == NULL || neighbour->contents.source_distance == UNKNOWN_HOP_DISTANCE ||
-					first_source_distance == UNKNOWN_HOP_DISTANCE || neighbour->contents.source_distance <= first_source_distance)
+				if (!rcvd->any_further ||
+					first_source_distance == UNKNOWN_HOP_DISTANCE ||
+					neighbour == NULL ||
+					neighbour->contents.source_distance == UNKNOWN_HOP_DISTANCE ||
+					neighbour->contents.source_distance <= first_source_distance)
 				{
 					become_Fake(rcvd, TempFakeNode);
 				}
+#ifdef SLP_VERBOSE_DEBUG
+				else
+				{
+					if (neighbour == NULL)
+					{
+						LOG_STDOUT(0, "Normal could have become FAKE but didn't fsd=" HOP_DISTANCE_SPEC ", n=%p\n",
+							first_source_distance, neighbour);
+					}
+					else
+					{
+						LOG_STDOUT(0, "Normal could have become FAKE but didn't fsd=" HOP_DISTANCE_SPEC ", n=%p, nd=" HOP_DISTANCE_SPEC "\n",
+							first_source_distance, neighbour, neighbour->contents.source_distance);
+					}
+				}
+#endif
 			}
 			else
 			{
@@ -859,17 +897,16 @@ implementation
 
 	void Sink_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		const bool is_new = sequence_number_before(&fake_sequence_counter, rcvd->sequence_number);
+		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, is_new);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, is_new, rcvd->message_type);
 
 		sink_received_choose_reponse = TRUE;
 
 		if (is_new)
 		{
 			FakeMessage forwarding_message = *rcvd;
-
-			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
 
@@ -879,13 +916,13 @@ implementation
 
 	void Source_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		const bool is_new = sequence_number_before(&fake_sequence_counter, rcvd->sequence_number);
+		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, is_new);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, is_new, rcvd->message_type);
 
 		if (is_new)
 		{
-			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 			source_fake_sequence_increments += 1;
 
 			METRIC_RCV_FAKE(rcvd);
@@ -894,15 +931,14 @@ implementation
 
 	void Normal_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		const bool is_new = sequence_number_before(&fake_sequence_counter, rcvd->sequence_number);
+		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, is_new);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, is_new, rcvd->message_type);
 
 		if (is_new)
 		{
 			FakeMessage forwarding_message = *rcvd;
-
-			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
 
@@ -913,15 +949,14 @@ implementation
 	void Fake_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
 		const uint8_t type = call NodeType.get();
-		const bool is_new = sequence_number_before(&fake_sequence_counter, rcvd->sequence_number);
+		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, is_new);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, is_new, rcvd->message_type);
 
 		if (is_new)
 		{
 			FakeMessage forwarding_message = *rcvd;
-
-			sequence_number_update(&fake_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_FAKE(rcvd);
 
@@ -935,8 +970,8 @@ implementation
 				(rcvd->message_type == TailFakeNode && type == TailFakeNode)
 			) &&
 			(
-				rcvd->sender_first_source_distance > first_source_distance ||
-				(rcvd->sender_first_source_distance == first_source_distance && rcvd->source_id > TOS_NODE_ID)
+				rcvd->ultimate_sender_first_source_distance > first_source_distance ||
+				(rcvd->ultimate_sender_first_source_distance == first_source_distance && rcvd->source_id > TOS_NODE_ID)
 			)
 			)
 		{
@@ -974,17 +1009,17 @@ implementation
 
 	void x_receive_Notify(message_t* msg, const NotifyMessage* const rcvd, am_addr_t source_addr)
 	{
-		const bool is_new = sequence_number_before(&notify_sequence_counter, rcvd->sequence_number);
+		const bool is_new = sequence_number_before_and_update(&notify_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.normal_expected_interval(rcvd->source_period);
-		call SLPDutyCycle.received_Normal(msg, is_new);
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
+
+		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, is_new, SourceNode);
 
 		if (is_new)
 		{
 			NotifyMessage forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
-
-			sequence_number_update(&notify_sequence_counter, rcvd->sequence_number);
 
 			METRIC_RCV_NOTIFY(rcvd);
 
@@ -1053,7 +1088,9 @@ implementation
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.message_type = call NodeType.get();
 		message.source_id = TOS_NODE_ID;
-		message.sender_first_source_distance = first_source_distance;
+		message.ultimate_sender_first_source_distance = first_source_distance;
+		message.ultimate_sender_fake_duration_ms = message.message_type == PermFakeNode ? UINT32_MAX : get_tfs_duration();
+		message.ultimate_sender_fake_period_ms = signal FakeMessageGenerator.calculatePeriod();
 
 		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -1075,6 +1112,7 @@ implementation
 		// When finished sending fake messages from a TFS
 
 		message.sink_distance += 1;
+		message.any_further = any_further_neighbours();
 
 		extra_to_send = 2;
 		send_Choose_message(&message, target);

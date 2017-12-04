@@ -32,7 +32,7 @@ class Grapher(GrapherBase):
         self.yaxis_label = yaxis
         self.vary_label =  vary.title() if not isinstance(vary, collections.Sequence) else "/".join(x.title() for x in vary)
         self.vary_prefix = ''
-        self.vvalue_label_converter = None
+        self.vvalue_label_converter = lambda x: x
 
         self.yaxis_range_min = None
         self.yaxis_range_max = '*'
@@ -86,10 +86,7 @@ class Grapher(GrapherBase):
                 return self.yextractor(yvalue)
 
     def _vvalue_label(self, vvalue_label):
-        if self.vvalue_label_converter is not None:
-            return latex.escape(self.vvalue_label_converter(vvalue_label))
-        else:
-            return latex.escape(vvalue_label)
+        return latex.escape(self.vvalue_label_converter(vvalue_label))
 
     def _build_plots_from_dat(self, dat):
         plot_created = False
@@ -109,7 +106,7 @@ class Grapher(GrapherBase):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
-        print('Creating {} graph files'.format(self.result_name))
+        print(f'Creating {self.result_name} graph files')
 
         dat = {}
 

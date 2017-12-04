@@ -25,7 +25,7 @@ class MobilityModel(object):
 
         for (node_id, intervals) in self.active_times.items():
             if node_id not in nodes:
-                raise RuntimeError("Invalid node id {}.".format(node_id))
+                raise RuntimeError(f"Invalid node id {node_id}.")
 
             if node_id in self.configuration.sink_ids:
                 raise RuntimeError("The source node cannot move onto the sink as it cannot detect it")
@@ -37,7 +37,7 @@ class MobilityModel(object):
             if math.isinf(time):
                 return "UINT32_MAX"
             else:
-                return "{}U".format(int(time * 1000))
+                return f"{int(time * 1000)}U"
 
         indexes = []
         periods = []
@@ -46,19 +46,18 @@ class MobilityModel(object):
         for (node_idx, (node_id, intervals)) in enumerate(self.active_times.items()):
 
             # Node IDs must be passed in topology order!
-            indexes.append("{}U".format(self.configuration.topology.o2t(node_id)))
+            indexes.append(f"{self.configuration.topology.o2t(node_id)}U")
 
             period = [
                 #"[{node_idx}][{interval_idx}].from = {from_time}, [{node_idx}][{interval_idx}].to = {to_time}".format(
-                "{{{from_time}, {to_time}}}".format(
-                    from_time=to_tinyos_format(begin), to_time=to_tinyos_format(end), node_idx=node_idx, interval_idx=interval_idx)
+                f"{{{to_tinyos_format(begin)}, {to_tinyos_format(end)}}}"
                 for (interval_idx, (begin, end))
                 in enumerate(intervals)
             ]
 
             periods.append("{" + ", ".join(period) + "}")
 
-            periods_lengths.append("{}U".format(len(period)))
+            periods_lengths.append(f"{len(period)}U")
 
         build_arguments["SOURCE_DETECTED_INDEXES"] = "{ " + ", ".join(indexes) + " }"
         build_arguments["SOURCE_DETECTED_PERIODS"] = "{ " + ", ".join(periods) + " }"
@@ -94,7 +93,7 @@ class StationaryMobilityModel(MobilityModel):
     """The default source mobility model, where the source just stays where it is."""
 
     def __init__(self):
-        super(StationaryMobilityModel, self).__init__()
+        super().__init__()
 
     def setup(self, configuration):
         times = OrderedDict()
@@ -106,7 +105,7 @@ class StationaryMobilityModel(MobilityModel):
 
 class RandomWalkMobilityModel(MobilityModel):
     def __init__(self, max_time, duration, seed):
-        super(RandomWalkMobilityModel, self).__init__()
+        super().__init__()
 
         # There needs to be a finite length to the random walk!
         self.max_time = max_time
@@ -123,7 +122,7 @@ class RandomWalkMobilityModel(MobilityModel):
 
         max_length = int(self.max_time / self.duration)
 
-        for i in xrange(max_length):
+        for i in range(max_length):
             neighbours = list(configuration.one_hop_neighbours(path[-1]))
 
             path.append(rng.choice(neighbours))
@@ -141,7 +140,7 @@ class RandomWalkMobilityModel(MobilityModel):
         self._setup_impl(configuration, times)
 
     def __str__(self):
-        return type(self).__name__ + "(max_time={}, duration={})".format(self.max_time, self.duration)
+        return f"{type(self).__name__}(max_time={self.max_time}, duration={self.duration})"
 
 
 class TowardsSinkMobilityModel(MobilityModel):
@@ -149,7 +148,7 @@ class TowardsSinkMobilityModel(MobilityModel):
     every :duration: time units."""
 
     def __init__(self, duration):
-        super(TowardsSinkMobilityModel, self).__init__()
+        super().__init__()
         self.duration = duration
 
     def setup(self, configuration):
@@ -166,12 +165,12 @@ class TowardsSinkMobilityModel(MobilityModel):
         self._setup_impl(configuration, times)
 
     def __str__(self):
-        return type(self).__name__ + "(duration={})".format(self.duration)
+        return f"{type(self).__name__}(duration={self.duration})"
 
 
 class RoundNetworkEdgeMobilityModel(MobilityModel):
     def __init__(self, max_time, duration):
-        super(RoundNetworkEdgeMobilityModel, self).__init__()
+        super().__init__()
         
         # There needs to be a finite length to the random walk!
         self.max_time = max_time
@@ -184,7 +183,7 @@ class RoundNetworkEdgeMobilityModel(MobilityModel):
 
         max_length = int(self.max_time / self.duration)
 
-        for i in xrange(max_length):
+        for i in range(max_length):
             try:
                 prev = path[-2]
             except IndexError:
@@ -211,20 +210,20 @@ class RoundNetworkEdgeMobilityModel(MobilityModel):
         self._setup_impl(configuration, times)
 
     def __str__(self):
-        return type(self).__name__ + "(max_time={},duration={})".format(self.max_time, self.duration)    
+        return f"{type(self).__name__}(max_time={self.max_time},duration={self.duration})"    
 
 
 def models():
     """A list of the names of the available models."""
-    return [cls for cls in MobilityModel.__subclasses__()] # pylint: disable=no-member
+    return MobilityModel.__subclasses__() # pylint: disable=no-member
 
 def eval_input(source):
     result = restricted_eval(source, models())
 
     if result in models():
-        raise RuntimeError("The source mobility model ({}) is not valid. (Did you forget the brackets after the name?)".format(source))
+        raise RuntimeError(f"The source mobility model ({source}) is not valid. (Did you forget the brackets after the name?)")
 
     if not isinstance(result, MobilityModel):
-        raise RuntimeError("The source mobility model ({}) is not valid.".format(source))
+        raise RuntimeError(f"The source mobility model ({source}) is not valid.")
 
     return result

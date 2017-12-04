@@ -1,7 +1,6 @@
 
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.MobilityModel
-import simulator.Configuration as Configuration
 
 approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
 

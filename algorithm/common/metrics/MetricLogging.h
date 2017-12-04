@@ -217,6 +217,8 @@ enum SLPEventCodes {
 
 	EVENT_BOOTED = 2012,
 
+	METRIC_GENERIC_DUTY_CYCLE_START = 2013,
+
 	// Only use 2xxx codes here. The reasoning for SLPErrorCodes applies.
 };
 

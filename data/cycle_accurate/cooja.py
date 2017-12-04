@@ -68,7 +68,7 @@ def create_csc(csc, target_directory, a):
     # Output topology file
     configuration = Configuration.create(a.args.configuration, a.args)
 
-    for (nid, (x, y)) in sorted(configuration.topology.nodes.items(), key=lambda k: k[0]):
+    for (nid, (x, y)) in sorted(configuration.topology.nodes.items(), key=lambda k: k[0].nid):
         pcsc('    <mote>')
         pcsc('      <breakpoints />')
         pcsc('      <interface_config>')
@@ -98,9 +98,9 @@ def create_csc(csc, target_directory, a):
     pcsc('    org.contikios.cooja.plugins.ScriptRunner')
     pcsc('    <plugin_config>')
     pcsc('      <script>')
-    pcsc(escape("""
+    pcsc(escape(f"""
 /* Make test automatically timeout after the safety period (milliseconds) */
-TIMEOUT({milliseconds_to_run}, log.testOK()); /* milliseconds. print last msg at timeout */
+TIMEOUT({int(seconds_to_run * 1000)}, log.testOK()); /* milliseconds. print last msg at timeout */
 
 // Detect Leds changing on the motes
 // Doing this in Cooja is cheaper than doing it on the motes
@@ -144,9 +144,7 @@ while (true)
     YIELD();
 }}
 log.testOK(); /* Report test success and quit */
-""".format(
-        milliseconds_to_run=int(seconds_to_run * 1000),
-)))
+"""))
     pcsc('      </script>')
     pcsc('      <active>true</active>')
     pcsc('    </plugin_config>')

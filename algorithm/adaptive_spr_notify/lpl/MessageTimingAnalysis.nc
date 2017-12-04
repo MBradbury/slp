@@ -1,11 +1,11 @@
 interface MessageTimingAnalysis
 {
-    command void expected_interval(uint32_t interval_ms);
+    command void expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type);
 
-    command void received(uint32_t timestamp_ms, bool valid_timestamp, bool is_new);
+    command void received(uint32_t timestamp_ms, bool is_new, uint8_t source_type);
 
-    command uint32_t last_group_start();
-    command uint32_t next_group_wait();
-    command uint32_t early_wakeup_duration();
-    command uint32_t awake_duration();
+    event void start_radio();
+    event void stop_radio();
+
+    command bool can_turn_off();
 }

@@ -123,5 +123,5 @@ def print_node_details(n):
 	print("\tPFSPeriod       is {}".format(calc.pfs_period(n)))
 	print("")
 
-for n in xrange(calc.configuration.sinkId + 1, calc.configuration.sinkId + calc.configuration.topology.size + 1):
+for n in range(calc.configuration.sinkId + 1, calc.configuration.sinkId + calc.configuration.topology.size + 1):
 	print_node_details(n)

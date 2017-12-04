@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function, division
-
+#!/usr/bin/env python3
 import sys
 
 import simulator.sim
@@ -12,7 +10,7 @@ def main():
 
     module = sys.argv[1]
 
-    Arguments = importlib.import_module("{}.Arguments".format(module))
+    Arguments = importlib.import_module(f"{module}.Arguments")
 
     a = Arguments.Arguments()
     a.parse(sys.argv[2:])
