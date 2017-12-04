@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-import Attacker
+import simulator.Attacker as Attacker
 
 from data.restricted_eval import restricted_eval
 

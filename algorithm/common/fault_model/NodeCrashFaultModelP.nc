@@ -15,4 +15,7 @@ implementation
 
     components ActiveMessageC;
     ProvidedFaultModel.RadioControl -> ActiveMessageC;
+
+    components MainC;
+    ProvidedFaultModel.Init -> MainC.SoftwareInit;
 }

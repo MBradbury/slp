@@ -58,16 +58,16 @@ def print_arguments(module_name, a):
         local_parameter_values = zip(local_parameter_names, params)
 
         source_period = float(source_period.replace("_", "."))
-        print("source_period=FixedPeriodModel(period={})".format(source_period))
+        print(f"source_period=FixedPeriodModel(period={source_period})")
 
         for (name, value) in local_parameter_values:
             print("{}={}".format(name.replace(" ", "_"), value.replace("_", ".")))
 
-        print("rf_power={}".format(rf_power))
+        print(f"rf_power={rf_power}")
 
     for (k, v) in sorted(vars(a.args).items()):
         if k not in a.arguments_to_hide:
-            print("{}={}".format(k, v))
+            print(f"{k}={v}")
 
 def run_one_file(log_file, module, a, count=1, print_warnings=False):
     import copy
@@ -82,12 +82,12 @@ def run_one_file(log_file, module, a, count=1, print_warnings=False):
     elif a.args.mode == "GUI":
         from simulator.TosVis import GuiOfflineSimulation as OfflineSimulation
     else:
-        raise RuntimeError("Unknown mode {}".format(a.args.mode))
+        raise RuntimeError(f"Unknown mode {a.args.mode}")
 
     configuration = Configuration.create(a.args.configuration, a.args)
 
     if a.args.verbose:
-        print("Analysing log file {}".format(log_file), file=sys.stderr)
+        print(f"Analysing log file {log_file}", file=sys.stderr)
 
     with OfflineLogConverter.create_specific(a.args.log_converter, log_file) as converted_event_log:
         with OfflineSimulation(module, configuration, a.args, event_log=converted_event_log) as sim:
@@ -105,7 +105,7 @@ def run_one_file(log_file, module, a, count=1, print_warnings=False):
             except Exception as ex:
                 import traceback
 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
 
                 print("Killing run due to {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
@@ -125,7 +125,7 @@ def run_one_file(log_file, module, a, count=1, print_warnings=False):
             except Exception as ex:
                 import traceback
 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
 
                 print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)

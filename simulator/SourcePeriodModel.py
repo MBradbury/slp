@@ -31,10 +31,10 @@ class PeriodModel(object):
 
         def to_tinyos_format(time):
             """Return the time in milliseconds"""
-            return "UINT32_C({})".format(int(time * 1000))
+            return f"UINT32_C({int(time * 1000)})"
 
         periods = [
-            "{{{}, {}}}".format(to_tinyos_format(end), to_tinyos_format(period))
+            f"{{{to_tinyos_format(end)}, {to_tinyos_format(period)}}}"
             for ((start, end), period)
             in self.period_times.items()
             if not math.isinf(end)
@@ -81,7 +81,7 @@ class FixedPeriodModel(PeriodModel):
         return str(self.period)
 
     def __repr__(self):
-        return "FixedPeriodModel(period={})".format(self.period)
+        return f"FixedPeriodModel(period={self.period})"
 
     def __float__(self):
         return self.period
@@ -141,7 +141,7 @@ def create_specific(source):
     elif isinstance(result, PeriodModel):
         return result
     else:
-        raise RuntimeError("The source ({}) is not valid.".format(source))
+        raise RuntimeError(f"The source ({source}) is not valid.")
 
 
 # eval_input must be a function so it can be used as a type parameter for the arguments

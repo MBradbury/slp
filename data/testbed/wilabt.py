@@ -17,7 +17,7 @@ def url():
     return "http://doc.ilabt.iminds.be/ilabt-documentation/wilabfacility.html"
 
 def submitter(*args, **kwargs):
-    raise RuntimeError("{} does not support automatic submission".format(name()))
+    raise RuntimeError(f"{name()} does not support automatic submission")
 
 def build_arguments():
     return {}
@@ -38,7 +38,7 @@ class WiLabT(Topology):
 
         floor_distance = 20.0
 
-        for nid in xrange(1, 139):
+        for nid in range(1, 139):
             self.nodes[nid] = np.array((-100, -100), dtype=np.float64)
 
         self._process_node_id_order("topology")

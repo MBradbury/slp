@@ -17,7 +17,7 @@ def url():
     return "https://www.twist.tu-berlin.de"
 
 def submitter(*args, **kwargs):
-    raise RuntimeError("{} does not support automatic submission".format(name()))
+    raise RuntimeError(f"{name()} does not support automatic submission")
 
 def build_arguments():
     return {}
@@ -41,7 +41,7 @@ class Twist(Topology):
                 198, 187, 212, 203, 194, 225, 209, 207, 224, 206, 205, 211, 230,
                 204, 33, 208, 222, 270, 36, 37, 220, 221, 26, 27, 189, 190}
 
-        for nid in xrange(1, 280):
+        for nid in range(1, 280):
             # Skip any dead nodes
             if nid in dead:
                 continue

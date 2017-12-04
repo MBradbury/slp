@@ -6,30 +6,34 @@ from scipy.spatial.distance import cdist
 from data.memoize import memoize
 from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring, TopologyId, OrderedId, IndexId
 
+class InvalidSinkError(RuntimeError):
+    def __init__(self, sink_id, sink_ids):
+        super().__init__(f"Invalid sink ({sink_id} not in {sink_ids})")
+
+class InvalidSourceError(RuntimeError):
+    def __init__(self, source_id, source_ids):
+        super().__init__(f"Invalid source ({source_id} not in {source_ids})")
+
 class Configuration(object):
     def __init__(self, topology, source_ids, sink_ids, space_behind_sink):
-        super(Configuration, self).__init__()
+        super().__init__()
 
         self.topology = topology
         self.sink_ids = {topology.t2o(TopologyId(sink_id)) for sink_id in sink_ids}
         self.source_ids = {topology.t2o(TopologyId(source_id)) for source_id in source_ids}
         self.space_behind_sink = space_behind_sink
 
-        if any(sink_id < 0 for sink_id in self.sink_ids):
+        if any(sink_id.nid < 0 for sink_id in self.sink_ids):
             raise RuntimeError("All sink ids must be positive")
 
-        if any(source_id < 0 for source_id in self.source_ids):
+        if any(source_id.nid < 0 for source_id in self.source_ids):
             raise RuntimeError("All source ids must be positive")
 
         if any(sink_id not in topology.nodes for sink_id in self.sink_ids):
-            raise RuntimeError(
-                "The a sink id {} is not present in the available node ids {}".format(
-                    self.sink_ids, topology.nodes))
+            raise RuntimeError(f"The a sink id {self.sink_ids} is not present in the available node ids {topology.nodes}")
 
         if any(source_id not in topology.nodes for source_id in self.source_ids):
-            raise RuntimeError(
-                "The a source id {} is not present in the available node ids {}".format(
-                    self.source_ids, topology.nodes))
+            raise RuntimeError(f"The a source id {self.source_ids} is not present in the available node ids {topology.nodes}")
 
         if len(self.sink_ids) == 0:
             raise RuntimeError("There must be at least one sink in the configuration")
@@ -60,9 +64,7 @@ class Configuration(object):
         return build_arguments
 
     def __str__(self):
-        return "Configuration<sink_ids={}, source_ids={}, space_behind_sink={}, topology={}>".format(
-            self.sink_ids, self.source_ids, self.space_behind_sink, self.topology
-        )
+        return f"Configuration<sink_ids={self.sink_ids}, source_ids={self.source_ids}, space_behind_sink={self.space_behind_sink}, topology={self.topology}>"
 
     def _build_connectivity_matrix(self):
         coords = list(self.topology.nodes.values())
@@ -107,23 +109,23 @@ class Configuration(object):
     def ssd(self, sink_id, source_id):
         """The number of hops between the sink and the specified source node"""
         if sink_id not in self.sink_ids:
-            raise RuntimeError("Invalid sink ({} not in {})".format(sink_id, self.sink_ids))
+            raise InvalidSinkError(sink_id, self.sink_ids)
         if source_id not in self.source_ids:
-            raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
+            raise InvalidSourceError(source_id, self.source_ids)
 
         return self.node_distance(sink_id, source_id)
 
     def node_sink_distance(self, ordered_nid, sink_id):
         """The number of hops between the sink and the specified node"""
         if sink_id not in self.sink_ids:
-            raise RuntimeError("Invalid sink ({} not in {})".format(sink_id, self.sink_ids))
+            raise InvalidSinkError(sink_id, self.sink_ids)
 
         return self.node_distance(ordered_nid, sink_id)
 
     def node_source_distance(self, ordered_nid, source_id):
         """The number of hops between the specified source and the specified node"""
         if source_id not in self.source_ids:
-            raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
+            raise InvalidSourceError(source_id, self.source_ids)
 
         return self.node_distance(ordered_nid, source_id)
 
@@ -139,23 +141,23 @@ class Configuration(object):
     def ssd_meters(self, sink_id, source_id):
         """The number of meters between the sink and the specified source node"""
         if sink_id not in self.sink_ids:
-            raise RuntimeError("Invalid sink ({} not in {})".format(sink_id, self.sink_ids))
+            raise InvalidSinkError(sink_id, self.sink_ids)
         if source_id not in self.source_ids:
-            raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
+            raise InvalidSourceError(source_id, self.source_ids)
 
         return self.node_distance_meters(sink_id, source_id)
 
     def node_sink_distance_meters(self, node, sink_id):
         """The number of meters between the sink and the specified node"""
         if sink_id not in self.sink_ids:
-            raise RuntimeError("Invalid sink ({} not in {})".format(sink_id, self.sink_ids))
+            raise InvalidSinkError(sink_id, self.sink_ids)
 
         return self.topology.node_distance_meters(node, sink_id)
 
     def node_source_distance_meters(self, node, source_id):
         """The number of meters between the specified source and the specified node"""
         if source_id not in self.source_ids:
-            raise RuntimeError("Invalid source ({} not in {})".format(source_id, self.source_ids))
+            raise InvalidSourceError(source_id, self.source_ids)
 
         return self.topology.node_distance_meters(node, source_id)
 
@@ -216,7 +218,7 @@ class Configuration(object):
             # Check valid node
             ord_node_id = self.topology.t2o(topo_node_id)
             if ord_node_id not in self.topology.nodes:
-                raise RuntimeError("The node id {} is not a valid node id".format(topo_node_id))
+                raise RuntimeError(f"The node id {topo_node_id} is not a valid node id")
 
             return topo_node_id
 
@@ -234,7 +236,7 @@ class Configuration(object):
                     ord_node_ids = getattr(attr_source, topo_node_id_str + "s")
 
                     if len(ord_node_ids) != 1:
-                        raise RuntimeError("Unable to get a {} because there is not only one of them.".format(topo_node_id_str))
+                        raise RuntimeError(f"Unable to get a {topo_node_id_str} because there is not only one of them.")
 
                     ord_node_id = next(iter(ord_node_ids))
 
@@ -248,7 +250,7 @@ class Configuration(object):
             if len(close) == 0:
                 close = choices
 
-            raise RuntimeError("No way to work out node from '{}', did you mean one of {}.".format(topo_node_id_str, close))
+            raise RuntimeError(f"No way to work out node from '{topo_node_id_str}', did you mean one of {close}.")
 
 # Coordinates are specified in topology format below
 
@@ -256,7 +258,7 @@ class LineSinkCentre(Configuration):
     def __init__(self, *args):
         line = Line(*args)
 
-        super(LineSinkCentre, self).__init__(
+        super().__init__(
             line,
             source_ids={0},
             sink_ids={(len(line.nodes) - 1) // 2},
@@ -267,7 +269,7 @@ class SimpleTreeSinkEnd(Configuration):
     def __init__(self, *args):
         tree = SimpleTree(*args)
 
-        super(SimpleTreeSinkEnd, self).__init__(
+        super().__init__(
             tree,
             source_ids={0},
             sink_ids={tree.size - 1},
@@ -278,7 +280,7 @@ class SourceCorner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SourceCorner, self).__init__(
+        super().__init__(
             grid,
             source_ids={0},
             sink_ids={(len(grid.nodes) - 1) // 2},
@@ -289,7 +291,7 @@ class Source2CornerTop(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source2CornerTop, self).__init__(
+        super().__init__(
             grid,
             source_ids={0, 2},
             sink_ids={(len(grid.nodes) - 1) // 2},
@@ -300,7 +302,7 @@ class Source3CornerTop(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source3CornerTop, self).__init__(
+        super().__init__(
             grid,
             source_ids={0, 2, grid.size+1},
             sink_ids={(len(grid.nodes) - 1) // 2},
@@ -311,7 +313,7 @@ class Source3CornerTopLinear(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source3CornerTopLinear, self).__init__(
+        super().__init__(
             grid,
             source_ids={0, 2, 4},
             sink_id=(len(grid.nodes) - 1) // 2,
@@ -322,7 +324,7 @@ class SinkCorner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkCorner, self).__init__(
+        super().__init__(
             grid,
             source_ids={(len(grid.nodes) - 1) // 2},
             sink_ids={len(grid.nodes) - 1},
@@ -333,7 +335,7 @@ class SinkCorner2Source(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkCorner2Source, self).__init__(
+        super().__init__(
             grid,
             source_ids={(len(grid.nodes) - 1)//2 - 1, (len(grid.nodes) - 1)//2 + 1},
             sink_ids={len(grid.nodes) - 1},
@@ -344,7 +346,7 @@ class SinkCorner3Source(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkCorner3Source, self).__init__(
+        super().__init__(
             grid,
             source_ids={(len(grid.nodes) - 1)//2 - 1, (len(grid.nodes) - 1)//2 + 1, (len(grid.nodes) - 1) // 2 + grid.size},
             sink_ids={len(grid.nodes) - 1},
@@ -355,7 +357,7 @@ class SinkCorner3SourceLinear(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkCorner3SourceLinear, self).__init__(
+        super().__init__(
             grid,
             source_ids={(len(grid.nodes) - 1)//2 - 2, (len(grid.nodes) - 1)//2, (len(grid.nodes) - 1)//2 + 2},
             sink_id=len(grid.nodes) - 1,
@@ -366,7 +368,7 @@ class FurtherSinkCorner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(FurtherSinkCorner, self).__init__(
+        super().__init__(
             grid,
             source_ids={0},
             sink_ids={len(grid.nodes) - 1},
@@ -376,7 +378,7 @@ class FurtherSinkCorner2Source(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(FurtherSinkCorner2Source, self).__init__(
+        super().__init__(
             grid,
             source_ids={0, 2},
             sink_ids={len(grid.nodes) - 1},
@@ -386,7 +388,7 @@ class FurtherSinkCorner3Source(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(FurtherSinkCorner3Source, self).__init__(
+        super().__init__(
             grid,
             source_ids={0, 2, grid.size+1},
             sink_ids={len(grid.nodes) - 1},
@@ -397,7 +399,7 @@ class SinkSourceOpposite(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkSourceOpposite, self).__init__(
+        super().__init__(
             grid,
             source_ids={(grid.size * 2) + 2},
             sink_ids={(grid.size * (grid.size - 2)) - 2 - 1},
@@ -408,7 +410,7 @@ class SinkSourceOpposite2Source(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkSourceOpposite2Source, self).__init__(
+        super().__init__(
             grid,
             source_ids={(grid.size * 2) + 2, (grid.size * 2) + 4},
             sink_ids={(grid.size * (grid.size - 2)) - 2 - 1},
@@ -419,7 +421,7 @@ class SinkSourceOpposite3Source(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SinkSourceOpposite3Source, self).__init__(
+        super().__init__(
             grid,
             source_ids={(grid.size * 2) + 2, (grid.size * 2) + 4, (grid.size * 2) + grid.size + 3},
             sink_ids={(grid.size * (grid.size - 2)) - 2 - 1},
@@ -431,7 +433,7 @@ class Generic1(Configuration):
         grid = Grid(*args)
         node_count = len(grid.nodes)
 
-        super(Generic1, self).__init__(
+        super().__init__(
             grid,
             source_ids={(node_count // 2) - (grid.size // 3)},
             sink_ids={(node_count // 2) + (grid.size // 3)},
@@ -442,7 +444,7 @@ class Generic2(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Generic2, self).__init__(
+        super().__init__(
             grid,
             source_ids={(grid.size * (grid.size - 2)) - 2 - 1},
             sink_ids={(grid.size * 2) + 2},
@@ -453,7 +455,7 @@ class RingTop(Configuration):
     def __init__(self, *args):
         ring = Ring(*args)
 
-        super(RingTop, self).__init__(
+        super().__init__(
             ring,
             source_ids={ring.diameter - 1},
             sink_ids={0},
@@ -464,7 +466,7 @@ class RingMiddle(Configuration):
     def __init__(self, *args):
         ring = Ring(*args)
 
-        super(RingMiddle, self).__init__(
+        super().__init__(
             ring,
             source_ids={(4 * ring.diameter - 5) // 2 + 1},
             sink_ids={(4 * ring.diameter - 5) // 2},
@@ -475,7 +477,7 @@ class RingOpposite(Configuration):
     def __init__(self, *args):
         ring = Ring(*args)
 
-        super(RingOpposite, self).__init__(
+        super().__init__(
             ring,
             source_ids={len(ring.nodes) - 1},
             sink_ids={0},
@@ -486,7 +488,7 @@ class CircleSinkCentre(Configuration):
     def __init__(self, *args):
         circle = Circle(*args)
 
-        super(CircleSinkCentre, self).__init__(
+        super().__init__(
             circle,
             source_ids={5},
             sink_ids={circle.ordered_nid_to_topology_nid[circle.centre_node]},
@@ -497,7 +499,7 @@ class CircleSourceCentre(Configuration):
     def __init__(self, *args):
         circle = Circle(*args)
 
-        super(CircleSourceCentre, self).__init__(
+        super().__init__(
             circle,
             source_ids={circle.ordered_nid_to_topology_nid[circle.centre_node]},
             sink_ids={5},
@@ -508,7 +510,7 @@ class CircleEdges(Configuration):
     def __init__(self, *args):
         circle = Circle(*args)
 
-        super(CircleEdges, self).__init__(
+        super().__init__(
             circle,
             source_ids={len(circle.nodes) - 5 - 1},
             sink_ids={5},
@@ -519,7 +521,7 @@ class Source2Corners(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source2Corners, self).__init__(
+        super().__init__(
             grid,
             source_ids={0, len(grid.nodes) - 1},
             sink_ids={(len(grid.nodes) - 1) // 2},
@@ -530,7 +532,7 @@ class Source3Corners(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source3Corners, self).__init__(
+        super().__init__(
             grid,
             source_ids={grid.size - 1, len(grid.nodes) - grid.size, len(grid.nodes) - 1},
             sink_ids={(len(grid.nodes) - 1) // 2},
@@ -541,7 +543,7 @@ class Source4Corners(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source4Corners, self).__init__(
+        super().__init__(
             grid,
             source_ids={0, grid.size - 1, len(grid.nodes) - grid.size, len(grid.nodes) - 1},
             sink_ids={(len(grid.nodes) - 1) // 2},
@@ -552,7 +554,7 @@ class Source2Edges(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source2Edges, self).__init__(
+        super().__init__(
             grid,
             source_ids={
                 (grid.size - 1) // 2,
@@ -566,7 +568,7 @@ class Source4Edges(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source4Edges, self).__init__(
+        super().__init__(
             grid,
             source_ids={
                 (grid.size - 1) // 2,
@@ -584,7 +586,7 @@ class Source2Corner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source2Corner, self).__init__(
+        super().__init__(
             grid,
             source_ids={3, grid.size * 3},
             sink_ids={(len(grid.nodes) - 1) // 2},
@@ -595,7 +597,7 @@ class FurtherSinkSource2Corner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(FurtherSinkSource2Corner, self).__init__(
+        super().__init__(
             grid,
             source_ids={3, grid.size * 3},
             sink_ids={len(grid.nodes) - 1},
@@ -606,7 +608,7 @@ class Source3Corner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source3Corner, self).__init__(
+        super().__init__(
             grid,
             source_ids={0, 3, grid.size * 3},
             sink_ids={(len(grid.nodes) - 1) // 2},
@@ -617,7 +619,7 @@ class Source2Corner2OppositeCorner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(Source2Corner2OppositeCorner, self).__init__(
+        super().__init__(
             grid,
             source_ids={
                 3,
@@ -633,7 +635,7 @@ class SourceEdgeCorner(Configuration):
     def __init__(self, *args):
         grid = Grid(*args)
 
-        super(SourceEdgeCorner, self).__init__(
+        super().__init__(
             grid,
             source_ids={
                 ((len(grid.nodes) - 1) // 2) + (grid.size - 1) // 2,
@@ -647,7 +649,7 @@ class RandomConnected(Configuration):
     def __init__(self, *args):
         random = Random(*args)
 
-        super(RandomConnected, self).__init__(
+        super().__init__(
             random,
             source_ids={len(random.nodes) - 1},
             sink_ids={0},
@@ -658,7 +660,7 @@ class RandomPoissonDiskConnected(Configuration):
     def __init__(self, *args, **kwargs):
         random = RandomPoissonDisk(*args)
 
-        super(RandomPoissonDiskConnected, self).__init__(
+        super().__init__(
             random,
             source_ids={len(random.nodes) - 1},
             sink_ids={len(random.nodes) // 2},
@@ -669,7 +671,7 @@ class RandomPoissonDiskConnected1000(Configuration):
     def __init__(self, *args, **kwargs):
         random = RandomPoissonDisk(*args[:-1], seed=1000)
 
-        super(RandomPoissonDiskConnected1000, self).__init__(
+        super().__init__(
             random,
             source_ids={len(random.nodes) - 1},
             sink_ids={len(random.nodes) // 2},
@@ -681,7 +683,7 @@ class DCSWarwickSrc201Sink208(Configuration):
         from data.testbed.dcswarwick import DCSWarwick
         dcs_warwick = DCSWarwick()
 
-        super(DCSWarwickSrc201Sink208, self).__init__(
+        super().__init__(
             dcs_warwick,
             source_ids={1},
             sink_ids={2},
@@ -693,7 +695,7 @@ class IndriyaOneFloorSrc31Sink15(Configuration):
         from data.testbed.indriya import Indriya
         indriya = Indriya()
 
-        super(IndriyaOneFloorSrc31Sink15, self).__init__(
+        super().__init__(
             indriya,
             source_ids={31},
             sink_ids={15},
@@ -705,7 +707,7 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
         from data.testbed.indriya import Indriya
         indriya = Indriya()
 
-        super(IndriyaTwoFloorsSrc31Sink60, self).__init__(
+        super().__init__(
             indriya,
             source_ids={31},
             sink_ids={60},
@@ -717,7 +719,7 @@ class EuratechSinkCentre(Configuration):
         from data.testbed.fitiotlab import Euratech
         euratech = Euratech()
 
-        super(EuratechSinkCentre, self).__init__(
+        super().__init__(
             euratech,
             source_ids={98},
             sink_ids={153},
@@ -729,7 +731,7 @@ class FlockLabSinkCentre(Configuration):
         from data.testbed.flocklab import FlockLab
         flocklab = FlockLab()
 
-        super(FlockLabSinkCentre, self).__init__(
+        super().__init__(
             flocklab,
             source_ids={1},
             sink_ids={23},
@@ -738,7 +740,7 @@ class FlockLabSinkCentre(Configuration):
 
 def configurations():
     """A list of the available configuration classes."""
-    return [cls for cls in Configuration.__subclasses__()] # pylint: disable=no-member
+    return Configuration.__subclasses__() # pylint: disable=no-member
 
 CONFIGURATION_RANK = {
     'SourceCorner': 1,
@@ -781,20 +783,20 @@ def try_create_specific(name):
 
     match = re.match(r"^([A-Za-z]+)Source([0-9]+)Sink([0-9]+)$", name)
     if not match:
-        raise RuntimeError("Unable to parse configuration name {}".format(name))
+        raise RuntimeError(f"Unable to parse configuration name {name}")
 
     (topology_name, source_id, sink_id) = match.groups()
 
     topology_classes = [t for t in available_topologies if t.__name__ == topology_name]
 
     if len(topology_classes) == 0:
-        raise RuntimeError("Unable to find a topology called {}".format(topology_name))
+        raise RuntimeError(f"Unable to find a topology called {topology_name}")
 
     topology_class = topology_classes[0]
 
     class NewConfiguration(Configuration):
         def __init__(self, *args, **kwargs):
-            super(NewConfiguration, self).__init__(
+            super().__init__(
                 topology_class(),
                 source_ids={int(source_id)},
                 sink_ids={int(sink_id)},
@@ -812,14 +814,14 @@ def create_specific(name, *args, **kwargs):
     confs = [cls for cls in configurations() if cls.__name__ == name]
 
     if len(confs) > 1:
-        raise RuntimeError("There are multiple configurations that have the name {}, not sure which one to choose".format(name))
+        raise RuntimeError(f"There are multiple configurations that have the name {name}, not sure which one to choose")
 
     # Sometimes we might want to be able to dynamically create configurations
     if len(confs) == 0:
         try:
             conf_class = try_create_specific(name)
         except BaseException as ex:
-            raise RuntimeError("No configurations were found using the name {}. Tried to create a Configuration, but this failed.".format(name), ex)
+            raise RuntimeError(f"No configurations were found using the name {name}. Tried to create a Configuration, but this failed.", ex)
     else:
         conf_class = confs[0]
 

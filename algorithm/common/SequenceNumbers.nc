@@ -7,6 +7,7 @@ interface SequenceNumbers
 	command void increment(am_addr_t address);
 	command bool before(am_addr_t address, SequenceNumber other);
 	command void update(am_addr_t address, SequenceNumber other);
+	command bool before_and_update(am_addr_t address, SequenceNumber other);
 
 	command uint16_t max_size();
 	command uint16_t count();

@@ -48,13 +48,13 @@ class CLI(CommandLineCommon.CLI):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 11:
-            return datetime.timedelta(hours=8) #For 2000 runs
+            return datetime.timedelta(hours=8)
         elif size == 15:
-            return datetime.timedelta(hours=10) #For 2000 runs
+            return datetime.timedelta(hours=8)
         elif size == 21:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8)
         elif size == 25:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 

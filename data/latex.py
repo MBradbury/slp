@@ -85,7 +85,7 @@ def escape(text):
         '>': r'\textgreater{}',
     }
 
-    regex = re.compile('|'.join(re.escape(unicode(key))
+    regex = re.compile('|'.join(re.escape(key)
                                 for key
                                 in sorted(conv.keys(), key=lambda item: - len(item))))
 

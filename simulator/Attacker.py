@@ -1,5 +1,3 @@
-from __future__ import print_function, division
-
 from collections import Counter, deque
 import inspect
 
@@ -229,18 +227,30 @@ class Attacker(object):
         self._sim.gui.scene.execute(time, 'circle({},{},5,ident={!r},{})'.format(x, y, shape_id, options))
 
     def _build_str(self, short=False):
-        self_as = inspect.getargspec(self.__init__)
-        attacker_as = inspect.getargspec(Attacker.__init__)
+        self_as = inspect.signature(self.__init__)
+        attacker_as = inspect.signature(Attacker.__init__)
+
+        # Remove the self parameter
+        self_as_params = [
+            name
+            for (name, param) in self_as.parameters.items()
+            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD) and param.name != 'self'
+        ]
+        attacker_as_params = [
+            name
+            for (name, param) in attacker_as.parameters.items()
+            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD) and param.name != 'self'
+        ]
 
         if short:
-            params = ",".join(repr(getattr(self, "_" + param)) for param in self_as.args[1:])
+            params = ",".join(repr(getattr(self, "_" + name)) for name in self_as_params)
         else:
-            params = ",".join("{}={!r}".format(param, getattr(self, "_" + param)) for param in self_as.args[1:])
+            params = ",".join("{}={!r}".format(name, getattr(self, "_" + name)) for name in self_as_params)
 
         # Only display "start_location" if it is the default value
         # This maintains compatibility with previous results files
-        attacker_names = ",".join("{}={!r}".format(param, getattr(self, "_" + param)) for param in attacker_as.args[1:]
-                          if param != "start_location" or self._start_location != "only_sink")
+        attacker_names = ",".join("{}={!r}".format(name, getattr(self, "_" + name)) for name in attacker_as_params
+                          if name != "start_location" or self._start_location != "only_sink")
 
         return "{}({})".format(type(self).__name__, ",".join(x for x in (params, attacker_names) if len(x) > 0))
 
@@ -259,11 +269,11 @@ class DeafAttackerWithEvent(Attacker):
     """An attacker that does nothing when it receives a message.
     This attacker also inserts a callback every period seconds."""
     def __init__(self, period, **kwargs):
-        super(DeafAttackerWithEvent, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._period = period
 
     def setup(self, *args, **kwargs):
-        super(DeafAttackerWithEvent, self).setup(*args, **kwargs)
+        super().setup(*args, **kwargs)
 
         self._sim.tossim.register_event_callback(self._callback, self._period)
 
@@ -284,7 +294,7 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
     """
 
     def __init__(self, **kwargs):
-        super(IgnorePreviousLocationReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._previous_location = None
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -295,7 +305,7 @@ class IgnorePreviousLocationReactiveAttacker(Attacker):
 
 class IgnorePastNLocationsReactiveAttacker(Attacker):
     def __init__(self, memory_size, **kwargs):
-        super(IgnorePastNLocationsReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._memory_size = memory_size
         self._previous_locations = deque(maxlen=memory_size)
 
@@ -307,7 +317,7 @@ class IgnorePastNLocationsReactiveAttacker(Attacker):
 
 class TimeSensitiveReactiveAttacker(Attacker):
     def __init__(self, wait_time_secs, **kwargs):
-        super(TimeSensitiveReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._previous_location = None
         self._last_moved_time = None
         self._wait_time_secs = wait_time_secs
@@ -328,7 +338,7 @@ class SeqNoReactiveAttacker(Attacker):
     """
 
     def __init__(self, **kwargs):
-        super(SeqNoReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -346,7 +356,7 @@ class SeqNosReactiveAttacker(Attacker):
     that can be sent from multiple sources.
     """
     def __init__(self, **kwargs):
-        super(SeqNosReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -366,7 +376,7 @@ class SeqNosOOOReactiveAttacker(Attacker):
     are sent out-of-order.
     """
     def __init__(self, **kwargs):
-        super(SeqNosOOOReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = set()
 
     def move_predicate(self, time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number):
@@ -384,7 +394,7 @@ class SingleTypeReactiveAttacker(Attacker):
     It also has access to the ultimate sender and sequence number header fields.
     """
     def __init__(self, msg_type, **kwargs):
-        super(SingleTypeReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
         self._msg_type = msg_type
 
@@ -405,7 +415,7 @@ class SingleSourceZoomingAttacker(Attacker):
     present, then it will ignore messages from that node in the future.
     """
     def __init__(self, **kwargs):
-        super(SingleSourceZoomingAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
         self._current_node_target = None
         self._discarded_node_targets = {}
@@ -437,7 +447,7 @@ class SingleSourceZoomingAttacker(Attacker):
 
 class CollaborativeSeqNosReactiveAttacker(Attacker):
     def __init__(self, **kwargs):
-        super(CollaborativeSeqNosReactiveAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._sequence_numbers = {}
 
     def _other_attackers_responded(self, seqno_key, sequence_number):
@@ -462,7 +472,7 @@ class CollaborativeSeqNosReactiveAttacker(Attacker):
 class TimedBacktrackingAttacker(Attacker):
     """An attacker that backtracks to the previous node after a certain amount of time where no messages are received."""
     def __init__(self, wait_time_secs, **kwargs):
-        super(TimedBacktrackingAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._wait_time_secs = wait_time_secs
 
         self._sequence_numbers = {}
@@ -492,7 +502,7 @@ class TimedBacktrackingAttacker(Attacker):
 
 class RHMAttacker(Attacker):
     def __init__(self, clear_period, history_window_size, moves_per_period, **kwargs):
-        super(RHMAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self._clear_period = clear_period
         self._moves_per_period = moves_per_period
@@ -509,7 +519,7 @@ class RHMAttacker(Attacker):
         self._started_clear_event = False
 
     def setup(self, *args, **kwargs):
-        super(RHMAttacker, self).setup(*args, **kwargs)
+        super().setup(*args, **kwargs)
 
         self._set_next_message_count_wait()
 
@@ -569,7 +579,7 @@ class RHMAttacker(Attacker):
 
 class RHMPeriodAttacker(Attacker):
     def __init__(self, dissem_period_length, clear_periods, history_window_size, moves_per_period, **kwargs):
-        super(RHMPeriodAttacker, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self._dissem_period_length = dissem_period_length
         self._clear_periods = clear_periods
@@ -585,10 +595,10 @@ class RHMPeriodAttacker(Attacker):
         self._next_message_count_wait = None
 
         self._during_dissem = False
-        self._period_count = 0;
+        self._period_count = 0
 
     def setup(self, *args, **kwargs):
-        super(RHMPeriodAttacker, self).setup(*args, **kwargs)
+        super().setup(*args, **kwargs)
 
         self._sim.register_output_handler('M-SP', self.process_start_period)
 
@@ -660,10 +670,10 @@ def eval_input(source):
     result = restricted_eval(source, models())
 
     if result in models():
-        raise RuntimeError("The source ({}) is not valid. (Did you forget the brackets after the name?)".format(source))
+        raise RuntimeError(f"The source ({source}) is not valid. (Did you forget the brackets after the name?)")
 
     if not isinstance(result, Attacker):
-        raise RuntimeError("The source ({}) is not a valid instance of an Attacker.".format(source))
+        raise RuntimeError(f"The source ({source}) is not a valid instance of an Attacker.")
 
     return result
 

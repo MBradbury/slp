@@ -63,11 +63,11 @@ def try_to_free_memory():
 
 class EmptyFileError(RuntimeError):
     def __init__(self, filename):
-        super(EmptyFileError, self).__init__("The file '{}' is empty.".format(filename))
+        super(EmptyFileError, self).__init__(f"The file '{filename}' is empty.")
 
 class EmptyDataFrameError(RuntimeError):
     def __init__(self, filename):
-        super(EmptyDataFrameError, self).__init__("The DataFrame loaded from '{}' is empty.".format(filename))
+        super(EmptyDataFrameError, self).__init__(f"The DataFrame loaded from '{filename}' is empty.")
 
 def _normalised_value_name(value, prefix):
     if isinstance(value, str):
@@ -1001,7 +1001,7 @@ class AnalyzerCommon(object):
         if nprocs is None:
             nprocs = multiprocessing.cpu_count()
 
-            print("Using {} threads".format(nprocs))
+            print(f"Using {nprocs} threads")
 
         inqueue = multiprocessing.Queue()
         outqueue = multiprocessing.Queue()
@@ -1034,18 +1034,18 @@ class AnalyzerCommon(object):
             for num in range(total):
                 (path, line, error) = outqueue.get()
 
-                print('Analysing {0}'.format(path))
+                print(f'Analysing {path}')
 
                 if error is None:
                     print(line, file=out)
                 else:
                     (ex, tb) = error
-                    print("Error processing {} with {}".format(path, ex))
+                    print(f"Error processing {path} with {ex}")
                     print(tb)
 
                 progress.print_progress(num)
 
-            print('Finished writing {}'.format(summary_file_path))
+            print(f'Finished writing {summary_file_path}')
 
         inqueue.close()
         inqueue.join_thread()
@@ -1092,16 +1092,16 @@ class AnalyzerCommon(object):
             for num, infile in enumerate(files):
                 path = os.path.join(self.results_directory, infile)
 
-                print('Analysing {0}'.format(path))
+                print(f'Analysing {path}')
 
                 try:
                     line = worker(path)
 
                     print(line, file=out)
                 except Exception as ex:
-                    print("Error processing {} with {}".format(path, ex))
+                    print(f"Error processing {path} with {ex}")
                     print(traceback.format_exc())
 
                 progress.print_progress(num)
 
-            print('Finished writing {}'.format(summary_file))
+            print(f'Finished writing {summary_file}')

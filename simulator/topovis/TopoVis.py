@@ -277,7 +277,7 @@ class Scene:
             return
 
         if time < self.time:
-            raise RuntimeError('Time cannot flow backward: current = {}, new = {}'.format(self.time, time))
+            raise RuntimeError(f'Time cannot flow backward: current = {self.time}, new = {time}')
 
         if not self.realtime:
             sleep((time-self.time) * self.timescale)
