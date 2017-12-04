@@ -16,6 +16,8 @@ configuration SLPDutyCycleC
         interface Send as SubSend;
         interface Receive as SubReceive;
         interface SplitControl as SubControl;
+
+        interface NodeType;
     }
 }
 implementation
@@ -27,6 +29,7 @@ implementation
     SplitControl = SLPDutyCycleP;
     SLPDutyCycle = SLPDutyCycleP;
 
+    SLPDutyCycleP.NodeType = NodeType;
     SLPDutyCycleP.SubSend = SubSend;
     SLPDutyCycleP.SubReceive = SubReceive;
     SLPDutyCycleP.SubControl = SubControl;

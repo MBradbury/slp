@@ -1,4 +1,6 @@
 
+#include "../Constants.h"
+
 module SLPDutyCycleP
 {
     provides
@@ -15,6 +17,7 @@ module SLPDutyCycleP
         interface Random;
         interface Leds;
 
+        interface NodeType;
         interface MetricLogging;
 
         interface Send as SubSend;
@@ -112,18 +115,18 @@ implementation
         }
     }
 
-    command void SLPDutyCycle.received_Normal(message_t* msg, bool is_new, uint8_t source_type)
+    command void SLPDutyCycle.received_Normal(message_t* msg, uint8_t flags, uint8_t source_type)
     {
         const uint32_t rcvd_time = call LocalTime.get();
 
-        call NormalMessageTimingAnalysis.received(rcvd_time, is_new, source_type);
+        call NormalMessageTimingAnalysis.received(rcvd_time, flags, source_type);
     }
 
-    command void SLPDutyCycle.received_Fake(message_t* msg, bool is_new, uint8_t source_type)
+    command void SLPDutyCycle.received_Fake(message_t* msg, uint8_t flags, uint8_t source_type)
     {
         const uint32_t rcvd_time = call LocalTime.get();
 
-        call FakeMessageTimingAnalysis.received(rcvd_time, is_new, source_type);
+        call FakeMessageTimingAnalysis.received(rcvd_time, flags, source_type);
     }
 
     /***************** StdControl Commands ****************/
@@ -404,7 +407,7 @@ implementation
 
         // Can only turn off if we are not sending 
         if (!isDutyCycling() ||
-            !call NormalMessageTimingAnalysis.can_turn_off() ||
+            (call NodeType.get() != SourceNode && !call NormalMessageTimingAnalysis.can_turn_off()) ||
             !call FakeMessageTimingAnalysis.can_turn_off() ||
             call SendState.getState() != S_LPL_NOT_SENDING)
         {

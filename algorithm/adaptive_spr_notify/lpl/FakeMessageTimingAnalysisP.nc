@@ -17,17 +17,20 @@ implementation
     components LocalTimeMilliC;
     Impl.LocalTime -> LocalTimeMilliC;
 
-    components new TimerMilliC() as TempDurationTimerC;
     components new TimerMilliC() as TempOnTimerC;
     components new TimerMilliC() as TempOffTimerC;
     Impl.TempOffTimer -> TempOffTimerC;
     Impl.TempOnTimer -> TempOnTimerC;
-    Impl.TempDurationTimer -> TempDurationTimerC;
 
     components new TimerMilliC() as PermOnTimerC;
     components new TimerMilliC() as PermOffTimerC;
     Impl.PermOffTimer -> PermOffTimerC;
     Impl.PermOnTimer -> PermOnTimerC;
+
+    components new TimerMilliC() as ChooseOnTimerC;
+    components new TimerMilliC() as ChooseOffTimerC;
+    Impl.ChooseOffTimer -> ChooseOffTimerC;
+    Impl.ChooseOnTimer -> ChooseOnTimerC;
 
     components new TimerMilliC() as PermDetectTimer;
     Impl.PermDetectTimer -> PermDetectTimer;

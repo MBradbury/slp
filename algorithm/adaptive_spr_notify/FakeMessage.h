@@ -14,6 +14,7 @@ typedef nx_struct FakeMessage {
 
   nx_uint8_t message_type;
 
+  nx_uint8_t ultimate_sender_fake_count;
   nx_uint32_t ultimate_sender_fake_duration_ms;
   nx_uint32_t ultimate_sender_fake_period_ms;
 

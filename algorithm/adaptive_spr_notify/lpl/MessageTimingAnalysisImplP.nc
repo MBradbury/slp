@@ -1,6 +1,8 @@
 
 #include "average.h"
 
+#include "SLPDutyCycleFlags.h"
+
 generic module MessageTimingAnalysisImplP()
 {
     provides interface MessageTimingAnalysis;
@@ -88,8 +90,10 @@ implementation
         incremental_average(&average_us, &seen, expected_interval_ms * 1000);
     }
 
-    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, bool is_new, uint8_t source_type)
+    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, uint8_t flags, uint8_t source_type)
     {
+        const bool is_new = (flags & SLP_DUTY_CYCLE_IS_NEW) != 0;
+        
         // Difference between this message and the last group message
         const uint32_t group_diff = (previous_group_time_ms != UINT32_MAX && previous_group_time_ms <= timestamp_ms)
             ? (timestamp_ms - previous_group_time_ms)

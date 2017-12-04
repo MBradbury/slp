@@ -48,6 +48,8 @@ implementation
 	App.SLPDutyCycleControl -> SLPDutyCycleC.SplitControl;
 	App.SLPDutyCycle -> SLPDutyCycleC.SLPDutyCycle;
 
+	SLPDutyCycleC.NodeType -> NodeTypeC;
+
 	App.PacketTimeStamp -> ActiveMessageC;
 #else
 	components DummyDutyCycleC;
