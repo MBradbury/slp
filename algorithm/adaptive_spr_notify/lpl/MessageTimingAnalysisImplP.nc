@@ -1,5 +1,5 @@
 
-//#include <scale.h>
+#include "average.h"
 
 generic module MessageTimingAnalysisImplP()
 {
@@ -77,48 +77,18 @@ implementation
         message_received = FALSE;
     }
 
-    void update(uint32_t timestamp_ms)
+    command void MessageTimingAnalysis.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type)
     {
-        const uint32_t timestamp_us = timestamp_ms * 1000;
-        const uint32_t old_average = average_us;
+        //assert(source_type == SourceNode);
 
-        // It is possible that we have missed messages since the last time
-        // we received a message. This means that timestamp_ms will roughly
-        // be expected_interval_ms * x, where x is the number of missed messages.
-
-        if (seen == 0)
-        {
-            seen += 1;
-            average_us = timestamp_us;
-        }
-        else
-        {
-            seen += 1;
-
-            if (timestamp_us >= average_us)
-            {
-                average_us += (timestamp_us - average_us) / seen;
-            }
-            else
-            {
-                average_us -= (average_us - timestamp_us) / seen;
-            }
-        }
-
-        //simdbg("stdout", "New average %" PRIu32 " old %" PRIu32 " n %" PRIu32 " value %" PRIu32,
-        //    average_us, old_average, seen, timestamp_us);
-    }
-
-    command void MessageTimingAnalysis.expected_interval(uint32_t interval_ms)
-    {
-        expected_interval_ms = interval_ms;
+        expected_interval_ms = period_ms;
 
         call DetectTimer.startPeriodic(expected_interval_ms);
 
-        update(expected_interval_ms);
+        incremental_average(&average_us, &seen, expected_interval_ms * 1000);
     }
 
-    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, bool is_new)
+    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, bool is_new, uint8_t source_type)
     {
         // Difference between this message and the last group message
         const uint32_t group_diff = (previous_group_time_ms != UINT32_MAX && previous_group_time_ms <= timestamp_ms)
@@ -136,7 +106,7 @@ implementation
 
             if (group_diff != UINT32_MAX)
             {
-                update(group_diff / (missed_messages + 1));
+                incremental_average(&average_us, &seen, (group_diff / (missed_messages + 1)) * 1000);
             }
         }
         else
@@ -153,15 +123,9 @@ implementation
         }
     }
 
-    // At what time did the previous group start?
-    command uint32_t MessageTimingAnalysis.last_group_start()
-    {
-       return previous_group_time_ms; 
-    }
-
     // How long to wait between one group and the next
     // This is the time between the first new messages
-    command uint32_t MessageTimingAnalysis.next_group_wait()
+    uint32_t next_group_wait(void)
     {
         if (seen == 0)
         {
@@ -173,43 +137,30 @@ implementation
         }
     }
 
-    // How long to wakeup before the group starts
-    command uint32_t MessageTimingAnalysis.early_wakeup_duration()
-    {
-        return early_wakeup_duration_ms;
-    }
-
-    // Stay away listening for the rest of the grouped messages
-    command uint32_t MessageTimingAnalysis.awake_duration()
-    {
-        return max_group_ms;
-    }
-
     event void OnTimer.fired()
     {
         startOffTimer();
 
-        signal MessageTimingAnalysis.on_timer_fired();
+        signal MessageTimingAnalysis.start_radio();
     }
 
     event void OffTimer.fired()
     {    
         startOnTimer();
 
-        signal MessageTimingAnalysis.off_timer_fired();
+        signal MessageTimingAnalysis.stop_radio();
     }
 
     void startOnTimer()
     {
         if (!call OnTimer.isRunning())
         {
-            const uint32_t next_group_wait = call MessageTimingAnalysis.next_group_wait();
-            const uint32_t early_wakeup_duration = call MessageTimingAnalysis.early_wakeup_duration();
-            const uint32_t awake_duration = call MessageTimingAnalysis.awake_duration();
+            const uint32_t next_group_wait_ms = next_group_wait();
+            const uint32_t awake_duration = max_group_ms;
 
-            const uint32_t start = (next_group_wait == UINT32_MAX)
+            const uint32_t start = (next_group_wait_ms == UINT32_MAX)
                 ? 1
-                : next_group_wait - early_wakeup_duration - awake_duration;
+                : next_group_wait_ms - early_wakeup_duration_ms - awake_duration;
 
             //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
             call OnTimer.startOneShot(start);
@@ -221,12 +172,11 @@ implementation
     {
         if (!call OffTimer.isRunning())
         {
-            if (call MessageTimingAnalysis.next_group_wait() != UINT32_MAX)
+            if (next_group_wait() != UINT32_MAX)
             {
-                const uint32_t early_wakeup_duration = call MessageTimingAnalysis.early_wakeup_duration();
-                const uint32_t awake_duration = call MessageTimingAnalysis.awake_duration();
+                const uint32_t awake_duration = max_group_ms;
 
-                const uint32_t start = early_wakeup_duration + awake_duration;
+                const uint32_t start = early_wakeup_duration_ms + awake_duration;
 
                 //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
                 call OffTimer.startOneShot(start);
@@ -241,8 +191,8 @@ implementation
 
         if (!call OffTimer.isRunning())
         {
-            const uint32_t last_group_start = call MessageTimingAnalysis.last_group_start(); // This is the current group
-            const uint32_t awake_duration = call MessageTimingAnalysis.awake_duration();
+            const uint32_t last_group_start = previous_group_time_ms; // This is the current group
+            const uint32_t awake_duration = max_group_ms;
 
             const uint32_t start = awake_duration - (now - last_group_start);
 

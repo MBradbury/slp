@@ -96,28 +96,34 @@ implementation
 
     /**************** SLPDutyCycle *****************/
 
-    command void SLPDutyCycle.normal_expected_interval(uint32_t expected_interval_ms)
+    command void SLPDutyCycle.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type)
     {
-        call NormalMessageTimingAnalysis.expected_interval(expected_interval_ms);
+        if (source_type == SourceNode)
+        {
+            call NormalMessageTimingAnalysis.expected(duration_ms, period_ms, source_type);
+        }
+        else if (source_type == TempFakeNode || source_type == TailFakeNode || source_type == PermFakeNode)
+        {
+            call FakeMessageTimingAnalysis.expected(duration_ms, period_ms, source_type);
+        }
+        else
+        {
+            __builtin_unreachable();
+        }
     }
 
-    command void SLPDutyCycle.fake_expected_interval(uint32_t expected_interval_ms)
-    {
-        call FakeMessageTimingAnalysis.expected_interval(expected_interval_ms);
-    }
-
-    command void SLPDutyCycle.received_Normal(message_t* msg, bool is_new)
+    command void SLPDutyCycle.received_Normal(message_t* msg, bool is_new, uint8_t source_type)
     {
         const uint32_t rcvd_time = call LocalTime.get();
 
-        call NormalMessageTimingAnalysis.received(rcvd_time, is_new);
+        call NormalMessageTimingAnalysis.received(rcvd_time, is_new, source_type);
     }
 
-    command void SLPDutyCycle.received_Fake(message_t* msg, bool is_new)
+    command void SLPDutyCycle.received_Fake(message_t* msg, bool is_new, uint8_t source_type)
     {
         const uint32_t rcvd_time = call LocalTime.get();
 
-        call FakeMessageTimingAnalysis.received(rcvd_time, is_new);
+        call FakeMessageTimingAnalysis.received(rcvd_time, is_new, source_type);
     }
 
     /***************** StdControl Commands ****************/
@@ -445,22 +451,22 @@ implementation
     }
     
     /***************** Timer Events ****************/
-    event void NormalMessageTimingAnalysis.on_timer_fired()
+    event void NormalMessageTimingAnalysis.start_radio()
     {
         post startRadio();
     }
 
-    event void FakeMessageTimingAnalysis.on_timer_fired()
+    event void FakeMessageTimingAnalysis.start_radio()
     {
         post startRadio();
     }
 
-    event void NormalMessageTimingAnalysis.off_timer_fired()
+    event void NormalMessageTimingAnalysis.stop_radio()
     {
         post stopRadio();
     }
 
-    event void FakeMessageTimingAnalysis.off_timer_fired()
+    event void FakeMessageTimingAnalysis.stop_radio()
     {    
         post stopRadio();
     }
