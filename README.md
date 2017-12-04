@@ -42,7 +42,7 @@ admin permissions to use pip install, then pyenv is a good alternative.
 You do not need to do this step if you are using your system python.
 
 ```bash
-sudo apt-get install lzma-dev tk-dev
+sudo apt-get install lzma-dev tk-dev libreadline-dev libbz2-dev libssl-dev
 ```
 
 ```bash
