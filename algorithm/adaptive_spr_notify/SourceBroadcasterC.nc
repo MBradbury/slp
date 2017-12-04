@@ -180,14 +180,14 @@ implementation
 
 	uint32_t get_tfs_duration(void)
 	{
-		uint32_t duration = SOURCE_PERIOD_MS;
+		const uint32_t duration = SOURCE_PERIOD_MS;
 
-		if (sink_distance == UNKNOWN_HOP_DISTANCE || sink_distance <= 1)
+		/*if (sink_distance == UNKNOWN_HOP_DISTANCE || sink_distance <= 1)
 		{
 			duration -= AWAY_DELAY_MS;
 		}
 
-		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);*/
 
 		return duration;
 	}
@@ -601,7 +601,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, is_new);
+		call SLPDutyCycle.received_Normal(msg, is_new, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -629,7 +629,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, is_new);
+		call SLPDutyCycle.received_Normal(msg, is_new, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -668,7 +668,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, is_new);
+		call SLPDutyCycle.received_Normal(msg, is_new, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -826,7 +826,7 @@ implementation
 				{
 					become_Fake(rcvd, TempFakeNode);
 				}
-#if 1 || defined(SLP_VERBOSE_DEBUG)
+#ifdef SLP_VERBOSE_DEBUG
 				else
 				{
 					if (neighbour == NULL)
@@ -899,7 +899,8 @@ implementation
 	{
 		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, is_new);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, is_new, rcvd->message_type);
 
 		sink_received_choose_reponse = TRUE;
 
@@ -917,7 +918,8 @@ implementation
 	{
 		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, is_new);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, is_new, rcvd->message_type);
 
 		if (is_new)
 		{
@@ -931,7 +933,8 @@ implementation
 	{
 		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, is_new);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, is_new, rcvd->message_type);
 
 		if (is_new)
 		{
@@ -948,7 +951,8 @@ implementation
 		const uint8_t type = call NodeType.get();
 		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		call SLPDutyCycle.received_Fake(msg, is_new);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, is_new, rcvd->message_type);
 
 		if (is_new)
 		{
@@ -966,8 +970,8 @@ implementation
 				(rcvd->message_type == TailFakeNode && type == TailFakeNode)
 			) &&
 			(
-				rcvd->sender_first_source_distance > first_source_distance ||
-				(rcvd->sender_first_source_distance == first_source_distance && rcvd->source_id > TOS_NODE_ID)
+				rcvd->ultimate_sender_first_source_distance > first_source_distance ||
+				(rcvd->ultimate_sender_first_source_distance == first_source_distance && rcvd->source_id > TOS_NODE_ID)
 			)
 			)
 		{
@@ -1009,8 +1013,8 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.normal_expected_interval(rcvd->source_period);
-		call SLPDutyCycle.received_Normal(msg, is_new);
+		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, is_new, SourceNode);
 
 		if (is_new)
 		{
@@ -1084,7 +1088,9 @@ implementation
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.message_type = call NodeType.get();
 		message.source_id = TOS_NODE_ID;
-		message.sender_first_source_distance = first_source_distance;
+		message.ultimate_sender_first_source_distance = first_source_distance;
+		message.ultimate_sender_fake_duration_ms = message.message_type == PermFakeNode ? UINT32_MAX : get_tfs_duration();
+		message.ultimate_sender_fake_period_ms = signal FakeMessageGenerator.calculatePeriod();
 
 		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
 		{

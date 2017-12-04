@@ -10,9 +10,12 @@ typedef nx_struct FakeMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
-  nx_hop_distance_t sender_first_source_distance;
+  nx_hop_distance_t ultimate_sender_first_source_distance;
 
   nx_uint8_t message_type;
+
+  nx_uint32_t ultimate_sender_fake_duration_ms;
+  nx_uint32_t ultimate_sender_fake_period_ms;
 
 } FakeMessage;
 
