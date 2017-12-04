@@ -2,12 +2,16 @@
 #include "../Constants.h"
 #include "average.h"
 
+#include "SLPDutyCycleFlags.h"
+
 generic module FakeMessageTimingAnalysisImplP()
 {
     provides interface MessageTimingAnalysis;
     provides interface Init;
 
-    uses interface Timer<TMilli> as TempDurationTimer;
+    uses interface Timer<TMilli> as ChooseOnTimer;
+    uses interface Timer<TMilli> as ChooseOffTimer;
+
     uses interface Timer<TMilli> as TempOnTimer;
     uses interface Timer<TMilli> as TempOffTimer;
 
@@ -37,23 +41,46 @@ implementation
     uint32_t perm_missed_messages;
 
 
-    uint32_t temp_expected_duration_ms;
+    uint32_t temp_previous_first_duration_time_ms;
+    uint32_t temp_expected_duration_us;
+    uint32_t temp_expected_duration_seen;
     uint32_t temp_expected_period_ms;
-    //uint32_t temp_average_us;
-    //uint32_t temp_seen;
-    uint32_t temp_previous_group_time_ms;
 
+    uint32_t temp_previous_group_time_ms;
+    
     bool temp_message_received;
 
     uint32_t max_group_ms;
-    uint32_t early_wakeup_duration_ms;    
+    uint32_t early_wakeup_duration_ms;
+
+    // How long to wait between one group and the next
+    // This is the time between the first new messages
+    uint32_t temp_next_duration_wait(void)
+    {
+        return (temp_expected_duration_us == UINT32_MAX) ? UINT32_MAX : temp_expected_duration_us / 1000;
+    }
+    uint32_t temp_next_period_wait(void)
+    {
+        return temp_expected_period_ms;
+    }
+    uint32_t temp_delay_wait(void)
+    {
+        return temp_expected_period_ms / 4;
+    }
+    uint32_t perm_next_period_wait(void)
+    {
+        return (perm_seen == 0) ? perm_expected_interval_ms : perm_average_us / 1000;
+    } 
 
     command error_t Init.init()
     {
-        temp_expected_duration_ms = UINT32_MAX;
+        temp_expected_duration_us = UINT32_MAX;
+        temp_expected_duration_seen = 0;
+
         temp_expected_period_ms = UINT32_MAX;
-        //temp_seen = 0;
-        temp_previous_group_time_ms = UINT32_MAX; // Last time a new group was started
+
+        temp_previous_first_duration_time_ms = UINT32_MAX; // Last time a new group was started
+        temp_previous_group_time_ms = UINT32_MAX;
 
         temp_message_received = FALSE;
 
@@ -107,7 +134,10 @@ implementation
         }
         else if (source_type == TempFakeNode || source_type == TailFakeNode)
         {
-            temp_expected_duration_ms = duration_ms;
+            temp_expected_duration_seen = 0;
+
+            incremental_average(&temp_expected_duration_us, &temp_expected_duration_seen, duration_ms * 1000);
+
             temp_expected_period_ms = period_ms;
         }
         else
@@ -116,11 +146,19 @@ implementation
         }
     }
 
-    void received_temp_or_tail(uint32_t timestamp_ms, bool is_new)
+    void received_temp_or_tail(uint32_t timestamp_ms, uint8_t flags)
     {
+        const bool is_new = (flags & SLP_DUTY_CYCLE_IS_NEW) != 0;
+        const bool is_first_fake = (flags & SLP_DUTY_CYCLE_IS_FIRST_FAKE) != 0;
+        const bool is_adjacent = (flags & SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE) != 0;
+
         // Difference between this message and the last group message
         const uint32_t group_diff = (temp_previous_group_time_ms != UINT32_MAX && temp_previous_group_time_ms <= timestamp_ms)
             ? (timestamp_ms - temp_previous_group_time_ms)
+            : UINT32_MAX;
+
+        const uint32_t first_duration_diff = (temp_previous_first_duration_time_ms != UINT32_MAX && temp_previous_first_duration_time_ms <= timestamp_ms)
+            ? (timestamp_ms - temp_previous_first_duration_time_ms)
             : UINT32_MAX;
 
         temp_message_received = TRUE;
@@ -132,9 +170,15 @@ implementation
         {
             temp_previous_group_time_ms = timestamp_ms;
 
-            if (group_diff != UINT32_MAX)
+            if (is_first_fake)
             {
-                //incremental_average(&temp_average_us, &temp_seen, (group_diff / (temp_missed_messages + 1)) * 1000);
+                temp_previous_first_duration_time_ms = timestamp_ms;
+
+                if (first_duration_diff != UINT32_MAX)
+                {
+                    //incremental_average(&temp_expected_duration_us, &temp_expected_duration_seen,
+                    //    (first_duration_diff / (temp_missed_messages + 1)) * 1000);
+                }
             }
         }
         else
@@ -148,11 +192,19 @@ implementation
         if (is_new)
         {
             startTempOffTimerFromMessage();
+
+            // Check if we should wake up for choose messages
+            if (is_first_fake && is_adjacent)
+            {
+                call ChooseOnTimer.startOneShot(temp_next_duration_wait() - temp_delay_wait() - early_wakeup_duration_ms);
+            }
         }
     }
 
-    void received_perm(uint32_t timestamp_ms, bool is_new)
+    void received_perm(uint32_t timestamp_ms, uint8_t flags)
     {
+        const bool is_new = (flags & SLP_DUTY_CYCLE_IS_NEW) != 0;
+
         // Difference between this message and the last group message
         const uint32_t group_diff = (perm_previous_group_time_ms != UINT32_MAX && perm_previous_group_time_ms <= timestamp_ms)
             ? (timestamp_ms - perm_previous_group_time_ms)
@@ -186,15 +238,15 @@ implementation
         }
     }
 
-    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, bool is_new, uint8_t source_type)
+    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, uint8_t flags, uint8_t source_type)
     {
         if (source_type == TempFakeNode || source_type == TailFakeNode)
         {
-            received_temp_or_tail(timestamp_ms, is_new);
+            received_temp_or_tail(timestamp_ms, flags);
         }
         else if (source_type == PermFakeNode)
         {
-            received_perm(timestamp_ms, is_new);
+            received_perm(timestamp_ms, flags);
         }
         else
         {
@@ -202,37 +254,15 @@ implementation
         }
     }
 
-    // How long to wait between one group and the next
-    // This is the time between the first new messages
-    uint32_t temp_next_duration_wait(void)
+    /*event void TempDurationTimer.fired()
     {
-        return temp_expected_duration_ms;
-    }
-    uint32_t temp_next_period_wait(void)
-    {
-        return temp_expected_period_ms;
-    }
-    uint32_t temp_delay_wait(void)
-    {
-        return temp_expected_period_ms / 4;
-    }
-    uint32_t perm_next_period_wait(void)
-    {
-        return (perm_seen == 0) ? perm_expected_interval_ms : perm_average_us / 1000;
-    }
-
-    event void TempDurationTimer.fired()
-    {
-        call TempOffTimer.stop();
-        call TempOnTimer.stop();
-
         startTempOffTimer();
 
         call TempDurationTimer.startOneShot(temp_next_duration_wait());
 
         // TODO: Only start the radio if we are expecting a choose message
         signal MessageTimingAnalysis.start_radio();
-    }
+    }*/ 
 
     event void TempOnTimer.fired()
     {
@@ -248,11 +278,23 @@ implementation
         signal MessageTimingAnalysis.stop_radio();
     }
 
+    event void ChooseOnTimer.fired()
+    {
+        call ChooseOffTimer.startOneShot(early_wakeup_duration_ms + max_group_ms);
+
+        signal MessageTimingAnalysis.start_radio();
+    }
+
+    event void ChooseOffTimer.fired()
+    {
+        signal MessageTimingAnalysis.stop_radio();
+    }
+
     void startTempOnTimer()
     {
         if (!call TempOnTimer.isRunning())
         {
-            const uint32_t next_wait_ms = (call TempDurationTimer.isRunning()) ? temp_next_period_wait() : temp_delay_wait();
+            const uint32_t next_wait_ms = temp_next_period_wait();
             const uint32_t awake_duration = max_group_ms;
 
             if (next_wait_ms == UINT32_MAX)
@@ -383,7 +425,9 @@ implementation
             // And, we either haven't started PFS duty cycling, or we are in the PFS off period
             /*((!call PermOnTimer.isRunning() && !call PermOffTimer.isRunning()) ||
              (call PermOnTimer.isRunning() && !call PermOffTimer.isRunning()))*/
-            !call PermOffTimer.isRunning()
+            !call PermOffTimer.isRunning() &&
+
+            !call ChooseOffTimer.isRunning()
             ;
     }
 }
