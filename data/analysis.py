@@ -166,7 +166,7 @@ def dict_mean(dict_list):
     get = result.get
 
     for (n, dict_item) in enumerate(islice(dict_list, 1, None), start=2):
-        for (key, value) in dict_item.iteritems():
+        for (key, value) in dict_item.items():
             current = get(key, 0)
             result[key] = current + ((value - current) / n)
 
@@ -180,7 +180,7 @@ def dict_var(dict_list, mean):
     lin = {k: list() for k in first}
 
     for d in dict_list:
-        for (k, v) in d.iteritems():
+        for (k, v) in d.items():
             lin[k].append(v)
 
     for k in lin:
@@ -607,7 +607,7 @@ class Analyse(object):
                     attacker_moves = values[self.headings.index("AttackerMoves")]
 
                     # We can't calculate the good move ratio if the attacker hasn't moved
-                    for (attacker_id, num_moves) in attacker_moves.iteritems():
+                    for (attacker_id, num_moves) in attacker_moves.items():
                         if num_moves == 0:
                             print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
                             return None

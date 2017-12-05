@@ -2,7 +2,7 @@ from __future__ import division
 
 from data.analysis import Analyse, AnalyzerCommon
 
-algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):
