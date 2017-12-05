@@ -62,7 +62,7 @@ class ClusterCommon(object):
 
             return user
 
-        except (ImportError, KeyError):
+        except (ImportError, KeyError, FileNotFoundError):
             pass
 
         # Just ask them for their username
