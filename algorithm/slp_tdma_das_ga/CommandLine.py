@@ -8,7 +8,7 @@ from simulator import CommandLineCommon
 
 import algorithm
 
-algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
 protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
 
