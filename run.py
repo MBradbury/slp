@@ -140,7 +140,7 @@ def _run_parallel(sim, module, a, argv):
 
 
     def runner(args):
-        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8") as process:
             try:
                 (stdoutdata, stderrdata) = process.communicate()
 
