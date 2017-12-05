@@ -28,7 +28,7 @@ def extract_average_and_stddev(value):
 
     # The variance can be a dict, so we need to handle square rooting those values
     if isinstance(var, dict):
-        stddev = {k: math.sqrt(v) for (k, v) in var.iteritems()}
+        stddev = {k: math.sqrt(v) for (k, v) in var.items()}
     else:
         stddev = math.sqrt(var)
 
