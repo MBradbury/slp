@@ -20,7 +20,7 @@ import simulator.Attacker as Attacker
 import simulator.FaultModel as FaultModel
 
 def test_gnuplot_version(name):
-    result = subprocess.check_output([name, "--version"]).strip()
+    result = subprocess.check_output([name, "--version"]).decode("utf-8").strip()
 
     match = re.match(r"gnuplot (\d+\.?\d*) patchlevel (.*)", result)
     
