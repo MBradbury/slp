@@ -115,7 +115,7 @@ def _parse_dict_node_to_value(indict, decompress=False):
     # Parse a dict like "{1: 10, 2: 20, 3: 40}"
 
     if decompress:
-        indict = zlib.decompress(base64.b64decode(indict))
+        indict = zlib.decompress(base64.b64decode(indict)).decode("utf-8")
 
     result = {
         int(a): float(b)
