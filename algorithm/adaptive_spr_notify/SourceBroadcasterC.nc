@@ -69,6 +69,7 @@ module SourceBroadcasterC
 
 	uses interface SplitControl as RadioControl;
 	uses interface PacketTimeStamp<TMilli,uint32_t>;
+	uses interface LocalTime<TMilli>;
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
@@ -599,7 +600,7 @@ implementation
 		return FALSE;
 	}
 
-	void Source_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Source_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr, const uint32_t rcvd_timestamp)
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
@@ -607,11 +608,11 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, 1);
 
-		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 	}
 
 
-	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr, const uint32_t rcvd_timestamp)
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
@@ -619,7 +620,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -641,7 +642,7 @@ implementation
 		}
 	}
 
-	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr, const uint32_t rcvd_timestamp)
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
@@ -649,7 +650,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -682,7 +683,7 @@ implementation
 		}
 	}
 
-	void Fake_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Fake_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr, const uint32_t rcvd_timestamp)
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
@@ -690,7 +691,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -710,13 +711,13 @@ implementation
 		}
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
-		case SourceNode: Source_receive_Normal(msg, rcvd, source_addr); break;
-		case SinkNode: Sink_receive_Normal(msg, rcvd, source_addr); break;
-		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
+	RECEIVE_MESSAGE_WITH_TIMESTAMP_BEGIN(Normal, Receive)
+		case SourceNode: Source_receive_Normal(msg, rcvd, source_addr, rcvd_timestamp); break;
+		case SinkNode: Sink_receive_Normal(msg, rcvd, source_addr, rcvd_timestamp); break;
+		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr, rcvd_timestamp); break;
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: Fake_receive_Normal(msg, rcvd, source_addr); break;
+		case PermFakeNode: Fake_receive_Normal(msg, rcvd, source_addr, rcvd_timestamp); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 
@@ -920,7 +921,7 @@ implementation
 		case TailFakeNode: x_snoop_Choose(rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Choose)
 
-	void process_fake_duty_cycle(message_t* msg, const FakeMessage* const rcvd, bool is_new)
+	void process_fake_duty_cycle(message_t* msg, const FakeMessage* const rcvd, bool is_new, uint32_t rcvd_timestamp)
 	{
 		const uint8_t duty_cycle_flags =
 			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
@@ -928,14 +929,14 @@ implementation
 			(find_distance_neighbour(&neighbours, rcvd->source_id) != NULL ? SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE : 0);
 
 		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
-		call SLPDutyCycle.received_Fake(msg, rcvd, duty_cycle_flags, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, rcvd, duty_cycle_flags, rcvd->message_type, rcvd_timestamp);
 	}
 
-	void Sink_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr, uint32_t rcvd_timestamp)
 	{
 		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		process_fake_duty_cycle(msg, rcvd, is_new);
+		process_fake_duty_cycle(msg, rcvd, is_new, rcvd_timestamp);
 
 		sink_received_choose_reponse = TRUE;
 
@@ -949,11 +950,11 @@ implementation
 		}
 	}
 
-	void Source_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Source_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr, uint32_t rcvd_timestamp)
 	{
 		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		process_fake_duty_cycle(msg, rcvd, is_new);
+		process_fake_duty_cycle(msg, rcvd, is_new, rcvd_timestamp);
 
 		if (is_new)
 		{
@@ -963,11 +964,11 @@ implementation
 		}
 	}
 
-	void Normal_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr, uint32_t rcvd_timestamp)
 	{
 		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		process_fake_duty_cycle(msg, rcvd, is_new);
+		process_fake_duty_cycle(msg, rcvd, is_new, rcvd_timestamp);
 
 		if (is_new)
 		{
@@ -979,12 +980,12 @@ implementation
 		}
 	}
 
-	void Fake_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Fake_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr, uint32_t rcvd_timestamp)
 	{
 		const uint8_t type = call NodeType.get();
 		const bool is_new = sequence_number_before_and_update(&fake_sequence_counter, rcvd->sequence_number);
 
-		process_fake_duty_cycle(msg, rcvd, is_new);
+		process_fake_duty_cycle(msg, rcvd, is_new, rcvd_timestamp);
 
 		if (is_new)
 		{
@@ -1012,13 +1013,13 @@ implementation
 		}
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Fake, Receive)
-		case SinkNode: Sink_receive_Fake(msg, rcvd, source_addr); break;
-		case SourceNode: Source_receive_Fake(msg, rcvd, source_addr); break;
-		case NormalNode: Normal_receive_Fake(msg, rcvd, source_addr); break;
+	RECEIVE_MESSAGE_WITH_TIMESTAMP_BEGIN(Fake, Receive)
+		case SinkNode: Sink_receive_Fake(msg, rcvd, source_addr, rcvd_timestamp); break;
+		case SourceNode: Source_receive_Fake(msg, rcvd, source_addr, rcvd_timestamp); break;
+		case NormalNode: Normal_receive_Fake(msg, rcvd, source_addr, rcvd_timestamp); break;
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: Fake_receive_Fake(msg, rcvd, source_addr); break;
+		case PermFakeNode: Fake_receive_Fake(msg, rcvd, source_addr, rcvd_timestamp); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 
@@ -1039,7 +1040,7 @@ implementation
 	RECEIVE_MESSAGE_END(Beacon)
 
 
-	void x_receive_Notify(message_t* msg, const NotifyMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Notify(message_t* msg, const NotifyMessage* const rcvd, am_addr_t source_addr, const uint32_t rcvd_timestamp)
 	{
 		const bool is_new = sequence_number_before_and_update(&notify_sequence_counter, rcvd->sequence_number);
 
@@ -1048,7 +1049,7 @@ implementation
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
 		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode);
-		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
 		if (is_new)
 		{
@@ -1063,9 +1064,9 @@ implementation
 		}
 	}
 
-	void Sink_receive_Notify(message_t* msg, const NotifyMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Notify(message_t* msg, const NotifyMessage* const rcvd, am_addr_t source_addr, const uint32_t rcvd_timestamp)
 	{
-		x_receive_Notify(msg, rcvd, source_addr);
+		x_receive_Notify(msg, rcvd, source_addr, rcvd_timestamp);
 
 		// Keep sending away messages until we get a valid response
 		if (!sink_received_choose_reponse)
@@ -1077,14 +1078,14 @@ implementation
 		}
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Notify, Receive)
-		case SinkNode: Sink_receive_Notify(msg, rcvd, source_addr); break;
+	RECEIVE_MESSAGE_WITH_TIMESTAMP_BEGIN(Notify, Receive)
+		case SinkNode: Sink_receive_Notify(msg, rcvd, source_addr, rcvd_timestamp); break;
 
 		case SourceNode:
 		case NormalNode:
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: x_receive_Notify(msg, rcvd, source_addr); break;
+		case PermFakeNode: x_receive_Notify(msg, rcvd, source_addr, rcvd_timestamp); break;
 	RECEIVE_MESSAGE_END(Notify)
 
 
