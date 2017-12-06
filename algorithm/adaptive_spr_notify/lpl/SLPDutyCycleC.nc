@@ -59,6 +59,7 @@ implementation
     SLPDutyCycleP.Resend -> CC2420TransmitC;
     SLPDutyCycleP.PacketAcknowledgements -> CC2420RadioC;
     SLPDutyCycleP.CC2420PacketBody -> CC2420PacketC;
+    SLPDutyCycleP.PacketTimeStamp -> CC2420PacketC;
     SLPDutyCycleP.RadioBackoff -> CC2420CsmaC;
     SLPDutyCycleP.EnergyIndicator -> CC2420TransmitC.EnergyIndicator;
     //SLPDutyCycleP.ByteIndicator -> CC2420TransmitC.ByteIndicator;
