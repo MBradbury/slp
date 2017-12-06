@@ -31,7 +31,7 @@ def test_gnuplot_version(name):
     
 def test_gnuplot_pdfterm_support(name):
     try:
-        result = subprocess.check_output([name, "-e", "set terminal pdf"]).strip()
+        result = subprocess.check_output([name, "-e", "set terminal pdf"]).decode("utf-8").strip()
 
         # As long as result is empty everything was fine
         return result == ""
