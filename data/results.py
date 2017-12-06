@@ -98,7 +98,7 @@ class Results(object):
             source_period = str(float(src_period) / len(configuration.source_ids))
 
         else:
-            raise RuntimeError("Unknown source period normalisation strategy '{}'".format(strategy))
+            raise RuntimeError(f"Unknown source period normalisation strategy '{strategy}'")
 
         return source_period
 
@@ -108,7 +108,7 @@ class Results(object):
         elif strategy == "UseNumNodes":
             network_size = dvalues['num nodes']
         else:
-            raise RuntimeError("Unknown network size normalisation strategy '{}'".format(strategy))
+            raise RuntimeError(f"Unknown network size normalisation strategy '{strategy}'")
 
         return network_size
 
