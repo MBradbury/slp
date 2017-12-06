@@ -16,7 +16,7 @@ class ResultTable(object):
         self.fmt = fmt
 
         if fmt is None:
-            from data_formatter import TableDataFormatter
+            from data.table.data_formatter import TableDataFormatter
             self.fmt = TableDataFormatter()
 
     def _column_layout(self):
