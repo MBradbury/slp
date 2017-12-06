@@ -44,6 +44,9 @@ implementation
 	App.RadioControl -> ActiveMessageC;
 	App.PacketTimeStamp -> ActiveMessageC;
 
+	components LocalTimeMilliC;
+	App.LocalTime -> LocalTimeMilliC;
+
 #ifdef LOW_POWER_LISTENING
 	components SLPDutyCycleC;
 	App.SLPDutyCycleControl -> SLPDutyCycleC.SplitControl;
