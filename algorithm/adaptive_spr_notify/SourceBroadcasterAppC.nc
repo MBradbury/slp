@@ -42,6 +42,7 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.PacketTimeStamp -> ActiveMessageC;
 
 #ifdef LOW_POWER_LISTENING
 	components SLPDutyCycleC;
@@ -49,8 +50,6 @@ implementation
 	App.SLPDutyCycle -> SLPDutyCycleC.SLPDutyCycle;
 
 	SLPDutyCycleC.NodeType -> NodeTypeC;
-
-	App.PacketTimeStamp -> ActiveMessageC;
 #else
 	components DummyDutyCycleC;
 	App.SLPDutyCycle -> DummyDutyCycleC.SLPDutyCycle;

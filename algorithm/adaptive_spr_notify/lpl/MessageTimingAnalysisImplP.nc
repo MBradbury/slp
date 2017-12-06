@@ -90,10 +90,10 @@ implementation
         incremental_average(&average_us, &seen, expected_interval_ms * 1000);
     }
 
-    command void MessageTimingAnalysis.received(uint32_t timestamp_ms, uint8_t flags, uint8_t source_type)
+    command void MessageTimingAnalysis.received(message_t* msg, const void* data, uint32_t timestamp_ms, uint8_t flags, uint8_t source_type)
     {
         const bool is_new = (flags & SLP_DUTY_CYCLE_IS_NEW) != 0;
-        
+
         // Difference between this message and the last group message
         const uint32_t group_diff = (previous_group_time_ms != UINT32_MAX && previous_group_time_ms <= timestamp_ms)
             ? (timestamp_ms - previous_group_time_ms)
@@ -160,14 +160,21 @@ implementation
         if (!call OnTimer.isRunning())
         {
             const uint32_t next_group_wait_ms = next_group_wait();
-            const uint32_t awake_duration = max_group_ms;
 
-            const uint32_t start = (next_group_wait_ms == UINT32_MAX)
-                ? 1
-                : next_group_wait_ms - early_wakeup_duration_ms - awake_duration;
+            if (next_group_wait_ms == UINT32_MAX)
+            {
+                signal MessageTimingAnalysis.start_radio();
+            }
+            else
+            {
+                const uint32_t awake_duration = max_group_ms;
+                
+                const uint32_t start = next_group_wait_ms - early_wakeup_duration_ms - awake_duration;
 
-            //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
-            call OnTimer.startOneShot(start);
+                //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
+
+                call OnTimer.startOneShot(start);
+            }
         }
     }
 
@@ -191,14 +198,14 @@ implementation
     // Just received a message, consider when to turn off
     void startOffTimerFromMessage()
     {
-        const uint32_t now = call LocalTime.get();
+        //const uint32_t now = call LocalTime.get();
 
         if (!call OffTimer.isRunning())
         {
-            const uint32_t last_group_start = previous_group_time_ms; // This is the current group
+            //const uint32_t last_group_start = previous_group_time_ms; // This is the current group
             const uint32_t awake_duration = max_group_ms;
 
-            const uint32_t start = awake_duration - (now - last_group_start);
+            const uint32_t start = awake_duration;// - (now - last_group_start);
 
             //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
             //    start, awake_duration, now, last_group_start);
