@@ -22,7 +22,7 @@ def main(argv):
 
     if __debug__:
         if not (module.startswith('algorithm.') or module.startswith('cluster.')):
-            print("You can only run algorithms in the algorithm or cluster module.", file=sys.stderr)
+            print("You can only run algorithms in the 'algorithm' or 'cluster' module.", file=sys.stderr)
             return 2
 
     Arguments = importlib.import_module(f"{module}.Arguments")

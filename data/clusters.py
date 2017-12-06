@@ -58,7 +58,7 @@ class ClusterCommon(object):
 
             user = lookup['user']
 
-            print("Using the username '{}' from your '~/.ssh/config'. Rerun with the --user option to override this.".format(user))
+            print(f"Using the username '{user}' from your '~/.ssh/config'. Rerun with the --user option to override this.")
 
             return user
 
