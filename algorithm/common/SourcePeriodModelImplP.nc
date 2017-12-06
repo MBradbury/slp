@@ -1,13 +1,15 @@
 #include "Common.h"
 
+// Arrays can't have a Zero length
+#if PERIOD_TIMES_LEN > 0
+
 typedef struct {
 	uint32_t end;
 	uint32_t period;
 } local_end_period_t;
 
-// Arrays can't have a Zero length
-#if PERIOD_TIMES_LEN > 0
 const local_end_period_t times[PERIOD_TIMES_LEN] = PERIOD_TIMES_MS;
+
 #endif
 
 const uint32_t else_time = PERIOD_ELSE_TIME_MS;
@@ -19,7 +21,6 @@ module SourcePeriodModelImplP
 	uses interface SourcePeriodConverter;
 
 	uses interface Timer<TMilli> as EventTimer;
-	uses interface LocalTime<TMilli>;
 }
 implementation
 {
@@ -30,16 +31,16 @@ implementation
 
 	command uint32_t SourcePeriodModel.get()
 	{
-		const uint32_t current_time = call LocalTime.get();
-
+#if PERIOD_TIMES_LEN > 0
 		unsigned int i = 0;
 
 		uint32_t period = UINT32_MAX;
 
-		simdbgverbose("stdout", "Called get_source_period current_time=%" PRIu32 " #times=%u\n",
-			current_time, PERIOD_TIMES_LEN);
+		const uint32_t current_time = call EventTimer.getNow();
 
-#if PERIOD_TIMES_LEN > 0
+		//simdbgverbose("stdout", "Called get_source_period current_time=%" PRIu32 " #times=%u\n",
+		//	current_time, PERIOD_TIMES_LEN);
+
 		for (i = 0; i != PERIOD_TIMES_LEN; ++i)
 		{
 			//simdbgverbose("stdout", "i=%u current_time=%u end=%u period=%u\n",
@@ -51,15 +52,17 @@ implementation
 				break;
 			}
 		}
-#endif
 
 		if (i == PERIOD_TIMES_LEN)
 		{
 			period = else_time;
 		}
+#else
+		const uint32_t period = else_time;
+#endif
 
-		simdbgverbose("stdout", "Providing source period %" PRIu32 " at time=%" PRIu32 "\n",
-			period, current_time);
+		//simdbgverbose("stdout", "Providing source period %" PRIu32 " at time=%" PRIu32 "\n",
+		//	period, current_time);
 
 		return call SourcePeriodConverter.convert(period);
 	}
