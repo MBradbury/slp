@@ -68,6 +68,7 @@ module SourceBroadcasterC
 	uses interface AMPacket;
 
 	uses interface SplitControl as RadioControl;
+	uses interface PacketTimeStamp<TMilli,uint32_t>;
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
@@ -101,8 +102,6 @@ module SourceBroadcasterC
 	uses interface SLPDutyCycle;
 #ifdef LOW_POWER_LISTENING
 	uses interface SplitControl as SLPDutyCycleControl;
-
-	uses interface PacketTimeStamp<TMilli,uint32_t>;
 #endif
 }
 
@@ -204,7 +203,7 @@ implementation
 
 		const uint32_t result_period = period;
 
-		simdbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		//simdbgverbose("stdout", "get_tfs_period=%u\n", result_period);
 
 		return result_period;
 	}
@@ -431,12 +430,12 @@ implementation
 
 	void become_Normal(void)
 	{
-		call NodeType.set(NormalNode);
-
 		call FakeMessageGenerator.stop();
+
+		call NodeType.set(NormalNode);
 	}
 
-	void become_Fake(const ChooseMessage* message, uint8_t fake_type)
+	void become_Fake(const ChooseMessage* message, uint8_t fake_type, uint32_t become_fake_time)
 	{
 #ifdef SLP_VERBOSE_DEBUG
 		assert(fake_type == PermFakeNode || fake_type == TempFakeNode || fake_type == TailFakeNode);
@@ -453,15 +452,15 @@ implementation
 		switch (fake_type)
 		{
 		case PermFakeNode:
-			call FakeMessageGenerator.start(message, sizeof(*message));
+			call FakeMessageGenerator.start(message, sizeof(*message), become_fake_time);
 			break;
 
 		case TailFakeNode:
-			call FakeMessageGenerator.startRepeated(message, sizeof(*message), get_tfs_duration());
+			call FakeMessageGenerator.startRepeated(message, sizeof(*message), get_tfs_duration(), become_fake_time);
 			break;
 
 		case TempFakeNode:
-			call FakeMessageGenerator.startLimited(message, sizeof(*message), get_tfs_duration());
+			call FakeMessageGenerator.startLimited(message, sizeof(*message), get_tfs_duration(), become_fake_time);
 			break;
 
 		default:
@@ -608,7 +607,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, 1);
 
-		call SLPDutyCycle.received_Normal(msg, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
 	}
 
 
@@ -620,7 +619,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -650,7 +649,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -691,7 +690,7 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.received_Normal(msg, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -819,13 +818,17 @@ implementation
 	}
 
 
-	void Sink_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Choose(message_t* msg, const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_received_choose_reponse = TRUE;
 	}
 
-	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Choose(message_t* msg, const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
+		const uint32_t become_fake_time = call PacketTimeStamp.isValid(msg)
+			? call PacketTimeStamp.timestamp(msg)
+			: call BroadcastNormalTimer.getNow();
+
 		if (algorithm == UnknownAlgorithm)
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
@@ -847,7 +850,7 @@ implementation
 					neighbour->contents.source_distance == UNKNOWN_HOP_DISTANCE ||
 					neighbour->contents.source_distance <= first_source_distance)
 				{
-					become_Fake(rcvd, TempFakeNode);
+					become_Fake(rcvd, TempFakeNode, become_fake_time);
 				}
 #ifdef SLP_VERBOSE_DEBUG
 				else
@@ -871,19 +874,19 @@ implementation
 
 				if (target == AM_BROADCAST_ADDR)
 				{
-					become_Fake(rcvd, PermFakeNode);
+					become_Fake(rcvd, PermFakeNode, become_fake_time);
 				}
 				else
 				{
-					become_Fake(rcvd, TempFakeNode);
+					become_Fake(rcvd, TempFakeNode, become_fake_time);
 				}
 			}
 		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
-		case SinkNode: Sink_receive_Choose(rcvd, source_addr); break;
-		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Choose(msg, rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Choose(msg, rcvd, source_addr); break;
 
 		case SourceNode:
 		case PermFakeNode:
@@ -925,7 +928,7 @@ implementation
 			(find_distance_neighbour(&neighbours, rcvd->source_id) != NULL ? SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE : 0);
 
 		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
-		call SLPDutyCycle.received_Fake(msg, duty_cycle_flags, rcvd->message_type);
+		call SLPDutyCycle.received_Fake(msg, rcvd, duty_cycle_flags, rcvd->message_type);
 	}
 
 	void Sink_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
@@ -1045,7 +1048,7 @@ implementation
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
 		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode);
-		call SLPDutyCycle.received_Normal(msg, duty_cycle_flags, SourceNode);
+		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode);
 
 		if (is_new)
 		{
@@ -1132,9 +1135,10 @@ implementation
 		}
 	}
 
-	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size)
+	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size, uint32_t duration_expired_at)
 	{
 		ChooseMessage message;
+
 		const am_addr_t target = fake_walk_target();
 
 		assert(sizeof(message) == original_size);
@@ -1157,7 +1161,7 @@ implementation
 		}
 		else if (call NodeType.get() == TempFakeNode)
 		{
-			become_Fake(&message, TailFakeNode);
+			become_Fake(&message, TailFakeNode, duration_expired_at);
 		}
 		else //if (call NodeType.get() == TailFakeNode)
 		{

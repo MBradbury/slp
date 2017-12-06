@@ -115,18 +115,18 @@ implementation
         }
     }
 
-    command void SLPDutyCycle.received_Normal(message_t* msg, uint8_t flags, uint8_t source_type)
+    command void SLPDutyCycle.received_Normal(message_t* msg, const void* data, uint8_t flags, uint8_t source_type)
     {
         const uint32_t rcvd_time = call LocalTime.get();
 
-        call NormalMessageTimingAnalysis.received(rcvd_time, flags, source_type);
+        call NormalMessageTimingAnalysis.received(msg, data, rcvd_time, flags, source_type);
     }
 
-    command void SLPDutyCycle.received_Fake(message_t* msg, uint8_t flags, uint8_t source_type)
+    command void SLPDutyCycle.received_Fake(message_t* msg, const void* data, uint8_t flags, uint8_t source_type)
     {
         const uint32_t rcvd_time = call LocalTime.get();
 
-        call FakeMessageTimingAnalysis.received(rcvd_time, flags, source_type);
+        call FakeMessageTimingAnalysis.received(msg, data, rcvd_time, flags, source_type);
     }
 
     /***************** StdControl Commands ****************/
@@ -407,6 +407,7 @@ implementation
 
         // Can only turn off if we are not sending 
         if (!isDutyCycling() ||
+            // Source Nodes ignore turn off rules for Normal messages
             (call NodeType.get() != SourceNode && !call NormalMessageTimingAnalysis.can_turn_off()) ||
             !call FakeMessageTimingAnalysis.can_turn_off() ||
             call SendState.getState() != S_LPL_NOT_SENDING)

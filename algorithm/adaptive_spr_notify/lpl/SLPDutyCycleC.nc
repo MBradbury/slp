@@ -1,6 +1,9 @@
 
 #warning "*** USING SLP DUTY CYCLE LOW POWER COMMUNICATIONS ***"
 
+#include "../NormalMessage.h"
+#include "../FakeMessage.h"
+
 configuration SLPDutyCycleC
 {
     provides

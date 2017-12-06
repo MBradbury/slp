@@ -32,6 +32,12 @@ implementation
     Impl.ChooseOffTimer -> ChooseOffTimerC;
     Impl.ChooseOnTimer -> ChooseOnTimerC;
 
+    components new TimerMilliC() as DurationOnTimerC;
+    components new TimerMilliC() as DurationOffTimerC;
+    Impl.DurationOffTimer -> DurationOffTimerC;
+    Impl.DurationOnTimer -> DurationOnTimerC;
+
+
     components new TimerMilliC() as PermDetectTimer;
     Impl.PermDetectTimer -> PermDetectTimer;
 
