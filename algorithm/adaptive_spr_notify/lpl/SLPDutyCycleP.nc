@@ -43,6 +43,7 @@ module SLPDutyCycleP
         interface ReceiveIndicator as PacketIndicator;
 
         interface LocalTime<TMilli>;
+        interface PacketTimeStamp<TMilli,uint32_t>;
 
         interface MessageTimingAnalysis as NormalMessageTimingAnalysis;
         interface MessageTimingAnalysis as FakeMessageTimingAnalysis;
@@ -117,14 +118,18 @@ implementation
 
     command void SLPDutyCycle.received_Normal(message_t* msg, const void* data, uint8_t flags, uint8_t source_type)
     {
-        const uint32_t rcvd_time = call LocalTime.get();
+        const uint32_t rcvd_time = call PacketTimeStamp.isValid(msg)
+            ? call PacketTimeStamp.timestamp(msg)
+            : call LocalTime.get();
 
         call NormalMessageTimingAnalysis.received(msg, data, rcvd_time, flags, source_type);
     }
 
     command void SLPDutyCycle.received_Fake(message_t* msg, const void* data, uint8_t flags, uint8_t source_type)
     {
-        const uint32_t rcvd_time = call LocalTime.get();
+        const uint32_t rcvd_time = call PacketTimeStamp.isValid(msg)
+            ? call PacketTimeStamp.timestamp(msg)
+            : call LocalTime.get();
 
         call FakeMessageTimingAnalysis.received(msg, data, rcvd_time, flags, source_type);
     }

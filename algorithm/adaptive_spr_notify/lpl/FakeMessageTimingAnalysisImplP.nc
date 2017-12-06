@@ -355,13 +355,11 @@ implementation
     // Just received a message, consider when to turn off
     void startTempOffTimerFromMessage()
     {
-        //const uint32_t now = call LocalTime.get();
-
         if (!call TempOffTimer.isRunning())
         {
             const uint32_t awake_duration = max_group_ms;
 
-            const uint32_t start = awake_duration;// - (now - temp_previous_group_time_ms);
+            const uint32_t start = awake_duration;
 
             //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
             //    start, awake_duration, now, temp_previous_group_time_ms);

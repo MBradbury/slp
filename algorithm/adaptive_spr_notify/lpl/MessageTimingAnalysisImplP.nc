@@ -198,14 +198,12 @@ implementation
     // Just received a message, consider when to turn off
     void startOffTimerFromMessage()
     {
-        //const uint32_t now = call LocalTime.get();
-
         if (!call OffTimer.isRunning())
         {
             //const uint32_t last_group_start = previous_group_time_ms; // This is the current group
             const uint32_t awake_duration = max_group_ms;
 
-            const uint32_t start = awake_duration;// - (now - last_group_start);
+            const uint32_t start = awake_duration;
 
             //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
             //    start, awake_duration, now, last_group_start);
