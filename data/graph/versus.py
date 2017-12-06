@@ -202,7 +202,7 @@ class Grapher(GrapherBase):
                 if self.key_height is not None:
                     graph_p.write('set key height {}\n'.format(self.key_height))
 
-            xvalues_as_num = map(self.xextractor, xvalues)
+            xvalues_as_num = [self.xextractor(xvalue) for xvalue in xvalues]
 
             if self.xvalues_padding is not None:
                 xvalues_padding = self.xvalues_padding
@@ -211,6 +211,9 @@ class Grapher(GrapherBase):
                     xvalues_padding = int(min(xvalues_as_num) / 10)
                 else:
                     xvalues_padding = 0.1
+
+            if not xvalues_as_num:
+                raise RuntimeError(f"There are no xvalues ({xvalues}) for {dir_name}")
 
             graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_num) - xvalues_padding, max(xvalues_as_num) + xvalues_padding))
             graph_p.write('set xtics ({})\n'.format(",".join(map(str, sorted(xvalues_as_num)))))
