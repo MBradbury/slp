@@ -1522,7 +1522,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
-		case SourceNode: break;
+		case SourceNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
 		case SinkNode: Sink_receive_Normal(msg, rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
