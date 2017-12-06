@@ -108,6 +108,9 @@ class CLI(CommandLineCommon.CLI):
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
+        def xextractor(arg):
+            return int(arg)**2
+
         for (vary, vary_prefix) in [("source period", " seconds")]:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
@@ -115,9 +118,10 @@ class CLI(CommandLineCommon.CLI):
                 g = versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis='network size', yaxis=yaxis, vary=vary,
+                    xextractor=xextractor,
                     yextractor=scalar_extractor)
 
-                g.xaxis_label = 'Network Size'
+                g.xaxis_label = 'Nodes'
                 g.yaxis_label = yaxis_label
                 g.vary_label = vary.title()
                 g.vary_prefix = vary_prefix
