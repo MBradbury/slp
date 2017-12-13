@@ -101,9 +101,7 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
 	uses interface SLPDutyCycle;
-#ifdef LOW_POWER_LISTENING
 	uses interface SplitControl as SLPDutyCycleControl;
-#endif
 }
 
 implementation
@@ -346,17 +344,11 @@ implementation
 
 			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 
-#ifdef LOW_POWER_LISTENING
 			// All non-sinks should consider duty cycling
 			if (call NodeType.get() != SinkNode)
 			{
 				call SLPDutyCycleControl.start();
 			}
-			else
-			{
-				call SLPDutyCycleControl.stop();
-			}
-#endif
 		}
 		else
 		{
@@ -371,7 +363,6 @@ implementation
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
 
-#ifdef LOW_POWER_LISTENING
 	event void SLPDutyCycleControl.startDone(error_t err)
 	{
 	}
@@ -379,7 +370,6 @@ implementation
 	event void SLPDutyCycleControl.stopDone(error_t err)
 	{
 	}
-#endif
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Away);
@@ -604,7 +594,9 @@ implementation
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
-		const uint8_t duty_cycle_flags = (is_new ? SLP_DUTY_CYCLE_IS_NEW : 0);
+		const uint8_t duty_cycle_flags =
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
+			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
 		UPDATE_NEIGHBOURS(source_addr, 1);
 
@@ -616,7 +608,9 @@ implementation
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
-		const uint8_t duty_cycle_flags = (is_new ? SLP_DUTY_CYCLE_IS_NEW : 0);
+		const uint8_t duty_cycle_flags =
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
+			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
@@ -646,7 +640,9 @@ implementation
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
-		const uint8_t duty_cycle_flags = (is_new ? SLP_DUTY_CYCLE_IS_NEW : 0);
+		const uint8_t duty_cycle_flags =
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
+			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
@@ -687,7 +683,9 @@ implementation
 	{
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
-		const uint8_t duty_cycle_flags = (is_new ? SLP_DUTY_CYCLE_IS_NEW : 0);
+		const uint8_t duty_cycle_flags =
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
+			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
@@ -926,9 +924,10 @@ implementation
 		const uint8_t duty_cycle_flags =
 			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
 			(rcvd->ultimate_sender_fake_count == 0 ? SLP_DUTY_CYCLE_IS_FIRST_FAKE : 0) |
-			(find_distance_neighbour(&neighbours, rcvd->source_id) != NULL ? SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE : 0);
+			(find_distance_neighbour(&neighbours, rcvd->source_id) != NULL ? SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE : 0) |
+			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
-		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type);
+		call SLPDutyCycle.expected(rcvd->ultimate_sender_fake_duration_ms, rcvd->ultimate_sender_fake_period_ms, rcvd->message_type, rcvd_timestamp);
 		call SLPDutyCycle.received_Fake(msg, rcvd, duty_cycle_flags, rcvd->message_type, rcvd_timestamp);
 	}
 
@@ -1044,11 +1043,13 @@ implementation
 	{
 		const bool is_new = sequence_number_before_and_update(&notify_sequence_counter, rcvd->sequence_number);
 
-		const uint8_t duty_cycle_flags = (is_new ? SLP_DUTY_CYCLE_IS_NEW : 0);
+		const uint8_t duty_cycle_flags =
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
+			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode);
+		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode, rcvd_timestamp);
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
 		if (is_new)

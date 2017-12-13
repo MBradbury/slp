@@ -29,12 +29,12 @@ generic module FakeMessageTimingAnalysisImplP()
 }
 implementation
 {
-    void startTempOnTimer();
-    void startTempOffTimer();
+    void startTempOnTimer(uint32_t now);
+    void startTempOffTimer(uint32_t now);
     void startTempOffTimerFromMessage();
 
-    void startPermOnTimer();
-    void startPermOffTimer();
+    void startPermOnTimer(uint32_t now);
+    void startPermOffTimer(uint32_t now);
     void startPermOffTimerFromMessage();
 
     uint32_t perm_expected_interval_ms;
@@ -55,7 +55,7 @@ implementation
     
     bool temp_message_received;
 
-    uint32_t max_group_ms;
+    uint32_t max_wakeup_time_ms;
     uint32_t early_wakeup_duration_ms;
 
     // How long to wait between one group and the next
@@ -99,8 +99,8 @@ implementation
 
 
         // Set a minimum group wait time here
-        max_group_ms = 75;
-        early_wakeup_duration_ms = 50;
+        max_wakeup_time_ms = 50;
+        early_wakeup_duration_ms = 75;
 
         return SUCCESS;
     }
@@ -119,15 +119,13 @@ implementation
         perm_message_received = FALSE;
     }
 
-    command void MessageTimingAnalysis.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type)
+    command void MessageTimingAnalysis.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type, uint32_t rcvd_timestamp)
     {
         if (source_type == PermFakeNode)
         {
-            call PermDetectTimer.stop();
+            call PermDetectTimer.startPeriodicAt(rcvd_timestamp, period_ms);
 
             perm_expected_interval_ms = period_ms;
-
-            call PermDetectTimer.startPeriodic(perm_expected_interval_ms);
 
             // A PFS has changed its interval
             if (perm_expected_interval_ms != period_ms)
@@ -184,17 +182,7 @@ implementation
                     //    (first_duration_diff / (temp_missed_messages + 1)) * 1000);
                 }
             }
-        }
-        else
-        {
-            if (group_diff != UINT32_MAX)
-            {
-                max_group_ms = max(max_group_ms, group_diff);
-            }
-        }
 
-        if (is_new)
-        {
             startTempOffTimerFromMessage();
 
             // Check if we should wake up for choose messages
@@ -210,8 +198,17 @@ implementation
                     // TODO: consider receiving the nth fake message
                     //const uint8_t nth_message_delay = (mdata->ultimate_sender_fake_count - 1) * temp_expected_period_ms;
 
-                    call ChooseOnTimer.startOneShot(temp_next_duration_wait() - temp_delay_wait() /*- nth_message_delay*/ - early_wakeup_duration_ms);
+                    const uint32_t choose_start = temp_next_duration_wait() - temp_delay_wait() /*- nth_message_delay*/ - early_wakeup_duration_ms;
+
+                    call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
                 }
+            }
+        }
+        else
+        {
+            if (group_diff != UINT32_MAX)
+            {
+                max_wakeup_time_ms = max(max_wakeup_time_ms, group_diff);
             }
         }
     }
@@ -238,24 +235,24 @@ implementation
             {
                 incremental_average(&perm_average_us, &perm_seen, (group_diff / (perm_missed_messages + 1)) * 1000);
             }
+
+            startPermOffTimerFromMessage();
         }
         else
         {
             if (group_diff != UINT32_MAX)
             {
-                max_group_ms = max(max_group_ms, group_diff);
+                max_wakeup_time_ms = max(max_wakeup_time_ms, group_diff);
             }
-        }
-
-        if (is_new)
-        {
-            startPermOffTimerFromMessage();
         }
     }
 
     command void MessageTimingAnalysis.received(message_t* msg, const void* data, uint32_t timestamp_ms, uint8_t flags, uint8_t source_type)
     {
         const FakeMessage* mdata = (const FakeMessage*)data;
+
+        //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received Fake   at=%" PRIu32 " v=%" PRIu8 "\n",
+        //    TOS_NODE_ID, timestamp_ms, (flags & SLP_DUTY_CYCLE_VALID_TIMESTAMP) != 1);
 
         if (source_type == TempFakeNode || source_type == TailFakeNode)
         {
@@ -273,23 +270,29 @@ implementation
 
     event void TempOnTimer.fired()
     {
-        startTempOffTimer();
+        const uint32_t now = call TempOnTimer.getNow();
 
         signal MessageTimingAnalysis.start_radio();
+
+        startTempOffTimer(now);
     }
 
     event void TempOffTimer.fired()
     {    
-        startTempOnTimer();
+        const uint32_t now = call TempOffTimer.getNow();
 
         signal MessageTimingAnalysis.stop_radio();
+
+        startTempOnTimer(now);
     }
 
     event void ChooseOnTimer.fired()
     {
-        call ChooseOffTimer.startOneShot(early_wakeup_duration_ms + max_group_ms);
+        const uint32_t now = call ChooseOnTimer.getNow();
 
         signal MessageTimingAnalysis.start_radio();
+
+        call ChooseOffTimer.startOneShotAt(now, early_wakeup_duration_ms + max_wakeup_time_ms);
     }
 
     event void ChooseOffTimer.fired()
@@ -299,20 +302,24 @@ implementation
 
     event void DurationOnTimer.fired()
     {
-        call DurationOffTimer.startOneShot(early_wakeup_duration_ms + max_group_ms);
+        const uint32_t now = call DurationOnTimer.getNow();
 
         signal MessageTimingAnalysis.start_radio();
+
+        call DurationOffTimer.startOneShotAt(now, early_wakeup_duration_ms + max_wakeup_time_ms);
     }
 
     event void DurationOffTimer.fired()
     {
+        const uint32_t now = call DurationOffTimer.getNow();
+
         signal MessageTimingAnalysis.stop_radio();
 
         // If we didn't receive a message, then start the on timer
-        startTempOnTimer();
+        startTempOnTimer(now);
     }
 
-    void startTempOnTimer()
+    void startTempOnTimer(uint32_t now)
     {
         if (!call TempOnTimer.isRunning())
         {
@@ -324,30 +331,28 @@ implementation
             }
             else
             {
-                const uint32_t awake_duration = max_group_ms;
+                const uint32_t awake_duration = max_wakeup_time_ms;
 
                 const uint32_t start = next_wait_ms - early_wakeup_duration_ms - awake_duration;
 
                 //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
 
-                call TempOnTimer.startOneShot(start);
+                call TempOnTimer.startOneShotAt(now, start);
             }
         }
     }
 
     // OnTimer has just fired, start off timer
-    void startTempOffTimer()
+    void startTempOffTimer(uint32_t now)
     {
         if (!call TempOffTimer.isRunning())
         {
-            //if (temp_next_group_wait() != UINT32_MAX)
+            if (temp_next_period_wait() != UINT32_MAX)
             {
-                const uint32_t awake_duration = max_group_ms;
-
-                const uint32_t start = early_wakeup_duration_ms + awake_duration;
+                const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
 
                 //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
-                call TempOffTimer.startOneShot(start);
+                call TempOffTimer.startOneShotAt(now, start);
             }
         }
     }
@@ -357,31 +362,31 @@ implementation
     {
         if (!call TempOffTimer.isRunning())
         {
-            const uint32_t awake_duration = max_group_ms;
-
-            const uint32_t start = awake_duration;
-
             //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
             //    start, awake_duration, now, temp_previous_group_time_ms);
-            call TempOffTimer.startOneShot(start);
+            call TempOffTimer.startOneShotAt(temp_previous_group_time_ms, max_wakeup_time_ms);
         }
     }
 
     event void PermOnTimer.fired()
     {
-        startPermOffTimer();
+        const uint32_t now = call PermOnTimer.getNow();
 
         signal MessageTimingAnalysis.start_radio();
+
+        startPermOffTimer(now);
     }
 
     event void PermOffTimer.fired()
     {    
-        startPermOnTimer();
+        const uint32_t now = call PermOnTimer.getNow();
 
         signal MessageTimingAnalysis.stop_radio();
+
+        startPermOnTimer(now);
     }
 
-    void startPermOnTimer()
+    void startPermOnTimer(uint32_t now)
     {
         if (!call PermOnTimer.isRunning())
         {
@@ -393,29 +398,26 @@ implementation
             }
             else
             {
-                const uint32_t awake_duration = max_group_ms;
-                const uint32_t start = next_wait_ms - early_wakeup_duration_ms - awake_duration;
+                const uint32_t start = next_wait_ms - early_wakeup_duration_ms - max_wakeup_time_ms;
 
                 //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
 
-                call PermOnTimer.startOneShot(start);
+                call PermOnTimer.startOneShotAt(now, start);
             }
         }
     }
 
     // OnTimer has just fired, start off timer
-    void startPermOffTimer()
+    void startPermOffTimer(uint32_t now)
     {
         if (!call PermOffTimer.isRunning())
         {
             if (perm_next_period_wait() != UINT32_MAX)
             {
-                const uint32_t awake_duration = max_group_ms;
-
-                const uint32_t start = early_wakeup_duration_ms + awake_duration;
+                const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
 
                 //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
-                call PermOffTimer.startOneShot(start);
+                call PermOffTimer.startOneShotAt(now, start);
             }
         }
     }
@@ -423,17 +425,11 @@ implementation
     // Just received a message, consider when to turn off
     void startPermOffTimerFromMessage()
     {
-        //const uint32_t now = call LocalTime.get();
-
         if (!call PermOffTimer.isRunning())
         {
-            const uint32_t awake_duration = max_group_ms;
-
-            const uint32_t start = awake_duration;// - (now - perm_previous_group_time_ms);
-
             //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
             //    start, awake_duration, now, temp_previous_group_time_ms);
-            call PermOffTimer.startOneShot(start);
+            call PermOffTimer.startOneShotAt(perm_previous_group_time_ms, max_wakeup_time_ms);
         }
     }
 
