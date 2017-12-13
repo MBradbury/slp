@@ -38,22 +38,23 @@ implementation
     void startPermOffTimerFromMessage();
 
     uint32_t perm_expected_interval_ms;
-    uint32_t perm_average_us;
-    uint32_t perm_seen;
+    //uint32_t perm_average_us;
+    //uint32_t perm_seen;
     uint32_t perm_previous_group_time_ms;
 
-    bool perm_message_received;
-    uint32_t perm_missed_messages;
+    //bool perm_message_received;
+    //uint32_t perm_missed_messages;
 
 
     uint32_t temp_previous_first_duration_time_ms;
-    uint32_t temp_expected_duration_us;
-    uint32_t temp_expected_duration_seen;
+    //uint32_t temp_expected_duration_us;
+    //uint32_t temp_expected_duration_seen;
+    uint32_t temp_expected_duration_ms;
     uint32_t temp_expected_period_ms;
 
     uint32_t temp_previous_group_time_ms;
     
-    bool temp_message_received;
+    //bool temp_message_received;
 
     uint32_t max_wakeup_time_ms;
     uint32_t early_wakeup_duration_ms;
@@ -62,7 +63,8 @@ implementation
     // This is the time between the first new messages
     uint32_t temp_next_duration_wait(void)
     {
-        return (temp_expected_duration_us == UINT32_MAX) ? UINT32_MAX : temp_expected_duration_us / 1000;
+        return temp_expected_duration_ms;
+        //return (temp_expected_duration_us == UINT32_MAX) ? UINT32_MAX : temp_expected_duration_us / 1000;
     }
     uint32_t temp_next_period_wait(void)
     {
@@ -74,28 +76,29 @@ implementation
     }
     uint32_t perm_next_period_wait(void)
     {
-        return (perm_seen == 0) ? perm_expected_interval_ms : perm_average_us / 1000;
+        return /*(perm_seen == 0) ?*/ perm_expected_interval_ms /*: perm_average_us / 1000*/;
     } 
 
     command error_t Init.init()
     {
-        temp_expected_duration_us = UINT32_MAX;
-        temp_expected_duration_seen = 0;
+        //temp_expected_duration_us = UINT32_MAX;
+        //temp_expected_duration_seen = 0;
 
+        temp_expected_duration_ms = UINT32_MAX;
         temp_expected_period_ms = UINT32_MAX;
 
         temp_previous_first_duration_time_ms = UINT32_MAX; // Last time a new group was started
         temp_previous_group_time_ms = UINT32_MAX;
 
-        temp_message_received = FALSE;
+        //temp_message_received = FALSE;
 
 
         perm_expected_interval_ms = UINT32_MAX;
-        perm_seen = 0;
-        perm_previous_group_time_ms = UINT32_MAX; // Last time a new group was started
+        //perm_seen = 0;
+        //perm_previous_group_time_ms = UINT32_MAX; // Last time a new group was started
 
-        perm_message_received = FALSE;
-        perm_missed_messages = 0;
+        //perm_message_received = FALSE;
+        //perm_missed_messages = 0;
 
 
         // Set a minimum group wait time here
@@ -107,7 +110,7 @@ implementation
 
     event void PermDetectTimer.fired()
     {
-        if (perm_message_received)
+        /*if (perm_message_received)
         {
             perm_missed_messages = 0;
         }
@@ -116,7 +119,7 @@ implementation
             perm_missed_messages += 1;
         }
 
-        perm_message_received = FALSE;
+        perm_message_received = FALSE;*/
     }
 
     command void MessageTimingAnalysis.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type, uint32_t rcvd_timestamp)
@@ -125,21 +128,22 @@ implementation
         {
             call PermDetectTimer.startPeriodicAt(rcvd_timestamp, period_ms);
 
+            // A PFS has changed its interval
+            //if (perm_expected_interval_ms != period_ms)
+            //{
+            //    perm_seen = 0;
+            //}
+
             perm_expected_interval_ms = period_ms;
 
-            // A PFS has changed its interval
-            if (perm_expected_interval_ms != period_ms)
-            {
-                perm_seen = 0;
-            }
-
-            incremental_average(&perm_average_us, &perm_seen, perm_expected_interval_ms * 1000);
+            //incremental_average(&perm_average_us, &perm_seen, perm_expected_interval_ms * 1000);
         }
         else if (source_type == TempFakeNode || source_type == TailFakeNode)
         {
-            temp_expected_duration_seen = 0;
-            incremental_average(&temp_expected_duration_us, &temp_expected_duration_seen, duration_ms * 1000);
+            //temp_expected_duration_seen = 0;
+            //incremental_average(&temp_expected_duration_us, &temp_expected_duration_seen, duration_ms * 1000);
 
+            temp_expected_duration_ms = duration_ms;
             temp_expected_period_ms = period_ms;
         }
         else
@@ -159,11 +163,11 @@ implementation
             ? (timestamp_ms - temp_previous_group_time_ms)
             : UINT32_MAX;
 
-        const uint32_t first_duration_diff = (temp_previous_first_duration_time_ms != UINT32_MAX && temp_previous_first_duration_time_ms <= timestamp_ms)
-            ? (timestamp_ms - temp_previous_first_duration_time_ms)
-            : UINT32_MAX;
+        //const uint32_t first_duration_diff = (temp_previous_first_duration_time_ms != UINT32_MAX && temp_previous_first_duration_time_ms <= timestamp_ms)
+        //    ? (timestamp_ms - temp_previous_first_duration_time_ms)
+        //    : UINT32_MAX;
 
-        temp_message_received = TRUE;
+        //temp_message_received = TRUE;
 
         //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received at=%" PRIu32 " expected=%" PRIu32 " gd=%" PRIu32 "\n",
         //    TOS_NODE_ID, timestamp_ms, temp_expected_interval_ms, group_diff);
@@ -176,11 +180,11 @@ implementation
             {
                 temp_previous_first_duration_time_ms = timestamp_ms;
 
-                if (first_duration_diff != UINT32_MAX)
+                /*if (first_duration_diff != UINT32_MAX)
                 {
                     //incremental_average(&temp_expected_duration_us, &temp_expected_duration_seen,
                     //    (first_duration_diff / (temp_missed_messages + 1)) * 1000);
-                }
+                }*/
             }
 
             startTempOffTimerFromMessage();
@@ -196,13 +200,19 @@ implementation
                 // Check if we should wake up for choose messages
                 if (is_adjacent && !call ChooseOnTimer.isRunning())
                 {
-                    // TODO: consider receiving the nth fake message
-                    //const uint8_t nth_message_delay = (mdata->ultimate_sender_fake_count - 1) * temp_expected_period_ms;
+                    const uint32_t temp_duration_ms = temp_next_duration_wait();
+                    const uint32_t temp_delay_ms = temp_delay_wait();
 
-                    const uint32_t choose_start =
-                        temp_next_duration_wait() - temp_delay_wait() /*- nth_message_delay*/ - early_wakeup_duration_ms;
+                    if (temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX)
+                    {
+                        // TODO: consider receiving the nth fake message
+                        //const uint8_t nth_message_delay = (mdata->ultimate_sender_fake_count - 1) * temp_expected_period_ms;
 
-                    call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
+                        const uint32_t choose_start =
+                            temp_duration_ms - temp_delay_ms /*- nth_message_delay*/ - early_wakeup_duration_ms;
+
+                        call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
+                    }
                 }
             }
         }
@@ -224,7 +234,7 @@ implementation
             ? (timestamp_ms - perm_previous_group_time_ms)
             : UINT32_MAX;
 
-        perm_message_received = TRUE;
+        //perm_message_received = TRUE;
 
         //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received at=%" PRIu32 " expected=%" PRIu32 " gd=%" PRIu32 "\n",
         //    TOS_NODE_ID, timestamp_ms, temp_expected_interval_ms, group_diff);
@@ -233,10 +243,10 @@ implementation
         {
             perm_previous_group_time_ms = timestamp_ms;
 
-            if (group_diff != UINT32_MAX)
+            /*if (group_diff != UINT32_MAX)
             {
-                incremental_average(&perm_average_us, &perm_seen, (group_diff / (perm_missed_messages + 1)) * 1000);
-            }
+                incremental_average(&perm_average_us, &perm_seen, (group_diff * 1000) / (perm_missed_messages + 1));
+            }*/
 
             startPermOffTimerFromMessage();
         }
@@ -357,7 +367,7 @@ implementation
     // Just received a message, consider when to turn off
     void startTempOffTimerFromMessage()
     {
-        if (!call TempOffTimer.isRunning())
+        //if (!call TempOffTimer.isRunning())
         {
             //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
             //    start, awake_duration, now, temp_previous_group_time_ms);
@@ -422,7 +432,7 @@ implementation
     // Just received a message, consider when to turn off
     void startPermOffTimerFromMessage()
     {
-        if (!call PermOffTimer.isRunning())
+        //if (!call PermOffTimer.isRunning())
         {
             //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
             //    start, awake_duration, now, temp_previous_group_time_ms);

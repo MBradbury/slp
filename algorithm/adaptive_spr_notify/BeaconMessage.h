@@ -9,6 +9,8 @@ typedef nx_struct BeaconMessage
 //  nx_int16_t sink_distance_of_sender;
 //  nx_int16_t sink_source_distance;
 
+  nx_uint32_t source_period;
+
 } BeaconMessage;
 
 inline SequenceNumberWithBottom Beacon_get_sequence_number(const BeaconMessage* msg) { return BOTTOM; }
