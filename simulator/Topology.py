@@ -1,6 +1,7 @@
 from __future__ import division
 
 from collections import OrderedDict
+from functools import total_ordering
 import itertools
 import random
 
@@ -13,6 +14,7 @@ try:
 except ImportError:
     from scipy.spatial.distance import euclidean as euclidean2_2d
 
+@total_ordering
 class NodeId(object):
     __slots__ = ("nid",)
 
@@ -29,7 +31,10 @@ class NodeId(object):
         return isinstance(other, type(self)) and self.nid == other.nid
 
     def __ne__(self, other):
-        return not self == other
+        return not (self == other)
+
+    def __le__(self, other):
+        return self.nid < other.nid
 
     def __repr__(self):
         return repr(self.nid)
