@@ -101,7 +101,6 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
 	uses interface SLPDutyCycle;
-	uses interface SplitControl as SLPDutyCycleControl;
 }
 
 implementation
@@ -343,12 +342,6 @@ implementation
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
 			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
-
-			// All non-sinks should consider duty cycling
-			if (call NodeType.get() != SinkNode)
-			{
-				call SLPDutyCycleControl.start();
-			}
 		}
 		else
 		{
@@ -363,13 +356,6 @@ implementation
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
 
-	event void SLPDutyCycleControl.startDone(error_t err)
-	{
-	}
-
-	event void SLPDutyCycleControl.stopDone(error_t err)
-	{
-	}
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Away);
