@@ -487,7 +487,8 @@ implementation
      */
     bool isDutyCycling()
     {
-        return dutyCycling;
+        // The sink does not duty cycle
+        return dutyCycling && call NodeType.get() != SinkNode;
     }
 
     bool finishSplitControlRequests()

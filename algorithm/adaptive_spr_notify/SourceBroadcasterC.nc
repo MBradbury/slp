@@ -119,6 +119,8 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
 
+	uint32_t source_period_ms;
+
 	uint8_t fake_count;
 
 	hop_distance_t sink_distance;
@@ -283,6 +285,8 @@ implementation
 	{
 		busy = FALSE;
 		call Packet.clear(&packet);
+
+		source_period_ms = UINT32_MAX;
 
 		sink_distance = UNKNOWN_HOP_DISTANCE;
 
@@ -550,6 +554,7 @@ implementation
 		}
 
 		message.source_distance_of_sender = first_source_distance;
+		message.source_period = source_period_ms;
 
 		call Packet.clear(&packet);
 
@@ -1008,20 +1013,22 @@ implementation
 	RECEIVE_MESSAGE_END(Fake)
 
 
-	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Beacon(const BeaconMessage* const rcvd, am_addr_t source_addr, uint32_t rcvd_timestamp)
 	{
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
+
+		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode, rcvd_timestamp);
 	}
 
-	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
+	RECEIVE_MESSAGE_WITH_TIMESTAMP_BEGIN(Beacon, Receive)
 		case SinkNode:
 		case SourceNode:
 		case NormalNode:
 		case TempFakeNode:
 		case TailFakeNode:
-		case PermFakeNode: x_receive_Beacon(rcvd, source_addr); break;
+		case PermFakeNode: x_receive_Beacon(rcvd, source_addr, rcvd_timestamp); break;
 	RECEIVE_MESSAGE_END(Beacon)
 
 
@@ -1034,6 +1041,8 @@ implementation
 			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
+
+		source_period_ms = rcvd->source_period;
 
 		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode, rcvd_timestamp);
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);

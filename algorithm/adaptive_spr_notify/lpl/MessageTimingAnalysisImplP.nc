@@ -90,7 +90,10 @@ implementation
         // TODO: Look into a way to do this that performs well
         //call DetectTimer.startOneShotAt(rcvd_timestamp, period_ms);
 
-        expected_interval_ms = period_ms;
+        if (period_ms != UINT32_MAX)
+        {
+            expected_interval_ms = period_ms;
+        }
     }
 
     command void MessageTimingAnalysis.received(message_t* msg, const void* data, uint32_t timestamp_ms, uint8_t flags, uint8_t source_type)
