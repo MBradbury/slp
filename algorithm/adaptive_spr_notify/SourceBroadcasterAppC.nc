@@ -55,6 +55,7 @@ implementation
 	SLPDutyCycleC.NodeType -> NodeTypeC;
 #else
 	components DummyDutyCycleC;
+	App.SLPDutyCycleControl -> DummyDutyCycleC.SplitControl;
 	App.SLPDutyCycle -> DummyDutyCycleC.SLPDutyCycle;
 #endif
 

@@ -100,15 +100,15 @@ implementation
 
     /**************** SLPDutyCycle *****************/
 
-    command void SLPDutyCycle.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type)
+    command void SLPDutyCycle.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type, uint32_t rcvd_timestamp)
     {
         if (source_type == SourceNode)
         {
-            call NormalMessageTimingAnalysis.expected(duration_ms, period_ms, source_type);
+            call NormalMessageTimingAnalysis.expected(duration_ms, period_ms, source_type, rcvd_timestamp);
         }
         else if (source_type == TempFakeNode || source_type == TailFakeNode || source_type == PermFakeNode)
         {
-            call FakeMessageTimingAnalysis.expected(duration_ms, period_ms, source_type);
+            call FakeMessageTimingAnalysis.expected(duration_ms, period_ms, source_type, rcvd_timestamp);
         }
         else
         {
