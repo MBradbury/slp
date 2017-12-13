@@ -389,7 +389,12 @@ implementation
         }
         else if (startResult == EALREADY)
         {
-            // Already on, do nothing
+            // Already on, set as so
+            if (!call RadioPowerState.isState(S_ON))
+            {
+                call RadioPowerState.forceState(S_ON);
+                call Leds.led2On();
+            }
         }
         else
         {
@@ -420,7 +425,12 @@ implementation
         }
         else if (stopResult == EALREADY)
         {
-            // Already off, do nothing
+            // Already off, set as so
+            if (!call RadioPowerState.isState(S_OFF))
+            {
+                call RadioPowerState.forceState(S_OFF);
+                call Leds.led2Off();
+            }
         }
         else
         {
