@@ -106,10 +106,8 @@ class CLI(CommandLineCommon.CLI):
         slp_tdma_das_crash_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
-
-        def xextractor(arg):
-            return int(arg)**2
+            results=tuple(graph_parameters.keys()),
+            network_size_normalisation="UseNumNodes")
 
         for (vary, vary_prefix) in [("source period", " seconds")]:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -118,10 +116,9 @@ class CLI(CommandLineCommon.CLI):
                 g = versus.Grapher(
                     self.algorithm_module.graphs_path, name,
                     xaxis='network size', yaxis=yaxis, vary=vary,
-                    xextractor=xextractor,
                     yextractor=scalar_extractor)
 
-                g.xaxis_label = 'Nodes'
+                g.xaxis_label = 'Number of Nodes'
                 g.yaxis_label = yaxis_label
                 g.vary_label = vary.title()
                 g.vary_prefix = vary_prefix
@@ -185,6 +182,7 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'received ratio': 100,
+            'overhead': 1.0,
         }
 
         self._create_min_max_versus_graph(
@@ -200,4 +198,5 @@ class CLI(CommandLineCommon.CLI):
             nokey=True,
             generate_legend_graph=True,
             legend_font_size='8',
+            network_size_normalisation="UseNumNodes"
         )
