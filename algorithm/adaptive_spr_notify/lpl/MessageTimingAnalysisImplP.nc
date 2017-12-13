@@ -27,36 +27,36 @@ implementation
     uint32_t expected_interval_ms;
     uint32_t previous_group_time_ms;
 
-    uint32_t average_us;
-    uint32_t seen;
+    //uint32_t average_us;
+    //uint32_t seen;
 
     uint32_t max_wakeup_time_ms;
 
     uint32_t early_wakeup_duration_ms;
 
-    bool message_received;
-    uint32_t missed_messages;
+    //bool message_received;
+    //uint32_t missed_messages;
 
     command error_t Init.init()
     {
         expected_interval_ms = UINT32_MAX;
         previous_group_time_ms = UINT32_MAX; // Last time a new group was started
 
-        seen = 0;
+        //seen = 0;
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 50;
-        early_wakeup_duration_ms = 75;
+        max_wakeup_time_ms = 30;
+        early_wakeup_duration_ms = 30;
 
-        message_received = FALSE;
-        missed_messages = 0;
+        //message_received = FALSE;
+        //missed_messages = 0;
 
         return SUCCESS;
     }
 
     event void DetectTimer.fired()
     {
-        call DetectTimer.startOneShot(next_group_wait());
+        /*call DetectTimer.startOneShot(next_group_wait());
 
         if (message_received)
         {
@@ -78,16 +78,17 @@ implementation
         else
         {
             //early_wakeup_duration_ms = max(early_wakeup_duration_ms - 5, 75);
-        }*/
+        }* /
 
-        message_received = FALSE;
+        message_received = FALSE;*/
     }
 
     command void MessageTimingAnalysis.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type, uint32_t rcvd_timestamp)
     {
         //assert(source_type == SourceNode);
 
-        call DetectTimer.startOneShotAt(rcvd_timestamp, period_ms);
+        // TODO: Look into a way to do this that performs well
+        //call DetectTimer.startOneShotAt(rcvd_timestamp, period_ms);
 
         expected_interval_ms = period_ms;
     }
@@ -103,7 +104,7 @@ implementation
             ? (timestamp_ms - previous_group_time_ms)
             : UINT32_MAX;
 
-        message_received = TRUE;
+        //message_received = TRUE;
 
         //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received Normal at=%" PRIu32 " v=%" PRIu8 "\n",
         //    TOS_NODE_ID, timestamp_ms, (flags & SLP_DUTY_CYCLE_VALID_TIMESTAMP) != 1);
@@ -114,7 +115,7 @@ implementation
 
             if (group_diff != UINT32_MAX)
             {
-                incremental_average(&average_us, &seen, (group_diff / (missed_messages + 1)) * 1000);
+                //incremental_average(&average_us, &seen, (group_diff * 1000) / (missed_messages + 1));
             }
 
             startOffTimerFromMessage();
@@ -132,14 +133,14 @@ implementation
     // This is the time between the first new messages
     uint32_t next_group_wait(void)
     {
-        if (seen == 0)
-        {
+        //if (seen == 0)
+        //{
             return expected_interval_ms;
-        }
-        else
-        {
-            return average_us / 1000;
-        }
+        //}
+        //else
+        //{
+        //    return average_us / 1000;
+        //}
     }
 
     event void OnTimer.fired()
@@ -201,10 +202,10 @@ implementation
     // Just received a message, consider when to turn off
     void startOffTimerFromMessage(void)
     {
-        if (!call OffTimer.isRunning())
+        // When a message is received, we should restart the off timer if it is running
+
+        //if (!call OffTimer.isRunning())
         {
-            //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
-            //    start, awake_duration, now, last_group_start);
             call OffTimer.startOneShotAt(previous_group_time_ms, max_wakeup_time_ms);
         }
     }
