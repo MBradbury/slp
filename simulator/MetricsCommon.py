@@ -862,14 +862,19 @@ class MetricsCommon(object):
             if value.mean() != -1
         }
 
+    @staticmethod
+    def sorted_dict_str(dict_result):
+        return "{" + ", ".join(f"{k}: {v}" for (k, v) in sorted(dict_result.items(), key=lambda x: x[0])) + "}"
 
     @staticmethod
-    def smaller_dict_str(dict_result):
-        return str(dict_result).replace(": ", ":").replace(", ", ",").replace(".0,", ",")
+    def smaller_dict_str(dict_result, sort=False):
+        dict_str = MetricsCommon.sorted_dict_str(dict_result) if sort else str(dict_result)
+
+        return dict_str.replace(": ", ":").replace(", ", ",").replace(".0,", ",")
 
     @staticmethod
-    def compressed_dict_str(dict_result):
-        dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result).encode("utf-8")
+    def compressed_dict_str(dict_result, sort=False):
+        dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result, sort=sort).encode("utf-8")
         compressed = base64.b64encode(zlib.compress(dict_result_bytes, 9))
         return compressed.decode("utf-8")
 
@@ -1337,7 +1342,7 @@ class DutyCycleMetricsCommon(MetricsCommon):
     def items():
         d = OrderedDict()
         d["DutyCycleStart"]                = lambda x: str(x._duty_cycle_start)
-        d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle())
+        d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle(), sort=True)
         return d
 
 
