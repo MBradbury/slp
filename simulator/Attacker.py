@@ -24,7 +24,7 @@ MESSAGES_TO_IGNORE = {
 }
 
 class Attacker(object):
-    def __init__(self, start_location="only_sink"):
+    def __init__(self, start_location="only_sink", message_detect="using_position"):
         self._sim = None
         self.position = None
         self._has_found_source = None
@@ -43,6 +43,9 @@ class Attacker(object):
         self.min_source_distance = {}
 
         self._start_location = start_location
+        self._message_detect = message_detect
+
+        self._listen_range = None
 
     def _get_starting_node_id(self):
         conf = self._sim.configuration
@@ -68,11 +71,33 @@ class Attacker(object):
 
         return attacker_start
 
+    def _register_handlers(self):
+        # An attacker has multiple options as to how it detects a message.
+        #
+        # With "using_position" it can use the node it is co-located with
+        # and when that node receives a message, then the attacker also received a message.
+        # 
+        # However, when duty cycling this technique is unreliable.
+        # So the attacker needs to detect messages broadcasts within some range.
+        if self._message_detect == "using_position":
+            self._sim.register_output_handler('A-R', self.process_attacker_rcv_event)
+
+        elif self._message_detect.startswith("within_range"):
+
+            self._listen_range = float(self._message_detect[self._message_detect.find('(')+1:self._message_detect.find(')')])
+
+            self._sim.register_output_handler('M-CB', self.process_attacker_neighbour_rcv_event)
+            self._sim.register_output_handler('A-R', None)
+
+        else:
+            raise RuntimeError(f"Unknown message_detect option {self._message_detect}")
+
+
     def setup(self, sim, ident):
         self._sim = sim
         self.ident = ident
 
-        self._sim.register_output_handler('A-R', self.process_attacker_rcv_event)
+        self._register_handlers()
 
         self.position = self._get_starting_node_id()
 
@@ -157,6 +182,27 @@ class Attacker(object):
             self.update_state(time, msg_type, node_id, prox_from_id, ult_from_id, sequence_number)
 
         return should_move
+
+    def process_attacker_neighbour_rcv_event(self, d_or_e, node_id, time, detail):
+        (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
+
+        # Check that the bcast was successful
+        if status != "0":
+            return
+
+        ord_node_id = OrderedId(int(node_id))
+
+        if self._sim.node_distance_meters(ord_node_id, self.position) <= self._listen_range:
+
+            rssi = None
+            lqi = None
+
+            detail = (kind, node_id, ultimate_source_id, sequence_number, rssi, lqi)
+
+            return self.process_attacker_rcv_event("D", self.position.nid, time, ",".join(str(x) for x in detail))
+
+        return False
+
 
     def found_source_slow(self):
         """Checks if the source has been found using the attacker's position."""
@@ -247,10 +293,16 @@ class Attacker(object):
         else:
             params = ",".join("{}={!r}".format(name, getattr(self, "_" + name)) for name in self_as_params)
 
+
+        base_class_defaults = {"start_location": "only_sink", "message_detect": "using_position"}
+
         # Only display "start_location" if it is the default value
         # This maintains compatibility with previous results files
-        attacker_names = ",".join("{}={!r}".format(name, getattr(self, "_" + name)) for name in attacker_as_params
-                          if name != "start_location" or self._start_location != "only_sink")
+        attacker_names = ",".join(
+            "{}={!r}".format(name, getattr(self, "_" + name))
+            for name in attacker_as_params
+            if name not in base_class_defaults or getattr(self, f"_{name}") != base_class_defaults[name]
+        )
 
         return "{}({})".format(type(self).__name__, ",".join(x for x in (params, attacker_names) if len(x) > 0))
 
