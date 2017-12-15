@@ -8,13 +8,12 @@ generic module MessageTimingAnalysisImplP()
     provides interface MessageTimingAnalysis;
     provides interface Init;
 
-    uses interface Timer<TMilli> as DetectTimer;
+    //uses interface Timer<TMilli> as DetectTimer;
 
     uses interface Timer<TMilli> as OnTimer;
     uses interface Timer<TMilli> as OffTimer;
 
     uses interface MetricLogging;
-    uses interface LocalTime<TMilli>;
 }
 implementation
 {
@@ -54,9 +53,9 @@ implementation
         return SUCCESS;
     }
 
-    event void DetectTimer.fired()
+    /*event void DetectTimer.fired()
     {
-        /*call DetectTimer.startOneShot(next_group_wait());
+        call DetectTimer.startOneShot(next_group_wait());
 
         if (message_received)
         {
@@ -80,8 +79,8 @@ implementation
             //early_wakeup_duration_ms = max(early_wakeup_duration_ms - 5, 75);
         }* /
 
-        message_received = FALSE;*/
-    }
+        message_received = FALSE;
+    }*/
 
     command void MessageTimingAnalysis.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type, uint32_t rcvd_timestamp)
     {
@@ -148,7 +147,7 @@ implementation
 
     event void OnTimer.fired()
     {
-        const uint32_t now = call OnTimer.getNow();
+        const uint32_t now = call OnTimer.gett0() + call OnTimer.getdt();
 
         signal MessageTimingAnalysis.start_radio();
 
@@ -157,7 +156,7 @@ implementation
 
     event void OffTimer.fired()
     {
-        const uint32_t now = call OffTimer.getNow();
+        const uint32_t now = call OffTimer.gett0() + call OffTimer.getdt();
 
         signal MessageTimingAnalysis.stop_radio();
 

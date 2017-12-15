@@ -1169,6 +1169,7 @@ implementation
 		}
 		else //if (call NodeType.get() == TailFakeNode)
 		{
+			fake_count = 0;
 		}
 	}
 }

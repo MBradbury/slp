@@ -14,11 +14,8 @@ implementation
     components MetricLoggingP as MetricLogging;
     Impl.MetricLogging -> MetricLogging;
 
-    components LocalTimeMilliC;
-    Impl.LocalTime -> LocalTimeMilliC;
-
-    components new TimerMilliC() as DetectTimer;
-    Impl.DetectTimer -> DetectTimer;
+    //components new TimerMilliC() as DetectTimer;
+    //Impl.DetectTimer -> DetectTimer;
 
     components new TimerMilliC() as OnTimerC;
     components new TimerMilliC() as OffTimerC;
