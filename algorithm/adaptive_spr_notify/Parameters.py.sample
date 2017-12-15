@@ -42,6 +42,4 @@ node_id_orders = ['randomised']
 
 approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
 
-fault_models = ["ReliableFaultModel()"]
-
 repeats = 500

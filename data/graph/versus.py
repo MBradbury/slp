@@ -32,7 +32,7 @@ class Grapher(GrapherBase):
         self.yaxis_label = yaxis
         self.vary_label =  vary.title() if not isinstance(vary, collections.Sequence) else "/".join(x.title() for x in vary)
         self.vary_prefix = ''
-        self.vvalue_label_converter = None
+        self.vvalue_label_converter = lambda x: x
 
         self.yaxis_range_min = None
         self.yaxis_range_max = '*'
@@ -86,10 +86,7 @@ class Grapher(GrapherBase):
                 return self.yextractor(yvalue)
 
     def _vvalue_label(self, vvalue_label):
-        if self.vvalue_label_converter is not None:
-            return latex.escape(self.vvalue_label_converter(vvalue_label))
-        else:
-            return latex.escape(vvalue_label)
+        return latex.escape(self.vvalue_label_converter(vvalue_label))
 
     def _build_plots_from_dat(self, dat):
         plot_created = False
@@ -109,7 +106,7 @@ class Grapher(GrapherBase):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
-        print('Creating {} graph files'.format(self.result_name))
+        print(f'Creating {self.result_name} graph files')
 
         dat = {}
 
@@ -205,7 +202,7 @@ class Grapher(GrapherBase):
                 if self.key_height is not None:
                     graph_p.write('set key height {}\n'.format(self.key_height))
 
-            xvalues_as_num = map(self.xextractor, xvalues)
+            xvalues_as_num = [self.xextractor(xvalue) for xvalue in xvalues]
 
             if self.xvalues_padding is not None:
                 xvalues_padding = self.xvalues_padding
@@ -214,6 +211,9 @@ class Grapher(GrapherBase):
                     xvalues_padding = int(min(xvalues_as_num) / 10)
                 else:
                     xvalues_padding = 0.1
+
+            if not xvalues_as_num:
+                raise RuntimeError(f"There are no xvalues ({xvalues}) for {dir_name}")
 
             graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_num) - xvalues_padding, max(xvalues_as_num) + xvalues_padding))
             graph_p.write('set xtics ({})\n'.format(",".join(map(str, sorted(xvalues_as_num)))))

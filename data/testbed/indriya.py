@@ -19,7 +19,7 @@ def url():
     return "https://indriya.comp.nus.edu.sg/motelab/html/index.php"
 
 def submitter(*args, **kwargs):
-    raise RuntimeError("{} does not support automatic submission".format(name()))
+    raise RuntimeError(f"{name()} does not support automatic submission")
 
 def build_arguments():
     return {

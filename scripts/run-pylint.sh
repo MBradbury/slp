@@ -2,6 +2,8 @@
 
 ./scripts/clean-algorithms.sh
 
-pylint algorithm/ > algorithm.lint
-pylint simulator/ > simulator.lint
-pylint data/ > data.lint
+python -m pylint --version
+
+python -m pylint algorithm/ > algorithm.lint
+python -m pylint simulator/ > simulator.lint
+python -m pylint data/ > data.lint

@@ -1,7 +1,4 @@
 # Author: Matthew Bradbury
-
-from __future__ import print_function
-
 import itertools
 from functools import partial
 
@@ -27,7 +24,7 @@ class TableGenerator:
 
         self.fmt = fmt
         if fmt is None:
-            from data_formatter import TableDataFormatter
+            from data.table.data_formatter import TableDataFormatter
             self.fmt = TableDataFormatter()
 
         self.testbed = testbed
@@ -44,7 +41,7 @@ class TableGenerator:
         else:
             self._write_tables(*args, **kwargs)
 
-    def _write_tables(self, stream, param_filter=lambda x: True):
+    def _write_tables(self, stream, param_filter=lambda *args: True):
 
         communication_models = sorted(self._results.communication_models)
         noise_models = sorted(self._results.noise_models)
@@ -72,7 +69,7 @@ class TableGenerator:
             raise RuntimeError("Could not find any parameter combination in the results")
 
         for product_three_key in product_three:
-            if not param_filter(product_three_key):
+            if not param_filter(*product_three_key):
                 #print("Skipping {}".format(product_three_key))
                 continue
 
@@ -129,7 +126,7 @@ class TableGenerator:
             print('\\end{table}', file=stream)
             print('', file=stream)
 
-    def _write_testbed_tables(self, stream, param_filter=lambda x: True):
+    def _write_testbed_tables(self, stream, param_filter=lambda *args: True):
 
         attacker_models = sorted(self._results.attacker_models)
         fault_models = sorted(self._results.fault_models)
@@ -150,7 +147,7 @@ class TableGenerator:
             raise RuntimeError("Could not find any parameter combination in the results")
 
         for product_filtered_key in product_filtered:
-            if not param_filter(product_filtered_key):
+            if not param_filter(*product_filtered_key):
                 #print("Skipping {}".format(product_filtered_key))
                 continue
 
@@ -209,8 +206,7 @@ class TableGenerator:
         try:
             indexes = [self._result_names.index(result_name) for result_name in result_names]
         except ValueError as ex:
-            raise RuntimeError("The results do not contain '{}'. The available names are: '{}'".format(
-                result_name, self._result_names), ex)
+            raise RuntimeError(f"The results do not contain any of '{result_names}'. The available names are: '{self._result_names}'", ex)
 
         for (table_key, other_items) in self._results.data.items():
             for (source_period, items) in other_items.items():

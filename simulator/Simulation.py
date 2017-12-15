@@ -102,7 +102,7 @@ class Simulation(object):
 
         self.attackers = []
 
-        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
+        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim, args.extra_metrics)
 
         self.metrics = metrics_class(self, configuration)
 
@@ -171,7 +171,7 @@ class Simulation(object):
             if node.nid == ordered_nid:
                 return node
 
-        raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
+        raise RuntimeError(f"Unable to find a node with ordered_nid of {ordered_nid}")
 
     def node_from_topology_nid(self, topology_nid):
         ordered_nid = self.configuration.topology.t2o(topology_nid)
@@ -180,7 +180,7 @@ class Simulation(object):
             if node.nid == ordered_nid:
                 return node
 
-        raise RuntimeError("Unable to find a node with topology_nid of {}".format(topology_nid))
+        raise RuntimeError(f"Unable to find a node with topology_nid of {topology_nid}")
 
     def _pre_run(self):
         """Called before the simulator run loop starts"""
@@ -330,7 +330,7 @@ class OfflineSimulation(object):
 
         self.configuration = configuration
 
-        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim)
+        metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim, args.extra_metrics)
 
         # Allow flexibility wth some missing metric values
         non_strict_metrics = hasattr(args, "non_strict") and args.non_strict
@@ -551,7 +551,7 @@ class OfflineSimulation(object):
                 log_file.close()
 
     def _stdout_printer(self, log_type, node_id, sim_time, message):
-        print("{} @ {} : {}".format(sim_time, node_id, message))
+        print(f"{sim_time} @ {node_id} : {message}")
 
     def add_attacker(self, attacker):
         self.attackers.append(attacker)

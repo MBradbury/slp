@@ -27,7 +27,7 @@ class Grapher(GrapherBase):
         print('Removing existing directories')
         data.util.remove_dirtree(os.path.join(self.output_directory, self.result_name))
 
-        print('Creating {} graph files'.format(self.result_name))
+        print(f'Creating {self.result_name} graph files')
 
         # The output files we need to process.
         # These are sorted to give anyone watching the output a sense of progress.

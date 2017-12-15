@@ -58,15 +58,15 @@ class ClusterCommon(object):
 
             user = lookup['user']
 
-            print("Using the username '{}' from your '~/.ssh/config'. Rerun with the --user option to override this.".format(user))
+            print(f"Using the username '{user}' from your '~/.ssh/config'. Rerun with the --user option to override this.")
 
             return user
 
-        except (ImportError, KeyError):
+        except (ImportError, KeyError, FileNotFoundError):
             pass
 
         # Just ask them for their username
-        return raw_input("Enter your {} username: ".format(self.name().title()))
+        return input("Enter your {} username: ".format(self.name().title()))
 
 
     def _ram_to_ask_for(self, ram_for_os_mb=2 * 1024):

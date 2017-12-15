@@ -46,4 +46,4 @@ class OldResults(Results):
         if name == 'configuration' or name == 'network type':
             return value
         else:
-            return super(OldResults, self)._process(name, headers, values)
+            return super()._process(name, headers, values)

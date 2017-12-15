@@ -7,6 +7,7 @@ import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 import simulator.FaultModel as FaultModel
+import simulator.MetricsCommon as MetricsCommon
 import simulator.sim
 
 from data import submodule_loader
@@ -84,10 +85,6 @@ def _add_cooja_radio_model(parser, **kwargs):
                         type=ArgumentsCommon.type_positive_int,
                         default=128),
 
-    parser.add_argument("--clock-deviation",
-                        type=ArgumentsCommon.type_deviation,
-                        default=1.0,
-                        help="The deviation of the nodes clock in the range (0,1] (default 1.0)")
 
 def _add_log_converter(parser, **kwargs):
     import simulator.OfflineLogConverter as OfflineLogConverter
@@ -154,7 +151,7 @@ OPTS = {
                                                               help="With 'topology' node id orders are the same as the topology defines. 'randomised' causes the node ids to be randomised."),
 
     "safety period":       _add_safety_period,
-        
+
 
     "communication model": lambda x, **kwargs: x.add_argument("-cm", "--communication-model",
                                                               type=str,
@@ -229,6 +226,13 @@ OPTS = {
                                                               required=False,
                                                               action="store_true",
                                                               default=False),
+
+    "extra metrics":       lambda x, **kwargs: x.add_argument("--extra-metrics",
+                                                              required=False,
+                                                              nargs="+",
+                                                              type=str,
+                                                              choices=MetricsCommon.EXTRA_METRICS_CHOICES,
+                                                              default=None),
 
     "log converter":       _add_log_converter,
 
@@ -354,17 +358,19 @@ class ArgumentsCommon(object):
         if self.args.mode == "GUI":
             result["SLP_USES_GUI_OUPUT"] = 1
 
+        result.update(self.args.attacker_model.build_arguments())
+
         # Source period could either be a float or a class derived from PeriodModel
         if hasattr(self.args, 'source_period'):
             if isinstance(self.args.source_period, float):
                 if float(self.args.source_period) <= 0:
-                    raise RuntimeError("The source_period ({}) needs to be greater than 0".format(self.args.source_period))
+                    raise RuntimeError(f"The source_period ({self.args.source_period}) needs to be greater than 0")
 
                 result["SOURCE_PERIOD_MS"] = int(self.args.source_period * 1000)
             elif isinstance(self.args.source_period, SourcePeriodModel.PeriodModel):
                 result.update(self.args.source_period.build_arguments())
             else:
-                raise RuntimeError("The source_period ({}) either needs to be a float or an instance of SourcePeriodModel.PeriodModel".format(self.args.source_period))
+                raise RuntimeError(f"The source_period ({self.args.source_period}) either needs to be a float or an instance of SourcePeriodModel.PeriodModel")
 
         if hasattr(self.args, 'source_mobility'):
             result.update(self.args.source_mobility.build_arguments())
@@ -377,14 +383,14 @@ class ArgumentsCommon(object):
             configuration = Configuration.create(self.args.configuration, self.args)
 
             if len(configuration.source_ids) != 1:
-                raise RuntimeError("Invalid number of source ids in configuration {}, there must be exactly one.".format(configuration))
+                raise RuntimeError(f"Invalid number of source ids in configuration {configuration}, there must be exactly one.")
 
             (source_id,) = configuration.source_ids
 
             result["SOURCE_NODE_ID"] = configuration.topology.o2t(source_id)
 
         if hasattr(self.args, 'fault_model'):
-          result.update(self.args.fault_model.build_arguments())
+            result.update(self.args.fault_model.build_arguments())
 
         if hasattr(self.args, 'low_power_listening'):
 
@@ -457,26 +463,26 @@ class ArgumentsCommon(object):
     def type_probability(x):
         x = float(x)
         if x < 0.0 or x > 1.0:
-            raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]".format(x))
+            raise argparse.ArgumentTypeError(f"{x} not in range [0.0, 1.0]")
         return x
 
     @staticmethod
     def type_positive_int(x):
         x = int(x)
         if x < 0:
-            raise argparse.ArgumentTypeError("{} must be positive".format(x))
+            raise argparse.ArgumentTypeError(f"{x} must be positive")
         return x
 
     @staticmethod
     def type_positive_float(x):
         x = float(x)
         if x < 0:
-            raise argparse.ArgumentTypeError("{} must be positive".format(x))
+            raise argparse.ArgumentTypeError(f"{x} must be positive")
         return x
 
     @staticmethod
     def type_deviation(x):
         x = float(x)
         if x <= 0.0 or x > 1.0:
-            raise argparse.ArgumentTypeError("{} not in range (0.0, 1.0]".format(x))
+            raise argparse.ArgumentTypeError(f"{x} not in range (0.0, 1.0]")
         return x

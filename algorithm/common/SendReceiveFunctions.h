@@ -300,6 +300,39 @@ event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) 
 	switch (call NodeType.get()) \
 	{
 
+#define RECEIVE_MESSAGE_WITH_TIMESTAMP_BEGIN(NAME, KIND) \
+event message_t* NAME##KIND.receive(message_t* msg, void* payload, uint8_t len) \
+{ \
+	const uint32_t rcvd_timestamp = call PacketTimeStamp.isValid(msg) ? call PacketTimeStamp.timestamp(msg) : call LocalTime.get(); \
+ \
+	const NAME##Message* const rcvd = (const NAME##Message*)payload; \
+ \
+	const am_addr_t source_addr = call AMPacket.source(msg); \
+	const am_addr_t dest_addr = call AMPacket.destination(msg); \
+	const int8_t rssi = call MetricHelpers.getRssi(msg); \
+	const int16_t lqi = call MetricHelpers.getLqi(msg); \
+ \
+	const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
+	const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
+ \
+ 	CHECK_CRC(NAME, rcvd); \
+ \
+ 	ATTACKER_RCV(NAME, msg, payload, len, source_addr, ultimate_source, sequence_number, rssi, lqi); \
+ \
+	if (len != PAYLOAD_LENGTH(NAME)) \
+	{ \
+		ERROR_OCCURRED(ERROR_PACKET_HAS_INVALID_LENGTH, #KIND "'ed " #NAME " of invalid length %" PRIu8 ", expected %" PRIu8 ".\n", \
+			len, (uint8_t)PAYLOAD_LENGTH(NAME)); \
+		return msg; \
+	} \
+ \
+	LOG_STDOUT_VERBOSE(EVENT_##KIND##_VALID_PACKET, #KIND "'ed valid " #NAME ".\n"); \
+ \
+	METRIC_DELIVER(NAME, msg, payload, len, dest_addr, source_addr, ultimate_source, sequence_number, rssi, lqi); \
+ \
+	switch (call NodeType.get()) \
+	{
+
 #define RECEIVE_MESSAGE_END(NAME) \
 		default: \
 		{ \

@@ -1,7 +1,7 @@
 
 from data.analysis import AnalyzerCommon
 
-algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
 class Analyzer(AnalyzerCommon):
     def __init__(self, results_directory):

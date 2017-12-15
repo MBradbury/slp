@@ -1,6 +1,9 @@
 
 #warning "*** USING SLP DUTY CYCLE LOW POWER COMMUNICATIONS ***"
 
+#include "../NormalMessage.h"
+#include "../FakeMessage.h"
+
 configuration SLPDutyCycleC
 {
     provides
@@ -16,6 +19,8 @@ configuration SLPDutyCycleC
         interface Send as SubSend;
         interface Receive as SubReceive;
         interface SplitControl as SubControl;
+
+        interface NodeType;
     }
 }
 implementation
@@ -27,6 +32,7 @@ implementation
     SplitControl = SLPDutyCycleP;
     SLPDutyCycle = SLPDutyCycleP;
 
+    SLPDutyCycleP.NodeType = NodeType;
     SLPDutyCycleP.SubSend = SubSend;
     SLPDutyCycleP.SubReceive = SubReceive;
     SLPDutyCycleP.SubControl = SubControl;
@@ -53,16 +59,13 @@ implementation
     SLPDutyCycleP.Resend -> CC2420TransmitC;
     SLPDutyCycleP.PacketAcknowledgements -> CC2420RadioC;
     SLPDutyCycleP.CC2420PacketBody -> CC2420PacketC;
+    SLPDutyCycleP.PacketTimeStamp -> CC2420PacketC;
     SLPDutyCycleP.RadioBackoff -> CC2420CsmaC;
     SLPDutyCycleP.EnergyIndicator -> CC2420TransmitC.EnergyIndicator;
     //SLPDutyCycleP.ByteIndicator -> CC2420TransmitC.ByteIndicator;
     SLPDutyCycleP.PacketIndicator -> CC2420ReceiveC.PacketIndicator;
 
-    components new TimerMilliC() as OnTimerC;
-    components new TimerMilliC() as OffTimerC;
     components new TimerMilliC() as SendDoneTimerC;
-    SLPDutyCycleP.OffTimer -> OffTimerC;
-    SLPDutyCycleP.OnTimer -> OnTimerC;
     SLPDutyCycleP.SendDoneTimer -> SendDoneTimerC;
 
     components SystemLowPowerListeningC;  
@@ -75,14 +78,11 @@ implementation
     SLPDutyCycleP.RadioPowerState -> RadioPowerStateC;
     SLPDutyCycleP.SplitControlState -> SplitControlStateC;
 
-    components ActiveMessageC;
-    SLPDutyCycleP.PacketTimeStamp -> ActiveMessageC;
-
     components LocalTimeMilliC;
     SLPDutyCycleP.LocalTime -> LocalTimeMilliC;
 
-    components new MessageTimingAnalysisC() as NormalMessageTimingAnalysis;
-    components new MessageTimingAnalysisC() as FakeMessageTimingAnalysis;
+    components new MessageTimingAnalysisP() as NormalMessageTimingAnalysis;
+    components new FakeMessageTimingAnalysisP() as FakeMessageTimingAnalysis;
     SLPDutyCycleP.NormalMessageTimingAnalysis -> NormalMessageTimingAnalysis;
     SLPDutyCycleP.FakeMessageTimingAnalysis -> FakeMessageTimingAnalysis;
 }

@@ -31,9 +31,9 @@ class Metrics(MetricsCommon):
 
     def average_time_taken_to_send(self):
         return {
-            messages: (round(np.mean(rest.values()), 1), round(np.std(rest.values()), 1))
+            message: (round(np.mean(list(rest.values())), 1), round(np.std(list(rest.values())), 1))
 
-            for (messages, rest)
+            for (message, rest)
             in self._time_taken_to_send.items()
         }
 
