@@ -79,7 +79,7 @@ implementation
     uint8_t currentSendLen;
     
     /** TRUE if the radio is duty cycling and not always on */
-    bool dutyCycling;
+    bool started;
     
     /***************** Prototypes ***************/
     task void send();
@@ -94,7 +94,7 @@ implementation
     /***************** Init Commands ***************/
     command error_t Init.init()
     {
-        dutyCycling = FALSE;
+        started = FALSE;
         return SUCCESS;
     }
 
@@ -146,7 +146,7 @@ implementation
 
         call SplitControlState.forceState(S_TURNING_ON);
 
-        dutyCycling = TRUE;
+        started = TRUE;
         
         post startRadio();
 
@@ -171,10 +171,9 @@ implementation
 
         call SplitControlState.forceState(S_TURNING_OFF);
         
-        dutyCycling = FALSE;
+        started = FALSE;
 
-        // Start radio and leave on
-        post startRadio();
+        post stopRadio();
 
         return SUCCESS;
     }
@@ -407,12 +406,26 @@ implementation
     {
         error_t stopResult;
 
-        // Can only turn off if we are not sending 
-        if (!isDutyCycling() ||
-            // Source Nodes ignore turn off rules for Normal messages
-            (call NodeType.get() != SourceNode && !call NormalMessageTimingAnalysis.can_turn_off()) ||
-            !call FakeMessageTimingAnalysis.can_turn_off() ||
-            call SendState.getState() != S_LPL_NOT_SENDING)
+        /*simdbg("stdout", "attempt off s=%" PRIu8 " !dc=%" PRIu8 " nt=%" PRIu8 " norm=%" PRIu8 " fake=%" PRIu8 " send=%" PRIu8 "\n",
+            started, !isDutyCycling(), call NodeType.get(),
+            !call NormalMessageTimingAnalysis.can_turn_off(), !call FakeMessageTimingAnalysis.can_turn_off(),
+            call SendState.getState() != S_LPL_NOT_SENDING
+            );*/
+
+        if (
+            started && (
+                // If we are not duty cycling then don't turn off
+                !isDutyCycling() ||
+
+                // Source Nodes ignore turn off rules for Normal messages
+                // Don't turn off if Normal or Fake is expecting a message
+                (call NodeType.get() != SourceNode && !call NormalMessageTimingAnalysis.can_turn_off()) ||
+                !call FakeMessageTimingAnalysis.can_turn_off() ||
+
+                // Don't turn off when in the process of sending
+                call SendState.getState() != S_LPL_NOT_SENDING
+                )
+            )
         {
             return;
         }
@@ -488,7 +501,7 @@ implementation
     bool isDutyCycling()
     {
         // The sink does not duty cycle
-        return dutyCycling && call NodeType.get() != SinkNode;
+        return call NodeType.get() != SinkNode;
     }
 
     bool finishSplitControlRequests()

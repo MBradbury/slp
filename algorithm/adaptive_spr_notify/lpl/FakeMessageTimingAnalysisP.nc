@@ -38,7 +38,7 @@ implementation
     Impl.DurationOnTimer -> DurationOnTimerC;
 
 
-    components new TimerMilliC() as PermDetectTimer;
-    Impl.PermDetectTimer -> PermDetectTimer;
+    //components new TimerMilliC() as PermDetectTimer;
+    //Impl.PermDetectTimer -> PermDetectTimer;
 
 }
