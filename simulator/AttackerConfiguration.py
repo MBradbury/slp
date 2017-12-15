@@ -16,6 +16,12 @@ class AttackerConfiguration(object):
 
             sim.add_attacker(attacker)
 
+    def build_arguments(self):
+        arguments = {}
+        for attacker in self.attackers:
+            arguments.update(attacker.build_arguments())
+        return arguments
+
     def __str__(self):
         return "{}({})".format(type(self).__name__, ",".join(str(attacker) for attacker in self.attackers))
 

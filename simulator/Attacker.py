@@ -47,6 +47,15 @@ class Attacker(object):
 
         self._listen_range = None
 
+    def build_arguments(self):
+        arguments = {}
+
+        if self._message_detect == "using_position":
+            arguments["SLP_ATTACKER_USES_A_R_EVENT"] = 1
+
+        return arguments
+
+
     def _get_starting_node_id(self):
         conf = self._sim.configuration
 

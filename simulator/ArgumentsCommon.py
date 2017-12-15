@@ -358,6 +358,8 @@ class ArgumentsCommon(object):
         if self.args.mode == "GUI":
             result["SLP_USES_GUI_OUPUT"] = 1
 
+        result.update(self.args.attacker_model.build_arguments())
+
         # Source period could either be a float or a class derived from PeriodModel
         if hasattr(self.args, 'source_period'):
             if isinstance(self.args.source_period, float):
