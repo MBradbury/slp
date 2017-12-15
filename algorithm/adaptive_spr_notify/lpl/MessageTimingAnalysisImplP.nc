@@ -20,7 +20,7 @@ implementation
 {
     void startOnTimer(uint32_t now);
     void startOffTimer(uint32_t now);
-    void startOffTimerFromMessage(void);
+    void startOffTimerFromMessage(uint32_t now);
 
     uint32_t next_group_wait(void);
 
@@ -45,8 +45,8 @@ implementation
         //seen = 0;
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 30;
-        early_wakeup_duration_ms = 30;
+        max_wakeup_time_ms = 45;
+        early_wakeup_duration_ms = 45;
 
         //message_received = FALSE;
         //missed_messages = 0;
@@ -116,12 +116,12 @@ implementation
         {
             previous_group_time_ms = timestamp_ms;
 
-            if (group_diff != UINT32_MAX)
-            {
-                //incremental_average(&average_us, &seen, (group_diff * 1000) / (missed_messages + 1));
-            }
+            //if (group_diff != UINT32_MAX)
+            //{
+            //    incremental_average(&average_us, &seen, (group_diff * 1000) / (missed_messages + 1));
+            //}
 
-            startOffTimerFromMessage();
+            startOffTimerFromMessage(timestamp_ms);
         }
         else
         {
@@ -203,13 +203,13 @@ implementation
     }
 
     // Just received a message, consider when to turn off
-    void startOffTimerFromMessage(void)
+    void startOffTimerFromMessage(uint32_t now)
     {
         // When a message is received, we should restart the off timer if it is running
 
         //if (!call OffTimer.isRunning())
         {
-            call OffTimer.startOneShotAt(previous_group_time_ms, max_wakeup_time_ms);
+            call OffTimer.startOneShotAt(now, max_wakeup_time_ms);
         }
     }
 
