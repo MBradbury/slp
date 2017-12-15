@@ -403,7 +403,7 @@ implementation
 
 	uint32_t beacon_send_wait(void)
 	{
-		return 75U + random_interval(0, 50);
+		return 45U + random_interval(0, 50);
 	}
 
 	void become_Normal(void)
@@ -450,11 +450,11 @@ implementation
 	{
 		const uint8_t type = call NodeType.get();
 
+		const bool source_type_perm_or_tail = (message_type == PermFakeNode) | (message_type == TailFakeNode);
+
 		if ((
-				(message_type == PermFakeNode && type == PermFakeNode && pfs_can_become_normal()) ||
-				(message_type == TailFakeNode && type == PermFakeNode && pfs_can_become_normal()) ||
-				(message_type == PermFakeNode && type == TailFakeNode) ||
-				(message_type == TailFakeNode && type == TailFakeNode)
+				(source_type_perm_or_tail && type == PermFakeNode && pfs_can_become_normal()) ||
+				(source_type_perm_or_tail && type == TailFakeNode)
 			) &&
 			(
 				ultimate_sender_first_source_distance != UNKNOWN_HOP_DISTANCE &&
@@ -463,8 +463,7 @@ implementation
 			(
 				ultimate_sender_first_source_distance > first_source_distance ||
 				(ultimate_sender_first_source_distance == first_source_distance && source_id > TOS_NODE_ID)
-			)
-			)
+			))
 		{
 			// Stop fake & choose sending and become a normal node
 			become_Normal();
@@ -630,9 +629,9 @@ implementation
 			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
 			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
-		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
-
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
+
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -662,9 +661,9 @@ implementation
 			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
 			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
-		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
-
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
+
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -705,9 +704,9 @@ implementation
 			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
 			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
 
-		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
-
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
+
+		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
 		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
 		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
@@ -1014,6 +1013,10 @@ implementation
 		METRIC_RCV_BEACON(rcvd);
 
 		call SLPDutyCycle.expected(UINT32_MAX, rcvd->source_period, SourceNode, rcvd_timestamp);
+
+		source_period_ms = rcvd->source_period;
+
+		set_first_source_distance(rcvd->source_distance_of_sender);
 	}
 
 	RECEIVE_MESSAGE_WITH_TIMESTAMP_BEGIN(Beacon, Receive)

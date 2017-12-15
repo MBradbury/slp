@@ -17,8 +17,6 @@ typedef nx_struct NormalMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
-  //nx_int16_t sink_source_distance;
-
 } NormalMessage;
 
 inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
