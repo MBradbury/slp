@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-import Attacker
+import simulator.Attacker as Attacker
 
 from data.restricted_eval import restricted_eval
 
@@ -15,6 +15,12 @@ class AttackerConfiguration(object):
             attacker.setup(sim, ident=i)
 
             sim.add_attacker(attacker)
+
+    def build_arguments(self):
+        arguments = {}
+        for attacker in self.attackers:
+            arguments.update(attacker.build_arguments())
+        return arguments
 
     def __str__(self):
         return "{}({})".format(type(self).__name__, ",".join(str(attacker) for attacker in self.attackers))

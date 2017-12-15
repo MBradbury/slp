@@ -63,11 +63,11 @@ def try_to_free_memory():
 
 class EmptyFileError(RuntimeError):
     def __init__(self, filename):
-        super(EmptyFileError, self).__init__("The file '{}' is empty.".format(filename))
+        super(EmptyFileError, self).__init__(f"The file '{filename}' is empty.")
 
 class EmptyDataFrameError(RuntimeError):
     def __init__(self, filename):
-        super(EmptyDataFrameError, self).__init__("The DataFrame loaded from '{}' is empty.".format(filename))
+        super(EmptyDataFrameError, self).__init__(f"The DataFrame loaded from '{filename}' is empty.")
 
 def _normalised_value_name(value, prefix):
     if isinstance(value, str):
@@ -115,7 +115,7 @@ def _parse_dict_node_to_value(indict, decompress=False):
     # Parse a dict like "{1: 10, 2: 20, 3: 40}"
 
     if decompress:
-        indict = zlib.decompress(base64.b64decode(indict))
+        indict = zlib.decompress(base64.b64decode(indict)).decode("utf-8")
 
     result = {
         int(a): float(b)
@@ -166,7 +166,7 @@ def dict_mean(dict_list):
     get = result.get
 
     for (n, dict_item) in enumerate(islice(dict_list, 1, None), start=2):
-        for (key, value) in dict_item.iteritems():
+        for (key, value) in dict_item.items():
             current = get(key, 0)
             result[key] = current + ((value - current) / n)
 
@@ -180,7 +180,7 @@ def dict_var(dict_list, mean):
     lin = {k: list() for k in first}
 
     for d in dict_list:
-        for (k, v) in d.iteritems():
+        for (k, v) in d.items():
             lin[k].append(v)
 
     for k in lin:
@@ -335,7 +335,7 @@ class Analyse(object):
         if headers_to_skip is not None:
             for header in headers_to_skip:
                 if header not in all_headings:
-                    raise RuntimeError("The heading {} is not a valid heading to skip".format(header))
+                    raise RuntimeError(f"The heading {header} is not a valid heading to skip")
 
         self.unnormalised_headings = [
             heading for heading in all_headings
@@ -418,7 +418,7 @@ class Analyse(object):
                     differing = group[group.columns[group.apply(lambda s: len(s.unique()) > 1)]]
 
                     if not differing.empty:
-                        raise RuntimeError("For seed {}, the following columns differ: {}".format(name, differing))
+                        raise RuntimeError(f"For seed {name}, the following columns differ: {differing}")
 
                 initial_length = len(df.index)
 
@@ -468,7 +468,7 @@ class Analyse(object):
             for (norm_head, (num, den)) in zip(self.additional_normalised_headings, normalised_values_names):
 
                 if num in self.headings and den in self.headings:
-                    print("Creating {} using ({},{}) on the fast path n1".format(norm_head, num, den))
+                    print(f"Creating {norm_head} using ({num},{den}) on the fast path n1")
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
                     den_col = columns_to_add[den] if den in columns_to_add else df[den]
@@ -476,19 +476,19 @@ class Analyse(object):
                     columns_to_add[norm_head] = num_col / den_col
 
                 elif num in self.headings and den in constants:
-                    print("Creating {} using ({},{}) on the fast path n2".format(norm_head, num, den))
+                    print(f"Creating {norm_head} using ({num},{den}) on the fast path n2")
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
 
                     columns_to_add[norm_head] = num_col / constants[den]
 
                 elif num in calc_cols and den in constants:
-                    print("Creating {} using ({},{}) on the fast path n3".format(norm_head, num, den))
+                    print(f"Creating {norm_head} using ({num},{den}) on the fast path n3")
 
                     columns_to_add[norm_head] = get_cached_calc_cols(num) / constants[den]
 
                 else:
-                    print("Creating {} using ({},{}) on the slow path ns".format(norm_head, num, den))
+                    print(f"Creating {norm_head} using ({num},{den}) on the slow path ns")
 
                     #axis=1 means to apply per row
                     columns_to_add[norm_head] = df.apply(self._get_norm_value,
@@ -505,7 +505,7 @@ class Analyse(object):
             for (filtered_head, (num, den)) in zip(self.additional_filtered_headings, filtered_values_names):
                 
                 if num in self.headings and den in df:
-                    print("Creating {} using ({},{}) on the fast path f1".format(filtered_head, num, den))
+                    print(f"Creating {filtered_head} using ({num},{den}) on the fast path f1")
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
                     den_col = df[den]
@@ -513,7 +513,7 @@ class Analyse(object):
                     self.filtered_columns[filtered_head] = num_col[den_col]
 
                 else:
-                    raise RuntimeError("Don't know how to calculate {}".format(filtered_head))
+                    raise RuntimeError(f"Don't know how to calculate {filtered_head}")
 
             if len(columns_to_add) > 0:
                 print("Merging normalised columns with the loaded data...")
@@ -607,7 +607,7 @@ class Analyse(object):
                     attacker_moves = values[self.headings.index("AttackerMoves")]
 
                     # We can't calculate the good move ratio if the attacker hasn't moved
-                    for (attacker_id, num_moves) in attacker_moves.iteritems():
+                    for (attacker_id, num_moves) in attacker_moves.items():
                         if num_moves == 0:
                             print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
                             return None
@@ -655,7 +655,7 @@ class Analyse(object):
         heatmap = values[heatmap_index]
 
         if not isinstance(heatmap, dict):
-            raise RuntimeError("Expected the heatmap {} to be a dict ({})".format(heading, repr(heatmap)))
+            raise RuntimeError(f"Expected the heatmap {heading} to be a dict ({heatmap!r})")
 
          # Check that there aren't too many nodes
         if len(heatmap) > number_nodes:
@@ -694,10 +694,10 @@ class Analyse(object):
         latency = values[latency_index]
 
         if math.isnan(latency):
-            raise RuntimeError('The NormalLatency {} is a NaN'.format(latency))
+            raise RuntimeError(f'The NormalLatency {latency} is a NaN')
 
         if latency <= 0:
-            raise RuntimeError("The NormalLatency {} is less than or equal to 0.".format(latency))
+            raise RuntimeError(f"The NormalLatency {latency} is less than or equal to 0.")
 
 
     def detect_outlier(self, values):
@@ -722,7 +722,7 @@ class Analyse(object):
         except KeyError:
             pass
 
-        raise KeyError("Unable to find {}".format(header))
+        raise KeyError(f"Unable to find {header}")
 
     def average_of(self, header):
         values = self.find_column(header)
@@ -732,14 +732,14 @@ class Analyse(object):
             if header.startswith("filtered"):
                 return None
             else:
-                raise RuntimeError("There are no values for {} to be able to average".format(header))
+                raise RuntimeError(f"There are no values for {header} to be able to average")
 
         first = next(iter(values))
 
         if isinstance(first, dict):
             return dict_mean(values)
         elif isinstance(first, str):
-            raise TypeError("Cannot find the average of a string for {}".format(header))
+            raise TypeError(f"Cannot find the average of a string for {header}")
         else:
             return values.mean()
 
@@ -751,14 +751,14 @@ class Analyse(object):
             if header.startswith("filtered"):
                 return None
             else:
-                raise RuntimeError("There are no values for {} to be able to find the variance".format(header))
+                raise RuntimeError(f"There are no values for {header} to be able to find the variance")
 
         first = next(iter(values))
 
         if isinstance(first, dict):
             return dict_var(values, mean)
         elif isinstance(first, str):
-            raise TypeError("Cannot find the variance of a string for {}".format(header))
+            raise TypeError(f"Cannot find the variance of a string for {header}")
         else:
             return values.var()
 
@@ -770,14 +770,14 @@ class Analyse(object):
             if header.startswith("filtered"):
                 return None
             else:
-                raise RuntimeError("There are no values for {} to be able to find the median".format(header))
+                raise RuntimeError(f"There are no values for {header} to be able to find the median")
 
         first = next(iter(values))
 
         if isinstance(first, dict):
             raise NotImplementedError("Finding the median of dicts is not implemented")
         elif isinstance(first, str):
-            raise TypeError("Cannot find the median of a string for {}".format(header))
+            raise TypeError(f"Cannot find the median of a string for {header}")
         else:
             return values.median()
 
@@ -1001,7 +1001,7 @@ class AnalyzerCommon(object):
         if nprocs is None:
             nprocs = multiprocessing.cpu_count()
 
-            print("Using {} threads".format(nprocs))
+            print(f"Using {nprocs} threads")
 
         inqueue = multiprocessing.Queue()
         outqueue = multiprocessing.Queue()
@@ -1034,18 +1034,18 @@ class AnalyzerCommon(object):
             for num in range(total):
                 (path, line, error) = outqueue.get()
 
-                print('Analysing {0}'.format(path))
+                print(f'Analysing {path}')
 
                 if error is None:
                     print(line, file=out)
                 else:
                     (ex, tb) = error
-                    print("Error processing {} with {}".format(path, ex))
+                    print(f"Error processing {path} with {ex}")
                     print(tb)
 
                 progress.print_progress(num)
 
-            print('Finished writing {}'.format(summary_file_path))
+            print(f'Finished writing {summary_file_path}')
 
         inqueue.close()
         inqueue.join_thread()
@@ -1092,16 +1092,16 @@ class AnalyzerCommon(object):
             for num, infile in enumerate(files):
                 path = os.path.join(self.results_directory, infile)
 
-                print('Analysing {0}'.format(path))
+                print(f'Analysing {path}')
 
                 try:
                     line = worker(path)
 
                     print(line, file=out)
                 except Exception as ex:
-                    print("Error processing {} with {}".format(path, ex))
+                    print(f"Error processing {path} with {ex}")
                     print(traceback.format_exc())
 
                 progress.print_progress(num)
 
-            print('Finished writing {}'.format(summary_file))
+            print(f'Finished writing {summary_file}')

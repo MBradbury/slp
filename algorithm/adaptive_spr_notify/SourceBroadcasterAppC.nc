@@ -42,17 +42,19 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.PacketTimeStamp -> ActiveMessageC;
+
+	components LocalTimeMilliC;
+	App.LocalTime -> LocalTimeMilliC;
 
 #ifdef LOW_POWER_LISTENING
-	components SLPDutyCycleC;
-	App.SLPDutyCycleControl -> SLPDutyCycleC.SplitControl;
-	App.SLPDutyCycle -> SLPDutyCycleC.SLPDutyCycle;
-
-	App.PacketTimeStamp -> ActiveMessageC;
+	components SLPDutyCycleC as SLPDutyCycle;
+	SLPDutyCycle.NodeType -> NodeTypeC;
 #else
-	components DummyDutyCycleC;
-	App.SLPDutyCycle -> DummyDutyCycleC.SLPDutyCycle;
+	components DummyDutyCycleC as SLPDutyCycle;
 #endif
+
+	App.SLPDutyCycle -> SLPDutyCycle.SLPDutyCycle;
 
 
 	// Timers
@@ -87,10 +89,13 @@ implementation
 
 	components
 		new AMSenderC(CHOOSE_CHANNEL) as ChooseSender,
-		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver;
+		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver,
+		new AMSnooperC(CHOOSE_CHANNEL) as ChooseSnooper;
 
 	App.ChooseSend -> ChooseSender;
 	App.ChooseReceive -> ChooseReceiver;
+	App.ChooseSnoop -> ChooseSnooper;
+	App.ChoosePacketAcknowledgements -> ChooseSender.Acks;
 
 	components
 		new AMSenderC(FAKE_CHANNEL) as FakeSender,

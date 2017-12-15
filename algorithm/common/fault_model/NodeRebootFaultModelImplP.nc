@@ -8,7 +8,7 @@ module NodeRebootFaultModelImplP
     uses interface MetricLogging;
     uses interface FaultModelTypes;
 
-    interface Hardware;
+    uses interface Hardware;
 }
 implementation
 {
@@ -30,13 +30,5 @@ implementation
     command void FaultModel.fault_point(uint8_t ident)
     {
         call Hardware.reboot();
-    }
-
-    event void RadioControl.startDone(error_t error)
-    {
-    }
-
-    event void RadioControl.stopDone(error_t error)
-    {
     }
 }

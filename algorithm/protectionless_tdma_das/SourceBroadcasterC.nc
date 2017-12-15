@@ -164,8 +164,6 @@ implementation
         others = OtherList_new();
         n_info = NeighbourList_new();
 
-		METRIC_BOOT();
-
         call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
         call MessageType.register_pair(DISSEM_CHANNEL, "Dissem");
         call MessageType.register_pair(EMPTYNORMAL_CHANNEL, "EmptyNormal");

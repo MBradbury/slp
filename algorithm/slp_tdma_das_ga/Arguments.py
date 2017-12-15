@@ -8,7 +8,7 @@ import simulator.Configuration
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
-algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
 class Arguments(ArgumentsCommon):
     def __init__(self):

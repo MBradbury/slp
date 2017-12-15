@@ -4,23 +4,17 @@
 # It also produces the files that the graphs are generated from.
 #
 # Author: Matthew Bradbury
-from __future__ import print_function
-
 import multiprocessing
 import os
 import re
+from shutil import which
 import subprocess
-
-try:
-    from shutil import which
-except ImportError:
-    from shutilwhich import which
 
 import simulator.Attacker as Attacker
 import simulator.FaultModel as FaultModel
 
 def test_gnuplot_version(name):
-    result = subprocess.check_output([name, "--version"]).strip()
+    result = subprocess.check_output([name, "--version"]).decode("utf-8").strip()
 
     match = re.match(r"gnuplot (\d+\.?\d*) patchlevel (.*)", result)
     
@@ -28,10 +22,10 @@ def test_gnuplot_version(name):
     patchlevel = match.group(2)
 
     return version >= 5
-    
+
 def test_gnuplot_pdfterm_support(name):
     try:
-        result = subprocess.check_output([name, "-e", "set terminal pdf"]).strip()
+        result = subprocess.check_output([name, "-e", "set terminal pdf"]).decode("utf-8").strip()
 
         # As long as result is empty everything was fine
         return result == ""
@@ -105,7 +99,7 @@ class GrapherBase(object):
 
         walk_dir = os.path.abspath(os.path.join(self.output_directory, subdir))
 
-        print("Walking {}:".format(walk_dir))
+        print(f"Walking {walk_dir}:")
 
         def worker(inqueue, outqueue):
             while True:
@@ -139,7 +133,7 @@ class GrapherBase(object):
             for filename in files:
                 (name_without_ext, extension) = os.path.splitext(filename)
                 if extension in {'.p', '.gp', '.gnuplot', '.gnu', '.plot', '.plt'}:
-                    pdf_filename = '{}.pdf'.format(name_without_ext)
+                    pdf_filename = f'{name_without_ext}.pdf'
 
                     inqueue.put((
                         [gnuplot, filename],

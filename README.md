@@ -23,12 +23,12 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
         :::bash
         sudo apt-get install liblapack-dev python python-pip python-dev g++ gfortran python-tk git mercurial make libssl-dev libffi-dev libxml2-utils
 
-   Python 2 or 3 is supported, but python 2 is recommended as it is faster.
+   Python 3 is required by the testbed framework.
 
 2. Install python libraries
 
         :::bash
-        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip cryptography requests --upgrade -v
+        pip install scipy numpy cython pandas more_itertools psutil paramiko pip cryptography requests matplotlib --upgrade -v
         pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade -v
         pip install git+git://github.com/emulbreh/bridson.git --upgrade -v
 
@@ -42,13 +42,13 @@ admin permissions to use pip install, then pyenv is a good alternative.
 You do not need to do this step if you are using your system python.
 
 ```bash
-sudo apt-get install lzma-dev tk-dev
+sudo apt-get install lzma-dev tk-dev libreadline-dev libbz2-dev libssl-dev
 ```
 
 ```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.14 -v
-pyenv global 2.7.14
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 3.6.3 -v
+pyenv global 3.6.3
 ```
 
 ## Using pyenv (on flux)
@@ -57,8 +57,8 @@ To install on flux there is a slightly different procedure:
 
 ```bash
 module load flux-installers && pyenv-install.sh && source ~/.bashrc
-CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 2.7.14 -v
-pyenv global 2.7.14
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 3.6.3 -v
+pyenv global 3.6.3
 ```
 
 Please ensure that you install the python packages using pip after setting up python in this way.

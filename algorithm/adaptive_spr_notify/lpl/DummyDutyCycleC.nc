@@ -32,5 +32,4 @@ implementation
     DummyLplC.SubSend = SubSend;
     DummyLplC.SubReceive = SubReceive;
     DummyLplC.SubControl = SubControl;
-
 }

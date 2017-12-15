@@ -3,7 +3,7 @@ from __future__ import division
 from data.analysis import AnalyzerCommon
 from data.analysis_extra.utility import Function, AnimalProtection, AssetMonitoring, Military
 
-algorithm_module = __import__(__package__, globals(), locals(), ['object'], -1)
+algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
 
 class Analyzer(AnalyzerCommon):

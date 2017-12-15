@@ -2,6 +2,7 @@ from __future__ import print_function, division
 
 from collections import Counter, OrderedDict, defaultdict
 import base64
+from itertools import zip_longest, tee
 import math
 import pickle
 import sys
@@ -12,15 +13,6 @@ try:
     import psutil
 except ImportError:
     psutil = None
-
-try:
-    # Python 2
-    from itertools import izip_longest
-except ImportError:
-    # Python 3
-    from itertools import zip_longest as izip_longest
-
-from itertools import tee
 
 import numpy as np
 
@@ -40,7 +32,7 @@ def pairwise(iterable):
 
 class MetricsCommon(object):
     def __init__(self, sim, configuration, strict=True):
-        super(MetricsCommon, self).__init__()
+        super().__init__()
 
         self.sim = sim
         self.configuration = configuration
@@ -215,7 +207,7 @@ class MetricsCommon(object):
         elif sequence_number == -1:
             return None
         else:
-            self._warning_or_error("The sequence number is an invalid unknown of {}".format(sequence_number))
+            self._warning_or_error(f"The sequence number is an invalid unknown of {sequence_number}")
             return None
 
     def process_node_type_add(self, d_or_e, node_id, time, detail):
@@ -384,7 +376,7 @@ class MetricsCommon(object):
                 sent_hex_buffers = self.messages_broadcast[(proximate_source_id, kind, ultimate_source_id, sequence_number)]
 
                 if all(sent_hex_buffer != hex_buffer for sent_hex_buffer in sent_hex_buffers):
-                    sent_hex_buffer_str = "\n".join("\t{}".format(sent_hex_buffer) for sent_hex_buffer in sent_hex_buffers)
+                    sent_hex_buffer_str = "\n".join(f"\t{sent_hex_buffer}" for sent_hex_buffer in sent_hex_buffers)
 
                     raise RuntimeError("The received hex buffer does not match any sent buffer for prox-src={}, kind={}, ult-src={}, seq-no={}\nSent:\n{}\nReceived:\n\t{}".format(
                         proximate_source_id, kind, ultimate_source_id, sequence_number,
@@ -394,7 +386,7 @@ class MetricsCommon(object):
             except KeyError as ex:
                 print("Received {} but unable to find a matching key".format(hex_buffer), file=sys.stderr)
                 for (k, v) in self.messages_broadcast.items():
-                    print("{}: {}".format(k, v), file=sys.stderr)
+                    print(f"{k}: {v}", file=sys.stderr)
                 raise
 
         ord_node_id, top_node_id = self._process_node_id(node_id)
@@ -463,7 +455,7 @@ class MetricsCommon(object):
 
         if new_name == "SinkNode":
             if old_name != "<unknown>":
-                raise RuntimeError("SinkNodes MUST be created from no initial node type but was instead from {}".format(old_name))
+                raise RuntimeError(f"SinkNodes MUST be created from no initial node type but was instead from {old_name}")
 
             self.reported_sink_ids.add(ord_node_id)
 
@@ -756,7 +748,7 @@ class MetricsCommon(object):
 
             res_lst = []
 
-            for (start, stop) in izip_longest(started_times, stopped_times):
+            for (start, stop) in zip_longest(started_times, stopped_times):
                 if stop is None:
                     stop = float('inf')
 
@@ -870,14 +862,19 @@ class MetricsCommon(object):
             if value.mean() != -1
         }
 
+    @staticmethod
+    def sorted_dict_str(dict_result):
+        return "{" + ", ".join(f"{k}: {v}" for (k, v) in sorted(dict_result.items(), key=lambda x: x[0])) + "}"
 
     @staticmethod
-    def smaller_dict_str(dict_result):
-        return str(dict_result).replace(": ", ":").replace(", ", ",").replace(".0,", ",")
+    def smaller_dict_str(dict_result, sort=False):
+        dict_str = MetricsCommon.sorted_dict_str(dict_result) if sort else str(dict_result)
+
+        return dict_str.replace(": ", ":").replace(", ", ",").replace(".0,", ",")
 
     @staticmethod
-    def compressed_dict_str(dict_result):
-        dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result).encode("utf-8")
+    def compressed_dict_str(dict_result, sort=False):
+        dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result, sort=sort).encode("utf-8")
         compressed = base64.b64encode(zlib.compress(dict_result_bytes, 9))
         return compressed.decode("utf-8")
 
@@ -930,7 +927,7 @@ class MetricsCommon(object):
         d["NormalSent"]                    = lambda x: x.number_sent("Normal")
         d["UniqueNormalGenerated"]         = lambda x: len(x.normal_sent_time)
 
-        d["MessageReceiveInterval"]        = lambda x: str(x.message_receive_interval())
+        #d["MessageReceiveInterval"]        = lambda x: str(x.message_receive_interval())
 
         d["NodeWasSource"]                 = lambda x: MetricsCommon.smaller_dict_str(x.node_was_source())
         d["NodeTransitions"]               = lambda x: MetricsCommon.smaller_dict_str(dict(x.node_transitions))
@@ -1019,7 +1016,7 @@ class MetricsCommon(object):
 
         for (nid, events) in self.node_booted_at.items():
             if len(events) > 1:
-                print("Multiple boot events ({}) detected for {}".format(len(events), nid), file=stream)
+                print(f"Multiple boot events ({len(events)}) detected for {nid}", file=stream)
 
     def memory_info(self, attr):
         """Memory usage of the current process in bytes."""
@@ -1042,7 +1039,7 @@ class AvroraPacketSummary(object):
 class AvroraMetricsCommon(MetricsCommon):
     """Contains metrics specific to the Avrora simulator."""
     def __init__(self, *args, **kwargs):
-        super(AvroraMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.avrora_sim_cycles = None
         self.avrora_packet_summary = {}
@@ -1126,8 +1123,8 @@ class AvroraMetricsCommon(MetricsCommon):
 
         d["TotalJoules"]                   = lambda x: x.total_joules()
 
-        for component in ["CPU", "Yellow", "Green", "Red", "Radio", "SensorBoard", "flash"]:
-            d["Total{}Joules".format(component)] = lambda x, component=component: x.total_component_joules(component)
+        for component in ("CPU", "Yellow", "Green", "Red", "Radio", "SensorBoard", "flash"):
+            d[f"Total{component}Joules"] = lambda x, component=component: x.total_component_joules(component)
 
         # CPU and radio percent
         d["AverageCPUActivePC"]            = lambda x: x.average_cpu_state("Active")
@@ -1164,7 +1161,7 @@ class AvroraMetricsCommon(MetricsCommon):
 class FakeMetricsCommon(MetricsCommon):
     """Contains fake message techniques specified metrics."""
     def __init__(self, *args, **kwargs):
-        super(FakeMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def times_fake_node_changed_to_fake(self):
         total_count = 0
@@ -1183,7 +1180,7 @@ class FakeMetricsCommon(MetricsCommon):
         d["FakeSent"]               = lambda x: x.number_sent("Fake")
 
         for (fake_short, fake_long) in sorted(fake_node_types.items(), key=lambda x: x[0]):
-            d[fake_short]           = lambda x: x.times_node_changed_to(fake_long)
+            d[fake_short]           = lambda x, fake_long=fake_long: x.times_node_changed_to(fake_long)
 
         d["FakeToNormal"]           = lambda x: x.times_node_changed_to("NormalNode", from_types=fake_node_types.values())
         d["FakeToFake"]             = lambda x: x.times_fake_node_changed_to_fake()
@@ -1200,7 +1197,7 @@ class FakeMetricsCommon(MetricsCommon):
 class TreeMetricsCommon(MetricsCommon):
     """Contains tree routing specific metrics."""
     def __init__(self, *args, **kwargs):
-        super(TreeMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.parent_changes = Counter()
         self.true_parent_changes = Counter()
@@ -1245,33 +1242,39 @@ class TreeMetricsCommon(MetricsCommon):
 class RssiMetricsCommon(MetricsCommon):
     """For algorithms that measure the RSSI."""
     def __init__(self, *args, **kwargs):
-        super(RssiMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.register('M-RSSI', self.process_rssi_event)
 
     def process_rssi_event(self, d_or_e, node_id, time, detail):
         (average, smallest, largest, reads, channel) = detail.split(',')
 
-        print("RSSI on {} at {} : {}".format(node_id, time, detail))
+        print(f"RSSI on {node_id} at {time} : {detail}")
 
     @staticmethod
     def items():
         d = OrderedDict()
-
         return d
+
+
+METRIC_GENERIC_DUTY_CYCLE_START = 2013
 
 class DutyCycleMetricsCommon(MetricsCommon):
     """For algorithms that duty cycle the radio."""
     def __init__(self, *args, **kwargs):
-        super(DutyCycleMetricsCommon, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._duty_cycle_state = {}
+        self._duty_cycle_states = defaultdict(list)
         self._duty_cycle = defaultdict(int)
+        self._duty_cycle_start = None
 
         # Duty cycle is indicated by the blue led / led 2
         # When led is on the radio is on and vice verse
         self.register('LedsC', self._process_leds_event)
         self.register('LedsCooja', self._process_leds_cooja_event)
+
+        self.register_generic(METRIC_GENERIC_DUTY_CYCLE_START, self._process_duty_cycle_start)
 
     def _process_leds_event(self, d_or_e, node_id, time, detail):
         (led, status) = detail.split(',')
@@ -1286,7 +1289,6 @@ class DutyCycleMetricsCommon(MetricsCommon):
 
     def _process_duty_cycle(self, node_id, time, state):
         ord_node_id, top_node_id = self._process_node_id(node_id)
-        time = self.sim_time()
 
         (previous_state, previous_time) = self._duty_cycle_state.get(ord_node_id, (None, None))
 
@@ -1294,11 +1296,20 @@ class DutyCycleMetricsCommon(MetricsCommon):
         if previous_state == state:
             return
 
-        # We want to catch True to False transitions
-        if previous_state is True and state is False:
+        time = self.sim_time()
+
+        # We want to catch True to False transitions, once duty cycling has started
+        if previous_state is True and state is False and self._duty_cycle_start is not None:
             self._duty_cycle[ord_node_id] += (time - previous_time)
 
         self._duty_cycle_state[ord_node_id] = (state, time)
+        self._duty_cycle_states[ord_node_id].append((state, time))
+
+    def _process_duty_cycle_start(self, d_or_e, node_id, time, data):
+        self._duty_cycle_start = self.sim_time()
+
+        for (nid, (previous_state, previous_time)) in self._duty_cycle_state.items():
+            self._duty_cycle_state[nid] = (previous_state, self._duty_cycle_start)
 
     def _calculate_node_duty_cycle(self, node_id):
 
@@ -1307,7 +1318,7 @@ class DutyCycleMetricsCommon(MetricsCommon):
         # are actually duty cycling.
         #start_time = self.first_normal_sent_time()
 
-        start_time = next(iter(self.node_booted_at[node_id]))
+        start_time = self._duty_cycle_start
         end_time = self.sim_time()
 
         (state, state_time) = self._duty_cycle_state[node_id]
@@ -1330,13 +1341,73 @@ class DutyCycleMetricsCommon(MetricsCommon):
     @staticmethod
     def items():
         d = OrderedDict()
-        d["DutyCycle"]                     = lambda x: MetricsCommon.compressed_dict_str(x.duty_cycle())
+        d["DutyCycleStart"]                = lambda x: str(x._duty_cycle_start)
+        d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle(), sort=True)
         return d
 
 
-class MessageTimeGrapher(MetricsCommon):
+class DutyCycleMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
-        super(MessageTimeGrapher, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+
+    def finish(self):
+        super().finish()
+
+        if isinstance(self, DutyCycleMetricsCommon):
+            self._plot_duty_cycle()
+
+    def _plot_duty_cycle(self):
+        import matplotlib.pyplot as plt
+        from matplotlib.font_manager import FontProperties
+
+        fig, ax = plt.subplots()
+
+        # From: https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
+        box = ax.get_position()
+        ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
+
+        for node_id in self.topology.nodes:
+            states = self._duty_cycle_states[node_id]
+            states = [(False, 0)] + states + [(states[-1][0], self.sim_time())]
+
+            combined = [(atime, btime, astate) for ((astate, atime), (bstate, btime)) in pairwise(states)]
+
+            for (start, stop, state) in combined:
+                colour = "mediumaquamarine" if state else "lightgray"
+
+                ax.hlines(node_id.nid, start, stop, colour, linewidth=4)
+
+        node_ids = [node_id.nid for node_id in self.topology.nodes]
+        ymin, ymax = min(node_ids), max(node_ids)
+        ymin -= 0.05 * (ymax - ymin)
+        ymax += 0.05 * (ymax - ymin)
+        ax.set_ylim(bottom=ymin, top=ymax)
+
+        xmin, xmax = 0, self.sim_time()
+        xmin -= 0.05 * (ymax - ymin)
+        xmax += 0.05 * (ymax - ymin)
+        ax.set_xlim(left=xmin, right=xmax)
+
+        font_prop = FontProperties()
+        font_prop.set_size("small")
+
+        legend = ax.legend(loc="upper center", bbox_to_anchor=(0.45,-0.15), ncol=6, prop=font_prop)
+
+        ax.set_xlabel("Time (seconds)")
+        ax.set_ylabel("Node ID")
+
+        plt.savefig("dutycycle.pdf")
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+        return d
+
+
+
+class MessageTimeMetricsGrapher(MetricsCommon):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.register('M-CB', self.log_time_bcast_event)
         self.register('M-CD', self.log_time_deliver_event)
@@ -1382,7 +1453,7 @@ class MessageTimeGrapher(MetricsCommon):
             "Poll": "xkcd:orange",
         }[kind]
 
-    def _plot(self, values, filename, line_values=None, y2label=None):
+    def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
 
@@ -1395,7 +1466,7 @@ class MessageTimeGrapher(MetricsCommon):
         for (kind, values) in sorted(values.items(), key=lambda x: x[0]):
             xy = [(time, ord_node_id.nid) for (time, ord_node_id) in values]
             xs, ys = zip(*xy)
-            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=10)
+            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=7, zorder=2)
 
         if line_values is not None:
             xs, ys = zip(*line_values)
@@ -1406,7 +1477,7 @@ class MessageTimeGrapher(MetricsCommon):
                 ax2 = ax.twinx()
                 ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-                ax2.plot(xs, ys)
+                ax2.plot(xs, ys, zorder=2)
 
                 ax2.set_ylabel(y2label)
 
@@ -1414,6 +1485,18 @@ class MessageTimeGrapher(MetricsCommon):
                 ymin -= 0.05 * (ymax - ymin)
                 ymax += 0.05 * (ymax - ymin)
                 ax2.set_ylim(bottom=ymin, top=ymax)
+
+        if with_dutycycle:
+            for node_id in self.topology.nodes:
+                states = self._duty_cycle_states[node_id]
+                states = [(False, 0)] + states + [(states[-1][0], self.sim_time())]
+
+                combined = [(atime, btime, astate) for ((astate, atime), (bstate, btime)) in pairwise(states)]
+
+                for (start, stop, state) in combined:
+                    colour = "mediumaquamarine" if state else "lightgray"
+
+                    ax.hlines(node_id.nid, start, stop, colour, linewidth=4, zorder=1)
 
         node_ids = [node_id.nid for node_id in self.topology.nodes]
         ymin, ymax = min(node_ids), max(node_ids)
@@ -1432,12 +1515,18 @@ class MessageTimeGrapher(MetricsCommon):
         plt.savefig(filename)
 
     def finish(self):
-        self._plot(self._bcasts, "bcasts.pdf")
-        self._plot(self._delivers, "delivers.pdf")
+        super().finish()
+
+        self._plot_message_events(self._bcasts, "bcasts.pdf")
+        self._plot_message_events(self._delivers, "delivers.pdf")
+
+        if isinstance(self, DutyCycleMetricsCommon):
+            self._plot_message_events(self._bcasts, "bcasts_duty.pdf", with_dutycycle=True)
+            self._plot_message_events(self._delivers, "delivers_duty.pdf", with_dutycycle=True)
 
         for (attacker_id, values) in self._attacker_delivers.items():
             line_values = [(time, node_id.nid) for (time, node_id) in self._attacker_history[attacker_id]]
-            self._plot(values, "attacker{}_delivers_nid.pdf".format(attacker_id), line_values=line_values)
+            self._plot_message_events(values, f"attacker{attacker_id}_delivers_nid.pdf", line_values=line_values)
 
         for source_id in self.configuration.source_ids:
             for (attacker_id, values) in self._attacker_delivers.items():
@@ -1446,11 +1535,18 @@ class MessageTimeGrapher(MetricsCommon):
                     for (time, node_id)
                     in self._attacker_history[attacker_id]
                 ]
-                self._plot(values, "attacker{}_delivers_dsrcm{}.pdf".format(attacker_id, source_id),
-                           line_values=line_values, y2label="Source {} Distance (meters)".format(source_id))
+                self._plot_message_events(values, f"attacker{attacker_id}_delivers_dsrcm{source_id}.pdf",
+                           line_values=line_values, y2label=f"Source {source_id} Distance (meters)")
 
+    @staticmethod
+    def items():
+        d = OrderedDict()
+        return d
 
-def import_algorithm_metrics(module_name, simulator):
+EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher)
+EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
+
+def import_algorithm_metrics(module_name, sim, extra_metrics=None):
     """Get the class to be used to gather metrics on the simulation.
     This will mixin metric gathering for certain simulator tools if necessary.
     If not, the regular metrics class will be provided."""
@@ -1460,21 +1556,26 @@ def import_algorithm_metrics(module_name, simulator):
         "avrora": AvroraMetricsCommon,
     }
 
-    mixin_class = simulator_to_mixin.get(simulator, None)
+    extra_metrics = [] if extra_metrics is None else [cls for cls in EXTRA_METRICS if cls.__name__ in extra_metrics]
 
-    algo_module = importlib.import_module("{}.Metrics".format(module_name))
+    mixin_class = simulator_to_mixin.get(sim, None)
 
-    if mixin_class is None:
+    algo_module = importlib.import_module(f"{module_name}.Metrics")
+
+    if mixin_class is None and len(extra_metrics) == 0:
         return algo_module.Metrics
 
-    class MixinMetrics(algo_module.Metrics, mixin_class):
+    super_classes = ([] if mixin_class is None else [mixin_class]) + extra_metrics
+
+    class MixinMetrics(algo_module.Metrics, *super_classes):
         def __init__(self, *args, **kwargs):
-            super(MixinMetrics, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
 
         @staticmethod
         def items():
             d = algo_module.Metrics.items()
-            d.update(mixin_class.items())
+            for cls in super_classes:
+                d.update(cls.items())
             return d
 
     return MixinMetrics

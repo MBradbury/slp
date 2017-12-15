@@ -129,7 +129,7 @@ class Runner(object):
             except IOError as ex:
                 # Ignore expected fails
                 if name not in {"main.srec", "wiring-check.xml"}:
-                    print("Not copying {} due to {}".format(name, ex))
+                    print(f"Not copying {name} due to {ex}")
 
         # Copy any generated class files
         for class_file in glob.glob(os.path.join(module_path, "*.class")):
@@ -144,10 +144,10 @@ class Runner(object):
         if self.testbed.generate_per_node_id_binary:
             target_ihex = os.path.join(target_directory, "main.ihex")
 
-            print("Creating per node id binaries using '{}'...".format(target_ihex))
+            print(f"Creating per node id binaries using '{target_ihex}'...")
 
             def fn(node_id):
-                output_ihex = os.path.join(target_directory, "main-{}.ihex".format(node_id))
+                output_ihex = os.path.join(target_directory, f"main-{node_id}.ihex")
                 self.create_tos_node_id_ihex(target_ihex, output_ihex, node_id)
 
             self.pool.map(fn, configuration.topology.nodes)
@@ -170,7 +170,7 @@ class Runner(object):
         try:
             (objcopy, objdump) = PLATFORM_TOOLS[self.platform]
         except KeyError:
-            raise KeyError("Unable to find the platform tools for '{}'".format(self.platform))
+            raise KeyError(f"Unable to find the platform tools for '{self.platform}'")
 
         command = " ".join([
             "tos-set-symbols",
@@ -187,7 +187,7 @@ class Runner(object):
 
     @staticmethod
     def parse_arguments(module, argv):
-        arguments_module = importlib.import_module("{}.Arguments".format(module))
+        arguments_module = importlib.import_module(f"{module}.Arguments")
 
         a = arguments_module.Arguments()
         a.parse(argv)

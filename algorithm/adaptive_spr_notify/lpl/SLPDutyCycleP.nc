@@ -1,6 +1,5 @@
 
-#include "Lpl.h"
-#include "DefaultLpl.h"
+#include "../Constants.h"
 
 module SLPDutyCycleP
 {
@@ -18,6 +17,7 @@ module SLPDutyCycleP
         interface Random;
         interface Leds;
 
+        interface NodeType;
         interface MetricLogging;
 
         interface Send as SubSend;
@@ -36,8 +36,6 @@ module SLPDutyCycleP
 
         interface SystemLowPowerListening;
 
-        interface Timer<TMilli> as OnTimer;
-        interface Timer<TMilli> as OffTimer;
         interface Timer<TMilli> as SendDoneTimer;
         
         interface ReceiveIndicator as EnergyIndicator;
@@ -63,14 +61,13 @@ implementation
         S_TURNING_OFF,
     };
     
-    /**
-     * Send States
-     */
+    // Send State
     enum {
-        S_IDLE,
-        S_SENDING,
+        S_LPL_NOT_SENDING,    // DEFAULT
+        S_LPL_SENDING,        // 1. Sending messages
+        S_LPL_CLEAN_UP,       // 2. Clean up the transmission
     };
-    
+
     enum {
         ONE_MESSAGE = 0,
     };
@@ -82,67 +79,51 @@ implementation
     uint8_t currentSendLen;
     
     /** TRUE if the radio is duty cycling and not always on */
-    bool dutyCycling;
-
-    /** The number of times the CCA has been sampled in this wakeup period */
-    uint16_t ccaChecks;
-
-    uint16_t sleepInterval;
+    bool started;
     
     /***************** Prototypes ***************/
     task void send();
     task void resend();
     task void startRadio();
     task void stopRadio();
-    //task void getCca();
     
     void initializeSend();
-    void startOnTimer();
-    void startOffTimer();
-    void startOffTimerFromMessage();
     bool isDutyCycling();
     bool finishSplitControlRequests();
     
     /***************** Init Commands ***************/
     command error_t Init.init()
     {
-        dutyCycling = FALSE;
+        started = FALSE;
         return SUCCESS;
     }
 
     /**************** SLPDutyCycle *****************/
 
-    command void SLPDutyCycle.normal_expected_interval(uint32_t expected_interval_ms)
+    command void SLPDutyCycle.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type, uint32_t rcvd_timestamp)
     {
-        call NormalMessageTimingAnalysis.expected_interval(expected_interval_ms);
-    }
-
-    command void SLPDutyCycle.fake_expected_interval(uint32_t expected_interval_ms)
-    {
-        call FakeMessageTimingAnalysis.expected_interval(expected_interval_ms);
-    }
-
-    command void SLPDutyCycle.received_Normal(message_t* msg, bool is_new)
-    {
-        const bool valid_timestamp = FALSE && call PacketTimeStamp.isValid(msg);
-        const uint32_t rcvd_time = valid_timestamp ? call PacketTimeStamp.timestamp(msg) : call LocalTime.get();
-
-        call NormalMessageTimingAnalysis.received(rcvd_time, valid_timestamp, is_new);
-
-        if (is_new)
+        if (source_type == SourceNode)
         {
-            startOffTimerFromMessage();
+            call NormalMessageTimingAnalysis.expected(duration_ms, period_ms, source_type, rcvd_timestamp);
+        }
+        else if (source_type == TempFakeNode || source_type == TailFakeNode || source_type == PermFakeNode)
+        {
+            call FakeMessageTimingAnalysis.expected(duration_ms, period_ms, source_type, rcvd_timestamp);
+        }
+        else
+        {
+            __builtin_unreachable();
         }
     }
 
-    command void SLPDutyCycle.received_Fake(message_t* msg, bool is_new)
+    command void SLPDutyCycle.received_Normal(message_t* msg, const void* data, uint8_t flags, uint8_t source_type, const uint32_t rcvd_timestamp)
     {
-        const bool valid_timestamp = call PacketTimeStamp.isValid(msg);
-        const uint32_t rcvd_time = valid_timestamp ? call PacketTimeStamp.timestamp(msg) : call LocalTime.get();
+        call NormalMessageTimingAnalysis.received(msg, data, rcvd_timestamp, flags, source_type);
+    }
 
-        //call FakeMessageTimingAnalysis.received(rcvd_time, valid_timestampm is_new);
-
-        //LOG_STDOUT(0, "received Fake %d %" PRIu32 " expected %" PRIu32 "\n", valid_timestamp, rcvd_time, expected_delay);
+    command void SLPDutyCycle.received_Fake(message_t* msg, const void* data, uint8_t flags, uint8_t source_type, const uint32_t rcvd_timestamp)
+    {
+        call FakeMessageTimingAnalysis.received(msg, data, rcvd_timestamp, flags, source_type);
     }
 
     /***************** StdControl Commands ****************/
@@ -165,7 +146,7 @@ implementation
 
         call SplitControlState.forceState(S_TURNING_ON);
 
-        dutyCycling = TRUE;
+        started = TRUE;
         
         post startRadio();
 
@@ -190,10 +171,9 @@ implementation
 
         call SplitControlState.forceState(S_TURNING_OFF);
         
-        dutyCycling = FALSE;
+        started = FALSE;
 
-        // Start radio and leave on
-        post startRadio();
+        post stopRadio();
 
         return SUCCESS;
     }
@@ -209,14 +189,11 @@ implementation
         currentSendMsg = msg;
         currentSendLen = len;
         
-        // In case our off timer is running...
-        //call OffTimer.stop();
         call SendDoneTimer.stop();
         
         if (call RadioPowerState.isState(S_ON))
         {
             initializeSend();
-            return SUCCESS;
         }
         else
         {
@@ -235,6 +212,9 @@ implementation
 
         call SendState.toIdle();
         call SendDoneTimer.stop();
+
+        // Try to stop the radio if allowed
+        post stopRadio();
 
         return call SubSend.cancel(msg);
     }
@@ -282,20 +262,10 @@ implementation
 
         finishSplitControlRequests();
 
-        if (call SendState.isState(S_LPL_FIRST_MESSAGE) ||
-            call SendState.isState(S_LPL_SENDING))
+        if (call SendState.isState(S_LPL_SENDING))
         {
             initializeSend();
         }
-
-        /*if (finishSplitControlRequests())
-        {
-            return;
-        }
-        else if(isDutyCycling())
-        {
-            post getCca();
-        }*/
     }
   
     event void SubControl.stopDone(error_t error)
@@ -305,28 +275,13 @@ implementation
 
         finishSplitControlRequests();
 
-        call OffTimer.stop();
+        call SendDoneTimer.stop();
 
-        /*if (call SendState.isState(S_LPL_FIRST_MESSAGE) ||
-            call SendState.isState(S_LPL_SENDING))
+        if (call SendState.isState(S_LPL_SENDING))
         {
             // We're in the middle of sending a message; start the radio back up
             post startRadio();
         }
-        else
-        {
-            call OffTimer.stop();
-            call SendDoneTimer.stop();
-        }*/
-        
-        /*if (finishSplitControlRequests())
-        {
-          return;
-        }
-        else if(isDutyCycling())
-        {
-            call OnTimer.startOneShot(sleepInterval);
-        }*/
     }
     
     /***************** SubSend Events ***************/
@@ -358,6 +313,9 @@ implementation
         
         call SendState.toIdle();
         call SendDoneTimer.stop();
+
+        // Attempt to turn the radio off if possible
+        post stopRadio();
 
         signal Send.sendDone(msg, error);
     }
@@ -430,7 +388,12 @@ implementation
         }
         else if (startResult == EALREADY)
         {
-            // Already on, do nothing
+            // Already on, set as so
+            if (!call RadioPowerState.isState(S_ON))
+            {
+                call RadioPowerState.forceState(S_ON);
+                call Leds.led2On();
+            }
         }
         else
         {
@@ -443,11 +406,29 @@ implementation
     {
         error_t stopResult;
 
-        // Can only turn off if we are not sending 
-        /*if (call SendState.getState() != S_LPL_NOT_SENDING)
+        /*simdbg("stdout", "attempt off s=%" PRIu8 " !dc=%" PRIu8 " nt=%" PRIu8 " norm=%" PRIu8 " fake=%" PRIu8 " send=%" PRIu8 "\n",
+            started, !isDutyCycling(), call NodeType.get(),
+            !call NormalMessageTimingAnalysis.can_turn_off(), !call FakeMessageTimingAnalysis.can_turn_off(),
+            call SendState.getState() != S_LPL_NOT_SENDING
+            );*/
+
+        if (
+            started && (
+                // If we are not duty cycling then don't turn off
+                !isDutyCycling() ||
+
+                // Source Nodes ignore turn off rules for Normal messages
+                // Don't turn off if Normal or Fake is expecting a message
+                (call NodeType.get() != SourceNode && !call NormalMessageTimingAnalysis.can_turn_off()) ||
+                !call FakeMessageTimingAnalysis.can_turn_off() ||
+
+                // Don't turn off when in the process of sending
+                call SendState.getState() != S_LPL_NOT_SENDING
+                )
+            )
         {
             return;
-        }*/
+        }
 
         stopResult = call SubControl.stop();
 
@@ -457,7 +438,12 @@ implementation
         }
         else if (stopResult == EALREADY)
         {
-            // Already off, do nothing
+            // Already off, set as so
+            if (!call RadioPowerState.isState(S_OFF))
+            {
+                call RadioPowerState.forceState(S_OFF);
+                call Leds.led2Off();
+            }
         }
         else
         {
@@ -489,99 +475,33 @@ implementation
     }
     
     /***************** Timer Events ****************/
-    event void OnTimer.fired()
+    event void NormalMessageTimingAnalysis.start_radio()
     {
-        startOffTimer();
-
         post startRadio();
-
-        /*if(isDutyCycling())
-        {
-            if (call RadioPowerState.isState(S_OFF))
-            {
-                ccaChecks = 0;
-                
-                // Turn on the radio only after the uC is fully awake.  ATmega128's 
-                // have this issue when running on an external crystal.
-                post getCca();
-            } 
-            else
-            {
-                // Someone else turned on the radio, try again in awhile
-                call OnTimer.startOneShot(sleepInterval);
-            }
-        }*/
     }
 
-    event void OffTimer.fired()
-    {    
-        /*
-         * Only stop the radio if the radio is supposed to be off permanently
-         * or if the duty cycle is on and our sleep interval is not 0
-         */
-        if (isDutyCycling())// || call SendState.getState() == S_LPL_NOT_SENDING)
-        { 
-            startOnTimer();
-
-            post stopRadio();
-        }
-    }
-    
-    
-    /***************** Tasks ****************/  
-    /*task void getCca()
+    event void FakeMessageTimingAnalysis.start_radio()
     {
-        uint8_t detects = 0;
+        post startRadio();
+    }
 
-        if (!isDutyCycling())
-        {
-            return;
-        }
-            
-        ccaChecks++;
-        if (ccaChecks == 1)
-        {
-            // Microcontroller is ready, turn on the radio and sample a few times
-            post startRadio();
-            return;
-        }
+    event void NormalMessageTimingAnalysis.stop_radio()
+    {
+        post stopRadio();
+    }
 
-        atomic
-        {
-            for( ; ccaChecks < MAX_LPL_CCA_CHECKS && call SendState.isIdle(); ccaChecks++)
-            {
-                if (call PacketIndicator.isReceiving())
-                {
-                    startOffTimer();
-                    return;
-                }
-                
-                if (call EnergyIndicator.isReceiving())
-                {
-                    detects++;
-                    if (detects > MIN_SAMPLES_BEFORE_DETECT)
-                    {
-                        startOffTimer();
-                        return;
-                    }
-
-                    // Leave the radio on for upper layers to perform some transaction
-                }
-            }
-        }
-        
-        if (call SendState.isIdle())
-        {
-            post stopRadio();
-        }  
-    }*/
+    event void FakeMessageTimingAnalysis.stop_radio()
+    {    
+        post stopRadio();
+    }
     
     /**
      * @return TRUE if the radio should be actively duty cycling
      */
     bool isDutyCycling()
     {
-        return dutyCycling;
+        // The sink does not duty cycle
+        return call NodeType.get() != SinkNode;
     }
 
     bool finishSplitControlRequests()
@@ -604,61 +524,6 @@ implementation
         else
         {
             return FALSE;
-        }
-    }
-
-    void startOnTimer()
-    {
-        if (!call OnTimer.isRunning())
-        {
-            //const uint32_t now = call LocalTime.get();
-            //const uint32_t last_group_start = call NormalMessageTimingAnalysis.last_group_start();
-            const uint32_t next_group_wait = call NormalMessageTimingAnalysis.next_group_wait();
-            const uint32_t early_wakeup_duration = call NormalMessageTimingAnalysis.early_wakeup_duration();
-            const uint32_t awake_duration = call NormalMessageTimingAnalysis.awake_duration();
-
-            const uint32_t start = (next_group_wait == UINT32_MAX)
-                ? 10
-                : next_group_wait - early_wakeup_duration - awake_duration;//(now - last_group_start);
-
-            simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
-            call OnTimer.startOneShot(start);
-        }
-    }
-
-    // OnTimer has just fired, start off timer
-    void startOffTimer()
-    {
-        if (!call OffTimer.isRunning())
-        {
-            if (call NormalMessageTimingAnalysis.next_group_wait() != UINT32_MAX)
-            {
-                const uint32_t early_wakeup_duration = call NormalMessageTimingAnalysis.early_wakeup_duration();
-                const uint32_t awake_duration = call NormalMessageTimingAnalysis.awake_duration();
-
-                const uint32_t start = early_wakeup_duration + awake_duration;
-
-                simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
-                call OffTimer.startOneShot(start);
-            }
-        }
-    }
-
-    // Just received a message, consider when to turn off
-    void startOffTimerFromMessage()
-    {
-        const uint32_t now = call LocalTime.get();
-
-        if (!call OffTimer.isRunning())
-        {
-            const uint32_t last_group_start = call NormalMessageTimingAnalysis.last_group_start(); // This is the current group
-            const uint32_t awake_duration = call NormalMessageTimingAnalysis.awake_duration();
-
-            const uint32_t start = awake_duration - (now - last_group_start);
-
-            simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
-                start, awake_duration, now, last_group_start);
-            call OffTimer.startOneShot(start);
         }
     }
     

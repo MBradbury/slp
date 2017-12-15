@@ -38,7 +38,7 @@ inline void sequence_number_update(SequenceNumber* left, const SequenceNumber ri
 inline bool sequence_number_before_and_update(SequenceNumber* left, const SequenceNumber right) __attribute__((nonnull(1)))
 {
     bool result;
-    atomic
+    //atomic
     {
         result = sequence_number_before(left, right);
         if (result)

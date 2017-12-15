@@ -12,7 +12,6 @@ template = algorithm.import_algorithm("template")
 #adaptive_spr = algorithm.import_algorithm("adaptive_spr")
 
 from data import results
-
 from data.table import fake_result
 from data.graph import summary, min_max_versus
 from data.util import scalar_extractor

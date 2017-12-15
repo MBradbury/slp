@@ -144,7 +144,7 @@ class CLI(CommandLineCommon.CLI):
             versus.Grapher(
                 self.algorithm_module.graphs_path, name,
                 xaxis='network size', yaxis=yxaxis, vary='source period',
-                yextractor=lambda (diff, pcdiff): pcdiff if pc else diff
+                yextractor=lambda diff, pcdiff: pcdiff if pc else diff
             ).create(result_table)
 
             summary.GraphSummary(
