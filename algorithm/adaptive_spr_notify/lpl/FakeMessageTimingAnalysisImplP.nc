@@ -25,7 +25,6 @@ generic module FakeMessageTimingAnalysisImplP()
     //uses interface Timer<TMilli> as PermDetectTimer;
 
     uses interface MetricLogging;
-    uses interface LocalTime<TMilli>;
 }
 implementation
 {
@@ -206,11 +205,12 @@ implementation
 
                     if (temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX)
                     {
-                        // TODO: consider receiving the nth fake message
-                        //const uint8_t nth_message_delay = (mdata->ultimate_sender_fake_count - 1) * temp_expected_period_ms;
+                        // When receiving the nth fake message we need to subtract this from the time to wait
+                        // ultimate_sender_fake_count starts at 0 for the first message
+                        const uint8_t nth_message_delay = mdata->ultimate_sender_fake_count * temp_expected_period_ms;
 
                         const uint32_t choose_start =
-                            temp_duration_ms - temp_delay_ms /*- nth_message_delay*/ - early_wakeup_duration_ms;
+                            temp_duration_ms - temp_delay_ms - nth_message_delay - early_wakeup_duration_ms;
 
                         call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
                     }
@@ -280,7 +280,7 @@ implementation
 
     event void ChooseOnTimer.fired()
     {
-        const uint32_t now = call ChooseOnTimer.getNow();
+        const uint32_t now = call ChooseOnTimer.gett0() + call ChooseOnTimer.getdt();
 
         signal MessageTimingAnalysis.start_radio();
 
@@ -292,27 +292,9 @@ implementation
         signal MessageTimingAnalysis.stop_radio();
     }
 
-    event void TempOnTimer.fired()
-    {
-        const uint32_t now = call TempOnTimer.getNow();
-
-        signal MessageTimingAnalysis.start_radio();
-
-        startTempOffTimer(now);
-    }
-
-    event void TempOffTimer.fired()
-    {    
-        const uint32_t now = call TempOffTimer.getNow();
-
-        startTempOnTimer(now);
-
-        signal MessageTimingAnalysis.stop_radio();
-    }
-
     event void DurationOnTimer.fired()
     {
-        const uint32_t now = call DurationOnTimer.getNow();
+        const uint32_t now = call DurationOnTimer.gett0() + call DurationOnTimer.getdt();
 
         signal MessageTimingAnalysis.start_radio();
 
@@ -321,11 +303,32 @@ implementation
 
     event void DurationOffTimer.fired()
     {
-        const uint32_t now = call DurationOffTimer.getNow();
-
-        startTempOnTimer(now);
+        const uint32_t now = call DurationOffTimer.gett0() + call DurationOffTimer.getdt();
 
         signal MessageTimingAnalysis.stop_radio();
+
+        // Stop on on timer as we are about to reset it
+        call TempOnTimer.stop();
+
+        startTempOnTimer(now);
+    }
+
+    event void TempOnTimer.fired()
+    {
+        const uint32_t now = call TempOnTimer.gett0() + call TempOnTimer.getdt();
+
+        signal MessageTimingAnalysis.start_radio();
+
+        startTempOffTimer(now);
+    }
+
+    event void TempOffTimer.fired()
+    {    
+        const uint32_t now = call TempOffTimer.gett0() + call TempOffTimer.getdt();
+
+        signal MessageTimingAnalysis.stop_radio();
+
+        startTempOnTimer(now);
     }
 
     void startTempOnTimer(uint32_t now)
@@ -376,7 +379,7 @@ implementation
 
     event void PermOnTimer.fired()
     {
-        const uint32_t now = call PermOnTimer.getNow();
+        const uint32_t now = call PermOnTimer.gett0() + call PermOnTimer.getdt();
 
         signal MessageTimingAnalysis.start_radio();
 
@@ -384,8 +387,8 @@ implementation
     }
 
     event void PermOffTimer.fired()
-    {    
-        const uint32_t now = call PermOffTimer.getNow();
+    {
+        const uint32_t now = call PermOffTimer.gett0() + call PermOffTimer.getdt();
 
         signal MessageTimingAnalysis.stop_radio();
 
