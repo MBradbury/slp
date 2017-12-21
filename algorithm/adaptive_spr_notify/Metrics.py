@@ -6,6 +6,7 @@ class Metrics(FakeMetricsCommon, DutyCycleMetricsCommon):
 
     def __init__(self, *args, **kwargs):
         super(Metrics, self).__init__(*args, **kwargs)
+        self.add_message_format("Fake", "!IHhBBII", ("seq", "src", "sdst", "type", "scnt", "sdur", "sper"))
 
     @staticmethod
     def items():

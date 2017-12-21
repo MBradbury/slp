@@ -1,10 +1,11 @@
 from __future__ import print_function, division
 
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict, namedtuple
 import base64
 from itertools import zip_longest, tee
 import math
 import pickle
+import struct
 import sys
 import zlib
 
@@ -39,6 +40,8 @@ class MetricsCommon(object):
         self.topology = configuration.topology
 
         self.strict = strict
+
+        self._message_parsers = {}
 
         self.reported_source_ids = set() # set(configuration.source_ids)
         self.reported_sink_ids = set() # {configuration.sink_id}
@@ -183,6 +186,32 @@ class MetricsCommon(object):
     def register_generic(self, identifier, function):
         """Register a callback for a generic event."""
         self._generic_handlers[identifier] = function
+
+
+    def add_message_format(self, message_name, parse_string, content_names):
+        """Adds a message format record, that can be used to parse the hex buffer of the message."""
+        content_names = list(content_names)
+        content_names.append("crc")
+
+        message_name_cls = namedtuple(message_name, " ".join(content_names))
+        message_name_cls.__new__.__default__ = (None,) * len(content_names)
+
+        self._message_parsers[message_name] = (parse_string, message_name_cls)
+
+    def parse_message(self, message_name, hex_buffer):
+        """Builds a data structure from the hex buffer of a message."""
+        (parse_string, message_name_cls) = self._message_parsers[message_name]
+
+        buf = bytes.fromhex(hex_buffer)
+
+        if struct.calcsize(parse_string) == len(buf):
+            contents = struct.unpack(parse_string, buf)
+        else:
+            # Try parsing with a crc uint16_t
+            contents = struct.unpack(parse_string + "H", buf)
+
+        return message_name_cls._make(contents)
+
 
     def _time_to_bin(self, time):
         return int(math.floor(time / self._time_bin_width))
@@ -1403,19 +1432,20 @@ class DutyCycleMetricsGrapher(MetricsCommon):
         d = OrderedDict()
         return d
 
-
-
 class MessageTimeMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.register('M-CB', self.log_time_bcast_event)
         self.register('M-CD', self.log_time_deliver_event)
+        self.register('M-NC', self.log_time_node_change_event)
 
         self._bcasts = defaultdict(list)
         self._delivers = defaultdict(list)
         self._attacker_delivers = {}
         self._attacker_history = defaultdict(list)
+        self._node_change = defaultdict(list)
+
 
     def log_time_bcast_event(self, d_or_e, node_id, time, detail):
         (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
@@ -1428,7 +1458,13 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         kind = self.message_kind_to_string(kind)
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
-        self._bcasts[kind].append((time, ord_node_id))
+        try:
+            contents = self.parse_message(kind, hex_buffer)
+        except KeyError:
+            contents = None
+
+
+        self._bcasts[kind].append((time, ord_node_id, f"{contents}"))
 
     def log_time_deliver_event(self, d_or_e, node_id, time, detail):
         try:
@@ -1440,7 +1476,23 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         kind = self.message_kind_to_string(kind)
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
-        self._delivers[kind].append((time, ord_node_id))
+        try:
+            contents = self.parse_message(kind, hex_buffer)
+        except KeyError:
+            contents = None
+
+        self._delivers[kind].append((time, ord_node_id, f"{contents}"))
+
+    def log_time_node_change_event(self, d_or_e, node_id, time, detail):
+        (old_name, new_name) = detail.split(',')
+
+        time = float(time)
+        old_name = self.node_kind_to_string(old_name)
+        new_name = self.node_kind_to_string(new_name)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self._node_change[new_name].append((time, ord_node_id, f"{old_name}"))
+
 
     def _message_type_to_colour(self, kind):
         return {
@@ -1453,9 +1505,22 @@ class MessageTimeMetricsGrapher(MetricsCommon):
             "Poll": "xkcd:orange",
         }[kind]
 
-    def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False):
+    def _node_type_to_colour(self, kind):
+        return {
+            "NormalNode": "dodgerblue",
+            "TempFakeNode": "olive",
+            "TailFakeNode": "gold",
+            "PermFakeNode": "darkorange",
+            "SourceNode": "darkgreen",
+            "SinkNode": "darkblue",
+        }[kind]
+
+    def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False, interactive=False):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
+
+        if interactive:
+            import mpld3
 
         fig, ax = plt.subplots()
 
@@ -1463,10 +1528,25 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         box = ax.get_position()
         ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-        for (kind, values) in sorted(values.items(), key=lambda x: x[0]):
-            xy = [(time, ord_node_id.nid) for (time, ord_node_id) in values]
-            xs, ys = zip(*xy)
-            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=7, zorder=2)
+        # Plot events
+        for (kind, details) in sorted(values.items(), key=lambda x: x[0]):
+            xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
+            xs, ys, annos = zip(*xya)
+            scatter = ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=5, zorder=3, marker="o")
+
+            if interactive:
+                tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
+                mpld3.plugins.connect(fig, tooltip)
+
+        # Plot node changes
+        for (kind, details) in sorted(self._node_change.items(), key=lambda x: x[0]):
+            xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
+            xs, ys, annos = zip(*xya)
+            scatter = ax.scatter(xs, ys, c=self._node_type_to_colour(kind), label=kind[:-len("Node")], s=11, zorder=2, marker="s")
+
+            if interactive:
+                tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
+                mpld3.plugins.connect(fig, tooltip)
 
         if line_values is not None:
             xs, ys = zip(*line_values)
@@ -1477,7 +1557,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
                 ax2 = ax.twinx()
                 ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-                ax2.plot(xs, ys, zorder=2)
+                ax2.plot(xs, ys, zorder=4)
 
                 ax2.set_ylabel(y2label)
 
@@ -1512,12 +1592,15 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         ax.set_xlabel("Time (seconds)")
         ax.set_ylabel("Node ID")
 
+        if interactive:
+            mpld3.show()
+
         plt.savefig(filename)
 
     def finish(self):
         super().finish()
 
-        self._plot_message_events(self._bcasts, "bcasts.pdf")
+        self._plot_message_events(self._bcasts, "bcasts.pdf")#, interactive=True)
         self._plot_message_events(self._delivers, "delivers.pdf")
 
         if isinstance(self, DutyCycleMetricsCommon):
@@ -1526,6 +1609,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
 
         for (attacker_id, values) in self._attacker_delivers.items():
             line_values = [(time, node_id.nid) for (time, node_id) in self._attacker_history[attacker_id]]
+            values = {k: [detail + (None,) for detail in details] for (k, details) in values.items()}
             self._plot_message_events(values, f"attacker{attacker_id}_delivers_nid.pdf", line_values=line_values)
 
         for source_id in self.configuration.source_ids:
@@ -1535,6 +1619,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
                     for (time, node_id)
                     in self._attacker_history[attacker_id]
                 ]
+                values = {k: [detail + (None,) for detail in details] for (k, details) in values.items()}
                 self._plot_message_events(values, f"attacker{attacker_id}_delivers_dsrcm{source_id}.pdf",
                            line_values=line_values, y2label=f"Source {source_id} Distance (meters)")
 
