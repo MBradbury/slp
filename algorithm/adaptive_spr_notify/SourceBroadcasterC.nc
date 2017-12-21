@@ -539,6 +539,10 @@ implementation
 
 	event void ChooseSenderTimer.fired()
 	{
+		const am_addr_t target = fake_walk_target();
+
+		bool ack_request = TRUE;
+
 		ChooseMessage message;
 		message.sequence_number = sequence_number_next(&choose_sequence_counter);
 		message.source_id = TOS_NODE_ID;
@@ -555,14 +559,13 @@ implementation
 		message.ultimate_sender_first_source_distance = first_source_distance;
 		message.source_node_type = call NodeType.get();
 
-		if (send_Choose_message(&message, AM_BROADCAST_ADDR, NULL))
+		if (send_Choose_message(&message, target, &ack_request))
 		{
 			sequence_number_increment(&choose_sequence_counter);
 		}
-		else
-		{
-			call ChooseSenderTimer.startOneShot(1);
-		}
+
+		// Keep sending choose messages until we get a response back
+		call ChooseSenderTimer.startPeriodicAt(call ChooseSenderTimer.gett0() + call ChooseSenderTimer.getdt(), 50);
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -690,7 +693,7 @@ implementation
 			{
 				if (!call ChooseSenderTimer.isRunning())
 				{
-					call ChooseSenderTimer.startOneShot(AWAY_DELAY_MS);
+					call ChooseSenderTimer.startOneShotAt(rcvd_timestamp, AWAY_DELAY_MS);
 				}
 			}
 		}
@@ -839,6 +842,7 @@ implementation
 	void Sink_receive_Choose(message_t* msg, const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_received_choose_reponse = TRUE;
+		call ChooseSenderTimer.stop();
 	}
 
 	void Normal_receive_Choose(message_t* msg, const ChooseMessage* const rcvd, am_addr_t source_addr)
@@ -971,6 +975,7 @@ implementation
 	void Sink_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr, uint32_t rcvd_timestamp)
 	{
 		sink_received_choose_reponse = TRUE;
+		call ChooseSenderTimer.stop();
 
 		Normal_receive_Fake(msg, rcvd, source_addr, rcvd_timestamp);
 	}
@@ -1066,7 +1071,7 @@ implementation
 		{
 			if (!call ChooseSenderTimer.isRunning())
 			{
-				call ChooseSenderTimer.startOneShot(AWAY_DELAY_MS);
+				call ChooseSenderTimer.startOneShotAt(rcvd_timestamp, AWAY_DELAY_MS);
 			}
 		}
 	}
