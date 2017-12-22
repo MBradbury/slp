@@ -230,13 +230,13 @@ implementation
 	am_addr_t fake_walk_target(void)
 	{
 		am_addr_t chosen_address;
-		uint32_t i;
 
 		distance_neighbours_t local_neighbours;
 		init_distance_neighbours(&local_neighbours);
 
 		if (first_source_distance != UNKNOWN_HOP_DISTANCE)
 		{
+			uint16_t i;
 			for (i = 0; i != neighbours.size; ++i)
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
