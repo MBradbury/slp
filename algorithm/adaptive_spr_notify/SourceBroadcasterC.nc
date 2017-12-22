@@ -61,7 +61,6 @@ module SourceBroadcasterC
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
-	uses interface Timer<TMilli> as ChooseSenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
 
 	uses interface Packet;
@@ -360,7 +359,7 @@ implementation
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Away);
-	USE_MESSAGE_ACK_REQUEST(Choose);
+	USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(Choose);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Fake);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Notify);
@@ -537,11 +536,11 @@ implementation
 		return any_further;
 	}
 
-	event void ChooseSenderTimer.fired()
+	task void request_next_fake_source()
 	{
 		const am_addr_t target = fake_walk_target();
 
-		bool ack_request = TRUE;
+		bool ack_request = target != AM_BROADCAST_ADDR;
 
 		ChooseMessage message;
 		message.sequence_number = sequence_number_next(&choose_sequence_counter);
@@ -563,9 +562,10 @@ implementation
 		{
 			sequence_number_increment(&choose_sequence_counter);
 		}
-
-		// Keep sending choose messages until we get a response back
-		call ChooseSenderTimer.startPeriodicAt(call ChooseSenderTimer.gett0() + call ChooseSenderTimer.getdt(), 50);
+		else
+		{
+			post request_next_fake_source();
+		}
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -691,10 +691,7 @@ implementation
 			// Keep sending away messages until we get a valid response
 			if (!sink_received_choose_reponse)
 			{
-				if (!call ChooseSenderTimer.isRunning())
-				{
-					call ChooseSenderTimer.startOneShotAt(rcvd_timestamp, AWAY_DELAY_MS);
-				}
+				post request_next_fake_source();
 			}
 		}
 	}
@@ -842,7 +839,6 @@ implementation
 	void Sink_receive_Choose(message_t* msg, const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
 		sink_received_choose_reponse = TRUE;
-		call ChooseSenderTimer.stop();
 	}
 
 	void Normal_receive_Choose(message_t* msg, const ChooseMessage* const rcvd, am_addr_t source_addr)
@@ -941,6 +937,34 @@ implementation
 		case TailFakeNode: Fake_receive_Choose(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Choose)
 
+	void send_Choose_done(message_t* msg, error_t error)
+	{
+		if (error == SUCCESS)
+		{
+			const bool ack_requested = call AMPacket.destination(msg) != AM_BROADCAST_ADDR;
+
+			if (ack_requested)
+			{
+				if (call ChoosePacketAcknowledgements.wasAcked(msg))
+				{
+					if (call NodeType.get() == SinkNode)
+					{
+						sink_received_choose_reponse = TRUE;
+					}
+				}
+				else
+				{
+					post request_next_fake_source();
+				}
+			}
+		}
+		else
+		{
+			post request_next_fake_source();
+		}
+	}
+
+
 	void process_fake_duty_cycle(message_t* msg, const FakeMessage* const rcvd, bool is_new, uint32_t rcvd_timestamp)
 	{
 		const uint8_t duty_cycle_flags =
@@ -975,7 +999,6 @@ implementation
 	void Sink_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr, uint32_t rcvd_timestamp)
 	{
 		sink_received_choose_reponse = TRUE;
-		call ChooseSenderTimer.stop();
 
 		Normal_receive_Fake(msg, rcvd, source_addr, rcvd_timestamp);
 	}
@@ -1069,10 +1092,7 @@ implementation
 		// Keep sending away messages until we get a valid response
 		if (!sink_received_choose_reponse)
 		{
-			if (!call ChooseSenderTimer.isRunning())
-			{
-				call ChooseSenderTimer.startOneShotAt(rcvd_timestamp, AWAY_DELAY_MS);
-			}
+			post request_next_fake_source();
 		}
 	}
 
