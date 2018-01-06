@@ -134,7 +134,7 @@ implementation
 
     event void DissemTimer.fired(void)
     {
-        const uint32_t now = call LocalTime.get();
+        const uint32_t now = call DissemTimer.gett0() + call DissemTimer.getdt();
 
         if(signal TDMAMultiSlot.dissem_fired()) {
             call NonSlotTimer.startOneShotAt(now, DISSEM_PERIOD_MS);
@@ -146,7 +146,7 @@ implementation
 
     event void SlotTimer.fired(void)
     {
-        const uint32_t now = call LocalTime.get();
+        const uint32_t now = call SlotTimer.gett0() + call SlotTimer.getdt();
         slot_active = TRUE;
         signal TDMAMultiSlot.slot_started(active_slot_index);
         call NonSlotTimer.startOneShotAt(now, SLOT_PERIOD_MS);
@@ -160,7 +160,7 @@ implementation
 
     event void NonSlotTimer.fired(void)
     {
-        const uint32_t now = call LocalTime.get();
+        const uint32_t now = call NonSlotTimer.gett0() + call NonSlotTimer.getdt();
         const uint16_t current_slot = call TDMAMultiSlot.get_current_slot();
         const uint16_t next_slot = call TDMAMultiSlot.get_next_slot();
 
