@@ -1532,7 +1532,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, details) in sorted(values.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=5, zorder=3, marker="o")
+            scatter = ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=4, zorder=3, marker="o")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1542,7 +1542,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, details) in sorted(self._node_change.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=self._node_type_to_colour(kind), label=kind[:-len("Node")], s=11, zorder=2, marker="s")
+            scatter = ax.scatter(xs, ys, c=self._node_type_to_colour(kind), label=kind[:-len("Node")], s=12, zorder=2, marker="s")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
