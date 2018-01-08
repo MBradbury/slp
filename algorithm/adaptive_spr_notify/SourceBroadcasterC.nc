@@ -126,6 +126,7 @@ implementation
 	hop_distance_t sink_distance;
 
 	bool sink_received_choose_reponse;
+	uint8_t choose_rtx_limit;
 
 	hop_distance_t first_source_distance;
 
@@ -289,6 +290,7 @@ implementation
 		sink_distance = UNKNOWN_HOP_DISTANCE;
 
 		sink_received_choose_reponse = FALSE;
+		choose_rtx_limit = UINT8_MAX;
 
 		first_source_distance = UNKNOWN_HOP_DISTANCE;
 
@@ -536,7 +538,7 @@ implementation
 		return any_further;
 	}
 
-	task void request_next_fake_source()
+	task void request_next_fake_source_task()
 	{
 		const am_addr_t target = fake_walk_target();
 
@@ -564,8 +566,16 @@ implementation
 		}
 		else
 		{
-			post request_next_fake_source();
+			post request_next_fake_source_task();
 		}
+	}
+
+	void request_next_fake_source()
+	{
+		choose_rtx_limit = (call NodeType.get() == TempFakeNode || call NodeType.get() == TailFakeNode || call NodeType.get() == PermFakeNode)
+			? CHOOSE_RTX_LIMIT_FOR_FS
+			: UINT8_MAX;
+		post request_next_fake_source_task();
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -691,7 +701,7 @@ implementation
 			// Keep sending away messages until we get a valid response
 			if (!sink_received_choose_reponse)
 			{
-				post request_next_fake_source();
+				request_next_fake_source();
 			}
 		}
 	}
@@ -939,6 +949,11 @@ implementation
 
 	void send_Choose_done(message_t* msg, error_t error)
 	{
+		if (choose_rtx_limit != UINT8_MAX)
+		{
+			choose_rtx_limit -= 1;
+		}
+
 		if (error == SUCCESS)
 		{
 			const bool ack_requested = call AMPacket.destination(msg) != AM_BROADCAST_ADDR;
@@ -954,13 +969,19 @@ implementation
 				}
 				else
 				{
-					post request_next_fake_source();
+					if (choose_rtx_limit != 0)
+					{
+						post request_next_fake_source_task();
+					}
 				}
 			}
 		}
 		else
 		{
-			post request_next_fake_source();
+			if (choose_rtx_limit != 0)
+			{
+				post request_next_fake_source_task();
+			}
 		}
 	}
 
@@ -1092,7 +1113,7 @@ implementation
 		// Keep sending away messages until we get a valid response
 		if (!sink_received_choose_reponse)
 		{
-			post request_next_fake_source();
+			request_next_fake_source();
 		}
 	}
 
@@ -1182,6 +1203,7 @@ implementation
 		// send the new node type
 		message.source_node_type = (call NodeType.get() == PermFakeNode) ? NormalNode : TailFakeNode;
 
+		choose_rtx_limit = CHOOSE_RTX_LIMIT_FOR_FS;
 		send_Choose_message(&message, target, &ack_request);
 
 		if (call NodeType.get() == PermFakeNode)

@@ -32,4 +32,7 @@ implementation
     DummyLplC.SubSend = SubSend;
     DummyLplC.SubReceive = SubReceive;
     DummyLplC.SubControl = SubControl;
+
+    components MetricLoggingP as MetricLogging;
+    DummyDutyCycleP.MetricLogging -> MetricLogging;
 }
