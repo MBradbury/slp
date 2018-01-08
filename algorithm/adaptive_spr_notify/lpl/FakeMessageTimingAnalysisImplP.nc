@@ -101,8 +101,8 @@ implementation
 
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 75;
-        early_wakeup_duration_ms = 75;
+        max_wakeup_time_ms = 350;//100;
+        early_wakeup_duration_ms = 150;//75;
 
         return SUCCESS;
     }
@@ -168,8 +168,20 @@ implementation
 
         //temp_message_received = TRUE;
 
-        //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received at=%" PRIu32 " expected=%" PRIu32 " gd=%" PRIu32 "\n",
-        //    TOS_NODE_ID, timestamp_ms, temp_expected_interval_ms, group_diff);
+        //LOG_STDOUT(0, "received FAKE at=%" PRIu32 " from=%" PRIu16 " count=%" PRIu16 " new=%" PRIu8 " first=%" PRIu8 " ajd=%" PRIu8 "\n",
+        //    timestamp_ms, mdata->source_id, mdata->ultimate_sender_fake_count, is_new, is_first_fake, is_adjacent);
+
+        /*if (call TempOffTimer.isRunning())
+        {
+            const uint32_t radio_off_at = call TempOffTimer.gett0() + call TempOffTimer.getdt();
+            const uint32_t radio_on_at = radio_off_at - early_wakeup_duration_ms - max_wakeup_time_ms;
+
+            const int32_t a = timestamp_ms - radio_on_at;
+            const uint32_t b = radio_off_at - timestamp_ms;
+
+            LOG_STDOUT(0, "Received TempFake %" PRIi32 " %" PRIu32 " %" PRIu32 " w=%" PRIi32 "\n",
+                a, timestamp_ms, b, a + b);
+        }*/
 
         if (is_new)
         {
@@ -188,13 +200,18 @@ implementation
 
             startTempOffTimerFromMessage(timestamp_ms);
 
-            // TODO: handle non-first fake messages
-            if (is_first_fake)
             {
+                // When receiving the nth fake message we need to subtract this from the time to wait
+                // ultimate_sender_fake_count starts at 0 for the first message
+                const uint8_t nth_message_delay = mdata->ultimate_sender_fake_count * temp_expected_period_ms;
+
                 // Wake up for the first fake message from the next fake node
-                //if (!call DurationOnTimer.isRunning())
+                if (!call DurationOnTimer.isRunning())
                 {
-                    call DurationOnTimer.startOneShotAt(timestamp_ms, temp_next_duration_wait() - early_wakeup_duration_ms);
+                    const uint32_t temp_duration_ms = temp_next_duration_wait();
+
+                    call DurationOnTimer.startOneShotAt(timestamp_ms,
+                        temp_duration_ms - nth_message_delay - early_wakeup_duration_ms);
                 }
 
                 // Check if we should wake up for choose messages
@@ -203,12 +220,8 @@ implementation
                     const uint32_t temp_duration_ms = temp_next_duration_wait();
                     const uint32_t temp_delay_ms = temp_delay_wait();
 
-                    if (temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX)
+                    //if (temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX)
                     {
-                        // When receiving the nth fake message we need to subtract this from the time to wait
-                        // ultimate_sender_fake_count starts at 0 for the first message
-                        const uint8_t nth_message_delay = mdata->ultimate_sender_fake_count * temp_expected_period_ms;
-
                         const uint32_t choose_start =
                             temp_duration_ms - temp_delay_ms - nth_message_delay - early_wakeup_duration_ms;
 
@@ -240,6 +253,7 @@ implementation
         //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received at=%" PRIu32 " expected=%" PRIu32 " gd=%" PRIu32 "\n",
         //    TOS_NODE_ID, timestamp_ms, temp_expected_interval_ms, group_diff);
 
+        
         if (is_new)
         {
             //perm_previous_group_time_ms = timestamp_ms;
@@ -339,7 +353,7 @@ implementation
 
             if (next_wait_ms == UINT32_MAX)
             {
-                //simdbg("stdout", "WARNING: Not starting TempOnTimer as temp_next_period_wait is unknown\n");
+                ERROR_OCCURRED(ErrorUnknownTempPeriodWait, "Restarting radio immediately. temp_next_period_wait unknown.\n");
 
                 signal MessageTimingAnalysis.start_radio();
             }
@@ -361,7 +375,6 @@ implementation
         {
             const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
 
-            //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
             call TempOffTimer.startOneShotAt(now, start);
         }
     }
@@ -369,10 +382,8 @@ implementation
     // Just received a message, consider when to turn off
     void startTempOffTimerFromMessage(uint32_t now)
     {
-        //if (!call TempOffTimer.isRunning())
+        if (!call TempOffTimer.isRunning())
         {
-            //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
-            //    start, awake_duration, now, temp_previous_group_time_ms);
             call TempOffTimer.startOneShotAt(now, max_wakeup_time_ms);
         }
     }
@@ -403,13 +414,13 @@ implementation
 
             if (next_wait_ms == UINT32_MAX)
             {
+                ERROR_OCCURRED(ErrorUnknownPermPeriodWait, "Restarting radio immediately. perm_next_period_wait unknown.\n");
+
                 signal MessageTimingAnalysis.start_radio();
             }
             else
             {
                 const uint32_t start = next_wait_ms - early_wakeup_duration_ms - max_wakeup_time_ms;
-
-                //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
 
                 call PermOnTimer.startOneShotAt(now, start);
             }
@@ -421,20 +432,16 @@ implementation
     {
         if (!call PermOffTimer.isRunning())
         {
-            if (perm_next_period_wait() != UINT32_MAX)
-            {
-                const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
+            const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
 
-                //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
-                call PermOffTimer.startOneShotAt(now, start);
-            }
+            call PermOffTimer.startOneShotAt(now, start);
         }
     }
 
     // Just received a message, consider when to turn off
     void startPermOffTimerFromMessage(uint32_t now)
     {
-        //if (!call PermOffTimer.isRunning())
+        if (!call PermOffTimer.isRunning())
         {
             //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
             //    start, awake_duration, now, temp_previous_group_time_ms);

@@ -21,11 +21,20 @@ enum NodeType
     PermFakeNode = 5,
 };
 
+enum ILPRoutingErrorCodes
+{
+    ErrorUnknownTempPeriodWait = 1001,
+    ErrorUnknownPermPeriodWait = 1002,
+    ErrorUnknownNormalPeriodWait = 1003,
+};
+
 #define BOTTOM (-1)
 #define SLP_MAX_NUM_SINKS 1
 #define SLP_MAX_NUM_SOURCES 20
 #define SLP_MAX_1_HOP_NEIGHBOURHOOD 16
 
-#define SLP_OBJECT_DETECTOR_START_DELAY_MS (3 * 1000)
+#define SLP_OBJECT_DETECTOR_START_DELAY_MS (4 * 1000)
+
+#define CHOOSE_RTX_LIMIT_FOR_FS 3
 
 #endif // SLP_CONSTANTS_H

@@ -24,7 +24,7 @@ implementation
     uint32_t next_group_wait(void);
 
     uint32_t expected_interval_ms;
-    uint32_t previous_group_time_ms;
+    //uint32_t previous_group_time_ms;
 
     //uint32_t average_us;
     //uint32_t seen;
@@ -39,13 +39,13 @@ implementation
     command error_t Init.init()
     {
         expected_interval_ms = UINT32_MAX;
-        previous_group_time_ms = UINT32_MAX; // Last time a new group was started
+        //previous_group_time_ms = UINT32_MAX; // Last time a new group was started
 
         //seen = 0;
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 45;
-        early_wakeup_duration_ms = 45;
+        max_wakeup_time_ms = 50;
+        early_wakeup_duration_ms = 30;
 
         //message_received = FALSE;
         //missed_messages = 0;
@@ -102,18 +102,30 @@ implementation
         // Difference between this message and the last group message
         // Sometimes we may think that this message arrived before a previous message
         // Typically the difference is in the order of 1ms.
-        const uint32_t group_diff = (previous_group_time_ms != UINT32_MAX && previous_group_time_ms <= timestamp_ms)
-            ? (timestamp_ms - previous_group_time_ms)
-            : UINT32_MAX;
+        //const uint32_t group_diff = (previous_group_time_ms != UINT32_MAX && previous_group_time_ms <= timestamp_ms)
+        //    ? (timestamp_ms - previous_group_time_ms)
+        //    : UINT32_MAX;
 
         //message_received = TRUE;
 
         //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received Normal at=%" PRIu32 " v=%" PRIu8 "\n",
         //    TOS_NODE_ID, timestamp_ms, (flags & SLP_DUTY_CYCLE_VALID_TIMESTAMP) != 1);
 
+        /*if (call OffTimer.isRunning())
+        {
+            const uint32_t radio_off_at = call OffTimer.gett0() + call OffTimer.getdt();
+            const uint32_t radio_on_at = radio_off_at - early_wakeup_duration_ms - max_wakeup_time_ms;
+
+            const int32_t a = timestamp_ms - radio_on_at;
+            const uint32_t b = radio_off_at - timestamp_ms;
+
+            LOG_STDOUT(0, "Received Normal %" PRIi32 " %" PRIu32 " %" PRIu32 " w=%" PRIi32 "\n",
+                a, timestamp_ms, b, a + b);
+        }*/
+
         if (is_new)
         {
-            previous_group_time_ms = timestamp_ms;
+            //previous_group_time_ms = timestamp_ms;
 
             //if (group_diff != UINT32_MAX)
             //{
@@ -122,13 +134,13 @@ implementation
 
             startOffTimerFromMessage(timestamp_ms);
         }
-        else
+        /*else
         {
             if (group_diff != UINT32_MAX)
             {
                 max_wakeup_time_ms = max(max_wakeup_time_ms, group_diff);
             }
-        }
+        }*/
     }
 
     // How long to wait between one group and the next
@@ -172,6 +184,8 @@ implementation
             // Don't know how long to wait for, so just start the radio
             if (next_group_wait_ms == UINT32_MAX)
             {
+                ERROR_OCCURRED(ErrorUnknownNormalPeriodWait, "Restarting radio immediately. next_group_wait unknown.\n");
+
                 signal MessageTimingAnalysis.start_radio();
             }
             else
@@ -190,14 +204,10 @@ implementation
     {
         if (!call OffTimer.isRunning())
         {
-            // Don't start the off timer if we do not know how long to be off for
-            if (next_group_wait() != UINT32_MAX)
-            {
-                const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
+            const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
 
-                //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
-                call OffTimer.startOneShotAt(now, start);
-            }
+            //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
+            call OffTimer.startOneShotAt(now, start);
         }
     }
 
@@ -206,7 +216,7 @@ implementation
     {
         // When a message is received, we should restart the off timer if it is running
 
-        //if (!call OffTimer.isRunning())
+        if (!call OffTimer.isRunning())
         {
             call OffTimer.startOneShotAt(now, max_wakeup_time_ms);
         }
