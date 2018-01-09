@@ -31,6 +31,27 @@ def pairwise(iterable):
     next(b, None)
     return zip(a, b)
 
+def message_type_to_colour(kind):
+    return {
+        "Normal": "blue",
+        "Fake": "red",
+        "Away": "magenta",
+        "Choose": "green",
+        "Notify": "cyan",
+        "Beacon": "black",
+        "Poll": "xkcd:orange",
+    }[kind]
+
+def node_type_to_colour(kind):
+    return {
+        "NormalNode": "dodgerblue",
+        "TempFakeNode": "olive",
+        "TailFakeNode": "gold",
+        "PermFakeNode": "darkorange",
+        "SourceNode": "darkgreen",
+        "SinkNode": "darkblue",
+    }[kind]
+
 class MetricsCommon(object):
     def __init__(self, sim, configuration, strict=True):
         super().__init__()
@@ -1493,28 +1514,6 @@ class MessageTimeMetricsGrapher(MetricsCommon):
 
         self._node_change[new_name].append((time, ord_node_id, f"{old_name}"))
 
-
-    def _message_type_to_colour(self, kind):
-        return {
-            "Normal": "blue",
-            "Fake": "red",
-            "Away": "magenta",
-            "Choose": "green",
-            "Notify": "cyan",
-            "Beacon": "black",
-            "Poll": "xkcd:orange",
-        }[kind]
-
-    def _node_type_to_colour(self, kind):
-        return {
-            "NormalNode": "dodgerblue",
-            "TempFakeNode": "olive",
-            "TailFakeNode": "gold",
-            "PermFakeNode": "darkorange",
-            "SourceNode": "darkgreen",
-            "SinkNode": "darkblue",
-        }[kind]
-
     def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False, interactive=False):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
@@ -1532,7 +1531,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, details) in sorted(values.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=4, zorder=3, marker="o")
+            scatter = ax.scatter(xs, ys, c=message_type_to_colour(kind), label=kind, s=4, zorder=3, marker="o")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1542,7 +1541,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, details) in sorted(self._node_change.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=self._node_type_to_colour(kind), label=kind[:-len("Node")], s=12, zorder=2, marker="s")
+            scatter = ax.scatter(xs, ys, c=node_type_to_colour(kind), label=kind[:-len("Node")], s=12, zorder=2, marker="s")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1628,7 +1627,82 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         d = OrderedDict()
         return d
 
-EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher)
+class MessageDutyCycleBoundaryHistogram(MetricsCommon):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.register('M-CR', self.log_time_receive_event_hist)
+
+        self._delivers_hist = defaultdict(list)
+
+    def log_time_receive_event_hist(self, d_or_e, node_id, time, detail):
+        (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self._delivers_hist[(kind, ord_node_id)].append(time)
+
+    def finish(self):
+        super().finish()
+
+        message_types = [kind for (kind, ord_node_id) in self._delivers_hist]
+
+        for message_type in message_types:
+            self._plot_message_duty_cycle_boundary_histogram(message_type)
+
+    def _plot_message_duty_cycle_boundary_histogram(self, message_name):
+        import matplotlib.pyplot as plt
+        from matplotlib.font_manager import FontProperties
+
+        intervals = {
+            "Fake": (50, 75),
+            "Normal": (15, 25),
+        }
+
+        early_wakeup_ms, max_wakeup_ms = intervals.get(message_name, (0, 0))
+
+        fig, ax = plt.subplots()
+
+        hist_values = []
+
+        for (node_id, states) in self._duty_cycle_states.items():
+            states = states + [(states[-1][0], self.sim_time())]
+
+            combined = [(atime, btime) for ((astate, atime), (bstate, btime)) in pairwise(states) if astate]
+
+            first_start, first_stop = combined[0]
+
+            rcvd_times = [
+                rcvd_time
+                for rcvd_time in self._delivers_hist[(message_name, node_id)]
+                if not (first_start <= rcvd_time < first_stop)
+            ]
+
+            for rcvd_time in rcvd_times:
+                possible = [(start, stop) for (start, stop) in combined if start <= rcvd_time < stop]
+
+                if len(possible) == 1:
+                    (start, stop) = possible[0]
+
+                    hist_time = (rcvd_time - start) * 1000 - early_wakeup_ms
+
+                    hist_values.append(hist_time)
+                else:
+                    print(f"Multiple times {possible} for {rcvd_time} for msg {message_name} on {node_id}")
+
+        if len(hist_values) > 0:
+            bins = int(math.ceil(max(hist_values)-min(hist_values))/5)
+            ax.hist(hist_values, bins=bins, color=message_type_to_colour(message_name))
+
+            ax.set_xlabel("Difference (ms)")
+            ax.set_ylabel("Count")
+
+            plt.savefig(f"{message_name}dutycycleboundaryhist.pdf")
+
+
+EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, MessageDutyCycleBoundaryHistogram)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
 def import_algorithm_metrics(module_name, sim, extra_metrics=None):
