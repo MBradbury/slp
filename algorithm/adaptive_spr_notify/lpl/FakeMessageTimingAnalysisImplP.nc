@@ -101,8 +101,8 @@ implementation
 
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 350;//100;
-        early_wakeup_duration_ms = 150;//75;
+        max_wakeup_time_ms = 100;
+        early_wakeup_duration_ms = 75;
 
         return SUCCESS;
     }
@@ -443,18 +443,12 @@ implementation
     {
         if (!call PermOffTimer.isRunning())
         {
-            //simdbg("stdout", "Starting off timer 1 in %" PRIu32 " (%" PRIu32 ",%" PRIu32 ",%" PRIu32 ")\n",
-            //    start, awake_duration, now, temp_previous_group_time_ms);
             call PermOffTimer.startOneShotAt(now, max_wakeup_time_ms);
         }
     }
 
     command bool MessageTimingAnalysis.can_turn_off()
     {
-        /*simdbg("stdout", "fake cto TempOn=%" PRIu8 " TempOff=%" PRIu8 " PermOff=%" PRIu8 " ChooseOff=%" PRIu8 "\n",
-            call TempOnTimer.isRunning(), !call TempOffTimer.isRunning(),
-            !call PermOffTimer.isRunning(), !call ChooseOffTimer.isRunning());*/
-
         return
             // Can turn off if not listening for a fake from a TempFS or TailFS
             (call TempOnTimer.isRunning() && !call TempOffTimer.isRunning()) &&

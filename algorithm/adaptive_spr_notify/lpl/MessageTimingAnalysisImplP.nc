@@ -44,8 +44,8 @@ implementation
         //seen = 0;
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 50;
-        early_wakeup_duration_ms = 30;
+        max_wakeup_time_ms = 30;
+        early_wakeup_duration_ms = 20;
 
         //message_received = FALSE;
         //missed_messages = 0;
