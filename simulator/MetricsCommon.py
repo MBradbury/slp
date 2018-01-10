@@ -1371,6 +1371,10 @@ class DutyCycleMetricsCommon(MetricsCommon):
         start_time = self._duty_cycle_start
         end_time = self.sim_time()
 
+        # If we never received a duty cycle start event, then assume it starts after boot
+        if start_time is None:
+            start_time = next(iter(self.node_booted_at[node_id]))
+
         (state, state_time) = self._duty_cycle_state[node_id]
 
         duty_time = self._duty_cycle[node_id]
