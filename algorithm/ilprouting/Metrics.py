@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from simulator.MetricsCommon import MetricsCommon
+from simulator.MetricsCommon import MetricsCommon, DutyCycleMetricsCommon
 
 import numpy as np
 
@@ -9,9 +9,9 @@ ERROR_RTX_FAILED_TRYING_OTHER = 1002
 
 METRIC_GENERIC_TIME_TAKEN_TO_SEND = 1
 
-class Metrics(MetricsCommon):
+class Metrics(DutyCycleMetricsCommon):
     def __init__(self, *args, **kwargs):
-        super(Metrics, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._time_taken_to_send = {}
 
@@ -50,5 +50,7 @@ class Metrics(MetricsCommon):
         d["FailedAvoidSink"]        = lambda x: x.errors[ERROR_RTX_FAILED_TRYING_OTHER] / x.num_normal_sent_if_finished()
 
         d["TimeTakenToSend"]        = lambda x: MetricsCommon.compressed_dict_str(x.average_time_taken_to_send())
+
+        d.update(DutyCycleMetricsCommon.items())
 
         return d
