@@ -1183,40 +1183,44 @@ implementation
 
 	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size, uint32_t duration_expired_at)
 	{
-		ChooseMessage message;
+		ChooseMessage new_message;
 
 		const am_addr_t target = fake_walk_target();
+		const uint8_t node_type = call NodeType.get();
 
 		bool ack_request = TRUE;
 
 		//assert(sizeof(message) == original_size);
 
-		memcpy(&message, original, sizeof(message));
+		memcpy(&new_message, original, sizeof(new_message));
 
 		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to " TOS_NODE_ID_SPEC ".\n", target);
 
 		// When finished sending fake messages from a TFS
-		message.sink_distance += 1;
-		message.any_further = any_further_neighbours();
-		message.ultimate_sender_first_source_distance = first_source_distance;
+		new_message.sink_distance += 1;
+		new_message.any_further = any_further_neighbours();
+		new_message.ultimate_sender_first_source_distance = first_source_distance;
 
 		// send the new node type
-		message.source_node_type = (call NodeType.get() == PermFakeNode) ? NormalNode : TailFakeNode;
+		new_message.source_node_type = (node_type == PermFakeNode) ? NormalNode : TailFakeNode;
 
 		choose_rtx_limit = CHOOSE_RTX_LIMIT_FOR_FS;
-		send_Choose_message(&message, target, &ack_request);
+		send_Choose_message(&new_message, target, &ack_request);
 
 		if (call NodeType.get() == PermFakeNode)
 		{
 			become_Normal();
 		}
-		else if (call NodeType.get() == TempFakeNode)
+		else if (node_type == TempFakeNode || node_type == TailFakeNode)
 		{
-			become_Fake(&message, TailFakeNode, duration_expired_at);
+			ChooseMessage original_message;
+			memcpy(&original_message, original, sizeof(original_message));
+
+			become_Fake(&original_message, TailFakeNode, duration_expired_at);
 		}
-		else //if (call NodeType.get() == TailFakeNode)
+		else
 		{
-			fake_count = 0;
+			__builtin_unreachable();
 		}
 	}
 }
