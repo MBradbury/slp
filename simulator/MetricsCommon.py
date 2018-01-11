@@ -1424,12 +1424,12 @@ class DutyCycleMetricsGrapher(MetricsCommon):
             states = self._duty_cycle_states[node_id]
             states = [(False, 0)] + states + [(states[-1][0], self.sim_time())]
 
-            combined = [(atime, btime, astate) for ((astate, atime), (bstate, btime)) in pairwise(states)]
+            combined = [(atime, btime) for ((astate, atime), (bstate, btime)) in pairwise(states) if astate]
 
-            for (start, stop, state) in combined:
-                colour = "mediumaquamarine" if state else "lightgray"
+            ax.hlines(node_id.nid, 0, self.sim_time(), "lightgray", linewidth=4, zorder=1)
 
-                ax.hlines(node_id.nid, start, stop, colour, linewidth=4)
+            for (start, stop) in combined:
+                ax.hlines(node_id.nid, start, stop, "mediumaquamarine", linewidth=4, zorder=2)
 
         node_ids = [node_id.nid for node_id in self.topology.nodes]
         ymin, ymax = min(node_ids), max(node_ids)
@@ -1535,7 +1535,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, details) in sorted(values.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=message_type_to_colour(kind), label=kind, s=4, zorder=3, marker="o")
+            scatter = ax.scatter(xs, ys, c=message_type_to_colour(kind), label=kind, s=4, zorder=4, marker="o")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1545,7 +1545,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, details) in sorted(self._node_change.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=node_type_to_colour(kind), label=kind[:-len("Node")], s=12, zorder=2, marker="s")
+            scatter = ax.scatter(xs, ys, c=node_type_to_colour(kind), label=kind[:-len("Node")], s=12, zorder=3, marker="s")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1560,7 +1560,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
                 ax2 = ax.twinx()
                 ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-                ax2.plot(xs, ys, zorder=4)
+                ax2.plot(xs, ys, zorder=5)
 
                 ax2.set_ylabel(y2label)
 
@@ -1574,12 +1574,12 @@ class MessageTimeMetricsGrapher(MetricsCommon):
                 states = self._duty_cycle_states[node_id]
                 states = [(False, 0)] + states + [(states[-1][0], self.sim_time())]
 
-                combined = [(atime, btime, astate) for ((astate, atime), (bstate, btime)) in pairwise(states)]
+                combined = [(atime, btime) for ((astate, atime), (bstate, btime)) in pairwise(states) if astate]
 
-                for (start, stop, state) in combined:
-                    colour = "mediumaquamarine" if state else "lightgray"
+                ax.hlines(node_id.nid, 0, self.sim_time(), "lightgray", linewidth=4, zorder=1)
 
-                    ax.hlines(node_id.nid, start, stop, colour, linewidth=4, zorder=1)
+                for (start, stop) in combined:
+                    ax.hlines(node_id.nid, start, stop, "mediumaquamarine", linewidth=4, zorder=2)
 
         node_ids = [node_id.nid for node_id in self.topology.nodes]
         ymin, ymax = min(node_ids), max(node_ids)
@@ -1632,12 +1632,18 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         return d
 
 class MessageDutyCycleBoundaryHistogram(MetricsCommon):
+    """Generates a histogram of how far off the wakeup period
+    a message was received. This extra metric is very focused at
+    the adaptive_spr_notify algorithm when used with the
+    SLPDutyCycleP duty cycle."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.register('M-CR', self.log_time_receive_event_hist)
+        self.register('M-G', self.log_time_generic_event_lpl_on)
 
         self._delivers_hist = defaultdict(list)
+        self._radio_on_times = defaultdict(list)
 
     def log_time_receive_event_hist(self, d_or_e, node_id, time, detail):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
@@ -1648,10 +1654,30 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
 
         self._delivers_hist[(kind, ord_node_id)].append(time)
 
+    def log_time_generic_event_lpl_on(self, d_or_e, node_id, time, detail):
+        (code, message) = detail.split(",")
+
+        time = float(time)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        code = int(code)
+
+        code_to_name = {
+            3001: "Normal",
+            3002: "Fake",
+            3003: "Choose",
+        }
+
+        try:
+            code_name = code_to_name[code]
+
+            self._radio_on_times[(code_name, ord_node_id)].append(time)
+        except KeyError:
+            pass
+
     def finish(self):
         super().finish()
 
-        message_types = [kind for (kind, ord_node_id) in self._delivers_hist]
+        message_types = {kind for (kind, ord_node_id) in self._delivers_hist} & {kind for (kind, ord_node_id) in self._radio_on_times}
 
         for message_type in message_types:
             self._plot_message_duty_cycle_boundary_histogram(message_type)
@@ -1661,8 +1687,9 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         from matplotlib.font_manager import FontProperties
 
         intervals = {
-            "Fake": (50, 75),
-            "Normal": (15, 25),
+            "Fake": (75, 125),
+            "Choose": (25, 25),
+            "Normal": (50, 50),
         }
 
         early_wakeup_ms, max_wakeup_ms = intervals.get(message_name, (0, 0))
@@ -1672,33 +1699,30 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         hist_values = []
 
         for (node_id, states) in self._duty_cycle_states.items():
-            states = states + [(states[-1][0], self.sim_time())]
+            singles = self._radio_on_times[(message_name, node_id)] + [self.sim_time()]
 
-            combined = [(atime, btime) for ((astate, atime), (bstate, btime)) in pairwise(states) if astate]
-
-            first_start, first_stop = combined[0]
-
-            rcvd_times = [
-                rcvd_time
-                for rcvd_time in self._delivers_hist[(message_name, node_id)]
-                if not (first_start <= rcvd_time < first_stop)
-            ]
+            rcvd_times = self._delivers_hist[(message_name, node_id)]
 
             for rcvd_time in rcvd_times:
-                possible = [(start, stop) for (start, stop) in combined if start <= rcvd_time < stop]
+                possible = [start1 for (start1, start2) in pairwise(singles) if start1 <= rcvd_time < start2]
 
                 if len(possible) == 1:
-                    (start, stop) = possible[0]
+                    start = possible[0]
 
                     hist_time = (rcvd_time - start) * 1000 - early_wakeup_ms
 
                     hist_values.append(hist_time)
                 else:
-                    print(f"Multiple times {possible} for {rcvd_time} for msg {message_name} on {node_id}")
+                    if len(possible) > 0:
+                        print(f"Multiple times {possible} for {rcvd_time} for msg {message_name} on {node_id}")
 
         if len(hist_values) > 0:
             bins = int(math.ceil(max(hist_values)-min(hist_values))/5)
-            ax.hist(hist_values, bins=bins, color=message_type_to_colour(message_name))
+            try:
+                ax.hist(hist_values, bins=bins, color=message_type_to_colour(message_name))
+            except ValueError as ex:
+                print(ex)
+                ax.hist(hist_values, bins="auto", color=message_type_to_colour(message_name))
 
             ax.set_xlabel("Difference (ms)")
             ax.set_ylabel("Count")
