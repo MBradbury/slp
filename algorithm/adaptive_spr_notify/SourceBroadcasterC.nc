@@ -625,8 +625,9 @@ implementation
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		UPDATE_NEIGHBOURS(source_addr, 1);
 
@@ -639,8 +640,9 @@ implementation
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
@@ -671,8 +673,9 @@ implementation
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
@@ -711,8 +714,9 @@ implementation
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
@@ -989,10 +993,11 @@ implementation
 	void process_fake_duty_cycle(message_t* msg, const FakeMessage* const rcvd, bool is_new, uint32_t rcvd_timestamp)
 	{
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(rcvd->ultimate_sender_fake_count == 0 ? SLP_DUTY_CYCLE_IS_FIRST_FAKE : 0) |
-			(find_distance_neighbour(&neighbours, rcvd->source_id) != NULL ? SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+		      (is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (rcvd->ultimate_sender_fake_count == 0 ? SLP_DUTY_CYCLE_IS_FIRST_FAKE : 0)
+			| (find_distance_neighbour(&neighbours, rcvd->source_id) != NULL ? SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		call SLPDutyCycle.expected(
 			rcvd->ultimate_sender_fake_duration_ms,
@@ -1083,8 +1088,9 @@ implementation
 		const bool is_new = sequence_number_before_and_update(&notify_sequence_counter, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
