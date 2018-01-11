@@ -29,9 +29,8 @@ implementation
     //uint32_t average_us;
     //uint32_t seen;
 
-    uint32_t max_wakeup_time_ms;
-
-    uint32_t early_wakeup_duration_ms;
+    uint32_t late_wakeup_ms;
+    uint32_t early_wakeup_ms;
 
     //bool message_received;
     //uint32_t missed_messages;
@@ -44,8 +43,8 @@ implementation
         //seen = 0;
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 30;
-        early_wakeup_duration_ms = 20;
+        late_wakeup_ms = 50;//30;
+        early_wakeup_ms = 50;//20;
 
         //message_received = FALSE;
         //missed_messages = 0;
@@ -72,11 +71,11 @@ implementation
                 ? expected_interval_ms/2
                 : 300;
 
-            early_wakeup_duration_ms = min(early_wakeup_duration_ms + 5, max_value);
+            early_wakeup_ms = min(early_wakeup_ms + 5, max_value);
         }
         else
         {
-            //early_wakeup_duration_ms = max(early_wakeup_duration_ms - 5, 75);
+            //early_wakeup_ms = max(early_wakeup_ms - 5, 75);
         }* /
 
         message_received = FALSE;
@@ -85,6 +84,7 @@ implementation
     command void MessageTimingAnalysis.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type, uint32_t rcvd_timestamp)
     {
         //assert(source_type == SourceNode);
+        //assert(duration_ms == UINT32_MAX);
 
         // TODO: Look into a way to do this that performs well
         //call DetectTimer.startOneShotAt(rcvd_timestamp, period_ms);
@@ -114,7 +114,7 @@ implementation
         /*if (call OffTimer.isRunning())
         {
             const uint32_t radio_off_at = call OffTimer.gett0() + call OffTimer.getdt();
-            const uint32_t radio_on_at = radio_off_at - early_wakeup_duration_ms - max_wakeup_time_ms;
+            const uint32_t radio_on_at = radio_off_at - early_wakeup_ms - late_wakeup_ms;
 
             const int32_t a = timestamp_ms - radio_on_at;
             const uint32_t b = radio_off_at - timestamp_ms;
@@ -138,7 +138,7 @@ implementation
         {
             if (group_diff != UINT32_MAX)
             {
-                max_wakeup_time_ms = max(max_wakeup_time_ms, group_diff);
+                late_wakeup_ms = max(late_wakeup_ms, group_diff);
             }
         }*/
     }
@@ -161,6 +161,7 @@ implementation
     {
         const uint32_t now = call OnTimer.gett0() + call OnTimer.getdt();
 
+        METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_NORMAL, "");
         signal MessageTimingAnalysis.start_radio();
 
         startOffTimer(now);
@@ -190,7 +191,7 @@ implementation
             }
             else
             {
-                const uint32_t start = next_group_wait_ms - early_wakeup_duration_ms - max_wakeup_time_ms;
+                const uint32_t start = next_group_wait_ms - early_wakeup_ms - late_wakeup_ms;
 
                 //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
 
@@ -204,7 +205,7 @@ implementation
     {
         if (!call OffTimer.isRunning())
         {
-            const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
+            const uint32_t start = early_wakeup_ms + late_wakeup_ms;
 
             //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
             call OffTimer.startOneShotAt(now, start);
@@ -218,7 +219,7 @@ implementation
 
         if (!call OffTimer.isRunning())
         {
-            call OffTimer.startOneShotAt(now, max_wakeup_time_ms);
+            call OffTimer.startOneShotAt(now, late_wakeup_ms);
         }
     }
 

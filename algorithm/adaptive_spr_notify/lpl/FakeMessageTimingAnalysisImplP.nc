@@ -6,6 +6,8 @@
 
 #include "SLPDutyCycleFlags.h"
 
+static const uint32_t choose_on_time = 50;
+
 generic module FakeMessageTimingAnalysisImplP()
 {
     provides interface MessageTimingAnalysis;
@@ -51,12 +53,15 @@ implementation
     uint32_t temp_expected_duration_ms;
     uint32_t temp_expected_period_ms;
 
+    bool temp_disabled;
+    uint8_t temp_no_receive_count;
+
     //uint32_t temp_previous_group_time_ms;
     
     //bool temp_message_received;
 
-    uint32_t max_wakeup_time_ms;
-    uint32_t early_wakeup_duration_ms;
+    uint32_t late_wakeup_ms;
+    uint32_t early_wakeup_ms;
 
     // How long to wait between one group and the next
     // This is the time between the first new messages
@@ -76,7 +81,7 @@ implementation
     uint32_t perm_next_period_wait(void)
     {
         return /*(perm_seen == 0) ?*/ perm_expected_interval_ms /*: perm_average_us / 1000*/;
-    } 
+    }
 
     command error_t Init.init()
     {
@@ -85,6 +90,9 @@ implementation
 
         temp_expected_duration_ms = UINT32_MAX;
         temp_expected_period_ms = UINT32_MAX;
+
+        temp_disabled = FALSE;
+        temp_no_receive_count = 0;
 
         //temp_previous_first_duration_time_ms = UINT32_MAX; // Last time a new group was started
         //temp_previous_group_time_ms = UINT32_MAX;
@@ -101,8 +109,8 @@ implementation
 
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 100;
-        early_wakeup_duration_ms = 75;
+        late_wakeup_ms = 125;//250
+        early_wakeup_ms = 75;//150
 
         return SUCCESS;
     }
@@ -125,6 +133,8 @@ implementation
     {
         if (source_type == PermFakeNode)
         {
+            //assert(duration_ms == UINT32_MAX);
+
             //call PermDetectTimer.startPeriodicAt(rcvd_timestamp, period_ms);
 
             // A PFS has changed its interval
@@ -154,7 +164,7 @@ implementation
     void received_temp_or_tail(const FakeMessage* mdata, uint32_t timestamp_ms, uint8_t flags)
     {
         const bool is_new = (flags & SLP_DUTY_CYCLE_IS_NEW) != 0;
-        const bool is_first_fake = (flags & SLP_DUTY_CYCLE_IS_FIRST_FAKE) != 0;
+        //const bool is_first_fake = (flags & SLP_DUTY_CYCLE_IS_FIRST_FAKE) != 0;
         const bool is_adjacent = (flags & SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE) != 0;
 
         // Difference between this message and the last group message
@@ -174,7 +184,7 @@ implementation
         /*if (call TempOffTimer.isRunning())
         {
             const uint32_t radio_off_at = call TempOffTimer.gett0() + call TempOffTimer.getdt();
-            const uint32_t radio_on_at = radio_off_at - early_wakeup_duration_ms - max_wakeup_time_ms;
+            const uint32_t radio_on_at = radio_off_at - early_wakeup_ms - late_wakeup_ms;
 
             const int32_t a = timestamp_ms - radio_on_at;
             const uint32_t b = radio_off_at - timestamp_ms;
@@ -211,7 +221,7 @@ implementation
                     const uint32_t temp_duration_ms = temp_next_duration_wait();
 
                     call DurationOnTimer.startOneShotAt(timestamp_ms,
-                        temp_duration_ms - nth_message_delay - early_wakeup_duration_ms);
+                        temp_duration_ms - nth_message_delay - early_wakeup_ms);
                 }
 
                 // Check if we should wake up for choose messages
@@ -220,13 +230,12 @@ implementation
                     const uint32_t temp_duration_ms = temp_next_duration_wait();
                     const uint32_t temp_delay_ms = temp_delay_wait();
 
-                    //if (temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX)
-                    {
-                        const uint32_t choose_start =
-                            temp_duration_ms - temp_delay_ms - nth_message_delay - early_wakeup_duration_ms;
+                    const uint32_t choose_start =
+                            temp_duration_ms - temp_delay_ms - nth_message_delay - early_wakeup_ms;
 
-                        call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
-                    }
+                    //assert(temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX);
+
+                    call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
                 }
             }
         }
@@ -234,7 +243,7 @@ implementation
         {
             if (group_diff != UINT32_MAX)
             {
-                max_wakeup_time_ms = max(max_wakeup_time_ms, group_diff);
+                late_wakeup_ms = max(late_wakeup_ms, group_diff);
             }
         }*/
     }
@@ -269,7 +278,7 @@ implementation
         {
             if (group_diff != UINT32_MAX)
             {
-                max_wakeup_time_ms = max(max_wakeup_time_ms, group_diff);
+                late_wakeup_ms = max(late_wakeup_ms, group_diff);
             }
         }*/
     }
@@ -290,15 +299,35 @@ implementation
         {
             __builtin_unreachable();
         }
+
+        if (!temp_disabled)
+        {
+            if (call TempOffTimer.isRunning() && !call TempOnTimer.isRunning())
+            {
+                temp_no_receive_count = 0;
+            }
+            else
+            {
+                temp_no_receive_count += 1;
+            }
+    
+            if (perm_expected_interval_ms != UINT32_MAX && temp_no_receive_count >= 3)
+            {
+                temp_disabled = TRUE;
+                call TempOffTimer.stop();
+                call TempOnTimer.stop();
+            }
+        }
     }
 
     event void ChooseOnTimer.fired()
     {
         const uint32_t now = call ChooseOnTimer.gett0() + call ChooseOnTimer.getdt();
 
+        METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_CHOOSE, "");
         signal MessageTimingAnalysis.start_radio();
 
-        call ChooseOffTimer.startOneShotAt(now, early_wakeup_duration_ms + max_wakeup_time_ms);
+        call ChooseOffTimer.startOneShotAt(now, choose_on_time);
     }
 
     event void ChooseOffTimer.fired()
@@ -310,9 +339,10 @@ implementation
     {
         const uint32_t now = call DurationOnTimer.gett0() + call DurationOnTimer.getdt();
 
+        METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
         signal MessageTimingAnalysis.start_radio();
 
-        call DurationOffTimer.startOneShotAt(now, early_wakeup_duration_ms + max_wakeup_time_ms);
+        call DurationOffTimer.startOneShotAt(now, early_wakeup_ms + late_wakeup_ms);
     }
 
     event void DurationOffTimer.fired()
@@ -331,6 +361,7 @@ implementation
     {
         const uint32_t now = call TempOnTimer.gett0() + call TempOnTimer.getdt();
 
+        METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
         signal MessageTimingAnalysis.start_radio();
 
         startTempOffTimer(now);
@@ -359,7 +390,7 @@ implementation
             }
             else
             {
-                const uint32_t start = next_wait_ms - early_wakeup_duration_ms - max_wakeup_time_ms;
+                const uint32_t start = next_wait_ms - early_wakeup_ms - late_wakeup_ms;
 
                 //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
 
@@ -373,7 +404,7 @@ implementation
     {
         if (!call TempOffTimer.isRunning())
         {
-            const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
+            const uint32_t start = early_wakeup_ms + late_wakeup_ms;
 
             call TempOffTimer.startOneShotAt(now, start);
         }
@@ -384,7 +415,7 @@ implementation
     {
         if (!call TempOffTimer.isRunning())
         {
-            call TempOffTimer.startOneShotAt(now, max_wakeup_time_ms);
+            call TempOffTimer.startOneShotAt(now, late_wakeup_ms);
         }
     }
 
@@ -392,6 +423,7 @@ implementation
     {
         const uint32_t now = call PermOnTimer.gett0() + call PermOnTimer.getdt();
 
+        METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
         signal MessageTimingAnalysis.start_radio();
 
         startPermOffTimer(now);
@@ -420,7 +452,7 @@ implementation
             }
             else
             {
-                const uint32_t start = next_wait_ms - early_wakeup_duration_ms - max_wakeup_time_ms;
+                const uint32_t start = next_wait_ms - early_wakeup_ms - late_wakeup_ms;
 
                 call PermOnTimer.startOneShotAt(now, start);
             }
@@ -432,7 +464,7 @@ implementation
     {
         if (!call PermOffTimer.isRunning())
         {
-            const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
+            const uint32_t start = early_wakeup_ms + late_wakeup_ms;
 
             call PermOffTimer.startOneShotAt(now, start);
         }
@@ -443,7 +475,7 @@ implementation
     {
         if (!call PermOffTimer.isRunning())
         {
-            call PermOffTimer.startOneShotAt(now, max_wakeup_time_ms);
+            call PermOffTimer.startOneShotAt(now, late_wakeup_ms);
         }
     }
 
@@ -451,7 +483,7 @@ implementation
     {
         return
             // Can turn off if not listening for a fake from a TempFS or TailFS
-            (call TempOnTimer.isRunning() && !call TempOffTimer.isRunning()) &&
+            (temp_disabled || (call TempOnTimer.isRunning() && !call TempOffTimer.isRunning())) &&
 
             // And, we either haven't started PFS duty cycling, or we are in the PFS off period
             /*((!call PermOnTimer.isRunning() && !call PermOffTimer.isRunning()) ||

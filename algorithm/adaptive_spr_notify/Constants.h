@@ -21,11 +21,18 @@ enum NodeType
     PermFakeNode = 5,
 };
 
-enum ILPRoutingErrorCodes
+enum AppErrorCodes
 {
     ErrorUnknownTempPeriodWait = 1001,
     ErrorUnknownPermPeriodWait = 1002,
     ErrorUnknownNormalPeriodWait = 1003,
+};
+
+enum AppEventCodes
+{
+    METRIC_GENERIC_DUTY_CYCLE_ON_NORMAL = 3001,
+    METRIC_GENERIC_DUTY_CYCLE_ON_FAKE = 3002,
+    METRIC_GENERIC_DUTY_CYCLE_ON_CHOOSE = 3003,
 };
 
 #define BOTTOM (-1)
