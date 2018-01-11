@@ -667,9 +667,9 @@ class RandomPoissonDiskConnected(Configuration):
             space_behind_sink=True
         )
 
-class RandomPoissonDiskConnected1000(Configuration):
+class RandomPoissonDiskConnected500(Configuration):
     def __init__(self, *args, **kwargs):
-        random = RandomPoissonDisk(*args[:-1], seed=1000)
+        random = RandomPoissonDisk(*args[:-1], seed=500)
 
         super().__init__(
             random,
