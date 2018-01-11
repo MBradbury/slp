@@ -161,7 +161,9 @@ implementation
     {
         const uint32_t now = call OnTimer.gett0() + call OnTimer.getdt();
 
+#ifdef SLP_USES_GUI_OUPUT
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_NORMAL, "");
+#endif
         signal MessageTimingAnalysis.start_radio();
 
         startOffTimer(now);
@@ -193,8 +195,6 @@ implementation
             {
                 const uint32_t start = next_group_wait_ms - early_wakeup_ms - late_wakeup_ms;
 
-                //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
-
                 call OnTimer.startOneShotAt(now, start);
             }
         }
@@ -207,7 +207,6 @@ implementation
         {
             const uint32_t start = early_wakeup_ms + late_wakeup_ms;
 
-            //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
             call OffTimer.startOneShotAt(now, start);
         }
     }
@@ -215,8 +214,6 @@ implementation
     // Just received a message, consider when to turn off
     void startOffTimerFromMessage(uint32_t now)
     {
-        // When a message is received, we should restart the off timer if it is running
-
         if (!call OffTimer.isRunning())
         {
             call OffTimer.startOneShotAt(now, late_wakeup_ms);

@@ -1687,7 +1687,7 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         from matplotlib.font_manager import FontProperties
 
         intervals = {
-            "Fake": (75, 125),
+            "Fake": (100, 150),
             "Choose": (25, 25),
             "Normal": (50, 50),
         }
