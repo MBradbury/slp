@@ -109,8 +109,8 @@ implementation
 
 
         // Set a minimum group wait time here
-        late_wakeup_ms = 125;//250
-        early_wakeup_ms = 75;//150
+        late_wakeup_ms = 150;//250
+        early_wakeup_ms = 100;//150
 
         return SUCCESS;
     }
@@ -324,7 +324,9 @@ implementation
     {
         const uint32_t now = call ChooseOnTimer.gett0() + call ChooseOnTimer.getdt();
 
+#ifdef SLP_USES_GUI_OUPUT
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_CHOOSE, "");
+#endif
         signal MessageTimingAnalysis.start_radio();
 
         call ChooseOffTimer.startOneShotAt(now, choose_on_time);
@@ -339,7 +341,9 @@ implementation
     {
         const uint32_t now = call DurationOnTimer.gett0() + call DurationOnTimer.getdt();
 
+#ifdef SLP_USES_GUI_OUPUT
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
+#endif
         signal MessageTimingAnalysis.start_radio();
 
         call DurationOffTimer.startOneShotAt(now, early_wakeup_ms + late_wakeup_ms);
@@ -361,7 +365,9 @@ implementation
     {
         const uint32_t now = call TempOnTimer.gett0() + call TempOnTimer.getdt();
 
+#ifdef SLP_USES_GUI_OUPUT
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
+#endif
         signal MessageTimingAnalysis.start_radio();
 
         startTempOffTimer(now);
@@ -423,7 +429,9 @@ implementation
     {
         const uint32_t now = call PermOnTimer.gett0() + call PermOnTimer.getdt();
 
+#ifdef SLP_USES_GUI_OUPUT
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
+#endif
         signal MessageTimingAnalysis.start_radio();
 
         startPermOffTimer(now);
