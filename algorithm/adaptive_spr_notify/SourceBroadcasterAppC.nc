@@ -48,26 +48,22 @@ implementation
 	App.LocalTime -> LocalTimeMilliC;
 
 #ifdef LOW_POWER_LISTENING
-	components SLPDutyCycleC;
-	App.SLPDutyCycleControl -> SLPDutyCycleC.SplitControl;
-	App.SLPDutyCycle -> SLPDutyCycleC.SLPDutyCycle;
-
-	SLPDutyCycleC.NodeType -> NodeTypeC;
+	components SLPDutyCycleC as SLPDutyCycle;
+	SLPDutyCycle.NodeType -> NodeTypeC;
 #else
-	components DummyDutyCycleC;
-	App.SLPDutyCycle -> DummyDutyCycleC.SLPDutyCycle;
+	components DummyDutyCycleC as SLPDutyCycle;
 #endif
+
+	App.SLPDutyCycle -> SLPDutyCycle.SLPDutyCycle;
 
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
 	components new TimerMilliC() as AwaySenderTimer;
-	components new TimerMilliC() as ChooseSenderTimer;
 	components new TimerMilliC() as BeaconSenderTimer;
 
 	App.BroadcastNormalTimer -> BroadcastNormalTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
-	App.ChooseSenderTimer -> ChooseSenderTimer;
 	App.BeaconSenderTimer -> BeaconSenderTimer;
 
 
@@ -91,10 +87,13 @@ implementation
 
 	components
 		new AMSenderC(CHOOSE_CHANNEL) as ChooseSender,
-		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver;
+		new AMReceiverC(CHOOSE_CHANNEL) as ChooseReceiver,
+		new AMSnooperC(CHOOSE_CHANNEL) as ChooseSnooper;
 
 	App.ChooseSend -> ChooseSender;
 	App.ChooseReceive -> ChooseReceiver;
+	App.ChooseSnoop -> ChooseSnooper;
+	App.ChoosePacketAcknowledgements -> ChooseSender.Acks;
 
 	components
 		new AMSenderC(FAKE_CHANNEL) as FakeSender,

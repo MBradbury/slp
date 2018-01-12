@@ -1,11 +1,15 @@
 
+# The clock deviation is not a way to simulate the physical clock
+# deviating from real time. It is the percentage of the simulation
+# that a node will be considered. We want accurate simulations,
+# so clock deviation should always be 1.
 
 class MSP430Node(object):
     def node_interface_configs(self, **kwargs):
         return """
       <interface_config>
         org.contikios.cooja.mspmote.interfaces.MspClock
-        <deviation>{deviation}</deviation>
+        <deviation>1.0</deviation>
       </interface_config>
       <interface_config>
         org.contikios.cooja.mspmote.interfaces.MspMoteID
@@ -21,7 +25,7 @@ class MicaZNode(object):
       </interface_config>
       <interface_config>
         org.contikios.cooja.avrmote.interfaces.MicaClock
-        <deviation>{deviation}</deviation>
+        <deviation>1.0</deviation>
       </interface_config>""".format(**kwargs)
 
 class CoojaPlatform(object):

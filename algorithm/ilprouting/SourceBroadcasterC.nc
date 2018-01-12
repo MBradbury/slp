@@ -137,6 +137,8 @@ implementation
 
 	// Rest
 
+	void consider_message_to_send();
+
 	event void Boot.booted()
 	{
 		busy = FALSE;
@@ -195,6 +197,12 @@ implementation
 			{
 				call AwaySenderTimer.startOneShot(SINK_AWAY_DELAY_MS);
 			}
+#ifdef LOW_POWER_LISTENING
+			else
+			{
+				call StartDutyCycleTimer.startOneShot(SLP_OBJECT_DETECTOR_START_DELAY_MS - 500);
+			}
+#endif
 		}
 		else
 		{
@@ -222,6 +230,10 @@ implementation
 			sink_source_distance = sink_distance;
 
 			current_message_grouping = (SLP_MESSAGE_GROUP_SIZE - 1);
+
+#ifdef LOW_POWER_LISTENING
+			METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_START, "");
+#endif
 		}
 	}
 
@@ -242,10 +254,7 @@ implementation
 	event void StartDutyCycleTimer.fired()
 	{
 		// The sink does not do duty cycling and keeps its radio on at all times
-		if (call NodeType.get() == SinkNode)
-		{
-			return;
-		}
+		//assert(call NodeType.get() != SinkNode);
 		
 		call LowPowerListening.setLocalWakeupInterval(LPL_DEF_LOCAL_WAKEUP);
 	}
@@ -1066,7 +1075,7 @@ implementation
 		return success;
 	}
 
-	task void consider_message_to_send()
+	void consider_message_to_send()
 	{
 		am_addr_t next = AM_BROADCAST_ADDR;
 		bool success = FALSE;
@@ -1089,6 +1098,14 @@ implementation
 		if (call Neighbours.count() == 0)
 		{
 			ERROR_OCCURRED(ERROR_NO_NEIGHBOURS, "Unable to consider messages to send as we have no neighbours.\n");
+			return;
+		}
+
+		// If the radio is busy sending an existing packet, then retry in a bit
+		if (busy)
+		{
+			call ConsiderTimer.startOneShot(ALPHA_RETRY);
+			LOG_STDOUT(ILPROUTING_BUSY, "Unable to consider messages to send as the radio is busy.\n");
 			return;
 		}
 
@@ -1181,7 +1198,7 @@ implementation
 
 	event void ConsiderTimer.fired()
 	{
-		post consider_message_to_send();
+		consider_message_to_send();
 	}
 
 	task void send_next_away_message()
@@ -1198,7 +1215,7 @@ implementation
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			// Failed to send away message, so schedule to retry
-			call AwaySenderTimer.startOneShot(AWAY_RETRY_SEND_DELAY);
+			post send_next_away_message();
 		}
 		else
 		{
@@ -1466,15 +1483,6 @@ implementation
 		{
 			sink_source_distance = hop_distance_min(sink_source_distance, source_distance);
 		}
-
-#ifdef LOW_POWER_LISTENING
-		// If the local wakeup is 0, then we need to set the sleep length
-		// in a bit now we have found our neighbours
-		if (call LowPowerListening.getLocalWakeupInterval() == 0)
-		{
-			call StartDutyCycleTimer.startOneShot(250);
-		}
-#endif
 	}
 
 	command bool SeqNoWithAddrCompare.equals(const SeqNoWithAddr* a, const SeqNoWithAddr* b)

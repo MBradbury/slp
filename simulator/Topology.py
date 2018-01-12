@@ -1,6 +1,7 @@
 from __future__ import division
 
 from collections import OrderedDict
+from functools import total_ordering
 import itertools
 import random
 
@@ -13,6 +14,7 @@ try:
 except ImportError:
     from scipy.spatial.distance import euclidean as euclidean2_2d
 
+@total_ordering
 class NodeId(object):
     __slots__ = ("nid",)
 
@@ -29,7 +31,10 @@ class NodeId(object):
         return isinstance(other, type(self)) and self.nid == other.nid
 
     def __ne__(self, other):
-        return not self == other
+        return not (self == other)
+
+    def __le__(self, other):
+        return self.nid < other.nid
 
     def __repr__(self):
         return repr(self.nid)
@@ -321,7 +326,7 @@ class RandomPoissonDisk(Topology):
 
         self.area = ((min_x_pos, max_x_pos), (min_y_pos, max_y_pos))
 
-        samples = poisson_disc_samples(width=max_x_pos, height=max_y_pos, r=distance * 0.75, random=rnd.random)
+        samples = poisson_disc_samples(width=max_x_pos, height=max_y_pos, r=distance * 0.7, random=rnd.random)
 
         for (i, coord) in zip(range(network_size**2), samples):
             self.nodes[i] = np.array(coord, dtype=np.float64)
