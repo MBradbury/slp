@@ -85,10 +85,6 @@ def _add_cooja_radio_model(parser, **kwargs):
                         type=ArgumentsCommon.type_positive_int,
                         default=128),
 
-    parser.add_argument("--clock-deviation",
-                        type=ArgumentsCommon.type_deviation,
-                        default=1.0,
-                        help="The deviation of the nodes clock in the range (0,1] (default 1.0)")
 
 def _add_log_converter(parser, **kwargs):
     import simulator.OfflineLogConverter as OfflineLogConverter
@@ -361,6 +357,8 @@ class ArgumentsCommon(object):
         # We could enable them for the testbed, but we get better reliability and performance by not doing so
         if self.args.mode == "GUI":
             result["SLP_USES_GUI_OUPUT"] = 1
+
+        result.update(self.args.attacker_model.build_arguments())
 
         # Source period could either be a float or a class derived from PeriodModel
         if hasattr(self.args, 'source_period'):

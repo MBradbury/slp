@@ -48,13 +48,13 @@ class CLI(CommandLineCommon.CLI):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 11:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=1)
         elif size == 15:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=1)
         elif size == 21:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=1)
         elif size == 25:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=1)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
@@ -106,7 +106,8 @@ class CLI(CommandLineCommon.CLI):
         slp_tdma_das_crash_results = results.Results(
             self.algorithm_module.result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+            results=tuple(graph_parameters.keys()),
+            network_size_normalisation="UseNumNodes")
 
         for (vary, vary_prefix) in [("source period", " seconds")]:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
@@ -117,7 +118,7 @@ class CLI(CommandLineCommon.CLI):
                     xaxis='network size', yaxis=yaxis, vary=vary,
                     yextractor=scalar_extractor)
 
-                g.xaxis_label = 'Network Size'
+                g.xaxis_label = 'Number of Nodes'
                 g.yaxis_label = yaxis_label
                 g.vary_label = vary.title()
                 g.vary_prefix = vary_prefix
@@ -181,6 +182,7 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'received ratio': 100,
+            'overhead': 1.0,
         }
 
         self._create_min_max_versus_graph(
@@ -196,4 +198,5 @@ class CLI(CommandLineCommon.CLI):
             nokey=True,
             generate_legend_graph=True,
             legend_font_size='8',
+            network_size_normalisation="UseNumNodes"
         )

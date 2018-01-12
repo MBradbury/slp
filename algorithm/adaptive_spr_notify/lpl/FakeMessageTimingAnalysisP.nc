@@ -14,9 +14,6 @@ implementation
     components MetricLoggingP as MetricLogging;
     Impl.MetricLogging -> MetricLogging;
 
-    components LocalTimeMilliC;
-    Impl.LocalTime -> LocalTimeMilliC;
-
     components new TimerMilliC() as TempOnTimerC;
     components new TimerMilliC() as TempOffTimerC;
     Impl.TempOffTimer -> TempOffTimerC;
@@ -38,7 +35,7 @@ implementation
     Impl.DurationOnTimer -> DurationOnTimerC;
 
 
-    components new TimerMilliC() as PermDetectTimer;
-    Impl.PermDetectTimer -> PermDetectTimer;
+    //components new TimerMilliC() as PermDetectTimer;
+    //Impl.PermDetectTimer -> PermDetectTimer;
 
 }

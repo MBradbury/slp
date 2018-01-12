@@ -28,7 +28,7 @@ The following commands will get you set up with TinyOS and the slp-algorithms-ti
 2. Install python libraries
 
         :::bash
-        pip install scipy numpy cython pandas more_itertools shutilwhich psutil paramiko pip cryptography requests matplotlib --upgrade -v
+        pip install scipy numpy cython pandas more_itertools psutil paramiko pip cryptography requests matplotlib --upgrade -v
         pip install git+git://github.com/MBradbury/python_euclidean2_2d.git --upgrade -v
         pip install git+git://github.com/emulbreh/bridson.git --upgrade -v
 
@@ -47,8 +47,8 @@ sudo apt-get install lzma-dev tk-dev libreadline-dev libbz2-dev libssl-dev
 
 ```bash
 curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 3.6.3 -v
-pyenv global 3.6.3
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 3.6.4 -v
+pyenv global 3.6.4
 ```
 
 ## Using pyenv (on flux)
@@ -57,8 +57,8 @@ To install on flux there is a slightly different procedure:
 
 ```bash
 module load flux-installers && pyenv-install.sh && source ~/.bashrc
-CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 3.6.3 -v
-pyenv global 3.6.3
+CONFIGURE_OPTS="--enable-optimizations" MAKE_OPTS=profile-opt pyenv install 3.6.4 -v
+pyenv global 3.6.4
 ```
 
 Please ensure that you install the python packages using pip after setting up python in this way.

@@ -54,21 +54,19 @@ implementation
 		simdbgverbose("FakeMessageGeneratorImplP", "SendFakeTimer started limited with a duration of %u ms.\n", duration_ms);
 	}
 
-	command void FakeMessageGenerator.stop(void)
+	command void FakeMessageGenerator.stop()
 	{
 		call DurationTimer.stop();
 		call SendFakeTimer.stop();
 	}
 
-	event void SendFakeTimer.fired(void)
+	event void SendFakeTimer.fired()
 	{
-		uint32_t period, start_time;
-
 		// Store the start time, so we can account for the time spend in calculatePeriod
 		// This helps avoid time drift between fake send events
-		start_time = call SendFakeTimer.getNow();
+		const uint32_t start_time = call SendFakeTimer.gett0() + call SendFakeTimer.getdt();
 
-		period = signal FakeMessageGenerator.calculatePeriod();
+		const uint32_t period = signal FakeMessageGenerator.calculatePeriod();
 
 		if (period > 0)
 		{
@@ -84,7 +82,7 @@ implementation
 		signal FakeMessageGenerator.sendFakeMessage();
 	}
 
-	event void DurationTimer.fired(void)
+	event void DurationTimer.fired()
 	{
 		const uint32_t expired_at = call DurationTimer.gett0() + call DurationTimer.getdt();
 

@@ -19,6 +19,9 @@ typedef nx_struct ChooseMessage {
 
   nx_uint8_t any_further; // Does the sender believe there to be any nodes further from the source?
 
+  nx_uint8_t source_node_type;
+  nx_hop_distance_t ultimate_sender_first_source_distance;
+
 } ChooseMessage;
 
 inline SequenceNumberWithBottom Choose_get_sequence_number(const ChooseMessage* msg) { return msg->sequence_number; }

@@ -1,10 +1,11 @@
 from __future__ import print_function, division
 
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict, namedtuple
 import base64
 from itertools import zip_longest, tee
 import math
 import pickle
+import struct
 import sys
 import zlib
 
@@ -30,6 +31,27 @@ def pairwise(iterable):
     next(b, None)
     return zip(a, b)
 
+def message_type_to_colour(kind):
+    return {
+        "Normal": "blue",
+        "Fake": "red",
+        "Away": "magenta",
+        "Choose": "green",
+        "Notify": "cyan",
+        "Beacon": "black",
+        "Poll": "xkcd:orange",
+    }[kind]
+
+def node_type_to_colour(kind):
+    return {
+        "NormalNode": "dodgerblue",
+        "TempFakeNode": "olive",
+        "TailFakeNode": "gold",
+        "PermFakeNode": "darkorange",
+        "SourceNode": "darkgreen",
+        "SinkNode": "darkblue",
+    }[kind]
+
 class MetricsCommon(object):
     def __init__(self, sim, configuration, strict=True):
         super().__init__()
@@ -39,6 +61,8 @@ class MetricsCommon(object):
         self.topology = configuration.topology
 
         self.strict = strict
+
+        self._message_parsers = {}
 
         self.reported_source_ids = set() # set(configuration.source_ids)
         self.reported_sink_ids = set() # {configuration.sink_id}
@@ -183,6 +207,32 @@ class MetricsCommon(object):
     def register_generic(self, identifier, function):
         """Register a callback for a generic event."""
         self._generic_handlers[identifier] = function
+
+
+    def add_message_format(self, message_name, parse_string, content_names):
+        """Adds a message format record, that can be used to parse the hex buffer of the message."""
+        content_names = list(content_names)
+        content_names.append("crc")
+
+        message_name_cls = namedtuple(message_name, " ".join(content_names))
+        message_name_cls.__new__.__default__ = (None,) * len(content_names)
+
+        self._message_parsers[message_name] = (parse_string, message_name_cls)
+
+    def parse_message(self, message_name, hex_buffer):
+        """Builds a data structure from the hex buffer of a message."""
+        (parse_string, message_name_cls) = self._message_parsers[message_name]
+
+        buf = bytes.fromhex(hex_buffer)
+
+        if struct.calcsize(parse_string) == len(buf):
+            contents = struct.unpack(parse_string, buf)
+        else:
+            # Try parsing with a crc uint16_t
+            contents = struct.unpack(parse_string + "H", buf)
+
+        return message_name_cls._make(contents)
+
 
     def _time_to_bin(self, time):
         return int(math.floor(time / self._time_bin_width))
@@ -862,14 +912,19 @@ class MetricsCommon(object):
             if value.mean() != -1
         }
 
+    @staticmethod
+    def sorted_dict_str(dict_result):
+        return "{" + ", ".join(f"{k}: {v}" for (k, v) in sorted(dict_result.items(), key=lambda x: x[0])) + "}"
 
     @staticmethod
-    def smaller_dict_str(dict_result):
-        return str(dict_result).replace(": ", ":").replace(", ", ",").replace(".0,", ",")
+    def smaller_dict_str(dict_result, sort=False):
+        dict_str = MetricsCommon.sorted_dict_str(dict_result) if sort else str(dict_result)
+
+        return dict_str.replace(": ", ":").replace(", ", ",").replace(".0,", ",")
 
     @staticmethod
-    def compressed_dict_str(dict_result):
-        dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result).encode("utf-8")
+    def compressed_dict_str(dict_result, sort=False):
+        dict_result_bytes = MetricsCommon.smaller_dict_str(dict_result, sort=sort).encode("utf-8")
         compressed = base64.b64encode(zlib.compress(dict_result_bytes, 9))
         return compressed.decode("utf-8")
 
@@ -1316,6 +1371,10 @@ class DutyCycleMetricsCommon(MetricsCommon):
         start_time = self._duty_cycle_start
         end_time = self.sim_time()
 
+        # If we never received a duty cycle start event, then assume it starts after boot
+        if start_time is None:
+            start_time = next(iter(self.node_booted_at[node_id]))
+
         (state, state_time) = self._duty_cycle_state[node_id]
 
         duty_time = self._duty_cycle[node_id]
@@ -1337,7 +1396,7 @@ class DutyCycleMetricsCommon(MetricsCommon):
     def items():
         d = OrderedDict()
         d["DutyCycleStart"]                = lambda x: str(x._duty_cycle_start)
-        d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle())
+        d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle(), sort=True)
         return d
 
 
@@ -1365,12 +1424,12 @@ class DutyCycleMetricsGrapher(MetricsCommon):
             states = self._duty_cycle_states[node_id]
             states = [(False, 0)] + states + [(states[-1][0], self.sim_time())]
 
-            combined = [(atime, btime, astate) for ((astate, atime), (bstate, btime)) in pairwise(states)]
+            combined = [(atime, btime) for ((astate, atime), (bstate, btime)) in pairwise(states) if astate]
 
-            for (start, stop, state) in combined:
-                colour = "mediumaquamarine" if state else "lightgray"
+            ax.hlines(node_id.nid, 0, self.sim_time(), "lightgray", linewidth=4, zorder=1)
 
-                ax.hlines(node_id.nid, start, stop, colour, linewidth=4)
+            for (start, stop) in combined:
+                ax.hlines(node_id.nid, start, stop, "mediumaquamarine", linewidth=4, zorder=2)
 
         node_ids = [node_id.nid for node_id in self.topology.nodes]
         ymin, ymax = min(node_ids), max(node_ids)
@@ -1398,19 +1457,20 @@ class DutyCycleMetricsGrapher(MetricsCommon):
         d = OrderedDict()
         return d
 
-
-
 class MessageTimeMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.register('M-CB', self.log_time_bcast_event)
         self.register('M-CD', self.log_time_deliver_event)
+        self.register('M-NC', self.log_time_node_change_event)
 
         self._bcasts = defaultdict(list)
         self._delivers = defaultdict(list)
         self._attacker_delivers = {}
         self._attacker_history = defaultdict(list)
+        self._node_change = defaultdict(list)
+
 
     def log_time_bcast_event(self, d_or_e, node_id, time, detail):
         (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
@@ -1423,7 +1483,13 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         kind = self.message_kind_to_string(kind)
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
-        self._bcasts[kind].append((time, ord_node_id))
+        try:
+            contents = self.parse_message(kind, hex_buffer)
+        except KeyError:
+            contents = None
+
+
+        self._bcasts[kind].append((time, ord_node_id, f"{contents}"))
 
     def log_time_deliver_event(self, d_or_e, node_id, time, detail):
         try:
@@ -1435,22 +1501,29 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         kind = self.message_kind_to_string(kind)
         ord_node_id, top_node_id = self._process_node_id(node_id)
 
-        self._delivers[kind].append((time, ord_node_id))
+        try:
+            contents = self.parse_message(kind, hex_buffer)
+        except KeyError:
+            contents = None
 
-    def _message_type_to_colour(self, kind):
-        return {
-            "Normal": "blue",
-            "Fake": "red",
-            "Away": "magenta",
-            "Choose": "green",
-            "Notify": "cyan",
-            "Beacon": "black",
-            "Poll": "xkcd:orange",
-        }[kind]
+        self._delivers[kind].append((time, ord_node_id, f"{contents}"))
 
-    def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False):
+    def log_time_node_change_event(self, d_or_e, node_id, time, detail):
+        (old_name, new_name) = detail.split(',')
+
+        time = float(time)
+        old_name = self.node_kind_to_string(old_name)
+        new_name = self.node_kind_to_string(new_name)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self._node_change[new_name].append((time, ord_node_id, f"{old_name}"))
+
+    def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False, interactive=False):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
+
+        if interactive:
+            import mpld3
 
         fig, ax = plt.subplots()
 
@@ -1458,10 +1531,25 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         box = ax.get_position()
         ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-        for (kind, values) in sorted(values.items(), key=lambda x: x[0]):
-            xy = [(time, ord_node_id.nid) for (time, ord_node_id) in values]
-            xs, ys = zip(*xy)
-            ax.scatter(xs, ys, c=self._message_type_to_colour(kind), label=kind, s=7, zorder=2)
+        # Plot events
+        for (kind, details) in sorted(values.items(), key=lambda x: x[0]):
+            xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
+            xs, ys, annos = zip(*xya)
+            scatter = ax.scatter(xs, ys, c=message_type_to_colour(kind), label=kind, s=4, zorder=4, marker="o")
+
+            if interactive:
+                tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
+                mpld3.plugins.connect(fig, tooltip)
+
+        # Plot node changes
+        for (kind, details) in sorted(self._node_change.items(), key=lambda x: x[0]):
+            xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
+            xs, ys, annos = zip(*xya)
+            scatter = ax.scatter(xs, ys, c=node_type_to_colour(kind), label=kind[:-len("Node")], s=12, zorder=3, marker="s")
+
+            if interactive:
+                tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
+                mpld3.plugins.connect(fig, tooltip)
 
         if line_values is not None:
             xs, ys = zip(*line_values)
@@ -1472,7 +1560,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
                 ax2 = ax.twinx()
                 ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-                ax2.plot(xs, ys, zorder=2)
+                ax2.plot(xs, ys, zorder=5)
 
                 ax2.set_ylabel(y2label)
 
@@ -1486,12 +1574,12 @@ class MessageTimeMetricsGrapher(MetricsCommon):
                 states = self._duty_cycle_states[node_id]
                 states = [(False, 0)] + states + [(states[-1][0], self.sim_time())]
 
-                combined = [(atime, btime, astate) for ((astate, atime), (bstate, btime)) in pairwise(states)]
+                combined = [(atime, btime) for ((astate, atime), (bstate, btime)) in pairwise(states) if astate]
 
-                for (start, stop, state) in combined:
-                    colour = "mediumaquamarine" if state else "lightgray"
+                ax.hlines(node_id.nid, 0, self.sim_time(), "lightgray", linewidth=4, zorder=1)
 
-                    ax.hlines(node_id.nid, start, stop, colour, linewidth=4, zorder=1)
+                for (start, stop) in combined:
+                    ax.hlines(node_id.nid, start, stop, "mediumaquamarine", linewidth=4, zorder=2)
 
         node_ids = [node_id.nid for node_id in self.topology.nodes]
         ymin, ymax = min(node_ids), max(node_ids)
@@ -1507,12 +1595,15 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         ax.set_xlabel("Time (seconds)")
         ax.set_ylabel("Node ID")
 
+        if interactive:
+            mpld3.show()
+
         plt.savefig(filename)
 
     def finish(self):
         super().finish()
 
-        self._plot_message_events(self._bcasts, "bcasts.pdf")
+        self._plot_message_events(self._bcasts, "bcasts.pdf")#, interactive=True)
         self._plot_message_events(self._delivers, "delivers.pdf")
 
         if isinstance(self, DutyCycleMetricsCommon):
@@ -1521,6 +1612,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
 
         for (attacker_id, values) in self._attacker_delivers.items():
             line_values = [(time, node_id.nid) for (time, node_id) in self._attacker_history[attacker_id]]
+            values = {k: [detail + (None,) for detail in details] for (k, details) in values.items()}
             self._plot_message_events(values, f"attacker{attacker_id}_delivers_nid.pdf", line_values=line_values)
 
         for source_id in self.configuration.source_ids:
@@ -1530,6 +1622,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
                     for (time, node_id)
                     in self._attacker_history[attacker_id]
                 ]
+                values = {k: [detail + (None,) for detail in details] for (k, details) in values.items()}
                 self._plot_message_events(values, f"attacker{attacker_id}_delivers_dsrcm{source_id}.pdf",
                            line_values=line_values, y2label=f"Source {source_id} Distance (meters)")
 
@@ -1538,7 +1631,106 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         d = OrderedDict()
         return d
 
-EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher)
+class MessageDutyCycleBoundaryHistogram(MetricsCommon):
+    """Generates a histogram of how far off the wakeup period
+    a message was received. This extra metric is very focused at
+    the adaptive_spr_notify algorithm when used with the
+    SLPDutyCycleP duty cycle."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.register('M-CR', self.log_time_receive_event_hist)
+        self.register('M-G', self.log_time_generic_event_lpl_on)
+
+        self._delivers_hist = defaultdict(list)
+        self._radio_on_times = defaultdict(list)
+
+    def log_time_receive_event_hist(self, d_or_e, node_id, time, detail):
+        (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self._delivers_hist[(kind, ord_node_id)].append(time)
+
+    def log_time_generic_event_lpl_on(self, d_or_e, node_id, time, detail):
+        (code, message) = detail.split(",")
+
+        time = float(time)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        code = int(code)
+
+        code_to_name = {
+            3001: "Normal",
+            3002: "Fake",
+            3003: "Choose",
+        }
+
+        try:
+            code_name = code_to_name[code]
+
+            self._radio_on_times[(code_name, ord_node_id)].append(time)
+        except KeyError:
+            pass
+
+    def finish(self):
+        super().finish()
+
+        message_types = {kind for (kind, ord_node_id) in self._delivers_hist} & {kind for (kind, ord_node_id) in self._radio_on_times}
+
+        for message_type in message_types:
+            self._plot_message_duty_cycle_boundary_histogram(message_type)
+
+    def _plot_message_duty_cycle_boundary_histogram(self, message_name):
+        import matplotlib.pyplot as plt
+        from matplotlib.font_manager import FontProperties
+
+        intervals = {
+            "Fake": (100, 150),
+            "Choose": (25, 25),
+            "Normal": (50, 50),
+        }
+
+        early_wakeup_ms, max_wakeup_ms = intervals.get(message_name, (0, 0))
+
+        fig, ax = plt.subplots()
+
+        hist_values = []
+
+        for (node_id, states) in self._duty_cycle_states.items():
+            singles = self._radio_on_times[(message_name, node_id)] + [self.sim_time()]
+
+            rcvd_times = self._delivers_hist[(message_name, node_id)]
+
+            for rcvd_time in rcvd_times:
+                possible = [start1 for (start1, start2) in pairwise(singles) if start1 <= rcvd_time < start2]
+
+                if len(possible) == 1:
+                    start = possible[0]
+
+                    hist_time = (rcvd_time - start) * 1000 - early_wakeup_ms
+
+                    hist_values.append(hist_time)
+                else:
+                    if len(possible) > 0:
+                        print(f"Multiple times {possible} for {rcvd_time} for msg {message_name} on {node_id}")
+
+        if len(hist_values) > 0:
+            bins = int(math.ceil(max(hist_values)-min(hist_values))/5)
+            try:
+                ax.hist(hist_values, bins=bins, color=message_type_to_colour(message_name))
+            except ValueError as ex:
+                print(ex)
+                ax.hist(hist_values, bins="auto", color=message_type_to_colour(message_name))
+
+            ax.set_xlabel("Difference (ms)")
+            ax.set_ylabel("Count")
+
+            plt.savefig(f"{message_name}dutycycleboundaryhist.pdf")
+
+
+EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, MessageDutyCycleBoundaryHistogram)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
 def import_algorithm_metrics(module_name, sim, extra_metrics=None):
