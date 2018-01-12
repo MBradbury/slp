@@ -26,7 +26,6 @@ typedef nx_struct NormalMessage
 
   nx_hop_distance_t source_distance_of_sender;
 
-
   nx_int8_t further_or_closer_set;
 
   nx_int8_t broadcast;
@@ -42,6 +41,8 @@ typedef nx_struct NormalMessage
   // being added to the queue on the sender and the sender
   // actually sending it.
   nx_uint32_t time_taken_to_send;
+
+  nx_uint32_t time_added;
 
 } NormalMessage;
 
