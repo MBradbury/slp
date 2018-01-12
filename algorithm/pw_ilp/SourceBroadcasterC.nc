@@ -223,7 +223,7 @@ implementation
 			source_distance = 0;
 			sink_source_distance = sink_distance;
 
-			call BroadcastNormalTimer.startOneShot(5 * 1000);	//wait till beacon messages send finished.
+			call BroadcastNormalTimer.startOneShot(2 * 1000);
 		}
 	}
 
@@ -721,9 +721,9 @@ implementation
 
 		half_ssd = sink_distance / 2 - 1;
 		random_walk_hops = call Random.rand16() % half_ssd + 2;
-		long_random_walk_hops = call Random.rand16() % half_ssd + 3*sink_distance + 2;
+		long_random_walk_hops = call Random.rand16() % (3 * sink_distance) + sink_distance;
 				
-		//simdbg("stdout","(short random walk hop=%d, long random walk hop=%d\n", random_walk_hops, long_random_walk_hops);
+		//simdbg("stdout","ssd: %d (short random walk hop=%d, long random walk hop=%d)\n", sink_distance, random_walk_hops, long_random_walk_hops);
 
 		#ifdef SHORT_LONG_SEQUENCE
 		{
@@ -752,6 +752,8 @@ implementation
 		message->source_id = TOS_NODE_ID;	
 		message->broadcast = FALSE;
 		message->further_or_closer_set = UnknownSet;
+
+		message->time_added = call LocalTime.get();
 
 		if (messagetype == ShortRandomWalk)
 		{
@@ -1432,7 +1434,7 @@ implementation
 			// If we are routing from the sink, only do so for a short number of hops
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
 			{
-				if (sink_distance <= NORMAL_ROUTE_FROM_SINK_DISTANCE_LIMIT)
+				if (sink_distance <= sink_source_distance)
 				{
 					record_received_message(msg, UINT8_MAX);
 				}
@@ -1499,6 +1501,7 @@ implementation
 
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		int32_t time_cost;
 		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
 		ASSERT_MESSAGE(rcvd->source_distance >= 0, "dsrc=" HOP_DISTANCE_SPEC, rcvd->source_distance);
@@ -1514,6 +1517,12 @@ implementation
 
 			record_received_message(msg, NORMAL_ROUTE_FROM_SINK);
 		}
+
+		// one transmission time cost
+		time_cost = (call LocalTime.get() - rcvd->time_added) / rcvd->source_distance;
+
+		simdbg("stdout","[%u]Transmission costs %u miliseconds (Totoally time used: %u, %u hops from source to sink, random walk hops:%d)\n", 
+			   rcvd->sequence_number, time_cost, call LocalTime.get() - rcvd->time_added, rcvd->source_distance, rcvd->random_walk_hops);
 	}
 
 	event void AwaySenderTimer.fired()
@@ -1593,8 +1602,6 @@ implementation
 
 		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Away)
-
-
 	
 	// Neighbour management
 
@@ -1653,15 +1660,6 @@ implementation
 		{
 			sink_source_distance = hop_distance_min(sink_source_distance, source_distance);
 		}
-
-#ifdef LOW_POWER_LISTENING
-		// If the local wakeup is 0, then we need to set the sleep length
-		// in a bit now we have found our neighbours
-		if (call LowPowerListening.getLocalWakeupInterval() == 0)
-		{
-			call StartDutyCycleTimer.startOneShot(250);
-		}
-#endif
 	}
 
 	command bool SeqNoWithAddrCompare.equals(const SeqNoWithAddr* a, const SeqNoWithAddr* b)
