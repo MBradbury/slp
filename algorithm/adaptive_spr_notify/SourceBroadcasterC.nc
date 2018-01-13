@@ -294,7 +294,7 @@ implementation
 
 		first_source_distance = UNKNOWN_HOP_DISTANCE;
 
-		away_messages_to_send = 3;
+		away_messages_to_send = SINK_AWAY_MESSAGES_TO_SEND;
 
 		algorithm = UnknownAlgorithm;
 

@@ -42,6 +42,8 @@ enum AppEventCodes
 
 #define SLP_OBJECT_DETECTOR_START_DELAY_MS (4 * 1000)
 
+#define SINK_AWAY_MESSAGES_TO_SEND 3
+
 #define CHOOSE_RTX_LIMIT_FOR_FS 2
 
 #endif // SLP_CONSTANTS_H
