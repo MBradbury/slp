@@ -161,7 +161,7 @@ implementation
     {
         const uint32_t now = call OnTimer.gett0() + call OnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_NORMAL, "");
 #endif
         signal MessageTimingAnalysis.start_radio();

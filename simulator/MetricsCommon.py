@@ -1399,6 +1399,10 @@ class DutyCycleMetricsCommon(MetricsCommon):
         d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle(), sort=True)
         return d
 
+    @staticmethod
+    def build_arguments():
+        return {}
+
 
 class DutyCycleMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
@@ -1456,6 +1460,10 @@ class DutyCycleMetricsGrapher(MetricsCommon):
     def items():
         d = OrderedDict()
         return d
+
+    @staticmethod
+    def build_arguments():
+        return {}
 
 class MessageTimeMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
@@ -1631,6 +1639,10 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         d = OrderedDict()
         return d
 
+    @staticmethod
+    def build_arguments():
+        return {}
+
 class MessageDutyCycleBoundaryHistogram(MetricsCommon):
     """Generates a histogram of how far off the wakeup period
     a message was received. This extra metric is very focused at
@@ -1728,6 +1740,12 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
             ax.set_ylabel("Count")
 
             plt.savefig(f"{message_name}dutycycleboundaryhist.pdf")
+
+    @staticmethod
+    def build_arguments():
+        return {
+            "SLP_EXTRA_METRIC_MESSAGE_DUTY_START": 1
+        }
 
 
 EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, MessageDutyCycleBoundaryHistogram)
