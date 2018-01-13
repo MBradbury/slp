@@ -326,7 +326,7 @@ class RandomPoissonDisk(Topology):
 
         self.area = ((min_x_pos, max_x_pos), (min_y_pos, max_y_pos))
 
-        samples = poisson_disc_samples(width=max_x_pos, height=max_y_pos, r=distance * 0.7, random=rnd.random)
+        samples = poisson_disc_samples(width=max_x_pos, height=max_y_pos, r=distance * 0.6, random=rnd.random)
 
         for (i, coord) in zip(range(network_size**2), samples):
             self.nodes[i] = np.array(coord, dtype=np.float64)
