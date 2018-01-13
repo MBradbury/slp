@@ -21,7 +21,7 @@ def build_arguments():
         # Cooja does its own detection of Leds being on or not
         # This detection is cheaper than using the serial output
         # on the nodes. So we disable logging Led output here.
-        "SLP_USES_GUI_OUPUT": 0,
+        "SLP_USES_GUI_OUPUT": 1,
         "SLP_LEDS_RECORD_NO_SERIAL": 1,
     }
 

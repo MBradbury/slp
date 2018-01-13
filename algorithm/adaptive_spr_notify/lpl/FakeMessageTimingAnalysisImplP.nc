@@ -324,7 +324,7 @@ implementation
     {
         const uint32_t now = call ChooseOnTimer.gett0() + call ChooseOnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_CHOOSE, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
@@ -341,7 +341,7 @@ implementation
     {
         const uint32_t now = call DurationOnTimer.gett0() + call DurationOnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
@@ -365,7 +365,7 @@ implementation
     {
         const uint32_t now = call TempOnTimer.gett0() + call TempOnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
@@ -429,7 +429,7 @@ implementation
     {
         const uint32_t now = call PermOnTimer.gett0() + call PermOnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
