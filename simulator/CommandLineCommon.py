@@ -644,7 +644,9 @@ class CLI(object):
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
-        if size == 11:
+        if size == 7:
+            return timedelta(hours=7)
+        elif size == 11:
             return timedelta(hours=9)
         elif size == 15:
             return timedelta(hours=21)
@@ -653,7 +655,7 @@ class CLI(object):
         elif size == 25:
             return timedelta(hours=71)
         else:
-            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+            raise RuntimeError("No time estimate for network sizes other than 7, 11, 15, 21 or 25")
 
     def _cluster_time_estimator(self, args, **kwargs):
         return self._default_cluster_time_estimator(args, **kwargs)
