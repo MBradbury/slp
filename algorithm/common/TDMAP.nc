@@ -4,6 +4,7 @@ configuration TDMAP
 	provides interface TDMA;
 
 	uses interface MetricLogging;
+    uses interface CustomTime;
 }
 implementation
 {
@@ -29,4 +30,6 @@ implementation
     App.PreSlotTimer -> PreSlotTimer;
     App.SlotTimer -> SlotTimer;
     App.PostSlotTimer -> PostSlotTimer;
+
+    App.Time = CustomTime;
 }
