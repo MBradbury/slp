@@ -449,10 +449,11 @@ class ArgumentsCommon(object):
             else:
                 assert self.args.address_recognition == "software"
 
-        # Build arguments from any extra metrics being used
-        extra_metric_classes = [cls for cls in MetricsCommon.EXTRA_METRICS if cls.__name__ in self.args.extra_metrics]
-        for extra_metric in extra_metric_classes:
-            result.update(extra_metric.build_arguments())
+        if self.args.extra_metrics is not None:
+            # Build arguments from any extra metrics being used
+            extra_metric_classes = [cls for cls in MetricsCommon.EXTRA_METRICS if cls.__name__ in self.args.extra_metrics]
+            for extra_metric in extra_metric_classes:
+                result.update(extra_metric.build_arguments())
 
         return result
 
