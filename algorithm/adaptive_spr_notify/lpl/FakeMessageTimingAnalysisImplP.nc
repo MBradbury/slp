@@ -213,7 +213,7 @@ implementation
             {
                 // When receiving the nth fake message we need to subtract this from the time to wait
                 // ultimate_sender_fake_count starts at 0 for the first message
-                const uint8_t nth_message_delay = mdata->ultimate_sender_fake_count * temp_expected_period_ms;
+                const uint32_t nth_message_delay = mdata->ultimate_sender_fake_count * temp_expected_period_ms;
 
                 // Wake up for the first fake message from the next fake node
                 if (!call DurationOnTimer.isRunning())
