@@ -119,6 +119,8 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
 
+	uint16_t fake_rcv_ratio;
+
 	uint32_t source_period_ms;
 
 	uint8_t fake_count; // Number of fake messages sent in one duration
@@ -209,15 +211,7 @@ implementation
 
 	uint32_t get_pfs_period(void)
 	{
-		// Need to add one here because it is possible for the values to both be 0
-		// if no fake messages have ever been received.
-		const uint32_t seq_inc = source_fake_sequence_increments + 1;
-		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
-
-		// result_period = SOURCE_PERIOD_MS * (seq_inc/counter) // accounts for overflow
-		const uint32_t result_period = scale32(SOURCE_PERIOD_MS, seq_inc, counter);
-
-		ASSERT_MESSAGE(seq_inc <= counter, "Seen more fake than has been generated.");
+		const uint32_t result_period = scale32(SOURCE_PERIOD_MS, fake_rcv_ratio, UINT16_MAX);
 
 		// The double version:
 		/*const double ratio = seq_inc / (double)counter;
@@ -295,6 +289,8 @@ implementation
 		first_source_distance = UNKNOWN_HOP_DISTANCE;
 
 		away_messages_to_send = SINK_AWAY_MESSAGES_TO_SEND;
+
+		fake_rcv_ratio = UINT16_MAX;
 
 		algorithm = UnknownAlgorithm;
 
@@ -480,9 +476,7 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
-
-		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
-		message.fake_sequence_increments = source_fake_sequence_increments;
+		message.fake_rcv_ratio = scale32(UINT16_MAX, source_fake_sequence_increments + 1, sequence_number_get(&fake_sequence_counter) + 1);
 
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -648,21 +642,18 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
-		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
-
 		if (is_new)
 		{
 			NormalMessage forwarding_message;
 
 			METRIC_RCV_NORMAL(rcvd);
 
+			fake_rcv_ratio = rcvd->fake_rcv_ratio;
+
 			set_first_source_distance(rcvd->source_distance);
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
-			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -681,12 +672,11 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
-		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
-
 		if (is_new)
 		{
 			METRIC_RCV_NORMAL(rcvd);
+
+			fake_rcv_ratio = rcvd->fake_rcv_ratio;
 
 			if (set_first_source_distance(rcvd->source_distance))
 			{
@@ -695,8 +685,6 @@ implementation
 				// However, we don't want to keep doing this as it benefits the attacker.
 				NormalMessage forwarding_message = *rcvd;
 				forwarding_message.source_distance += 1;
-				forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-				forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
@@ -722,19 +710,16 @@ implementation
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
-		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
-
 		if (is_new)
 		{
 			NormalMessage forwarding_message;
 
 			METRIC_RCV_NORMAL(rcvd);
 
+			fake_rcv_ratio = rcvd->fake_rcv_ratio;
+
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
-			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
