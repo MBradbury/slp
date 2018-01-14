@@ -204,7 +204,7 @@ implementation
 
 		const uint32_t result_period = period;
 
-		//simdbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		//simdbg("stdout", "get_tfs_period=%" PRIu32 "\n", result_period);
 
 		return result_period;
 	}
@@ -213,11 +213,7 @@ implementation
 	{
 		const uint32_t result_period = scale32(SOURCE_PERIOD_MS, fake_rcv_ratio, UINT16_MAX);
 
-		// The double version:
-		/*const double ratio = seq_inc / (double)counter;
-		const uint32_t result_period2 = ceil(SOURCE_PERIOD_MS * ratio);
-		simdbgverbose("stdout", "get_pfs_period=%u, %u (sent=%u, rcvd=%u, x=%f)\n",
-		  result_period, result_period2, counter, seq_inc, ratio);*/
+		//simdbg("stdout", "get_pfs_period=%" PRIu32 "\n", result_period);
 
 		return result_period;
 	}
@@ -1125,7 +1121,12 @@ implementation
 		// After this message is sent, all other messages are sent with an interval
 		// of the period given. The aim here is to reduce the traffic at the start and
 		// end of the TFS duration.
-		return signal FakeMessageGenerator.calculatePeriod() / 4;
+		//const uint32_t result = signal FakeMessageGenerator.calculatePeriod() / 4;
+		const uint32_t result = get_tfs_period() / 4;
+
+		//simdbg("stdout", "initialStartDelay=%" PRIu32 "\n", result);
+
+		return result;
 	}
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
@@ -1133,9 +1134,9 @@ implementation
 		switch (call NodeType.get())
 		{
 		case PermFakeNode:
-		case TailFakeNode:
 			return get_pfs_period();
 
+		case TailFakeNode:
 		case TempFakeNode:
 			return get_tfs_period();
 

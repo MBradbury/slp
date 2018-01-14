@@ -202,7 +202,9 @@ implementation
                 // ultimate_sender_fake_count starts at 0 for the first message
                 const uint32_t nth_message_delay = mdata->ultimate_sender_fake_count * temp_expected_period_ms;
 
-                assert(temp_expected_period_ms != UINT32_MAX);
+                //ASSERT_MESSAGE(mdata->ultimate_sender_fake_count >= 0 && mdata->ultimate_sender_fake_count <= 2,
+                //    "%" PRIu8, mdata->ultimate_sender_fake_count);
+                //assert(temp_expected_period_ms != UINT32_MAX);
 
                 // Wake up for the first fake message from the next fake node
                 if (!call DurationOnTimer.isRunning())
@@ -210,7 +212,10 @@ implementation
                     const uint32_t temp_duration_ms = temp_next_duration_wait();
                     const uint32_t duration_fire = temp_duration_ms - nth_message_delay - early_wakeup_ms;
 
-                    assert(temp_duration_ms != UINT32_MAX);
+                    //assert(temp_duration_ms != UINT32_MAX);
+                    //ASSERT_MESSAGE(temp_duration_ms >= nth_message_delay + early_wakeup_ms,
+                    //    "%" PRIu32 ",%" PRIu32,
+                    //    temp_duration_ms, nth_message_delay + early_wakeup_ms);
 
                     //LOG_STDOUT(0, "Starting duration timer (nth=%" PRIu8 " period=%" PRIu32 ") in %" PRIu32 "\n",
                     //    mdata->ultimate_sender_fake_count, temp_expected_period_ms, duration_fire);
@@ -227,7 +232,7 @@ implementation
                     const uint32_t choose_start =
                             temp_duration_ms - temp_delay_ms - nth_message_delay - early_wakeup_ms;
 
-                    assert(temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX);
+                    //assert(temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX);
 
                     call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
                 }
