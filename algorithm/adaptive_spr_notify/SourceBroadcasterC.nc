@@ -1174,7 +1174,7 @@ implementation
 
 	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size, uint32_t duration_expired_at)
 	{
-		ChooseMessage new_message;
+		ChooseMessage new_message = *(const ChooseMessage *)original;
 
 		const am_addr_t target = fake_walk_target();
 		const uint8_t node_type = call NodeType.get();
@@ -1182,8 +1182,6 @@ implementation
 		bool ack_request = TRUE;
 
 		//assert(sizeof(message) == original_size);
-
-		memcpy(&new_message, original, sizeof(new_message));
 
 		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to " TOS_NODE_ID_SPEC ".\n", target);
 
@@ -1198,14 +1196,13 @@ implementation
 		choose_rtx_limit = CHOOSE_RTX_LIMIT_FOR_FS;
 		send_Choose_message(&new_message, target, &ack_request);
 
-		if (call NodeType.get() == PermFakeNode)
+		if (node_type == PermFakeNode)
 		{
 			become_Normal();
 		}
 		else if (node_type == TempFakeNode || node_type == TailFakeNode)
 		{
-			ChooseMessage original_message;
-			memcpy(&original_message, original, sizeof(original_message));
+			const ChooseMessage original_message = *(const ChooseMessage *)original; // Need a copy
 
 			become_Fake(&original_message, TailFakeNode, duration_expired_at);
 		}
