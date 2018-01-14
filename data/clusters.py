@@ -1,17 +1,19 @@
 from __future__ import print_function, division
 
+from datetime import timedelta
 import os
 import math
 import subprocess
 
 class ClusterCommon(object):
-    def __init__(self, kind, url, ssh_auth, ppn, tpp, rpn):
+    def __init__(self, kind, url, ssh_auth, ppn, tpp, rpn, max_walltime=None):
         self.kind = kind
         self.url = url
         self.ssh_auth = ssh_auth
         self.ppn = ppn
         self.threads_per_processor = tpp
         self.ram_per_node = rpn
+        self.max_walltime = max_walltime
 
     def submitter(self, notify_emails=None):
         raise NotImplementedError
@@ -90,7 +92,7 @@ class ClusterCommon(object):
 
         prepare_command = "cd $PBS_O_WORKDIR"
 
-        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run)
+        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
     def _pbs_array_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
@@ -117,7 +119,7 @@ class ClusterCommon(object):
         prepare_command = "cd $PBS_O_WORKDIR"
 
         return Submitter(cluster_command, prepare_command, num_jobs,
-                         job_repeats=num_array_jobs, array_job_variable="$PBS_ARRAYID", dry_run=dry_run)
+                         job_repeats=num_array_jobs, array_job_variable="$PBS_ARRAYID", dry_run=dry_run, max_walltime=self.max_walltime)
 
     def _sge_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
@@ -146,7 +148,7 @@ class ClusterCommon(object):
 
         prepare_command = ""
 
-        return Submitter(cluster_command, prepare_command, jobs, job_repeats=1, dry_run=dry_run)
+        return Submitter(cluster_command, prepare_command, jobs, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
     def _moab_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
@@ -164,7 +166,7 @@ class ClusterCommon(object):
 
         prepare_command = "cd $PBS_O_WORKDIR"
 
-        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run)
+        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
 
 class dummy(ClusterCommon):
@@ -239,7 +241,8 @@ class flux(ClusterCommon):
         super(flux, self).__init__("pbs", "flux.dcs.warwick.ac.uk", "ssh",
             ppn=12,
             tpp=1, # HT is disabled
-            rpn=(32 * 1024) / 12 # 32GB per node
+            rpn=(32 * 1024) / 12, # 32GB per node
+            max_walltime=timedelta(hours=48) # See "qstat -Qf" for the batch queue
         )
 
     def submitter(self, *args, **kwargs):

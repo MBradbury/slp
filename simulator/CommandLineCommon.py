@@ -684,7 +684,7 @@ class CLI(object):
 
             if max_time is not None:
                 if calculated_time > max_time:
-                    print(f"Warning: The estimated cluster time is {calculated_time}, overriding this with the maximum {max_time}")
+                    print(f"Warning: The estimated cluster time is {calculated_time}, overriding this with the maximum set time of {max_time}")
                     calculated_time = max_time
 
             return calculated_time
