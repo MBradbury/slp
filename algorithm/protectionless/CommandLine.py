@@ -54,7 +54,7 @@ class CLI(CommandLineCommon.CLI):
         return self._cluster_time_estimator_from_historical(
             args, kwargs, historical_key_names, historical,
             allowance=0.25,
-            max_time=timedelta(days=3)-timedelta(hours=1)
+            max_time=timedelta(hours=48)
         )
 
     def _run_table(self, args):
