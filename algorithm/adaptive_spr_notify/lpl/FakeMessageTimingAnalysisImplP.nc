@@ -195,19 +195,6 @@ implementation
 
         if (is_new)
         {
-            /*temp_previous_group_time_ms = timestamp_ms;
-
-            if (is_first_fake)
-            {
-                temp_previous_first_duration_time_ms = timestamp_ms;
-
-                /*if (first_duration_diff != UINT32_MAX)
-                {
-                    //incremental_average(&temp_expected_duration_us, &temp_expected_duration_seen,
-                    //    (first_duration_diff / (temp_missed_messages + 1)) * 1000);
-                }* /
-            }*/
-
             startTempOffTimerFromMessage(timestamp_ms);
 
             {
@@ -239,13 +226,6 @@ implementation
                 }
             }
         }
-        /*else
-        {
-            if (group_diff != UINT32_MAX)
-            {
-                late_wakeup_ms = max(late_wakeup_ms, group_diff);
-            }
-        }*/
     }
 
     void received_perm(const FakeMessage* mdata, uint32_t timestamp_ms, uint8_t flags)
@@ -265,22 +245,8 @@ implementation
         
         if (is_new)
         {
-            //perm_previous_group_time_ms = timestamp_ms;
-
-            /*if (group_diff != UINT32_MAX)
-            {
-                incremental_average(&perm_average_us, &perm_seen, (group_diff * 1000) / (perm_missed_messages + 1));
-            }*/
-
             startPermOffTimerFromMessage(timestamp_ms);
         }
-        /*else
-        {
-            if (group_diff != UINT32_MAX)
-            {
-                late_wakeup_ms = max(late_wakeup_ms, group_diff);
-            }
-        }*/
     }
 
     command void MessageTimingAnalysis.received(message_t* msg, const void* data, uint32_t timestamp_ms, uint8_t flags, uint8_t source_type)
@@ -309,13 +275,13 @@ implementation
             else
             {
                 temp_no_receive_count += 1;
-            }
-    
-            if (perm_expected_interval_ms != UINT32_MAX && temp_no_receive_count >= 3)
-            {
-                temp_disabled = TRUE;
-                call TempOffTimer.stop();
-                call TempOnTimer.stop();
+
+                if (perm_expected_interval_ms != UINT32_MAX && temp_no_receive_count >= 3)
+                {
+                    temp_disabled = TRUE;
+                    call TempOffTimer.stop();
+                    call TempOnTimer.stop();
+                }
             }
         }
     }
