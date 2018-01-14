@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from datetime import timedelta
 import os
 import subprocess
 
@@ -36,14 +37,12 @@ class Runner(object):
                 estimated_time = self.max_walltime
 
         if estimated_time is None:
-            estimated_time_str = "100:00:00"
-        else:
+            estimated_time = timedelta(hours=100)
 
-            total_seconds = int(estimated_time.total_seconds())
-            hours, remainder = divmod(total_seconds, 60*60)
-            minutes, seconds = divmod(remainder, 60)
-
-            estimated_time_str = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
+        total_seconds = int(estimated_time.total_seconds())
+        hours, remainder = divmod(total_seconds, 60*60)
+        minutes, seconds = divmod(remainder, 60)
+        estimated_time_str = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
 
         cluster_command = self.cluster_command.format(estimated_time_str, module)
 
