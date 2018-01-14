@@ -1146,10 +1146,14 @@ implementation
 		}
 	}
 
+	task void send_fake_message_task()
+	{
+		signal FakeMessageGenerator.sendFakeMessage();
+	}
+
 	event void FakeMessageGenerator.sendFakeMessage()
 	{
 		FakeMessage message;
-
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.message_type = call NodeType.get();
 		message.source_id = TOS_NODE_ID;
@@ -1169,6 +1173,10 @@ implementation
 			fake_count += 1;
 
 			process_fake_duty_cycle(&packet, &message, TRUE, sent_time);
+		}
+		else
+		{
+			post send_fake_message_task();
 		}
 	}
 
