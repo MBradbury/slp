@@ -80,6 +80,9 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 
     uses interface FaultModel;
+
+    uses interface CustomTime as Time;
+    uses interface CustomTimeSync<DissemMessage> as TimeSync;
 }
 
 implementation
@@ -473,6 +476,8 @@ implementation
             msg.parent = parent;
             NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
+            call TimeSync.init_message(&msg, hop);
+
             simdbgverbose("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbgverbose_clear("stdout", "\n");
 
             send_Dissem_message(&msg, AM_BROADCAST_ADDR);
@@ -616,7 +621,7 @@ implementation
     event bool TDMA.dissem_fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
-        const uint32_t now = call LocalTime.get();
+        const uint32_t now = call Time.global_time();
         METRIC_START_PERIOD();
         period_counter++;
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
@@ -742,6 +747,8 @@ implementation
         NeighbourList rcvdList;
 
         METRIC_RCV_DISSEM(rcvd);
+
+        call TimeSync.update(rcvd, hop);
 
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
