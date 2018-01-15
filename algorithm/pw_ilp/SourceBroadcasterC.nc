@@ -142,8 +142,6 @@ implementation
 
 	event void Boot.booted()
 	{
-
-
 		busy = FALSE;
 		sink_distance = UNKNOWN_HOP_DISTANCE;
 		source_distance = UNKNOWN_HOP_DISTANCE;
@@ -721,7 +719,7 @@ implementation
 
 		half_ssd = sink_distance / 2 - 1;
 		random_walk_hops = call Random.rand16() % half_ssd + 2;
-		long_random_walk_hops = call Random.rand16() % (3 * sink_distance) + sink_distance;
+		long_random_walk_hops = call Random.rand16() % sink_distance + sink_distance;
 				
 		//simdbg("stdout","ssd: %d (short random walk hop=%d, long random walk hop=%d)\n", sink_distance, random_walk_hops, long_random_walk_hops);
 
@@ -1230,7 +1228,7 @@ implementation
 			case NORMAL_ROUTE_FROM_SINK:
 			{
 				// AM_BROADCAST_ADDR is valid for this function
-				success = find_next_in_from_sink_route(info, next);
+				//success = find_next_in_from_sink_route(info, next);
 			} break;
 
 			case NORMAL_ROUTE_AVOID_SINK_1_CLOSER:
@@ -1431,13 +1429,13 @@ implementation
 				TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32,
 				seq_no_lookup.addr, seq_no_lookup.seq_no, source_addr, (uint32_t)rcvd->time_taken_to_send);
 
-			// If we are routing from the sink, only do so for a short number of hops
+			// do not route a small number of hops from sink.
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
 			{
-				if (sink_distance <= sink_source_distance)
-				{
-					record_received_message(msg, UINT8_MAX);
-				}
+				//if (sink_distance <= sink_source_distance)
+				//{
+				//	record_received_message(msg, UINT8_MAX);
+				//}
 			}
 			else
 			{
