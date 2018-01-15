@@ -45,9 +45,9 @@ def message_type_to_colour(kind):
 def node_type_to_colour(kind):
     return {
         "NormalNode": "dodgerblue",
-        "TempFakeNode": "olive",
-        "TailFakeNode": "gold",
-        "PermFakeNode": "darkorange",
+        "TempFakeNode": "gold",
+        "TailFakeNode": "darkorange",
+        "PermFakeNode": "olive",
         "SourceNode": "darkgreen",
         "SinkNode": "darkblue",
     }[kind]
