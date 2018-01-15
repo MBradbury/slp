@@ -23,6 +23,8 @@ implementation
 {
 	message_t message;
 
+	bool repeated_duration;
+
 	// Implementation
 
 	command void FakeMessageGenerator.start(const void* original, uint8_t size, uint32_t become_fake_time)
@@ -41,6 +43,7 @@ implementation
 		call FakeMessageGenerator.start(original, size, become_fake_time);
 
 		call DurationTimer.startOneShotAt(become_fake_time, duration_ms);
+		repeated_duration = FALSE;
 
 		simdbgverbose("stdout", "SendFakeTimer started at %" PRIu32 " limited with a duration of %" PRIu32 " ms.\n", become_fake_time, duration_ms);
 	}
@@ -49,7 +52,8 @@ implementation
 	{
 		call FakeMessageGenerator.start(original, size, become_fake_time);
 
-		call DurationTimer.startPeriodicAt(become_fake_time, duration_ms);
+		call DurationTimer.startOneShotAt(become_fake_time, duration_ms);
+		repeated_duration = TRUE;
 
 		simdbgverbose("stdout", "SendFakeTimer started at %" PRIu32 " repeated with a duration of %" PRIu32 " ms.\n", become_fake_time, duration_ms);
 	}
@@ -85,6 +89,11 @@ implementation
 	event void DurationTimer.fired()
 	{
 		const uint32_t expired_at = call DurationTimer.gett0() + call DurationTimer.getdt();
+
+		if (repeated_duration)
+		{
+			call DurationTimer.startOneShotAt(expired_at, call DurationTimer.getdt());
+		}
 
 		simdbgverbose("stdout", "DurationTimer fired at %" PRIu32 ".\n", expired_at);
 
