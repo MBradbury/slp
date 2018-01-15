@@ -2,6 +2,7 @@
 import argparse
 from random import SystemRandom
 
+from simulator import CommunicationModel, NoiseModel
 import simulator.AttackerConfiguration as AttackerConfiguration
 import simulator.common
 import simulator.Configuration as Configuration
@@ -155,13 +156,13 @@ OPTS = {
 
     "communication model": lambda x, **kwargs: x.add_argument("-cm", "--communication-model",
                                                               type=str,
-                                                              choices=simulator.common.available_communication_models(),
+                                                              choices=CommunicationModel.available_models(),
                                                               required=True,
                                                               help="The communication model used to model the link quality between nodes. Typically low-asymmetry should be used."),
 
     "noise model":         lambda x, **kwargs: x.add_argument("-nm", "--noise-model",
                                                               type=str,
-                                                              choices=simulator.common.available_noise_models(),
+                                                              choices=NoiseModel.available_models(),
                                                               required=True,
                                                               help="Model the background noise in the network. meyer-heavy has high noise, casino-lab has lower noise. See models/noise for ways to graph the noisiness of these models."),
 
