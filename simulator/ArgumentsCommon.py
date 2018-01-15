@@ -359,7 +359,10 @@ class ArgumentsCommon(object):
         if self.args.mode == "GUI":
             result["SLP_USES_GUI_OUPUT"] = 1
 
-        result.update(self.args.attacker_model.build_arguments())
+        if hasattr(self.args, "attacker_model"):
+            result.update(self.args.attacker_model.build_arguments())
+        else:
+            result.update(AttackerConfiguration.AttackerConfiguration.generic_build_arguments())
 
         # Source period could either be a float or a class derived from PeriodModel
         if hasattr(self.args, 'source_period'):
@@ -450,7 +453,7 @@ class ArgumentsCommon(object):
             else:
                 assert self.args.address_recognition == "software"
 
-        if self.args.extra_metrics is not None:
+        if hasattr(self.args, "extra_metrics") and self.args.extra_metrics is not None:
             # Build arguments from any extra metrics being used
             extra_metric_classes = [cls for cls in MetricsCommon.EXTRA_METRICS if cls.__name__ in self.args.extra_metrics]
             for extra_metric in extra_metric_classes:

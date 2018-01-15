@@ -22,6 +22,10 @@ class AttackerConfiguration(object):
             arguments.update(attacker.build_arguments())
         return arguments
 
+    @staticmethod
+    def generic_build_arguments():
+        return Attacker.Attacker.generic_build_arguments()
+
     def __str__(self):
         return "{}({})".format(type(self).__name__, ",".join(str(attacker) for attacker in self.attackers))
 

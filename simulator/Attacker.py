@@ -55,6 +55,15 @@ class Attacker(object):
 
         return arguments
 
+    @staticmethod
+    def generic_build_arguments():
+        """When no knowledge about what attacker is running,
+        these arguments are used to support building binaries
+        that work with any attacker model."""
+        return {
+            "SLP_ATTACKER_USES_A_R_EVENT": 1
+        }
+
 
     def _get_starting_node_id(self):
         conf = self._sim.configuration
