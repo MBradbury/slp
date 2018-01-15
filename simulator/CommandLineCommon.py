@@ -16,6 +16,7 @@ from types import ModuleType
 
 import algorithm
 
+from simulator import CommunicationModel, NoiseModel
 import simulator.common
 import simulator.sim
 import simulator.ArgumentsCommon as ArgumentsCommon
@@ -836,8 +837,8 @@ class CLI(object):
             self._create_table(filename, safety_period_table, directory="testbed_results", show=args.show)
 
         else:
-            prod = itertools.product(simulator.common.available_noise_models(),
-                                     simulator.common.available_communication_models())
+            prod = itertools.product(NoiseModel.available_models(),
+                                     CommunicationModel.available_models())
 
             for (noise_model, comm_model) in prod:
 
