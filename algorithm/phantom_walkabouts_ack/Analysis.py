@@ -1,4 +1,3 @@
-from __future__ import division
 
 from data.analysis import AnalyzerCommon
 from data.analysis_extra.utility import Function, AnimalProtection, AssetMonitoring, Military

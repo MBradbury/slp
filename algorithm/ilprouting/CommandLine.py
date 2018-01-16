@@ -48,7 +48,7 @@ class CLI(CommandLineCommon.CLI):
             'failed avoid sink when captured',
         ]
 
-        self._create_results_table(parameters)
+        self._create_results_table(args.sim, parameters)
 
     def _run_graph(self, args):
         graph_parameters = {

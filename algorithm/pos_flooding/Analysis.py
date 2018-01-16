@@ -1,4 +1,3 @@
-from __future__ import division
 
 from data.analysis import Analyse, AnalyzerCommon
 
