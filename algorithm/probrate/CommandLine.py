@@ -11,7 +11,7 @@ class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(__package__, protectionless.name)
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(

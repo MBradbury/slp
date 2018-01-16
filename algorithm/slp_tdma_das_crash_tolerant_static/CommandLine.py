@@ -58,7 +58,7 @@ class CLI(CommandLineCommon.CLI):
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.product(
@@ -88,7 +88,7 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = self.add_extra_arguments(argument_product, extras)
 
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         return argument_product
 

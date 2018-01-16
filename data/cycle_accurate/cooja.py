@@ -1,4 +1,6 @@
-from __future__ import print_function
+
+from datetime import datetime
+import os.path
 
 import simulator.CoojaPlatform as CoojaPlatform
 
@@ -41,9 +43,10 @@ def create_csc(csc, target_directory, a):
     firmware_path = os.path.abspath(os.path.join(target_directory, "main.exe"))
 
     if not os.path.exists(firmware_path):
-        raise RuntimeError("The firmware at {} is missing".format(firmware_path))
+        raise RuntimeError(f"The firmware at {firmware_path} is missing")
 
     pcsc('<?xml version="1.0" encoding="UTF-8"?>')
+    pcsc('<!-- Generated at: {} -->'.format(datetime.now()))
     pcsc('<simconf>')
     pcsc('  <project EXPORT="discard">[APPS_DIR]/mrm</project>')
     pcsc('  <project EXPORT="discard">[APPS_DIR]/mspsim</project>')
@@ -152,12 +155,9 @@ log.testOK(); /* Report test success and quit */
 
     pcsc('</simconf>')
 
-
-
-def post_build_actions(target_directory, a):
-    import os.path
-
-    a.args.platform.post_build(target_directory, a)
-
+def write_csc(target_directory, a):
     with open(os.path.join(target_directory, "build", "sim.csc"), "w") as csc:
         create_csc(csc, target_directory, a)
+
+def post_build_actions(target_directory, a):
+    a.args.platform.post_build(target_directory, a)

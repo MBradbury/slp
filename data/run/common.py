@@ -27,9 +27,9 @@ def _argument_name_to_parameter(argument_name):
     return "--" + argument_name.replace(" ", "-")
 
 class RunSimulationsCommon(object):
-    def __init__(self, sim, driver, algorithm_module, result_path, skip_completed_simulations=True,
+    def __init__(self, sim_name, driver, algorithm_module, result_path, skip_completed_simulations=True,
                  safety_periods=None, safety_period_equivalence=None):
-        self.sim = sim
+        self.sim_name = sim_name
         self.driver = driver
         self.algorithm_module = algorithm_module
         self._result_path = result_path
@@ -83,17 +83,16 @@ class RunSimulationsCommon(object):
                 safety_period = self._get_safety_period(darguments)
                 opts["--safety-period"] = safety_period
 
-            opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
+            opt_items = [f"{k} \"{v}\"" for (k, v) in opts.items()]
 
             if verbose:
                 opt_items.append("--verbose")
 
-            options = 'algorithm.{} {} {} '.format(self.algorithm_module.name, self.sim, self._mode())
-            options += " ".join(opt_items)
+            options = f'algorithm.{self.algorithm_module.name} {self.sim_name} {self._mode()} {" ".join(opt_items)}'
 
             filename = os.path.join(
                 self._result_path,
-                '-'.join(map(self._sanitize_job_name, arguments)) + "-{}.txt".format(self.sim)
+                '-'.join(map(self._sanitize_job_name, arguments)) + f"-{self.sim_name}.txt"
             )
 
             estimated_time = None
@@ -110,7 +109,7 @@ class RunSimulationsCommon(object):
     def _mode(self):
         mode = self.driver.mode()
 
-        if mode in ("TESTBED", "CYCLEACCURATE"):
+        if mode == "TESTBED":
             return "SINGLE"
         else:
             return mode
@@ -232,47 +231,34 @@ def filter_arguments(argument_names, argument_product, to_filter):
 
 class RunTestbedCommon(RunSimulationsCommon):
 
-    extra_arguments = ('rf power', 'low power listening')
+    #extra_arguments = ('rf power', 'low power listening')
 
     # Filter out invalid parameters to pass onwards
     non_arguments = ('network size', 
                      'attacker model', 'noise model',
                      'communication model', 'distance',
-                     'node id order', 'latest node start time')
+                     'latest node start time')
 
-    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False,
+    def __init__(self, sim_name, driver, algorithm_module, result_path, skip_completed_simulations=False,
                  safety_periods=None, safety_period_equivalence=None):
+
+        if sim_name != "real":
+            raise ValueError("RunTestbedCommon must be created using the 'real' sim")
+
         # Do all testbed tasks
         # Testbed has no notion of safety period
-        super(RunTestbedCommon, self).__init__("real", driver, algorithm_module, result_path, False, None, safety_period_equivalence)
+        super(RunTestbedCommon, self).__init__(sim_name, driver, algorithm_module, result_path, False, None, safety_period_equivalence)
 
     def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
 
         filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, self.non_arguments)
+
+        # Check that all "node id order" parameters are topology
+        nido_index = filtered_argument_names.index("node id order")
+        for args in filtered_argument_product:
+            if args[nido_index] != "topology":
+                raise ValueError(f"Cannot run testbed with a node id order other than topology (given {args[nido_index]})")
 
         # Testbed has no notion of repeats
         # Also no need to estimate time
         super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None, **kwargs)
-
-class RunCycleAccurateCommon(RunSimulationsCommon):
-
-    extra_arguments = ('rf power', 'low power listening')
-
-    # Filter out invalid parameters to pass onwards
-    non_arguments = ('attacker model', 'noise model',
-                     'communication model',
-                     'latest node start time')
-
-    def __init__(self, sim, driver, algorithm_module, result_path, skip_completed_simulations=False,
-                 safety_periods=None, safety_period_equivalence=None):
-        # Do all cycle accurate tasks
-        # Cycle Accurate has no notion of safety period
-        super(RunCycleAccurateCommon, self).__init__(sim, driver, algorithm_module, result_path, False, None, safety_period_equivalence)
-
-    def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
-
-        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, self.non_arguments)
-
-        # Cycle Accurate has no notion of repeats
-        # Also no need to estimate time
-        super(RunCycleAccurateCommon, self).run(None, filtered_argument_names, filtered_argument_product, None, **kwargs)

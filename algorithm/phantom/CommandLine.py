@@ -25,7 +25,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
         subparser = self._add_argument("dual-min-max-versus", self._run_dual_min_max_versus)
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.ifilter(
@@ -44,7 +44,7 @@ class CLI(CommandLineCommon.CLI):
         # Factor in the number of sources when selecting the source period.
         # This is done so that regardless of the number of sources the overall
         # network's normal message generation rate is the same.
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         return argument_product
 
