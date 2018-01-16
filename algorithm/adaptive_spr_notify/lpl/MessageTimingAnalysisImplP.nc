@@ -43,8 +43,8 @@ implementation
         //seen = 0;
 
         // Set a minimum group wait time here
-        late_wakeup_ms = 40;//30;
-        early_wakeup_ms = 40;//20;
+        late_wakeup_ms = SLP_LPL_NORMAL_LATE_MS;
+        early_wakeup_ms = SLP_LPL_NORMAL_EARLY_MS;
 
         //message_received = FALSE;
         //missed_messages = 0;
