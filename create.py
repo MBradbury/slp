@@ -6,8 +6,6 @@ import sys
 
 import numpy as np
 
-from data.util import create_dirtree
-
 if __name__ == "__main__":
     from simulator import dependency
     dependency.check_all()
@@ -26,9 +24,6 @@ if __name__ == "__main__":
 
     # Raise all numpy errors
     np.seterr(all='raise')
-
-    create_dirtree(algorithm.results_path)
-    create_dirtree(algorithm.graphs_path)
 
     cli = CommandLine.CLI()
     cli.run(args)

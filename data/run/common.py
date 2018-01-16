@@ -9,9 +9,10 @@ from more_itertools import unique_everseen
 
 import numpy as np
 
-from data import results
-import simulator.common
+from data import results, submodule_loader
+
 from simulator import Attacker
+import simulator.sim
 
 class MissingSafetyPeriodError(RuntimeError):
     def __init__(self, key, source_period, safety_periods):
@@ -37,8 +38,10 @@ class RunSimulationsCommon(object):
         self._safety_periods = safety_periods
         self._safety_period_equivalence = safety_period_equivalence
 
+        self._global_parameter_names = submodule_loader.load(simulator.sim, self.sim_name).global_parameter_names
+
         if not os.path.exists(self._result_path):
-            raise RuntimeError("{} is not a directory".format(self._result_path))
+            raise RuntimeError(f"{self._result_path} is not a directory")
 
         self._existing_results = {}
 
@@ -130,12 +133,10 @@ class RunSimulationsCommon(object):
         if self._safety_periods is None:
             return None
 
-        global_parameter_names = simulator.common.global_parameter_names
-
         key = [
             self._prepare_argument_name(name, darguments)
             for name
-            in global_parameter_names
+            in self._global_parameter_names
         ]
 
         # Source period is always stored as the last item in the list
@@ -152,7 +153,7 @@ class RunSimulationsCommon(object):
 
                 # There exist some safety period equivalences, so lets try some
                 for (global_param, replacements) in self._safety_period_equivalence.items():
-                    global_param_index = global_parameter_names.index(global_param)
+                    global_param_index = self._global_parameter_names.index(global_param)
 
                     for (search, replace) in replacements.items():
                         if key[global_param_index] == search:
@@ -176,7 +177,7 @@ class RunSimulationsCommon(object):
         try:
             results_summary = results.Results(
                 self.algorithm_module.result_file_path,
-                parameters=argument_names[len(simulator.common.global_parameter_names):],
+                parameters=argument_names[len(self._global_parameter_names):],
                 results=('repeats',))
 
             # (size, config, attacker_model, noise_model, communication_model, distance, period) -> repeats
