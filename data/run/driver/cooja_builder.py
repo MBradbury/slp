@@ -4,8 +4,8 @@ from . import testbed_builder
 class Runner(testbed_builder.Runner):
     required_safety_periods = False
 
-    def __init__(self, cycle_accurate, max_buffer_size, platform=None):
-        super(Runner, self).__init__(cycle_accurate, platform)
+    def __init__(self, cycle_accurate, max_buffer_size, platform=None, **kwargs):
+        super(Runner, self).__init__(cycle_accurate, platform, **kwargs)
 
         self.max_buffer_size = max_buffer_size
 

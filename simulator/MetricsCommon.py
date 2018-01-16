@@ -1363,11 +1363,6 @@ class DutyCycleMetricsCommon(MetricsCommon):
 
     def _calculate_node_duty_cycle(self, node_id):
 
-        # TODO: Calculate start time from the first_normal_sent_time
-        # so the duty cycle is only calculated for when the nodes
-        # are actually duty cycling.
-        #start_time = self.first_normal_sent_time()
-
         start_time = self._duty_cycle_start
         end_time = self.sim_time()
 

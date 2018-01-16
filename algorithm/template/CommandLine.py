@@ -29,7 +29,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
         subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graph)
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(

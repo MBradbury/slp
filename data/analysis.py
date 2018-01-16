@@ -295,6 +295,7 @@ class Analyse(object):
                  with_normalised=True, headers_to_skip=None, keep_if_hit_upper_time_bound=False,
                  verify_seeds=True):
 
+        self.attributes = {}
         self.opts = {}
         self.headers_to_skip = headers_to_skip
 
@@ -313,8 +314,11 @@ class Analyse(object):
                 line = line.strip()
 
                 if line.startswith('@'):
-                    # Skip the attributes that contain some extra info
-                    continue
+                    # The attributes that contain some extra info
+
+                    k, v = line[1:].split(":", 1)
+
+                    self.attributes[k] = v
 
                 elif len(all_headings) == 0 and '=' in line:
                     # We are reading the options so record them.
@@ -532,6 +536,10 @@ class Analyse(object):
             print("Normalised Columns:", self.normalised_columns.info(memory_usage='deep'))
 
         self.columns = df
+
+    def sim_name(self):
+        """The sim used to gather these results"""
+        return self.attributes["sim"]
 
 
     def headings_index(self, name):

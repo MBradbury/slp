@@ -38,7 +38,7 @@ from data.util import recreate_dirtree, touch, scalar_extractor
 
 class CLI(object):
 
-    global_parameter_names = simulator.common.global_parameter_names
+    #global_parameter_names = simulator.common.global_parameter_names
 
     def __init__(self, package, safety_period_module_name=None, custom_run_simulation_class=None, safety_period_equivalence=None):
         super(CLI, self).__init__()
@@ -157,6 +157,7 @@ class CLI(object):
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("detect-missing", self._run_detect_missing, help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
 
         subparser = self._add_argument("graph-heatmap", self._run_graph_heatmap, help="Graph the sent and received heatmaps.")
 
@@ -181,8 +182,8 @@ class CLI(object):
         self._argument_handlers[name] = fn
         return self._subparsers.add_parser(name, **kwargs)
 
-    def parameter_names(self):
-        return self.global_parameter_names + self.algorithm_module.local_parameter_names
+    def parameter_names(self, sim):
+        return sim.global_parameter_names + self.algorithm_module.local_parameter_names
 
     def _testbed_results_path(self, testbed, module=None):
         if module is None:
@@ -474,23 +475,22 @@ class CLI(object):
         return None
 
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
 
         Algorithms that do anything special will need to implement this themselves.
         """
         # Lets do our best to implement an argument product that we can expect an algorithm to need.
-
         parameters = self.algorithm_module.Parameters
 
         product_argument = []
 
         # Some arguments are non-plural
-        non_plural_global_parameters = ["distance", "latest node start time"]
+        non_plural_global_parameters = ("distance", "latest node start time")
 
         # Some arguments are not properly named
         synonyms = {
-            "network size": "sizes"
+            "network size": "sizes",
         }
 
         def _get_global_plural_name(global_name):
@@ -500,7 +500,7 @@ class CLI(object):
             return global_name.replace(" ", "_") + "s"
 
         # First lets sort out the global parameters
-        for global_name in self.global_parameter_names:
+        for global_name in sim.global_parameter_names:
             if global_name in non_plural_global_parameters:
                 product_argument.append([getattr(parameters, global_name.replace(" ", "_"))])
             else:
@@ -523,12 +523,14 @@ class CLI(object):
             for extra_name in extras:
                 product_argument.append(self._get_extra_plural_name(extra_name))
 
+        print(product_argument)
+
         argument_product = itertools.product(*product_argument)
 
         # Factor in the number of sources when selecting the source period.
         # This is done so that regardless of the number of sources the overall
         # network's normal message generation rate is the same.
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         return argument_product
 
@@ -545,16 +547,13 @@ class CLI(object):
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
 
-    def _execute_runner(self, sim, driver, result_path, time_estimator=None,
+    def _execute_runner(self, sim_name, driver, result_path, time_estimator=None,
                         skip_completed_simulations=True, verbose=False):
         testbed_name = None
 
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
             testbed_name = driver.testbed_name()
-        elif driver.mode() == "CYCLEACCURATE":
-            from data.run.common import RunCycleAccurateCommon as RunSimulations
-            RunSimulations = functools.partial(RunSimulations, sim)
         else:
             # Time for something very crazy...
             # Some simulations require a safety period that varies depending on
@@ -563,10 +562,10 @@ class CLI(object):
             # So this custom RunSimulationsCommon class gets overridden and provided.
             if self.custom_run_simulation_class is None:
                 from data.run.common import RunSimulationsCommon as RunSimulations
-                RunSimulations = functools.partial(RunSimulations, sim)
             else:
-                RunSimulations = functools.partial(self.custom_run_simulation_class, sim)
+                RunSimulations = self.custom_run_simulation_class
 
+        sim = submodule_loader.load(simulator.sim, sim_name)
 
         if not driver.required_safety_periods:
             safety_periods = False
@@ -583,7 +582,7 @@ class CLI(object):
             safety_periods = safety_period_table_generator.safety_periods()
 
         runner = RunSimulations(
-            driver, self.algorithm_module, result_path,
+            sim_name, driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations,
             safety_periods=safety_periods,
             safety_period_equivalence=self.safety_period_equivalence,
@@ -591,7 +590,7 @@ class CLI(object):
 
         extra_argument_names = getattr(runner, "extra_arguments", tuple())
 
-        argument_product = self._argument_product(extras=extra_argument_names)
+        argument_product = self._argument_product(sim, extras=extra_argument_names)
 
         argument_product_duplicates = _duplicates_in_iterable(argument_product)
 
@@ -604,7 +603,7 @@ class CLI(object):
 
         try:
             runner.run(self.algorithm_module.Parameters.repeats,
-                       self.parameter_names() + extra_argument_names,
+                       self.parameter_names(sim) + extra_argument_names,
                        argument_product,
                        time_estimator,
                        verbose=verbose)
@@ -615,11 +614,11 @@ class CLI(object):
             print("Available safety periods:")
             pprint(ex.safety_periods)
 
-    def adjust_source_period_for_multi_source(self, argument_product):
+    def adjust_source_period_for_multi_source(self, sim, argument_product):
         """For configurations with multiple sources, so that the network has the
         overall same message generation rate, the source period needs to be adjusted
         relative to the number of sources."""
-        names = self.parameter_names()
+        names = self.parameter_names(sim)
         configuration_index = names.index('configuration')
         size_index = names.index('network size')
         distance_index = names.index('distance')
@@ -985,8 +984,9 @@ class CLI(object):
         self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape", show=args.show)
 
     def _run_detect_missing(self, args):
+        sim = submodule_loader.load(simulator.sim, args.sim)
         
-        argument_product = {tuple(map(str, row)) for row in self._argument_product()}
+        argument_product = {tuple(map(str, row)) for row in self._argument_product(sim)}
 
         result = results.Results(self.algorithm_module.result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
@@ -994,14 +994,14 @@ class CLI(object):
 
         repeats = result.parameter_set()
 
-        parameter_names = self.global_parameter_names + result.parameter_names
+        parameter_names = sim.global_parameter_names + result.parameter_names
 
         print("Checking runs that were asked for, but not included...")
 
         for arguments in argument_product:
             if arguments not in repeats:
                 print("missing ", end="")
-                print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, arguments)]))
+                print(", ".join([f"{n}={str(v)}" for (n,v) in zip(parameter_names, arguments)]))
                 print()
 
         print(f"Loading {self.algorithm_module.result_file_path} to check for missing runs...")
@@ -1015,9 +1015,7 @@ class CLI(object):
 
             # Number of repeats is below the target
             if repeats_missing > 0:
-
-                print("performed={} missing={} ".format(repeats_performed, repeats_missing), end="")
-
+                print(f"performed={repeats_performed} missing={repeats_missing} ", end="")
                 print(", ".join([f"{n}={str(v)}" for (n,v) in zip(parameter_names, parameter_values)]))
                 print()
 

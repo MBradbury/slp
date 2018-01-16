@@ -8,7 +8,6 @@ import os.path
 
 import numpy as np
 
-import simulator.common
 from simulator import Configuration, SourcePeriodModel
 
 def _name_to_attr(name):

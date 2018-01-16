@@ -40,23 +40,30 @@ PLATFORM_TOOLS = {
 class Runner(object):
     required_safety_periods = False
 
-    def __init__(self, testbed, platform=None):
-        self._progress = Progress("building file")
+    def __init__(self, testbed, platform=None, quiet=False):
+        
         self.total_job_size = None
-        self._jobs_executed = 0
 
         self.testbed = testbed
         self.platform = choose_platform(platform, self.testbed.platform())
+
+        self.quiet = quiet
+
+        if not self.quiet:
+            self._progress = Progress("building file")
+            self._jobs_executed = 0
 
         if testbed.generate_per_node_id_binary:
             from multiprocessing.pool import ThreadPool
             self.pool = ThreadPool()
 
     def add_job(self, options, name, estimated_time=None):
-        print(name)
 
-        if not self._progress.has_started():
-            self._progress.start(self.total_job_size)
+        if not self.quiet:
+            print(name)
+
+            if not self._progress.has_started():
+                self._progress.start(self.total_job_size)
 
         # Create the target directory
         target_directory = name[:-len(".txt")]
@@ -95,19 +102,22 @@ class Runner(object):
         build_args[self.mode() + "_" + self.testbed.name().upper()] = 1
         build_args["PLATFORM"] = self.platform
 
-        print("Building for {}".format(build_args))
+        if not self.quiet:
+            print(f"Building for {build_args}")
 
         build_result = Builder.build_actual(module_path, self.platform,
                                             enable_fast_serial=self.testbed.fastserial_supported(),
                                             **build_args)
 
-        print("Build finished with result {}, waiting for a bit...".format(build_result))
+        if not self.quiet:
+            print(f"Build finished with result {build_result}, waiting for a bit...")
 
         # For some reason, we seemed to be copying files before
         # they had finished being written. So wait a  bit here.
         time.sleep(1)
 
-        print("Copying files to '{}'".format(target_directory))
+        if not self.quiet:
+            print(f"Copying files to '{target_directory}'")
 
         files_to_copy = (
             "app.c",
@@ -144,7 +154,8 @@ class Runner(object):
         if self.testbed.generate_per_node_id_binary:
             target_ihex = os.path.join(target_directory, "main.ihex")
 
-            print(f"Creating per node id binaries using '{target_ihex}'...")
+            if not self.quiet:
+                print(f"Creating per node id binaries using '{target_ihex}'...")
 
             def fn(node_id):
                 output_ihex = os.path.join(target_directory, f"main-{node_id}.ihex")
@@ -152,11 +163,12 @@ class Runner(object):
 
             self.pool.map(fn, configuration.topology.nodes)
 
-        print("All Done!")
+        if not self.quiet:
+            print("All Done!")
 
-        self._progress.print_progress(self._jobs_executed)
+            self._progress.print_progress(self._jobs_executed)
 
-        self._jobs_executed += 1
+            self._jobs_executed += 1
 
         return a, module, module_path, target_directory
 
