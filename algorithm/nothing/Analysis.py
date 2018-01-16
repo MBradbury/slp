@@ -4,24 +4,19 @@ from data.analysis import AnalyzerCommon
 algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
 class Analyzer(AnalyzerCommon):
-    def __init__(self, results_directory):
-        super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters())
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-    @staticmethod
-    def normalised_parameters():
-        return tuple()
+    def results_header(self):
+        d = self.common_results_header(algorithm_module.local_parameter_names)
 
-    @staticmethod
-    def results_header():
-        d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
+        self.common_results(d)
 
-        AnalyzerCommon.common_results(d)
+        d['normal']             = lambda x: self._format_results(x, 'NormalSent')
 
-        d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
+        d['node was source']    = lambda x: self._format_results(x, 'NodeWasSource')
 
-        d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
-
-        d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
-        d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+        d['sent heatmap']       = lambda x: self._format_results(x, 'SentHeatMap')
+        d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
 
         return d

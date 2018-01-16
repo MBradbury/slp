@@ -718,7 +718,7 @@ class CLI(object):
         def results_finder(results_directory):
             return fnmatch.filter(os.listdir(results_directory), '*.txt')
 
-        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path(args.sim))
+        analyzer = self.algorithm_module.Analysis.Analyzer(args.sim, self.algorithm_module.results_path(args.sim))
         analyzer.run(self.algorithm_module.result_file,
                      results_finder,
                      nprocs=args.thread_count,
@@ -732,7 +732,7 @@ class CLI(object):
         results_path = self._testbed_results_path(testbed)
         result_file = os.path.basename(self.algorithm_module.result_file)
 
-        analyzer = self.algorithm_module.Analysis.Analyzer(results_path)
+        analyzer = self.algorithm_module.Analysis.Analyzer("real", results_path)
         analyzer.run(result_file,
                      results_finder,
                      nprocs=args.thread_count,

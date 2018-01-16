@@ -20,9 +20,10 @@ import numpy as np
 import pandas as pd
 import psutil
 
+import data.submodule_loader as submodule_loader
 from data.progress import Progress
 
-#import simulator.common
+import simulator.sim
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
@@ -836,20 +837,22 @@ class AnalysisResults(object):
         self.configuration = analysis._get_configuration()
 
 class AnalyzerCommon(object):
-    def __init__(self, results_directory, values, normalised_values=None, filtered_values=None):
+    def __init__(self, sim_name, results_directory):
+        self.sim_name = sim_name
         self.results_directory = results_directory
-        self.values = values
-        self.normalised_values = normalised_values if normalised_values is not None else tuple()
-        self.filtered_values = filtered_values if filtered_values is not None else tuple()
-
+        
+        self.normalised_values = self.normalised_parameters()
         self.normalised_values += (('time_after_first_normal', '1'),)
+
+        self.filtered_values = self.filtered_parameters()
+
+        self.values = self.results_header()
 
         self.values['dropped no sink delivery'] = lambda x: str(x.dropped_no_sink_delivery)
         self.values['dropped hit upper bound']  = lambda x: str(x.dropped_hit_upper_bound)
         self.values['dropped duplicates']       = lambda x: str(x.dropped_duplicates)
 
-    @staticmethod
-    def common_results_header(local_parameter_names):
+    def common_results_header(self, local_parameter_names):
         d = OrderedDict()
         
         # Include the number of simulations that were analysed
@@ -858,8 +861,10 @@ class AnalyzerCommon(object):
         # Give everyone access to the number of nodes in the simulation
         d['num nodes']          = lambda x: str(x.configuration.size())
 
+        sim = submodule_loader.load(simulator.sim, self.sim_name)
+
         # The options that all simulations must include and the local parameter names
-        for parameter in simulator.common.global_parameter_names + local_parameter_names:
+        for parameter in sim.global_parameter_names + local_parameter_names:
 
             param_underscore = parameter.replace(" ", "_")
 
@@ -867,41 +872,49 @@ class AnalyzerCommon(object):
 
         return d
 
-    @staticmethod
-    def common_results(d):
+    def common_results(self, d):
         """These metrics are ones that all simulations should have.
         But this function doesn't need to be used if the metrics need special treatment."""
 
-        d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
-        d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
-        d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered')
+        d['sent']               = lambda x: self._format_results(x, 'Sent')
+        d['received']           = lambda x: self._format_results(x, 'Received')
+        d['delivered']          = lambda x: self._format_results(x, 'Delivered')
 
-        d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
+        d['time taken']         = lambda x: self._format_results(x, 'TimeTaken')
         #d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
 
-        d['first normal sent time']= lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
-        d['time after first normal']= lambda x: AnalyzerCommon._format_results(x, 'norm(time_after_first_normal,1)')
+        d['first normal sent time']= lambda x: self._format_results(x, 'FirstNormalSentTime')
+        d['time after first normal']= lambda x: self._format_results(x, 'norm(time_after_first_normal,1)')
         
         # Metrics used for profiling simulation
-        d['total wall time']    = lambda x: AnalyzerCommon._format_results(x, 'TotalWallTime')
-        d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
-        d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
-        d['memory rss']         = lambda x: AnalyzerCommon._format_results(x, 'MemoryRSS', allow_missing=True)
-        d['memory vms']         = lambda x: AnalyzerCommon._format_results(x, 'MemoryVMS', allow_missing=True)
+        d['total wall time']    = lambda x: self._format_results(x, 'TotalWallTime')
+        d['wall time']          = lambda x: self._format_results(x, 'WallTime')
+        d['event count']        = lambda x: self._format_results(x, 'EventCount')
+        d['memory rss']         = lambda x: self._format_results(x, 'MemoryRSS', allow_missing=True)
+        d['memory vms']         = lambda x: self._format_results(x, 'MemoryVMS', allow_missing=True)
 
         d['captured']           = lambda x: str(x.average_of['Captured'])
         d['reached upper bound']= lambda x: str(x.average_of['ReachedSimUpperBound'])
 
-        d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
-        d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
-        d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
+        d['received ratio']     = lambda x: self._format_results(x, 'ReceiveRatio')
+        d['normal latency']     = lambda x: self._format_results(x, 'NormalLatency')
+        d['ssd']                = lambda x: self._format_results(x, 'NormalSinkSourceHops')
         
-        d['unique normal generated']= lambda x: AnalyzerCommon._format_results(x, 'UniqueNormalGenerated', allow_missing=True)
+        d['unique normal generated']= lambda x: self._format_results(x, 'UniqueNormalGenerated', allow_missing=True)
 
-        d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
+        d['attacker moves']     = lambda x: self._format_results(x, 'AttackerMoves')
+        d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance')
 
-        d['errors']             = lambda x: AnalyzerCommon._format_results(x, 'Errors', allow_missing=True)
+        d['errors']             = lambda x: self._format_results(x, 'Errors', allow_missing=True)
+
+    def results_header(self):
+        raise NotImplementedError()
+
+    def normalised_parameters(self):
+        return []
+
+    def filtered_parameters(self):
+        return []
 
 
     @staticmethod
