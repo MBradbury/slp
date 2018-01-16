@@ -22,7 +22,7 @@ import psutil
 
 from data.progress import Progress
 
-import simulator.common
+#import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
@@ -916,7 +916,7 @@ class AnalyzerCommon(object):
             if variance_corrector is not None:
                 var = variance_corrector(var)
 
-            return "{};{}".format(ave, var)
+            return f"{ave};{var}"
         else:
             try:
                 ave = x.average_of[name]

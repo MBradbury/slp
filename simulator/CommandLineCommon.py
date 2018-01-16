@@ -17,7 +17,6 @@ from types import ModuleType
 import algorithm
 
 from simulator import CommunicationModel, NoiseModel
-import simulator.common
 import simulator.sim
 import simulator.ArgumentsCommon as ArgumentsCommon
 import simulator.Configuration as Configuration
@@ -34,11 +33,9 @@ from data.graph import heatmap, summary
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
 
-from data.util import recreate_dirtree, touch, scalar_extractor
+from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
 
 class CLI(object):
-
-    #global_parameter_names = simulator.common.global_parameter_names
 
     def __init__(self, package, safety_period_module_name=None, custom_run_simulation_class=None, safety_period_equivalence=None):
         super(CLI, self).__init__()
@@ -133,6 +130,7 @@ class CLI(object):
         ###
 
         subparser = self._add_argument("analyse", self._run_analyse, help="Analyse the results of this algorithm.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
@@ -144,11 +142,13 @@ class CLI(object):
             # Only when it is a module name do we add the ability to run this command         
             if not isinstance(safety_period_module_name, bool):
                 subparser = self._add_argument("safety-table", self._run_safety_table, help="Output protectionless information along with the safety period to be used for those parameter combinations.")
+                subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
                 subparser.add_argument("--show-stddev", action="store_true")
                 subparser.add_argument("--show", action="store_true", default=False)
                 subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("time-taken-table", self._run_time_taken_table, help="Creates a table showing how long simulations took in real and virtual time.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--show-stddev", action="store_true")
         subparser.add_argument("--show", action="store_true", default=False)
         subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
@@ -188,27 +188,30 @@ class CLI(object):
     def _testbed_results_path(self, testbed, module=None):
         if module is None:
             module = self.algorithm_module
-        return os.path.join("testbed_results", testbed.name(), module.name)
+
+        testbed = testbed if isinstance(testbed, ModuleType) else submodule_loader.load(data.testbed, testbed)
+
+        return os.path.join("results", "real", testbed.name(), module.name)
 
     def _testbed_results_file(self, testbed, module=None):
         if module is None:
             module = self.algorithm_module
         return os.path.join(self._testbed_results_path(testbed, module), module.result_file)
 
-    def get_results_file_path(self, testbed=None):
-        if testbed is not None:
-            testbed = submodule_loader.load(data.testbed, testbed)
-            return self._testbed_results_file(testbed)
-        else:
-            return self.algorithm_module.result_file_path
+    def get_results_file_path(self, sim_name, testbed=None, module=None):
+        if module is None:
+            module = self.algorithm_module
 
-    def get_safety_period_result_path(self, testbed=None):
-        algo = importlib.import_module("algorithm.{}".format(self.safety_period_module_name))
-        if testbed is None:
-            return algo.result_file_path
+        if testbed is not None:
+            return self._testbed_results_file(testbed, module=module)
         else:
-            testbed = testbed if isinstance(testbed, ModuleType) else submodule_loader.load(data.testbed, testbed)
-            return self._testbed_results_file(testbed, algo)
+            return module.result_file_path(sim_name)
+
+    def get_safety_period_result_path(self, sim_name, testbed=None):
+        algo = importlib.import_module("algorithm.{}".format(self.safety_period_module_name))
+
+        return self.get_results_file_path(sim_name, testbed=testbed, module=algo)
+
 
     @staticmethod
     def _create_table(name, result_table, directory="results", param_filter=lambda *args: True, orientation='portrait', show=False):
@@ -575,7 +578,7 @@ class CLI(object):
             safety_periods = None
         else:
             safety_period_table_generator = safety_period.TableGenerator(
-                self.get_safety_period_result_path(testbed=testbed_name),
+                self.get_safety_period_result_path(sim_name, testbed=testbed_name),
                 self.time_after_first_normal_to_safety_period,
                 testbed=testbed_name)
             
@@ -707,7 +710,7 @@ class CLI(object):
 
         skip_complete = not args.no_skip_complete
 
-        self._execute_runner(args.sim, driver, self.algorithm_module.results_path,
+        self._execute_runner(args.sim, driver, self.algorithm_module.results_path(args.sim),
                              time_estimator=None,
                              skip_completed_simulations=skip_complete)
 
@@ -715,7 +718,7 @@ class CLI(object):
         def results_finder(results_directory):
             return fnmatch.filter(os.listdir(results_directory), '*.txt')
 
-        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
+        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path(args.sim))
         analyzer.run(self.algorithm_module.result_file,
                      results_finder,
                      nprocs=args.thread_count,
@@ -754,7 +757,7 @@ class CLI(object):
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
 
         if self.safety_period_module_name is not None:
-            safety_period_result_path = self.get_safety_period_result_path(testbed=testbed)
+            safety_period_result_path = self.get_safety_period_result_path("real", testbed=testbed)
             safety_period_table = safety_period.TableGenerator(safety_period_result_path,
                                                                self.time_after_first_normal_to_safety_period,
                                                                testbed=testbed)
@@ -819,7 +822,7 @@ class CLI(object):
 
 
     def _run_safety_table(self, args):
-        safety_period_result_path = self.get_safety_period_result_path(testbed=args.testbed)
+        safety_period_result_path = self.get_safety_period_result_path(args.sim, testbed=args.testbed)
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
@@ -967,7 +970,7 @@ class CLI(object):
         sys.exit(0)
 
     def _run_time_taken_table(self, args):
-        result_file_path = self.get_results_file_path(testbed=args.testbed)
+        result_file_path = self.get_results_file_path(args.sim, testbed=args.testbed)
 
         result = results.Results(result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
@@ -1108,6 +1111,9 @@ class CLI(object):
 
     def run(self, args):
         args = self._parser.parse_args(args)
+
+        create_dirtree(self.algorithm_module.results_path(args.sim))
+        create_dirtree(self.algorithm_module.graphs_path(args.sim))
 
         self._argument_handlers[args.mode](args)
 

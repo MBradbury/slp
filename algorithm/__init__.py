@@ -7,13 +7,16 @@ testbed_results_directory_name = "testbed_results"
 graphs_directory_name = "Graphs"
 
 def _setup_algorithm_paths(name):
-    results_path = os_path_join(results_directory_name, name)
+    def results_path(sim_name):
+        return os_path_join(results_directory_name, sim_name, name)
 
     result_file = f"{name}-results.csv"
 
-    result_file_path = os_path_join(results_path, result_file)
+    def result_file_path(sim_name):
+        return os_path_join(results_path(sim_name), result_file)
 
-    graphs_path = os_path_join(results_path, graphs_directory_name)
+    def graphs_path(sim_name):
+        return os_path_join(results_path(sim_name), graphs_directory_name)
 
     return (name, results_path, result_file, result_file_path, graphs_path)
 
