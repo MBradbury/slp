@@ -6,7 +6,7 @@
 
 #include "SLPDutyCycleFlags.h"
 
-static const uint32_t choose_on_time = 50;
+static const uint32_t choose_on_time = SLP_LPL_CHOOSE_ON_MS;
 
 generic module FakeMessageTimingAnalysisImplP()
 {
@@ -109,8 +109,8 @@ implementation
 
 
         // Set a minimum group wait time here
-        late_wakeup_ms = 150;//250
-        early_wakeup_ms = 100;//150
+        late_wakeup_ms = SLP_LPL_FAKE_LATE_MS;
+        early_wakeup_ms = SLP_LPL_FAKE_EARLY_MS;
 
         return SUCCESS;
     }
