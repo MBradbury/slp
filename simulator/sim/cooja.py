@@ -69,7 +69,7 @@ def cooja_command(module, a, configuration):
 
     csc_file = os.path.join(target_directory, "build", "sim.csc")
 
-    command = "java -jar '{}' -nogui='{}' -contiki='{}'".format(cooja_path, csc_file, os.environ["CONTIKI_DIR"])
+    command = f"java -jar '{cooja_path}' -nogui='{csc_file}' -contiki='{os.environ['CONTIKI_DIR']}'"
 
     return command
 

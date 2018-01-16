@@ -176,7 +176,7 @@ class RunSimulationsCommon(object):
     def _load_existing_results(self, argument_names):
         try:
             results_summary = results.Results(
-                self.algorithm_module.result_file_path,
+                self.sim_name, self.algorithm_module.result_file_path(self.sim_name),
                 parameters=argument_names[len(self._global_parameter_names):],
                 results=('repeats',))
 
@@ -186,7 +186,7 @@ class RunSimulationsCommon(object):
             message = str(e)
             if 'No such file or directory' in message:
                 raise RuntimeError("The results file {} is not present. Perhaps rerun the command with '--no-skip-complete'?".format(
-                    self.algorithm_module.result_file_path))
+                    self.algorithm_module.result_file_path(self.sim_name)))
             else:
                 raise
 

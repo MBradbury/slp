@@ -227,15 +227,15 @@ class CLI(object):
         if show:
             subprocess.call(["xdg-open", filename_pdf])
 
-    def _create_results_table(self, parameters, **kwargs):
+    def _create_results_table(self, sim_name, parameters, **kwargs):
         res = results.Results(
-            self.algorithm_module.result_file_path,
+            sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
             results=parameters)
 
         result_table = fake_result.ResultTable(res)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table, **kwargs)
+        self._create_table(f"{self.algorithm_module.name}-{sim_name}-results", result_table, **kwargs)
 
 
     def _create_versus_graph(self, graph_parameters, varying,
