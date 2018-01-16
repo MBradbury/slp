@@ -6,7 +6,7 @@ approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        super(Arguments, self).__init__("SLP Adaptive SPR Notify", has_safety_period=True)
+        super().__init__("SLP Adaptive SPR Notify", has_safety_period=True)
 
         self.add_argument("--source-period", type=self.type_positive_float, required=True)
         self.add_argument("--source-mobility",
@@ -16,7 +16,7 @@ class Arguments(ArgumentsCommon):
         self.add_argument("--approach", type=str, choices=approaches, required=True)
 
     def build_arguments(self):
-        result = super(Arguments, self).build_arguments()
+        result = super().build_arguments()
 
         result["APPROACH"] = self.args.approach
         result[self.args.approach] = 1
