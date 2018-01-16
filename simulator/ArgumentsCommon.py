@@ -4,7 +4,6 @@ from random import SystemRandom
 
 from simulator import CommunicationModel, NoiseModel
 import simulator.AttackerConfiguration as AttackerConfiguration
-import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 import simulator.FaultModel as FaultModel
