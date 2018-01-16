@@ -14,6 +14,8 @@ import sys
 import time
 from types import ModuleType
 
+from more_itertools import unique_everseen
+
 import algorithm
 
 from simulator import CommunicationModel, NoiseModel
@@ -154,12 +156,14 @@ class CLI(object):
         subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("error-table", self._run_error_table, help="Creates a table showing the number of simulations in which an error occurred.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("detect-missing", self._run_detect_missing, help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
 
         subparser = self._add_argument("graph-heatmap", self._run_graph_heatmap, help="Graph the sent and received heatmaps.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
 
         ###
 
@@ -174,6 +178,7 @@ class CLI(object):
         ###
 
         subparser = self._add_argument('historical-time-estimator', self._run_historical_time_estimator)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--key", nargs="+", metavar="P", default=('network size', 'source period'))
 
         ###
@@ -526,8 +531,6 @@ class CLI(object):
             for extra_name in extras:
                 product_argument.append(self._get_extra_plural_name(extra_name))
 
-        print(product_argument)
-
         argument_product = itertools.product(*product_argument)
 
         # Factor in the number of sources when selecting the source period.
@@ -800,7 +803,7 @@ class CLI(object):
                 safety_key = (configuration, str(args.attacker_model), fault_model)
                 settings["--safety-period"] = str(safety_periods[safety_key][source_period])
             
-            command += " ".join("{} \"{}\"".format(k, v) for (k, v) in settings.items())
+            command += " ".join(f"{k} \"{v}\"" for (k, v) in settings.items())
 
             if args.verbose:
                 command += " --verbose"
@@ -853,7 +856,7 @@ class CLI(object):
 
     def _run_error_table(self, args):
         res = results.Results(
-            self.algorithm_module.result_file_path,
+            args.sim, self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=('dropped no sink delivery', 'dropped hit upper bound', 'dropped duplicates'))
 
@@ -875,7 +878,8 @@ class CLI(object):
         if emails_to_notify_env:
             emails_to_notify.extend(emails_to_notify_env.split(","))
 
-        return emails_to_notify
+        # Only provide unique emails
+        return list(unique_everseen(emails_to_notify))
 
     def _run_cluster(self, args):
         cluster_directory = os.path.join("cluster", self.algorithm_module.name)
@@ -991,7 +995,7 @@ class CLI(object):
         
         argument_product = {tuple(map(str, row)) for row in self._argument_product(sim)}
 
-        result = results.Results(self.algorithm_module.result_file_path,
+        result = results.Results(args.sim, self.algorithm_module.result_file_path(args.sim),
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
@@ -1023,15 +1027,17 @@ class CLI(object):
                 print()
 
     def _run_graph_heatmap(self, args):
+        analyser = self.algorithm_module.Analysis.Analyzer(args.sim, self.algorithm_module.results_path(args.sim))
+
         heatmap_results = [
             header
             for header
-            in self.algorithm_module.Analysis.Analyzer.results_header().keys()
+            in analyser.results_header().keys()
             if header.endswith('heatmap')
         ]
 
         results_summary = results.Results(
-            self.algorithm_module.result_file_path,
+            args.sim, self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=heatmap_results)
 
@@ -1064,11 +1070,13 @@ class CLI(object):
 
         summary.GraphSummary(
             os.path.join(self.algorithm_module.graphs_path, args.grapher),
-            os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, args.grapher))
+            os.path.join(algorithm.results_directory_name, f"{self.algorithm_module.name}-{args.grapher}")
         ).run(show=args.show)
 
     def _run_historical_time_estimator(self, args):
-        result = results.Results(self.algorithm_module.result_file_path,
+        sim = submodule_loader.load(simulator.sim, args.sim)
+
+        result = results.Results(args.sim, self.algorithm_module.result_file_path(args.sim),
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('total wall time',))
 
@@ -1078,7 +1086,7 @@ class CLI(object):
 
         for (global_params, values1) in result.data.items():
 
-            global_params = dict(zip(self.global_parameter_names, global_params))
+            global_params = dict(zip(sim.global_parameter_names, global_params))
 
             for (source_period, values2) in values1.items():
 
@@ -1112,8 +1120,9 @@ class CLI(object):
     def run(self, args):
         args = self._parser.parse_args(args)
 
-        create_dirtree(self.algorithm_module.results_path(args.sim))
-        create_dirtree(self.algorithm_module.graphs_path(args.sim))
+        if hasattr(args, "sim"):
+            create_dirtree(self.algorithm_module.results_path(args.sim))
+            create_dirtree(self.algorithm_module.graphs_path(args.sim))
 
         self._argument_handlers[args.mode](args)
 
