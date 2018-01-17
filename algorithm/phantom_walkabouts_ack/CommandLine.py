@@ -44,7 +44,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph-dominating-min-max", self._run_dominating_min_max_versus)
         subparser = self._add_argument("graph-multi", self._run_multi_versus)
 
-    def _cluster_time_estimator(self, args, **kwargs):
+    def _cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want

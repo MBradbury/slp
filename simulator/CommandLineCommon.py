@@ -607,6 +607,9 @@ class CLI(object):
             pprint(argument_product_duplicates)
             raise RuntimeError("There are duplicates in your argument product, check your Parameters.py file.")
 
+        if time_estimator is not None:
+            time_estimator = functools.partial(time_estimator, sim_name)
+
         try:
             runner.run(self.algorithm_module.Parameters.repeats,
                        self.parameter_names(sim) + extra_argument_names,
@@ -644,29 +647,40 @@ class CLI(object):
 
         return [process(*args) for args in argument_product]
 
-    def _default_cluster_time_estimator(self, args, **kwargs):
+    def _default_cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
-        if size == 7:
-            return timedelta(hours=7)
-        elif size == 11:
-            return timedelta(hours=9)
-        elif size == 15:
-            return timedelta(hours=21)
-        elif size == 21:
-            return timedelta(hours=42)
-        elif size == 25:
-            return timedelta(hours=71)
-        else:
-            raise RuntimeError("No time estimate for network sizes other than 7, 11, 15, 21 or 25")
 
-    def _cluster_time_estimator(self, args, **kwargs):
+        if sim == "cooja":
+            if size == 7:
+                return timedelta(hours=36)
+            elif size == 9:
+                return timedelta(hours=48)
+            elif size == 11:
+                return timedelta(hours=71)
+            else:
+                raise RuntimeError("No time estimate for network sizes other than 7, 9 or 11")
+        else:
+            if size == 7:
+                return timedelta(hours=7)
+            elif size == 11:
+                return timedelta(hours=9)
+            elif size == 15:
+                return timedelta(hours=21)
+            elif size == 21:
+                return timedelta(hours=42)
+            elif size == 25:
+                return timedelta(hours=71)
+            else:
+                raise RuntimeError("No time estimate for network sizes other than 7, 11, 15, 21 or 25")
+
+    def _cluster_time_estimator(self, sim, args, **kwargs):
         return self._default_cluster_time_estimator(args, **kwargs)
 
-    def _cluster_time_estimator_from_historical(self, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
+    def _cluster_time_estimator_from_historical(self, sim, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
         key = tuple(args[name] for name in historical_key_names)
 
         try:
@@ -698,8 +712,8 @@ class CLI(object):
             return calculated_time
 
         except KeyError:
-            print(f"Unable to find historical time for {key}, so using default time estimator.")
-            return self._default_cluster_time_estimator(args, **kwargs)
+            print(f"Unable to find historical time for {key} on {sim}, so using default time estimator.")
+            return self._default_cluster_time_estimator(sim, args, **kwargs)
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
