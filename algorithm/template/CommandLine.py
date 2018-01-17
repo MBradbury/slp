@@ -54,34 +54,37 @@ class CLI(CommandLineCommon.CLI):
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
 
-    def _cluster_time_estimator(self, args, **kwargs):
+    def _cluster_time_estimator(self, sim, args, **kwargs):
         historical_key_names = ('network size', 'source period')
 
-        historical = {
-            (11, 0.125): timedelta(seconds=6),
-            (11, 0.25): timedelta(seconds=9),
-            (11, 0.5): timedelta(seconds=10),
-            (11, 1.0): timedelta(seconds=12),
-            (11, 2.0): timedelta(seconds=12),
-            (15, 0.125): timedelta(seconds=29),
-            (15, 0.25): timedelta(seconds=52),
-            (15, 0.5): timedelta(seconds=54),
-            (15, 1.0): timedelta(seconds=49),
-            (15, 2.0): timedelta(seconds=46),
-            (21, 0.125): timedelta(seconds=174),
-            (21, 0.25): timedelta(seconds=334),
-            (21, 0.5): timedelta(seconds=440),
-            (21, 1.0): timedelta(seconds=356),
-            (21, 2.0): timedelta(seconds=319),
-            (25, 0.125): timedelta(seconds=609),
-            (25, 0.25): timedelta(seconds=1140),
-            (25, 0.5): timedelta(seconds=1277),
-            (25, 1.0): timedelta(seconds=1247),
-            (25, 2.0): timedelta(seconds=974),
-        }
+        if sim == "tossim":
+            historical = {
+                (11, 0.125): timedelta(seconds=6),
+                (11, 0.25): timedelta(seconds=9),
+                (11, 0.5): timedelta(seconds=10),
+                (11, 1.0): timedelta(seconds=12),
+                (11, 2.0): timedelta(seconds=12),
+                (15, 0.125): timedelta(seconds=29),
+                (15, 0.25): timedelta(seconds=52),
+                (15, 0.5): timedelta(seconds=54),
+                (15, 1.0): timedelta(seconds=49),
+                (15, 2.0): timedelta(seconds=46),
+                (21, 0.125): timedelta(seconds=174),
+                (21, 0.25): timedelta(seconds=334),
+                (21, 0.5): timedelta(seconds=440),
+                (21, 1.0): timedelta(seconds=356),
+                (21, 2.0): timedelta(seconds=319),
+                (25, 0.125): timedelta(seconds=609),
+                (25, 0.25): timedelta(seconds=1140),
+                (25, 0.5): timedelta(seconds=1277),
+                (25, 1.0): timedelta(seconds=1247),
+                (25, 2.0): timedelta(seconds=974),
+            }
+        else:
+            historical = {}
 
         return self._cluster_time_estimator_from_historical(
-            args, kwargs, historical_key_names, historical,
+            sim, args, kwargs, historical_key_names, historical,
             allowance=0.25,
             max_time=timedelta(days=2)
         )

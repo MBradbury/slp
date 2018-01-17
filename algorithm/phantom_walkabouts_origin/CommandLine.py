@@ -101,7 +101,7 @@ class CLI(CommandLineCommon.CLI):
 
         return list(zip(walk_short, walk_long))
         
-    def _cluster_time_estimator(self, args, **kwargs):
+    def _cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want

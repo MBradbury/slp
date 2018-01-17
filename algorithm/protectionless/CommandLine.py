@@ -26,33 +26,37 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
         subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graphs)
 
-    def _cluster_time_estimator(self, args, **kwargs):
+    def _cluster_time_estimator(self, sim, args, **kwargs):
         historical_key_names = ('network size', 'source period')
-        historical = {
-            ('11', '0.125'): timedelta(seconds=2),
-            ('11', '0.25'): timedelta(seconds=2),
-            ('11', '0.5'): timedelta(seconds=2),
-            ('11', '1.0'): timedelta(seconds=3),
-            ('11', '2.0'): timedelta(seconds=3),
-            ('15', '0.125'): timedelta(seconds=6),
-            ('15', '0.25'): timedelta(seconds=6),
-            ('15', '0.5'): timedelta(seconds=7),
-            ('15', '1.0'): timedelta(seconds=8),
-            ('15', '2.0'): timedelta(seconds=9),
-            ('21', '0.125'): timedelta(seconds=31),
-            ('21', '0.25'): timedelta(seconds=29),
-            ('21', '0.5'): timedelta(seconds=32),
-            ('21', '1.0'): timedelta(seconds=32),
-            ('21', '2.0'): timedelta(seconds=34),
-            ('25', '0.125'): timedelta(seconds=71),
-            ('25', '0.25'): timedelta(seconds=70),
-            ('25', '0.5'): timedelta(seconds=73),
-            ('25', '1.0'): timedelta(seconds=82),
-            ('25', '2.0'): timedelta(seconds=70),
-        }
+
+        if sim == "tossim":
+            historical = {
+                ('11', '0.125'): timedelta(seconds=2),
+                ('11', '0.25'): timedelta(seconds=2),
+                ('11', '0.5'): timedelta(seconds=2),
+                ('11', '1.0'): timedelta(seconds=3),
+                ('11', '2.0'): timedelta(seconds=3),
+                ('15', '0.125'): timedelta(seconds=6),
+                ('15', '0.25'): timedelta(seconds=6),
+                ('15', '0.5'): timedelta(seconds=7),
+                ('15', '1.0'): timedelta(seconds=8),
+                ('15', '2.0'): timedelta(seconds=9),
+                ('21', '0.125'): timedelta(seconds=31),
+                ('21', '0.25'): timedelta(seconds=29),
+                ('21', '0.5'): timedelta(seconds=32),
+                ('21', '1.0'): timedelta(seconds=32),
+                ('21', '2.0'): timedelta(seconds=34),
+                ('25', '0.125'): timedelta(seconds=71),
+                ('25', '0.25'): timedelta(seconds=70),
+                ('25', '0.5'): timedelta(seconds=73),
+                ('25', '1.0'): timedelta(seconds=82),
+                ('25', '2.0'): timedelta(seconds=70),
+            }
+        else:
+            historical = {}
 
         return self._cluster_time_estimator_from_historical(
-            args, kwargs, historical_key_names, historical,
+            sim, args, kwargs, historical_key_names, historical,
             allowance=0.25
         )
 
