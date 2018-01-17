@@ -5,33 +5,40 @@ configuration DummyDutyCycleC
 {
     provides
     {
+#ifdef LOW_POWER_LISTENING
         interface LowPowerListening;
         interface Send;
         interface Receive;
         interface SplitControl;
+#endif
         interface SLPDutyCycle;
     }
-    uses
-    {
-        interface Send as SubSend;
-        interface Receive as SubReceive;
-        interface SplitControl as SubControl;
-    }
+
+#ifdef LOW_POWER_LISTENING
+    uses interface Send as SubSend;
+    uses interface Receive as SubReceive;
+    uses interface SplitControl as SubControl;
+#endif
 }
 implementation
 {
-    components DummyLplC;
     components DummyDutyCycleP;
+    SLPDutyCycle = DummyDutyCycleP;
+
+#ifdef LOW_POWER_LISTENING
+
+    components DummyLplC;
 
     LowPowerListening = DummyLplC;
     Send = DummyLplC;
     Receive = DummyLplC;
     SplitControl = DummyLplC;
-    SLPDutyCycle = DummyDutyCycleP;
+    
 
     DummyLplC.SubSend = SubSend;
     DummyLplC.SubReceive = SubReceive;
     DummyLplC.SubControl = SubControl;
+#endif
 
     components MetricLoggingP as MetricLogging;
     DummyDutyCycleP.MetricLogging -> MetricLogging;
