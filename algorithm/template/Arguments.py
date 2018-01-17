@@ -1,11 +1,16 @@
 
 from simulator.ArgumentsCommon import ArgumentsCommon
+import simulator.MobilityModel
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
         super().__init__("SLP Template", has_safety_period=True)
 
         self.add_argument("--source-period", type=self.type_positive_float, required=True)
+        self.add_argument("--source-mobility",
+                          type=simulator.MobilityModel.eval_input,
+                          default=simulator.MobilityModel.StationaryMobilityModel())
+
         self.add_argument("--fake-period", type=self.type_positive_float, required=True)
         self.add_argument("--temp-fake-duration", type=self.type_positive_float, required=True)
 
