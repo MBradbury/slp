@@ -2,6 +2,7 @@
 #define SLP_MESSAGES_FAKEMESSAGE_H
 
 #include "SequenceNumber.h"
+#include "HopDistance.h"
 
 typedef nx_struct FakeMessage {
   NXSequenceNumber sequence_number;
@@ -9,11 +10,11 @@ typedef nx_struct FakeMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
-  nx_uint16_t source_distance;
-  nx_uint16_t sink_distance;
-  nx_uint16_t sink_source_distance;
+  nx_hop_distance_t source_distance;
+  nx_hop_distance_t sink_distance;
+  nx_hop_distance_t sink_source_distance;
 
-  nx_uint16_t max_hop;
+  nx_hop_distance_t max_hop;
 
   nx_uint8_t from_pfs;
 
