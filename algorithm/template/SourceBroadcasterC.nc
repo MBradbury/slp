@@ -216,19 +216,6 @@ implementation
 			first_source_distance = 0;
 			source_distance = 0;
 
-			/*{
-				NotifyMessage message;
-				message.source_id = TOS_NODE_ID;
-				message.sequence_number = sequence_number_next(&notify_sequence_counter);
-				message.source_distance = 0;
-				message.source_period = SOURCE_PERIOD_MS;
-
-				if (send_Notify_message(&message, AM_BROADCAST_ADDR))
-				{
-					sequence_number_increment(&notify_sequence_counter);
-				}
-			}*/
-
 			METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_START, "");
 		}
 	}
@@ -641,7 +628,7 @@ implementation
 
 	void Fake_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		const uint32_t expire_duration_time = call PacketTimeStamp.isValid(msg)
+		const uint32_t receive_fake_time = call PacketTimeStamp.isValid(msg)
 			? call PacketTimeStamp.timestamp(msg)
 			: call LocalTime.get();
 
@@ -668,13 +655,13 @@ implementation
 				call NodeType.get() == PermFakeNode &&
 				rcvd->from_pfs &&
 				(
-					(rcvd->source_distance > source_distance) ||
-					(rcvd->source_distance == source_distance && sink_distance < rcvd->sink_distance) ||
-					(rcvd->source_distance == source_distance && sink_distance == rcvd->sink_distance && TOS_NODE_ID < rcvd->source_id)
+					(rcvd->sender_source_distance > source_distance) ||
+					(rcvd->sender_source_distance == source_distance && sink_distance < rcvd->sink_distance) ||
+					(rcvd->sender_source_distance == source_distance && sink_distance == rcvd->sink_distance && TOS_NODE_ID < rcvd->source_id)
 				)
 				)
 			{
-				call FakeMessageGenerator.expireDuration(expire_duration_time);
+				call FakeMessageGenerator.expireDuration(receive_fake_time);
 			}
 		}
 	}
@@ -708,7 +695,7 @@ implementation
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 
-		message.source_distance = source_distance;
+		message.sender_source_distance = source_distance;
 		message.sink_distance = sink_distance;
 		message.sink_source_distance = sink_source_distance;
 		

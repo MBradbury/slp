@@ -10,7 +10,7 @@ typedef nx_struct FakeMessage {
   // The id of the node that sent this message
   nx_am_addr_t source_id;
 
-  nx_hop_distance_t source_distance;
+  nx_hop_distance_t sender_source_distance;
   nx_hop_distance_t sink_distance;
   nx_hop_distance_t sink_source_distance;
 
