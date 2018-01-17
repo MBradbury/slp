@@ -1,5 +1,6 @@
 
 import argparse
+from importlib import import_module
 from random import SystemRandom
 
 from simulator import CommunicationModel, NoiseModel
@@ -452,6 +453,11 @@ class ArgumentsCommon(object):
             else:
                 assert self.args.address_recognition == "software"
 
+        # Some metrics class have build arguments, so we need to pull them in here:
+        algorithm_metrics_module = import_module("..Metrics", self.__module__)
+        result.update(algorithm_metrics_module.Metrics.build_arguments())
+
+        # Pull in any build options from extra_metrics
         if hasattr(self.args, "extra_metrics") and self.args.extra_metrics is not None:
             # Build arguments from any extra metrics being used
             extra_metric_classes = [cls for cls in MetricsCommon.EXTRA_METRICS if cls.__name__ in self.args.extra_metrics]
