@@ -62,6 +62,7 @@ module SourceBroadcasterC
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
+	uses interface Timer<TMilli> as ChooseSenderTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -528,36 +529,23 @@ implementation
 		return any_further;
 	}
 
-	task void request_next_fake_source_task()
+	ChooseMessage choose_message;
+
+	task void send_choose_message_task()
 	{
 		const am_addr_t target = fake_walk_target();
 
 		bool ack_request = target != AM_BROADCAST_ADDR;
 
-		ChooseMessage message;
-		message.sequence_number = sequence_number_next(&choose_sequence_counter);
-		message.source_id = TOS_NODE_ID;
-		message.sink_distance = 0;
-		
-#ifdef SPACE_BEHIND_SINK
-		message.algorithm = GenericAlgorithm;
-#else
-		message.algorithm = FurtherAlgorithm;
-#endif
-
-		message.any_further = any_further_neighbours();
-
-		message.ultimate_sender_first_source_distance = first_source_distance;
-		message.source_node_type = call NodeType.get();
-
-		if (send_Choose_message(&message, target, &ack_request))
+		if (!send_Choose_message(&choose_message, target, &ack_request))
 		{
-			sequence_number_increment(&choose_sequence_counter);
+			call ChooseSenderTimer.startOneShot(5 + random_interval(0, 5));
 		}
-		else
-		{
-			post request_next_fake_source_task();
-		}
+	}
+
+	event void ChooseSenderTimer.fired()
+	{
+		post send_choose_message_task();
 	}
 
 	void request_next_fake_source()
@@ -565,7 +553,25 @@ implementation
 		choose_rtx_limit = (call NodeType.get() == TempFakeNode || call NodeType.get() == TailFakeNode || call NodeType.get() == PermFakeNode)
 			? CHOOSE_RTX_LIMIT_FOR_FS
 			: UINT8_MAX;
-		post request_next_fake_source_task();
+
+		choose_message.sequence_number = sequence_number_next(&choose_sequence_counter);
+		choose_message.source_id = TOS_NODE_ID;
+		choose_message.sink_distance = 0;
+		
+#ifdef SPACE_BEHIND_SINK
+		choose_message.algorithm = GenericAlgorithm;
+#else
+		choose_message.algorithm = FurtherAlgorithm;
+#endif
+
+		choose_message.any_further = any_further_neighbours();
+
+		choose_message.ultimate_sender_first_source_distance = first_source_distance;
+		choose_message.source_node_type = call NodeType.get();
+
+		call ChooseSenderTimer.startOneShot(5 + random_interval(0, 5));
+
+		sequence_number_increment(&choose_sequence_counter);
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -685,7 +691,7 @@ implementation
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
 
-			// Keep sending away messages until we get a valid response
+			// Keep sending choose messages until we get a valid response
 			if (!sink_received_choose_reponse)
 			{
 				request_next_fake_source();
@@ -840,7 +846,7 @@ implementation
 	{
 		const uint32_t become_fake_time = call PacketTimeStamp.isValid(msg)
 			? call PacketTimeStamp.timestamp(msg)
-			: call BroadcastNormalTimer.getNow();
+			: call LocalTime.get();
 
 		x_snoop_Choose(rcvd, source_addr);
 
@@ -956,7 +962,7 @@ implementation
 				{
 					if (choose_rtx_limit != 0)
 					{
-						post request_next_fake_source_task();
+						post send_choose_message_task();
 					}
 				}
 			}
@@ -965,7 +971,7 @@ implementation
 		{
 			if (choose_rtx_limit != 0)
 			{
-				post request_next_fake_source_task();
+				post send_choose_message_task();
 			}
 		}
 	}
@@ -1183,27 +1189,21 @@ implementation
 
 	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size, uint32_t duration_expired_at)
 	{
-		ChooseMessage new_message = *(const ChooseMessage *)original;
-
-		const am_addr_t target = fake_walk_target();
 		const uint8_t node_type = call NodeType.get();
 
-		bool ack_request = TRUE;
+		//assert(sizeof(choose_message) == original_size);
 
-		//assert(sizeof(message) == original_size);
-
-		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to " TOS_NODE_ID_SPEC ".\n", target);
+		//simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to " TOS_NODE_ID_SPEC ".\n", target);
 
 		// When finished sending fake messages from a TFS
-		new_message.sink_distance += 1;
-		new_message.any_further = any_further_neighbours();
-		new_message.ultimate_sender_first_source_distance = first_source_distance;
-
-		// send the new node type
-		new_message.source_node_type = (node_type == PermFakeNode) ? NormalNode : TailFakeNode;
+		choose_message = *(const ChooseMessage *)original;
+		choose_message.sink_distance += 1;
+		choose_message.any_further = any_further_neighbours();
+		choose_message.ultimate_sender_first_source_distance = first_source_distance;
+		choose_message.source_node_type = (node_type == PermFakeNode) ? NormalNode : TailFakeNode; // The new node type
 
 		choose_rtx_limit = CHOOSE_RTX_LIMIT_FOR_FS;
-		send_Choose_message(&new_message, target, &ack_request);
+		post send_choose_message_task();
 
 		if (node_type == PermFakeNode)
 		{
