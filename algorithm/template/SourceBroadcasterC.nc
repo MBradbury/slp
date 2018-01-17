@@ -52,6 +52,7 @@ module SourceBroadcasterC
 	uses interface NodeType;
 	uses interface MessageType;
 	uses interface FakeMessageGenerator;
+	uses interface ObjectDetector;
 }
 
 implementation
@@ -59,11 +60,6 @@ implementation
 #ifdef SLP_DEBUG
 	#include "HopDistanceDebug.h"
 #endif
-
-	enum
-	{
-		SourceNode, SinkNode, NormalNode, TempFakeNode, PermFakeNode
-	};
 
 	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
@@ -174,13 +170,6 @@ implementation
 
 			sink_distance = 0;
 		}
-		else if (call NodeType.get_topology_node_id() == SOURCE_NODE_ID)
-		{
-			call NodeType.init(SourceNode);
-
-			first_source_distance = 0;
-			source_distance = 0;
-		}
 		else
 		{
 			call NodeType.init(NormalNode);
@@ -195,10 +184,7 @@ implementation
 		{
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
-			if (call NodeType.get() == SourceNode)
-			{
-				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
-			}
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
@@ -217,6 +203,48 @@ implementation
 	USE_MESSAGE(Away);
 	USE_MESSAGE(Choose);
 	USE_MESSAGE(Fake);
+
+	event void ObjectDetector.detect()
+	{
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
+		{
+			call NodeType.set(SourceNode);
+
+			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
+
+			first_source_distance = 0;
+			source_distance = 0;
+
+			/*{
+				NotifyMessage message;
+				message.source_id = TOS_NODE_ID;
+				message.sequence_number = sequence_number_next(&notify_sequence_counter);
+				message.source_distance = 0;
+				message.source_period = SOURCE_PERIOD_MS;
+
+				if (send_Notify_message(&message, AM_BROADCAST_ADDR))
+				{
+					sequence_number_increment(&notify_sequence_counter);
+				}
+			}*/
+
+			METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_START, "");
+		}
+	}
+
+	event void ObjectDetector.stoppedDetecting()
+	{
+		if (call NodeType.get() == SourceNode)
+		{
+			call BroadcastNormalTimer.stop();
+
+			call NodeType.set(NormalNode);
+
+			first_source_distance = UNKNOWN_HOP_DISTANCE;
+			source_distance = UNKNOWN_HOP_DISTANCE;
+		}
+	}
 
 	void become_Normal(void)
 	{
