@@ -281,10 +281,7 @@ class tinis(ClusterCommon):
         )
 
     def submitter(self, *args, **kwargs):
-        return self._pbs_submitter(*args, **kwargs)
-
-    def array_submitter(self, *args, **kwargs):
-        return self._pbs_array_submitter(*args, **kwargs)
+        return self._moab_submitter(*args, **kwargs)
 
 class orac(ClusterCommon):
     def __init__(self):
