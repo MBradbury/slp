@@ -1075,6 +1075,10 @@ class MetricsCommon(object):
         else:
             return getattr(psutil.Process().memory_info(), attr)
 
+    @classmethod
+    def build_arguments(cls):
+        return {}
+
 class AvroraPacketSummary(object):
     __slots__ = ('sent_bytes', 'sent_packets', 'recv_bytes', 'recv_packets', 'corrupted_bytes', 'lost_in_middle_bytes')
 
@@ -1394,9 +1398,11 @@ class DutyCycleMetricsCommon(MetricsCommon):
         d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle(), sort=True)
         return d
 
-    @staticmethod
-    def build_arguments():
-        return {}
+    @classmethod
+    def build_arguments(cls):
+        result = super(DutyCycleMetricsCommon, cls).build_arguments()
+        result["SLP_USES_GUI_OUPUT"] = 1
+        return result
 
 
 class DutyCycleMetricsGrapher(MetricsCommon):
