@@ -18,7 +18,7 @@ class NodeId(object):
     __slots__ = ("nid",)
 
     def __init__(self, nid):
-        if not isinstance(nid, int):
+        if not isinstance(nid, (int, np.int_)):
             raise TypeError("nid is not an int it is a", type(nid))
 
         self.nid = nid
