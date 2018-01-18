@@ -19,6 +19,8 @@ from simulator.Topology import OrderedId
 
 from scripts.profile_testbed import LinkResult, CurrentDraw, RSSIResult
 
+min_max = {"prr": (0, 1), "rssi": (-100, -50), "lqi": (40, 115)}
+
 class ResultsProcessor(object):
 
     results_path = "results.pickle"
@@ -360,7 +362,6 @@ class ResultsProcessor(object):
             plt.clf()
 
     def draw_link_heatmap(self, args):
-        min_max = {"prr": (0, 1), "rssi": (-100, -50), "lqi": (40, 115)}
         return self._draw_link_heatmap_fn(args, "link", min_max=min_max)
 
     def draw_link_asymmetry_heatmap(self, args):
@@ -368,6 +369,9 @@ class ResultsProcessor(object):
 
 
     def draw_link(self, args):
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
+
         import networkx as nx
         from networkx.drawing.nx_pydot import write_dot
 
@@ -388,6 +392,10 @@ class ResultsProcessor(object):
             raise RuntimeError("No result for {} with power {}".format(args.name, args.power))
 
         labels = list(result.columns.values)
+
+        cmap = cmx.get_cmap("RdYlGn")
+        cnorm  = colors.Normalize(vmin=min_max[args.name][0], vmax=min_max[args.name][1])
+        scalarmap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
 
 
         G = nx.MultiDiGraph()
@@ -410,7 +418,7 @@ class ResultsProcessor(object):
             for node2 in labels:
                 if not np.isnan(row[node2]):
                     if args.threshold is None or row[node2] >= args.threshold:
-                        G.add_edge(node1, node2, label=round(row[node2], 2))
+                        G.add_edge(node1, node2, label=round(row[node2], 2), color=colors.rgb2hex(scalarmap.to_rgba(row[node2])))
 
         dot_path = f"{args.name}-{args.power}.dot"
         png_path = dot_path.replace(".dot", ".png")
