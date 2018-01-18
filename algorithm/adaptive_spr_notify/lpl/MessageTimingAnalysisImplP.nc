@@ -35,6 +35,8 @@ implementation
     //bool message_received;
     //uint32_t missed_messages;
 
+    bool can_turn_off_early;
+
     command error_t Init.init()
     {
         expected_interval_ms = UINT32_MAX;
@@ -48,6 +50,8 @@ implementation
 
         //message_received = FALSE;
         //missed_messages = 0;
+
+        can_turn_off_early = FALSE;
 
         return SUCCESS;
     }
@@ -133,6 +137,9 @@ implementation
             //}
 
             startOffTimerFromMessage(timestamp_ms);
+
+            can_turn_off_early = TRUE;
+            signal MessageTimingAnalysis.stop_radio();
         }
         /*else
         {
@@ -173,6 +180,7 @@ implementation
     {
         const uint32_t now = call OffTimer.gett0() + call OffTimer.getdt();
 
+        can_turn_off_early = FALSE;
         signal MessageTimingAnalysis.stop_radio();
 
         startOnTimer(now);
@@ -222,6 +230,6 @@ implementation
 
     command bool MessageTimingAnalysis.can_turn_off()
     {
-        return call OnTimer.isRunning() && !call OffTimer.isRunning();
+        return (call OnTimer.isRunning() && !call OffTimer.isRunning()) || can_turn_off_early;
     }
 }
