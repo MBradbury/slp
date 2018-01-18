@@ -164,7 +164,10 @@ class ClusterCommon(object):
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
-        prepare_command = "cd $PBS_O_WORKDIR"
+        if self.kind == "slurm":
+            prepare_command = "cd $SLURM_SUBMIT_DIR"
+        else:
+            prepare_command = "cd $PBS_O_WORKDIR"
 
         return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
@@ -285,7 +288,7 @@ class tinis(ClusterCommon):
 
 class orac(ClusterCommon):
     def __init__(self):
-        super(orac, self).__init__("moab", "orac.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
+        super(orac, self).__init__("slurm", "orac.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
             ppn=28,
             tpp=1,
             rpn=(128 * 1024) / 28 # 128GB per node
