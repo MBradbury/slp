@@ -28,6 +28,6 @@ enum NodeType
 
 #define SINK_AWAY_MESSAGES_TO_SEND 2
 
-#define CHOOSE_RTX_LIMIT_FOR_FS 2
+#define CHOOSE_RTX_LIMIT_FOR_FS 5
 
 #endif // SLP_CONSTANTS_H
