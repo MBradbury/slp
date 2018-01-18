@@ -425,10 +425,10 @@ class ResultsProcessor(object):
 
         write_dot(G, dot_path)
 
-        subprocess.check_call("neato -n2 -T png {} > {}".format(dot_path, png_path), shell=True)
+        subprocess.check_call(f"neato -n2 -T png {dot_path} > {png_path}", shell=True)
 
         if args.show:
-            subprocess.call("xdg-open {}".format(png_path), shell=True)
+            subprocess.call(f"xdg-open {png_path}", shell=True)
 
     def draw_noise_floor_heatmap(self, args):
         import matplotlib.pyplot as plt
@@ -475,7 +475,7 @@ class ResultsProcessor(object):
             for (nid, coord, c) in node_info:
                 ax.annotate(str(nid), xy=(coord[0], coord[1]), horizontalalignment='center', verticalalignment='center')
 
-            path = "noise-floor-heatmap-{}.pdf".format(args.channel)
+            path = f"noise-floor-heatmap-{args.channel}.pdf"
             plt.savefig(path)
 
             subprocess.check_call(["pdfcrop", path, path])
@@ -553,7 +553,7 @@ def main():
     subparser.add_argument("name", type=str, help="The name of the metric to draw", choices=["prr", "lqi", "rssi"])
     subparser.add_argument("power", type=int, help="The broadcast power level to show", choices=[3, 7, 11, 15, 19, 23, 27, 31])
     subparser.add_argument("--show", action="store_true", default=False)
-    subparser.add_argument("--threshold", type=float, default=None)
+    subparser.add_argument("--threshold", type=float, default=None, help="The minimum value to show")
 
     subparser = add_argument("draw-link-heatmap", processor.draw_link_heatmap)
     subparser.add_argument("--show", action="store_true", default=False)
