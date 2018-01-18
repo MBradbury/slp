@@ -6,7 +6,8 @@
 
 #include "SLPDutyCycleFlags.h"
 
-static const uint32_t choose_on_time = SLP_LPL_CHOOSE_ON_MS;
+static const uint32_t choose_early = SLP_LPL_CHOOSE_EARLY_MS;
+static const uint32_t choose_late = SLP_LPL_CHOOSE_LATE_MS;
 
 generic module FakeMessageTimingAnalysisImplP()
 {
@@ -63,6 +64,8 @@ implementation
     uint32_t late_wakeup_ms;
     uint32_t early_wakeup_ms;
 
+    bool can_turn_off_early_perm_fake;
+
     // How long to wait between one group and the next
     // This is the time between the first new messages
     uint32_t temp_next_duration_wait(void)
@@ -111,6 +114,8 @@ implementation
         // Set a minimum group wait time here
         late_wakeup_ms = SLP_LPL_FAKE_LATE_MS;
         early_wakeup_ms = SLP_LPL_FAKE_EARLY_MS;
+
+        can_turn_off_early_perm_fake = FALSE;
 
         return SUCCESS;
     }
@@ -258,6 +263,9 @@ implementation
         if (is_new)
         {
             startPermOffTimerFromMessage(timestamp_ms);
+
+            can_turn_off_early_perm_fake = TRUE;
+            signal MessageTimingAnalysis.stop_radio();
         }
     }
 
@@ -307,7 +315,7 @@ implementation
 #endif
         signal MessageTimingAnalysis.start_radio();
 
-        call ChooseOffTimer.startOneShotAt(now, choose_on_time);
+        call ChooseOffTimer.startOneShotAt(now, choose_early + choose_late);
     }
 
     event void ChooseOffTimer.fired()
@@ -419,6 +427,7 @@ implementation
     {
         const uint32_t now = call PermOffTimer.gett0() + call PermOffTimer.getdt();
 
+        can_turn_off_early_perm_fake = FALSE;
         signal MessageTimingAnalysis.stop_radio();
 
         startPermOnTimer(now);
@@ -474,7 +483,7 @@ implementation
             // And, we either haven't started PFS duty cycling, or we are in the PFS off period
             /*((!call PermOnTimer.isRunning() && !call PermOffTimer.isRunning()) ||
              (call PermOnTimer.isRunning() && !call PermOffTimer.isRunning()))*/
-            !call PermOffTimer.isRunning() &&
+            (can_turn_off_early_perm_fake || !call PermOffTimer.isRunning()) &&
 
             !call ChooseOffTimer.isRunning()
             ;
