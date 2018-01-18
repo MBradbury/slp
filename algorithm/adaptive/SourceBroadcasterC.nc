@@ -489,7 +489,7 @@ implementation
 	{
 		if (!send_Choose_message(&choose_message, AM_BROADCAST_ADDR))
 		{
-			call ChooseSenderTimer.startOneShot(5 + random_interval(0, 5));
+			call ChooseSenderTimer.startOneShot(1);
 		}
 	}
 
@@ -515,7 +515,7 @@ implementation
 		choose_message.algorithm = FurtherAlgorithm;
 #endif
 
-		call ChooseSenderTimer.startOneShot(5 + random_interval(0, 5));
+		call ChooseSenderTimer.startOneShot(1);
 
 		sequence_number_increment(&choose_sequence_counter);
 	}
