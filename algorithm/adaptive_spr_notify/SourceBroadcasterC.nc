@@ -539,7 +539,7 @@ implementation
 
 		if (!send_Choose_message(&choose_message, target, &ack_request))
 		{
-			call ChooseSenderTimer.startOneShot(5 + random_interval(0, 5));
+			call ChooseSenderTimer.startOneShot(1);
 		}
 	}
 
@@ -569,7 +569,7 @@ implementation
 		choose_message.ultimate_sender_first_source_distance = first_source_distance;
 		choose_message.source_node_type = call NodeType.get();
 
-		call ChooseSenderTimer.startOneShot(5 + random_interval(0, 5));
+		call ChooseSenderTimer.startOneShot(1);
 
 		sequence_number_increment(&choose_sequence_counter);
 	}
