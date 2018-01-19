@@ -287,6 +287,9 @@ class MetricsCommon(object):
         if status != "0":
             return
 
+        if len(hex_buffer) % 2 != 0:
+            raise RuntimeError(f"The sent buffer {hex_buffer} does not have an event length {len(hex_buffer)/2}")
+
         key = (str(node_id), kind, ultimate_source_id, sequence_number)
         if key not in self.messages_broadcast:
             self.messages_broadcast[key] = list()
@@ -426,12 +429,12 @@ class MetricsCommon(object):
                 sent_hex_buffers = self.messages_broadcast[(proximate_source_id, kind, ultimate_source_id, sequence_number)]
 
                 if all(sent_hex_buffer != hex_buffer for sent_hex_buffer in sent_hex_buffers):
-                    sent_hex_buffer_str = "\n".join(f"\t{sent_hex_buffer}" for sent_hex_buffer in sent_hex_buffers)
+                    sent_hex_buffer_str = "\n".join(f"\t{sent_hex_buffer} (len={len(sent_hex_buffer)/2})" for sent_hex_buffer in sent_hex_buffers)
 
-                    raise RuntimeError("The received hex buffer does not match any sent buffer for prox-src={}, kind={}, ult-src={}, seq-no={}\nSent:\n{}\nReceived:\n\t{}".format(
+                    raise RuntimeError("The received hex buffer does not match any sent buffer for prox-src={}, kind={}, ult-src={}, seq-no={}\nSent:\n{}\nReceived:\n\t{} (len={})".format(
                         proximate_source_id, kind, ultimate_source_id, sequence_number,
                         sent_hex_buffer_str,
-                        hex_buffer))
+                        hex_buffer, len(hex_buffer)/2))
 
             except KeyError as ex:
                 print("Received {} but unable to find a matching key".format(hex_buffer), file=sys.stderr)
@@ -1290,6 +1293,54 @@ class TreeMetricsCommon(MetricsCommon):
         d["TotalTrueParentChanges"]        = lambda x: x.total_true_parent_changes()
 
         d["ParentChangeHeatMap"]           = lambda x: MetricsCommon.compressed_dict_str(x.true_parent_change_heat_map())
+
+        return d
+
+class TDMAMetricsCommon(MetricsCommon):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.slot_changes = defaultdict(list)
+        self.period_starts = defaultdict(list)
+
+        self.register('M-NSC', self.process_node_slot_change_event)
+        self.register('M-SP', self.process_start_period_event)
+
+    def process_node_slot_change_event(self, d_or_e, node_id, time, detail):
+        (current_slot, new_slot) = detail.split(',')
+
+        time = float(time)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        current_slot = int(current_slot)
+        new_slot = int(new_slot)
+
+        self.slot_changes[ord_node_id].append((time, current_slot, new_slot))
+
+    def process_start_period_event(self, d_or_e, node_id, time, detail):
+        time = float(time)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self.period_starts[ord_node_id].append(time)
+
+    def per_node_slot_changes(self):
+        return {
+            ord_node_id: len(changes)
+            for (ord_node_id, changes) in self.slot_changes.items()
+        }
+
+    def node_periods_started(self):
+        return {
+            ord_node_id: len(started)
+            for (ord_node_id, started) in self.period_starts.items()
+        }
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+
+        d["TotalNodeSlotChanges"]            = lambda x: MetricsCommon.smaller_dict_str(x.per_node_slot_changes())
+        d["NodePeriodsStarted"]              = lambda x: MetricsCommon.smaller_dict_str(x.per_node_slot_changes())
 
         return d
 
