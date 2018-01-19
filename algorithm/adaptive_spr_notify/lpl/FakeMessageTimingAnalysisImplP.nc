@@ -235,9 +235,10 @@ implementation
                     const uint32_t temp_delay_ms = temp_delay_wait();
 
                     const uint32_t choose_start =
-                            temp_duration_ms - temp_delay_ms - nth_message_delay - early_wakeup_ms;
+                        temp_duration_ms - temp_delay_ms - nth_message_delay - choose_early;
 
-                    //assert(temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX);
+                    //assert(temp_duration_ms != UINT32_MAX);
+                    //assert(temp_delay_ms != UINT32_MAX);
 
                     call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
                 }
@@ -315,7 +316,7 @@ implementation
 #endif
         signal MessageTimingAnalysis.start_radio();
 
-        call ChooseOffTimer.startOneShotAt(now, choose_early + choose_late);
+        call ChooseOffTimer.startOneShotAt(now, choose_late);
     }
 
     event void ChooseOffTimer.fired()
