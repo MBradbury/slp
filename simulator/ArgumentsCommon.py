@@ -80,11 +80,12 @@ def _add_cooja_radio_model(parser, **kwargs):
                         choices=CoojaPlatform.available_models(),
                         required=True)
 
-    # COOJA doesn't like debug strings longer than 128 bytes
+    # COOJA doesn't like debug strings longer than 256 bytes
     # Anything longer than this will get "..." appended.
+    # If you need more look at MspDebugOutput.java in Cooja
     parser.add_argument("--max-buffer-size",
                         type=ArgumentsCommon.type_positive_int,
-                        default=128),
+                        default=255),
 
 
 def _add_log_converter(parser, **kwargs):
