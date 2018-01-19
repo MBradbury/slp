@@ -27,6 +27,7 @@ class Node(object):
 class Simulation(object):
     def __init__(self, module_name, configuration, args, load_nesc_variables=False):
         self.module_name = module_name
+        self.args = args
 
         tossim_module = importlib.import_module('{}.TOSSIM'.format(module_name))
 
@@ -288,6 +289,7 @@ class Simulation(object):
 class OfflineSimulation(object):
     def __init__(self, module_name, configuration, args, event_log):
         self.module_name = module_name
+        self.args = args
 
         self.seed = args.seed
         self.rng = random.Random(self.seed)

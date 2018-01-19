@@ -1,6 +1,4 @@
 
-from __future__ import division
-
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.Configuration
 import simulator.SourcePeriodModel

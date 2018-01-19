@@ -2,6 +2,7 @@
 #define SLP_MESSAGES_AWAYCHOOSEMESSAGE_H
 
 #include "SequenceNumber.h"
+#include "HopDistance.h"
 
 typedef nx_struct AwayChooseMessage {
   NXSequenceNumber sequence_number;
@@ -10,10 +11,10 @@ typedef nx_struct AwayChooseMessage {
   // by the time an away or choose message is sent.
   // Although not necessarily the correct distance,
   // as the known distance may be higher.
-  nx_uint16_t sink_distance;
-  nx_uint16_t sink_source_distance;
+  nx_hop_distance_t sink_distance;
+  nx_hop_distance_t sink_source_distance;
 
-  nx_uint16_t max_hop;
+  nx_hop_distance_t max_hop;
 
   nx_uint8_t algorithm;
 

@@ -21,8 +21,17 @@ def parsers():
         ("CLUSTER", "PARALLEL", ["job id"]),
     ]
 
+global_parameter_names = ('network size', 'configuration',
+                          'attacker model', 'radio model',
+                          'fault model',
+                          'distance', 'node id order',
+                          'latest node start time', 'platform',
+                          'low power listening',
+                          'source period')
+
 def supports_parallel():
-    return True
+    # COOJA cannot be run in parallel as it uses a thread per node
+    return False
 
 def build(module, a):
     import data.cycle_accurate
@@ -34,7 +43,7 @@ def build(module, a):
 
     cooja = submodule_loader.load(data.cycle_accurate, "cooja")
 
-    builder = Builder(cooja, max_buffer_size=a.args.max_buffer_size, platform=a.args.platform.platform())
+    builder = Builder(cooja, max_buffer_size=a.args.max_buffer_size, platform=a.args.platform.platform(), quiet=True)
     builder.total_job_size = 1
     
     #(a, module, module_path, target_directory)
@@ -60,10 +69,7 @@ def cooja_command(module, a, configuration):
 
     csc_file = os.path.join(target_directory, "build", "sim.csc")
 
-    if not os.path.exists(csc_file):
-        raise RuntimeError("The csc file does not exist at {}".format(csc_file))
-
-    command = "java -jar '{}' -nogui='{}' -contiki='{}'".format(cooja_path, csc_file, os.environ["CONTIKI_DIR"])
+    command = f"java -jar '{cooja_path}' -nogui='{csc_file}' -contiki='{os.environ['CONTIKI_DIR']}'"
 
     return command
 
@@ -110,6 +116,8 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
     from simulator import Configuration
 
+    from data.cycle_accurate.cooja import write_csc
+
     if a.args.node_id_order != "topology":
         raise RuntimeError("COOJA does not support a nido other than topology")
 
@@ -117,14 +125,17 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
     command = cooja_command(module, a, configuration)
 
-    print("@command:{}".format(command))
-    sys.stdout.flush()
+    if a.args.mode == "GUI":
+        print(f"@command:{command}")
+        sys.stdout.flush()
 
     command = shlex.split(command)    
 
     if a.args.mode == "RAW":
         if count != 1:
             raise RuntimeError("Cannot run cooja multiple times in RAW mode")
+
+        write_csc(module.replace(".", "/"), a)
 
         with subprocess.Popen(command, stderr=subprocess.PIPE, universal_newlines=True) as proc:
 
@@ -150,10 +161,13 @@ def run_simulation(module, a, count=1, print_warnings=False):
         elif a.args.mode == "GUI":
             from simulator.TosVis import GuiOfflineSimulation as OfflineSimulation
         else:
-            raise RuntimeError("Unknown mode {}".format(a.args.mode))
+            raise RuntimeError(f"Unknown mode {a.args.mode}")
 
         for n in range(count):
-            with subprocess.Popen(command, stderr=subprocess.PIPE, universal_newlines=True) as proc:
+
+            write_csc(module.replace(".", "/"), a)
+
+            with subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, universal_newlines=True) as proc:
 
                 proc_iter = iter(proc.stderr.readline, '')
 
@@ -166,7 +180,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
                     except Exception as ex:
                         import traceback
                         
-                        all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                        all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
 
                         print("Killing run due to {}".format(ex), file=sys.stderr)
                         print(traceback.format_exc(), file=sys.stderr)
@@ -197,7 +211,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
                     except Exception as ex:
                         import traceback
 
-                        all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                        all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
 
                         print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
                         print(traceback.format_exc(), file=sys.stderr)

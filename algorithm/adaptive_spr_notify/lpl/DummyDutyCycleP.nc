@@ -1,9 +1,18 @@
 
+#include "../Constants.h"
+#include "../FakeMessage.h"
+
+#include "SLPDutyCycleFlags.h"
+
 module DummyDutyCycleP
 {
     provides
     {
         interface SLPDutyCycle;
+    }
+    uses
+    {
+        interface MetricLogging;
     }
 }
 implementation

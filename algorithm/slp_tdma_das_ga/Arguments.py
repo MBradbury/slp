@@ -1,6 +1,4 @@
 
-from __future__ import division
-
 import os.path
 
 from simulator.ArgumentsCommon import ArgumentsCommon

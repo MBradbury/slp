@@ -1,4 +1,3 @@
-from __future__ import division
 
 from itertools import combinations
 from math import log10, sqrt

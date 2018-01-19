@@ -1,4 +1,3 @@
-from __future__ import division
 
 from collections import OrderedDict
 from functools import total_ordering
@@ -19,7 +18,7 @@ class NodeId(object):
     __slots__ = ("nid",)
 
     def __init__(self, nid):
-        if not isinstance(nid, int):
+        if not isinstance(nid, (int, np.int_)):
             raise TypeError("nid is not an int it is a", type(nid))
 
         self.nid = nid
@@ -326,7 +325,7 @@ class RandomPoissonDisk(Topology):
 
         self.area = ((min_x_pos, max_x_pos), (min_y_pos, max_y_pos))
 
-        samples = poisson_disc_samples(width=max_x_pos, height=max_y_pos, r=distance * 0.75, random=rnd.random)
+        samples = poisson_disc_samples(width=max_x_pos, height=max_y_pos, r=distance * 0.6, random=rnd.random)
 
         for (i, coord) in zip(range(network_size**2), samples):
             self.nodes[i] = np.array(coord, dtype=np.float64)

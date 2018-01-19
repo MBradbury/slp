@@ -5,7 +5,7 @@ import os.path
 import numpy as np
 
 from simulator import Configuration
-from simulator.common import global_parameter_names
+#from simulator.common import global_parameter_names
 
 import data.util
 from data import latex
