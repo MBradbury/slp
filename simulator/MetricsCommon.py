@@ -1658,6 +1658,12 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         self._delivers_hist = defaultdict(list)
         self._radio_on_times = defaultdict(list)
 
+        self._intervals = {
+            "Fake":   (int(1000 * self.sim.args.lpl_fake_early),   int(1000 * self.sim.args.lpl_fake_late)),
+            "Choose": (int(1000 * self.sim.args.lpl_choose_early), int(1000 * self.sim.args.lpl_choose_late)),
+            "Normal": (int(1000 * self.sim.args.lpl_normal_early), int(1000 * self.sim.args.lpl_normal_late)),
+        }
+
     def log_time_receive_event_hist(self, d_or_e, node_id, time, detail):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
 
@@ -1699,13 +1705,7 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
 
-        intervals = {
-            "Fake": (100, 150),
-            "Choose": (25, 25),
-            "Normal": (50, 50),
-        }
-
-        early_wakeup_ms, max_wakeup_ms = intervals.get(message_name, (0, 0))
+        early_wakeup_ms, late_wakeup_ms = self._intervals.get(message_name, (0, 0))
 
         fig, ax = plt.subplots()
 
@@ -1724,7 +1724,10 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
 
                     hist_time = (rcvd_time - start) * 1000 - early_wakeup_ms
 
-                    hist_values.append(hist_time)
+                    if hist_time < -2 * early_wakeup_ms or hist_time > 2 * late_wakeup_ms:
+                        print(f"Skipping outlier of {hist_time}ms for {message_name}")
+                    else:
+                        hist_values.append(hist_time)
                 else:
                     if len(possible) > 0:
                         print(f"Multiple times {possible} for {rcvd_time} for msg {message_name} on {node_id}")
