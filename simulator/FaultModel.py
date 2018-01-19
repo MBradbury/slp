@@ -102,6 +102,11 @@ class ReliableFaultModel(FaultModel):
     def __init__(self):
         super().__init__()
 
+    def setup(self, sim):
+        super().setup(sim)
+        sim.register_output_handler("M-FPA", None)
+        sim.register_output_handler("M-FP", None)
+
 class NodeCrashFaultModel(FaultModel):
     """This model will crash the specified node at the specified time."""
     def __init__(self, node_id, crash_time):
