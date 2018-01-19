@@ -16,7 +16,7 @@ def parsers():
 
     raw_single_common = ["verbose", "debug", "seed", "configuration", "network size", "distance",
                          "noise model", "fault model", "node id order", "safety period", "start time",
-                         "low power listening", "avrora", "cc2420", "extra metrics"]
+                         "low power listening", "avrora", "cc2420", "extra metrics", "show raw log"]
 
     return [
         ("SINGLE", None, raw_single_common + ["attacker model"]),
