@@ -470,7 +470,7 @@ implementation
 
             call SendDoneTimer.startOneShot(remote_wakeup_interval);
         }
-                
+
         post send();
     }
     

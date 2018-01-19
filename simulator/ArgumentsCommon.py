@@ -1,9 +1,10 @@
 
 import argparse
+from importlib import import_module
 from random import SystemRandom
 
+from simulator import CommunicationModel, NoiseModel
 import simulator.AttackerConfiguration as AttackerConfiguration
-import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 import simulator.FaultModel as FaultModel
@@ -155,13 +156,13 @@ OPTS = {
 
     "communication model": lambda x, **kwargs: x.add_argument("-cm", "--communication-model",
                                                               type=str,
-                                                              choices=simulator.common.available_communication_models(),
+                                                              choices=CommunicationModel.available_models(),
                                                               required=True,
                                                               help="The communication model used to model the link quality between nodes. Typically low-asymmetry should be used."),
 
     "noise model":         lambda x, **kwargs: x.add_argument("-nm", "--noise-model",
                                                               type=str,
-                                                              choices=simulator.common.available_noise_models(),
+                                                              choices=NoiseModel.available_models(),
                                                               required=True,
                                                               help="Model the background noise in the network. meyer-heavy has high noise, casino-lab has lower noise. See models/noise for ways to graph the noisiness of these models."),
 
@@ -358,7 +359,10 @@ class ArgumentsCommon(object):
         if self.args.mode == "GUI":
             result["SLP_USES_GUI_OUPUT"] = 1
 
-        result.update(self.args.attacker_model.build_arguments())
+        if hasattr(self.args, "attacker_model"):
+            result.update(self.args.attacker_model.build_arguments())
+        else:
+            result.update(AttackerConfiguration.AttackerConfiguration.generic_build_arguments())
 
         # Source period could either be a float or a class derived from PeriodModel
         if hasattr(self.args, 'source_period'):
@@ -448,6 +452,17 @@ class ArgumentsCommon(object):
                 result["CC2420_HW_ADDRESS_RECOGNITION"] = 1
             else:
                 assert self.args.address_recognition == "software"
+
+        # Some metrics class have build arguments, so we need to pull them in here:
+        algorithm_metrics_module = import_module("..Metrics", self.__module__)
+        result.update(algorithm_metrics_module.Metrics.build_arguments())
+
+        # Pull in any build options from extra_metrics
+        if hasattr(self.args, "extra_metrics") and self.args.extra_metrics is not None:
+            # Build arguments from any extra metrics being used
+            extra_metric_classes = [cls for cls in MetricsCommon.EXTRA_METRICS if cls.__name__ in self.args.extra_metrics]
+            for extra_metric in extra_metric_classes:
+                result.update(extra_metric.build_arguments())
 
         return result
 

@@ -24,31 +24,34 @@ implementation
     uint32_t next_group_wait(void);
 
     uint32_t expected_interval_ms;
-    uint32_t previous_group_time_ms;
+    //uint32_t previous_group_time_ms;
 
     //uint32_t average_us;
     //uint32_t seen;
 
-    uint32_t max_wakeup_time_ms;
-
-    uint32_t early_wakeup_duration_ms;
+    uint32_t late_wakeup_ms;
+    uint32_t early_wakeup_ms;
 
     //bool message_received;
     //uint32_t missed_messages;
 
+    bool can_turn_off_early;
+
     command error_t Init.init()
     {
         expected_interval_ms = UINT32_MAX;
-        previous_group_time_ms = UINT32_MAX; // Last time a new group was started
+        //previous_group_time_ms = UINT32_MAX; // Last time a new group was started
 
         //seen = 0;
 
         // Set a minimum group wait time here
-        max_wakeup_time_ms = 45;
-        early_wakeup_duration_ms = 45;
+        late_wakeup_ms = SLP_LPL_NORMAL_LATE_MS;
+        early_wakeup_ms = SLP_LPL_NORMAL_EARLY_MS;
 
         //message_received = FALSE;
         //missed_messages = 0;
+
+        can_turn_off_early = FALSE;
 
         return SUCCESS;
     }
@@ -72,11 +75,11 @@ implementation
                 ? expected_interval_ms/2
                 : 300;
 
-            early_wakeup_duration_ms = min(early_wakeup_duration_ms + 5, max_value);
+            early_wakeup_ms = min(early_wakeup_ms + 5, max_value);
         }
         else
         {
-            //early_wakeup_duration_ms = max(early_wakeup_duration_ms - 5, 75);
+            //early_wakeup_ms = max(early_wakeup_ms - 5, 75);
         }* /
 
         message_received = FALSE;
@@ -85,6 +88,7 @@ implementation
     command void MessageTimingAnalysis.expected(uint32_t duration_ms, uint32_t period_ms, uint8_t source_type, uint32_t rcvd_timestamp)
     {
         //assert(source_type == SourceNode);
+        //assert(duration_ms == UINT32_MAX);
 
         // TODO: Look into a way to do this that performs well
         //call DetectTimer.startOneShotAt(rcvd_timestamp, period_ms);
@@ -102,18 +106,30 @@ implementation
         // Difference between this message and the last group message
         // Sometimes we may think that this message arrived before a previous message
         // Typically the difference is in the order of 1ms.
-        const uint32_t group_diff = (previous_group_time_ms != UINT32_MAX && previous_group_time_ms <= timestamp_ms)
-            ? (timestamp_ms - previous_group_time_ms)
-            : UINT32_MAX;
+        //const uint32_t group_diff = (previous_group_time_ms != UINT32_MAX && previous_group_time_ms <= timestamp_ms)
+        //    ? (timestamp_ms - previous_group_time_ms)
+        //    : UINT32_MAX;
 
         //message_received = TRUE;
 
         //LOG_STDOUT(0, TOS_NODE_ID_SPEC ": received Normal at=%" PRIu32 " v=%" PRIu8 "\n",
         //    TOS_NODE_ID, timestamp_ms, (flags & SLP_DUTY_CYCLE_VALID_TIMESTAMP) != 1);
 
+        /*if (call OffTimer.isRunning())
+        {
+            const uint32_t radio_off_at = call OffTimer.gett0() + call OffTimer.getdt();
+            const uint32_t radio_on_at = radio_off_at - early_wakeup_ms - late_wakeup_ms;
+
+            const int32_t a = timestamp_ms - radio_on_at;
+            const uint32_t b = radio_off_at - timestamp_ms;
+
+            LOG_STDOUT(0, "Received Normal %" PRIi32 " %" PRIu32 " %" PRIu32 " w=%" PRIi32 "\n",
+                a, timestamp_ms, b, a + b);
+        }*/
+
         if (is_new)
         {
-            previous_group_time_ms = timestamp_ms;
+            //previous_group_time_ms = timestamp_ms;
 
             //if (group_diff != UINT32_MAX)
             //{
@@ -121,14 +137,17 @@ implementation
             //}
 
             startOffTimerFromMessage(timestamp_ms);
+
+            can_turn_off_early = TRUE;
+            signal MessageTimingAnalysis.stop_radio();
         }
-        else
+        /*else
         {
             if (group_diff != UINT32_MAX)
             {
-                max_wakeup_time_ms = max(max_wakeup_time_ms, group_diff);
+                late_wakeup_ms = max(late_wakeup_ms, group_diff);
             }
-        }
+        }*/
     }
 
     // How long to wait between one group and the next
@@ -149,6 +168,9 @@ implementation
     {
         const uint32_t now = call OnTimer.gett0() + call OnTimer.getdt();
 
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
+        METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_NORMAL, "");
+#endif
         signal MessageTimingAnalysis.start_radio();
 
         startOffTimer(now);
@@ -158,6 +180,7 @@ implementation
     {
         const uint32_t now = call OffTimer.gett0() + call OffTimer.getdt();
 
+        can_turn_off_early = FALSE;
         signal MessageTimingAnalysis.stop_radio();
 
         startOnTimer(now);
@@ -172,13 +195,13 @@ implementation
             // Don't know how long to wait for, so just start the radio
             if (next_group_wait_ms == UINT32_MAX)
             {
+                ERROR_OCCURRED(ErrorUnknownNormalPeriodWait, "Restarting radio immediately. next_group_wait unknown.\n");
+
                 signal MessageTimingAnalysis.start_radio();
             }
             else
             {
-                const uint32_t start = next_group_wait_ms - early_wakeup_duration_ms - max_wakeup_time_ms;
-
-                //simdbg("stdout", "Starting on timer in %" PRIu32 "\n", start);
+                const uint32_t start = next_group_wait_ms - early_wakeup_ms - late_wakeup_ms;
 
                 call OnTimer.startOneShotAt(now, start);
             }
@@ -190,30 +213,23 @@ implementation
     {
         if (!call OffTimer.isRunning())
         {
-            // Don't start the off timer if we do not know how long to be off for
-            if (next_group_wait() != UINT32_MAX)
-            {
-                const uint32_t start = early_wakeup_duration_ms + max_wakeup_time_ms;
+            const uint32_t start = early_wakeup_ms + late_wakeup_ms;
 
-                //simdbg("stdout", "Starting off timer 2 in %" PRIu32 "\n", start);
-                call OffTimer.startOneShotAt(now, start);
-            }
+            call OffTimer.startOneShotAt(now, start);
         }
     }
 
     // Just received a message, consider when to turn off
     void startOffTimerFromMessage(uint32_t now)
     {
-        // When a message is received, we should restart the off timer if it is running
-
-        //if (!call OffTimer.isRunning())
+        if (!call OffTimer.isRunning())
         {
-            call OffTimer.startOneShotAt(now, max_wakeup_time_ms);
+            call OffTimer.startOneShotAt(now, late_wakeup_ms);
         }
     }
 
     command bool MessageTimingAnalysis.can_turn_off()
     {
-        return call OnTimer.isRunning() && !call OffTimer.isRunning();
+        return (call OnTimer.isRunning() && !call OffTimer.isRunning()) || can_turn_off_early;
     }
 }

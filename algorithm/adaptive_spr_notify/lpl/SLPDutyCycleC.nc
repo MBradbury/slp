@@ -13,6 +13,7 @@ configuration SLPDutyCycleC
         interface Receive;
         interface SplitControl;
         interface SLPDutyCycle;
+        interface State as SendState;
     }
     uses
     {
@@ -77,6 +78,8 @@ implementation
     SLPDutyCycleP.SendState -> SendStateC;
     SLPDutyCycleP.RadioPowerState -> RadioPowerStateC;
     SLPDutyCycleP.SplitControlState -> SplitControlStateC;
+
+    SendState = SendStateC;
 
     components LocalTimeMilliC;
     SLPDutyCycleP.LocalTime -> LocalTimeMilliC;

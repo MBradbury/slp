@@ -22,7 +22,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.product(
@@ -48,7 +48,7 @@ class CLI(CommandLineCommon.CLI):
             'failed avoid sink when captured',
         ]
 
-        self._create_results_table(parameters)
+        self._create_results_table(args.sim, parameters)
 
     def _run_graph(self, args):
         graph_parameters = {

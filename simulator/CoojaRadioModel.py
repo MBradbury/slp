@@ -3,7 +3,7 @@ from data.restricted_eval import restricted_eval
 
 class CoojaRadioModel(object):
     def __init__(self):
-        pass
+        super().__init__()
 
     def __str__(self):
         return type(self).__name__ + "()"

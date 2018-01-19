@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from datetime import timedelta
 import os
 import subprocess
 
@@ -8,13 +9,14 @@ class Runner(object):
     
     executable = 'python -OO run.py'
 
-    def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None, dry_run=False):
+    def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None, dry_run=False, max_walltime=None):
         self.cluster_command = cluster_command
         self.prepare_command = prepare_command
         self.job_thread_count = job_thread_count
         self.array_job_variable = array_job_variable
         self.job_repeats = job_repeats
         self.dry_run = dry_run
+        self.max_walltime = max_walltime
 
     def add_job(self, options, name, estimated_time):
         target_directory = name[:-len(".txt")]
@@ -26,16 +28,21 @@ class Runner(object):
 
         module = target_directory.replace("/", ".")
 
+        if estimated_time is None:
+            estimated_time = self.max_walltime
+
+        if estimated_time is not None and self.max_walltime is not None:
+            if estimated_time > self.max_walltime:
+                print(f"Warning: The estimated cluster time is {estimated_time}, overriding this with the maximum cluster time of {self.max_walltime}")
+                estimated_time = self.max_walltime
 
         if estimated_time is None:
-            estimated_time_str = "100:00:00"
-        else:
+            estimated_time = timedelta(hours=100)
 
-            total_seconds = int(estimated_time.total_seconds())
-            hours, remainder = divmod(total_seconds, 60*60)
-            minutes, seconds = divmod(remainder, 60)
-
-            estimated_time_str = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
+        total_seconds = int(estimated_time.total_seconds())
+        hours, remainder = divmod(total_seconds, 60*60)
+        minutes, seconds = divmod(remainder, 60)
+        estimated_time_str = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
 
         cluster_command = self.cluster_command.format(estimated_time_str, module)
 

@@ -4,11 +4,10 @@ from data.analysis import AnalyzerCommon
 algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
 class Analyzer(AnalyzerCommon):
-    def __init__(self, results_directory):
-        super(Analyzer, self).__init__(results_directory, self.results_header(), self.normalised_parameters(), self.filtered_parameters())
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-    @staticmethod
-    def normalised_parameters():
+    def normalised_parameters(self):
         return (
             ('Sent', 'TimeTaken'),
             ('NormalSent', 'TimeTaken'),
@@ -18,38 +17,36 @@ class Analyzer(AnalyzerCommon):
             ('daily_allowance_used', '1'),
         )
 
-    @staticmethod
-    def filtered_parameters():
+    def filtered_parameters(self):
         return (
             ('FailedAvoidSink', 'Captured'),
         )
 
-    @staticmethod
-    def results_header():
-        d = AnalyzerCommon.common_results_header(algorithm_module.local_parameter_names)
+    def results_header(self):
+        d = self.common_results_header(algorithm_module.local_parameter_names)
 
-        AnalyzerCommon.common_results(d)
+        self.common_results(d)
 
-        d['normal']             = lambda x: AnalyzerCommon._format_results(x, 'NormalSent')
-        d['away']               = lambda x: AnalyzerCommon._format_results(x, 'AwaySent')
-        d['beacon']             = lambda x: AnalyzerCommon._format_results(x, 'BeaconSent')
-        d['poll']               = lambda x: AnalyzerCommon._format_results(x, 'PollSent')
+        d['normal']             = lambda x: self._format_results(x, 'NormalSent')
+        d['away']               = lambda x: self._format_results(x, 'AwaySent')
+        d['beacon']             = lambda x: self._format_results(x, 'BeaconSent')
+        d['poll']               = lambda x: self._format_results(x, 'PollSent')
 
-        d['failed rtx']         = lambda x: AnalyzerCommon._format_results(x, 'FailedRtx')
-        d['failed avoid sink']  = lambda x: AnalyzerCommon._format_results(x, 'FailedAvoidSink')
+        d['failed rtx']         = lambda x: self._format_results(x, 'FailedRtx')
+        d['failed avoid sink']  = lambda x: self._format_results(x, 'FailedAvoidSink')
 
-        d['failed avoid sink when captured']  = lambda x: AnalyzerCommon._format_results(x, 'filtered(FailedAvoidSink,Captured)')
+        d['failed avoid sink when captured']  = lambda x: self._format_results(x, 'filtered(FailedAvoidSink,Captured)')
 
-        #d['node was source']    = lambda x: AnalyzerCommon._format_results(x, 'NodeWasSource')
+        #d['node was source']    = lambda x: self._format_results(x, 'NodeWasSource')
 
-        d['sent heatmap']       = lambda x: AnalyzerCommon._format_results(x, 'SentHeatMap')
-        d['received heatmap']   = lambda x: AnalyzerCommon._format_results(x, 'ReceivedHeatMap')
+        d['sent heatmap']       = lambda x: self._format_results(x, 'SentHeatMap')
+        d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
 
-        d['norm(sent,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(Sent,TimeTaken)')
-        d['norm(normal,time taken)']   = lambda x: AnalyzerCommon._format_results(x, 'norm(NormalSent,TimeTaken)')
+        d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
+        d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
 
-        d['energy impact per node']   = lambda x: AnalyzerCommon._format_results(x, 'norm(energy_impact,num_nodes)')
-        d['energy impact per node per second']   = lambda x: AnalyzerCommon._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
-        d['energy allowance used'] = lambda x: AnalyzerCommon._format_results(x, 'norm(daily_allowance_used,1)')
+        d['energy impact per node']   = lambda x: self._format_results(x, 'norm(energy_impact,num_nodes)')
+        d['energy impact per node per second']   = lambda x: self._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
+        d['energy allowance used'] = lambda x: self._format_results(x, 'norm(daily_allowance_used,1)')
 
         return d

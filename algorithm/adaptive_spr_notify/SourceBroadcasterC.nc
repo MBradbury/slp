@@ -62,6 +62,7 @@ module SourceBroadcasterC
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
+	uses interface Timer<TMilli> as ChooseSenderTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -119,6 +120,8 @@ implementation
 	SequenceNumber source_fake_sequence_counter;
 	uint32_t source_fake_sequence_increments;
 
+	uint16_t fake_rcv_ratio;
+
 	uint32_t source_period_ms;
 
 	uint8_t fake_count; // Number of fake messages sent in one duration
@@ -126,6 +129,7 @@ implementation
 	hop_distance_t sink_distance;
 
 	bool sink_received_choose_reponse;
+	uint8_t choose_rtx_limit;
 
 	hop_distance_t first_source_distance;
 
@@ -201,28 +205,16 @@ implementation
 
 		const uint32_t result_period = period;
 
-		//simdbgverbose("stdout", "get_tfs_period=%u\n", result_period);
+		//simdbg("stdout", "get_tfs_period=%" PRIu32 "\n", result_period);
 
 		return result_period;
 	}
 
 	uint32_t get_pfs_period(void)
 	{
-		// Need to add one here because it is possible for the values to both be 0
-		// if no fake messages have ever been received.
-		const uint32_t seq_inc = source_fake_sequence_increments + 1;
-		const uint32_t counter = sequence_number_get(&source_fake_sequence_counter) + 1;
+		const uint32_t result_period = scale32(SOURCE_PERIOD_MS, fake_rcv_ratio, UINT16_MAX);
 
-		// result_period = SOURCE_PERIOD_MS * (seq_inc/counter) // accounts for overflow
-		const uint32_t result_period = scale32(SOURCE_PERIOD_MS, seq_inc, counter);
-
-		ASSERT_MESSAGE(seq_inc <= counter, "Seen more fake than has been generated.");
-
-		// The double version:
-		/*const double ratio = seq_inc / (double)counter;
-		const uint32_t result_period2 = ceil(SOURCE_PERIOD_MS * ratio);
-		simdbgverbose("stdout", "get_pfs_period=%u, %u (sent=%u, rcvd=%u, x=%f)\n",
-		  result_period, result_period2, counter, seq_inc, ratio);*/
+		//simdbg("stdout", "get_pfs_period=%" PRIu32 "\n", result_period);
 
 		return result_period;
 	}
@@ -289,10 +281,13 @@ implementation
 		sink_distance = UNKNOWN_HOP_DISTANCE;
 
 		sink_received_choose_reponse = FALSE;
+		choose_rtx_limit = UINT8_MAX;
 
 		first_source_distance = UNKNOWN_HOP_DISTANCE;
 
-		away_messages_to_send = 3;
+		away_messages_to_send = SINK_AWAY_MESSAGES_TO_SEND;
+
+		fake_rcv_ratio = UINT16_MAX;
 
 		algorithm = UnknownAlgorithm;
 
@@ -478,9 +473,7 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
-
-		message.fake_sequence_number = sequence_number_get(&fake_sequence_counter);
-		message.fake_sequence_increments = source_fake_sequence_increments;
+		message.fake_rcv_ratio = scale32(UINT16_MAX, source_fake_sequence_increments + 1, sequence_number_get(&fake_sequence_counter) + 1);
 
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -536,36 +529,49 @@ implementation
 		return any_further;
 	}
 
-	task void request_next_fake_source()
+	ChooseMessage choose_message;
+
+	task void send_choose_message_task()
 	{
 		const am_addr_t target = fake_walk_target();
 
 		bool ack_request = target != AM_BROADCAST_ADDR;
 
-		ChooseMessage message;
-		message.sequence_number = sequence_number_next(&choose_sequence_counter);
-		message.source_id = TOS_NODE_ID;
-		message.sink_distance = 0;
+		if (!send_Choose_message(&choose_message, target, &ack_request))
+		{
+			call ChooseSenderTimer.startOneShot(1);
+		}
+	}
+
+	event void ChooseSenderTimer.fired()
+	{
+		post send_choose_message_task();
+	}
+
+	void request_next_fake_source()
+	{
+		choose_rtx_limit = (call NodeType.get() == TempFakeNode || call NodeType.get() == TailFakeNode || call NodeType.get() == PermFakeNode)
+			? CHOOSE_RTX_LIMIT_FOR_FS
+			: UINT8_MAX;
+
+		choose_message.sequence_number = sequence_number_next(&choose_sequence_counter);
+		choose_message.source_id = TOS_NODE_ID;
+		choose_message.sink_distance = 0;
 		
 #ifdef SPACE_BEHIND_SINK
-		message.algorithm = GenericAlgorithm;
+		choose_message.algorithm = GenericAlgorithm;
 #else
-		message.algorithm = FurtherAlgorithm;
+		choose_message.algorithm = FurtherAlgorithm;
 #endif
 
-		message.any_further = any_further_neighbours();
+		choose_message.any_further = any_further_neighbours();
 
-		message.ultimate_sender_first_source_distance = first_source_distance;
-		message.source_node_type = call NodeType.get();
+		choose_message.ultimate_sender_first_source_distance = first_source_distance;
+		choose_message.source_node_type = call NodeType.get();
 
-		if (send_Choose_message(&message, target, &ack_request))
-		{
-			sequence_number_increment(&choose_sequence_counter);
-		}
-		else
-		{
-			post request_next_fake_source();
-		}
+		call ChooseSenderTimer.startOneShot(1);
+
+		sequence_number_increment(&choose_sequence_counter);
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -615,8 +621,9 @@ implementation
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		UPDATE_NEIGHBOURS(source_addr, 1);
 
@@ -629,15 +636,13 @@ implementation
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
-
-		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
-		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
 		if (is_new)
 		{
@@ -645,12 +650,12 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
+			fake_rcv_ratio = rcvd->fake_rcv_ratio;
+
 			set_first_source_distance(rcvd->source_distance);
 
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
-			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -661,19 +666,19 @@ implementation
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
-		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
-		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
-
 		if (is_new)
 		{
 			METRIC_RCV_NORMAL(rcvd);
+
+			fake_rcv_ratio = rcvd->fake_rcv_ratio;
 
 			if (set_first_source_distance(rcvd->source_distance))
 			{
@@ -682,16 +687,14 @@ implementation
 				// However, we don't want to keep doing this as it benefits the attacker.
 				NormalMessage forwarding_message = *rcvd;
 				forwarding_message.source_distance += 1;
-				forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-				forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
 
-			// Keep sending away messages until we get a valid response
+			// Keep sending choose messages until we get a valid response
 			if (!sink_received_choose_reponse)
 			{
-				post request_next_fake_source();
+				request_next_fake_source();
 			}
 		}
 	}
@@ -701,15 +704,13 @@ implementation
 		const bool is_new = call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		call SLPDutyCycle.received_Normal(msg, rcvd, duty_cycle_flags, SourceNode, rcvd_timestamp);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
-
-		source_fake_sequence_counter = max(source_fake_sequence_counter, rcvd->fake_sequence_number);
-		source_fake_sequence_increments = max(source_fake_sequence_increments, rcvd->fake_sequence_increments);
 
 		if (is_new)
 		{
@@ -717,10 +718,10 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
+			fake_rcv_ratio = rcvd->fake_rcv_ratio;
+
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
-			forwarding_message.fake_sequence_number = source_fake_sequence_counter;
-			forwarding_message.fake_sequence_increments = source_fake_sequence_increments;
 
 			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 		}
@@ -845,7 +846,7 @@ implementation
 	{
 		const uint32_t become_fake_time = call PacketTimeStamp.isValid(msg)
 			? call PacketTimeStamp.timestamp(msg)
-			: call BroadcastNormalTimer.getNow();
+			: call LocalTime.get();
 
 		x_snoop_Choose(rcvd, source_addr);
 
@@ -939,6 +940,11 @@ implementation
 
 	void send_Choose_done(message_t* msg, error_t error)
 	{
+		if (choose_rtx_limit != UINT8_MAX)
+		{
+			choose_rtx_limit -= 1;
+		}
+
 		if (error == SUCCESS)
 		{
 			const bool ack_requested = call AMPacket.destination(msg) != AM_BROADCAST_ADDR;
@@ -954,13 +960,19 @@ implementation
 				}
 				else
 				{
-					post request_next_fake_source();
+					if (choose_rtx_limit != 0)
+					{
+						post send_choose_message_task();
+					}
 				}
 			}
 		}
 		else
 		{
-			post request_next_fake_source();
+			if (choose_rtx_limit != 0)
+			{
+				post send_choose_message_task();
+			}
 		}
 	}
 
@@ -968,10 +980,11 @@ implementation
 	void process_fake_duty_cycle(message_t* msg, const FakeMessage* const rcvd, bool is_new, uint32_t rcvd_timestamp)
 	{
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(rcvd->ultimate_sender_fake_count == 0 ? SLP_DUTY_CYCLE_IS_FIRST_FAKE : 0) |
-			(find_distance_neighbour(&neighbours, rcvd->source_id) != NULL ? SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+		      (is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (rcvd->ultimate_sender_fake_count == 0 ? SLP_DUTY_CYCLE_IS_FIRST_FAKE : 0)
+			| (find_distance_neighbour(&neighbours, rcvd->source_id) != NULL ? SLP_DUTY_CYCLE_IS_ADJACENT_TO_FAKE : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		call SLPDutyCycle.expected(
 			rcvd->ultimate_sender_fake_duration_ms,
@@ -1062,8 +1075,9 @@ implementation
 		const bool is_new = sequence_number_before_and_update(&notify_sequence_counter, rcvd->sequence_number);
 
 		const uint8_t duty_cycle_flags =
-			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0) |
-			(call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0);
+			(is_new ? SLP_DUTY_CYCLE_IS_NEW : 0)
+			//| (call PacketTimeStamp.isValid(msg) ? SLP_DUTY_CYCLE_VALID_TIMESTAMP : 0)
+		;
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->source_distance);
 
@@ -1092,7 +1106,7 @@ implementation
 		// Keep sending away messages until we get a valid response
 		if (!sink_received_choose_reponse)
 		{
-			post request_next_fake_source();
+			request_next_fake_source();
 		}
 	}
 
@@ -1113,7 +1127,12 @@ implementation
 		// After this message is sent, all other messages are sent with an interval
 		// of the period given. The aim here is to reduce the traffic at the start and
 		// end of the TFS duration.
-		return signal FakeMessageGenerator.calculatePeriod() / 4;
+		//const uint32_t result = signal FakeMessageGenerator.calculatePeriod() / 4;
+		const uint32_t result = get_tfs_period() / 4;
+
+		//simdbg("stdout", "initialStartDelay=%" PRIu32 "\n", result);
+
+		return result;
 	}
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
@@ -1121,9 +1140,9 @@ implementation
 		switch (call NodeType.get())
 		{
 		case PermFakeNode:
-		case TailFakeNode:
 			return get_pfs_period();
 
+		case TailFakeNode:
 		case TempFakeNode:
 			return get_tfs_period();
 
@@ -1134,10 +1153,14 @@ implementation
 		}
 	}
 
+	task void send_fake_message_task()
+	{
+		signal FakeMessageGenerator.sendFakeMessage();
+	}
+
 	event void FakeMessageGenerator.sendFakeMessage()
 	{
 		FakeMessage message;
-
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.message_type = call NodeType.get();
 		message.source_id = TOS_NODE_ID;
@@ -1158,43 +1181,43 @@ implementation
 
 			process_fake_duty_cycle(&packet, &message, TRUE, sent_time);
 		}
+		else
+		{
+			post send_fake_message_task();
+		}
 	}
 
 	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size, uint32_t duration_expired_at)
 	{
-		ChooseMessage message;
+		const uint8_t node_type = call NodeType.get();
 
-		const am_addr_t target = fake_walk_target();
+		//assert(sizeof(choose_message) == original_size);
 
-		bool ack_request = TRUE;
-
-		//assert(sizeof(message) == original_size);
-
-		memcpy(&message, original, sizeof(message));
-
-		simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to " TOS_NODE_ID_SPEC ".\n", target);
+		//simdbgverbose("stdout", "Finished sending Fake from TFS, now sending Choose to " TOS_NODE_ID_SPEC ".\n", target);
 
 		// When finished sending fake messages from a TFS
-		message.sink_distance += 1;
-		message.any_further = any_further_neighbours();
-		message.ultimate_sender_first_source_distance = first_source_distance;
+		choose_message = *(const ChooseMessage *)original;
+		choose_message.sink_distance += 1;
+		choose_message.any_further = any_further_neighbours();
+		choose_message.ultimate_sender_first_source_distance = first_source_distance;
+		choose_message.source_node_type = (node_type == PermFakeNode) ? NormalNode : TailFakeNode; // The new node type
 
-		// send the new node type
-		message.source_node_type = (call NodeType.get() == PermFakeNode) ? NormalNode : TailFakeNode;
+		choose_rtx_limit = CHOOSE_RTX_LIMIT_FOR_FS;
+		post send_choose_message_task();
 
-		send_Choose_message(&message, target, &ack_request);
-
-		if (call NodeType.get() == PermFakeNode)
+		if (node_type == PermFakeNode)
 		{
 			become_Normal();
 		}
-		else if (call NodeType.get() == TempFakeNode)
+		else if (node_type == TempFakeNode || node_type == TailFakeNode)
 		{
-			become_Fake(&message, TailFakeNode, duration_expired_at);
+			const ChooseMessage original_message = *(const ChooseMessage *)original; // Need a copy
+
+			become_Fake(&original_message, TailFakeNode, duration_expired_at);
 		}
-		else //if (call NodeType.get() == TailFakeNode)
+		else
 		{
-			fake_count = 0;
+			__builtin_unreachable();
 		}
 	}
 }

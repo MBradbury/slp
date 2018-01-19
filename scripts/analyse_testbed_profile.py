@@ -15,7 +15,11 @@ import pandas as pd
 from data import submodule_loader
 import data.testbed
 
+from simulator.Topology import OrderedId
+
 from scripts.profile_testbed import LinkResult, CurrentDraw, RSSIResult
+
+min_max = {"prr": (0, 1), "rssi": (-100, -50), "lqi": (40, 115)}
 
 class ResultsProcessor(object):
 
@@ -186,9 +190,8 @@ class ResultsProcessor(object):
 
         result = self._combine_link_results()
 
-        # Use a Python 2 compatible pickle
         with open(link_path, 'wb') as pickle_file:
-            pickle.dump(result, pickle_file, protocol=2)
+            pickle.dump(result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
         return result
 
@@ -221,9 +224,8 @@ class ResultsProcessor(object):
         for result in rssi_iter:
             rssi_result = rssi_result.combine(result)
 
-        # Use a Python 2 compatible pickle
         with open(noise_floor_path, 'wb') as pickle_file:
-            pickle.dump(rssi_result, pickle_file, protocol=2)
+            pickle.dump(rssi_result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
 
         return rssi_result
 
@@ -294,6 +296,8 @@ class ResultsProcessor(object):
                     print("PRR:\n", prr[power].round(2).replace(np.nan, ''), file=link_info_file)
                     print("", file=link_info_file)
 
+        print("Saved link info to link-info.txt")
+
 
     def _draw_link_heatmap_fn(self, args, heatmap_name, converter=lambda x: x, min_max=None):
         import matplotlib.pyplot as plt
@@ -358,7 +362,6 @@ class ResultsProcessor(object):
             plt.clf()
 
     def draw_link_heatmap(self, args):
-        min_max = {"prr": (0, 1), "rssi": (-100, -50), "lqi": (40, 115)}
         return self._draw_link_heatmap_fn(args, "link", min_max=min_max)
 
     def draw_link_asymmetry_heatmap(self, args):
@@ -366,6 +369,9 @@ class ResultsProcessor(object):
 
 
     def draw_link(self, args):
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
+
         import networkx as nx
         from networkx.drawing.nx_pydot import write_dot
 
@@ -378,7 +384,7 @@ class ResultsProcessor(object):
         elif args.name == "lqi":
             result = lqi
         else:
-            raise RuntimeError("Unknown name {}".format(args.name))
+            raise RuntimeError(f"Unknown name {args.name}")
 
         try:
             result = result[args.power]
@@ -386,6 +392,10 @@ class ResultsProcessor(object):
             raise RuntimeError("No result for {} with power {}".format(args.name, args.power))
 
         labels = list(result.columns.values)
+
+        cmap = cmx.get_cmap("RdYlGn")
+        cnorm  = colors.Normalize(vmin=min_max[args.name][0], vmax=min_max[args.name][1])
+        scalarmap = cmx.ScalarMappable(norm=cnorm, cmap=cmap)
 
 
         G = nx.MultiDiGraph()
@@ -398,26 +408,27 @@ class ResultsProcessor(object):
         scale = target_width_pixels / (max(xs) - min(xs))
 
         for node in G:
-            coords = self.testbed_topology.nodes[node]
+            coords = self.testbed_topology.nodes[OrderedId(node)]
 
             x, y = coords[0], coords[1]
 
-            G.node[node]['pos'] = "{},{}".format(x * scale, y * scale)
+            G.node[node]['pos'] = f"{x*scale},{y*scale}"
 
         for node1, row in result.iterrows():
             for node2 in labels:
                 if not np.isnan(row[node2]):
-                    G.add_edge(node1, node2, label=round(row[node2], 2))
+                    if args.threshold is None or row[node2] >= args.threshold:
+                        G.add_edge(node1, node2, label=round(row[node2], 2), color=colors.rgb2hex(scalarmap.to_rgba(row[node2])))
 
-        dot_path = "{}-{}.dot".format(args.name, args.power)
+        dot_path = f"{args.name}-{args.power}.dot"
         png_path = dot_path.replace(".dot", ".png")
 
         write_dot(G, dot_path)
 
-        subprocess.check_call("neato -n2 -T png {} > {}".format(dot_path, png_path), shell=True)
+        subprocess.check_call(f"neato -n2 -T png {dot_path} > {png_path}", shell=True)
 
         if args.show:
-            subprocess.call("xdg-open {}".format(png_path), shell=True)
+            subprocess.call(f"xdg-open {png_path}", shell=True)
 
     def draw_noise_floor_heatmap(self, args):
         import matplotlib.pyplot as plt
@@ -464,7 +475,7 @@ class ResultsProcessor(object):
             for (nid, coord, c) in node_info:
                 ax.annotate(str(nid), xy=(coord[0], coord[1]), horizontalalignment='center', verticalalignment='center')
 
-            path = "noise-floor-heatmap-{}.pdf".format(args.channel)
+            path = f"noise-floor-heatmap-{args.channel}.pdf"
             plt.savefig(path)
 
             subprocess.check_call(["pdfcrop", path, path])
@@ -542,6 +553,7 @@ def main():
     subparser.add_argument("name", type=str, help="The name of the metric to draw", choices=["prr", "lqi", "rssi"])
     subparser.add_argument("power", type=int, help="The broadcast power level to show", choices=[3, 7, 11, 15, 19, 23, 27, 31])
     subparser.add_argument("--show", action="store_true", default=False)
+    subparser.add_argument("--threshold", type=float, default=None, help="The minimum value to show")
 
     subparser = add_argument("draw-link-heatmap", processor.draw_link_heatmap)
     subparser.add_argument("--show", action="store_true", default=False)

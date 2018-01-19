@@ -8,8 +8,10 @@ import os.path
 
 import numpy as np
 
-import simulator.common
+import data.submodule_loader as submodule_loader
+
 from simulator import Configuration, SourcePeriodModel
+import simulator.sim
 
 def _name_to_attr(name):
     return name.replace(" ", "_") + "s"
@@ -35,19 +37,18 @@ def extract_average_and_stddev(value):
     return np.array((mean, stddev))
 
 class Results(object):
-    def __init__(self, result_file, parameters, results, results_filter=None,
-                 source_period_normalisation=None, network_size_normalisation=None,
-                 testbed=False):
+    def __init__(self, sim_name, result_file, parameters, results, results_filter=None,
+                 source_period_normalisation=None, network_size_normalisation=None):
+        self.sim_name = sim_name
         self.parameter_names = tuple(parameters)
         self.result_names = tuple(results)
         self.result_file_name = result_file
 
         self.data = {}
 
-        if testbed:
-            self.global_parameter_names = simulator.common.testbed_global_parameter_names[:-1]
-        else:
-            self.global_parameter_names = simulator.common.global_parameter_names[:-1]
+        sim = submodule_loader.load(simulator.sim, sim_name)
+
+        self.global_parameter_names = sim.global_parameter_names[:-1]
 
         # Create attributes that will store all the parameter value for a given parameter
         for param in self.global_parameter_names:

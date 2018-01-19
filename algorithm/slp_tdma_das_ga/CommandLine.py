@@ -41,7 +41,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
         subparser = self._add_argument("graph-bar", self._run_graph_bar)
 
-    def _cluster_time_estimator(self, args, **kwargs):
+    def _cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
@@ -63,7 +63,7 @@ class CLI(CommandLineCommon.CLI):
         # # Remove source period from names
         # return self.global_parameter_names[:-1] + self.algorithm_module.local_parameter_names
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.product(
@@ -78,7 +78,7 @@ class CLI(CommandLineCommon.CLI):
         argument_product = self.add_extra_arguments(argument_product, extras)
 
         # Can't do this as source period is no longer a parameter
-        #argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        #argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         return argument_product
 

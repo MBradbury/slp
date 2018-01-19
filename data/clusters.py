@@ -1,17 +1,19 @@
 from __future__ import print_function, division
 
+from datetime import timedelta
 import os
 import math
 import subprocess
 
 class ClusterCommon(object):
-    def __init__(self, kind, url, ssh_auth, ppn, tpp, rpn):
+    def __init__(self, kind, url, ssh_auth, ppn, tpp, rpn, max_walltime=None):
         self.kind = kind
         self.url = url
         self.ssh_auth = ssh_auth
         self.ppn = ppn
         self.threads_per_processor = tpp
         self.ram_per_node = rpn
+        self.max_walltime = max_walltime
 
     def submitter(self, notify_emails=None):
         raise NotImplementedError
@@ -74,24 +76,25 @@ class ClusterCommon(object):
         app_ram = total_ram - ram_for_os_mb
         return int(app_ram // self.ppn) * self.ppn
 
-    def _pbs_submitter(self, notify_emails=None, dry_run=False, *args, **kwargs):
+    def _pbs_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_to_ask_for_mb = self._ram_to_ask_for()
 
         # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        hold = "" if unhold else "-h"
+        
         # Don't provide a queue, as the job will be routed to the correct place.
-        cluster_command = "qsub -j oe -h -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
-            self.ppn, ram_to_ask_for_mb)
+        cluster_command = f"qsub -j oe {hold} -l nodes=1:ppn={self.ppn} -l walltime={{}} -l mem={ram_to_ask_for_mb}mb -N \"{{}}\""
 
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
         prepare_command = "cd $PBS_O_WORKDIR"
 
-        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run)
+        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
-    def _pbs_array_submitter(self, notify_emails=None, dry_run=False, *args, **kwargs):
+    def _pbs_array_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_per_node_mb = self._ram_to_ask_for() / self.ppn
@@ -99,13 +102,16 @@ class ClusterCommon(object):
         num_jobs = 1
         num_array_jobs = self.ppn
 
+        mem = num_jobs * ram_per_node_mb
+
         # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        hold = "" if unhold else "-h"
+
         # Don't provide a queue, as the job will be routed to the correct place.
         
         # %1 ensures that only a single array job will be running at a given time
 
-        cluster_command = "qsub -j oe -h -t 1-{}%1 -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
-            num_array_jobs, num_jobs, num_jobs * ram_per_node_mb)
+        cluster_command = f"qsub -j oe {hold} -t 1-{num_array_jobs}%1 -l nodes=1:ppn={num_jobs} -l walltime={{}} -l mem={mem}mb -N \"{{}}\""
 
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
@@ -113,9 +119,9 @@ class ClusterCommon(object):
         prepare_command = "cd $PBS_O_WORKDIR"
 
         return Submitter(cluster_command, prepare_command, num_jobs,
-                         job_repeats=num_array_jobs, array_job_variable="$PBS_ARRAYID", dry_run=dry_run)
+                         job_repeats=num_array_jobs, array_job_variable="$PBS_ARRAYID", dry_run=dry_run, max_walltime=self.max_walltime)
 
-    def _sge_submitter(self, notify_emails=None, dry_run=False, *args, **kwargs):
+    def _sge_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         # There is only 24GB available and there are 48 threads that can be used for execution.
@@ -132,32 +138,38 @@ class ClusterCommon(object):
         ram_per_job_mb = 1700
         jobs = int(math.floor(((self.ram_per_node * self.ppn) - ram_for_os_mb) / ram_per_job_mb))
 
-        cluster_command = "qsub -cwd -V -j yes -h -S /bin/bash -pe smp {} -l h_rt={{}} -l h_vmem={}M -N \"{{}}\"".format(
-            self.ppn, ram_per_job_mb)
+        # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        hold = "" if unhold else "-h"
+
+        cluster_command = f"qsub -cwd -V -j yes {hold} -S /bin/bash -pe smp {self.ppn} -l h_rt={{}} -l h_vmem={ram_per_job_mb}M -N \"{{}}\""
 
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
         prepare_command = ""
 
-        return Submitter(cluster_command, prepare_command, jobs, job_repeats=1, dry_run=dry_run)
+        return Submitter(cluster_command, prepare_command, jobs, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
-    def _moab_submitter(self, notify_emails=None, dry_run=False, *args, **kwargs):
+    def _moab_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_to_ask_for_mb = self._ram_to_ask_for()
 
         # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        hold = "" if unhold else "-h"
+
         # Don't provide a queue, as the job will be routed to the correct place.
-        cluster_command = "msub -j oe -h -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
-            self.ppn, ram_to_ask_for_mb)
+        cluster_command = f"msub -j oe {hold} -l nodes=1:ppn={self.ppn} -l walltime={{}} -l mem={ram_to_ask_for_mb}mb -N \"{{}}\""
 
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
-        prepare_command = "cd $PBS_O_WORKDIR"
+        if self.kind == "slurm":
+            prepare_command = "cd $SLURM_SUBMIT_DIR"
+        else:
+            prepare_command = "cd $PBS_O_WORKDIR"
 
-        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run)
+        return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
 
 class dummy(ClusterCommon):
@@ -177,7 +189,7 @@ class dummy(ClusterCommon):
     def copy_back(self, dirname, user=None):
         raise RuntimeError("Cannot copy back from the dummy cluster")
 
-    def submitter(self, *args, **kwargs):
+    def submitter(self, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         class DummySubmitter(Submitter):
@@ -187,8 +199,10 @@ class dummy(ClusterCommon):
 
         ram_to_ask_for_mb = self._ram_to_ask_for()
 
-        cluster_command = "qsub -q serial -j oe -h -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
-            self.ppn, ram_to_ask_for_mb)
+        # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        hold = "" if unhold else "-h"
+
+        cluster_command = f"qsub -q serial -j oe {hold} -l nodes=1:ppn={self.ppn} -l walltime={{}} -l mem={ram_to_ask_for_mb}mb -N \"{{}}\""
 
         notify_emails = kwargs.get("notify_emails", None)
         if notify_emails is not None and len(notify_emails) > 0:
@@ -210,8 +224,12 @@ class dummy(ClusterCommon):
         num_jobs = 1
         num_array_jobs = self.ppn
 
-        cluster_command = "qsub -q serial -j oe -h -t 1-{}%1 -l nodes=1:ppn={} -l walltime={{}} -l mem={}mb -N \"{{}}\"".format(
-            num_array_jobs, num_jobs, num_jobs * ram_per_job_mb)
+        mem = num_jobs * ram_per_job_mb
+
+        # The -h flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        hold = "" if unhold else "-h"
+
+        cluster_command = f"qsub -q serial -j oe {hold} -t 1-{num_array_jobs}%1 -l nodes=1:ppn={num_jobs} -l walltime={{}} -l mem={mem}mb -N \"{{}}\""
 
         notify_emails = kwargs.get("notify_emails", None)
         if notify_emails is not None and len(notify_emails) > 0:
@@ -226,7 +244,8 @@ class flux(ClusterCommon):
         super(flux, self).__init__("pbs", "flux.dcs.warwick.ac.uk", "ssh",
             ppn=12,
             tpp=1, # HT is disabled
-            rpn=(32 * 1024) / 12 # 32GB per node
+            rpn=(32 * 1024) / 12, # 32GB per node
+            max_walltime=timedelta(hours=48) # See "qstat -Qf" for the batch queue
         )
 
     def submitter(self, *args, **kwargs):
@@ -265,14 +284,11 @@ class tinis(ClusterCommon):
         )
 
     def submitter(self, *args, **kwargs):
-        return self._pbs_submitter(*args, **kwargs)
-
-    def array_submitter(self, *args, **kwargs):
-        return self._pbs_array_submitter(*args, **kwargs)
+        return self._moab_submitter(*args, **kwargs)
 
 class orac(ClusterCommon):
     def __init__(self):
-        super(orac, self).__init__("moab", "orac.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
+        super(orac, self).__init__("slurm", "orac.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
             ppn=28,
             tpp=1,
             rpn=(128 * 1024) / 28 # 128GB per node

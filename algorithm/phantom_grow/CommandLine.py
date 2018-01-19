@@ -20,7 +20,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.ifilter(
