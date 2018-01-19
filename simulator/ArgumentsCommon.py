@@ -64,7 +64,7 @@ def _add_avrora_radio_model(parser, **kwargs):
 
     parser.add_argument("--max-buffer-size",
                         type=ArgumentsCommon.type_positive_int,
-                        default=255),
+                        default=255)
 
 def _add_cooja_radio_model(parser, **kwargs):
     import simulator.CoojaRadioModel as CoojaRadioModel
@@ -85,7 +85,7 @@ def _add_cooja_radio_model(parser, **kwargs):
     # If you need more look at MspDebugOutput.java in Cooja
     parser.add_argument("--max-buffer-size",
                         type=ArgumentsCommon.type_positive_int,
-                        default=255),
+                        default=255)
 
 
 def _add_log_converter(parser, **kwargs):
@@ -172,6 +172,11 @@ OPTS = {
 
     # Only for Cooja
     "cooja":               _add_cooja_radio_model,
+
+    "show raw log":        lambda x, **kwargs: x.add_argument("--show-raw-log",
+                                                              action="store_true",
+                                                              default=False,
+                                                              help="Show all the log output as the simulation is running"),
 
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
                                                               type=AttackerConfiguration.eval_input,

@@ -359,6 +359,7 @@ class OfflineSimulation(object):
             self.register_output_handler("stdout", None)
 
         self.debug = hasattr(args, "debug") and args.debug
+        self.show_raw_log = hasattr(args, "show-raw-log") and args.show_raw_log
 
         import re
         self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.*)\s*')
@@ -466,6 +467,9 @@ class OfflineSimulation(object):
 
             node_id = ast.literal_eval(node_id)
             node_local_time = ast.literal_eval(node_local_time)
+
+            if self.args.show_raw_log:
+                print(line)
 
             return (current_time, kind, node_local_time, log_type, node_id, message_line)
         else:
