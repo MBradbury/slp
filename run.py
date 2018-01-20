@@ -191,7 +191,9 @@ def _run_parallel(sim, module, a, argv):
 
     new_args = convert_parallel_args_to_single(argv, sim)
 
-    subprocess_args = ["python", "-OO", "-m", "simulator.DoRun"] + new_args
+    # Run using faulthandler to get stacktraces for SIGSEGV
+
+    subprocess_args = ["python", "-OO", "-X", "faulthandler", "-m", "simulator.DoRun"] + new_args
     subprocess_args_100 = subprocess_args_with_seed(subprocess_args, seed=100)
     subprocess_args_44 = subprocess_args_with_seed(subprocess_args, seed=44)
 
