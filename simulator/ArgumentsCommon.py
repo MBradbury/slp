@@ -54,6 +54,9 @@ def _add_low_power_listening(parser, **kwargs):
     parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, default=None,
                         help="The maximum number of CCA checks performed on each wakeup.")
 
+    parser.add_argument("--lpl-min-samples-before-detect", "-lpl-msbd", type=ArgumentsCommon.type_positive_int, default=None,
+                        help="The minimum number of samples before a signal is considered detected.")
+
 def _add_avrora_radio_model(parser, **kwargs):
     import simulator.AvroraRadioModel as AvroraRadioModel
 
@@ -429,6 +432,11 @@ class ArgumentsCommon(object):
                 # See http://mail.millennium.berkeley.edu/pipermail/tinyos-help/2011-June/051478.html
                 if self.args.lpl_max_cca_checks is not None:
                     result["MAX_LPL_CCA_CHECKS"] = self.args.lpl_max_cca_checks
+
+                # Possibly worth increasing?
+                # https://www.millennium.berkeley.edu/pipermail/tinyos-help/2011-August/052116.html
+                if self.args.lpl_min_samples_before_detect is not None:
+                    result["MIN_SAMPLES_BEFORE_DETECT"] = self.args.lpl_min_samples_before_detect
 
         if hasattr(self.args, 'rf_power'):
             if self.args.rf_power is not None:
