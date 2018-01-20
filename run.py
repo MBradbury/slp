@@ -217,10 +217,10 @@ def _run_parallel(sim, module, a, argv):
     #    The process pool would stay alive.
     job_pool = multiprocessing.pool.ThreadPool(processes=parallel_instances)
 
-    # Always run with a seed of 44 first and second.
+    # Always run with a seed of 100 and 44 first and second.
     # This allows us to do compatibility checks.
     # It also allows us to test the determinism of this set of parameters.
-    all_args = [subprocess_args_100, subprocess_args_44, subprocess_args_44] + [subprocess_args] * a.args.job_size
+    all_args = [subprocess_args_100, subprocess_args_100, subprocess_args_44, subprocess_args_44] + [subprocess_args] * a.args.job_size
 
     try:
         result = job_pool.map_async(runner, all_args)
