@@ -175,7 +175,11 @@ def _run_parallel(sim, module, a, argv):
                     with print_lock:
                         print(error_message, file=sys.stderr)
                         sys.stderr.flush()
-                    raise RuntimeError(error_message)
+
+                    # Ignore some signals, if the process crashes we should just keep going:
+                    # -11 is SIGSEGV
+                    if process.returncode not in {-11}:
+                        raise RuntimeError(error_message)
 
             except (KeyboardInterrupt, SystemExit) as ex:
                 with print_lock:
