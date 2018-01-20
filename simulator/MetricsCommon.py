@@ -1057,6 +1057,14 @@ class MetricsCommon(object):
             print("Receive Ratio is NaN:", file=stream)
             print("\tMake sure a Normal message is sent.", file=stream)
 
+        if not np.isinf(self.sim.safety_period_value) and self.sim._duration_start_time is not None and \
+                self.sim_time() - self.sim._duration_start_time < self.sim.safety_period_value and self.sim.continue_predicate():
+            print("Simulation did not run for as long as it needed.", file=stream)
+            print("\tDuration start time at {}".format(self.sim._duration_start_time), file=stream)
+            print("\tSimulation ended at {}".format(self.sim_time()), file=stream)
+            print("\tThis time {} was less than the safety period {}".format(self.sim_time() - self.sim._duration_start_time, self.sim.safety_period_value), file=stream)
+            print("\tIf running on COOJA or AVRORA try creating a variable in Arguments called 'cycle_accurate_setup_period' that contains the length of the algorithm's setup period in seconds.", file=stream)
+
         if self.reached_sim_upper_bound():
             print("Reached Upper Bound:", file=stream)
             print("\tSimulation reached the upper bound, likely because the safety period was not triggered.", file=stream)

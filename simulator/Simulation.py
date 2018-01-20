@@ -109,6 +109,7 @@ class Simulation(object):
 
         self.start_time = None
         self.enter_start_time = None
+        self._duration_start_time = None
 
         self.attacker_found_source = False
 
@@ -212,6 +213,8 @@ class Simulation(object):
         self.metrics.event_count = event_count
 
     def trigger_duration_run_start(self, time):
+        if self._duration_start_time is None:
+            self._duration_start_time = time
         self.tossim.triggerRunDurationStart()
 
     def continue_predicate(self):
@@ -523,17 +526,6 @@ class OfflineSimulation(object):
 
                     callback(call_at_time)
 
-                # Stop the run if the attacker has found the source
-                if not self.continue_predicate():
-                    break
-
-                # Stop if the safety period has expired
-                if self._duration_start_time is not None and current_time is not None:
-                    current_time_sec = (current_time - self._real_start_time).total_seconds()
-
-                    if (current_time_sec - self._duration_start_time) >= self.safety_period_value:
-                        break
-
                 # Handle the event
                 handlers = self._line_handlers.get(kind, handler_missing)
                 if handlers is not handler_missing:
@@ -549,6 +541,15 @@ class OfflineSimulation(object):
 
                 if hasattr(self, "_during_run"):
                     self._during_run(event_count)
+
+                # Stop the run if the attacker has found the source
+                if not self.continue_predicate():
+                    break
+
+                # Stop if the safety period has expired
+                if self._duration_start_time is not None and current_time is not None:
+                    if (self.sim_time() - self._duration_start_time) >= self.safety_period_value:
+                        break
 
         finally:
             self._post_run(event_count)

@@ -73,6 +73,10 @@ def avrora_command(module, a, configuration):
         slowest_source_period = a.args.source_period if isinstance(a.args.source_period, float) else a.args.source_period.slowest()
         seconds_to_run = configuration.size() * 4.0 * slowest_source_period
 
+    # Many algorithms have some sort of setup period, so it is important to allow cooja to consider some time for this
+    # Try getting this value from the algorithm itself, otherwise guess 10 seconds
+    seconds_to_run += getattr(a, "cycle_accurate_setup_period", 15.0)
+
     # The clock speed of the micaz platform being simulated
     # See: https://github.com/ibr-cm/avrora/blob/e69e1aff28d5ab16ae41e554ddb39b7770f16373/src/avrora/sim/platform/MicaZ.java
     micaz_clock_speed_hz = 7372800
