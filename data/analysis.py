@@ -161,7 +161,7 @@ def _parse_dict_string_tuple_to_value(indict):
 def dict_mean(dict_list):
     """Dict mean using incremental averaging"""
 
-    result = next(iter(dict_list))
+    result = dict(next(iter(dict_list)))
 
     get = result.get
 
