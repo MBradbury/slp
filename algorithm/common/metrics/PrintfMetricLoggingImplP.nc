@@ -36,10 +36,9 @@ implementation
 			return;
 		}
 
-		buf[payload_len * 2] = '\0';
-
 		if (!payload)
 		{
+			buf[0] = '\0';
 			return;
 		}
 
@@ -48,6 +47,8 @@ implementation
 			buf[i * 2 + 0] = hex_str[(payload_u8[i] >> 4) & 0x0F];
 			buf[i * 2 + 1] = hex_str[(payload_u8[i]     ) & 0x0F];
 		}
+
+		buf[payload_len * 2] = '\0';
 	}
 
 	command void MetricLogging.log_metric_boot()
