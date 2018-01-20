@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 import os
 import subprocess
@@ -8,7 +7,7 @@ from data.progress import Progress
 class Runner(object):
     required_safety_periods = True
     
-    executable = 'python -OO run.py'
+    executable = 'python3 -OO -X faulthandler run.py'
 
     def __init__(self):
         self._progress = Progress("running locally")
@@ -20,10 +19,10 @@ class Runner(object):
         if not self._progress.has_started():
             self._progress.start(self.total_job_size)
 
-        print('{} {} > {} (overwriting={})'.format(self.executable, options, name, os.path.exists(name)))
+        print(f'{self.executable} {options} > {name} (overwriting={os.path.exists(name)})')
 
         with open(name, 'w') as out_file:
-            subprocess.call("{} {}".format(self.executable, options), stdout=out_file, shell=True)
+            subprocess.call(f"{self.executable} {options}", stdout=out_file, shell=True)
 
         self._progress.print_progress(self._jobs_executed)
 

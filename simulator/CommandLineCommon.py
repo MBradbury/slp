@@ -786,7 +786,7 @@ class CLI(object):
 
             out_path = os.path.join(results_path, common_result_dir + ".txt")
 
-            command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
+            command = "python3 -OO -X faulthandler run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
                 self.algorithm_module.name,
                 testbed.name(),
                 os.path.join(results_path, common_result_dir + "_*", testbed.result_file_name))
