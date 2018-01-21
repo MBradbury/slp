@@ -13,7 +13,7 @@ adaptive = algorithm.import_algorithm("adaptive")
 from data import results, latex
 
 from data.table import safety_period, fake_result, direct_comparison
-from data.graph import summary, bar
+from data.graph import summary
 from data.util import useful_log10
 
 safety_period_equivalence = {
@@ -26,8 +26,6 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)
-        subparser = self._add_argument("ccpe-comparison-table", self._run_ccpe_comparison_table)
-        subparser = self._add_argument("ccpe-comparison-graph", self._run_ccpe_comparison_graph)
 
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
@@ -128,77 +126,3 @@ class CLI(CommandLineCommon.CLI):
         }
 
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max)
-
-    def _run_ccpe_comparison_table(self, args):
-        from data.old_results import OldResults 
-
-        results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
-
-        old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=self.algorithm_module.local_parameter_names,
-            results=results_to_compare)
-
-        template_results = results.Results(self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=results_to_compare)
-
-        result_table = direct_comparison.ResultTable(old_results, template_results)
-
-        self._create_table(self.algorithm_module.name + '-ccpe-comparison', result_table)
-
-    def _run_ccpe_comparison_graph(self, args):
-        from data.old_results import OldResults 
-
-        results_to_compare = ('captured', 'fake', 'received ratio', 'tfs', 'pfs')
-
-        old_results = OldResults('results/CCPE/template-results.csv',
-            parameters=self.algorithm_module.local_parameter_names,
-            results=results_to_compare)
-
-        template_results = results.Results(self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=results_to_compare)
-
-        result_table = direct_comparison.ResultTable(old_results, template_results)
-
-        def create_ccpe_comp_bar(show, pc=False):
-            name = 'ccpe-comp-{}-{}'.format(show, "pcdiff" if pc else "diff")
-
-            bar.Grapher(self.algorithm_module.graphs_path, result_table, name,
-                shows=[show],
-                extractor=lambda (diff, pcdiff): pcdiff if pc else diff
-            ).create()
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
-            ).run()
-
-        for result_name in results_to_compare:
-            create_ccpe_comp_bar(result_name, pc=True)
-            create_ccpe_comp_bar(result_name, pc=False)
-
-        def create_ccpe_comp_bar_pcdiff(modified=lambda x: x, name_addition=None):
-            name = 'ccpe-comp-pcdiff'
-            if name_addition is not None:
-                name += '-{}'.format(name_addition)
-
-            g = bar.Grapher(self.algorithm_module.graphs_path, result_table, name,
-                shows=results_to_compare,
-                extractor=lambda (diff, pcdiff): modified(pcdiff))
-
-            g.yaxis_label = 'Percentage Difference'
-            if name_addition is not None:
-                g.yaxis_label += ' ({})'.format(name_addition)
-
-            g.xaxis_label = 'Parameters (P_{TFS}, D_{TFS}, Pr(TFS), Pr(PFS))'
-
-            g.create()
-
-            summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
-                '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_")
-            ).run()
-
-        create_ccpe_comp_bar_pcdiff()
-        create_ccpe_comp_bar_pcdiff(useful_log10, 'log10')
