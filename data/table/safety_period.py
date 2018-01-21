@@ -7,17 +7,17 @@ from simulator.Configuration import configuration_rank
 from data import latex, results
 
 class TableGenerator:
-
-    def __init__(self, result_file, tafn_to_safety_period, fmt=None, testbed=False):
+    def __init__(self, sim_name, result_file, tafn_to_safety_period, fmt=None, testbed=False):
+        self._sim_name = sim_name
         self._result_names = ('received ratio',
                               'normal latency', 'ssd', 'captured',
                               'time after first normal')
 
         self._results = results.Results(
+            sim_name,
             result_file,
             parameters=tuple(),
-            results=self._result_names,
-            testbed=testbed,
+            results=self._result_names
         )
 
         self.tafn_to_safety_period = tafn_to_safety_period
@@ -59,7 +59,7 @@ class TableGenerator:
             distances, node_id_orders, latest_start_times
         ))
 
-        product_three = list(itertools.ifilter(
+        product_three = list(filter(
             lambda x: x in {(cm, nm, am, fm, c, d, nido, lst) for (s, c, am, nm, cm, fm, d, nido, lst) in self._results.data.keys()},
             itertools.product(communication_models, noise_models, attacker_models, fault_models,
                               configurations, distances, node_id_orders, latest_start_times)
@@ -104,19 +104,14 @@ class TableGenerator:
 
                     safety_period = self.tafn_to_safety_period(
                         get_just_value('time after first normal'))
+
+                    rcvd_ratio = self.fmt.format_value(*get_name_and_value('received ratio'))
+                    ssd = self.fmt.format_value(*get_name_and_value('ssd'))
+                    lat = self.fmt.format_value(*get_name_and_value('normal latency'))
+                    tafn = self.fmt.format_value(*get_name_and_value('time after first normal'))
+                    cap = self.fmt.format_value(*get_name_and_value('captured'))
                 
-                    print('{} & {} & {} & {}'
-                          ' & {} & {}'
-                          ' & {:0.2f} & {} \\tabularnewline'.format(
-                            size,
-                            src_period,
-                            self.fmt.format_value(*get_name_and_value('received ratio')),
-                            self.fmt.format_value(*get_name_and_value('ssd')),
-                            self.fmt.format_value(*get_name_and_value('normal latency')),
-                            self.fmt.format_value(*get_name_and_value('time after first normal')),
-                            safety_period,
-                            self.fmt.format_value(*get_name_and_value('captured'))),
-                          file=stream)
+                    print(f'{size} & {src_period} & {rcvd_ratio} & {ssd} & {lat} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
                     
                 print('\\hline', file=stream)
                 print('', file=stream)
@@ -138,7 +133,7 @@ class TableGenerator:
 
         print(self._results.data.keys())
 
-        product_filtered = list(itertools.ifilter(
+        product_filtered = list(filter(
             lambda x: x in {(c, am, fm) for (c, am, fm) in self._results.data.keys()},
             product_all
         ))
@@ -180,18 +175,14 @@ class TableGenerator:
 
                 safety_period = self.tafn_to_safety_period(
                     get_just_value('time after first normal'))
+
+                rcvd_ratio = self.fmt.format_value(*get_name_and_value('received ratio'))
+                ssd = self.fmt.format_value(*get_name_and_value('ssd'))
+                lat = self.fmt.format_value(*get_name_and_value('normal latency'))
+                tafn = self.fmt.format_value(*get_name_and_value('time after first normal'))
+                cap = self.fmt.format_value(*get_name_and_value('captured'))
             
-                print('{} & {} & {}'
-                      ' & {} & {}'
-                      ' & {:0.2f} & {} \\tabularnewline'.format(
-                        src_period,
-                        self.fmt.format_value(*get_name_and_value('received ratio')),
-                        self.fmt.format_value(*get_name_and_value('ssd')),
-                        self.fmt.format_value(*get_name_and_value('normal latency')),
-                        self.fmt.format_value(*get_name_and_value('time after first normal')),
-                        safety_period,
-                        self.fmt.format_value(*get_name_and_value('captured'))),
-                      file=stream)
+                print(f'{src_period} & {rcvd_ratio} & {ssd} & {lat} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
 
             print('\\hline', file=stream)
             print('\\end{tabular}', file=stream)

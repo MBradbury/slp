@@ -581,6 +581,7 @@ class CLI(object):
             safety_periods = None
         else:
             safety_period_table_generator = safety_period.TableGenerator(
+                sim_name,
                 self.get_safety_period_result_path(sim_name, testbed=testbed_name),
                 self.time_after_first_normal_to_safety_period,
                 testbed=testbed_name)
@@ -775,7 +776,8 @@ class CLI(object):
 
         if self.safety_period_module_name is not None:
             safety_period_result_path = self.get_safety_period_result_path("real", testbed=testbed)
-            safety_period_table = safety_period.TableGenerator(safety_period_result_path,
+            safety_period_table = safety_period.TableGenerator("real",
+                                                               safety_period_result_path,
                                                                self.time_after_first_normal_to_safety_period,
                                                                testbed=testbed)
             safety_periods = safety_period_table.safety_periods()
@@ -843,7 +845,8 @@ class CLI(object):
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
-        safety_period_table = safety_period.TableGenerator(safety_period_result_path,
+        safety_period_table = safety_period.TableGenerator(args.sim,
+                                                           safety_period_result_path,
                                                            self.time_after_first_normal_to_safety_period,
                                                            fmt,
                                                            testbed=args.testbed)
