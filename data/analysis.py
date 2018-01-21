@@ -255,7 +255,6 @@ class Analyse(object):
         "FakeToNormal": np.uint32,
         "FakeToFake": np.uint32,
         "FakeNodesAtEnd": np.uint32,
-        "DutyCycleStart": np.float_,
     }
 
     HEADING_CONVERTERS = {
@@ -291,6 +290,7 @@ class Analyse(object):
 
         "ParentChangeHeatMap": partial(_parse_dict_node_to_value, decompress=True),
 
+        "DutyCycleStart": lambda x: None if x == "None" else np.float_(x), # Either None or float
         "DutyCycle": _parse_dict_node_to_value,
     }
 
