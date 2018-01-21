@@ -178,11 +178,11 @@ class Results(object):
                 if name in self.parameter_names:
                     return value
                 else:
-                    RuntimeError("Unable to parse the string '{}' for {}".format(value, name))
+                    RuntimeError(f"Unable to parse the string '{value}' for {name}")
 
     def parameter_set(self):
         if 'repeats' not in self.result_names:
-            raise RuntimeError("The repeats result must be present in the results ({}).".format(self.result_names))
+            raise RuntimeError(f"The repeats result must be present in the results ({self.result_names}).")
 
         repeats_index = self.result_names.index('repeats')
 
