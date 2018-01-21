@@ -66,6 +66,7 @@ class RunSimulationsCommon(object):
                     self.driver.total_job_size -= 1
                     continue
                 else:
+                    print(f"Already gathered {repeats_performed} results for {darguments} so only performing {repeats - repeats_performed}", file=sys.stderr)
                     repeats -= repeats_performed
 
             # Not all drivers will supply job_repeats
