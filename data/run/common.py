@@ -58,6 +58,8 @@ class RunSimulationsCommon(object):
         for arguments in argument_product:
             darguments = OrderedDict(zip(argument_names, arguments))
 
+            repeats_to_run = repeats
+
             if repeats is not None:
                 repeats_performed = self._get_repeats_performed(darguments)
 
@@ -67,15 +69,15 @@ class RunSimulationsCommon(object):
                     continue
                 else:
                     print(f"Already gathered {repeats_performed} results for {darguments} so only performing {repeats - repeats_performed}", file=sys.stderr)
-                    repeats -= repeats_performed
+                    repeats_to_run -= repeats_performed
 
             # Not all drivers will supply job_repeats
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
 
             opts = OrderedDict()
 
-            if repeats is not None:
-                opts["--job-size"] = int(math.ceil(repeats / job_repeats))
+            if repeats_to_run is not None:
+                opts["--job-size"] = int(math.ceil(repeats_to_run / job_repeats))
 
             if hasattr(self.driver, 'array_job_variable') and self.driver.array_job_variable is not None:
                 opts["--job-id"] = self.driver.array_job_variable
