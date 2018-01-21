@@ -583,8 +583,7 @@ class CLI(object):
             safety_period_table_generator = safety_period.TableGenerator(
                 sim_name,
                 self.get_safety_period_result_path(sim_name, testbed=testbed_name),
-                self.time_after_first_normal_to_safety_period,
-                testbed=testbed_name)
+                self.time_after_first_normal_to_safety_period)
             
             safety_periods = safety_period_table_generator.safety_periods()
 
@@ -778,8 +777,7 @@ class CLI(object):
             safety_period_result_path = self.get_safety_period_result_path("real", testbed=testbed)
             safety_period_table = safety_period.TableGenerator("real",
                                                                safety_period_result_path,
-                                                               self.time_after_first_normal_to_safety_period,
-                                                               testbed=testbed)
+                                                               self.time_after_first_normal_to_safety_period)
             safety_periods = safety_period_table.safety_periods()
 
         commands = []
@@ -848,8 +846,7 @@ class CLI(object):
         safety_period_table = safety_period.TableGenerator(args.sim,
                                                            safety_period_result_path,
                                                            self.time_after_first_normal_to_safety_period,
-                                                           fmt,
-                                                           testbed=args.testbed)
+                                                           fmt)
 
         if args.testbed:
             print("Writing testbed safety period table...")

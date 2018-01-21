@@ -7,7 +7,7 @@ from simulator.Configuration import configuration_rank
 from data import latex, results
 
 class TableGenerator:
-    def __init__(self, sim_name, result_file, tafn_to_safety_period, fmt=None, testbed=False):
+    def __init__(self, sim_name, result_file, tafn_to_safety_period, fmt=None):
         self._sim_name = sim_name
         self._result_names = ('received ratio',
                               'normal latency', 'ssd', 'captured',
@@ -27,8 +27,6 @@ class TableGenerator:
             from data.table.data_formatter import TableDataFormatter
             self.fmt = TableDataFormatter()
 
-        self.testbed = testbed
-
     def _get_name_and_value(self, result, name):
         return name, result[self._result_names.index(name)]
 
@@ -36,7 +34,7 @@ class TableGenerator:
         return result[self._result_names.index(name)][0]
 
     def write_tables(self, *args, **kwargs):
-        if self.testbed:
+        if self._sim_name == "real":
             self._write_testbed_tables(*args, **kwargs)
         else:
             self._write_tables(*args, **kwargs)
