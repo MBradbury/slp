@@ -80,6 +80,7 @@ class CLI(object):
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         subparser = cluster_subparsers.add_parser("copy-result-summary", help="Copy the result summary for this algorithm obtained by using the 'analyse' command to the cluster.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         subparser = cluster_subparsers.add_parser("copy-parameters", help="Copy this algorithm's Parameters.py file to the cluster.")
@@ -916,7 +917,7 @@ class CLI(object):
             cluster.copy_to(self.algorithm_module.name, user=args.user)
 
         elif 'copy-result-summary' == args.cluster_mode:
-            cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file, user=args.user)
+            cluster.copy_file(self.algorithm_module.results_path(args.sim), self.algorithm_module.result_file, user=args.user)
 
         elif 'copy-parameters' == args.cluster_mode:
             cluster.copy_file(os.path.join('algorithm', self.algorithm_module.name), 'Parameters.py', user=args.user)
@@ -1006,10 +1007,11 @@ class CLI(object):
 
     def _run_detect_missing(self, args):
         sim = submodule_loader.load(simulator.sim, args.sim)
+        result_file_path = self.algorithm_module.result_file_path(args.sim)
         
         argument_product = {tuple(map(str, row)) for row in self._argument_product(sim)}
 
-        result = results.Results(args.sim, self.algorithm_module.result_file_path(args.sim),
+        result = results.Results(args.sim, result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
@@ -1025,7 +1027,7 @@ class CLI(object):
                 print(", ".join([f"{n}={str(v)}" for (n,v) in zip(parameter_names, arguments)]))
                 print()
 
-        print(f"Loading {self.algorithm_module.result_file_path} to check for missing runs...")
+        print(f"Loading {result_file_path} to check for missing runs...")
 
         for (parameter_values, repeats_performed) in repeats.items():
 
