@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 from collections import OrderedDict
 import math
@@ -59,10 +58,15 @@ class RunSimulationsCommon(object):
         for arguments in argument_product:
             darguments = OrderedDict(zip(argument_names, arguments))
 
-            if self._already_processed(repeats, darguments):
-                print("Already gathered results for {} with {} repeats, so skipping it.".format(darguments, repeats), file=sys.stderr)
-                self.driver.total_job_size -= 1
-                continue
+            if repeats is not None 
+                repeats_performed = self._get_repeats_performed(darguments)
+
+                if repeats_performed >= repeats:
+                    print(f"Already gathered results for {darguments} with {repeats} repeats, so skipping it.", file=sys.stderr)
+                    self.driver.total_job_size -= 1
+                    continue
+                else:
+                    repeats -= repeats_performed
 
             # Not all drivers will supply job_repeats
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
@@ -174,9 +178,10 @@ class RunSimulationsCommon(object):
 
 
     def _load_existing_results(self, argument_names):
+        results_file_path = self.algorithm_module.result_file_path(self.sim_name)
         try:
             results_summary = results.Results(
-                self.sim_name, self.algorithm_module.result_file_path(self.sim_name),
+                self.sim_name, results_file_path,
                 parameters=argument_names[len(self._global_parameter_names):],
                 results=('repeats',))
 
@@ -185,25 +190,22 @@ class RunSimulationsCommon(object):
         except IOError as e:
             message = str(e)
             if 'No such file or directory' in message:
-                raise RuntimeError("The results file {} is not present. Perhaps rerun the command with '--no-skip-complete'?".format(
-                    self.algorithm_module.result_file_path(self.sim_name)))
+                raise RuntimeError(f"The results file {results_file_path} is not present. Perhaps rerun the command with '--no-skip-complete'?")
             else:
                 raise
 
-    def _already_processed(self, repeats, darguments):
+    def _get_repeats_performed(self, darguments):
         if not self._skip_completed_simulations:
-            return False
+            return 0
 
         key = tuple(self._prepare_argument_name(name, darguments) for name in darguments)
 
         if key not in self._existing_results:
             print("Unable to find the key {} in the existing results. Will now run the simulations for these parameters.".format(key), file=sys.stderr)
-            return False
+            return 0
 
         # Check that more than enough jobs were done
-        number_results = self._existing_results[key]
-
-        return number_results >= repeats
+        return self._existing_results[key]
 
     @staticmethod
     def _sanitize_job_name(name):
