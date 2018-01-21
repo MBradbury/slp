@@ -58,7 +58,7 @@ class RunSimulationsCommon(object):
         for arguments in argument_product:
             darguments = OrderedDict(zip(argument_names, arguments))
 
-            if repeats is not None 
+            if repeats is not None:
                 repeats_performed = self._get_repeats_performed(darguments)
 
                 if repeats_performed >= repeats:
