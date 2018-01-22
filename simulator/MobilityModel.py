@@ -62,7 +62,7 @@ class MobilityModel(object):
         build_arguments["SOURCE_DETECTED_INDEXES"] = "{ " + ", ".join(indexes) + " }"
         build_arguments["SOURCE_DETECTED_PERIODS"] = "{ " + ", ".join(periods) + " }"
         build_arguments["SOURCE_DETECTED_PERIODS_LENGTHS"] = "{ " + ", ".join(periods_lengths) + " }"
-        build_arguments["SOURCE_DETECTED_NUM_NODES"] = "{}U".format(len(indexes))
+        build_arguments["SOURCE_DETECTED_NUM_NODES"] = f"{len(indexes)}U"
         build_arguments["SOURCE_DETECTED_NUM_CHANGES"] = max(periods_lengths)
 
         return build_arguments

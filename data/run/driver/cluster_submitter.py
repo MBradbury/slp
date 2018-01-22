@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 from datetime import timedelta
 import os
@@ -7,7 +6,7 @@ import subprocess
 class Runner(object):
     required_safety_periods = True
     
-    executable = 'python -OO run.py'
+    executable = 'python -OO -X faulthandler run.py'
 
     def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None, dry_run=False, max_walltime=None):
         self.cluster_command = cluster_command
@@ -22,7 +21,7 @@ class Runner(object):
         target_directory = name[:-len(".txt")]
 
         if not os.path.exists(target_directory):
-            raise RuntimeError("The directory for this job does not exist ({})".format(target_directory))
+            raise RuntimeError(f"The directory for this job does not exist ({target_directory})")
 
         word, space, options = options.partition(" ")
 
@@ -46,7 +45,7 @@ class Runner(object):
 
         cluster_command = self.cluster_command.format(estimated_time_str, module)
 
-        script_command = '{} {} {} >> "{}"'.format(self.executable, module, options, name)
+        script_command = f'{self.executable} {module} {options} >> "{name}"'
 
         # Print out any useful information that could aid in debugging
         debug_commands = [
@@ -70,7 +69,7 @@ class Runner(object):
         # single quotes
         precommand = precommand.replace("'", "'\\''")
 
-        command = 'echo \'{}\' | {}'.format(precommand, cluster_command)
+        command = f'echo \'{precommand}\' | {cluster_command}'
 
         self._submit_job(command)
 

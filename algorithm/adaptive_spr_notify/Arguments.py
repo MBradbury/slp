@@ -15,7 +15,7 @@ class Arguments(ArgumentsCommon):
 
         self.add_argument("--approach", type=str, choices=approaches, required=True)
 
-        self.add_argument("--lpl-choose-early", type=self.type_positive_float, required=False, default=None) # 0.010
+        self.add_argument("--lpl-choose-early", type=self.type_positive_float, required=False, default=None) # 0.005
         self.add_argument("--lpl-choose-late", type=self.type_positive_float, required=False, default=None)  # 0.040
         self.add_argument("--lpl-normal-early", type=self.type_positive_float, required=False, default=None) # 0.040
         self.add_argument("--lpl-normal-late", type=self.type_positive_float, required=False, default=None)  # 0.040

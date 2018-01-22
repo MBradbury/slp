@@ -1021,7 +1021,7 @@ class CLI(object):
 
         print("Checking runs that were asked for, but not included...")
 
-        for arguments in argument_product:
+        for arguments in sorted(argument_product):
             if arguments not in repeats:
                 print("missing ", end="")
                 print(", ".join([f"{n}={str(v)}" for (n,v) in zip(parameter_names, arguments)]))
