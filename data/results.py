@@ -157,7 +157,7 @@ class Results(object):
         try:
             value = dvalues[name]
         except KeyError as ex:
-            raise RuntimeError("Unable to read '{}' from the result file '{}'. Available keys: {}".format(name, self.result_file_name, dvalues.keys()))
+            raise RuntimeError(f"Unable to read '{name}' from the result file '{self.result_file_name}'. Available keys: {dvalues.keys()}")
 
         if name == 'captured':
             return float(value) * 100.0

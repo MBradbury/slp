@@ -29,7 +29,7 @@ class Simulation(object):
         self.module_name = module_name
         self.args = args
 
-        tossim_module = importlib.import_module('{}.TOSSIM'.format(module_name))
+        tossim_module = importlib.import_module(f'{module_name}.TOSSIM')
 
         if load_nesc_variables or args.fault_model.requires_nesc_variables:
             from tinyos.tossim.TossimApp import NescApp
@@ -80,18 +80,12 @@ class Simulation(object):
         slowest_source_period = args.source_period if isinstance(args.source_period, float) else args.source_period.slowest()
         self.upper_bound_safety_period = configuration.size() * 4.0 * slowest_source_period
 
-        if hasattr(args, "safety_period"):
-            self.safety_period = args.safety_period
-        else:
-            # To make simulations safer an upper bound on the simulation time
-            # is used when no safety period makes sense. This upper bound is the
-            # time it would have otherwise taken the attacker to scan the whole network.
-            self.safety_period = self.upper_bound_safety_period
+        # To make simulations safer an upper bound on the simulation time
+        # is used when no safety period makes sense. This upper bound is the
+        # time it would have otherwise taken the attacker to scan the whole network.
+        self.safety_period = getattr(args, "safety_period", self.upper_bound_safety_period)
 
-        if hasattr(args, "safety_factor"):
-            self.safety_factor = args.safety_factor
-        else:
-            self.safety_factor = 1.0
+        self.safety_factor = getattr(args, "safety_factor", 1.0)
 
         self.safety_period_value = float('inf') if self.safety_period is None else (self.safety_period * self.safety_factor)
 
@@ -318,10 +312,7 @@ class OfflineSimulation(object):
         else:
             self.safety_period = None
 
-        if hasattr(args, "safety_factor"):
-            self.safety_factor = args.safety_factor
-        else:
-            self.safety_factor = 1.0
+        self.safety_factor = getattr(args, "safety_factor", 1.0)
 
         self.safety_period_value = float('inf') if self.safety_period is None else (self.safety_period * self.safety_factor)
 
@@ -337,8 +328,8 @@ class OfflineSimulation(object):
 
         metrics_class = MetricsCommon.import_algorithm_metrics(module_name, args.sim, args.extra_metrics)
 
-        # Allow flexibility wth some missing metric values
-        non_strict_metrics = hasattr(args, "non_strict") and args.non_strict
+        # Allow flexibility with some missing metric values
+        non_strict_metrics = getattr(args, "non_strict", False)
 
         self.metrics = metrics_class(self, configuration, strict=not non_strict_metrics)
 
@@ -361,8 +352,8 @@ class OfflineSimulation(object):
         else:
             self.register_output_handler("stdout", None)
 
-        self.debug = hasattr(args, "debug") and args.debug
-        self.show_raw_log = hasattr(args, "show-raw-log") and args.show_raw_log
+        self.debug = getattr(args, "debug", False)
+        self.show_raw_log = getattr(args, "show_raw_log", False)
 
         import re
         self.LINE_RE = re.compile(r'([a-zA-Z-]+):([DE]):(\d+|None):(\d+|None):(.*)\s*')
@@ -414,7 +405,7 @@ class OfflineSimulation(object):
             if node.nid == ordered_nid:
                 return node
 
-        raise RuntimeError("Unable to find a node with ordered_nid of {}".format(ordered_nid))
+        raise RuntimeError(f"Unable to find a node with ordered_nid of {ordered_nid}")
 
     def node_from_topology_nid(self, topology_nid):
         ordered_nid = self.configuration.topology.t2o(topology_nid)
@@ -423,7 +414,7 @@ class OfflineSimulation(object):
             if node.nid == ordered_nid:
                 return node
 
-        raise RuntimeError("Unable to find a node with topology_nid of {}".format(topology_nid))
+        raise RuntimeError(f"Unable to find a node with topology_nid of {topology_nid}")
 
     def _pre_run(self):
         """Called before the simulator run loop starts"""
@@ -501,8 +492,8 @@ class OfflineSimulation(object):
                 result = self._parse_line(line)
 
                 if result is None:
-                    print("Warning unable to parse: '{}'. As hex: '{}'. Skipping that line.".format(
-                        line, ":".join("{:02x}".format(ord(c)) for c in line)), file=sys.stderr)
+                    hex_line = ":".join(f"{ord(c):02x}" for c in line)
+                    print(f"Warning unable to parse: '{line}'. As hex: '{hex_line}'. Skipping that line.", file=sys.stderr)
                     continue
 
                 (current_time, kind, node_local_time, log_type, node_id, message_line) = result
@@ -532,10 +523,10 @@ class OfflineSimulation(object):
                     for handler in handlers:
                         handler(log_type, node_id, self.sim_time(), message_line)
                 else:
-                    print("There is no handler for the kind {}. Unable to process the line '{}'.".format(kind, message_line), file=sys.stderr)
+                    print(f"There is no handler for the kind {kind}. Unable to process the line '{message_line}'.", file=sys.stderr)
 
                 if log_type == "E":
-                    print("An error occurred on node {} at {}: '{}'.".format(node_id, self.sim_time(), message_line), file=sys.stderr)
+                    print(f"An error occurred on node {node_id} at {self.sim_time()}: '{message_line}'.", file=sys.stderr)
 
                 event_count += 1
 

@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 import datetime
 import timeit
@@ -34,6 +33,5 @@ class Progress(object):
                 current_time_taken_str, estimated_remaining_str))
 
         else:
-            print("Finished {} {} jobs. Time taken {}.\n".format(
-                self.description, num + 1, current_time_taken_str))
+            print(f"Finished {self.description} {num + 1} jobs. Time taken {current_time_taken_str}.\n")
 

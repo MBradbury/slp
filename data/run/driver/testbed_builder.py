@@ -229,6 +229,6 @@ class Runner(object):
         try:
             build_args.update(modes[log_mode])
         except KeyError:
-            raise RuntimeError("Unknown testbed log mode {}. Available: {}".format(log_mode, modes.keys()))
+            raise RuntimeError(f"Unknown testbed log mode {log_mode}. Available: {modes.keys()}")
 
         return build_args
