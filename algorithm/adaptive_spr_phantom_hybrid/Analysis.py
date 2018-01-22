@@ -15,10 +15,6 @@ class Analyzer(AnalyzerCommon):
             ('FakeSent', 'TimeTaken'),
             (('FakeSent', 'TimeTaken'), 'source_rate'),
             ('NormalSent', 'TimeTaken'),
-
-            ('energy_impact', 'num_nodes'),
-            (('energy_impact', 'num_nodes'), 'TimeTaken'),
-            ('daily_allowance_used', '1'),
         )
 
     def results_header(self):
@@ -48,9 +44,5 @@ class Analyzer(AnalyzerCommon):
         d['norm(norm(fake,time taken),source rate)'] = lambda x: self._format_results(x, 'norm(norm(FakeSent,TimeTaken),source_rate)')
 
         d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
-
-        d['energy impact per node']   = lambda x: self._format_results(x, 'norm(energy_impact,num_nodes)')
-        d['energy impact per node per second']   = lambda x: self._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
-        d['energy allowance used'] = lambda x: self._format_results(x, 'norm(daily_allowance_used,1)')
 
         return d

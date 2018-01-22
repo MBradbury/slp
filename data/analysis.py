@@ -188,6 +188,7 @@ def dict_var(dict_list, mean):
 
     return lin
 
+"""
 def _energy_impact(columns, cached_cols, constants):
     # Magic constants are from Great Duck Island paper, in nanoamp hours
     cost_per_bcast_nah = 20.0
@@ -215,14 +216,15 @@ def _daily_allowance_used(columns, cached_cols, constants):
     energy_impact_per_node_per_day_when_active = energy_impact_per_node_per_second * (60.0 * 60.0 * 24.0 * duty_cycle)
 
     return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
+"""
 
 def _time_after_first_normal(columns, cached_cols, constants):
     return columns["TimeTaken"] - columns["FirstNormalSentTime"]
 
 def _get_calculation_columns():
     return {
-        "energy_impact": _energy_impact,
-        "daily_allowance_used": _daily_allowance_used,
+        #"energy_impact": _energy_impact,
+        #"daily_allowance_used": _daily_allowance_used,
         "time_after_first_normal": _time_after_first_normal,
     }
 

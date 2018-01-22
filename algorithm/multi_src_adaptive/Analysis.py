@@ -14,12 +14,6 @@ class Analyzer(AnalyzerCommon):
             ('FakeSent', 'TimeTaken'),
             (('FakeSent', 'TimeTaken'), 'source_rate'),
             ('NormalSent', 'TimeTaken'),
-
-            ('energy_impact', 'num_nodes'),
-            (('energy_impact', 'num_nodes'), 'TimeTaken'),
-            ('daily_allowance_used', '1'),
-
-            ('good_move_ratio', '1'),
         )
 
     def results_header(self):
@@ -46,19 +40,4 @@ class Analyzer(AnalyzerCommon):
 
         d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
 
-        d['energy impact per node']   = lambda x: self._format_results(x, 'norm(energy_impact,num_nodes)')
-        d['energy impact per node per second']   = lambda x: self._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
-        d['energy allowance used'] = lambda x: self._format_results(x, 'norm(daily_allowance_used,1)')
-
-        d['good move ratio'] = lambda x: self._format_results(x, 'norm(good_move_ratio,1)')
-
         return d
-
-    @staticmethod
-    def _correct_attacker_distance(x):
-        """The format was changed to have a pair as the key,
-        this allows for multiple attackers and multiple sources."""
-        if isinstance(x, dict) and 0 in x:
-            return {(0, 0): x[0]}
-        else:
-            return x
