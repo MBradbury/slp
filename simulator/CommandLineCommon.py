@@ -703,7 +703,8 @@ class CLI(object):
             extra_time_per_proc = timedelta(seconds=2)
             extra_time = (extra_time_per_proc * job_size) // thread_count
 
-            calculated_time = time_per_proc_with_allowance + extra_time
+            # Always ask for at least 2 minutes
+            calculated_time = timedelta(minutes=2) + time_per_proc_with_allowance + extra_time
 
             if max_time is not None:
                 if calculated_time > max_time:
