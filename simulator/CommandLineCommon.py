@@ -244,7 +244,7 @@ class CLI(object):
         self._create_table(f"{self.algorithm_module.name}-{sim_name}-results", result_table, **kwargs)
 
 
-    def _create_versus_graph(self, graph_parameters, varying,
+    def _create_versus_graph(self, sim_name, graph_parameters, varying, *,
                              custom_yaxis_range_max=None,
                              source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                              yextractor=scalar_extractor, xextractor=None,
@@ -252,7 +252,7 @@ class CLI(object):
         from data.graph import versus
 
         algo_results = results.Results(
-            self.algorithm_module.result_file_path,
+            sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
@@ -261,10 +261,10 @@ class CLI(object):
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+                name = f'{xaxis}-v-{yaxis}-w-{vary}'.replace(" ", "_")
 
                 g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
+                    sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
                     yextractor=yextractor, xextractor=xextractor)
 
@@ -285,18 +285,18 @@ class CLI(object):
 
                 if g.create(algo_results):
                     summary.GraphSummary(
-                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                         os.path.join(algorithm.results_directory_name, 'v-{}-{}'.format(self.algorithm_module.name, name))
                     ).run()
 
-    def _create_baseline_versus_graph(self, baseline_module, graph_parameters, varying,
+    def _create_baseline_versus_graph(self, sim_name, baseline_module, graph_parameters, varying, *,
                                       custom_yaxis_range_max=None,
                                       source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                       **kwargs):
         from data.graph import baseline_versus
 
         algo_results = results.Results(
-            self.algorithm_module.result_file_path,
+            sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
@@ -304,7 +304,7 @@ class CLI(object):
             results_filter=results_filter)
 
         baseline_results = results.Results(
-            baseline_module.result_file_path,
+            sim_name, baseline_module.result_file_path(sim_name),
             parameters=baseline_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
@@ -316,7 +316,7 @@ class CLI(object):
                 name = 'baseline-{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
 
                 g = baseline_versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
+                    self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
                     yextractor=scalar_extractor)
 
@@ -337,11 +337,11 @@ class CLI(object):
 
                 if g.create(algo_results, baseline_results):
                     summary.GraphSummary(
-                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                         os.path.join(algorithm.results_directory_name, 'bl-{}_{}-{}'.format(self.algorithm_module.name, baseline_module.name, name))
                     ).run()
 
-    def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying,
+    def _create_min_max_versus_graph(self, sim_name, comparison_modules, baseline_module, graph_parameters, varying, *,
                                      algo_results=None, custom_yaxis_range_max=None,
                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                      yextractors=None,
@@ -350,7 +350,7 @@ class CLI(object):
 
         if algo_results is None:
             algo_results = results.Results(
-                self.algorithm_module.result_file_path,
+                sim_name, self.algorithm_module.result_file_path(sim_name),
                 parameters=self.algorithm_module.local_parameter_names,
                 results=tuple(graph_parameters.keys()),
                 source_period_normalisation=source_period_normalisation,
@@ -359,7 +359,7 @@ class CLI(object):
 
         all_comparion_results = [
             results.Results(
-                comparion_module.result_file_path,
+                sim_name, comparion_module.result_file_path(sim_name),
                 parameters=comparion_module.local_parameter_names,
                 results=tuple(graph_parameters.keys()),
                 source_period_normalisation=source_period_normalisation,
@@ -375,7 +375,7 @@ class CLI(object):
                 baseline_results = baseline_module
             else:
                 baseline_results = results.Results(
-                    baseline_module.result_file_path,
+                    sim_name, baseline_module.result_file_path(sim_name),
                     parameters=baseline_module.local_parameter_names,
                     results=tuple(graph_parameters.keys()))
         else:
@@ -392,7 +392,7 @@ class CLI(object):
                 name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary_str).replace(" ", "_")
 
                 g = min_max_versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
+                    sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
                     yextractor=scalar_extractor if yextractors is None else yextractors.get(yaxis, scalar_extractor))
 
@@ -413,13 +413,13 @@ class CLI(object):
 
                 if g.create(all_comparion_results, algo_results, baseline_results=baseline_results):
                     summary.GraphSummary(
-                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                         os.path.join(algorithm.results_directory_name,
                                      'mmv-{}_{}-{}'.format(self.algorithm_module.name,
                                      "_".join(mod.name for mod in comparison_modules), name))
                     ).run()
 
-    def _create_multi_versus_graph(self, graph_parameters, xaxes, yaxis_label,
+    def _create_multi_versus_graph(self, sim_name, graph_parameters, xaxes, yaxis_label, *,
                                    custom_yaxis_range_max=None,
                                    source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                    yextractor=scalar_extractor, xextractor=None,
@@ -429,7 +429,7 @@ class CLI(object):
         vary = tuple(x[0] for x in graph_parameters)
 
         algo_results = results.Results(
-            self.algorithm_module.result_file_path,
+            sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
             results=vary,
             source_period_normalisation=source_period_normalisation,
@@ -441,7 +441,7 @@ class CLI(object):
             name = '{}-mv-{}'.format(xaxis, "-".join(vary)).replace(" ", "_")
 
             g = multi_versus.Grapher(
-                self.algorithm_module.graphs_path, name,
+                sim_name, self.algorithm_module.graphs_path(sim_name), name,
                 xaxis=xaxis, varying=graph_parameters,
                 yaxis_label=yaxis_label,
                 yextractor=yextractor, xextractor=xextractor)
@@ -461,7 +461,7 @@ class CLI(object):
 
             if g.create(algo_results):
                 summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                     os.path.join(algorithm.results_directory_name, 'mv-{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
@@ -1059,9 +1059,9 @@ class CLI(object):
             results=heatmap_results)
 
         for name in heatmap_results:
-            heatmap.Grapher(self.algorithm_module.graphs_path, results_summary, name).create()
+            heatmap.Grapher(self.algorithm_module.graphs_path(sim_name), results_summary, name).create()
             summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
+                os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                 os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_")))
             ).run()
 
@@ -1073,7 +1073,7 @@ class CLI(object):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
 
         grapher = graph_type.Grapher(
-            os.path.join(self.algorithm_module.graphs_path, args.grapher),
+            os.path.join(self.algorithm_module.graphs_path(sim_name), args.grapher),
             args.metric_name,
             self.parameter_names()
         )
@@ -1086,7 +1086,7 @@ class CLI(object):
         )
 
         summary.GraphSummary(
-            os.path.join(self.algorithm_module.graphs_path, args.grapher),
+            os.path.join(self.algorithm_module.graphs_path(sim_name), args.grapher),
             os.path.join(algorithm.results_directory_name, f"{self.algorithm_module.name}-{args.grapher}")
         ).run(show=args.show)
 

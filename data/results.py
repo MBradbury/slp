@@ -71,9 +71,9 @@ class Results(object):
         ]
 
     def _get_configuration(self, **kwargs):
-        args = ('network size', 'distance', 'node_id_order')
+        args = ('network size', 'distance', 'node id order')
         arg_converters = {
-            'network_size': int,
+            'network size': int,
             'distance': float,
         }
 
