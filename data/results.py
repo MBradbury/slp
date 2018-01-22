@@ -77,10 +77,12 @@ class Results(object):
             'distance': float,
         }
 
+        kwargs_copy = {k.replace("_", " "): v for (k,v) in kwargs.items()}
+
         arg_values = [
-            arg_converters.get(name, lambda x: x)(kwargs[name])
+            arg_converters.get(name, lambda x: x)(kwargs_copy[name])
             for name in args
-            if name in kwargs
+            if name in kwargs_copy
         ]
 
         return Configuration.create_specific(kwargs['configuration'], *arg_values)
