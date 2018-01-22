@@ -204,7 +204,7 @@ class RunSimulationsCommon(object):
         key = tuple(self._prepare_argument_name(name, darguments) for name in darguments)
 
         if key not in self._existing_results:
-            print("Unable to find the key {} in the existing results. Will now run the simulations for these parameters.".format(key), file=sys.stderr)
+            print(f"Unable to find the key {key} in the existing results. Will now run the simulations for these parameters.", file=sys.stderr)
             return 0
 
         # Check that more than enough jobs were done
