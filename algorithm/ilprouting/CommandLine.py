@@ -25,14 +25,13 @@ class CLI(CommandLineCommon.CLI):
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
-        argument_product = list(itertools.product(
-            parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models,
-            parameters.communication_models, parameters.fault_models,
-            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.buffer_sizes, parameters.max_walk_lengths,
-            parameters.direct_to_sink_prs, parameters.msg_group_sizes
-        ))
+        parameter_values = self._get_global_parameter_values(sim, parameters)
+        parameter_values.append(parameters.buffer_sizes)
+        parameter_values.append(parameters.max_walk_lengths)
+        parameter_values.append(parameters.direct_to_sink_prs)
+        parameter_values.append(parameters.msg_group_sizes)
+
+        argument_product = list(itertools.product(*parameter_values))
 
         argument_product = self.add_extra_arguments(argument_product, extras)
         
