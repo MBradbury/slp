@@ -108,7 +108,7 @@ def eval_input(source):
     if isinstance(result, NoiseModel):
         return result
     else:
-        raise RuntimeError("The source ({}) is not valid.".format(source))
+        raise RuntimeError(f"The source ({source}) is not valid.")
 
 def available_models():
     class WildcardModelChoice(object):
