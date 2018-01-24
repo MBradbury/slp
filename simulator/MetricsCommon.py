@@ -437,7 +437,7 @@ class MetricsCommon(object):
                         hex_buffer, len(hex_buffer)/2))
 
             except KeyError as ex:
-                print("Received {} but unable to find a matching key".format(hex_buffer), file=sys.stderr)
+                print(f"Received {hex_buffer} but unable to find a matching key", file=sys.stderr)
                 for (k, v) in self.messages_broadcast.items():
                     print(f"{k}: {v}", file=sys.stderr)
                 raise
