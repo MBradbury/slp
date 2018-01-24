@@ -146,7 +146,7 @@ def eval_input(source):
     if len(options) == 1:
         return options[0]()
     else:
-        raise RuntimeError("The radio model ({}) is not valid.".format(source))
+        raise RuntimeError(f"The radio model ({source}) is not valid.")
 
 def available_models():
     return [x.__name__ for x in models()]

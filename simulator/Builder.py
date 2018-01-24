@@ -34,14 +34,14 @@ def make_clean(directory):
 def build_sim(directory, platform="micaz", **kwargs):
 
     if platform not in ALLOWED_TOSSIM_PLATFORMS:
-        raise RuntimeError("Unknown build platform {}. Only {} are allowed.".format(platform, ALLOWED_TOSSIM_PLATFORMS))
+        raise RuntimeError(f"Unknown build platform {platform}. Only {ALLOWED_TOSSIM_PLATFORMS} are allowed.")
 
     max_nodes = kwargs["MAX_TOSSIM_NODES"]
     del kwargs["MAX_TOSSIM_NODES"]
 
     make_clean(directory)
 
-    flags = " ".join("-D{}={!r}".format(k, v) for (k, v) in kwargs.items())
+    flags = " ".join(f"-D{k}={v!r}" for (k, v) in kwargs.items())
 
     make_options = {
         "SLP_PARAMETER_CFLAGS": flags,
@@ -49,9 +49,9 @@ def build_sim(directory, platform="micaz", **kwargs):
         "PYTHON_BINARY": sys.executable
     }
 
-    make_options_string = " ".join('{}={!r}'.format(k, v) for (k, v) in make_options.items())
+    make_options_string = " ".join(f'{k}={v!r}' for (k, v) in make_options.items())
 
-    command = 'make {} sim {}'.format(platform, make_options_string)
+    command = f'make {platform} sim {make_options_string}'
 
     print(command, file=sys.stderr)
 
@@ -68,13 +68,13 @@ def build_sim(directory, platform="micaz", **kwargs):
 def build_actual(directory, platform, enable_fast_serial=False, **kwargs):
 
     if platform not in ALLOWED_PLATFORMS:
-        raise RuntimeError("Unknown build platform {}. Only {} are allowed.".format(platform, ALLOWED_PLATFORMS))
+        raise RuntimeError(f"Unknown build platform {platform}. Only {ALLOWED_PLATFORMS} are allowed.")
 
     del kwargs["MAX_TOSSIM_NODES"]
 
     make_clean(directory)
 
-    flags = " ".join("-D{}={!r}".format(k, v) for (k, v) in kwargs.items())
+    flags = " ".join(f"-D{k}={v!r}" for (k, v) in kwargs.items())
 
     make_options = {
         "SLP_PARAMETER_CFLAGS": flags,
@@ -98,9 +98,9 @@ def build_actual(directory, platform, enable_fast_serial=False, **kwargs):
     if "CYCLEACCURATE" in kwargs:
         make_options["CYCLEACCURATE"] = kwargs["CYCLEACCURATE"]
 
-    make_options_string = " ".join('{}={!r}'.format(k, v) for (k, v) in make_options.items())
+    make_options_string = " ".join(f'{k}={v!r}' for (k, v) in make_options.items())
 
-    command = 'make {} {} {}'.format(platform, fastserial_opt, make_options_string)
+    command = f'make {platform} {fastserial_opt} {make_options_string}'
 
     print(command, file=sys.stderr)
 

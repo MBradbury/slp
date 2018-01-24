@@ -279,16 +279,16 @@ class Attacker(object):
         """Updates the attacker position on the GUI if one is present."""
         (x, y) = self._sim.gui.node_location(node_id)
 
-        shape_id = "attacker{}".format(self.ident)
+        shape_id = f"attacker{self.ident}"
 
         color = '1,0,0'
 
-        options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
+        options = f'line=LineStyle(color=({color})),fill=FillStyle(color=({color}))'
 
         time = self._sim.sim_time()
 
-        self._sim.gui.scene.execute(time, 'delshape({!r})'.format(shape_id))
-        self._sim.gui.scene.execute(time, 'circle({},{},5,ident={!r},{})'.format(x, y, shape_id, options))
+        self._sim.gui.scene.execute(time, f'delshape({shape_id!r})')
+        self._sim.gui.scene.execute(time, f'circle({x},{y},5,ident={shape_id!r},{options})')
 
     def _build_str(self, short=False):
         self_as = inspect.signature(self.__init__)
