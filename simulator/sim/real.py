@@ -3,7 +3,7 @@ from __future__ import print_function, division
 def parsers():
     return [
         ("SINGLE", None, ["verbose", "configuration",
-        				  "fault model", "node id order",
+                          "fault model", "node id order",
                           "low power listening", "cc2420"]),
     ]
 
