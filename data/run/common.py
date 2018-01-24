@@ -240,10 +240,7 @@ class RunTestbedCommon(RunSimulationsCommon):
     #extra_arguments = ('rf power', 'low power listening')
 
     # Filter out invalid parameters to pass onwards
-    non_arguments = ('network size', 
-                     'attacker model', 'noise model',
-                     'communication model', 'distance',
-                     'latest node start time')
+    non_arguments = ('attacker model',)
 
     def __init__(self, sim_name, driver, algorithm_module, result_path, skip_completed_simulations=False,
                  safety_periods=None, safety_period_equivalence=None):
