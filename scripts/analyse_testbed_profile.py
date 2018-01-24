@@ -421,14 +421,15 @@ class ResultsProcessor(object):
                         G.add_edge(node1, node2, label=round(row[node2], 2), color=colors.rgb2hex(scalarmap.to_rgba(row[node2])))
 
         dot_path = f"{args.name}-{args.power}.dot"
-        png_path = dot_path.replace(".dot", ".png")
+        pdf_path = dot_path.replace(".dot", ".pdf")
 
         write_dot(G, dot_path)
 
-        subprocess.check_call(f"neato -n2 -T png {dot_path} > {png_path}", shell=True)
+        subprocess.check_call(f"neato -n2 -Gdpi=500 -T pdf {dot_path} -o {pdf_path}", shell=True)
+        #subprocess.check_call(f"dot -Tpdf {dot_path} -o {pdf_path}", shell=True)
 
         if args.show:
-            subprocess.call(f"xdg-open {png_path}", shell=True)
+            subprocess.call(f"xdg-open {pdf_path}", shell=True)
 
     def draw_noise_floor_heatmap(self, args):
         import matplotlib.pyplot as plt
