@@ -426,7 +426,6 @@ class ResultsProcessor(object):
         write_dot(G, dot_path)
 
         subprocess.check_call(f"neato -n2 -Gdpi=500 -T pdf {dot_path} -o {pdf_path}", shell=True)
-        #subprocess.check_call(f"dot -Tpdf {dot_path} -o {pdf_path}", shell=True)
 
         if args.show:
             subprocess.call(f"xdg-open {pdf_path}", shell=True)
