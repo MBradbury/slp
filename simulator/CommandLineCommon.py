@@ -483,15 +483,7 @@ class CLI(object):
 
         return None
 
-
-    def _argument_product(self, sim, extras=None):
-        """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
-
-        Algorithms that do anything special will need to implement this themselves.
-        """
-        # Lets do our best to implement an argument product that we can expect an algorithm to need.
-        parameters = self.algorithm_module.Parameters
-
+    def _get_global_parameter_values(self, sim, parameters):
         product_argument = []
 
         # Some arguments are non-plural
@@ -514,6 +506,21 @@ class CLI(object):
                 product_argument.append([getattr(parameters, global_name.replace(" ", "_"))])
             else:
                 product_argument.append(getattr(parameters, _get_global_plural_name(global_name)))
+
+        return product_argument
+
+
+    def _argument_product(self, sim, extras=None):
+        """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
+
+        Algorithms that do anything special will need to implement this themselves.
+        """
+        # Lets do our best to implement an argument product that we can expect an algorithm to need.
+        parameters = self.algorithm_module.Parameters
+
+        product_argument = []
+
+        product_argument.extend(self._get_global_parameter_values(sim, parameters))
 
         local_appendicies_to_try = ["s", "es", ""]
 
