@@ -1810,8 +1810,90 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
             "SLP_EXTRA_METRIC_MESSAGE_DUTY_START": 1
         }
 
+class MessageArrivalTimeScatterGrapher(MetricsCommon):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, MessageDutyCycleBoundaryHistogram)
+        self.register('M-CB', self.log_time_diff_bcast_event)
+        self.register('M-CD', self.log_time_diff_deliver_event)
+
+        self._bcasts_at = {}
+        self._delivers_at = defaultdict(dict)
+
+    def log_time_diff_bcast_event(self, d_or_e, node_id, time, detail):
+        (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
+
+        # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
+        if status != "0":
+            return
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        sequence_number = int(sequence_number)
+
+        if ord_node_id in self.source_ids() and kind == "Normal":
+            key = (ord_node_id, sequence_number)
+
+            if key not in self._bcasts_at:
+                self._bcasts_at[key] = time
+
+    def log_time_diff_deliver_event(self, d_or_e, node_id, time, detail):
+        try:
+            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
+        except ValueError:
+            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        ord_ult_node_id, top_ult_node_id = self._process_node_id(ultimate_source_id)
+        sequence_number = int(sequence_number)
+
+        if kind == "Normal":
+            key = (ord_ult_node_id, sequence_number)
+
+            if ord_node_id not in self._delivers_at[key]:
+                self._delivers_at[key][ord_node_id] = time
+
+    def finish(self):
+        super().finish()
+
+        dsrc_vs_time = []
+
+        for (key, bcast_time) in self._bcasts_at.items():
+            (ord_src_id, sequence_number) = key
+
+            for (ord_node_id, deliver_time) in self._delivers_at[key].items():
+
+                dsrc = self.sim.configuration.node_source_distance(ord_node_id, ord_src_id)
+
+                time = deliver_time - bcast_time
+
+                dsrc_vs_time.append((dsrc, time*1000))
+
+        self._plot_message_travel_time_scatter(dsrc_vs_time)
+
+    def _plot_message_travel_time_scatter(self, dsrc_vs_time):
+        import matplotlib.pyplot as plt
+        from matplotlib.font_manager import FontProperties
+
+        fig, ax = plt.subplots()
+
+        x, y = zip(*dsrc_vs_time)
+
+        ax.scatter(x, y, color=message_type_to_colour("Normal"))
+
+        ax.set_xlabel("Distance From Source (hops)")
+        ax.set_ylabel("Travel Time (ms)")
+
+        plt.savefig(f"NormalMessageTravelTime.pdf")
+
+
+
+
+
+EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
 def import_algorithm_metrics(module_name, sim, extra_metrics=None):
