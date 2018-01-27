@@ -302,7 +302,6 @@ class Analyse(object):
 
         self.attributes = {}
         self.opts = {}
-        self.headers_to_skip = headers_to_skip
 
         all_headings = []
 
@@ -341,14 +340,11 @@ class Analyse(object):
         if line_number == 0:
             raise EmptyFileError(infile_path)
 
-        if headers_to_skip is not None:
-            for header in headers_to_skip:
-                if header not in all_headings:
-                    raise RuntimeError(f"The heading {header} is not a valid heading to skip")
+        self.headers_to_skip = {header for header in all_headings if self._should_skip(header, headers_to_skip)}
 
         self.unnormalised_headings = [
             heading for heading in all_headings
-            if heading not in (tuple() if headers_to_skip is None else headers_to_skip)
+            if heading not in self.headers_to_skip
         ]
 
         self._unnormalised_headings_count = len(self.unnormalised_headings)
@@ -549,6 +545,11 @@ class Analyse(object):
 
     def headings_index(self, name):
         return self.headings.index(name)
+
+    def _should_skip(self, heading_name, headers_to_skip):
+        if headers_to_skip is None:
+            return False
+        return any(re.fullmatch(to_skip, heading_name) is not None for to_skip in headers_to_skip)
 
     def _get_norm_value(self, row, num, den, constants):
         num_value = self._get_from_opts_or_values(num, row, constants)
@@ -943,7 +944,7 @@ class AnalyzerCommon(object):
 
                 return str(ave)
             except KeyError:
-                if allow_missing or (x.headers_to_skip is not None and name in x.headers_to_skip):
+                if allow_missing or name in x.headers_to_skip:
                     return "None"
                 else:
                     raise
