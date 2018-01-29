@@ -1,8 +1,12 @@
 #include "Constants.h"
 #include "Common.h"
+
+#define SLP_SEND_ANY_DONE_CALLBACK
 #include "SendReceiveFunctions.h"
+
 #include "NeighbourDetail.h"
 #include "HopDistance.h"
+
 
 #include "AwayMessage.h"
 #include "ChooseMessage.h"
@@ -16,6 +20,7 @@
 #include <Timer.h>
 #include <TinyError.h>
 #include <scale.h>
+
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->sink_distance))
@@ -62,7 +67,6 @@ module SourceBroadcasterC
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
-	uses interface Timer<TMilli> as ChooseSenderTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -134,6 +138,10 @@ implementation
 	hop_distance_t first_source_distance;
 
 	uint8_t away_messages_to_send;
+
+	bool send_choose_on_next_send_done;
+
+	am_addr_t sink_addr;
 
 	typedef enum
 	{
@@ -233,6 +241,12 @@ implementation
 			{
 				distance_neighbour_detail_t const* const neighbour = &neighbours.data[i];
 
+				// Do not attempt to send to the sink node
+				if (neighbour->address == sink_addr)
+				{
+					continue;
+				}
+
 				if (neighbour->contents.source_distance >= first_source_distance)
 				{
 					insert_distance_neighbour(&local_neighbours, neighbour->address, &neighbour->contents);
@@ -301,6 +315,10 @@ implementation
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
 
+		send_choose_on_next_send_done = FALSE;
+
+		sink_addr = AM_BROADCAST_ADDR;
+
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
 		call MessageType.register_pair(CHOOSE_CHANNEL, "Choose");
@@ -349,6 +367,17 @@ implementation
 	event void RadioControl.stopDone(error_t err)
 	{
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
+	}
+
+	task void send_choose_message_task();
+
+	void send_any_done(message_t* msg, error_t error)
+	{
+		if (!busy && send_choose_on_next_send_done)
+		{
+			post send_choose_message_task();
+			send_choose_on_next_send_done = FALSE;
+		}
 	}
 
 
@@ -537,16 +566,21 @@ implementation
 
 		bool ack_request = target != AM_BROADCAST_ADDR;
 
-		if (!send_Choose_message(&choose_message, target, &ack_request))
+		error_t error = send_Choose_message_ex(&choose_message, target, &ack_request);
+
+		if (error != SUCCESS)
 		{
-			call ChooseSenderTimer.startOneShot(1);
+			if (!busy)
+			{
+				post send_choose_message_task();
+			}
+			else
+			{
+				send_choose_on_next_send_done = TRUE;
+			}
 		}
 	}
 
-	event void ChooseSenderTimer.fired()
-	{
-		post send_choose_message_task();
-	}
 
 	void request_next_fake_source()
 	{
@@ -569,7 +603,7 @@ implementation
 		choose_message.ultimate_sender_first_source_distance = first_source_distance;
 		choose_message.source_node_type = call NodeType.get();
 
-		call ChooseSenderTimer.startOneShot(1);
+		post send_choose_message_task();
 
 		sequence_number_increment(&choose_sequence_counter);
 	}
@@ -744,6 +778,8 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
+		sink_addr = rcvd->source_id;
+
 		if (sequence_number_before_and_update(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
@@ -764,6 +800,8 @@ implementation
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
+
+		sink_addr = rcvd->source_id;
 
 		if (sequence_number_before_and_update(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -787,6 +825,8 @@ implementation
 		{
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
+
+		sink_addr = rcvd->source_id;
 
 		if (sequence_number_before_and_update(&away_sequence_counter, rcvd->sequence_number))
 		{

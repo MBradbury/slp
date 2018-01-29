@@ -1,6 +1,9 @@
 #include "Constants.h"
 #include "Common.h"
+
+#define SLP_SEND_ANY_DONE_CALLBACK
 #include "SendReceiveFunctions.h"
+
 #include "HopDistance.h"
 
 #include "AwayMessage.h"
@@ -30,7 +33,6 @@ module SourceBroadcasterC
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
-	uses interface Timer<TMilli> as ChooseSenderTimer;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -95,7 +97,7 @@ implementation
 
 	unsigned int away_messages_to_send;
 
-	//unsigned int extra_to_send;
+	bool send_choose_on_next_send_done;
 
 	typedef enum
 	{
@@ -334,6 +336,17 @@ implementation
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
 
+	task void send_choose_message_task()
+
+	void send_any_done(message_t* msg, error_t error)
+	{
+		if (!busy && send_choose_on_next_send_done)
+		{
+			post send_choose_message_task();
+			send_choose_on_next_send_done = FALSE;
+		}
+	}
+
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
 	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Away);
 	USE_MESSAGE_WITH_CALLBACK_NO_EXTRA_TO_SEND(Choose);
@@ -487,15 +500,19 @@ implementation
 
 	task void send_choose_message_task()
 	{
-		if (!send_Choose_message(&choose_message, AM_BROADCAST_ADDR))
-		{
-			call ChooseSenderTimer.startOneShot(1);
-		}
-	}
+		error_t error = send_Choose_message_ex(&choose_message, AM_BROADCAST_ADDR);
 
-	event void ChooseSenderTimer.fired()
-	{
-		post send_choose_message_task();
+		if (error != SUCCESS)
+		{
+			if (!busy)
+			{
+				post send_choose_message_task();
+			}
+			else
+			{
+				send_choose_on_next_send_done = TRUE;
+			}
+		}
 	}
 
 	void request_next_fake_source()
@@ -515,7 +532,7 @@ implementation
 		choose_message.algorithm = FurtherAlgorithm;
 #endif
 
-		call ChooseSenderTimer.startOneShot(1);
+		post send_choose_message_task();
 
 		sequence_number_increment(&choose_sequence_counter);
 	}
