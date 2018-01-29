@@ -399,9 +399,15 @@ class MetricsCommon(object):
             try:
                 sent_time = self.normal_sent_time[key]
                 self.normal_latency[key] = time - sent_time
+
+                # Check that Normal latency is positive
+                if __debug__:
+                    if time < sent_time:
+                        self._warning_or_error(f"The normal latency from {ultimate_source_id} to {node_id} is negative {self.normal_latency[key]} as time {time} < sent_time {sent_time}")
+
             except KeyError as ex:
                 if not self.strict:
-                    print("Unable to find the normal sent time for key {}.".format(key), file=sys.stderr)
+                    print(f"Unable to find the normal sent time for key {key}.", file=sys.stderr)
                     self.normal_latency[key] = None
                 else:
                     raise
