@@ -291,12 +291,13 @@ class Attacker(object):
         self._sim.gui.scene.execute(time, f'circle({x},{y},5,ident={shape_id!r},{options})')
 
     def _build_str(self, short=False):
-        self_as = inspect.signature(self.__init__)
+        all_as = [inspect.signature(cls.__init__) for cls in inspect.getmro(type(self)) if cls not in (Attacker, object)]
         attacker_as = inspect.signature(Attacker.__init__)
 
         # Remove the self parameter
         self_as_params = [
             name
+            for self_as in all_as
             for (name, param) in self_as.parameters.items()
             if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD) and param.name != 'self'
         ]
