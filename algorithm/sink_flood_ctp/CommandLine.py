@@ -16,7 +16,7 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._subparsers.add_parser("graph")
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(
@@ -30,7 +30,7 @@ class CLI(CommandLineCommon.CLI):
         # Factor in the number of sources when selecting the source period.
         # This is done so that regardless of the number of sources the overall
         # network's normal message generation rate is the same.
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         # Provide the argument to the attacker model
         argument_product = [

@@ -1,6 +1,7 @@
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
+#include "HopDistance.h"
 
 #include "AwayChooseMessage.h"
 #include "FakeMessage.h"
@@ -9,18 +10,19 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, BOTTOM, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, BOTTOM, msg->sequence_number, msg->sink_distance + 1)
-#define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, BOTTOM);
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, BOTTOM, msg->sequence_number, hop_distance_increment(msg->sink_distance))
+#define METRIC_RCV_CHOOSE(msg) METRIC_RCV(Choose, source_addr, BOTTOM, msg->sequence_number, hop_distance_increment(msg->sink_distance))
+#define METRIC_RCV_FAKE(msg) METRIC_RCV(Fake, source_addr, msg->source_id, msg->sequence_number, UNKNOWN_HOP_DISTANCE);
 
-#define AWAY_DELAY_MS (SOURCE_PERIOD_MS / 2)
+#define AWAY_DELAY_MS (SOURCE_PERIOD_MS / 4)
 
 module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
 	uses interface Random;
+	uses interface Crc;	
 
 	uses interface Timer<TMilli> as BroadcastNormalTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
@@ -29,6 +31,8 @@ module SourceBroadcasterC
 	uses interface AMPacket;
 
 	uses interface SplitControl as RadioControl;
+	uses interface PacketTimeStamp<TMilli,uint32_t>;
+	uses interface LocalTime<TMilli>;
 
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
@@ -48,29 +52,29 @@ module SourceBroadcasterC
 	uses interface NodeType;
 	uses interface MessageType;
 	uses interface FakeMessageGenerator;
+	uses interface ObjectDetector;
 }
 
 implementation
 {
-	enum
-	{
-		SourceNode, SinkNode, NormalNode, TempFakeNode, PermFakeNode
-	};
+#ifdef SLP_DEBUG
+	#include "HopDistanceDebug.h"
+#endif
 
 	SequenceNumber normal_sequence_counter;
 	SequenceNumber away_sequence_counter;
 	SequenceNumber choose_sequence_counter;
 	SequenceNumber fake_sequence_counter;
 
-	int32_t sink_source_distance;
-	int32_t source_distance;
-	int32_t sink_distance;
+	hop_distance_t sink_source_distance;
+	hop_distance_t source_distance;
+	hop_distance_t sink_distance;
 
 	bool sink_sent_away;
 	bool seen_pfs;
 	bool is_pfs_candidate;
 
-	int32_t first_source_distance;
+	hop_distance_t first_source_distance;
 
 	unsigned int extra_to_send;
 
@@ -130,15 +134,15 @@ implementation
 		busy = FALSE;
 		call Packet.clear(&packet);
 
-		sink_source_distance = BOTTOM;
-		source_distance = BOTTOM;
-		sink_distance = BOTTOM;
+		sink_source_distance = UNKNOWN_HOP_DISTANCE;
+		source_distance = UNKNOWN_HOP_DISTANCE;
+		sink_distance = UNKNOWN_HOP_DISTANCE;
 
 		sink_sent_away = FALSE;
 		seen_pfs = FALSE;
 		is_pfs_candidate = FALSE;
 
-		first_source_distance = BOTTOM;
+		first_source_distance = UNKNOWN_HOP_DISTANCE;
 
 		extra_to_send = 0;
 
@@ -166,13 +170,6 @@ implementation
 
 			sink_distance = 0;
 		}
-		else if (call NodeType.get_topology_node_id() == SOURCE_NODE_ID)
-		{
-			call NodeType.init(SourceNode);
-
-			first_source_distance = 0;
-			source_distance = 0;
-		}
 		else
 		{
 			call NodeType.init(NormalNode);
@@ -187,10 +184,7 @@ implementation
 		{
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
-			if (call NodeType.get() == SourceNode)
-			{
-				call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
-			}
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
@@ -210,6 +204,35 @@ implementation
 	USE_MESSAGE(Choose);
 	USE_MESSAGE(Fake);
 
+	event void ObjectDetector.detect()
+	{
+		// A sink node cannot become a source node
+		if (call NodeType.get() != SinkNode)
+		{
+			call NodeType.set(SourceNode);
+
+			call BroadcastNormalTimer.startPeriodic(SOURCE_PERIOD_MS);
+
+			first_source_distance = 0;
+			source_distance = 0;
+
+			METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_START, "");
+		}
+	}
+
+	event void ObjectDetector.stoppedDetecting()
+	{
+		if (call NodeType.get() == SourceNode)
+		{
+			call BroadcastNormalTimer.stop();
+
+			call NodeType.set(NormalNode);
+
+			first_source_distance = UNKNOWN_HOP_DISTANCE;
+			source_distance = UNKNOWN_HOP_DISTANCE;
+		}
+	}
+
 	void become_Normal(void)
 	{
 		call NodeType.set(NormalNode);
@@ -217,7 +240,7 @@ implementation
 		call FakeMessageGenerator.stop();
 	}
 
-	void become_Fake(const AwayChooseMessage* message, uint8_t perm_type)
+	void become_Fake(const AwayChooseMessage* message, uint8_t fake_type, uint32_t become_fake_time)
 	{
 		float rndFloat;
 
@@ -227,16 +250,16 @@ implementation
 
 		rndFloat = random_float();
 
-		if (perm_type == PermFakeNode)
+		if (fake_type == PermFakeNode)
 		{
 			if (rndFloat <= PR_PFS)
 			{
-				call NodeType.set(perm_type);
+				call NodeType.set(fake_type);
 
 				simdbgverbose("Fake-Probability-Decision",
  					"The node %u has become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
 
-				call FakeMessageGenerator.start(message, sizeof(*message));
+				call FakeMessageGenerator.start(message, sizeof(*message), become_fake_time);
 			}
 			else
 			{
@@ -244,16 +267,16 @@ implementation
  					"The node %u has not become a PFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_PFS, rndFloat);
 			}
 		}
-		else if (perm_type == TempFakeNode)
+		else if (fake_type == TempFakeNode)
 		{
 			if (rndFloat <= PR_TFS)
 			{
-				call NodeType.set(perm_type);
+				call NodeType.set(fake_type);
 
 				simdbgverbose("Fake-Probability-Decision",
 					"The node %u has become a TFS due to the probability %f and the randno %f\n", TOS_NODE_ID, PR_TFS, rndFloat);
 
-				call FakeMessageGenerator.startLimited(message, sizeof(*message), TEMP_FAKE_DURATION_MS);
+				call FakeMessageGenerator.startLimited(message, sizeof(*message), TEMP_FAKE_DURATION_MS, become_fake_time);
 			}
 			else
 			{
@@ -269,7 +292,7 @@ implementation
 
 	void decide_not_pfs_candidate(uint16_t max_hop)
 	{
-		if (first_source_distance != BOTTOM && max_hop > first_source_distance + 1)
+		if (first_source_distance != UNKNOWN_HOP_DISTANCE && max_hop > hop_distance_increment(first_source_distance))
 		{
 			is_pfs_candidate = FALSE;
 			call Leds.led1Off();
@@ -278,7 +301,7 @@ implementation
 
 	uint16_t new_max_hop(uint16_t max_hop)
 	{
-		if (first_source_distance == BOTTOM)
+		if (first_source_distance == UNKNOWN_HOP_DISTANCE)
 		{
 			return max_hop;
 		}
@@ -296,7 +319,7 @@ implementation
 
 		message.sequence_number = sequence_number_next(&normal_sequence_counter);
 		message.source_distance = 0;
-		message.max_hop = (sink_source_distance != BOTTOM) ? sink_source_distance : 0;
+		message.max_hop = (sink_source_distance != UNKNOWN_HOP_DISTANCE) ? sink_source_distance : 0;
 		message.source_id = TOS_NODE_ID;
 		message.sink_source_distance = sink_source_distance;
 
@@ -312,7 +335,7 @@ implementation
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.sink_distance = 0;
 		message.sink_source_distance = sink_source_distance;
-		message.max_hop = new_max_hop((sink_source_distance != BOTTOM) ? sink_source_distance : 0);
+		message.max_hop = new_max_hop((sink_source_distance != UNKNOWN_HOP_DISTANCE) ? sink_source_distance : 0);
 		
 #ifdef SPACE_BEHIND_SINK
 		message.algorithm = GenericAlgorithm;
@@ -334,7 +357,7 @@ implementation
 	{
 		decide_not_pfs_candidate(rcvd->max_hop);
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -346,12 +369,12 @@ implementation
 
 			if (first_source_distance == BOTTOM)
 			{
-				first_source_distance = rcvd->source_distance + 1;
+				first_source_distance = hop_distance_increment(rcvd->source_distance);
 				is_pfs_candidate = TRUE;
 				call Leds.led1On();
 			}
 
-			source_distance = minbot(source_distance, rcvd->source_distance + 1);
+			source_distance = hop_distance_min(source_distance, hop_distance_increment(rcvd->source_distance));
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -370,7 +393,7 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			sink_source_distance = minbot(sink_source_distance, rcvd->source_distance + 1);
+			sink_source_distance = hop_distance_min(sink_source_distance, hop_distance_increment(rcvd->source_distance));
 
 			if (!sink_sent_away)
 			{
@@ -390,7 +413,7 @@ implementation
 
 	void Fake_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&normal_sequence_counter, rcvd->sequence_number))
 		{
@@ -426,7 +449,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -436,7 +459,7 @@ implementation
 
 			METRIC_RCV_AWAY(rcvd);
 
-			sink_source_distance = minbot(sink_source_distance, rcvd->sink_distance + 1);
+			sink_source_distance = hop_distance_min(sink_source_distance, hop_distance_increment(rcvd->sink_distance));
 
 			forwarding_message = *rcvd;
 			forwarding_message.sink_source_distance = sink_source_distance;
@@ -448,8 +471,12 @@ implementation
 		}
 	}
 
-	void Normal_receive_Away(const AwayMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
+		const uint32_t become_fake_time = call PacketTimeStamp.isValid(msg)
+			? call PacketTimeStamp.timestamp(msg)
+			: call LocalTime.get();
+
 		decide_not_pfs_candidate(rcvd->max_hop);
 
 		if (algorithm == UnknownAlgorithm)
@@ -457,7 +484,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{
@@ -467,11 +494,11 @@ implementation
 
 			METRIC_RCV_AWAY(rcvd);
 
-			sink_distance = minbot(sink_distance, rcvd->sink_distance + 1);
+			sink_distance = hop_distance_min(sink_distance, hop_distance_increment(rcvd->sink_distance));
 
 			if (rcvd->sink_distance == 0)
 			{
-				become_Fake(rcvd, TempFakeNode);
+				become_Fake(rcvd, TempFakeNode, become_fake_time);
 
 				sequence_number_increment(&choose_sequence_counter);
 			}
@@ -493,12 +520,16 @@ implementation
 
 		case NormalNode:
 		case TempFakeNode:
-		case PermFakeNode: Normal_receive_Away(rcvd, source_addr); break;
+		case PermFakeNode: Normal_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
 
 
-	void Normal_receive_Choose(const ChooseMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Choose(message_t* msg, const ChooseMessage* const rcvd, am_addr_t source_addr)
 	{
+		const uint32_t become_fake_time = call PacketTimeStamp.isValid(msg)
+			? call PacketTimeStamp.timestamp(msg)
+			: call LocalTime.get();
+
 		decide_not_pfs_candidate(rcvd->max_hop);
 
 		if (algorithm == UnknownAlgorithm)
@@ -506,7 +537,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&choose_sequence_counter, rcvd->sequence_number) && should_process_choose())
 		{
@@ -516,17 +547,17 @@ implementation
 
 			if (is_pfs_candidate)
 			{
-				become_Fake(rcvd, PermFakeNode);
+				become_Fake(rcvd, PermFakeNode, become_fake_time);
 			}
 			else
 			{
-				become_Fake(rcvd, TempFakeNode);
+				become_Fake(rcvd, TempFakeNode, become_fake_time);
 			}
 		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Choose, Receive)
-		case NormalNode: Normal_receive_Choose(rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Choose(msg, rcvd, source_addr); break;
 
 		case TempFakeNode:
 		case PermFakeNode:
@@ -538,7 +569,7 @@ implementation
 
 	void Sink_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -558,7 +589,7 @@ implementation
 
 	void Source_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -574,7 +605,7 @@ implementation
 	{
 		decide_not_pfs_candidate(rcvd->max_hop);
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -595,11 +626,15 @@ implementation
 		}
 	}
 
-	void Fake_receive_Fake(const FakeMessage* const rcvd, am_addr_t source_addr)
+	void Fake_receive_Fake(message_t* msg, const FakeMessage* const rcvd, am_addr_t source_addr)
 	{
+		const uint32_t receive_fake_time = call PacketTimeStamp.isValid(msg)
+			? call PacketTimeStamp.timestamp(msg)
+			: call LocalTime.get();
+
 		decide_not_pfs_candidate(rcvd->max_hop);
 
-		sink_source_distance = minbot(sink_source_distance, rcvd->sink_source_distance);
+		sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_source_distance);
 
 		if (sequence_number_before(&fake_sequence_counter, rcvd->sequence_number))
 		{
@@ -620,13 +655,13 @@ implementation
 				call NodeType.get() == PermFakeNode &&
 				rcvd->from_pfs &&
 				(
-					(rcvd->source_distance > source_distance) ||
-					(rcvd->source_distance == source_distance && sink_distance < rcvd->sink_distance) ||
-					(rcvd->source_distance == source_distance && sink_distance == rcvd->sink_distance && TOS_NODE_ID < rcvd->source_id)
+					(rcvd->sender_source_distance > source_distance) ||
+					(rcvd->sender_source_distance == source_distance && sink_distance < rcvd->sink_distance) ||
+					(rcvd->sender_source_distance == source_distance && sink_distance == rcvd->sink_distance && TOS_NODE_ID < rcvd->source_id)
 				)
 				)
 			{
-				call FakeMessageGenerator.expireDuration();
+				call FakeMessageGenerator.expireDuration(receive_fake_time);
 			}
 		}
 	}
@@ -636,7 +671,7 @@ implementation
 		case SourceNode: Source_receive_Fake(rcvd, source_addr); break;
 		case NormalNode: Normal_receive_Fake(rcvd, source_addr); break;
 		case TempFakeNode:
-		case PermFakeNode: Fake_receive_Fake(rcvd, source_addr); break;
+		case PermFakeNode: Fake_receive_Fake(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Fake)
 
 	event uint32_t FakeMessageGenerator.initialStartDelay()
@@ -645,8 +680,7 @@ implementation
 		// As the node will have busy==TRUE due to sending a FakeMessage when
 		// attempting to send a ChooseMessage.
 		// So it has been changed to the technique used by other fake source SLP algorithms.
-		//return FAKE_PERIOD_MS;
-		return FAKE_PERIOD_MS / 2;
+		return FAKE_PERIOD_MS / 4;
 	}
 
 	event uint32_t FakeMessageGenerator.calculatePeriod()
@@ -661,7 +695,7 @@ implementation
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 
-		message.source_distance = source_distance;
+		message.sender_source_distance = source_distance;
 		message.sink_distance = sink_distance;
 		message.sink_source_distance = sink_source_distance;
 		
@@ -675,7 +709,7 @@ implementation
 		}
 	}
 
-	event void FakeMessageGenerator.durationExpired(const void* original_message, uint8_t original_size)
+	event void FakeMessageGenerator.durationExpired(const void* original_message, uint8_t original_size, uint32_t duration_expired_at)
 	{
 		ChooseMessage message;
 		memcpy(&message, original_message, sizeof(message));

@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 
 import sys
 
@@ -102,6 +101,11 @@ class ReliableFaultModel(FaultModel):
     """The default fault mobility model, nothing bad happens."""
     def __init__(self):
         super().__init__()
+
+    def setup(self, sim):
+        super().setup(sim)
+        sim.register_output_handler("M-FPA", None)
+        sim.register_output_handler("M-FP", None)
 
 class NodeCrashFaultModel(FaultModel):
     """This model will crash the specified node at the specified time."""

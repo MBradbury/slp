@@ -53,7 +53,7 @@ def restricted_eval(source, available):
     try:
         transformer.visit(tree)
     except RuntimeError as ex:
-        raise RuntimeError("Failed to evaluate '{}' (allowed={}) due to '{}'".format(source, allowed, ex))
+        raise RuntimeError(f"Failed to evaluate '{source}' (allowed={allowed}) due to '{ex}'")
 
     # compile the ast into a code object
     clause = compile(tree, '<AST>', 'eval')

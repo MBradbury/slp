@@ -50,6 +50,7 @@ module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
+	uses interface Crc;
 
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;

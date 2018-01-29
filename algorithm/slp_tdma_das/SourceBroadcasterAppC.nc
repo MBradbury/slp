@@ -41,10 +41,6 @@ implementation
 
     MetricLogging.MessageType -> MessageTypeC;
 
-    components TDMAP;
-
-    App.TDMA -> TDMAP;
-    TDMAP.MetricLogging -> MetricLogging;
 
     // Radio Control
     components ActiveMessageC;
@@ -127,4 +123,13 @@ implementation
     components new FaultModelC(6);
     App.FaultModel -> FaultModelC;
     FaultModelC.MetricLogging -> MetricLogging;
+
+    components new CustomTimeSyncC(DissemMessage) as TimeSync;
+    App.TimeSync -> TimeSync;
+    App.Time -> TimeSync;
+
+    components TDMAP;
+    TDMAP.CustomTime -> TimeSync;
+    App.TDMA -> TDMAP;
+    TDMAP.MetricLogging -> MetricLogging;
 }

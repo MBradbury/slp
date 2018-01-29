@@ -1,7 +1,7 @@
 
-from simulator.MetricsCommon import MetricsCommon
+from simulator.MetricsCommon import MetricsCommon, TDMAMetricsCommon
 
-class Metrics(MetricsCommon):
+class Metrics(TDMAMetricsCommon):
     def __init__(self, *args, **kwargs):
         super(Metrics, self).__init__(*args, **kwargs)
 
@@ -19,6 +19,7 @@ class Metrics(MetricsCommon):
     @staticmethod
     def items():
         d = MetricsCommon.items()
+        d.update(TDMAMetricsCommon.items())
         d["DissemSent"]               = lambda x: x.number_sent("Dissem")
         d["ChangeSent"]               = lambda x: x.number_sent("Change")
         d["SearchSent"]               = lambda x: x.number_sent("Search")

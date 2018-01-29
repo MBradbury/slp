@@ -78,7 +78,7 @@ class Runner(object):
 
     @staticmethod
     def parse_arguments(module, argv):
-        arguments_module = importlib.import_module("{}.Arguments".format(module))
+        arguments_module = importlib.import_module(f"{module}.Arguments")
 
         a = arguments_module.Arguments()
         a.parse(argv)

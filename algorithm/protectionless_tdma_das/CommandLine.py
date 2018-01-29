@@ -19,7 +19,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("table", self._run_table)
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = list(itertools.product(
@@ -34,7 +34,7 @@ class CLI(CommandLineCommon.CLI):
 
         argument_product = self.add_extra_arguments(argument_product, extras)
 
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         return argument_product
 

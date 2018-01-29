@@ -1,4 +1,6 @@
-from __future__ import print_function
+
+from datetime import datetime
+import os.path
 
 import simulator.CoojaPlatform as CoojaPlatform
 
@@ -21,7 +23,7 @@ def build_arguments():
         # Cooja does its own detection of Leds being on or not
         # This detection is cheaper than using the serial output
         # on the nodes. So we disable logging Led output here.
-        "SLP_USES_GUI_OUPUT": 0,
+        "SLP_USES_GUI_OUPUT": 1,
         "SLP_LEDS_RECORD_NO_SERIAL": 1,
     }
 
@@ -41,9 +43,10 @@ def create_csc(csc, target_directory, a):
     firmware_path = os.path.abspath(os.path.join(target_directory, "main.exe"))
 
     if not os.path.exists(firmware_path):
-        raise RuntimeError("The firmware at {} is missing".format(firmware_path))
+        raise RuntimeError(f"The firmware at {firmware_path} is missing")
 
     pcsc('<?xml version="1.0" encoding="UTF-8"?>')
+    pcsc('<!-- Generated at: {} -->'.format(datetime.now()))
     pcsc('<simconf>')
     pcsc('  <project EXPORT="discard">[APPS_DIR]/mrm</project>')
     pcsc('  <project EXPORT="discard">[APPS_DIR]/mspsim</project>')
@@ -90,6 +93,10 @@ def create_csc(csc, target_directory, a):
     except AttributeError:
         slowest_source_period = a.args.source_period if isinstance(a.args.source_period, float) else a.args.source_period.slowest()
         seconds_to_run = configuration.size() * 4.0 * slowest_source_period
+
+    # Many algorithms have some sort of setup period, so it is important to allow cooja to consider some time for this
+    # Try getting this value from the algorithm itself, otherwise guess 10 seconds
+    seconds_to_run += getattr(a, "cycle_accurate_setup_period", 15.0)
 
     # See: https://github.com/contiki-os/contiki/wiki/Using-Cooja-Test-Scripts-to-Automate-Simulations
     # for documentation on this scripting language
@@ -152,12 +159,9 @@ log.testOK(); /* Report test success and quit */
 
     pcsc('</simconf>')
 
-
-
-def post_build_actions(target_directory, a):
-    import os.path
-
-    a.args.platform.post_build(target_directory, a)
-
+def write_csc(target_directory, a):
     with open(os.path.join(target_directory, "build", "sim.csc"), "w") as csc:
         create_csc(csc, target_directory, a)
+
+def post_build_actions(target_directory, a):
+    a.args.platform.post_build(target_directory, a)

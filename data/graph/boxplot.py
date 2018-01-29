@@ -7,9 +7,9 @@ from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
 
-    def __init__(self, output_directory, result_name, parameter_names):
+    def __init__(self, sim_name, output_directory, result_name, parameter_names):
 
-        super(Grapher, self).__init__(output_directory)
+        super(Grapher, self).__init__(sim_name, output_directory)
 
         self.result_name = result_name
         self.parameter_names = parameter_names

@@ -35,6 +35,8 @@ implementation
     //bool message_received;
     //uint32_t missed_messages;
 
+    bool can_turn_off_early;
+
     command error_t Init.init()
     {
         expected_interval_ms = UINT32_MAX;
@@ -43,11 +45,13 @@ implementation
         //seen = 0;
 
         // Set a minimum group wait time here
-        late_wakeup_ms = 50;//30;
-        early_wakeup_ms = 50;//20;
+        late_wakeup_ms = SLP_LPL_NORMAL_LATE_MS;
+        early_wakeup_ms = SLP_LPL_NORMAL_EARLY_MS;
 
         //message_received = FALSE;
         //missed_messages = 0;
+
+        can_turn_off_early = FALSE;
 
         return SUCCESS;
     }
@@ -133,6 +137,9 @@ implementation
             //}
 
             startOffTimerFromMessage(timestamp_ms);
+
+            can_turn_off_early = TRUE;
+            signal MessageTimingAnalysis.stop_radio();
         }
         /*else
         {
@@ -161,7 +168,7 @@ implementation
     {
         const uint32_t now = call OnTimer.gett0() + call OnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_NORMAL, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
@@ -173,6 +180,7 @@ implementation
     {
         const uint32_t now = call OffTimer.gett0() + call OffTimer.getdt();
 
+        can_turn_off_early = FALSE;
         signal MessageTimingAnalysis.stop_radio();
 
         startOnTimer(now);
@@ -222,6 +230,6 @@ implementation
 
     command bool MessageTimingAnalysis.can_turn_off()
     {
-        return call OnTimer.isRunning() && !call OffTimer.isRunning();
+        return (call OnTimer.isRunning() && !call OffTimer.isRunning()) || can_turn_off_early;
     }
 }

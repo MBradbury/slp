@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 import ast
 import base64
@@ -20,9 +19,10 @@ import numpy as np
 import pandas as pd
 import psutil
 
+import data.submodule_loader as submodule_loader
 from data.progress import Progress
 
-import simulator.common
+import simulator.sim
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 
@@ -161,7 +161,7 @@ def _parse_dict_string_tuple_to_value(indict):
 def dict_mean(dict_list):
     """Dict mean using incremental averaging"""
 
-    result = next(iter(dict_list))
+    result = dict(next(iter(dict_list)))
 
     get = result.get
 
@@ -188,6 +188,7 @@ def dict_var(dict_list, mean):
 
     return lin
 
+"""
 def _energy_impact(columns, cached_cols, constants):
     # Magic constants are from Great Duck Island paper, in nanoamp hours
     cost_per_bcast_nah = 20.0
@@ -215,14 +216,15 @@ def _daily_allowance_used(columns, cached_cols, constants):
     energy_impact_per_node_per_day_when_active = energy_impact_per_node_per_second * (60.0 * 60.0 * 24.0 * duty_cycle)
 
     return (energy_impact_per_node_per_day_when_active / daily_allowance_mah) * 100.0
+"""
 
 def _time_after_first_normal(columns, cached_cols, constants):
     return columns["TimeTaken"] - columns["FirstNormalSentTime"]
 
 def _get_calculation_columns():
     return {
-        "energy_impact": _energy_impact,
-        "daily_allowance_used": _daily_allowance_used,
+        #"energy_impact": _energy_impact,
+        #"daily_allowance_used": _daily_allowance_used,
         "time_after_first_normal": _time_after_first_normal,
     }
 
@@ -289,14 +291,17 @@ class Analyse(object):
         "DeliveredFromFurtherMeters": _parse_dict_node_to_value,
 
         "ParentChangeHeatMap": partial(_parse_dict_node_to_value, decompress=True),
+
+        "DutyCycleStart": lambda x: None if x == "None" else np.float_(x), # Either None or float
+        "DutyCycle": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
                  with_normalised=True, headers_to_skip=None, keep_if_hit_upper_time_bound=False,
                  verify_seeds=True):
 
+        self.attributes = {}
         self.opts = {}
-        self.headers_to_skip = headers_to_skip
 
         all_headings = []
 
@@ -313,8 +318,11 @@ class Analyse(object):
                 line = line.strip()
 
                 if line.startswith('@'):
-                    # Skip the attributes that contain some extra info
-                    continue
+                    # The attributes that contain some extra info
+
+                    k, v = line[1:].split(":", 1)
+
+                    self.attributes[k] = v
 
                 elif len(all_headings) == 0 and '=' in line:
                     # We are reading the options so record them.
@@ -332,14 +340,11 @@ class Analyse(object):
         if line_number == 0:
             raise EmptyFileError(infile_path)
 
-        if headers_to_skip is not None:
-            for header in headers_to_skip:
-                if header not in all_headings:
-                    raise RuntimeError(f"The heading {header} is not a valid heading to skip")
+        self.headers_to_skip = {header for header in all_headings if self._should_skip(header, headers_to_skip)}
 
         self.unnormalised_headings = [
             heading for heading in all_headings
-            if heading not in (tuple() if headers_to_skip is None else headers_to_skip)
+            if heading not in self.headers_to_skip
         ]
 
         self._unnormalised_headings_count = len(self.unnormalised_headings)
@@ -533,9 +538,18 @@ class Analyse(object):
 
         self.columns = df
 
+    def sim_name(self):
+        """The sim used to gather these results"""
+        return self.attributes["sim"]
+
 
     def headings_index(self, name):
         return self.headings.index(name)
+
+    def _should_skip(self, heading_name, headers_to_skip):
+        if headers_to_skip is None:
+            return False
+        return any(re.fullmatch(to_skip, heading_name) is not None for to_skip in headers_to_skip)
 
     def _get_norm_value(self, row, num, den, constants):
         num_value = self._get_from_opts_or_values(num, row, constants)
@@ -828,20 +842,22 @@ class AnalysisResults(object):
         self.configuration = analysis._get_configuration()
 
 class AnalyzerCommon(object):
-    def __init__(self, results_directory, values, normalised_values=None, filtered_values=None):
+    def __init__(self, sim_name, results_directory):
+        self.sim_name = sim_name
         self.results_directory = results_directory
-        self.values = values
-        self.normalised_values = normalised_values if normalised_values is not None else tuple()
-        self.filtered_values = filtered_values if filtered_values is not None else tuple()
-
+        
+        self.normalised_values = self.normalised_parameters()
         self.normalised_values += (('time_after_first_normal', '1'),)
+
+        self.filtered_values = self.filtered_parameters()
+
+        self.values = self.results_header()
 
         self.values['dropped no sink delivery'] = lambda x: str(x.dropped_no_sink_delivery)
         self.values['dropped hit upper bound']  = lambda x: str(x.dropped_hit_upper_bound)
         self.values['dropped duplicates']       = lambda x: str(x.dropped_duplicates)
 
-    @staticmethod
-    def common_results_header(local_parameter_names):
+    def common_results_header(self, local_parameter_names):
         d = OrderedDict()
         
         # Include the number of simulations that were analysed
@@ -850,8 +866,10 @@ class AnalyzerCommon(object):
         # Give everyone access to the number of nodes in the simulation
         d['num nodes']          = lambda x: str(x.configuration.size())
 
+        sim = submodule_loader.load(simulator.sim, self.sim_name)
+
         # The options that all simulations must include and the local parameter names
-        for parameter in simulator.common.global_parameter_names + local_parameter_names:
+        for parameter in sim.global_parameter_names + local_parameter_names:
 
             param_underscore = parameter.replace(" ", "_")
 
@@ -859,41 +877,49 @@ class AnalyzerCommon(object):
 
         return d
 
-    @staticmethod
-    def common_results(d):
+    def common_results(self, d):
         """These metrics are ones that all simulations should have.
         But this function doesn't need to be used if the metrics need special treatment."""
 
-        d['sent']               = lambda x: AnalyzerCommon._format_results(x, 'Sent')
-        d['received']           = lambda x: AnalyzerCommon._format_results(x, 'Received')
-        d['delivered']          = lambda x: AnalyzerCommon._format_results(x, 'Delivered')
+        d['sent']               = lambda x: self._format_results(x, 'Sent')
+        d['received']           = lambda x: self._format_results(x, 'Received')
+        d['delivered']          = lambda x: self._format_results(x, 'Delivered')
 
-        d['time taken']         = lambda x: AnalyzerCommon._format_results(x, 'TimeTaken')
+        d['time taken']         = lambda x: self._format_results(x, 'TimeTaken')
         #d['time taken median']  = lambda x: str(x.median_of['TimeTaken'])
 
-        d['first normal sent time']= lambda x: AnalyzerCommon._format_results(x, 'FirstNormalSentTime')
-        d['time after first normal']= lambda x: AnalyzerCommon._format_results(x, 'norm(time_after_first_normal,1)')
+        d['first normal sent time']= lambda x: self._format_results(x, 'FirstNormalSentTime')
+        d['time after first normal']= lambda x: self._format_results(x, 'norm(time_after_first_normal,1)')
         
         # Metrics used for profiling simulation
-        d['total wall time']    = lambda x: AnalyzerCommon._format_results(x, 'TotalWallTime')
-        d['wall time']          = lambda x: AnalyzerCommon._format_results(x, 'WallTime')
-        d['event count']        = lambda x: AnalyzerCommon._format_results(x, 'EventCount')
-        d['memory rss']         = lambda x: AnalyzerCommon._format_results(x, 'MemoryRSS', allow_missing=True)
-        d['memory vms']         = lambda x: AnalyzerCommon._format_results(x, 'MemoryVMS', allow_missing=True)
+        d['total wall time']    = lambda x: self._format_results(x, 'TotalWallTime')
+        d['wall time']          = lambda x: self._format_results(x, 'WallTime')
+        d['event count']        = lambda x: self._format_results(x, 'EventCount')
+        d['memory rss']         = lambda x: self._format_results(x, 'MemoryRSS', allow_missing=True)
+        d['memory vms']         = lambda x: self._format_results(x, 'MemoryVMS', allow_missing=True)
 
         d['captured']           = lambda x: str(x.average_of['Captured'])
         d['reached upper bound']= lambda x: str(x.average_of['ReachedSimUpperBound'])
 
-        d['received ratio']     = lambda x: AnalyzerCommon._format_results(x, 'ReceiveRatio')
-        d['normal latency']     = lambda x: AnalyzerCommon._format_results(x, 'NormalLatency')
-        d['ssd']                = lambda x: AnalyzerCommon._format_results(x, 'NormalSinkSourceHops')
+        d['received ratio']     = lambda x: self._format_results(x, 'ReceiveRatio')
+        d['normal latency']     = lambda x: self._format_results(x, 'NormalLatency')
+        d['ssd']                = lambda x: self._format_results(x, 'NormalSinkSourceHops')
         
-        d['unique normal generated']= lambda x: AnalyzerCommon._format_results(x, 'UniqueNormalGenerated', allow_missing=True)
+        d['unique normal generated']= lambda x: self._format_results(x, 'UniqueNormalGenerated', allow_missing=True)
 
-        d['attacker moves']     = lambda x: AnalyzerCommon._format_results(x, 'AttackerMoves')
-        d['attacker distance']  = lambda x: AnalyzerCommon._format_results(x, 'AttackerDistance')
+        d['attacker moves']     = lambda x: self._format_results(x, 'AttackerMoves')
+        d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance')
 
-        d['errors']             = lambda x: AnalyzerCommon._format_results(x, 'Errors', allow_missing=True)
+        d['errors']             = lambda x: self._format_results(x, 'Errors', allow_missing=True)
+
+    def results_header(self):
+        raise NotImplementedError()
+
+    def normalised_parameters(self):
+        return []
+
+    def filtered_parameters(self):
+        return []
 
 
     @staticmethod
@@ -908,7 +934,7 @@ class AnalyzerCommon(object):
             if variance_corrector is not None:
                 var = variance_corrector(var)
 
-            return "{};{}".format(ave, var)
+            return f"{ave};{var}"
         else:
             try:
                 ave = x.average_of[name]
@@ -918,7 +944,7 @@ class AnalyzerCommon(object):
 
                 return str(ave)
             except KeyError:
-                if allow_missing or (x.headers_to_skip is not None and name in x.headers_to_skip):
+                if allow_missing or name in x.headers_to_skip:
                     return "None"
                 else:
                     raise

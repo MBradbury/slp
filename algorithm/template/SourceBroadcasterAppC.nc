@@ -15,10 +15,12 @@ implementation
 	components DelayedBootEventMainP as MainC;
 	components LedsWhenGuiC as LedsC;
 	components RandomC;
+	components CrcC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 	App.Random -> RandomC;
+	App.Crc -> CrcC;
 
 	components MetricLoggingP as MetricLogging;
 	App.MetricLogging -> MetricLogging;
@@ -41,7 +43,10 @@ implementation
 	components ActiveMessageC;
 
 	App.RadioControl -> ActiveMessageC;
+	App.PacketTimeStamp -> ActiveMessageC;
 
+	components LocalTimeMilliC;
+	App.LocalTime -> LocalTimeMilliC;
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
@@ -89,4 +94,8 @@ implementation
 	FakeMessageGeneratorP.Packet -> ActiveMessageC;
 	FakeMessageGeneratorP.MetricLogging -> MetricLogging;
 	FakeMessageGeneratorP.MetricHelpers -> MetricHelpers;
+
+	components ObjectDetectorP;
+	App.ObjectDetector -> ObjectDetectorP;
+	ObjectDetectorP.NodeType -> NodeTypeC;
 }

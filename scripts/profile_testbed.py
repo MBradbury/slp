@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-
 import argparse
 from collections import defaultdict
 from datetime import datetime
@@ -42,7 +40,7 @@ def _adjust_tinyos_rssi(rssi):
 
 class UnknownTestbedError(RuntimeError):
     def __init__(self, testbed):
-        super(UnknownTestbedError, self).__init__("Unknown testbed {}".format(testbed))
+        super(UnknownTestbedError, self).__init__(f"Unknown testbed {testbed}")
 
 class RSSIResult(object):
     def __init__(self):

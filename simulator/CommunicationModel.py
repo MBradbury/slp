@@ -1,4 +1,3 @@
-from __future__ import division
 
 from itertools import combinations
 from math import log10, sqrt
@@ -208,7 +207,7 @@ class TestbedCommunicationModel(CommunicationModel):
 
         self.noise_floor = np.zeros(num_nodes, dtype=np.float64)
         for node in nodes:
-            self.noise_floor[o2i(node).nid] = noise_floor.node_smallest[(node, channel)]
+            self.noise_floor[o2i(node).nid] = noise_floor.node_smallest[(node.nid, channel)]
 
 
 class LowAsymmetry(LinkLayerCommunicationModel):
