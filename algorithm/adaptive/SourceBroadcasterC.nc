@@ -98,6 +98,7 @@ implementation
 	unsigned int away_messages_to_send;
 
 	bool send_choose_on_next_send_done;
+	bool send_fake_on_next_send_done;
 
 	typedef enum
 	{
@@ -287,6 +288,9 @@ implementation
 		source_fake_sequence_increments = 0;
 		sequence_number_init(&source_fake_sequence_counter);
 
+		send_choose_on_next_send_done = FALSE;
+		send_fake_on_next_send_done = FALSE;
+
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
 		call MessageType.register_pair(CHOOSE_CHANNEL, "Choose");
@@ -336,14 +340,24 @@ implementation
 		LOG_STDOUT_VERBOSE(EVENT_RADIO_OFF, "radio off\n");
 	}
 
-	task void send_choose_message_task()
+	task void send_choose_message_task();
+	task void send_fake_message_task();
 
 	void send_any_done(message_t* msg, error_t error)
 	{
-		if (!busy && send_choose_on_next_send_done)
+		if (!busy)
 		{
-			post send_choose_message_task();
-			send_choose_on_next_send_done = FALSE;
+			if (send_choose_on_next_send_done)
+			{
+				post send_choose_message_task();
+				send_choose_on_next_send_done = FALSE;
+			}
+
+			if (send_fake_on_next_send_done)
+			{
+				post send_fake_message_task();
+				send_fake_on_next_send_done = FALSE;
+			}
 		}
 	}
 
@@ -997,10 +1011,16 @@ implementation
 		}
 	}
 
+	task void send_fake_message_task()
+	{
+		signal FakeMessageGenerator.sendFakeMessage();
+	}
+
 	event void FakeMessageGenerator.sendFakeMessage()
 	{
-		FakeMessage message;
+		error_t error;
 
+		FakeMessage message;
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.sink_source_distance = sink_source_distance;
 		message.sender_source_distance = source_distance;
@@ -1009,9 +1029,22 @@ implementation
 		message.from_pfs = (call NodeType.get() == PermFakeNode);
 		message.source_id = TOS_NODE_ID;
 
-		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
+		error = send_Fake_message_ex(&message, AM_BROADCAST_ADDR);
+
+		if (error == SUCCESS)
 		{
 			sequence_number_increment(&fake_sequence_counter);
+		}
+		else
+		{
+			if (!busy)
+			{
+				post send_fake_message_task();
+			}
+			else
+			{
+				send_fake_on_next_send_done = TRUE;
+			}
 		}
 	}
 

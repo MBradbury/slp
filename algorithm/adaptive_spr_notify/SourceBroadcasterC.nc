@@ -140,6 +140,7 @@ implementation
 	uint8_t away_messages_to_send;
 
 	bool send_choose_on_next_send_done;
+	bool send_fake_on_next_send_done;
 
 	am_addr_t sink_addr;
 
@@ -316,6 +317,7 @@ implementation
 		sequence_number_init(&source_fake_sequence_counter);
 
 		send_choose_on_next_send_done = FALSE;
+		send_fake_on_next_send_done = FALSE;
 
 		sink_addr = AM_BROADCAST_ADDR;
 
@@ -370,13 +372,23 @@ implementation
 	}
 
 	task void send_choose_message_task();
+	task void send_fake_message_task();
 
 	void send_any_done(message_t* msg, error_t error)
 	{
-		if (!busy && send_choose_on_next_send_done)
+		if (!busy)
 		{
-			post send_choose_message_task();
-			send_choose_on_next_send_done = FALSE;
+			if (send_choose_on_next_send_done)
+			{
+				post send_choose_message_task();
+				send_choose_on_next_send_done = FALSE;
+			}
+
+			if (send_fake_on_next_send_done)
+			{
+				post send_fake_message_task();
+				send_fake_on_next_send_done = FALSE;
+			}
 		}
 	}
 
@@ -1200,6 +1212,8 @@ implementation
 
 	event void FakeMessageGenerator.sendFakeMessage()
 	{
+		error_t error;
+
 		FakeMessage message;
 		message.sequence_number = sequence_number_next(&fake_sequence_counter);
 		message.message_type = call NodeType.get();
@@ -1209,7 +1223,9 @@ implementation
 		message.ultimate_sender_fake_period_ms = signal FakeMessageGenerator.calculatePeriod();
 		message.ultimate_sender_fake_count = fake_count;
 
-		if (send_Fake_message(&message, AM_BROADCAST_ADDR))
+		error = send_Fake_message_ex(&message, AM_BROADCAST_ADDR);
+
+		if (error == SUCCESS)
 		{
 			const uint32_t sent_time = call PacketTimeStamp.isValid(&packet)
 				? call PacketTimeStamp.timestamp(&packet)
@@ -1223,7 +1239,14 @@ implementation
 		}
 		else
 		{
-			post send_fake_message_task();
+			if (!busy)
+			{
+				post send_fake_message_task();
+			}
+			else
+			{
+				send_fake_on_next_send_done = TRUE;
+			}
 		}
 	}
 
