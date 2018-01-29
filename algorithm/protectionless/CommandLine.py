@@ -67,9 +67,6 @@ class CLI(CommandLineCommon.CLI):
             parameters=self.algorithm_module.local_parameter_names,
             results=(
                 'sent', 'delivered', 'time taken',
-                #'energy impact',
-                #'energy impact per node',
-                #'energy impact per node per second',
                 'norm(norm(sent,time taken),network size)',
                 'normal latency', 'ssd', 'attacker distance',
             ))
