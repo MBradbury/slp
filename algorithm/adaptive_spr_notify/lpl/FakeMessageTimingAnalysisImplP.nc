@@ -316,7 +316,7 @@ implementation
 #endif
         signal MessageTimingAnalysis.start_radio();
 
-        call ChooseOffTimer.startOneShotAt(now, choose_late);
+        call ChooseOffTimer.startOneShotAt(now, choose_early + choose_late);
     }
 
     event void ChooseOffTimer.fired()
