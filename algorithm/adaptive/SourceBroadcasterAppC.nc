@@ -15,10 +15,12 @@ implementation
 	components DelayedBootEventMainP as MainC;
 	components LedsWhenGuiC as LedsC;
 	components RandomC;
+	components CrcC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
 	App.Random -> RandomC;
+	App.Crc -> CrcC;
 
 	components MetricLoggingP as MetricLogging;
 	App.MetricLogging -> MetricLogging;
@@ -39,6 +41,10 @@ implementation
 	// Radio Control
 	components ActiveMessageC;
 	App.RadioControl -> ActiveMessageC;
+	App.PacketTimeStamp -> ActiveMessageC;
+
+	components LocalTimeMilliC;
+	App.LocalTime -> LocalTimeMilliC;
 
 	// Timers
 	components new TimerMilliC() as BroadcastNormalTimer;
@@ -79,6 +85,13 @@ implementation
 
 	App.FakeSend -> FakeSender;
 	App.FakeReceive -> FakeReceiver;
+
+	components
+		new AMSenderC(NOTIFY_CHANNEL) as NotifySender,
+		new AMReceiverC(NOTIFY_CHANNEL) as NotifyReceiver;
+
+	App.NotifySend -> NotifySender;
+	App.NotifyReceive -> NotifyReceiver;
 
 	components FakeMessageGeneratorP;
 	App.FakeMessageGenerator -> FakeMessageGeneratorP;

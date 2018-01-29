@@ -1,9 +1,10 @@
 
 import argparse
+from importlib import import_module
 from random import SystemRandom
 
+from simulator import CommunicationModel, NoiseModel
 import simulator.AttackerConfiguration as AttackerConfiguration
-import simulator.common
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 import simulator.FaultModel as FaultModel
@@ -53,6 +54,9 @@ def _add_low_power_listening(parser, **kwargs):
     parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, default=None,
                         help="The maximum number of CCA checks performed on each wakeup.")
 
+    parser.add_argument("--lpl-min-samples-before-detect", "-lpl-msbd", type=ArgumentsCommon.type_positive_int, default=None,
+                        help="The minimum number of samples before a signal is considered detected.")
+
 def _add_avrora_radio_model(parser, **kwargs):
     import simulator.AvroraRadioModel as AvroraRadioModel
 
@@ -63,7 +67,7 @@ def _add_avrora_radio_model(parser, **kwargs):
 
     parser.add_argument("--max-buffer-size",
                         type=ArgumentsCommon.type_positive_int,
-                        default=255),
+                        default=255)
 
 def _add_cooja_radio_model(parser, **kwargs):
     import simulator.CoojaRadioModel as CoojaRadioModel
@@ -79,11 +83,12 @@ def _add_cooja_radio_model(parser, **kwargs):
                         choices=CoojaPlatform.available_models(),
                         required=True)
 
-    # COOJA doesn't like debug strings longer than 128 bytes
+    # COOJA doesn't like debug strings longer than 256 bytes
     # Anything longer than this will get "..." appended.
+    # If you need more look at MspDebugOutput.java in Cooja
     parser.add_argument("--max-buffer-size",
                         type=ArgumentsCommon.type_positive_int,
-                        default=128),
+                        default=255)
 
 
 def _add_log_converter(parser, **kwargs):
@@ -155,13 +160,13 @@ OPTS = {
 
     "communication model": lambda x, **kwargs: x.add_argument("-cm", "--communication-model",
                                                               type=str,
-                                                              choices=simulator.common.available_communication_models(),
+                                                              choices=CommunicationModel.available_models(),
                                                               required=True,
                                                               help="The communication model used to model the link quality between nodes. Typically low-asymmetry should be used."),
 
     "noise model":         lambda x, **kwargs: x.add_argument("-nm", "--noise-model",
                                                               type=str,
-                                                              choices=simulator.common.available_noise_models(),
+                                                              choices=NoiseModel.available_models(),
                                                               required=True,
                                                               help="Model the background noise in the network. meyer-heavy has high noise, casino-lab has lower noise. See models/noise for ways to graph the noisiness of these models."),
 
@@ -170,6 +175,11 @@ OPTS = {
 
     # Only for Cooja
     "cooja":               _add_cooja_radio_model,
+
+    "show raw log":        lambda x, **kwargs: x.add_argument("--show-raw-log",
+                                                              action="store_true",
+                                                              default=False,
+                                                              help="Show all the log output as the simulation is running"),
 
     "attacker model":      lambda x, **kwargs: x.add_argument("-am", "--attacker-model",
                                                               type=AttackerConfiguration.eval_input,
@@ -358,7 +368,10 @@ class ArgumentsCommon(object):
         if self.args.mode == "GUI":
             result["SLP_USES_GUI_OUPUT"] = 1
 
-        result.update(self.args.attacker_model.build_arguments())
+        if hasattr(self.args, "attacker_model"):
+            result.update(self.args.attacker_model.build_arguments())
+        else:
+            result.update(AttackerConfiguration.AttackerConfiguration.generic_build_arguments())
 
         # Source period could either be a float or a class derived from PeriodModel
         if hasattr(self.args, 'source_period'):
@@ -420,6 +433,11 @@ class ArgumentsCommon(object):
                 if self.args.lpl_max_cca_checks is not None:
                     result["MAX_LPL_CCA_CHECKS"] = self.args.lpl_max_cca_checks
 
+                # Possibly worth increasing?
+                # https://www.millennium.berkeley.edu/pipermail/tinyos-help/2011-August/052116.html
+                if self.args.lpl_min_samples_before_detect is not None:
+                    result["MIN_SAMPLES_BEFORE_DETECT"] = self.args.lpl_min_samples_before_detect
+
         if hasattr(self.args, 'rf_power'):
             if self.args.rf_power is not None:
                 # TODO: consider setting the values for alternate drivers (CC2420X, ...)
@@ -448,6 +466,17 @@ class ArgumentsCommon(object):
                 result["CC2420_HW_ADDRESS_RECOGNITION"] = 1
             else:
                 assert self.args.address_recognition == "software"
+
+        # Some metrics class have build arguments, so we need to pull them in here:
+        algorithm_metrics_module = import_module("..Metrics", self.__module__)
+        result.update(algorithm_metrics_module.Metrics.build_arguments())
+
+        # Pull in any build options from extra_metrics
+        if hasattr(self.args, "extra_metrics") and self.args.extra_metrics is not None:
+            # Build arguments from any extra metrics being used
+            extra_metric_classes = [cls for cls in MetricsCommon.EXTRA_METRICS if cls.__name__ in self.args.extra_metrics]
+            for extra_metric in extra_metric_classes:
+                result.update(extra_metric.build_arguments())
 
         return result
 

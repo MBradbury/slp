@@ -646,8 +646,8 @@ class SourceEdgeCorner(Configuration):
         )
 
 class RandomConnected(Configuration):
-    def __init__(self, *args):
-        random = Random(*args)
+    def __init__(self, *args, **kwargs):
+        random = Random(*args, **kwargs)
 
         super().__init__(
             random,
@@ -658,7 +658,7 @@ class RandomConnected(Configuration):
 
 class RandomPoissonDiskConnected(Configuration):
     def __init__(self, *args, **kwargs):
-        random = RandomPoissonDisk(*args)
+        random = RandomPoissonDisk(*args, **kwargs)
 
         super().__init__(
             random,
@@ -667,9 +667,14 @@ class RandomPoissonDiskConnected(Configuration):
             space_behind_sink=True
         )
 
-class RandomPoissonDiskConnected500(Configuration):
+class RandomPoissonDiskConnectedSeed2(Configuration):
     def __init__(self, *args, **kwargs):
-        random = RandomPoissonDisk(*args[:-1], seed=500)
+        new_kwargs = {**kwargs, "seed": 2}
+        try:
+            random = RandomPoissonDisk(*args, **new_kwargs)
+        except TypeError:
+            # Try without seed in args
+            random = RandomPoissonDisk(*args[:-1], **new_kwargs)
 
         super().__init__(
             random,

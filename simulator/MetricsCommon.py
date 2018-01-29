@@ -45,9 +45,9 @@ def message_type_to_colour(kind):
 def node_type_to_colour(kind):
     return {
         "NormalNode": "dodgerblue",
-        "TempFakeNode": "olive",
-        "TailFakeNode": "gold",
-        "PermFakeNode": "darkorange",
+        "TempFakeNode": "gold",
+        "TailFakeNode": "darkorange",
+        "PermFakeNode": "olive",
         "SourceNode": "darkgreen",
         "SinkNode": "darkblue",
     }[kind]
@@ -287,6 +287,9 @@ class MetricsCommon(object):
         if status != "0":
             return
 
+        if len(hex_buffer) % 2 != 0:
+            raise RuntimeError(f"The sent buffer {hex_buffer} does not have an event length {len(hex_buffer)/2}")
+
         key = (str(node_id), kind, ultimate_source_id, sequence_number)
         if key not in self.messages_broadcast:
             self.messages_broadcast[key] = list()
@@ -396,9 +399,15 @@ class MetricsCommon(object):
             try:
                 sent_time = self.normal_sent_time[key]
                 self.normal_latency[key] = time - sent_time
+
+                # Check that Normal latency is positive
+                if __debug__:
+                    if time < sent_time:
+                        self._warning_or_error(f"The normal latency from {ultimate_source_id} to {node_id} is negative {self.normal_latency[key]} as time {time} < sent_time {sent_time}")
+
             except KeyError as ex:
                 if not self.strict:
-                    print("Unable to find the normal sent time for key {}.".format(key), file=sys.stderr)
+                    print(f"Unable to find the normal sent time for key {key}.", file=sys.stderr)
                     self.normal_latency[key] = None
                 else:
                     raise
@@ -426,15 +435,15 @@ class MetricsCommon(object):
                 sent_hex_buffers = self.messages_broadcast[(proximate_source_id, kind, ultimate_source_id, sequence_number)]
 
                 if all(sent_hex_buffer != hex_buffer for sent_hex_buffer in sent_hex_buffers):
-                    sent_hex_buffer_str = "\n".join(f"\t{sent_hex_buffer}" for sent_hex_buffer in sent_hex_buffers)
+                    sent_hex_buffer_str = "\n".join(f"\t{sent_hex_buffer} (len={len(sent_hex_buffer)/2})" for sent_hex_buffer in sent_hex_buffers)
 
-                    raise RuntimeError("The received hex buffer does not match any sent buffer for prox-src={}, kind={}, ult-src={}, seq-no={}\nSent:\n{}\nReceived:\n\t{}".format(
+                    raise RuntimeError("The received hex buffer does not match any sent buffer for prox-src={}, kind={}, ult-src={}, seq-no={}\nSent:\n{}\nReceived:\n\t{} (len={})".format(
                         proximate_source_id, kind, ultimate_source_id, sequence_number,
                         sent_hex_buffer_str,
-                        hex_buffer))
+                        hex_buffer, len(hex_buffer)/2))
 
             except KeyError as ex:
-                print("Received {} but unable to find a matching key".format(hex_buffer), file=sys.stderr)
+                print(f"Received {hex_buffer} but unable to find a matching key", file=sys.stderr)
                 for (k, v) in self.messages_broadcast.items():
                     print(f"{k}: {v}", file=sys.stderr)
                 raise
@@ -1054,6 +1063,14 @@ class MetricsCommon(object):
             print("Receive Ratio is NaN:", file=stream)
             print("\tMake sure a Normal message is sent.", file=stream)
 
+        if not np.isinf(self.sim.safety_period_value) and self.sim._duration_start_time is not None and \
+                self.sim_time() - self.sim._duration_start_time < self.sim.safety_period_value and self.sim.continue_predicate():
+            print("Simulation did not run for as long as it needed.", file=stream)
+            print("\tDuration start time at {}".format(self.sim._duration_start_time), file=stream)
+            print("\tSimulation ended at {}".format(self.sim_time()), file=stream)
+            print("\tThis time {} was less than the safety period {}".format(self.sim_time() - self.sim._duration_start_time, self.sim.safety_period_value), file=stream)
+            print("\tIf running on COOJA or AVRORA try creating a variable in Arguments called 'cycle_accurate_setup_period' that contains the length of the algorithm's setup period in seconds.", file=stream)
+
         if self.reached_sim_upper_bound():
             print("Reached Upper Bound:", file=stream)
             print("\tSimulation reached the upper bound, likely because the safety period was not triggered.", file=stream)
@@ -1074,6 +1091,10 @@ class MetricsCommon(object):
             return None
         else:
             return getattr(psutil.Process().memory_info(), attr)
+
+    @classmethod
+    def build_arguments(cls):
+        return {}
 
 class AvroraPacketSummary(object):
     __slots__ = ('sent_bytes', 'sent_packets', 'recv_bytes', 'recv_packets', 'corrupted_bytes', 'lost_in_middle_bytes')
@@ -1289,6 +1310,54 @@ class TreeMetricsCommon(MetricsCommon):
 
         return d
 
+class TDMAMetricsCommon(MetricsCommon):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.slot_changes = defaultdict(list)
+        self.period_starts = defaultdict(list)
+
+        self.register('M-NSC', self.process_node_slot_change_event)
+        self.register('M-SP', self.process_start_period_event)
+
+    def process_node_slot_change_event(self, d_or_e, node_id, time, detail):
+        (current_slot, new_slot) = detail.split(',')
+
+        time = float(time)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        current_slot = int(current_slot)
+        new_slot = int(new_slot)
+
+        self.slot_changes[ord_node_id].append((time, current_slot, new_slot))
+
+    def process_start_period_event(self, d_or_e, node_id, time, detail):
+        time = float(time)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        self.period_starts[ord_node_id].append(time)
+
+    def per_node_slot_changes(self):
+        return {
+            ord_node_id: len(changes)
+            for (ord_node_id, changes) in self.slot_changes.items()
+        }
+
+    def node_periods_started(self):
+        return {
+            ord_node_id: len(started)
+            for (ord_node_id, started) in self.period_starts.items()
+        }
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+
+        d["TotalNodeSlotChanges"]            = lambda x: MetricsCommon.smaller_dict_str(x.per_node_slot_changes())
+        d["NodePeriodsStarted"]              = lambda x: MetricsCommon.smaller_dict_str(x.per_node_slot_changes())
+
+        return d
+
 class RssiMetricsCommon(MetricsCommon):
     """For algorithms that measure the RSSI."""
     def __init__(self, *args, **kwargs):
@@ -1363,11 +1432,6 @@ class DutyCycleMetricsCommon(MetricsCommon):
 
     def _calculate_node_duty_cycle(self, node_id):
 
-        # TODO: Calculate start time from the first_normal_sent_time
-        # so the duty cycle is only calculated for when the nodes
-        # are actually duty cycling.
-        #start_time = self.first_normal_sent_time()
-
         start_time = self._duty_cycle_start
         end_time = self.sim_time()
 
@@ -1398,6 +1462,12 @@ class DutyCycleMetricsCommon(MetricsCommon):
         d["DutyCycleStart"]                = lambda x: str(x._duty_cycle_start)
         d["DutyCycle"]                     = lambda x: MetricsCommon.smaller_dict_str(x.duty_cycle(), sort=True)
         return d
+
+    @classmethod
+    def build_arguments(cls):
+        result = super(DutyCycleMetricsCommon, cls).build_arguments()
+        result["SLP_USES_GUI_OUPUT"] = 1
+        return result
 
 
 class DutyCycleMetricsGrapher(MetricsCommon):
@@ -1456,6 +1526,10 @@ class DutyCycleMetricsGrapher(MetricsCommon):
     def items():
         d = OrderedDict()
         return d
+
+    @staticmethod
+    def build_arguments():
+        return {}
 
 class MessageTimeMetricsGrapher(MetricsCommon):
     def __init__(self, *args, **kwargs):
@@ -1631,6 +1705,10 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         d = OrderedDict()
         return d
 
+    @staticmethod
+    def build_arguments():
+        return {}
+
 class MessageDutyCycleBoundaryHistogram(MetricsCommon):
     """Generates a histogram of how far off the wakeup period
     a message was received. This extra metric is very focused at
@@ -1644,6 +1722,12 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
 
         self._delivers_hist = defaultdict(list)
         self._radio_on_times = defaultdict(list)
+
+        self._intervals = {
+            "Fake":   (int(1000 * self.sim.args.lpl_fake_early),   int(1000 * self.sim.args.lpl_fake_late)),
+            "Choose": (int(1000 * self.sim.args.lpl_choose_early), int(1000 * self.sim.args.lpl_choose_late)),
+            "Normal": (int(1000 * self.sim.args.lpl_normal_early), int(1000 * self.sim.args.lpl_normal_late)),
+        }
 
     def log_time_receive_event_hist(self, d_or_e, node_id, time, detail):
         (kind, proximate_source_id, ultimate_source_id, sequence_number, hop_count) = detail.split(',')
@@ -1686,13 +1770,7 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
 
-        intervals = {
-            "Fake": (100, 150),
-            "Choose": (25, 25),
-            "Normal": (50, 50),
-        }
-
-        early_wakeup_ms, max_wakeup_ms = intervals.get(message_name, (0, 0))
+        early_wakeup_ms, late_wakeup_ms = self._intervals.get(message_name, (0, 0))
 
         fig, ax = plt.subplots()
 
@@ -1711,7 +1789,10 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
 
                     hist_time = (rcvd_time - start) * 1000 - early_wakeup_ms
 
-                    hist_values.append(hist_time)
+                    if hist_time < -2 * early_wakeup_ms or hist_time > 2 * late_wakeup_ms:
+                        print(f"Skipping outlier of {hist_time}ms for {message_name}")
+                    else:
+                        hist_values.append(hist_time)
                 else:
                     if len(possible) > 0:
                         print(f"Multiple times {possible} for {rcvd_time} for msg {message_name} on {node_id}")
@@ -1729,8 +1810,96 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
 
             plt.savefig(f"{message_name}dutycycleboundaryhist.pdf")
 
+    @staticmethod
+    def build_arguments():
+        return {
+            "SLP_EXTRA_METRIC_MESSAGE_DUTY_START": 1
+        }
 
-EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, MessageDutyCycleBoundaryHistogram)
+class MessageArrivalTimeScatterGrapher(MetricsCommon):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.register('M-CB', self.log_time_diff_bcast_event)
+        self.register('M-CD', self.log_time_diff_deliver_event)
+
+        self._bcasts_at = {}
+        self._delivers_at = defaultdict(dict)
+
+    def log_time_diff_bcast_event(self, d_or_e, node_id, time, detail):
+        (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
+
+        # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
+        if status != "0":
+            return
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        sequence_number = int(sequence_number)
+
+        if ord_node_id in self.source_ids() and kind == "Normal":
+            key = (ord_node_id, sequence_number)
+
+            if key not in self._bcasts_at:
+                self._bcasts_at[key] = time
+
+    def log_time_diff_deliver_event(self, d_or_e, node_id, time, detail):
+        try:
+            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
+        except ValueError:
+            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+        ord_ult_node_id, top_ult_node_id = self._process_node_id(ultimate_source_id)
+        sequence_number = int(sequence_number)
+
+        if kind == "Normal":
+            key = (ord_ult_node_id, sequence_number)
+
+            if ord_node_id not in self._delivers_at[key]:
+                self._delivers_at[key][ord_node_id] = time
+
+    def finish(self):
+        super().finish()
+
+        dsrc_vs_time = []
+
+        for (key, bcast_time) in self._bcasts_at.items():
+            (ord_src_id, sequence_number) = key
+
+            for (ord_node_id, deliver_time) in self._delivers_at[key].items():
+
+                dsrc = self.sim.configuration.node_source_distance(ord_node_id, ord_src_id)
+
+                time = deliver_time - bcast_time
+
+                dsrc_vs_time.append((dsrc, time*1000))
+
+        self._plot_message_travel_time_scatter(dsrc_vs_time)
+
+    def _plot_message_travel_time_scatter(self, dsrc_vs_time):
+        import matplotlib.pyplot as plt
+        from matplotlib.font_manager import FontProperties
+
+        fig, ax = plt.subplots()
+
+        x, y = zip(*dsrc_vs_time)
+
+        ax.scatter(x, y, color=message_type_to_colour("Normal"))
+
+        ax.set_xlabel("Distance From Source (hops)")
+        ax.set_ylabel("Travel Time (ms)")
+
+        plt.savefig(f"NormalMessageTravelTime.pdf")
+
+
+
+
+
+EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
 def import_algorithm_metrics(module_name, sim, extra_metrics=None):

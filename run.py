@@ -175,7 +175,11 @@ def _run_parallel(sim, module, a, argv):
                     with print_lock:
                         print(error_message, file=sys.stderr)
                         sys.stderr.flush()
-                    raise RuntimeError(error_message)
+
+                    # Ignore some signals, if the process crashes we should just keep going:
+                    # -11 is SIGSEGV
+                    if process.returncode not in {-11}:
+                        raise RuntimeError(error_message)
 
             except (KeyboardInterrupt, SystemExit) as ex:
                 with print_lock:
@@ -187,7 +191,9 @@ def _run_parallel(sim, module, a, argv):
 
     new_args = convert_parallel_args_to_single(argv, sim)
 
-    subprocess_args = ["python", "-OO", "-m", "simulator.DoRun"] + new_args
+    # Run using faulthandler to get stacktraces for SIGSEGV
+
+    subprocess_args = ["python", "-OO", "-X", "faulthandler", "-m", "simulator.DoRun"] + new_args
     subprocess_args_100 = subprocess_args_with_seed(subprocess_args, seed=100)
     subprocess_args_44 = subprocess_args_with_seed(subprocess_args, seed=44)
 
@@ -211,10 +217,10 @@ def _run_parallel(sim, module, a, argv):
     #    The process pool would stay alive.
     job_pool = multiprocessing.pool.ThreadPool(processes=parallel_instances)
 
-    # Always run with a seed of 44 first and second.
+    # Always run with a seed of 100 and 44 first and second.
     # This allows us to do compatibility checks.
     # It also allows us to test the determinism of this set of parameters.
-    all_args = [subprocess_args_100, subprocess_args_44, subprocess_args_44] + [subprocess_args] * a.args.job_size
+    all_args = [subprocess_args_100, subprocess_args_100, subprocess_args_44, subprocess_args_44] + [subprocess_args] * a.args.job_size
 
     try:
         result = job_pool.map_async(runner, all_args)

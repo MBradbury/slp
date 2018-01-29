@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 from collections import OrderedDict
 import math
@@ -9,9 +8,10 @@ from more_itertools import unique_everseen
 
 import numpy as np
 
-from data import results
-import simulator.common
+from data import results, submodule_loader
+
 from simulator import Attacker
+import simulator.sim
 
 class MissingSafetyPeriodError(RuntimeError):
     def __init__(self, key, source_period, safety_periods):
@@ -27,9 +27,9 @@ def _argument_name_to_parameter(argument_name):
     return "--" + argument_name.replace(" ", "-")
 
 class RunSimulationsCommon(object):
-    def __init__(self, sim, driver, algorithm_module, result_path, skip_completed_simulations=True,
+    def __init__(self, sim_name, driver, algorithm_module, result_path, skip_completed_simulations=True,
                  safety_periods=None, safety_period_equivalence=None):
-        self.sim = sim
+        self.sim_name = sim_name
         self.driver = driver
         self.algorithm_module = algorithm_module
         self._result_path = result_path
@@ -37,8 +37,10 @@ class RunSimulationsCommon(object):
         self._safety_periods = safety_periods
         self._safety_period_equivalence = safety_period_equivalence
 
+        self._global_parameter_names = submodule_loader.load(simulator.sim, self.sim_name).global_parameter_names
+
         if not os.path.exists(self._result_path):
-            raise RuntimeError("{} is not a directory".format(self._result_path))
+            raise RuntimeError(f"{self._result_path} is not a directory")
 
         self._existing_results = {}
 
@@ -56,18 +58,26 @@ class RunSimulationsCommon(object):
         for arguments in argument_product:
             darguments = OrderedDict(zip(argument_names, arguments))
 
-            if self._already_processed(repeats, darguments):
-                print("Already gathered results for {} with {} repeats, so skipping it.".format(darguments, repeats), file=sys.stderr)
-                self.driver.total_job_size -= 1
-                continue
+            repeats_to_run = repeats
+
+            if repeats is not None:
+                repeats_performed = self._get_repeats_performed(darguments)
+
+                if repeats_performed >= repeats:
+                    print(f"Already gathered results for {darguments} with {repeats} repeats, so skipping it.", file=sys.stderr)
+                    self.driver.total_job_size -= 1
+                    continue
+                else:
+                    print(f"Already gathered {repeats_performed} results for {darguments} so only performing {repeats - repeats_performed}", file=sys.stderr)
+                    repeats_to_run -= repeats_performed
 
             # Not all drivers will supply job_repeats
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1
 
             opts = OrderedDict()
 
-            if repeats is not None:
-                opts["--job-size"] = int(math.ceil(repeats / job_repeats))
+            if repeats_to_run is not None:
+                opts["--job-size"] = int(math.ceil(repeats_to_run / job_repeats))
 
             if hasattr(self.driver, 'array_job_variable') and self.driver.array_job_variable is not None:
                 opts["--job-id"] = self.driver.array_job_variable
@@ -83,17 +93,16 @@ class RunSimulationsCommon(object):
                 safety_period = self._get_safety_period(darguments)
                 opts["--safety-period"] = safety_period
 
-            opt_items = ["{} \"{}\"".format(k, v) for (k, v) in opts.items()]
+            opt_items = [f"{k} \"{v}\"" for (k, v) in opts.items()]
 
             if verbose:
                 opt_items.append("--verbose")
 
-            options = 'algorithm.{} {} {} '.format(self.algorithm_module.name, self.sim, self._mode())
-            options += " ".join(opt_items)
+            options = f'algorithm.{self.algorithm_module.name} {self.sim_name} {self._mode()} {" ".join(opt_items)}'
 
             filename = os.path.join(
                 self._result_path,
-                '-'.join(map(self._sanitize_job_name, arguments)) + "-{}.txt".format(self.sim)
+                '-'.join(map(self._sanitize_job_name, arguments)) + f"-{self.sim_name}.txt"
             )
 
             estimated_time = None
@@ -110,7 +119,7 @@ class RunSimulationsCommon(object):
     def _mode(self):
         mode = self.driver.mode()
 
-        if mode in ("TESTBED", "CYCLEACCURATE"):
+        if mode == "TESTBED":
             return "SINGLE"
         else:
             return mode
@@ -131,12 +140,10 @@ class RunSimulationsCommon(object):
         if self._safety_periods is None:
             return None
 
-        global_parameter_names = simulator.common.global_parameter_names
-
         key = [
             self._prepare_argument_name(name, darguments)
             for name
-            in global_parameter_names
+            in self._global_parameter_names
         ]
 
         # Source period is always stored as the last item in the list
@@ -153,7 +160,7 @@ class RunSimulationsCommon(object):
 
                 # There exist some safety period equivalences, so lets try some
                 for (global_param, replacements) in self._safety_period_equivalence.items():
-                    global_param_index = global_parameter_names.index(global_param)
+                    global_param_index = self._global_parameter_names.index(global_param)
 
                     for (search, replace) in replacements.items():
                         if key[global_param_index] == search:
@@ -174,10 +181,11 @@ class RunSimulationsCommon(object):
 
 
     def _load_existing_results(self, argument_names):
+        results_file_path = self.algorithm_module.result_file_path(self.sim_name)
         try:
             results_summary = results.Results(
-                self.algorithm_module.result_file_path,
-                parameters=argument_names[len(simulator.common.global_parameter_names):],
+                self.sim_name, results_file_path,
+                parameters=argument_names[len(self._global_parameter_names):],
                 results=('repeats',))
 
             # (size, config, attacker_model, noise_model, communication_model, distance, period) -> repeats
@@ -185,25 +193,22 @@ class RunSimulationsCommon(object):
         except IOError as e:
             message = str(e)
             if 'No such file or directory' in message:
-                raise RuntimeError("The results file {} is not present. Perhaps rerun the command with '--no-skip-complete'?".format(
-                    self.algorithm_module.result_file_path))
+                raise RuntimeError(f"The results file {results_file_path} is not present. Perhaps rerun the command with '--no-skip-complete'?")
             else:
                 raise
 
-    def _already_processed(self, repeats, darguments):
+    def _get_repeats_performed(self, darguments):
         if not self._skip_completed_simulations:
-            return False
+            return 0
 
         key = tuple(self._prepare_argument_name(name, darguments) for name in darguments)
 
         if key not in self._existing_results:
-            print("Unable to find the key {} in the existing results. Will now run the simulations for these parameters.".format(key), file=sys.stderr)
-            return False
+            print(f"Unable to find the key {key} in the existing results. Will now run the simulations for these parameters.", file=sys.stderr)
+            return 0
 
         # Check that more than enough jobs were done
-        number_results = self._existing_results[key]
-
-        return number_results >= repeats
+        return self._existing_results[key]
 
     @staticmethod
     def _sanitize_job_name(name):
@@ -232,47 +237,31 @@ def filter_arguments(argument_names, argument_product, to_filter):
 
 class RunTestbedCommon(RunSimulationsCommon):
 
-    extra_arguments = ('rf power', 'low power listening')
+    #extra_arguments = ('rf power', 'low power listening')
 
     # Filter out invalid parameters to pass onwards
-    non_arguments = ('network size', 
-                     'attacker model', 'noise model',
-                     'communication model', 'distance',
-                     'node id order', 'latest node start time')
+    non_arguments = ('attacker model',)
 
-    def __init__(self, driver, algorithm_module, result_path, skip_completed_simulations=False,
+    def __init__(self, sim_name, driver, algorithm_module, result_path, skip_completed_simulations=False,
                  safety_periods=None, safety_period_equivalence=None):
+
+        if sim_name != "real":
+            raise ValueError("RunTestbedCommon must be created using the 'real' sim")
+
         # Do all testbed tasks
         # Testbed has no notion of safety period
-        super(RunTestbedCommon, self).__init__("real", driver, algorithm_module, result_path, False, None, safety_period_equivalence)
+        super(RunTestbedCommon, self).__init__(sim_name, driver, algorithm_module, result_path, False, None, safety_period_equivalence)
 
     def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
 
         filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, self.non_arguments)
+
+        # Check that all "node id order" parameters are topology
+        nido_index = filtered_argument_names.index("node id order")
+        for args in filtered_argument_product:
+            if args[nido_index] != "topology":
+                raise ValueError(f"Cannot run testbed with a node id order other than topology (given {args[nido_index]})")
 
         # Testbed has no notion of repeats
         # Also no need to estimate time
         super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None, **kwargs)
-
-class RunCycleAccurateCommon(RunSimulationsCommon):
-
-    extra_arguments = ('rf power', 'low power listening')
-
-    # Filter out invalid parameters to pass onwards
-    non_arguments = ('attacker model', 'noise model',
-                     'communication model',
-                     'latest node start time')
-
-    def __init__(self, sim, driver, algorithm_module, result_path, skip_completed_simulations=False,
-                 safety_periods=None, safety_period_equivalence=None):
-        # Do all cycle accurate tasks
-        # Cycle Accurate has no notion of safety period
-        super(RunCycleAccurateCommon, self).__init__(sim, driver, algorithm_module, result_path, False, None, safety_period_equivalence)
-
-    def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
-
-        filtered_argument_names, filtered_argument_product = filter_arguments(argument_names, argument_product, self.non_arguments)
-
-        # Cycle Accurate has no notion of repeats
-        # Also no need to estimate time
-        super(RunCycleAccurateCommon, self).run(None, filtered_argument_names, filtered_argument_product, None, **kwargs)

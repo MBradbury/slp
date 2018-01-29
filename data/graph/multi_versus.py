@@ -8,13 +8,13 @@ import data.util
 from data.graph.versus import Grapher as GrapherBase
 
 class Grapher(GrapherBase):
-    def __init__(self, output_directory,
+    def __init__(self, sim_name, output_directory,
                  result_name, xaxis, varying, yaxis_label, **kwargs):
 
         varying_names = [x[0] for x in varying]
 
         super(Grapher, self).__init__(
-            output_directory, result_name, xaxis, yaxis_label, varying_names, **kwargs
+            sim_name, output_directory, result_name, xaxis, yaxis_label, varying_names, **kwargs
         )
 
         self.varying = varying

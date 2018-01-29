@@ -19,7 +19,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)
 
-    def _argument_product(self, extras=None):
+    def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
         argument_product = itertools.product(
@@ -33,7 +33,7 @@ class CLI(CommandLineCommon.CLI):
         # Factor in the number of sources when selecting the source period.
         # This is done so that regardless of the number of sources the overall
         # network's normal message generation rate is the same.
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         # Provide the argument to the attacker model
         argument_product = [
@@ -47,7 +47,7 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
 
-    def _cluster_time_estimator(self, args, **kwargs):
+    def _cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want

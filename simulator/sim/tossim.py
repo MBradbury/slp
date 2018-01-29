@@ -13,6 +13,13 @@ def parsers():
         ("CLUSTER", "PARALLEL", ["job id"]),
     ]
 
+global_parameter_names = ('network size', 'configuration',
+                          'attacker model', 'noise model',
+                          'communication model', 'fault model',
+                          'distance', 'node id order',
+                          'latest node start time',
+                          'source period')
+
 # TOSSIM can be run in parallel as it only uses a single thread
 def supports_parallel():
     return True

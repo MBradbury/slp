@@ -8,8 +8,10 @@ import os.path
 
 import numpy as np
 
-import simulator.common
+import data.submodule_loader as submodule_loader
+
 from simulator import Configuration, SourcePeriodModel
+import simulator.sim
 
 def _name_to_attr(name):
     return name.replace(" ", "_") + "s"
@@ -35,19 +37,18 @@ def extract_average_and_stddev(value):
     return np.array((mean, stddev))
 
 class Results(object):
-    def __init__(self, result_file, parameters, results, results_filter=None,
-                 source_period_normalisation=None, network_size_normalisation=None,
-                 testbed=False):
+    def __init__(self, sim_name, result_file, parameters, results, results_filter=None,
+                 source_period_normalisation=None, network_size_normalisation=None):
+        self.sim_name = sim_name
         self.parameter_names = tuple(parameters)
         self.result_names = tuple(results)
         self.result_file_name = result_file
 
         self.data = {}
 
-        if testbed:
-            self.global_parameter_names = simulator.common.testbed_global_parameter_names[:-1]
-        else:
-            self.global_parameter_names = simulator.common.global_parameter_names[:-1]
+        sim = submodule_loader.load(simulator.sim, sim_name)
+
+        self.global_parameter_names = sim.global_parameter_names[:-1]
 
         # Create attributes that will store all the parameter value for a given parameter
         for param in self.global_parameter_names:
@@ -70,16 +71,18 @@ class Results(object):
         ]
 
     def _get_configuration(self, **kwargs):
-        args = ('network size', 'distance', 'node_id_order')
+        args = ('network size', 'distance', 'node id order')
         arg_converters = {
-            'network_size': int,
+            'network size': int,
             'distance': float,
         }
 
+        kwargs_copy = {k.replace("_", " "): v for (k,v) in kwargs.items()}
+
         arg_values = [
-            arg_converters.get(name, lambda x: x)(kwargs[name])
+            arg_converters.get(name, lambda x: x)(kwargs_copy[name])
             for name in args
-            if name in kwargs
+            if name in kwargs_copy
         ]
 
         return Configuration.create_specific(kwargs['configuration'], *arg_values)
@@ -156,7 +159,7 @@ class Results(object):
         try:
             value = dvalues[name]
         except KeyError as ex:
-            raise RuntimeError("Unable to read '{}' from the result file '{}'. Available keys: {}".format(name, self.result_file_name, dvalues.keys()))
+            raise RuntimeError(f"Unable to read '{name}' from the result file '{self.result_file_name}'. Available keys: {dvalues.keys()}")
 
         if name == 'captured':
             return float(value) * 100.0
@@ -177,11 +180,11 @@ class Results(object):
                 if name in self.parameter_names:
                     return value
                 else:
-                    RuntimeError("Unable to parse the string '{}' for {}".format(value, name))
+                    RuntimeError(f"Unable to parse the string '{value}' for {name}")
 
     def parameter_set(self):
         if 'repeats' not in self.result_names:
-            raise RuntimeError("The repeats result must be present in the results ({}).".format(self.result_names))
+            raise RuntimeError(f"The repeats result must be present in the results ({self.result_names}).")
 
         repeats_index = self.result_names.index('repeats')
 

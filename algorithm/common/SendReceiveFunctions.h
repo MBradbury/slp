@@ -44,6 +44,12 @@
 #	define CHECK_CRC(NAME, rcvd)
 #endif
 
+#ifdef SLP_SEND_ANY_DONE_CALLBACK
+#	define SLP_CALL_SEND_ANY_DONE_CALLBACK(msg, error) send_any_done(msg, error)
+#else
+#	define SLP_CALL_SEND_ANY_DONE_CALLBACK(msg, error)
+#endif
+
 #define SEND_MESSAGE(NAME) \
 error_t send_##NAME##_message_ex(const NAME##Message* tosend, am_addr_t target) \
 { \
@@ -220,6 +226,8 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 	} \
  \
 	(CALLBACK)(&msg_copy, error); \
+ \
+ 	SLP_CALL_SEND_ANY_DONE_CALLBACK(&msg_copy, error); \
 }
 
 #define SEND_DONE(NAME, CALLBACK) \
@@ -251,6 +259,8 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 	} \
  \
 	(CALLBACK)(&msg_copy, error); \
+ \
+ 	SLP_CALL_SEND_ANY_DONE_CALLBACK(&msg_copy, error); \
 }
 
 #define SEND_DONE_NO_TARGET(NAME, CALLBACK) \
@@ -267,6 +277,8 @@ event void NAME##Send.sendDone(message_t* msg, error_t error) \
 	} \
  \
 	(CALLBACK)(&msg_copy, error); \
+ \
+ 	SLP_CALL_SEND_ANY_DONE_CALLBACK(&msg_copy, error); \
 }
 
 #define RECEIVE_MESSAGE_BEGIN(NAME, KIND) \

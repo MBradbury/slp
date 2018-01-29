@@ -6,7 +6,8 @@
 
 #include "SLPDutyCycleFlags.h"
 
-static const uint32_t choose_on_time = 50;
+static const uint32_t choose_early = SLP_LPL_CHOOSE_EARLY_MS;
+static const uint32_t choose_late = SLP_LPL_CHOOSE_LATE_MS;
 
 generic module FakeMessageTimingAnalysisImplP()
 {
@@ -63,6 +64,8 @@ implementation
     uint32_t late_wakeup_ms;
     uint32_t early_wakeup_ms;
 
+    bool can_turn_off_early_perm_fake;
+
     // How long to wait between one group and the next
     // This is the time between the first new messages
     uint32_t temp_next_duration_wait(void)
@@ -109,8 +112,10 @@ implementation
 
 
         // Set a minimum group wait time here
-        late_wakeup_ms = 150;//250
-        early_wakeup_ms = 100;//150
+        late_wakeup_ms = SLP_LPL_FAKE_LATE_MS;
+        early_wakeup_ms = SLP_LPL_FAKE_EARLY_MS;
+
+        can_turn_off_early_perm_fake = FALSE;
 
         return SUCCESS;
     }
@@ -195,33 +200,32 @@ implementation
 
         if (is_new)
         {
-            /*temp_previous_group_time_ms = timestamp_ms;
-
-            if (is_first_fake)
-            {
-                temp_previous_first_duration_time_ms = timestamp_ms;
-
-                /*if (first_duration_diff != UINT32_MAX)
-                {
-                    //incremental_average(&temp_expected_duration_us, &temp_expected_duration_seen,
-                    //    (first_duration_diff / (temp_missed_messages + 1)) * 1000);
-                }* /
-            }*/
-
             startTempOffTimerFromMessage(timestamp_ms);
 
             {
                 // When receiving the nth fake message we need to subtract this from the time to wait
                 // ultimate_sender_fake_count starts at 0 for the first message
-                const uint8_t nth_message_delay = mdata->ultimate_sender_fake_count * temp_expected_period_ms;
+                const uint32_t nth_message_delay = mdata->ultimate_sender_fake_count * temp_expected_period_ms;
+
+                //ASSERT_MESSAGE(mdata->ultimate_sender_fake_count >= 0 && mdata->ultimate_sender_fake_count <= 2,
+                //    "%" PRIu8, mdata->ultimate_sender_fake_count);
+                //assert(temp_expected_period_ms != UINT32_MAX);
 
                 // Wake up for the first fake message from the next fake node
                 if (!call DurationOnTimer.isRunning())
                 {
                     const uint32_t temp_duration_ms = temp_next_duration_wait();
+                    const uint32_t duration_fire = temp_duration_ms - nth_message_delay - early_wakeup_ms;
 
-                    call DurationOnTimer.startOneShotAt(timestamp_ms,
-                        temp_duration_ms - nth_message_delay - early_wakeup_ms);
+                    //assert(temp_duration_ms != UINT32_MAX);
+                    //ASSERT_MESSAGE(temp_duration_ms >= nth_message_delay + early_wakeup_ms,
+                    //    "%" PRIu32 ",%" PRIu32,
+                    //    temp_duration_ms, nth_message_delay + early_wakeup_ms);
+
+                    //LOG_STDOUT(0, "Starting duration timer (nth=%" PRIu8 " period=%" PRIu32 ") in %" PRIu32 "\n",
+                    //    mdata->ultimate_sender_fake_count, temp_expected_period_ms, duration_fire);
+
+                    call DurationOnTimer.startOneShotAt(timestamp_ms, duration_fire);
                 }
 
                 // Check if we should wake up for choose messages
@@ -231,21 +235,15 @@ implementation
                     const uint32_t temp_delay_ms = temp_delay_wait();
 
                     const uint32_t choose_start =
-                            temp_duration_ms - temp_delay_ms - nth_message_delay - early_wakeup_ms;
+                        temp_duration_ms - temp_delay_ms - nth_message_delay - choose_early;
 
-                    //assert(temp_duration_ms != UINT32_MAX && temp_delay_ms != UINT32_MAX);
+                    //assert(temp_duration_ms != UINT32_MAX);
+                    //assert(temp_delay_ms != UINT32_MAX);
 
                     call ChooseOnTimer.startOneShotAt(timestamp_ms, choose_start);
                 }
             }
         }
-        /*else
-        {
-            if (group_diff != UINT32_MAX)
-            {
-                late_wakeup_ms = max(late_wakeup_ms, group_diff);
-            }
-        }*/
     }
 
     void received_perm(const FakeMessage* mdata, uint32_t timestamp_ms, uint8_t flags)
@@ -265,22 +263,11 @@ implementation
         
         if (is_new)
         {
-            //perm_previous_group_time_ms = timestamp_ms;
-
-            /*if (group_diff != UINT32_MAX)
-            {
-                incremental_average(&perm_average_us, &perm_seen, (group_diff * 1000) / (perm_missed_messages + 1));
-            }*/
-
             startPermOffTimerFromMessage(timestamp_ms);
+
+            can_turn_off_early_perm_fake = TRUE;
+            signal MessageTimingAnalysis.stop_radio();
         }
-        /*else
-        {
-            if (group_diff != UINT32_MAX)
-            {
-                late_wakeup_ms = max(late_wakeup_ms, group_diff);
-            }
-        }*/
     }
 
     command void MessageTimingAnalysis.received(message_t* msg, const void* data, uint32_t timestamp_ms, uint8_t flags, uint8_t source_type)
@@ -309,13 +296,13 @@ implementation
             else
             {
                 temp_no_receive_count += 1;
-            }
-    
-            if (perm_expected_interval_ms != UINT32_MAX && temp_no_receive_count >= 3)
-            {
-                temp_disabled = TRUE;
-                call TempOffTimer.stop();
-                call TempOnTimer.stop();
+
+                if (perm_expected_interval_ms != UINT32_MAX && temp_no_receive_count >= 3)
+                {
+                    temp_disabled = TRUE;
+                    call TempOffTimer.stop();
+                    call TempOnTimer.stop();
+                }
             }
         }
     }
@@ -324,12 +311,12 @@ implementation
     {
         const uint32_t now = call ChooseOnTimer.gett0() + call ChooseOnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_CHOOSE, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
 
-        call ChooseOffTimer.startOneShotAt(now, choose_on_time);
+        call ChooseOffTimer.startOneShotAt(now, choose_early + choose_late);
     }
 
     event void ChooseOffTimer.fired()
@@ -341,7 +328,7 @@ implementation
     {
         const uint32_t now = call DurationOnTimer.gett0() + call DurationOnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
@@ -365,7 +352,7 @@ implementation
     {
         const uint32_t now = call TempOnTimer.gett0() + call TempOnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
@@ -429,7 +416,7 @@ implementation
     {
         const uint32_t now = call PermOnTimer.gett0() + call PermOnTimer.getdt();
 
-#ifdef SLP_USES_GUI_OUPUT
+#ifdef SLP_EXTRA_METRIC_MESSAGE_DUTY_START
         METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_ON_FAKE, "");
 #endif
         signal MessageTimingAnalysis.start_radio();
@@ -441,6 +428,7 @@ implementation
     {
         const uint32_t now = call PermOffTimer.gett0() + call PermOffTimer.getdt();
 
+        can_turn_off_early_perm_fake = FALSE;
         signal MessageTimingAnalysis.stop_radio();
 
         startPermOnTimer(now);
@@ -496,7 +484,7 @@ implementation
             // And, we either haven't started PFS duty cycling, or we are in the PFS off period
             /*((!call PermOnTimer.isRunning() && !call PermOffTimer.isRunning()) ||
              (call PermOnTimer.isRunning() && !call PermOffTimer.isRunning()))*/
-            !call PermOffTimer.isRunning() &&
+            (can_turn_off_early_perm_fake || !call PermOffTimer.isRunning()) &&
 
             !call ChooseOffTimer.isRunning()
             ;

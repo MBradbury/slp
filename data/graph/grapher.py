@@ -10,6 +10,9 @@ import re
 from shutil import which
 import subprocess
 
+from data import submodule_loader
+
+import simulator.sim
 import simulator.Attacker as Attacker
 import simulator.FaultModel as FaultModel
 
@@ -62,8 +65,14 @@ def get_gnuplot_binary_name():
         raise RuntimeError("Could not find the gnuplot binary")
 
 class GrapherBase(object):
-    def __init__(self, output_directory):
+    def __init__(self, sim_name, output_directory):
         self.output_directory = output_directory
+
+        self.sim_name = sim_name
+
+        sim = submodule_loader.load(simulator.sim, self.sim_name)
+
+        self._key_names_base = sim.global_parameter_names
 
     @staticmethod
     def _shorten_long_names(key_names, key_values):

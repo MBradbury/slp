@@ -14,9 +14,11 @@ import sys
 import time
 from types import ModuleType
 
+from more_itertools import unique_everseen
+
 import algorithm
 
-import simulator.common
+from simulator import CommunicationModel, NoiseModel
 import simulator.sim
 import simulator.ArgumentsCommon as ArgumentsCommon
 import simulator.Configuration as Configuration
@@ -33,11 +35,9 @@ from data.graph import heatmap, summary
 from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
 
-from data.util import recreate_dirtree, touch, scalar_extractor
+from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
 
 class CLI(object):
-
-    global_parameter_names = simulator.common.global_parameter_names
 
     def __init__(self, package, safety_period_module_name=None, custom_run_simulation_class=None, safety_period_equivalence=None):
         super(CLI, self).__init__()
@@ -80,6 +80,7 @@ class CLI(object):
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         subparser = cluster_subparsers.add_parser("copy-result-summary", help="Copy the result summary for this algorithm obtained by using the 'analyse' command to the cluster.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         subparser = cluster_subparsers.add_parser("copy-parameters", help="Copy this algorithm's Parameters.py file to the cluster.")
@@ -91,6 +92,7 @@ class CLI(object):
         subparser.add_argument("--notify", nargs="*", help="A list of email's to send a message to when jobs finish. You can also specify these via the SLP_NOTIFY_EMAILS environment variable.")
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
         subparser.add_argument("--dry-run", action="store_true", default=False)
+        subparser.add_argument("--unhold", action="store_true", default=False, help="By default jobs are submitted in the held state. This argument will submit jobs in the unheld state.")
 
         subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
@@ -131,6 +133,7 @@ class CLI(object):
         ###
 
         subparser = self._add_argument("analyse", self._run_analyse, help="Analyse the results of this algorithm.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
@@ -142,21 +145,26 @@ class CLI(object):
             # Only when it is a module name do we add the ability to run this command         
             if not isinstance(safety_period_module_name, bool):
                 subparser = self._add_argument("safety-table", self._run_safety_table, help="Output protectionless information along with the safety period to be used for those parameter combinations.")
+                subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
                 subparser.add_argument("--show-stddev", action="store_true")
                 subparser.add_argument("--show", action="store_true", default=False)
                 subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("time-taken-table", self._run_time_taken_table, help="Creates a table showing how long simulations took in real and virtual time.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--show-stddev", action="store_true")
         subparser.add_argument("--show", action="store_true", default=False)
         subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("error-table", self._run_error_table, help="Creates a table showing the number of simulations in which an error occurred.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("detect-missing", self._run_detect_missing, help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
 
         subparser = self._add_argument("graph-heatmap", self._run_graph_heatmap, help="Graph the sent and received heatmaps.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
 
         ###
 
@@ -171,6 +179,7 @@ class CLI(object):
         ###
 
         subparser = self._add_argument('historical-time-estimator', self._run_historical_time_estimator)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--key", nargs="+", metavar="P", default=('network size', 'source period'))
 
         ###
@@ -179,33 +188,36 @@ class CLI(object):
         self._argument_handlers[name] = fn
         return self._subparsers.add_parser(name, **kwargs)
 
-    def parameter_names(self):
-        return self.global_parameter_names + self.algorithm_module.local_parameter_names
+    def parameter_names(self, sim):
+        return sim.global_parameter_names + self.algorithm_module.local_parameter_names
 
     def _testbed_results_path(self, testbed, module=None):
         if module is None:
             module = self.algorithm_module
-        return os.path.join("testbed_results", testbed.name(), module.name)
+
+        testbed = testbed if isinstance(testbed, ModuleType) else submodule_loader.load(data.testbed, testbed)
+
+        return os.path.join("results", "real", testbed.name(), module.name)
 
     def _testbed_results_file(self, testbed, module=None):
         if module is None:
             module = self.algorithm_module
         return os.path.join(self._testbed_results_path(testbed, module), module.result_file)
 
-    def get_results_file_path(self, testbed=None):
-        if testbed is not None:
-            testbed = submodule_loader.load(data.testbed, testbed)
-            return self._testbed_results_file(testbed)
-        else:
-            return self.algorithm_module.result_file_path
+    def get_results_file_path(self, sim_name, testbed=None, module=None):
+        if module is None:
+            module = self.algorithm_module
 
-    def get_safety_period_result_path(self, testbed=None):
-        algo = importlib.import_module("algorithm.{}".format(self.safety_period_module_name))
-        if testbed is None:
-            return algo.result_file_path
+        if testbed is not None:
+            return self._testbed_results_file(testbed, module=module)
         else:
-            testbed = testbed if isinstance(testbed, ModuleType) else submodule_loader.load(data.testbed, testbed)
-            return self._testbed_results_file(testbed, algo)
+            return module.result_file_path(sim_name)
+
+    def get_safety_period_result_path(self, sim_name, testbed=None):
+        algo = importlib.import_module("algorithm.{}".format(self.safety_period_module_name))
+
+        return self.get_results_file_path(sim_name, testbed=testbed, module=algo)
+
 
     @staticmethod
     def _create_table(name, result_table, directory="results", param_filter=lambda *args: True, orientation='portrait', show=False):
@@ -221,18 +233,18 @@ class CLI(object):
         if show:
             subprocess.call(["xdg-open", filename_pdf])
 
-    def _create_results_table(self, parameters, **kwargs):
+    def _create_results_table(self, sim_name, parameters, **kwargs):
         res = results.Results(
-            self.algorithm_module.result_file_path,
+            sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
             results=parameters)
 
         result_table = fake_result.ResultTable(res)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table, **kwargs)
+        self._create_table(f"{self.algorithm_module.name}-{sim_name}-results", result_table, **kwargs)
 
 
-    def _create_versus_graph(self, graph_parameters, varying,
+    def _create_versus_graph(self, sim_name, graph_parameters, varying, *,
                              custom_yaxis_range_max=None,
                              source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                              yextractor=scalar_extractor, xextractor=None,
@@ -240,7 +252,7 @@ class CLI(object):
         from data.graph import versus
 
         algo_results = results.Results(
-            self.algorithm_module.result_file_path,
+            sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
@@ -249,10 +261,10 @@ class CLI(object):
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+                name = f'{xaxis}-v-{yaxis}-w-{vary}'.replace(" ", "_")
 
                 g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
+                    sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
                     yextractor=yextractor, xextractor=xextractor)
 
@@ -273,18 +285,18 @@ class CLI(object):
 
                 if g.create(algo_results):
                     summary.GraphSummary(
-                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                         os.path.join(algorithm.results_directory_name, 'v-{}-{}'.format(self.algorithm_module.name, name))
                     ).run()
 
-    def _create_baseline_versus_graph(self, baseline_module, graph_parameters, varying,
+    def _create_baseline_versus_graph(self, sim_name, baseline_module, graph_parameters, varying, *,
                                       custom_yaxis_range_max=None,
                                       source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                       **kwargs):
         from data.graph import baseline_versus
 
         algo_results = results.Results(
-            self.algorithm_module.result_file_path,
+            sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
@@ -292,7 +304,7 @@ class CLI(object):
             results_filter=results_filter)
 
         baseline_results = results.Results(
-            baseline_module.result_file_path,
+            sim_name, baseline_module.result_file_path(sim_name),
             parameters=baseline_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
@@ -304,7 +316,7 @@ class CLI(object):
                 name = 'baseline-{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
 
                 g = baseline_versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
+                    self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
                     yextractor=scalar_extractor)
 
@@ -325,11 +337,11 @@ class CLI(object):
 
                 if g.create(algo_results, baseline_results):
                     summary.GraphSummary(
-                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                         os.path.join(algorithm.results_directory_name, 'bl-{}_{}-{}'.format(self.algorithm_module.name, baseline_module.name, name))
                     ).run()
 
-    def _create_min_max_versus_graph(self, comparison_modules, baseline_module, graph_parameters, varying,
+    def _create_min_max_versus_graph(self, sim_name, comparison_modules, baseline_module, graph_parameters, varying, *,
                                      algo_results=None, custom_yaxis_range_max=None,
                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                      yextractors=None,
@@ -338,7 +350,7 @@ class CLI(object):
 
         if algo_results is None:
             algo_results = results.Results(
-                self.algorithm_module.result_file_path,
+                sim_name, self.algorithm_module.result_file_path(sim_name),
                 parameters=self.algorithm_module.local_parameter_names,
                 results=tuple(graph_parameters.keys()),
                 source_period_normalisation=source_period_normalisation,
@@ -347,7 +359,7 @@ class CLI(object):
 
         all_comparion_results = [
             results.Results(
-                comparion_module.result_file_path,
+                sim_name, comparion_module.result_file_path(sim_name),
                 parameters=comparion_module.local_parameter_names,
                 results=tuple(graph_parameters.keys()),
                 source_period_normalisation=source_period_normalisation,
@@ -363,7 +375,7 @@ class CLI(object):
                 baseline_results = baseline_module
             else:
                 baseline_results = results.Results(
-                    baseline_module.result_file_path,
+                    sim_name, baseline_module.result_file_path(sim_name),
                     parameters=baseline_module.local_parameter_names,
                     results=tuple(graph_parameters.keys()))
         else:
@@ -380,7 +392,7 @@ class CLI(object):
                 name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary_str).replace(" ", "_")
 
                 g = min_max_versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
+                    sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
                     yextractor=scalar_extractor if yextractors is None else yextractors.get(yaxis, scalar_extractor))
 
@@ -401,13 +413,13 @@ class CLI(object):
 
                 if g.create(all_comparion_results, algo_results, baseline_results=baseline_results):
                     summary.GraphSummary(
-                        os.path.join(self.algorithm_module.graphs_path, name),
+                        os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                         os.path.join(algorithm.results_directory_name,
                                      'mmv-{}_{}-{}'.format(self.algorithm_module.name,
                                      "_".join(mod.name for mod in comparison_modules), name))
                     ).run()
 
-    def _create_multi_versus_graph(self, graph_parameters, xaxes, yaxis_label,
+    def _create_multi_versus_graph(self, sim_name, graph_parameters, xaxes, yaxis_label, *,
                                    custom_yaxis_range_max=None,
                                    source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                    yextractor=scalar_extractor, xextractor=None,
@@ -417,7 +429,7 @@ class CLI(object):
         vary = tuple(x[0] for x in graph_parameters)
 
         algo_results = results.Results(
-            self.algorithm_module.result_file_path,
+            sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
             results=vary,
             source_period_normalisation=source_period_normalisation,
@@ -429,7 +441,7 @@ class CLI(object):
             name = '{}-mv-{}'.format(xaxis, "-".join(vary)).replace(" ", "_")
 
             g = multi_versus.Grapher(
-                self.algorithm_module.graphs_path, name,
+                sim_name, self.algorithm_module.graphs_path(sim_name), name,
                 xaxis=xaxis, varying=graph_parameters,
                 yaxis_label=yaxis_label,
                 yextractor=yextractor, xextractor=xextractor)
@@ -449,7 +461,7 @@ class CLI(object):
 
             if g.create(algo_results):
                 summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                     os.path.join(algorithm.results_directory_name, 'mv-{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
@@ -471,24 +483,15 @@ class CLI(object):
 
         return None
 
-
-    def _argument_product(self, extras=None):
-        """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
-
-        Algorithms that do anything special will need to implement this themselves.
-        """
-        # Lets do our best to implement an argument product that we can expect an algorithm to need.
-
-        parameters = self.algorithm_module.Parameters
-
+    def _get_global_parameter_values(self, sim, parameters):
         product_argument = []
 
         # Some arguments are non-plural
-        non_plural_global_parameters = ["distance", "latest node start time"]
+        non_plural_global_parameters = ("distance", "latest node start time")
 
         # Some arguments are not properly named
         synonyms = {
-            "network size": "sizes"
+            "network size": "sizes",
         }
 
         def _get_global_plural_name(global_name):
@@ -498,11 +501,26 @@ class CLI(object):
             return global_name.replace(" ", "_") + "s"
 
         # First lets sort out the global parameters
-        for global_name in self.global_parameter_names:
+        for global_name in sim.global_parameter_names:
             if global_name in non_plural_global_parameters:
                 product_argument.append([getattr(parameters, global_name.replace(" ", "_"))])
             else:
                 product_argument.append(getattr(parameters, _get_global_plural_name(global_name)))
+
+        return product_argument
+
+
+    def _argument_product(self, sim, extras=None):
+        """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
+
+        Algorithms that do anything special will need to implement this themselves.
+        """
+        # Lets do our best to implement an argument product that we can expect an algorithm to need.
+        parameters = self.algorithm_module.Parameters
+
+        product_argument = []
+
+        product_argument.extend(self._get_global_parameter_values(sim, parameters))
 
         local_appendicies_to_try = ["s", "es", ""]
 
@@ -526,7 +544,7 @@ class CLI(object):
         # Factor in the number of sources when selecting the source period.
         # This is done so that regardless of the number of sources the overall
         # network's normal message generation rate is the same.
-        argument_product = self.adjust_source_period_for_multi_source(argument_product)
+        argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         return argument_product
 
@@ -543,16 +561,13 @@ class CLI(object):
     def time_after_first_normal_to_safety_period(self, time_after_first_normal):
         return time_after_first_normal
 
-    def _execute_runner(self, sim, driver, result_path, time_estimator=None,
+    def _execute_runner(self, sim_name, driver, result_path, time_estimator=None,
                         skip_completed_simulations=True, verbose=False):
         testbed_name = None
 
         if driver.mode() == "TESTBED":
             from data.run.common import RunTestbedCommon as RunSimulations
             testbed_name = driver.testbed_name()
-        elif driver.mode() == "CYCLEACCURATE":
-            from data.run.common import RunCycleAccurateCommon as RunSimulations
-            RunSimulations = functools.partial(RunSimulations, sim)
         else:
             # Time for something very crazy...
             # Some simulations require a safety period that varies depending on
@@ -561,10 +576,10 @@ class CLI(object):
             # So this custom RunSimulationsCommon class gets overridden and provided.
             if self.custom_run_simulation_class is None:
                 from data.run.common import RunSimulationsCommon as RunSimulations
-                RunSimulations = functools.partial(RunSimulations, sim)
             else:
-                RunSimulations = functools.partial(self.custom_run_simulation_class, sim)
+                RunSimulations = self.custom_run_simulation_class
 
+        sim = submodule_loader.load(simulator.sim, sim_name)
 
         if not driver.required_safety_periods:
             safety_periods = False
@@ -574,14 +589,14 @@ class CLI(object):
             safety_periods = None
         else:
             safety_period_table_generator = safety_period.TableGenerator(
-                self.get_safety_period_result_path(testbed=testbed_name),
-                self.time_after_first_normal_to_safety_period,
-                testbed=testbed_name)
+                sim_name,
+                self.get_safety_period_result_path(sim_name, testbed=testbed_name),
+                self.time_after_first_normal_to_safety_period)
             
             safety_periods = safety_period_table_generator.safety_periods()
 
         runner = RunSimulations(
-            driver, self.algorithm_module, result_path,
+            sim_name, driver, self.algorithm_module, result_path,
             skip_completed_simulations=skip_completed_simulations,
             safety_periods=safety_periods,
             safety_period_equivalence=self.safety_period_equivalence,
@@ -589,7 +604,7 @@ class CLI(object):
 
         extra_argument_names = getattr(runner, "extra_arguments", tuple())
 
-        argument_product = self._argument_product(extras=extra_argument_names)
+        argument_product = self._argument_product(sim, extras=extra_argument_names)
 
         argument_product_duplicates = _duplicates_in_iterable(argument_product)
 
@@ -600,9 +615,12 @@ class CLI(object):
             pprint(argument_product_duplicates)
             raise RuntimeError("There are duplicates in your argument product, check your Parameters.py file.")
 
+        if time_estimator is not None:
+            time_estimator = functools.partial(time_estimator, sim_name)
+
         try:
             runner.run(self.algorithm_module.Parameters.repeats,
-                       self.parameter_names() + extra_argument_names,
+                       self.parameter_names(sim) + extra_argument_names,
                        argument_product,
                        time_estimator,
                        verbose=verbose)
@@ -613,11 +631,11 @@ class CLI(object):
             print("Available safety periods:")
             pprint(ex.safety_periods)
 
-    def adjust_source_period_for_multi_source(self, argument_product):
+    def adjust_source_period_for_multi_source(self, sim, argument_product):
         """For configurations with multiple sources, so that the network has the
         overall same message generation rate, the source period needs to be adjusted
         relative to the number of sources."""
-        names = self.parameter_names()
+        names = self.parameter_names(sim)
         configuration_index = names.index('configuration')
         size_index = names.index('network size')
         distance_index = names.index('distance')
@@ -637,27 +655,40 @@ class CLI(object):
 
         return [process(*args) for args in argument_product]
 
-    def _default_cluster_time_estimator(self, args, **kwargs):
+    def _default_cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
-        if size == 11:
-            return timedelta(hours=9)
-        elif size == 15:
-            return timedelta(hours=21)
-        elif size == 21:
-            return timedelta(hours=42)
-        elif size == 25:
-            return timedelta(hours=71)
-        else:
-            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
-    def _cluster_time_estimator(self, args, **kwargs):
+        if sim == "cooja":
+            if size == 7:
+                return timedelta(hours=36)
+            elif size == 9:
+                return timedelta(hours=48)
+            elif size == 11:
+                return timedelta(hours=71)
+            else:
+                raise RuntimeError("No time estimate for network sizes other than 7, 9 or 11")
+        else:
+            if size == 7:
+                return timedelta(hours=7)
+            elif size == 11:
+                return timedelta(hours=9)
+            elif size == 15:
+                return timedelta(hours=21)
+            elif size == 21:
+                return timedelta(hours=42)
+            elif size == 25:
+                return timedelta(hours=71)
+            else:
+                raise RuntimeError("No time estimate for network sizes other than 7, 11, 15, 21 or 25")
+
+    def _cluster_time_estimator(self, sim, args, **kwargs):
         return self._default_cluster_time_estimator(args, **kwargs)
 
-    def _cluster_time_estimator_from_historical(self, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
+    def _cluster_time_estimator_from_historical(self, sim, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
         key = tuple(args[name] for name in historical_key_names)
 
         try:
@@ -679,18 +710,19 @@ class CLI(object):
             extra_time_per_proc = timedelta(seconds=2)
             extra_time = (extra_time_per_proc * job_size) // thread_count
 
-            calculated_time = time_per_proc_with_allowance + extra_time
+            # Always ask for at least 2 minutes
+            calculated_time = timedelta(minutes=2) + time_per_proc_with_allowance + extra_time
 
             if max_time is not None:
                 if calculated_time > max_time:
-                    print(f"Warning: The estimated cluster time is {calculated_time}, overriding this with the maximum {max_time}")
+                    print(f"Warning: The estimated cluster time is {calculated_time}, overriding this with the maximum set time of {max_time}")
                     calculated_time = max_time
 
             return calculated_time
 
         except KeyError:
-            print(f"Unable to find historical time for {key}, so using default time estimator.")
-            return self._default_cluster_time_estimator(args, **kwargs)
+            print(f"Unable to find historical time for {key} on {sim}, so using default time estimator.")
+            return self._default_cluster_time_estimator(sim, args, **kwargs)
 
     def _run_run(self, args):
         from data.run.driver import local as LocalDriver
@@ -704,7 +736,7 @@ class CLI(object):
 
         skip_complete = not args.no_skip_complete
 
-        self._execute_runner(args.sim, driver, self.algorithm_module.results_path,
+        self._execute_runner(args.sim, driver, self.algorithm_module.results_path(args.sim),
                              time_estimator=None,
                              skip_completed_simulations=skip_complete)
 
@@ -712,7 +744,7 @@ class CLI(object):
         def results_finder(results_directory):
             return fnmatch.filter(os.listdir(results_directory), '*.txt')
 
-        analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
+        analyzer = self.algorithm_module.Analysis.Analyzer(args.sim, self.algorithm_module.results_path(args.sim))
         analyzer.run(self.algorithm_module.result_file,
                      results_finder,
                      nprocs=args.thread_count,
@@ -726,7 +758,7 @@ class CLI(object):
         results_path = self._testbed_results_path(testbed)
         result_file = os.path.basename(self.algorithm_module.result_file)
 
-        analyzer = self.algorithm_module.Analysis.Analyzer(results_path)
+        analyzer = self.algorithm_module.Analysis.Analyzer("real", results_path)
         analyzer.run(result_file,
                      results_finder,
                      nprocs=args.thread_count,
@@ -751,10 +783,10 @@ class CLI(object):
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
 
         if self.safety_period_module_name is not None:
-            safety_period_result_path = self.get_safety_period_result_path(testbed=testbed)
-            safety_period_table = safety_period.TableGenerator(safety_period_result_path,
-                                                               self.time_after_first_normal_to_safety_period,
-                                                               testbed=testbed)
+            safety_period_result_path = self.get_safety_period_result_path("real", testbed=testbed)
+            safety_period_table = safety_period.TableGenerator("real",
+                                                               safety_period_result_path,
+                                                               self.time_after_first_normal_to_safety_period)
             safety_periods = safety_period_table.safety_periods()
 
         commands = []
@@ -763,7 +795,7 @@ class CLI(object):
 
             out_path = os.path.join(results_path, common_result_dir + ".txt")
 
-            command = "python3 run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
+            command = "python3 -OO -X faulthandler run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
                 self.algorithm_module.name,
                 testbed.name(),
                 os.path.join(results_path, common_result_dir + "_*", testbed.result_file_name))
@@ -794,7 +826,7 @@ class CLI(object):
                 safety_key = (configuration, str(args.attacker_model), fault_model)
                 settings["--safety-period"] = str(safety_periods[safety_key][source_period])
             
-            command += " ".join("{} \"{}\"".format(k, v) for (k, v) in settings.items())
+            command += " ".join(f"{k} \"{v}\"" for (k, v) in settings.items())
 
             if args.verbose:
                 command += " --verbose"
@@ -816,14 +848,14 @@ class CLI(object):
 
 
     def _run_safety_table(self, args):
-        safety_period_result_path = self.get_safety_period_result_path(testbed=args.testbed)
+        safety_period_result_path = self.get_safety_period_result_path(args.sim, testbed=args.testbed)
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
-        safety_period_table = safety_period.TableGenerator(safety_period_result_path,
+        safety_period_table = safety_period.TableGenerator(args.sim,
+                                                           safety_period_result_path,
                                                            self.time_after_first_normal_to_safety_period,
-                                                           fmt,
-                                                           testbed=args.testbed)
+                                                           fmt)
 
         if args.testbed:
             print("Writing testbed safety period table...")
@@ -833,8 +865,8 @@ class CLI(object):
             self._create_table(filename, safety_period_table, directory="testbed_results", show=args.show)
 
         else:
-            prod = itertools.product(simulator.common.available_noise_models(),
-                                     simulator.common.available_communication_models())
+            prod = itertools.product(NoiseModel.available_models(),
+                                     CommunicationModel.available_models())
 
             for (noise_model, comm_model) in prod:
 
@@ -847,7 +879,7 @@ class CLI(object):
 
     def _run_error_table(self, args):
         res = results.Results(
-            self.algorithm_module.result_file_path,
+            args.sim, self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=('dropped no sink delivery', 'dropped hit upper bound', 'dropped duplicates'))
 
@@ -869,7 +901,8 @@ class CLI(object):
         if emails_to_notify_env:
             emails_to_notify.extend(emails_to_notify_env.split(","))
 
-        return emails_to_notify
+        # Only provide unique emails
+        return list(unique_everseen(emails_to_notify))
 
     def _run_cluster(self, args):
         cluster_directory = os.path.join("cluster", self.algorithm_module.name)
@@ -892,7 +925,7 @@ class CLI(object):
             cluster.copy_to(self.algorithm_module.name, user=args.user)
 
         elif 'copy-result-summary' == args.cluster_mode:
-            cluster.copy_file(self.algorithm_module.results_path, self.algorithm_module.result_file, user=args.user)
+            cluster.copy_file(self.algorithm_module.results_path(args.sim), self.algorithm_module.result_file, user=args.user)
 
         elif 'copy-parameters' == args.cluster_mode:
             cluster.copy_file(os.path.join('algorithm', self.algorithm_module.name), 'Parameters.py', user=args.user)
@@ -902,7 +935,7 @@ class CLI(object):
 
             submitter_fn = cluster.array_submitter if args.array else cluster.submitter
 
-            submitter = submitter_fn(notify_emails=emails_to_notify, dry_run=args.dry_run)
+            submitter = submitter_fn(notify_emails=emails_to_notify, dry_run=args.dry_run, unhold=args.unhold)
 
             skip_complete = not args.no_skip_complete
 
@@ -964,7 +997,7 @@ class CLI(object):
         sys.exit(0)
 
     def _run_time_taken_table(self, args):
-        result_file_path = self.get_results_file_path(testbed=args.testbed)
+        result_file_path = self.get_results_file_path(args.sim, testbed=args.testbed)
 
         result = results.Results(result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
@@ -981,26 +1014,28 @@ class CLI(object):
         self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape", show=args.show)
 
     def _run_detect_missing(self, args):
+        sim = submodule_loader.load(simulator.sim, args.sim)
+        result_file_path = self.algorithm_module.result_file_path(args.sim)
         
-        argument_product = {tuple(map(str, row)) for row in self._argument_product()}
+        argument_product = {tuple(map(str, row)) for row in self._argument_product(sim)}
 
-        result = results.Results(self.algorithm_module.result_file_path,
+        result = results.Results(args.sim, result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
         repeats = result.parameter_set()
 
-        parameter_names = self.global_parameter_names + result.parameter_names
+        parameter_names = sim.global_parameter_names + result.parameter_names
 
         print("Checking runs that were asked for, but not included...")
 
-        for arguments in argument_product:
+        for arguments in sorted(argument_product):
             if arguments not in repeats:
                 print("missing ", end="")
-                print(", ".join([n + "=" + str(v) for (n,v) in zip(parameter_names, arguments)]))
+                print(", ".join([f"{n}={str(v)}" for (n,v) in zip(parameter_names, arguments)]))
                 print()
 
-        print(f"Loading {self.algorithm_module.result_file_path} to check for missing runs...")
+        print(f"Loading {result_file_path} to check for missing runs...")
 
         for (parameter_values, repeats_performed) in repeats.items():
 
@@ -1011,29 +1046,29 @@ class CLI(object):
 
             # Number of repeats is below the target
             if repeats_missing > 0:
-
-                print("performed={} missing={} ".format(repeats_performed, repeats_missing), end="")
-
+                print(f"performed={repeats_performed} missing={repeats_missing} ", end="")
                 print(", ".join([f"{n}={str(v)}" for (n,v) in zip(parameter_names, parameter_values)]))
                 print()
 
     def _run_graph_heatmap(self, args):
+        analyser = self.algorithm_module.Analysis.Analyzer(args.sim, self.algorithm_module.results_path(args.sim))
+
         heatmap_results = [
             header
             for header
-            in self.algorithm_module.Analysis.Analyzer.results_header().keys()
+            in analyser.results_header().keys()
             if header.endswith('heatmap')
         ]
 
         results_summary = results.Results(
-            self.algorithm_module.result_file_path,
+            args.sim, self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=heatmap_results)
 
         for name in heatmap_results:
-            heatmap.Grapher(self.algorithm_module.graphs_path, results_summary, name).create()
+            heatmap.Grapher(self.algorithm_module.graphs_path(sim_name), results_summary, name).create()
             summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path, name),
+                os.path.join(self.algorithm_module.graphs_path(sim_name), name),
                 os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_")))
             ).run()
 
@@ -1045,7 +1080,7 @@ class CLI(object):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
 
         grapher = graph_type.Grapher(
-            os.path.join(self.algorithm_module.graphs_path, args.grapher),
+            os.path.join(self.algorithm_module.graphs_path(sim_name), args.grapher),
             args.metric_name,
             self.parameter_names()
         )
@@ -1058,12 +1093,14 @@ class CLI(object):
         )
 
         summary.GraphSummary(
-            os.path.join(self.algorithm_module.graphs_path, args.grapher),
-            os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, args.grapher))
+            os.path.join(self.algorithm_module.graphs_path(sim_name), args.grapher),
+            os.path.join(algorithm.results_directory_name, f"{self.algorithm_module.name}-{args.grapher}")
         ).run(show=args.show)
 
     def _run_historical_time_estimator(self, args):
-        result = results.Results(self.algorithm_module.result_file_path,
+        sim = submodule_loader.load(simulator.sim, args.sim)
+
+        result = results.Results(args.sim, self.algorithm_module.result_file_path(args.sim),
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('total wall time',))
 
@@ -1073,7 +1110,7 @@ class CLI(object):
 
         for (global_params, values1) in result.data.items():
 
-            global_params = dict(zip(self.global_parameter_names, global_params))
+            global_params = dict(zip(sim.global_parameter_names, global_params))
 
             for (source_period, values2) in values1.items():
 
@@ -1106,6 +1143,10 @@ class CLI(object):
 
     def run(self, args):
         args = self._parser.parse_args(args)
+
+        if hasattr(args, "sim"):
+            create_dirtree(self.algorithm_module.results_path(args.sim))
+            create_dirtree(self.algorithm_module.graphs_path(args.sim))
 
         self._argument_handlers[args.mode](args)
 

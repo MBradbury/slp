@@ -55,6 +55,15 @@ class Attacker(object):
 
         return arguments
 
+    @staticmethod
+    def generic_build_arguments():
+        """When no knowledge about what attacker is running,
+        these arguments are used to support building binaries
+        that work with any attacker model."""
+        return {
+            "SLP_ATTACKER_USES_A_R_EVENT": 1
+        }
+
 
     def _get_starting_node_id(self):
         conf = self._sim.configuration
@@ -270,24 +279,25 @@ class Attacker(object):
         """Updates the attacker position on the GUI if one is present."""
         (x, y) = self._sim.gui.node_location(node_id)
 
-        shape_id = "attacker{}".format(self.ident)
+        shape_id = f"attacker{self.ident}"
 
         color = '1,0,0'
 
-        options = 'line=LineStyle(color=({0})),fill=FillStyle(color=({0}))'.format(color)
+        options = f'line=LineStyle(color=({color})),fill=FillStyle(color=({color}))'
 
         time = self._sim.sim_time()
 
-        self._sim.gui.scene.execute(time, 'delshape({!r})'.format(shape_id))
-        self._sim.gui.scene.execute(time, 'circle({},{},5,ident={!r},{})'.format(x, y, shape_id, options))
+        self._sim.gui.scene.execute(time, f'delshape({shape_id!r})')
+        self._sim.gui.scene.execute(time, f'circle({x},{y},5,ident={shape_id!r},{options})')
 
     def _build_str(self, short=False):
-        self_as = inspect.signature(self.__init__)
+        all_as = [inspect.signature(cls.__init__) for cls in inspect.getmro(type(self)) if cls not in (Attacker, object)]
         attacker_as = inspect.signature(Attacker.__init__)
 
         # Remove the self parameter
         self_as_params = [
             name
+            for self_as in all_as
             for (name, param) in self_as.parameters.items()
             if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD) and param.name != 'self'
         ]

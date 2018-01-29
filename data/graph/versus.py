@@ -11,16 +11,14 @@ import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
 
-import simulator.common
+import simulator.sim
 
 class Grapher(GrapherBase):
 
-    _key_names_base = simulator.common.global_parameter_names
-
-    def __init__(self, output_directory, result_name,
+    def __init__(self, sim_name, output_directory, result_name,
                  xaxis, yaxis, vary, yextractor=None, xextractor=None):
 
-        super(Grapher, self).__init__(output_directory)
+        super(Grapher, self).__init__(sim_name, output_directory)
 
         self.result_name = result_name
 

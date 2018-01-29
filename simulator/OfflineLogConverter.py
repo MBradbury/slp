@@ -11,8 +11,8 @@ import pandas
 from data.restricted_eval import restricted_eval
 
 def _sanitise_string(input_string):
-    if len(input_string) > 120:
-        input_string = input_string[:120] + "..."
+    if len(input_string) > 255:
+        input_string = input_string[:255] + "..."
 
     return input_string
 

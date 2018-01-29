@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 import os
 import subprocess
@@ -76,7 +75,7 @@ class GraphSummary:
 
 
     def compile(self, show=False):
-        filename_pdf = latex.compile_document('{}.tex'.format(self._name))
+        filename_pdf = latex.compile_document(f'{self._name}.tex')
 
         if show:
             subprocess.call(["xdg-open", filename_pdf])

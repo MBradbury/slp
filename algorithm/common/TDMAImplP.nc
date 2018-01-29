@@ -13,6 +13,8 @@ module TDMAImplP
     uses interface Timer<TMilli> as PostSlotTimer;
 
     uses interface MetricLogging;
+
+    uses interface CustomTime as Time;
 }
 implementation
 {
@@ -52,7 +54,7 @@ implementation
 
 	event void DissemTimer.fired()
     {
-        const uint32_t now = call DissemTimer.gett0() + call DissemTimer.getdt();
+        const uint32_t now = call Time.local_to_global(call DissemTimer.gett0() + call DissemTimer.getdt());
         
         if (signal TDMA.dissem_fired())
         {
@@ -66,14 +68,14 @@ implementation
 
 	event void PreSlotTimer.fired()
     {
-        const uint32_t now = call PreSlotTimer.gett0() + call PreSlotTimer.getdt();
+        const uint32_t now = call Time.local_to_global(call PreSlotTimer.gett0() + call PreSlotTimer.getdt());
         const uint16_t s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
         call SlotTimer.startOneShotAt(now, s * SLOT_PERIOD_MS);
     }
 
     event void SlotTimer.fired()
     {
-        const uint32_t now = call SlotTimer.gett0() + call SlotTimer.getdt();
+        const uint32_t now = call Time.local_to_global(call SlotTimer.gett0() + call SlotTimer.getdt());
         slot_active = TRUE;
 
         signal TDMA.slot_started();
@@ -83,7 +85,7 @@ implementation
 
     event void PostSlotTimer.fired()
     {
-        const uint32_t now = call PostSlotTimer.gett0() + call PostSlotTimer.getdt();
+        const uint32_t now = call Time.local_to_global(call PostSlotTimer.gett0() + call PostSlotTimer.getdt());
         const uint16_t s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
         signal TDMA.slot_finished();
         slot_active = FALSE;

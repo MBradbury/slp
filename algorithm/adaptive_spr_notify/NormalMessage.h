@@ -7,8 +7,7 @@
 typedef nx_struct NormalMessage {
   NXSequenceNumber sequence_number;
 
-  NXSequenceNumber fake_sequence_number;
-  nx_uint32_t fake_sequence_increments;
+  nx_uint16_t fake_rcv_ratio;
 
   // The number of hops that this message
   // has travelled from the source. 
