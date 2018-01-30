@@ -130,10 +130,10 @@ class CLI(CommandLineCommon.CLI):
         result_table = comparison.ResultTable(template_results, adaptive_results)
 
         self._create_table("adaptive-template-comparison", result_table,
-                           lambda (fp, dur, ptfs, ppfs): ptfs not in {0.2, 0.3, 0.4})
+                           lambda x: x[2] not in {0.2, 0.3, 0.4}) #(fp, dur, ptfs, ppfs)
 
         self._create_table("adaptive-template-comparison-low-prob", result_table,
-                           lambda (fp, dur, ptfs, ppfs): ptfs in {0.2, 0.3, 0.4})
+                           lambda x: x[2] in {0.2, 0.3, 0.4}) #(fp, dur, ptfs, ppfs)
 
     def _run_comparison_graph(self, args):
         results_to_compare = ('normal latency', 'ssd', 'captured', 'sent', 'received',
@@ -158,7 +158,7 @@ class CLI(CommandLineCommon.CLI):
             bar.DiffGrapher(
                 self.algorithm_module.graphs_path, result_table, name,
                 shows=[show],
-                extractor=lambda (diff, pcdiff): pcdiff if pc else diff
+                extractor=lambda x: x[1] if pc else x[0] #(diff, pcdiff)
             ).create()
 
             summary.GraphSummary(
@@ -185,7 +185,7 @@ class CLI(CommandLineCommon.CLI):
             g = bar.DiffGrapher(
                 self.algorithm_module.graphs_path, result_table, name,
                 shows=shows,
-                extractor=lambda (diff, pcdiff): pcdiff if pc else diff,
+                extractor=lambda x: x[1] if pc else x[0], #(diff, pcdiff)
                 normalisor=normalisor)
 
             g.yaxis_label = 'Percentage Difference per Node' if pc else 'Average Difference per Node'
