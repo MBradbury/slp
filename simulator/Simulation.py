@@ -134,7 +134,12 @@ class Simulation(object):
             # Do not pass newline in detail onwards
             args = line[:-1].split(':', 3)
             
-            # (d_or_e, node_id, time, detail) = args
+            # Checking that event time and sim time correspond
+            #(d_or_e, node_id, time, detail) = args
+            #time = float(time)
+            #rounded_sim_time = round(self.sim_time(), 6)
+            #if time != rounded_sim_time:
+            #    print(f"Event occurred at {time} and sim_time of {rounded_sim_time}")
 
             function(*args)
 
