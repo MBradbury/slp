@@ -3,8 +3,6 @@ from __future__ import print_function
 from collections import defaultdict
 import os
 
-import simulator.common
-
 import data.util
 from data.graph.versus import Grapher as GrapherBase
 
