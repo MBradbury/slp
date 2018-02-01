@@ -29,8 +29,8 @@ class AttackerConfiguration(object):
     def __str__(self):
         return "{}({})".format(type(self).__name__, ",".join(str(attacker) for attacker in self.attackers))
 
-    def short_str(self):
-        return "{}({})".format(type(self).__name__, ",".join(attacker.short_str() for attacker in self.attackers))
+    def short_name(self):
+        return "{}({})".format(type(self).__name__, ",".join(attacker.short_name() for attacker in self.attackers))
 
 class SingleAttacker(AttackerConfiguration):
     """
@@ -43,8 +43,8 @@ class SingleAttacker(AttackerConfiguration):
     def __str__(self):
         return str(self.attackers[0])
 
-    def short_str(self):
-        return self.attackers[0].short_str()
+    def short_name(self):
+        return self.attackers[0].short_name()
 
 class MultipleAttackers(AttackerConfiguration):
     """
