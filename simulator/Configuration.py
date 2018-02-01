@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
