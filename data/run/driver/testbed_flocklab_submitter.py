@@ -109,7 +109,7 @@ class Runner(object):
         print('    </serialConf>', file=config_file)
 
         with open(exe_path, "rb") as exe_file:
-            encoded_file = base64.b64encode(exe_file.read())
+            encoded_file = base64.b64encode(exe_file.read()).decode("utf-8")
 
         platform = self._get_platform(configuration.topology.platform)
 
