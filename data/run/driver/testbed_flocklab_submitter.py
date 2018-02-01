@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 import base64
 from datetime import datetime
@@ -167,6 +166,7 @@ class Runner(object):
         # Remove some things to get the name to be shorter
         name = target_directory[len("testbed-"):-len("-real")]
         name = name.replace("ReliableFaultModel__-", "")
+        name = name.replace("topology-", "")
 
         configuration = Configuration.create(a.args.configuration, a.args)
 
@@ -183,7 +183,7 @@ class Runner(object):
         command = ["./scripts/flocklab.sh", "-v", config_path]
 
         print("Checking xml validity:",  " ".join(command))
-        validator_output = subprocess.check_output(" ".join(command), shell=True).strip()
+        validator_output = subprocess.check_output(" ".join(command), shell=True).decode("utf-8").strip()
 
         if validator_output != "The file validated correctly.":
             raise RuntimeError(validator_output)
