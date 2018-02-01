@@ -73,7 +73,7 @@ def main():
 
         print('    def node_ids(self):', file=out_file)
         print('        """Get the node id string that identifies which nodes are being used to the testbed."""', file=out_file)
-        print('        return " ".join(["{:03d}".format(node) for node in sorted(self.nodes)])', file=out_file)
+        print('        return " ".join(["{:03d}".format(node.nid) for node in sorted(self.nodes)])', file=out_file)
         print('', file=out_file)
 
         print('    def __str__(self):', file=out_file)
