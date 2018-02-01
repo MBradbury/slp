@@ -682,20 +682,8 @@ class RandomPoissonDiskConnectedSeed2(Configuration):
             space_behind_sink=True
         )
 
-class DCSWarwickSrc201Sink208(Configuration):
-    def __init__(self, *args, **kwargs):
-        from data.testbed.dcswarwick import DCSWarwick
-        dcs_warwick = DCSWarwick()
-
-        super().__init__(
-            dcs_warwick,
-            source_ids={1},
-            sink_ids={2},
-            space_behind_sink=True
-        )
-
 class IndriyaOneFloorSrc31Sink15(Configuration):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         from data.testbed.indriya import Indriya
         indriya = Indriya()
 
@@ -707,7 +695,7 @@ class IndriyaOneFloorSrc31Sink15(Configuration):
         )
 
 class IndriyaTwoFloorsSrc31Sink60(Configuration):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         from data.testbed.indriya import Indriya
         indriya = Indriya()
 
@@ -719,7 +707,7 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
         )
 
 class EuratechSinkCentre(Configuration):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         from data.testbed.fitiotlab import Euratech
         euratech = Euratech()
 
@@ -731,7 +719,7 @@ class EuratechSinkCentre(Configuration):
         )
 
 class FlockLabSinkCentre(Configuration):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         from data.testbed.flocklab import FlockLab
         flocklab = FlockLab()
 
