@@ -13,7 +13,7 @@ import subprocess
 from data import submodule_loader
 
 import simulator.sim
-import simulator.Attacker as Attacker
+import simulator.AttackerConfiguration as AttackerConfiguration
 import simulator.FaultModel as FaultModel
 
 def test_gnuplot_version(name):
@@ -78,17 +78,21 @@ class GrapherBase(object):
     def _shorten_long_names(key_names, key_values):
         # Some of these values get much too long
         very_long_parameter_names = {
-            'attacker model': Attacker.eval_input,
+            'attacker model': AttackerConfiguration.eval_input,
             'fault model': FaultModel.eval_input,
         }
 
         key_values = list(key_values)
 
         for (long_name, creator) in very_long_parameter_names.items():
-            index = key_names.index(long_name)
+            try:
+                index = key_names.index(long_name)
 
-            long_string = key_values[index]
-            key_values[index] = creator(long_string).short_name()
+                long_string = key_values[index]
+                key_values[index] = creator(long_string).short_name()
+            except ValueError:
+                # If the long_name is not in key_names, then skip it
+                pass
 
         return tuple(key_values)
 
@@ -119,17 +123,21 @@ class GrapherBase(object):
 
                 (args1, args2, root) = item
 
+                #print(f"Executing {args1} in {root}")
+
                 try:
                     out = subprocess.check_output(args1, cwd=root, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as ex:
                     outqueue.put((args1, root, None, ex))
-                    raise RuntimeError("Failed to {} in '{}'".format(args2, root), ex)
+                    raise RuntimeError(f"Failed to {args1} in '{root}' with {ex.output}", ex)
 
                 try:
                     out = subprocess.check_output(args2, cwd=root, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as ex:
                     outqueue.put((args2, root, None, ex))
-                    raise RuntimeError("Failed to {} in '{}'".format(args2, root), ex)
+                    raise RuntimeError(f"Failed to {args2} in '{root}' with {ex.output}", ex)
+
+                #print(f"Done {args1} in {root}")
 
         nprocs = multiprocessing.cpu_count()
 
