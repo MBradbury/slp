@@ -296,7 +296,7 @@ class Random(Topology):
                 if check_nodes(coord):
                     break
             else:
-                raise RuntimeError("Unable to allocate random node within {} tries.".format(max_retries))
+                raise RuntimeError(f"Unable to allocate random node within {max_retries} tries.")
 
             self.nodes[i] = coord
 
