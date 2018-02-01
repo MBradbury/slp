@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 import argparse
 from collections import defaultdict
@@ -636,33 +635,26 @@ class CLI(object):
         overall same message generation rate, the source period needs to be adjusted
         relative to the number of sources."""
         names = self.parameter_names(sim)
-        configuration_index = names.index('configuration')
-        size_index = names.index('network size')
-        distance_index = names.index('distance')
         source_period_index = names.index('source period')
 
-        def process(*args):
-            # Getting the configuration here with "topology" is fine, as we are only finding the number of sources.
-            configuration = Configuration.create_specific(args[configuration_index],
-                                                          args[size_index],
-                                                          args[distance_index],
-                                                          "topology",
-                                                          None)
+        def process(args):
+            dargs = dict(zip(names, args))
+            configuration = Configuration.create(dargs["configuration"], dargs)
             num_sources = len(configuration.source_ids)
 
             source_period = args[source_period_index] * num_sources
             return args[:source_period_index] + (source_period,) + args[source_period_index+1:]
 
-        return [process(*args) for args in argument_product]
+        return [process(args) for args in argument_product]
 
-    def _default_cluster_time_estimator(self, sim, args, **kwargs):
+    def _default_cluster_time_estimator(self, sim_name, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
         specific CommandLine if these values are too small or too big. In general
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
 
-        if sim == "cooja":
+        if sim_name == "cooja":
             if size == 7:
                 return timedelta(hours=36)
             elif size == 9:
