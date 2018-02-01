@@ -77,7 +77,7 @@ def process_site(site):
     pypath = os.path.join(output_directory, site + ".py")
 
     with open(path, "w") as out_file:
-       subprocess.check_call("experiment-cli info --site {} -l".format(site), stdout=out_file, shell=True)
+       subprocess.check_call("iotlab-experiment info --site {} -l".format(site), stdout=out_file, shell=True)
 
     with open(path, "r") as out_file:
         nodes = json.load(out_file, object_hook=create_node_objects)["items"]

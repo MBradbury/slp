@@ -24,7 +24,7 @@ gunzip aggregator_log.stdout.gz
 
 cd - > /dev/null
 
-experiment-cli get -i $TESTID -p > $BASE_DIR/$TESTID/experiment.json
+iotlab-experiment get -i $TESTID -p > $BASE_DIR/$TESTID/experiment.json
 
 name=$(jq -r '.name' $BASE_DIR/$TESTID/experiment.json)
 
