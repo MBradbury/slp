@@ -34,7 +34,13 @@ class CLI(CommandLineCommon.CLI):
 
         if sim == "tossim":
             # Using the historical values from AdaptiveSPR
+            # Using size 11 network's time for size 7
             historical = {
+                (7, 0.125): timedelta(seconds=4),
+                (7, 0.25): timedelta(seconds=5),
+                (7, 0.5): timedelta(seconds=6),
+                (7, 1.0): timedelta(seconds=6),
+                (7, 2.0): timedelta(seconds=7),
                 (11, 0.125): timedelta(seconds=4),
                 (11, 0.25): timedelta(seconds=5),
                 (11, 0.5): timedelta(seconds=6),
