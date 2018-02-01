@@ -36,10 +36,10 @@ echo "serial_aggregator -v" >&2
 serial_aggregator -v >&2
 
 # Wait for all nodes to be running
-experiment-cli wait -i ${EXP_ID}
+iotlab-experiment wait -i ${EXP_ID}
 
 # Reset all nodes, so they boot at the same time
-node-cli -i ${EXP_ID} --reset
+iotlab-node -i ${EXP_ID} --reset
 
 # Wait for a bit before starting the aggregator
 sleep 5
