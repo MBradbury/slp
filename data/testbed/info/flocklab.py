@@ -54,7 +54,7 @@ class FlockLab(Topology):
 
     def node_ids(self):
         """Get the node id string that identifies which nodes are being used to the testbed."""
-        return " ".join(["{:03d}".format(node) for node in sorted(self.nodes)])
+        return " ".join(["{:03d}".format(node.nid) for node in sorted(self.nodes)])
 
     def __str__(self):
         return "FlockLab<>"
