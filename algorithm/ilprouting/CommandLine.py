@@ -40,6 +40,41 @@ class CLI(CommandLineCommon.CLI):
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
 
+    def _cluster_time_estimator(self, sim, args, **kwargs):
+        historical_key_names = ('network size', 'source period')
+
+        if sim == "tossim":
+            historical = {
+                ('7', '0.25'): timedelta(seconds=1),
+                ('7', '0.5'): timedelta(seconds=1),
+                ('7', '1.0'): timedelta(seconds=1),
+                ('7', '2.0'): timedelta(seconds=1),
+                ('11', '0.25'): timedelta(seconds=1),
+                ('11', '0.5'): timedelta(seconds=1),
+                ('11', '1.0'): timedelta(seconds=1),
+                ('11', '2.0'): timedelta(seconds=1),
+                ('15', '0.25'): timedelta(seconds=2),
+                ('15', '0.5'): timedelta(seconds=167),
+                ('15', '1.0'): timedelta(seconds=3),
+                ('15', '2.0'): timedelta(seconds=3),
+                ('21', '0.25'): timedelta(seconds=13),
+                ('21', '0.5'): timedelta(seconds=14),
+                ('21', '1.0'): timedelta(seconds=15),
+                ('21', '2.0'): timedelta(seconds=17),
+                ('25', '0.25'): timedelta(seconds=26),
+                ('25', '0.5'): timedelta(seconds=26),
+                ('25', '1.0'): timedelta(seconds=28),
+                ('25', '2.0'): timedelta(seconds=32),
+            }
+        else:
+            historical = {}
+
+        return self._cluster_time_estimator_from_historical(
+            sim, args, kwargs, historical_key_names, historical,
+            allowance=0.25,
+            max_time=timedelta(days=2)
+        )
+
     def _run_table(self, args):
         parameters = [
             'normal latency', 'ssd', 'captured',
