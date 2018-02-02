@@ -677,8 +677,8 @@ class CLI(object):
             else:
                 raise RuntimeError("No time estimate for network sizes other than 7, 11, 15, 21 or 25")
 
-    def _cluster_time_estimator(self, sim, args, **kwargs):
-        return self._default_cluster_time_estimator(args, **kwargs)
+    def _cluster_time_estimator(self, sim_name, args, **kwargs):
+        return self._default_cluster_time_estimator(sim_name, args, **kwargs)
 
     def _cluster_time_estimator_from_historical(self, sim, args, kwargs, historical_key_names, historical, allowance=0.2, max_time=None):
         key = tuple(args[name] for name in historical_key_names)
