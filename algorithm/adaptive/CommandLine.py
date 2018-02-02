@@ -3,13 +3,14 @@ from datetime import timedelta
 import itertools
 import os.path
 
+import simulator.sim
 from simulator import CommandLineCommon
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 template = algorithm.import_algorithm("template")
 
-from data import results
+from data import results, submodule_loader
 from data.table import fake_result, comparison
 from data.graph import summary, bar, min_max_versus
 from data.util import useful_log10, scalar_extractor
@@ -23,9 +24,12 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(__package__, protectionless.name, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
         subparser = self._add_argument("comparison-table", self._run_comparison_table)
         subparser = self._add_argument("comparison-graph", self._run_comparison_graph)
         subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
@@ -71,13 +75,10 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         adaptive_results = results.Results(
-            self.algorithm_module.result_file_path,
+            args.sim, self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=(
                 'sent', 'delivered', 'time taken',
-                #'energy impact',
-                #'energy impact per node',
-                'energy impact per node per second',
                 'captured', 'received ratio', #'ssd', 'attacker distance',
                 'fake nodes at end', 'fake nodes at end when captured'
             ))
@@ -109,7 +110,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': 100,
         }
 
-        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max)
+        self._create_versus_graph(args.sim, graph_parameters, varying, custom_yaxis_range_max)
 
 
     def _run_comparison_table(self, args):
