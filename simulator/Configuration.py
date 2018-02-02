@@ -2,7 +2,6 @@
 from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
-from data.memoize import memoize
 from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring, TopologyId, OrderedId, IndexId
 
 class InvalidSinkError(RuntimeError):
@@ -800,8 +799,6 @@ def try_create_specific(name):
     return NewConfiguration
 
 
-# Memoize this call to eliminate the overhead of creating many identical configurations.
-@memoize
 def create_specific(name, *args, **kwargs):
     confs = [cls for cls in configurations() if cls.__name__ == name]
 
@@ -817,7 +814,10 @@ def create_specific(name, *args, **kwargs):
     else:
         conf_class = confs[0]
 
-    return conf_class(*args, **kwargs)
+    try:
+        return conf_class(*args, **kwargs)
+    except TypeError:
+        return conf_class(*args)
 
 def create(name, args):
     req_attrs = ("network_size", "distance", "node_id_order")
