@@ -820,13 +820,22 @@ def create_specific(name, *args, **kwargs):
     return conf_class(*args, **kwargs)
 
 def create(name, args):
-    req_attrs = ("network_size", "distance", "node_id_order", "seed")
+    req_attrs = ("network_size", "distance", "node_id_order")
+    opt_attrs = ("seed",)
 
-    if all(hasattr(args, attr_name) for attr_name in req_attrs):
-        pos_args = tuple(getattr(args, attr_name) for attr_name in req_attrs)
-    else:
-        pos_args = tuple()
-
+    pos_args = tuple()
     kwargs = {}
+
+    if isinstance(args, dict):
+        req_attrs = [attr_name.replace("_", " ") for attr_name in req_attrs]
+        opt_attrs = [attr_name.replace("_", " ") for attr_name in opt_attrs]
+
+        if all(attr_name in args for attr_name in req_attrs):
+            pos_args = tuple(args[attr_name] for attr_name in req_attrs)
+            kwargs = {attr_name: args[attr_name] for attr_name in opt_attrs if attr_name in args}
+    else:
+        if all(hasattr(args, attr_name) for attr_name in req_attrs):
+            pos_args = tuple(getattr(args, attr_name) for attr_name in req_attrs)
+            kwargs = {attr_name: getattr(args, attr_name) for attr_name in opt_attrs if hasattr(args, attr_name)}
 
     return create_specific(name, *pos_args, **kwargs)
