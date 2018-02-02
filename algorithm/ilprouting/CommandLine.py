@@ -1,5 +1,5 @@
-from __future__ import print_function
 
+from datetime import timedelta
 import itertools
 
 from simulator import CommandLineCommon
