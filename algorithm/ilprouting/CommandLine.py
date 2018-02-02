@@ -54,7 +54,7 @@ class CLI(CommandLineCommon.CLI):
                 ('11', '1.0'): timedelta(seconds=1),
                 ('11', '2.0'): timedelta(seconds=1),
                 ('15', '0.25'): timedelta(seconds=2),
-                ('15', '0.5'): timedelta(seconds=167),
+                ('15', '0.5'): timedelta(seconds=3),
                 ('15', '1.0'): timedelta(seconds=3),
                 ('15', '2.0'): timedelta(seconds=3),
                 ('21', '0.25'): timedelta(seconds=13),
