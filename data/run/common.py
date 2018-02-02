@@ -10,18 +10,18 @@ import numpy as np
 
 from data import results, submodule_loader
 
-from simulator import Attacker
+from simulator import AttackerConfiguration, CoojaRadioModel
 import simulator.sim
 
 class MissingSafetyPeriodError(RuntimeError):
     def __init__(self, key, source_period, safety_periods):
-        super(MissingSafetyPeriodError, self).__init__()
+        super().__init__()
         self.key = key
         self.source_period = source_period
         self.safety_periods = safety_periods
 
     def __str__(self):
-        return "Failed to find the safety period key {} and source period {}".format(self.key, repr(self.source_period))
+        return f"Failed to find the safety period key {self.key} and source period {self.source_period!r}"
 
 def _argument_name_to_parameter(argument_name):
     return "--" + argument_name.replace(" ", "-")
@@ -131,7 +131,9 @@ class RunSimulationsCommon(object):
             # Attacker models are special. Their string format is likely to be different
             # from what is specified in Parameters.py, as the string format prints out
             # argument names.
-            return str(Attacker.eval_input(value))
+            return str(AttackerConfiguration.eval_input(value))
+        elif name == "radio model":
+            return str(CoojaRadioModel.eval_input(value))
         else:
             return str(value)
 
