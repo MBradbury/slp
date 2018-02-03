@@ -1237,6 +1237,7 @@ implementation
 
 			process_fake_duty_cycle(&packet, &message, TRUE, sent_time);
 		}
+#if !defined(LOW_POWER_LISTENING) && !defined(CUSTOM_LOW_POWER_LISTENING)
 		else
 		{
 			if (!busy)
@@ -1248,6 +1249,7 @@ implementation
 				send_fake_on_next_send_done = TRUE;
 			}
 		}
+#endif
 	}
 
 	event void FakeMessageGenerator.durationExpired(const void* original, uint8_t original_size, uint32_t duration_expired_at)
