@@ -1006,6 +1006,8 @@ class CLI(object):
         self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape", show=args.show)
 
     def _run_detect_missing(self, args):
+        import difflib
+
         sim = submodule_loader.load(simulator.sim, args.sim)
         result_file_path = self.algorithm_module.result_file_path(args.sim)
         
@@ -1016,6 +1018,7 @@ class CLI(object):
                                  results=('repeats',))
 
         repeats = result.parameter_set()
+        repeats_diff_strings = ["|".join(k) for k in repeats]
 
         parameter_names = sim.global_parameter_names + result.parameter_names
 
@@ -1023,9 +1026,16 @@ class CLI(object):
 
         for arguments in sorted(argument_product):
             if arguments not in repeats:
-                print("missing ", end="")
+                print(f"Missing {arguments}")
                 print(", ".join([f"{n}={str(v)}" for (n,v) in zip(parameter_names, arguments)]))
-                print()
+
+                close_matches = difflib.get_close_matches("|".join(arguments), repeats_diff_strings, n=3)
+
+                if len(close_matches) > 0:
+                    print("Close:")
+                    for close in close_matches:
+                        print(f"\t{close.split('|')}")
+                    print()
 
         print(f"Loading {result_file_path} to check for missing runs...")
 
