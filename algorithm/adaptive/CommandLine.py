@@ -21,7 +21,7 @@ safety_period_equivalence = {
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.name, safety_period_equivalence=safety_period_equivalence)
+        super(CLI, self).__init__(protectionless.name, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")

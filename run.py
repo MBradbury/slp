@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import print_function, division
 
-import importlib
 import os
 import sys
+
+import algorithm
 
 import simulator.sim
 import simulator.MetricsCommon as MetricsCommon
@@ -25,9 +26,9 @@ def main(argv):
             print("You can only run algorithms in the 'algorithm' or 'cluster' module.", file=sys.stderr)
             return 2
 
-    Arguments = importlib.import_module(f"{module}.Arguments")
+    algorithm_module = algorithm.import_algorithm(module, extras=["Arguments"])
 
-    a = Arguments.Arguments()
+    a = algorithm_module.Arguments.Arguments()
     a.parse(argv[2:])
 
     sim = submodule_loader.load(simulator.sim, a.args.sim)

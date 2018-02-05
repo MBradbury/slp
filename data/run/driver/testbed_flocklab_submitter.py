@@ -2,13 +2,14 @@
 import base64
 from datetime import datetime
 import getpass
-import importlib
 import os
 import shlex
 import subprocess
 from xml.sax.saxutils import escape as escape_xml
 
 import data.testbed.flocklab as flocklab
+
+import algorithm
 
 from simulator import Configuration
 
@@ -56,6 +57,8 @@ class Runner(object):
 
         # by removing "_APPROACH"
         params = params.replace("_APPROACH", "")
+
+        alg = alg.replace("adaptive_spr_notify", "adspr")
 
         short_name = f"{alg}/{params}"
 
@@ -201,7 +204,7 @@ class Runner(object):
 
     @staticmethod
     def parse_arguments(module, argv):
-        arguments_module = importlib.import_module(f"{module}.Arguments")
-        a = arguments_module.Arguments()
+        arguments_module = algorithm.import_algorithm(module, extras=["Arguments"])
+        a = arguments_module.Arguments.Arguments()
         a.parse(argv)
         return a

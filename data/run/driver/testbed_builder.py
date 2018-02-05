@@ -1,7 +1,5 @@
-from __future__ import print_function, division
 
 import glob
-import importlib
 import os
 import shlex
 import shutil
@@ -10,6 +8,8 @@ import time
 
 import data.util
 from data.progress import Progress
+
+import algorithm
 
 from simulator import Builder
 from simulator import Configuration
@@ -199,9 +199,9 @@ class Runner(object):
 
     @staticmethod
     def parse_arguments(module, argv):
-        arguments_module = importlib.import_module(f"{module}.Arguments")
+        arguments_module = algorithm.import_algorithm(module, extras=["Arguments"])
 
-        a = arguments_module.Arguments()
+        a = arguments_module.Arguments.Arguments()
         a.parse(argv)
 
         return a
