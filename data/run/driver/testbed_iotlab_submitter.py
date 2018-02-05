@@ -1,11 +1,12 @@
 
-import importlib
 import math
 import os
 import shlex
 import subprocess
 
 from simulator import Configuration
+
+import algorithm
 
 import data.testbed.fitiotlab as fitiotlab
 
@@ -106,8 +107,8 @@ class Runner(object):
 
     @staticmethod
     def parse_arguments(module, argv):
-        arguments_module = importlib.import_module(f"{module}.Arguments")
+        arguments_module = algorithm.import_algorithm(module, extras=["Arguments"])
 
-        a = arguments_module.Arguments()
+        a = arguments_module.Arguments.Arguments()
         a.parse(argv)
         return a

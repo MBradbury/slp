@@ -102,7 +102,7 @@ class RunSimulationsCommon(object):
 
             filename = os.path.join(
                 self._result_path,
-                '-'.join(map(self._sanitize_job_name, arguments)) + f"-{self.sim_name}.txt"
+                '-'.join(map(self._sanitize_job_name, darguments.items())) + f"-{self.sim_name}.txt"
             )
 
             estimated_time = None
@@ -124,26 +124,32 @@ class RunSimulationsCommon(object):
         else:
             return mode
 
-    def _prepare_argument_name(self, name, darguments):
-        value = darguments[name]
+    def _prepare_argument_name(self, name, value, *, short=False):
 
-        if name == 'attacker model':
-            # Attacker models are special. Their string format is likely to be different
-            # from what is specified in Parameters.py, as the string format prints out
-            # argument names.
-            return str(AttackerConfiguration.eval_input(value))
-        elif name == "radio model":
-            return str(CoojaRadioModel.eval_input(value))
-        else:
-            return str(value)
+        # Attacker models are special. Their string format is likely to be different
+        # from what is specified in Parameters.py, as the string format prints out
+        # argument names.
+        evals = {
+            'attacker model': lambda x: AttackerConfiguration.eval_input(x),
+            'radio model': lambda x: CoojaRadioModel.eval_input(x),
+        }
 
+        eval_fn = evals.get(name, None)
+
+        if eval_fn:
+            value = eval_fn(value)
+
+            if short:
+                return value.short_name()
+
+        return str(value)
 
     def _get_safety_period(self, darguments):
         if self._safety_periods is None:
             return None
 
         key = [
-            self._prepare_argument_name(name, darguments)
+            self._prepare_argument_name(name, darguments[name])
             for name
             in self._global_parameter_names
         ]
@@ -203,7 +209,7 @@ class RunSimulationsCommon(object):
         if not self._skip_completed_simulations:
             return 0
 
-        key = tuple(self._prepare_argument_name(name, darguments) for name in darguments)
+        key = tuple(self._prepare_argument_name(k, v) for (k, v) in darguments.items())
 
         if key not in self._existing_results:
             print(f"Unable to find the key {key} in the existing results. Will now run the simulations for these parameters.", file=sys.stderr)
@@ -212,18 +218,21 @@ class RunSimulationsCommon(object):
         # Check that more than enough jobs were done
         return self._existing_results[key]
 
-    @staticmethod
-    def _sanitize_job_name(name):
-        name = str(name)
+    def _sanitize_job_name(self, kv):
+        value = self._prepare_argument_name(*kv, short=True)
+        name = kv[0]
+
+        if name == "low power listening":
+            value = "1" if name == "enabled" else "0"
 
         # These characters cause issues in file names.
         # They also need to be valid python module names.
         chars = ".,()={}'\""
 
         for char in chars:
-            name = name.replace(char, "_")
+            value = value.replace(char, "_")
 
-        return name
+        return value
 
 def filter_arguments(argument_names, argument_product, to_filter):
     # Remove indexes
@@ -238,8 +247,6 @@ def filter_arguments(argument_names, argument_product, to_filter):
     return filtered_argument_names, filtered_argument_product
 
 class RunTestbedCommon(RunSimulationsCommon):
-
-    #extra_arguments = ('rf power', 'low power listening')
 
     # Filter out invalid parameters to pass onwards
     non_arguments = ('attacker model',)

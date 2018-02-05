@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 from datetime import timedelta
 import os.path
@@ -16,9 +15,13 @@ from data.table import fake_result
 from data.graph import summary, min_max_versus
 from data.util import scalar_extractor
 
+safety_period_equivalence = {
+    "low power listening": {"enabled": "disabled"}
+}
+
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(protectionless.name)
+        super(CLI, self).__init__(protectionless.name, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("--show", action="store_true", default=False)

@@ -30,7 +30,7 @@ class RunSimulations(RunSimulationsCommon):
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless.name, RunSimulations)
+        super(CLI, self).__init__(protectionless.name, RunSimulations)
 
         subparser = self._subparsers.add_parser("table")
         subparser = self._subparsers.add_parser("graph")

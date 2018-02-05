@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-from __future__ import print_function
-
-import importlib
 import sys
 
 import numpy as np
+
+import algorithm
 
 if __name__ == "__main__":
     from simulator import dependency
@@ -19,11 +18,10 @@ if __name__ == "__main__":
     algorithm_name = args[0]
     args = args[1:]
 
-    algorithm = importlib.import_module(f"algorithm.{algorithm_name}")
-    CommandLine = importlib.import_module(f"algorithm.{algorithm_name}.CommandLine")
+    algorithm_module = algorithm.import_algorithm(algorithm_name, extras=["CommandLine"])
 
     # Raise all numpy errors
     np.seterr(all='raise')
 
-    cli = CommandLine.CLI()
+    cli = algorithm_module.CommandLine.CLI()
     cli.run(args)

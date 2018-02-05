@@ -35,8 +35,8 @@ class RunSimulations(RunSimulationsCommon):
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        # super(CLI, self).__init__(__package__, protectionless_tdma_das.result_file_path, RunSimulations)
-        super(CLI, self).__init__(__package__, True, RunSimulations)
+        # super(CLI, self).__init__(protectionless_tdma_das.result_file_path, RunSimulations)
+        super(CLI, self).__init__(True, RunSimulations)
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)

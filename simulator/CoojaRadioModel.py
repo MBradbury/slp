@@ -8,6 +8,9 @@ class CoojaRadioModel(object):
     def __str__(self):
         return type(self).__name__ + "()"
 
+    def short_name(self):
+        return str(self)
+
 class UDGMRadioModel(CoojaRadioModel):
     """Unit Disk Graph Model - Distance Loss"""
     def __init__(self, tx_range, inter_range, tx_success, rx_success):
@@ -24,11 +27,22 @@ class UDGMRadioModel(CoojaRadioModel):
       <success_ratio_tx>{self.tx_success}</success_ratio_tx>
       <success_ratio_rx>{self.rx_success}</success_ratio_rx>"""
 
-    def __str__(self):
+    def _build_str(self, *, short):
         attrs = ("tx_range", "inter_range", "tx_success", "rx_success")
-        attr_str = ",".join(f"{attr}={getattr(self, attr)}" for attr in attrs)
+
+        if not short:
+            attr_str = ",".join(f"{attr}={getattr(self, attr)}" for attr in attrs)
+        else:
+            attr_str = ",".join(f"{getattr(self, attr)}" for attr in attrs)
 
         return f"{type(self).__name__}({attr_str})"
+
+    def __str__(self):
+        return self._build_str(short=False)
+
+    def short_name(self):
+        return self._build_str(short=True)
+
 
 class UDGMConstantLossRadioModel(CoojaRadioModel):
     """Unit Disk Graph Model - Constant Loss"""
@@ -46,11 +60,21 @@ class UDGMConstantLossRadioModel(CoojaRadioModel):
       <success_ratio_tx>{self.tx_success}</success_ratio_tx>
       <success_ratio_rx>{self.rx_success}</success_ratio_rx>"""
 
-    def __str__(self):
+    def _build_str(self, *, short):
         attrs = ("tx_range", "inter_range", "tx_success", "rx_success")
-        attr_str = ",".join(f"{attr}={getattr(self, attr)}" for attr in attrs)
+
+        if not short:
+            attr_str = ",".join(f"{attr}={getattr(self, attr)}" for attr in attrs)
+        else:
+            attr_str = ",".join(f"{getattr(self, attr)}" for attr in attrs)
 
         return f"{type(self).__name__}({attr_str})"
+
+    def __str__(self):
+        return self._build_str(short=False)
+
+    def short_name(self):
+        return self._build_str(short=True)
 
 class DirectedGraphRadioModel(CoojaRadioModel):
     def __init__(self):

@@ -38,11 +38,15 @@ from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
 
 class CLI(object):
 
-    def __init__(self, package, safety_period_module_name=None, custom_run_simulation_class=None, safety_period_equivalence=None):
+    def __init__(self, safety_period_module_name=None, custom_run_simulation_class=None, safety_period_equivalence=None):
         super(CLI, self).__init__()
 
-        self.algorithm_module = importlib.import_module(package)
-        self.algorithm_module.Analysis = importlib.import_module(f"{package}.Analysis")
+        package = self.__module__.rsplit(".", 1)[0]
+
+        try:
+            self.algorithm_module = algorithm.import_algorithm(package, extras=["Analysis", "Parameters"])
+        except ImportError:
+            print(f"Failed to import Parameters from {package}. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
         self.safety_period_module_name = safety_period_module_name
         self.custom_run_simulation_class = custom_run_simulation_class
@@ -53,11 +57,6 @@ class CLI(object):
         # People have run into issues where they used ('<name>') instead of ('<name>',)
         if not isinstance(self.algorithm_module.local_parameter_names, tuple):
             raise RuntimeError("self.algorithm_module.local_parameter_names must be a tuple! If there is only one element, have your forgotten the comma?")
-
-        try:
-            self.algorithm_module.Parameters = importlib.import_module(f"{package}.Parameters")
-        except ImportError:
-            print("Failed to import Parameters. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
         self._argument_handlers = {}
 

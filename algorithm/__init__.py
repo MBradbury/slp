@@ -1,6 +1,7 @@
 
 import importlib
 from os.path import join as os_path_join
+import sys
 
 results_directory_name = "results"
 testbed_results_directory_name = "testbed_results"
@@ -20,8 +21,18 @@ def _setup_algorithm_paths(name):
 
     return (name, results_path, result_file, result_file_path, graphs_path)
 
-def import_algorithm(name):
-    algorithm_module = importlib.import_module(f"algorithm.{name}")
-    algorithm_module.Analysis = importlib.import_module(f"algorithm.{name}.Analysis")
+def import_algorithm(name, extras=None):
+    import_name = module_name = name
+
+    if "." not in import_name:
+        import_name = f"algorithm.{import_name}"
+
+    algorithm_module = importlib.import_module(import_name)
+
+    if extras is not None:
+        for extra in extras:
+            if not hasattr(algorithm_module, extra):
+                extra_module = importlib.import_module(f"{import_name}.{extra}")
+                setattr(algorithm_module, extra, extra_module)
 
     return algorithm_module

@@ -1,10 +1,11 @@
 import os
-import importlib
 import shlex
 import shutil
 
 import data.util
 from data.progress import Progress
+
+import algorithm
 
 from simulator import Builder
 from simulator import Configuration
@@ -38,16 +39,16 @@ class Runner(object):
         # Build the binary
         build_args = self.build_arguments(a)        
 
-        print("Building for {}".format(build_args))
+        print(f"Building for {build_args}")
 
         build_result = Builder.build_sim(module_path, **build_args)
 
-        print("Build finished with result {}...".format(build_result))
+        print(f"Build finished with result {build_result}...")
 
         # Previously there have been problems with the built files not
         # properly having been flushed to the disk before attempting to move them.
 
-        print("Copying files from {} to {}...".format(module_path, target_directory))
+        print(f"Copying files from {module_path} to {target_directory}...")
 
         files_to_copy = (
             "Analysis.py",
@@ -78,9 +79,9 @@ class Runner(object):
 
     @staticmethod
     def parse_arguments(module, argv):
-        arguments_module = importlib.import_module(f"{module}.Arguments")
+        arguments_module = algorithm.import_algorithm(module, extras=["Arguments"])
 
-        a = arguments_module.Arguments()
+        a = arguments_module.Arguments.Arguments()
         a.parse(argv)
         return a
 

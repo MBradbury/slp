@@ -14,7 +14,7 @@ from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__, protectionless_ctp.result_file_path)
+        super(CLI, self).__init__(protectionless_ctp.result_file_path)
 
         subparser = self._add_argument("table", self._run_table)
         subparser = self._add_argument("graph", self._run_graph)

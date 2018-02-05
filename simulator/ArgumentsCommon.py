@@ -1,7 +1,8 @@
 
 import argparse
-from importlib import import_module
 from random import SystemRandom
+
+import algorithm
 
 from simulator import CommunicationModel, NoiseModel
 import simulator.AttackerConfiguration as AttackerConfiguration
@@ -468,8 +469,9 @@ class ArgumentsCommon(object):
                 assert self.args.address_recognition == "software"
 
         # Some metrics class have build arguments, so we need to pull them in here:
-        algorithm_metrics_module = import_module("..Metrics", self.__module__)
-        result.update(algorithm_metrics_module.Metrics.build_arguments())
+        package = self.__module__.rsplit(".", 1)[0]
+        algorithm_module = algorithm.import_algorithm(package, extras=["Metrics"])
+        result.update(algorithm_module.Metrics.Metrics.build_arguments())
 
         # Pull in any build options from extra_metrics
         if hasattr(self.args, "extra_metrics") and self.args.extra_metrics is not None:
