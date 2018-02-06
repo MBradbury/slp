@@ -116,6 +116,9 @@ class Topology(object):
 
         elif node_id_order == "randomised":
 
+            if self.seed is None:
+                raise RuntimeError("Fuck you no seed")
+
             rnd = random.Random()
             rnd.seed(self.seed)
 
@@ -257,6 +260,9 @@ class Random(Topology):
     def __init__(self, network_size, distance, node_id_order, seed=None):
         super(Random, self).__init__(seed)
 
+        if seed is None:
+            raise RuntimeError(f"{type(self)} must have a non None seed")
+
         self.size = network_size
         self.distance = float(distance)
 
@@ -311,6 +317,9 @@ class RandomPoissonDisk(Topology):
         super(RandomPoissonDisk, self).__init__(seed)
 
         from bridson import poisson_disc_samples
+
+        if seed is None:
+            raise RuntimeError(f"{type(self)} must have a non None seed")
 
         self.size = network_size
         self.distance = float(distance)
