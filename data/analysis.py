@@ -419,11 +419,20 @@ class Analyse(object):
                 columns_to_check = ["Seed", "Sent", "Received", "Delivered", "Captured", "FirstNormalSentTime", "EventCount"]
                 dupe_seeds = df[columns_to_check][duplicated_seeds_filter].groupby("Seed", sort=False)
 
+                dupe_differing_seeds = {}
+
                 for name, group in dupe_seeds:
                     differing = group[group.columns[group.apply(lambda s: len(s.unique()) > 1)]]
 
                     if not differing.empty:
-                        raise RuntimeError(f"For seed {name}, the following columns differ: {differing}")
+                        dupe_differing_seeds[name] = differing
+
+                if len(dupe_differing_seeds) > 0:
+                    for name, differing in dupe_differing_seeds.items():
+                        print(f"For seed {name} the following items differed:")
+                        print(differing)
+
+                    raise RuntimeError(f"For seeds {list(dupe_differing_seeds.keys())} different values were obtained")
 
                 initial_length = len(df.index)
 
