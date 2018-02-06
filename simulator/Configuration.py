@@ -253,8 +253,8 @@ class Configuration(object):
 # Coordinates are specified in topology format below
 
 class LineSinkCentre(Configuration):
-    def __init__(self, *args):
-        line = Line(*args)
+    def __init__(self, *args, **kwargs):
+        line = Line(*args, **kwargs)
 
         super().__init__(
             line,
@@ -264,8 +264,8 @@ class LineSinkCentre(Configuration):
         )
 
 class SimpleTreeSinkEnd(Configuration):
-    def __init__(self, *args):
-        tree = SimpleTree(*args)
+    def __init__(self, *args, **kwargs):
+        tree = SimpleTree(*args, **kwargs)
 
         super().__init__(
             tree,
@@ -275,8 +275,8 @@ class SimpleTreeSinkEnd(Configuration):
         )
 
 class SourceCorner(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -286,8 +286,8 @@ class SourceCorner(Configuration):
         )
 
 class Source2CornerTop(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -297,8 +297,8 @@ class Source2CornerTop(Configuration):
         )
 
 class Source3CornerTop(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -308,8 +308,8 @@ class Source3CornerTop(Configuration):
         )
 
 class Source3CornerTopLinear(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -319,8 +319,8 @@ class Source3CornerTopLinear(Configuration):
         )
 
 class SinkCorner(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -330,8 +330,8 @@ class SinkCorner(Configuration):
         )
 
 class SinkCorner2Source(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -341,8 +341,8 @@ class SinkCorner2Source(Configuration):
         )
 
 class SinkCorner3Source(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -352,8 +352,8 @@ class SinkCorner3Source(Configuration):
         )
 
 class SinkCorner3SourceLinear(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -363,8 +363,8 @@ class SinkCorner3SourceLinear(Configuration):
         )
 
 class FurtherSinkCorner(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -373,8 +373,8 @@ class FurtherSinkCorner(Configuration):
             space_behind_sink=False
         )
 class FurtherSinkCorner2Source(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -383,8 +383,8 @@ class FurtherSinkCorner2Source(Configuration):
             space_behind_sink=False
         )
 class FurtherSinkCorner3Source(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -394,8 +394,8 @@ class FurtherSinkCorner3Source(Configuration):
         )
 
 class SinkSourceOpposite(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -405,8 +405,8 @@ class SinkSourceOpposite(Configuration):
         )
 
 class SinkSourceOpposite2Source(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -416,8 +416,8 @@ class SinkSourceOpposite2Source(Configuration):
         )
 
 class SinkSourceOpposite3Source(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -427,8 +427,8 @@ class SinkSourceOpposite3Source(Configuration):
         )
 
 class Generic1(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
         node_count = len(grid.nodes)
 
         super().__init__(
@@ -439,8 +439,8 @@ class Generic1(Configuration):
         )
 
 class Generic2(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -450,8 +450,8 @@ class Generic2(Configuration):
         )
 
 class RingTop(Configuration):
-    def __init__(self, *args):
-        ring = Ring(*args)
+    def __init__(self, *args, **kwargs):
+        ring = Ring(*args, **kwargs)
 
         super().__init__(
             ring,
@@ -461,8 +461,8 @@ class RingTop(Configuration):
         )
 
 class RingMiddle(Configuration):
-    def __init__(self, *args):
-        ring = Ring(*args)
+    def __init__(self, *args, **kwargs):
+        ring = Ring(*args, **kwargs)
 
         super().__init__(
             ring,
@@ -472,8 +472,8 @@ class RingMiddle(Configuration):
         )
 
 class RingOpposite(Configuration):
-    def __init__(self, *args):
-        ring = Ring(*args)
+    def __init__(self, *args, **kwargs):
+        ring = Ring(*args, **kwargs)
 
         super().__init__(
             ring,
@@ -483,8 +483,8 @@ class RingOpposite(Configuration):
         )
 
 class CircleSinkCentre(Configuration):
-    def __init__(self, *args):
-        circle = Circle(*args)
+    def __init__(self, *args, **kwargs):
+        circle = Circle(*args, **kwargs)
 
         super().__init__(
             circle,
@@ -494,8 +494,8 @@ class CircleSinkCentre(Configuration):
         )
 
 class CircleSourceCentre(Configuration):
-    def __init__(self, *args):
-        circle = Circle(*args)
+    def __init__(self, *args, **kwargs):
+        circle = Circle(*args, **kwargs)
 
         super().__init__(
             circle,
@@ -505,8 +505,8 @@ class CircleSourceCentre(Configuration):
         )
 
 class CircleEdges(Configuration):
-    def __init__(self, *args):
-        circle = Circle(*args)
+    def __init__(self, *args, **kwargs):
+        circle = Circle(*args, **kwargs)
 
         super().__init__(
             circle,
@@ -516,8 +516,8 @@ class CircleEdges(Configuration):
         )
 
 class Source2Corners(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -527,8 +527,8 @@ class Source2Corners(Configuration):
         )
 
 class Source3Corners(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -538,8 +538,8 @@ class Source3Corners(Configuration):
         )
 
 class Source4Corners(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -549,8 +549,8 @@ class Source4Corners(Configuration):
         )
 
 class Source2Edges(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -563,8 +563,8 @@ class Source2Edges(Configuration):
         )
 
 class Source4Edges(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -581,8 +581,8 @@ class Source4Edges(Configuration):
         )
 
 class Source2Corner(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -592,8 +592,8 @@ class Source2Corner(Configuration):
         )
 
 class FurtherSinkSource2Corner(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -603,8 +603,8 @@ class FurtherSinkSource2Corner(Configuration):
         )
 
 class Source3Corner(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -614,8 +614,8 @@ class Source3Corner(Configuration):
         )
 
 class Source2Corner2OppositeCorner(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -630,8 +630,8 @@ class Source2Corner2OppositeCorner(Configuration):
         )
 
 class SourceEdgeCorner(Configuration):
-    def __init__(self, *args):
-        grid = Grid(*args)
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
 
         super().__init__(
             grid,
@@ -821,21 +821,21 @@ def create_specific(name, *args, **kwargs):
 
 def create(name, args):
     req_attrs = ("network_size", "distance", "node_id_order")
-    opt_attrs = ("seed",)
+    kwd_attrs = ("seed",)
 
     pos_args = tuple()
     kwargs = {}
 
     if isinstance(args, dict):
         req_attrs = [attr_name.replace("_", " ") for attr_name in req_attrs]
-        opt_attrs = [attr_name.replace("_", " ") for attr_name in opt_attrs]
+        kwd_attrs = [attr_name.replace("_", " ") for attr_name in kwd_attrs]
 
         if all(attr_name in args for attr_name in req_attrs):
             pos_args = tuple(args[attr_name] for attr_name in req_attrs)
-            kwargs = {attr_name: args[attr_name] for attr_name in opt_attrs if attr_name in args}
+            kwargs = {attr_name: args[attr_name] for attr_name in kwd_attrs}
     else:
         if all(hasattr(args, attr_name) for attr_name in req_attrs):
             pos_args = tuple(getattr(args, attr_name) for attr_name in req_attrs)
-            kwargs = {attr_name: getattr(args, attr_name) for attr_name in opt_attrs if hasattr(args, attr_name)}
+            kwargs = {attr_name: getattr(args, attr_name) for attr_name in kwd_attrs}
 
     return create_specific(name, *pos_args, **kwargs)
