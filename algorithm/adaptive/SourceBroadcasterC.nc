@@ -274,8 +274,6 @@ implementation
 
 		away_messages_to_send = SINK_AWAY_MESSAGES_TO_SEND;
 
-		//extra_to_send = 0;
-
 		fake_rcv_ratio = UINT16_MAX;
 
 		algorithm = UnknownAlgorithm;
