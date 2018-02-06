@@ -14,4 +14,7 @@ implementation
 
     components LocalTimeMilliC;
     App.LocalTime -> LocalTimeMilliC;
+
+    components MainC;
+    App.Boot -> MainC;
 }
