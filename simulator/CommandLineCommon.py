@@ -636,7 +636,7 @@ class CLI(object):
         source_period_index = names.index('source period')
 
         def process(args):
-            dargs = dict(zip(names, args))
+            dargs = {**dict(zip(names, args)), "seed": None, "node id order": "topology"}
             configuration = Configuration.create(dargs["configuration"], dargs)
             num_sources = len(configuration.source_ids)
 
