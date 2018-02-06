@@ -564,22 +564,25 @@ class Analyse(object):
 
 
     def _get_configuration(self):
-        args = ('network_size', 'distance', 'node_id_order')
         arg_converters = {
             'network_size': int,
             'distance': float,
         }
 
-        arg_values = [
-            arg_converters.get(name, lambda x: x)(self.opts[name])
-            for name in args
+        arg_values = {
+            name.replace("_", " "): converter(self.opts[name])
+            for (name, converter) in arg_converters.items()
             if name in self.opts
-        ]
+        }
 
-        # Add a None value for the seed
-        arg_values.append(None)
+        # Will never have a seed because opts to too early to get the
+        # per simulation seed
+        arg_values['seed'] = None
 
-        return Configuration.create_specific(self.opts['configuration'], *arg_values)
+        # As we don't have a seed the node_id_order must always be topology
+        arg_values['node id order'] = "topology"
+
+        return Configuration.create(self.opts['configuration'], arg_values)
 
     def _get_constants_from_opts(self):
         """Get values that do not depend on the contents of the row."""
@@ -994,7 +997,7 @@ class AnalyzerCommon(object):
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling
         if nprocs is not None and nprocs == 1:
-            return self.run_single(summary_file, **kwargs)
+            return self.run_single(summary_file, result_finder, **kwargs)
 
         def worker(inqueue, outqueue):
             while True:
