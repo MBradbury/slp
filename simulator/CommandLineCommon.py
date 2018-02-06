@@ -4,7 +4,6 @@ from collections import defaultdict
 from datetime import timedelta
 import fnmatch
 import functools
-import importlib
 import itertools
 import math
 import os
@@ -212,7 +211,7 @@ class CLI(object):
             return module.result_file_path(sim_name)
 
     def get_safety_period_result_path(self, sim_name, testbed=None):
-        algo = importlib.import_module("algorithm.{}".format(self.safety_period_module_name))
+        algo = algorithm.import_algorithm(self.safety_period_module_name)
 
         return self.get_results_file_path(sim_name, testbed=testbed, module=algo)
 
