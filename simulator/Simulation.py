@@ -13,7 +13,6 @@ import numpy as np
 import simulator.CommunicationModel as CommunicationModel
 import simulator.MetricsCommon as MetricsCommon
 import simulator.NoiseModel as NoiseModel
-from simulator.Topology import IndexId
 
 class Node(object):
     __slots__ = ('nid', 'location', 'tossim_node')
@@ -250,7 +249,7 @@ class Simulation(object):
         cm = CommunicationModel.eval_input(self.communication_model)
         cm.setup(self)
 
-        i2o = self.configuration.topology.i2o
+        ri2o = self.configuration.topology.ri2o
         isnan = np.isnan
 
         wgn = cm.white_gausian_noise
@@ -265,13 +264,13 @@ class Simulation(object):
                 continue
 
             # Convert from the indexes to the ordered node ids
-            nidi = i2o(IndexId(i)).nid
-            nidj = i2o(IndexId(j)).nid
+            nidi = ri2o(i).nid
+            nidj = ri2o(j).nid
 
             radio_add(nidi, nidj, gain)
 
         for (i, noise_floor) in enumerate(cm.noise_floor):
-            nidi = i2o(IndexId(i)).nid
+            nidi = ri2o(i).nid
 
             radio_setNoise(nidi, noise_floor, wgn)
 
