@@ -193,10 +193,11 @@ class MetricsCommon(object):
             return set(self.configuration.sink_ids)
 
     def _process_node_id(self, ordered_node_id):
-        if int(ordered_node_id) == AM_BROADCAST_ADDR:
+        ordered_node_id = int(ordered_node_id)
+        if ordered_node_id == AM_BROADCAST_ADDR:
             return None, None
 
-        ordered_node_id = OrderedId(int(ordered_node_id))
+        ordered_node_id = OrderedId(ordered_node_id)
         return ordered_node_id, self.topology.o2t(ordered_node_id)
 
     def register(self, name, function):
@@ -287,7 +288,7 @@ class MetricsCommon(object):
             return
 
         if len(hex_buffer) % 2 != 0:
-            raise RuntimeError(f"The sent buffer {hex_buffer} does not have an event length {len(hex_buffer)/2}")
+            raise RuntimeError(f"The sent buffer {hex_buffer} does not have an even length {len(hex_buffer)/2}")
 
         key = (str(node_id), kind, ultimate_source_id, sequence_number)
         if key not in self.messages_broadcast:
