@@ -277,18 +277,15 @@ class MetricsCommon(object):
 
 
     def process_bcast_event(self, d_or_e, node_id, time, detail):
-        try:
-            (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
-        except ValueError:
-            (kind, status, sequence_number, tx_power) = detail.split(',')
-            ultimate_source_id = None
+        (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
 
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
         if status != "0":
             return
 
-        if len(hex_buffer) % 2 != 0:
-            raise RuntimeError(f"The sent buffer {hex_buffer} does not have an even length {len(hex_buffer)/2}")
+        if __debug__:
+            if len(hex_buffer) % 2 != 0:
+                raise RuntimeError(f"The sent buffer {hex_buffer} does not have an even length {len(hex_buffer)/2}")
 
         key = (str(node_id), kind, ultimate_source_id, sequence_number)
         if key not in self.messages_broadcast:
