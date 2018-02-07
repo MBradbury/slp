@@ -67,14 +67,17 @@ class Topology(object):
         self.seed = seed
 
     def node_distance_meters(self, node1, node2):
-        if not isinstance(node1, OrderedId):
-            raise TypeError("node1 is not an OrderedId it is a", type(node1))
-
-        if not isinstance(node2, OrderedId):
-            raise TypeError("node2 is not an OrderedId it is a", type(node2))
-
         """Gets the node distance in meters using ordered node ids"""
-        return euclidean2_2d(self.nodes[node1], self.nodes[node2])
+        try:
+            return euclidean2_2d(self.nodes[node1], self.nodes[node2])
+        except KeyError:
+            if not isinstance(node1, OrderedId):
+                raise TypeError("node1 is not an OrderedId it is a", type(node1))
+
+            if not isinstance(node2, OrderedId):
+                raise TypeError("node2 is not an OrderedId it is a", type(node2))
+
+            raise
 
     @staticmethod
     def coord_distance_meters(coord1, coord2):
@@ -82,24 +85,33 @@ class Topology(object):
 
     def o2t(self, ordered_nid):
         """Converts a ordered node id to a topology node id"""
-        if not isinstance(ordered_nid, OrderedId):
-            raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
-
-        return self.ordered_nid_to_topology_nid[ordered_nid]
+        try:
+            return self.ordered_nid_to_topology_nid[ordered_nid]
+        except KeyError:
+            if not isinstance(ordered_nid, OrderedId):
+                raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
+            else:
+                raise
 
     def t2o(self, topology_nid):
         """Converts an topology node id to an ordered node id"""
-        if not isinstance(topology_nid, TopologyId):
-            raise TypeError("topology_nid is not an TopologyId it is a", type(topology_nid))
-
-        return self.topology_nid_to_ordered_nid[topology_nid]
+        try:
+            return self.topology_nid_to_ordered_nid[topology_nid]
+        except KeyError:
+            if not isinstance(topology_nid, TopologyId):
+                raise TypeError("topology_nid is not an TopologyId it is a", type(topology_nid))
+            else:
+                raise
 
     def o2i(self, ordered_nid):
         """Get the index that an ordered node id will be stored in"""
-        if not isinstance(ordered_nid, OrderedId):
-            raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
-
-        return self.ordered_ids_reverse_mapping[ordered_nid]
+        try:
+            return self.ordered_ids_reverse_mapping[ordered_nid]
+        except KeyError:
+            if not isinstance(ordered_nid, OrderedId):
+                raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
+            else:
+                raise
 
     def i2o(self, node_idx):
         """Get the ordered node id from a node index"""
