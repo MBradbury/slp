@@ -384,12 +384,12 @@ class MetricsCommon(object):
 
         time = float(time)
         kind = self.message_kind_to_string(kind)
-        sequence_number = self.parse_sequence_number(sequence_number)
-        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
 
         self.received[kind][top_node_id] += 1
 
         if ord_node_id in self.sink_ids() and kind == "Normal":
+            sequence_number = self.parse_sequence_number(sequence_number)
+            ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
             hop_count = int(hop_count)
 
             # If there is a KeyError on the line with self.normal_sent_time
@@ -421,14 +421,10 @@ class MetricsCommon(object):
                                         self.received_from_further_hops, self.received_from_closer_or_same_hops,
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
-        #self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, OrderedDict())[(ord_ultimate_source_id, sequence_number)] = time
         self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, []).append(time)
 
     def process_deliver_event(self, d_or_e, node_id, time, detail):
-        try:
-            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
-        except ValueError:
-            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+        (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
 
         if __debug__:
             try:
@@ -452,7 +448,6 @@ class MetricsCommon(object):
         ord_prox_src_id, top_prox_src_id = self._process_node_id(proximate_source_id)
 
         kind = self.message_kind_to_string(kind)
-        sequence_number = self.parse_sequence_number(sequence_number)
 
         self.delivered[kind][top_node_id] += 1
 
@@ -636,8 +631,6 @@ class MetricsCommon(object):
             return float('inf')
 
     def message_receive_interval(self):
-        #self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, {})[(ord_ultimate_source_id, sequence_number)] = time
-
         return {
             kind: {
                 nid: round(np.mean([b - a for (a, b) in pairwise(values1)]), 6)
