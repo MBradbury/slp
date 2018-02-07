@@ -120,6 +120,10 @@ class Topology(object):
 
         return self.ordered_ids[node_idx.nid]
 
+    def ri2o(self, raw_node_idx):
+        """Get the ordered node id from a raw node index (int)"""
+        return self.ordered_ids[raw_node_idx]
+
     def _process_node_id_order(self, node_id_order):
         if node_id_order == "topology":
 

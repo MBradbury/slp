@@ -72,8 +72,8 @@ class LinkLayerCommunicationModel(CommunicationModel):
         for ((i, ni), (j, nj)) in combinations(nodes, 2):
             distance = euclidean2_2d(ni, nj)
             if distance < self.d0:
-                raise RuntimeError("The distance ({}) between any two nodes (IndexId({})={}, IndexId({})={}) must be at least d0 ({})".format(
-                    distance, i, ni, j, nj, self.d0))
+                raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
+                    distance, topology.ri2o(i), ni, topology.ri2o(j), nj, self.d0))
 
     def _obtain_radio_pt_pn(self, topology, nodes, rng):
         s = self.s
