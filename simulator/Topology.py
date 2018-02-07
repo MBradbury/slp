@@ -117,7 +117,7 @@ class Topology(object):
         elif node_id_order == "randomised":
 
             if self.seed is None:
-                raise RuntimeError("Fuck you no seed")
+                raise RuntimeError("Need to have a non-None seed to randomise the node id order of a topology")
 
             rnd = random.Random()
             rnd.seed(self.seed)
