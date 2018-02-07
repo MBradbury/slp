@@ -57,6 +57,11 @@ class CLI(CommandLineCommon.CLI):
 
         if sim == "tossim":
             historical = {
+                (7, 0.125): timedelta(seconds=6),
+                (7, 0.25): timedelta(seconds=9),
+                (7, 0.5): timedelta(seconds=10),
+                (7, 1.0): timedelta(seconds=12),
+                (7, 2.0): timedelta(seconds=12),
                 (11, 0.125): timedelta(seconds=6),
                 (11, 0.25): timedelta(seconds=9),
                 (11, 0.5): timedelta(seconds=10),
