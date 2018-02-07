@@ -989,13 +989,14 @@ class CLI(object):
     def _run_time_taken_table(self, args):
         result_file_path = self.get_results_file_path(args.sim, testbed=args.testbed)
 
-        result = results.Results(result_file_path,
+        result = results.Results(args.sim,
+                                 result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('time taken', 'first normal sent time',
                                           'total wall time', 'wall time', 'event count',
                                           'repeats', 'captured', 'reached upper bound',
                                           'memory rss', 'memory vms'),
-                                 testbed=args.testbed is not None)
+        )
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 
