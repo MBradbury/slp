@@ -4,6 +4,7 @@ from datetime import timedelta
 import os.path
 
 from simulator import CommandLineCommon
+import simulator.sim
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
@@ -11,7 +12,7 @@ adaptive = algorithm.import_algorithm("adaptive")
 template = algorithm.import_algorithm("template")
 #adaptive_spr = algorithm.import_algorithm("adaptive_spr")
 
-from data import results
+from data import results, submodule_loader
 from data.table import fake_result
 from data.graph import summary, min_max_versus
 from data.util import scalar_extractor
@@ -21,10 +22,14 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(protectionless.name)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--show", action="store_true", default=False)
         
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
         subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
@@ -75,13 +80,13 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         adaptive_results = results.Results(
-            self.algorithm_module.result_file_path,
+            args.sim,
+            self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=(
                 'sent', 'delivered', 'time taken',
                 'normal latency', 'ssd', 'captured',
                 'fake', 'received ratio', 'tfs', 'pfs',
-                'energy impact per node per second',
                 #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
                 #'norm(norm(norm(sent,time taken),network size),source rate)'
             ))
