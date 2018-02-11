@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 from collections import Counter, OrderedDict, defaultdict, namedtuple
 import base64
@@ -194,10 +193,11 @@ class MetricsCommon(object):
             return set(self.configuration.sink_ids)
 
     def _process_node_id(self, ordered_node_id):
-        if int(ordered_node_id) == AM_BROADCAST_ADDR:
+        ordered_node_id = int(ordered_node_id)
+        if ordered_node_id == AM_BROADCAST_ADDR:
             return None, None
 
-        ordered_node_id = OrderedId(int(ordered_node_id))
+        ordered_node_id = OrderedId(ordered_node_id)
         return ordered_node_id, self.topology.o2t(ordered_node_id)
 
     def register(self, name, function):
@@ -277,18 +277,15 @@ class MetricsCommon(object):
 
 
     def process_bcast_event(self, d_or_e, node_id, time, detail):
-        try:
-            (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
-        except ValueError:
-            (kind, status, sequence_number, tx_power) = detail.split(',')
-            ultimate_source_id = None
+        (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
 
         # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
         if status != "0":
             return
 
-        if len(hex_buffer) % 2 != 0:
-            raise RuntimeError(f"The sent buffer {hex_buffer} does not have an event length {len(hex_buffer)/2}")
+        if __debug__:
+            if len(hex_buffer) % 2 != 0:
+                raise RuntimeError(f"The sent buffer {hex_buffer} does not have an even length {len(hex_buffer)/2}")
 
         key = (str(node_id), kind, ultimate_source_id, sequence_number)
         if key not in self.messages_broadcast:
@@ -384,12 +381,12 @@ class MetricsCommon(object):
 
         time = float(time)
         kind = self.message_kind_to_string(kind)
-        sequence_number = self.parse_sequence_number(sequence_number)
-        ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
 
         self.received[kind][top_node_id] += 1
 
         if ord_node_id in self.sink_ids() and kind == "Normal":
+            sequence_number = self.parse_sequence_number(sequence_number)
+            ord_ultimate_source_id, top_ultimate_source_id = self._process_node_id(ultimate_source_id)
             hop_count = int(hop_count)
 
             # If there is a KeyError on the line with self.normal_sent_time
@@ -421,14 +418,10 @@ class MetricsCommon(object):
                                         self.received_from_further_hops, self.received_from_closer_or_same_hops,
                                         self.received_from_further_meters, self.received_from_closer_or_same_meters)
 
-        #self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, OrderedDict())[(ord_ultimate_source_id, sequence_number)] = time
         self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, []).append(time)
 
     def process_deliver_event(self, d_or_e, node_id, time, detail):
-        try:
-            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
-        except ValueError:
-            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+        (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
 
         if __debug__:
             try:
@@ -452,7 +445,6 @@ class MetricsCommon(object):
         ord_prox_src_id, top_prox_src_id = self._process_node_id(proximate_source_id)
 
         kind = self.message_kind_to_string(kind)
-        sequence_number = self.parse_sequence_number(sequence_number)
 
         self.delivered[kind][top_node_id] += 1
 
@@ -636,8 +628,6 @@ class MetricsCommon(object):
             return float('inf')
 
     def message_receive_interval(self):
-        #self.receive_time.setdefault(kind, {}).setdefault(ord_node_id, {})[(ord_ultimate_source_id, sequence_number)] = time
-
         return {
             kind: {
                 nid: round(np.mean([b - a for (a, b) in pairwise(values1)]), 6)

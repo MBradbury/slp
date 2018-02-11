@@ -22,7 +22,7 @@ def _setup_algorithm_paths(name):
     return (name, results_path, result_file, result_file_path, graphs_path)
 
 def import_algorithm(name, extras=None):
-    import_name = module_name = name
+    import_name = name
 
     if "." not in import_name:
         import_name = f"algorithm.{import_name}"

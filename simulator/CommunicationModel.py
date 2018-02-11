@@ -47,15 +47,14 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
     def setup(self, sim):
         topology = sim.configuration.topology
-        nodes = list(sim.configuration.topology.nodes.items())
-        rng = sim.rng
+        nodes = [(topology.o2i(oid).nid, coords) for (oid, coords) in topology.nodes.items()]
 
-        self._setup(topology, nodes, rng)
+        self._setup(topology, nodes, sim.rng)
 
     def _setup(self, topology, nodes, rng):
         """Provide a second setup function to help test this model against the Java version"""
         if __debug__:
-            self._check_nodes(nodes)
+            self._check_nodes(topology, nodes)
 
         num_nodes = len(nodes)
 
@@ -66,7 +65,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         self._obtain_link_gain(topology, nodes, rng)
 
-    def _check_nodes(self, nodes):
+    def _check_nodes(self, topology, nodes):
         """Check that all nodes are at least d0 distance away from each other.
         This model does not work correctly when nodes are closer than d0."""
 
@@ -74,7 +73,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
             distance = euclidean2_2d(ni, nj)
             if distance < self.d0:
                 raise RuntimeError("The distance ({}) between any two nodes ({}={}, {}={}) must be at least d0 ({})".format(
-                    distance, i, ni, j, nj, self.d0))
+                    distance, topology.ri2o(i), ni, topology.ri2o(j), nj, self.d0))
 
     def _obtain_radio_pt_pn(self, topology, nodes, rng):
         s = self.s
@@ -97,9 +96,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         o2i = topology.o2i
 
-        for (oid, coord) in nodes:
-            i = o2i(oid).nid
-
+        for (i, coord) in nodes:
             rnd1 = rg(0, 1)
             rnd2 = rg(0, 1)
 
@@ -116,10 +113,7 @@ class LinkLayerCommunicationModel(CommunicationModel):
 
         o2i = topology.o2i
 
-        for ((oidi, ni), (oidj, nj)) in combinations(nodes, 2):
-            i = o2i(oidi).nid
-            j = o2i(oidj).nid
-
+        for ((i, ni), (j, nj)) in combinations(nodes, 2):
             rnd1 = rg(0, 1)
 
             distance = euclidean2_2d(ni, nj)
@@ -140,7 +134,7 @@ class IdealCommunicationModel(CommunicationModel):
 
     def setup(self, sim):
         topology = sim.configuration.topology
-        nodes = list(topology.nodes.items())
+        nodes = [(topology.o2i(oid).nid, coords) for (oid, coords) in topology.nodes.items()]
 
         num_nodes = len(nodes)
 
@@ -157,11 +151,8 @@ class IdealCommunicationModel(CommunicationModel):
 
         o2i = topology.o2i
 
-        for ((oidi, ni), (oidj, nj)) in combinations(nodes, 2):
+        for ((i, ni), (j, nj)) in combinations(nodes, 2):
             if euclidean2_2d(ni, nj) <= wireless_range:
-                i = o2i(oidi).nid
-                j = o2i(oidj).nid
-
                 lg[i,j] = self.connection_strength
                 lg[j,i] = self.connection_strength
 
@@ -289,16 +280,17 @@ def models():
             for subsubcls in subcls.__subclasses__()]  # pylint: disable=no-member
 
 def eval_input(source):
-    result = MODEL_NAME_MAPPING.get(source, None)
-    if result is not None:
-        return result()
+    try:
+        return MODEL_NAME_MAPPING[source]()
+    except KeyError:
+        pass
 
     result = restricted_eval(source, models())
 
     if isinstance(result, CommunicationModel):
         return result
     else:
-        raise RuntimeError("The source ({}) is not valid.".format(source))
+        raise RuntimeError(f"The source ({source}) is not valid.")
 
 def available_models():
     class WildcardCommunicationModelChoice(object):

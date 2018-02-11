@@ -218,14 +218,9 @@ implementation
 
 	uint32_t get_tfs_duration(void)
 	{
-		uint32_t duration = SOURCE_PERIOD_MS;
+		const uint32_t duration = SOURCE_PERIOD_MS;
 
-		if (sink_distance == UNKNOWN_HOP_DISTANCE || sink_distance <= 1)
-		{
-			duration -= AWAY_DELAY_MS;
-		}
-
-		simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
+		//simdbgverbose("stdout", "get_tfs_duration=%u (sink_distance=%d)\n", duration, sink_distance);
 
 		return duration;
 	}
@@ -273,8 +268,6 @@ implementation
 		first_source_distance = UNKNOWN_HOP_DISTANCE;
 
 		away_messages_to_send = SINK_AWAY_MESSAGES_TO_SEND;
-
-		//extra_to_send = 0;
 
 		fake_rcv_ratio = UINT16_MAX;
 

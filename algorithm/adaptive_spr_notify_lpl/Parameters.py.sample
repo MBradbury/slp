@@ -5,31 +5,12 @@ noise_models = ["casino-lab", "meyer-heavy"]
 
 communication_models = ["low-asymmetry"]
 
-sizes = [11, 15, 21, 25]
+sizes = [7, 11, 15, 21, 25]
 
-source_periods = [2.0, 1.0, 0.5, 0.25, 0.125]
+source_periods = [2.0, 1.0, 0.5, 0.25]
 
 configurations = [
-    #'SourceCorner',
-    #'SinkCorner',
-    #'FurtherSinkCorner',
-    #'Generic1',
-    #'Generic2',
-
-    #'RingTop',
-    #'RingOpposite',
-    #'RingMiddle',
-
-    'Source2Corners',
-    #'Source4Corners',
-    'Source2Edges',
-    #'Source4Edges',
-    'Source2Corner',
-    'SourceEdgeCorner',
-
-    #'CircleEdges',
-    #'CircleSourceCentre',
-    #'CircleSinkCentre',
+    'SourceCorner',
 ]
 
 fault_models = ["ReliableFaultModel()"]
@@ -43,3 +24,21 @@ node_id_orders = ['randomised']
 approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
 
 repeats = 500
+
+# Testbed Parameters
+rf_powers = [7]
+channels = [26]
+node_id_orders = ['topology']
+low_power_listenings = ["enabled"]
+lpl_customs = ["SLPDutyCycleC"]
+lpl_normal_earlys = [40]
+lpl_normal_lates = [40]
+lpl_choose_earlys = [5]
+lpl_choose_lates = [50]
+lpl_fake_earlys = [120]
+lpl_fake_lates = [130]
+
+# COOJA
+radio_models = [f"UDGMRadioModel({distance+0.25},{distance+0.25},1,1)"]
+platforms = ["Sky"]
+attacker_models = [f"SeqNosReactiveAttacker(message_detect='within_range({distance+0.25}')"]
