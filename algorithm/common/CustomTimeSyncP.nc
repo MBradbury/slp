@@ -7,8 +7,8 @@ generic module CustomTimeSyncP(typedef SyncMessage)
 {
     provides interface CustomTimeSync<SyncMessage>;
     provides interface CustomTime;
-    provides interface Init;
 
+    uses interface Boot;
     uses interface LocalTime<TMilli>;
 }
 implementation
@@ -200,7 +200,7 @@ implementation
         return FAIL;
     }
 
-    command error_t Init.init() {
+    event void Boot.booted() {
         atomic {
             skew = 0.0f;
             local_average = 0;
@@ -219,7 +219,7 @@ implementation
     }
 
     command uint32_t CustomTime.global_time() {
-        return local_to_global(call LocalTime.get());
+        return local_to_global(call CustomTime.local_time());
     }
 
     command uint32_t CustomTime.local_to_global(uint32_t time) {
