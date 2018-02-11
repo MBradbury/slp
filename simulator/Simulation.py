@@ -128,20 +128,21 @@ class Simulation(object):
     def register_output_handler(self, name, function):
         """Registers this class to catch the output from the simulation on the given channel."""
 
-        def process_one_line(line):
-            # Do not pass newline in detail onwards
-            args = line[:-1].split(':', 3)
-            
-            # Checking that event time and sim time correspond
-            #(d_or_e, node_id, time, detail) = args
-            #time = float(time)
-            #rounded_sim_time = round(self.sim_time(), 6)
-            #if time != rounded_sim_time:
-            #    print(f"Event occurred at {time} and sim_time of {rounded_sim_time}")
+        if function is not None:
+            def process_one_line(line):
+                # Do not pass newline in detail onwards
+                args = line[:-1].split(':', 3)
+                
+                # Checking that event time and sim time correspond
+                #(d_or_e, node_id, time, detail) = args
+                #time = float(time)
+                #rounded_sim_time = round(self.sim_time(), 6)
+                #if time != rounded_sim_time:
+                #    print(f"Event occurred at {time} and sim_time of {rounded_sim_time}")
 
-            function(*args)
+                function(*args)
 
-        self.tossim.addCallback(name, process_one_line)
+            self.tossim.addCallback(name, process_one_line)
 
     def node_distance_meters(self, left, right):
         """Get the euclidean distance between two nodes specified by their ids"""
