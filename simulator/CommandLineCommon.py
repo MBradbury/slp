@@ -4,7 +4,6 @@ from collections import defaultdict
 from datetime import timedelta
 import fnmatch
 import functools
-import importlib
 import itertools
 import math
 import os
@@ -212,7 +211,7 @@ class CLI(object):
             return module.result_file_path(sim_name)
 
     def get_safety_period_result_path(self, sim_name, testbed=None):
-        algo = importlib.import_module("algorithm.{}".format(self.safety_period_module_name))
+        algo = algorithm.import_algorithm(self.safety_period_module_name)
 
         return self.get_results_file_path(sim_name, testbed=testbed, module=algo)
 
@@ -637,7 +636,7 @@ class CLI(object):
         source_period_index = names.index('source period')
 
         def process(args):
-            dargs = dict(zip(names, args))
+            dargs = {**dict(zip(names, args)), "seed": None, "node id order": "topology"}
             configuration = Configuration.create(dargs["configuration"], dargs)
             num_sources = len(configuration.source_ids)
 
@@ -990,13 +989,14 @@ class CLI(object):
     def _run_time_taken_table(self, args):
         result_file_path = self.get_results_file_path(args.sim, testbed=args.testbed)
 
-        result = results.Results(result_file_path,
+        result = results.Results(args.sim,
+                                 result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('time taken', 'first normal sent time',
                                           'total wall time', 'wall time', 'event count',
                                           'repeats', 'captured', 'reached upper bound',
                                           'memory rss', 'memory vms'),
-                                 testbed=args.testbed is not None)
+        )
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
 

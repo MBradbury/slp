@@ -367,7 +367,7 @@ class Gui:
             s = int(s)
             if s == 0 or s == 1:
                 return s
-            raise RuntimeError("Invalid Led string {}".format(s))
+            raise RuntimeError(f"Invalid Led string {s}")
 
         leds = map(convertled, without_dbg.split(","))
 
@@ -404,7 +404,7 @@ class GuiSimulation(Simulation):
 
                 close = difflib.get_close_matches(sanitized_node_label, variables.keys(), n=5)
 
-                san_msg = "" if sanitized_node_label == self._node_label else " ({} after sanitisation)".format(sanitized_node_label)
+                san_msg = "" if sanitized_node_label == self._node_label else f" ({sanitized_node_label} after sanitisation)"
 
                 raise RuntimeError("The variable {}{} was not present in the list known to python. Close matches: {}".format(
                     self._node_label, san_msg, close))
@@ -413,14 +413,14 @@ class GuiSimulation(Simulation):
         if event_count % 10 == 0:
             time = self.sim_time()
 
-            self.gui.scene.execute(time, "updateText('events', text='events: {}')".format(event_count))
+            self.gui.scene.execute(time, f"updateText('events', text='events: {event_count}')")
 
             if self._node_label is not None and self.nesc_app is not None:
                 for node in self.nodes:
                     var = node.tossim_node.getVariable(self._node_label)
                     value = var.getData()
 
-                    self.gui.scene.execute(time, 'nodelabel({},{})'.format(node.nid, value))
+                    self.gui.scene.execute(time, f'nodelabel({node.nid},{value})')
 
 ###############################################
 
@@ -437,4 +437,4 @@ class GuiOfflineSimulation(OfflineSimulation):
     def _during_run(self, event_count):
         time = self.sim_time()
 
-        self.gui.scene.execute(time, "updateText('events', text='events: {}')".format(event_count))
+        self.gui.scene.execute(time, f"updateText('events', text='events: {event_count}')")

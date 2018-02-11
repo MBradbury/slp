@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 from datetime import datetime
 import glob
@@ -18,7 +17,7 @@ def _sanitise_string(input_string):
 
 class OfflineLogConverter(object):
     def __init__(self, *args, **kwargs):
-        super(OfflineLogConverter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __enter__(self):
         return self
@@ -28,7 +27,7 @@ class OfflineLogConverter(object):
 
 class LineLogConverter(object):
     def __init__(self, log_path):
-        super(LineLogConverter, self).__init__()
+        super().__init__()
 
         self.processed_lines = []
 
@@ -54,7 +53,7 @@ class LineLogConverter(object):
 class Null(OfflineLogConverter):
     """Dummy converter that just provides iteration of the log without changes."""
     def __init__(self, log_path):
-        super(Null, self).__init__()
+        super().__init__()
 
         self._log_file = open(log_path, 'r')
 
@@ -66,7 +65,7 @@ class Null(OfflineLogConverter):
 
 class FlockLab(OfflineLogConverter, LineLogConverter):
     def __init__(self, log_path):
-        super(FlockLab, self).__init__(log_path)
+        super().__init__(log_path)
 
     def _process_line(self, line):
         timestamp, observer_id, node_id, direction, output = line.split(",", 4)
@@ -106,7 +105,7 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
 
 class FitIotLab(OfflineLogConverter, LineLogConverter):
     def __init__(self, log_path):
-        super(FitIotLab, self).__init__(log_path)
+        super().__init__(log_path)
 
     def _process_line(self, line):
 

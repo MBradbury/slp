@@ -67,14 +67,17 @@ class Topology(object):
         self.seed = seed
 
     def node_distance_meters(self, node1, node2):
-        if not isinstance(node1, OrderedId):
-            raise TypeError("node1 is not an OrderedId it is a", type(node1))
-
-        if not isinstance(node2, OrderedId):
-            raise TypeError("node2 is not an OrderedId it is a", type(node2))
-
         """Gets the node distance in meters using ordered node ids"""
-        return euclidean2_2d(self.nodes[node1], self.nodes[node2])
+        try:
+            return euclidean2_2d(self.nodes[node1], self.nodes[node2])
+        except KeyError:
+            if not isinstance(node1, OrderedId):
+                raise TypeError("node1 is not an OrderedId it is a", type(node1))
+
+            if not isinstance(node2, OrderedId):
+                raise TypeError("node2 is not an OrderedId it is a", type(node2))
+
+            raise
 
     @staticmethod
     def coord_distance_meters(coord1, coord2):
@@ -82,24 +85,33 @@ class Topology(object):
 
     def o2t(self, ordered_nid):
         """Converts a ordered node id to a topology node id"""
-        if not isinstance(ordered_nid, OrderedId):
-            raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
-
-        return self.ordered_nid_to_topology_nid[ordered_nid]
+        try:
+            return self.ordered_nid_to_topology_nid[ordered_nid]
+        except KeyError:
+            if not isinstance(ordered_nid, OrderedId):
+                raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
+            else:
+                raise
 
     def t2o(self, topology_nid):
         """Converts an topology node id to an ordered node id"""
-        if not isinstance(topology_nid, TopologyId):
-            raise TypeError("topology_nid is not an TopologyId it is a", type(topology_nid))
-
-        return self.topology_nid_to_ordered_nid[topology_nid]
+        try:
+            return self.topology_nid_to_ordered_nid[topology_nid]
+        except KeyError:
+            if not isinstance(topology_nid, TopologyId):
+                raise TypeError("topology_nid is not an TopologyId it is a", type(topology_nid))
+            else:
+                raise
 
     def o2i(self, ordered_nid):
         """Get the index that an ordered node id will be stored in"""
-        if not isinstance(ordered_nid, OrderedId):
-            raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
-
-        return self.ordered_ids_reverse_mapping[ordered_nid]
+        try:
+            return self.ordered_ids_reverse_mapping[ordered_nid]
+        except KeyError:
+            if not isinstance(ordered_nid, OrderedId):
+                raise TypeError("ordered_nid is not an OrderedId it is a", type(ordered_nid))
+            else:
+                raise
 
     def i2o(self, node_idx):
         """Get the ordered node id from a node index"""
@@ -108,6 +120,10 @@ class Topology(object):
 
         return self.ordered_ids[node_idx.nid]
 
+    def ri2o(self, raw_node_idx):
+        """Get the ordered node id from a raw node index (int)"""
+        return self.ordered_ids[raw_node_idx]
+
     def _process_node_id_order(self, node_id_order):
         if node_id_order == "topology":
 
@@ -115,6 +131,9 @@ class Topology(object):
             self.ordered_nid_to_topology_nid = {OrderedId(nid): TopologyId(nid) for nid in self.nodes.keys()}
 
         elif node_id_order == "randomised":
+
+            if self.seed is None:
+                raise RuntimeError("Need to have a non-None seed to randomise the node id order of a topology")
 
             rnd = random.Random()
             rnd.seed(self.seed)
@@ -257,6 +276,9 @@ class Random(Topology):
     def __init__(self, network_size, distance, node_id_order, seed=None):
         super(Random, self).__init__(seed)
 
+        if seed is None:
+            raise RuntimeError(f"{type(self)} must have a non None seed")
+
         self.size = network_size
         self.distance = float(distance)
 
@@ -311,6 +333,9 @@ class RandomPoissonDisk(Topology):
         super(RandomPoissonDisk, self).__init__(seed)
 
         from bridson import poisson_disc_samples
+
+        if seed is None:
+            raise RuntimeError(f"{type(self)} must have a non None seed")
 
         self.size = network_size
         self.distance = float(distance)

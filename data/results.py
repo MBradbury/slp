@@ -71,21 +71,22 @@ class Results(object):
         ]
 
     def _get_configuration(self, **kwargs):
-        args = ('network size', 'distance', 'node id order')
+        args = ('network size', 'distance', 'node id order', 'seed')
         arg_converters = {
             'network size': int,
             'distance': float,
+            'seed': int,
         }
 
         kwargs_copy = {k.replace("_", " "): v for (k,v) in kwargs.items()}
 
-        arg_values = [
-            arg_converters.get(name, lambda x: x)(kwargs_copy[name])
+        arg_values = {
+            name: arg_converters.get(name, lambda x: x)(kwargs_copy[name])
             for name in args
             if name in kwargs_copy
-        ]
+        }
 
-        return Configuration.create_specific(kwargs['configuration'], *arg_values)
+        return Configuration.create(kwargs['configuration'], arg_values)
 
     def _normalise_source_period(self, strategy, dvalues):
 
