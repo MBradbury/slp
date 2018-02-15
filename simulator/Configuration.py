@@ -393,6 +393,17 @@ class FurtherSinkCorner3Source(Configuration):
             space_behind_sink=False
         )
 
+class FurtherSinkCorner3SourceLinear(Configuration):
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
+
+        super().__init__(
+            grid,
+            source_ids={0, 2, 4},
+            sink_ids={len(grid.nodes) - 1},
+            space_behind_sink=False
+        )
+
 class SinkSourceOpposite(Configuration):
     def __init__(self, *args, **kwargs):
         grid = Grid(*args, **kwargs)
