@@ -143,8 +143,8 @@ class CLI(CommandLineCommon.CLI):
         self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
             #source_period_normalisation="NumSources",
             #results_filter=filter_params,
-            vary_label='PW',
-            vvalue_label_converter=self.vvalue_converter,
+            #vary_label='PW',
+            #vvalue_label_converter=self.vvalue_converter,
         )
 
     def _run_dominating_min_max_versus(self, args):

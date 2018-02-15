@@ -28,8 +28,8 @@ class CLI(CommandLineCommon.CLI):
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
-        argument_product = list(itertools.ifilter(
-            lambda (size, c, am, nm, cm, fm, d, nido, lnst, sp, walk_length, lm): walk_length in parameters.walk_hop_lengths[size],
+        argument_product = list(filter(
+            lambda x: x[10] in parameters.walk_hop_lengths[x[0]],
             itertools.product(
                 parameters.sizes, parameters.configurations,
                 parameters.attacker_models, parameters.noise_models, parameters.communication_models, parameters.fault_models,
