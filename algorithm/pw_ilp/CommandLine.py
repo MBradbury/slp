@@ -7,14 +7,9 @@ import os.path
 
 import numpy as np
 
-from data.results_transformer import EliminateDominatedResultsTransformer
-
 from simulator import CommandLineCommon
 from simulator import Configuration
 
-import algorithm
-
-#import algorithm.protectionless as protectionless
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 phantom_chen = algorithm.import_algorithm("phantom_chen")
@@ -24,7 +19,7 @@ protectionless_chen = algorithm.import_algorithm("protectionless_chen")
 protectionless_ctp_chen = algorithm.import_algorithm("protectionless_ctp_chen")
 
 
-from data import results
+from data import results, submodule_loader
 
 from data.table import safety_period, fake_result
 from data.graph import summary, versus, min_max_versus
@@ -37,12 +32,17 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(protectionless.name)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
         subparser = self._add_argument("graph-min-max", self._run_min_max_versus)
-        subparser = self._add_argument("graph-dominating-min-max", self._run_dominating_min_max_versus)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
         subparser = self._add_argument("graph-multi", self._run_multi_versus)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
     def _cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -87,7 +87,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         phantom_walkabouts_results = results.Results(
-            self.algorithm_module.result_file_path,
+            args.sim, self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
 
@@ -140,94 +140,12 @@ class CLI(CommandLineCommon.CLI):
             return all_params['safety factor'] != '1.3'
 
 
-        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+        self._create_versus_graph(args.sim, graph_parameters, varying, custom_yaxis_range_max,
             #source_period_normalisation="NumSources",
             #results_filter=filter_params,
             vary_label='PW',
             vvalue_label_converter=self.vvalue_converter,
         )
-
-    def _run_dominating_min_max_versus(self, args):
-        algorithm_modules = [protectionless_chen, protectionless_ctp_chen, phantom_chen,
-                             ilprouting_chen, adaptive_spr_notify_chen, self.algorithm_module]
-
-        comparison_functions = {
-            "captured": lambda value, other_value: value < other_value,
-            "received ratio": lambda value, other_value: value > other_value,
-            "normal latency": lambda value, other_value: value < other_value,
-            "norm(sent,time taken)": lambda value, other_value: value < other_value,
-        }
-
-        transformer = EliminateDominatedResultsTransformer(algorithm_modules, comparison_functions, remove_redundant_parameters=True)
-
-        graph_parameters = {
-            #'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
-            'captured': ('Capture Ratio (%)', 'left top'),
-            'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
-            'received ratio': ('Delivery Ratio (%)', 'left bottom'),
-            'utility animal': ('Utility (Animal Protection)', 'right top'),
-            'utility monitor': ('Utility (Asset Monitor)', 'right bottom'),
-            'utility military': ('Utility (Military)', 'right bottom'),
-            'normalised captured': ('Normalised Capture Ratio', 'left top'),
-            'normalised norm(sent,time taken)': ('Normalised Messages Transmission', 'right top'),
-        }
-
-        algorithm_results = transformer.transform(graph_parameters.keys())
-
-        algo_results = algorithm_results[-1]
-        algorithm_results = algorithm_results[:-1]
-
-        varying = [
-            (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
-        ]
-        
-        custom_yaxis_range_max = {
-            #'normal latency': 500,
-            #'norm(sent,time taken)': 600,
-            'received ratio': 100,
-            'capture ratio': 100,
-            'utility animal': 1.0,
-            'utility monitor': 1.0,
-            'utility military': 1.0,
-            #'normalised captured': 2.0,
-            #'normalised norm(sent,time taken)': 2000
-        }
-
-        key_equivalence = {
-            "attacker model": {"SeqNosReactiveAttacker()": "SeqNosOOOReactiveAttacker()"}
-        }
-
-        args = (
-            algorithm_results, None, graph_parameters, varying, algo_results, custom_yaxis_range_max,
-        )
-
-        kwargs = {
-            "min_label": ["Protectionless - Min", "ProtectionlessCTP - Min","Phantom - Min", "ILP - Min", "AdaptiveSPR - Min"],
-            "max_label": ["Protectionless - Max", "ProtectionlessCTP - Max", "Phantom - Max", "ILP - Max", "AdaptiveSPR - Max"],
-            "min_max_same_label": ["Protectionless", "ProtectionlessCTP", "Phantom", "ILP", "AdaptiveSPR"],
-            "vary_label": "",
-            "comparison_label": "PW",
-            "vvalue_label_converter": self.vvalue_converter,
-            "key_equivalence": key_equivalence,
-            "nokey": True,
-            "generate_legend_graph": True,
-            "allow_missing_comparison": True,
-            "set_datafile_missing": True,
-            "missing_value_string": '?',
-        }
-
-        self._create_min_max_versus_graph(*args, **kwargs)
-
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
-        }
-
-        args = (
-            algorithm_results, None, graph_parameters, varying, algo_results, custom_yaxis_range_max,
-        )
-
-        # For latency generate graphs with log10 yaxis scale
-        self._create_min_max_versus_graph(*args, yaxis_logscale=10, yaxis_range_min=10, **kwargs)
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
@@ -279,7 +197,7 @@ class CLI(CommandLineCommon.CLI):
             "generate_legend_graph": True,
         }
 
-        self._create_min_max_versus_graph(*args, **kwargs)
+        self._create_min_max_versus_graph(args.sim, *args, **kwargs)
 
         graph_parameters = {
             'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
@@ -291,7 +209,7 @@ class CLI(CommandLineCommon.CLI):
         )
 
         # For latency generate graphs with log10 yaxis scale
-        self._create_min_max_versus_graph(*args, yaxis_logscale=10, yaxis_range_min=10, **kwargs)
+        self._create_min_max_versus_graph(args.sim, *args, yaxis_logscale=10, yaxis_range_min=10, **kwargs)
 
     def _run_multi_versus(self, args):
         graph_parameters = [
@@ -307,5 +225,5 @@ class CLI(CommandLineCommon.CLI):
         custom_yaxis_range_max = 1.0
 
         self._create_multi_versus_graph(
-            graph_parameters, varying, "Utility (\\%)", custom_yaxis_range_max
+            args.sim, graph_parameters, varying, "Utility (\\%)", custom_yaxis_range_max
         )
