@@ -358,7 +358,7 @@ class SinkCorner3SourceLinear(Configuration):
         super().__init__(
             grid,
             source_ids={(len(grid.nodes) - 1)//2 - 2, (len(grid.nodes) - 1)//2, (len(grid.nodes) - 1)//2 + 2},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
 
