@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 import numpy as np
 
@@ -6,8 +5,6 @@ import algorithm
 
 from data import results
 from data.util import scalar_extractor
-
-from simulator.common import global_parameter_names
 
 class NullResultsTransformer(object):
     def __init__(self, algorithm_modules):
@@ -29,12 +26,14 @@ class NullResultsTransformer(object):
         ]
 
 class EliminateDominatedResultsTransformer(object):
-    def __init__(self, algorithm_modules, comparison_functions, remove_redundant_parameters=False):
+    def __init__(self, sim_name, algorithm_modules, comparison_functions, remove_redundant_parameters=False):
         self.algorithm_modules = [
             algorithm.import_algorithm(module) if isinstance(module, str) else module
             for module
             in algorithm_modules
         ]
+
+        self.sim_name = sim_name
 
         self.safety_factor_indexes = {}
 
@@ -43,7 +42,9 @@ class EliminateDominatedResultsTransformer(object):
 
         self.dominated_data = None
 
-        self.global_parameter_names = global_parameter_names[:-1]
+        raise RuntimeError("Broken, come to Matt to fix me later")
+
+        self.global_parameter_names = sim.global_parameter_names[:-1]
 
     def transform(self, result_names):
 
@@ -51,7 +52,7 @@ class EliminateDominatedResultsTransformer(object):
 
         module_results = [
             results.Results(
-                module.result_file_path,
+                self.sim_name, module.result_file_path(self.sim_name),
                 parameters=module.local_parameter_names,
                 results=all_result_names)
 
