@@ -7,6 +7,7 @@ import os.path
 
 import numpy as np
 
+import simulator.sim
 from simulator import CommandLineCommon
 from simulator import Configuration
 
@@ -140,7 +141,8 @@ class CLI(CommandLineCommon.CLI):
             return all_params['safety factor'] != '1.3'
 
 
-        self._create_versus_graph(args.sim, graph_parameters, varying, custom_yaxis_range_max,
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
             #source_period_normalisation="NumSources",
             #results_filter=filter_params,
             #vary_label='PW',
