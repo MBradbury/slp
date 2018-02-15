@@ -4,6 +4,19 @@ USER=$1
 SITE=$2
 TESTID=$3
 
+if [[ -z $USER ]]; then
+    echo "USER not set"
+    exit 1
+fi
+if [[ -z $SITE ]]; then
+    echo "SITE not set"
+    exit 1
+fi
+if [[ -z $TESTID ]]; then
+    echo "TESTID not set"
+    exit 1
+fi
+
 BASE_DIR="testbed_results/fitiotlab"
 
 mkdir -p "$BASE_DIR"
