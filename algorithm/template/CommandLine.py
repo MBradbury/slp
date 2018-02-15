@@ -4,13 +4,14 @@ from datetime import timedelta
 import itertools
 import os.path
 
+import simulator.sim
 from simulator import CommandLineCommon
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 adaptive = algorithm.import_algorithm("adaptive")
 
-from data import results, latex
+from data import results, latex, submodule_loader
 
 from data.table import safety_period, fake_result, direct_comparison
 from data.graph import summary
@@ -25,7 +26,11 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(protectionless.name, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+        subparser.add_argument("--show", action="store_true", default=False)
+
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
@@ -94,17 +99,18 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_table(self, args):
-        template_results = results.Results(self.algorithm_module.result_file_path,
+        template_results = results.Results(
+            args.sim, self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=('normal latency', 'ssd', 'captured', 'fake', 'received ratio', 'tfs', 'pfs'))
 
         result_table = fake_result.ResultTable(template_results)
 
-        self._create_table(self.algorithm_module.name + "-results", result_table,
+        self._create_table(self.algorithm_module.name + "-results", result_table, show=args.show,
                            param_filter=lambda fp, dur, ptfs, ppfs: ptfs not in {0.2, 0.3, 0.4})
 
-        self._create_table(self.algorithm_module.name + "-results-low-prob", result_table,
-                           param_filter=lambda fp, dur, ptfs, ppfs: ptfs in {0.2, 0.3, 0.4})
+        #self._create_table(self.algorithm_module.name + "-results-low-prob", result_table, show=args.show,
+        #                   param_filter=lambda fp, dur, ptfs, ppfs: ptfs in {0.2, 0.3, 0.4})
 
     def _run_graph(self, args):
         graph_parameters = {
