@@ -314,7 +314,7 @@ class Source3CornerTopLinear(Configuration):
         super().__init__(
             grid,
             source_ids={0, 2, 4},
-            sink_id=(len(grid.nodes) - 1) // 2,
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
