@@ -38,10 +38,10 @@ class ClusterCommon(object):
         subprocess.check_call("rsync -avz -e \"{0}\" --rsync-path=\"mkdir -p ~/slp-algorithms-tinyos/{results_directory_path} && rsync\" {results_directory_path}/{filename} {1}@{2}:~/slp-algorithms-tinyos/{results_directory_path}/{filename}".format(
             self.ssh_auth, username, self.url, results_directory_path=results_directory_path, filename=filename), shell=True)
 
-    def copy_back(self, dirname, user=None):
+    def copy_back(self, dirname, sim_name, user=None):
         username = self._get_username(user)
-        subprocess.check_call("rsync -avz -e \"{0}\" {1}@{2}:~/slp-algorithms-tinyos/cluster/{3}/*.txt results/{3}".format(
-            self.ssh_auth, username, self.url, dirname), shell=True)
+        subprocess.check_call("rsync -avz -e \"{0}\" {1}@{2}:~/slp-algorithms-tinyos/cluster/{3}/*-{4}.txt results/{4}/{3}".format(
+            self.ssh_auth, username, self.url, dirname, sim_name), shell=True)
 
     def _get_username(self, user):
         if user is not None:
