@@ -92,6 +92,7 @@ class CLI(object):
         subparser.add_argument("--unhold", action="store_true", default=False, help="By default jobs are submitted in the held state. This argument will submit jobs in the unheld state.")
 
         subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--user", type=str, default=None, required=False, help="Override the username being guessed.")
 
         ###
@@ -934,7 +935,7 @@ class CLI(object):
                                  skip_completed_simulations=skip_complete)
 
         elif 'copy-back' == args.cluster_mode:
-            cluster.copy_back(self.algorithm_module.name, user=args.user)
+            cluster.copy_back(self.algorithm_module.name, args.sim, user=args.user)
 
         else:
             raise RuntimeError(f"Unknown cluster mode {args.cluster_mode}")
