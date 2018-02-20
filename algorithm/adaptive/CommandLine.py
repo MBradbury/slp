@@ -110,7 +110,9 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': 100,
         }
 
-        self._create_versus_graph(args.sim, graph_parameters, varying, custom_yaxis_range_max)
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
+        )
 
 
     def _run_comparison_table(self, args):
