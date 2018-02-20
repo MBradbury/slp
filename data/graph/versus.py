@@ -137,8 +137,8 @@ class Grapher(GrapherBase):
             else:
                 table.append([ '#' ] + vvalues)
 
-            for xvalue in sorted(xvalues):
-                row = [ self.xextractor(xvalue) ]
+            for (xvalue, extracted_xvalue) in sorted(((xvalue, self.xextractor(xvalue)) for xvalue in xvalues), key=lambda x: x[1]):
+                row = [ extracted_xvalue ]
                 for vvalue in vvalues:
                     yvalue = values.get((xvalue, vvalue), None)
 
