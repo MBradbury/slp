@@ -9,6 +9,7 @@ import math
 import multiprocessing
 from numbers import Number
 import os
+import pickle
 import re
 import sys
 import traceback
@@ -960,27 +961,54 @@ class AnalyzerCommon(object):
         #except Exception as ex:
         #    raise RuntimeError("Error analysing {}".format(path), ex)
 
-    def analyse_and_summarise_path(self, path, **kwargs):
-        return AnalysisResults(self.analyse_path(path, **kwargs))
+    def analyse_and_summarise_path(self, path, flush, **kwargs):
+        pickle_path = path.rsplit(".", 1)[0] + ".pickle"
 
-    def analyse_and_summarise_path_wrapped(self, path, **kwargs):
+        result_file_create_time = os.path.getmtime(path)
+
+        try:
+            pickle_file_create_time = os.path.getmtime(pickle_path)
+        except OSError:
+            pickle_file_create_time = 0
+
+        result = None
+
+        if result_file_create_time < pickle_file_create_time and not flush:
+            with open(pickle_path, 'rb') as pickle_file:
+                saved_kwargs = pickle.load(pickle_file)
+
+                if saved_kwargs == kwargs:
+                    result = pickle.load(pickle_file)
+                    print(f"Loaded result from pickle {pickle_path}")
+                else:
+                    print(f"Skipping loading from pickle as args differ given:{kwargs} loaded:{saved_kwargs}")
+
+        if result is None:
+            result = AnalysisResults(self.analyse_path(path, **kwargs))
+
+            with open(pickle_path, 'wb') as pickle_file:
+                pickle.dump(kwargs, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(result, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+        return result
+
+    def analyse_and_summarise_path_wrapped(self, path, flush, **kwargs):
         """Calls analyse_and_summarise_path, but wrapped inside a Process.
         This forces memory allocated during the analysis to be freed."""
-        def wrapped(queue, path, **kwargs):
-            queue.put(self.analyse_and_summarise_path(path, **kwargs))
+        def wrapped(queue, path, flush, **kwargs):
+            queue.put(self.analyse_and_summarise_path(path, flush, **kwargs))
 
             print("Memory usage of worker:", pprint_ntuple(psutil.Process().memory_full_info()))
 
-        q = multiprocessing.Queue()
-        p = multiprocessing.Process(target=wrapped, args=(q, path), kwargs=kwargs)
+        q = multiprocessing.Queue(1)
+        p = multiprocessing.Process(target=wrapped, args=(q, path, flush), kwargs=kwargs)
         p.start()
         result = q.get()
-
         p.join()
 
         return result
 
-    def run(self, summary_file, result_finder, nprocs=None, testbed=False, **kwargs):
+    def run(self, summary_file, result_finder, nprocs=None, testbed=False, flush=False, **kwargs):
         """Perform the analysis and write the output to the :summary_file:.
         If :nprocs: is not specified then the number of CPU cores will be used.
         """
@@ -997,7 +1025,7 @@ class AnalyzerCommon(object):
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling
         if nprocs is not None and nprocs == 1:
-            return self.run_single(summary_file, result_finder, **kwargs)
+            return self.run_single(summary_file, result_finder, flush, **kwargs)
 
         def worker(inqueue, outqueue):
             while True:
@@ -1009,7 +1037,7 @@ class AnalyzerCommon(object):
                 path = item
 
                 try:
-                    result = self.analyse_and_summarise_path(path, **kwargs)
+                    result = self.analyse_and_summarise_path(path, flush, **kwargs)
 
                     # Skip 0 length results
                     if result.number_of_repeats == 0:
@@ -1087,11 +1115,11 @@ class AnalyzerCommon(object):
         pool.close()
         pool.join()
 
-    def run_single(self, summary_file, result_finder, **kwargs):
+    def run_single(self, summary_file, result_finder, flush=False, **kwargs):
         """Perform the analysis and write the output to the :summary_file:"""
         
         def worker(ipath):
-            result = self.analyse_and_summarise_path_wrapped(path, **kwargs)
+            result = self.analyse_and_summarise_path_wrapped(path, flush, **kwargs)
 
             # Skip 0 length results
             if result.number_of_repeats == 0:

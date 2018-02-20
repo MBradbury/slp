@@ -135,6 +135,7 @@ class CLI(object):
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
+        subparser.add_argument("--flush", action="store_true", default=False, help="Flush any cached results.")
 
         ###
 
@@ -739,6 +740,7 @@ class CLI(object):
         analyzer.run(self.algorithm_module.result_file,
                      results_finder,
                      nprocs=args.thread_count,
+                     flush=args.flush,
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
 
@@ -753,6 +755,7 @@ class CLI(object):
         analyzer.run(result_file,
                      results_finder,
                      nprocs=args.thread_count,
+                     flush=args.flush,
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound,
                      testbed=True)
