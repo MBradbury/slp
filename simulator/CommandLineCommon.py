@@ -178,7 +178,7 @@ class CLI(object):
 
         subparser = self._add_argument('historical-time-estimator', self._run_historical_time_estimator)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
-        subparser.add_argument("--key", nargs="+", metavar="P", default=('network size', 'source period'))
+        subparser.add_argument("--key", nargs="+", metavar="P", default=('configuration', 'network size', 'source period'))
 
         ###
 
@@ -996,7 +996,8 @@ class CLI(object):
                                  results=('time taken', 'first normal sent time',
                                           'total wall time', 'wall time', 'event count',
                                           'repeats', 'captured', 'reached upper bound',
-                                          'memory rss', 'memory vms'),
+                                          #'memory rss',
+                                          'memory vms'),
         )
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
