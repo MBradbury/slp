@@ -109,7 +109,7 @@ class TableDataFormatter(object):
             return "${:.1f} \\pm {:.1f}$".format(value[0], self._convert_variance(value[1]))
         elif name in {"sent", "received", "delivered",
                       "fake", "away", "choose", "dummy normal",
-                      "normal latency"}:
+                      "normal latency", "event count"}:
             return "${:.0f} \\pm {:.0f}$".format(value[0], self._convert_variance(value[1]))
         elif name in {"memory rss", "memory vms"}:
             value = value / (1024 * 1024)
