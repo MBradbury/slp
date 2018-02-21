@@ -8,8 +8,7 @@ from simulator import CommandLineCommon
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 
-from data import results, submodule_loader
-from data.table import fake_result
+from data import submodule_loader
 
 # Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
 safety_period_equivalence = {
