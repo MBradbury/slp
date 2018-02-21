@@ -1021,8 +1021,8 @@ class CLI(object):
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
-        repeats = result.parameter_set()
-        repeats_diff_strings = ["|".join(k) for k in repeats]
+        repeats = {tuple(map(str, k)): v for (k, v) in result.parameter_set().items()}
+        repeats_diff_strings = ["|".join(str(k)) for k in repeats]
 
         parameter_names = sim.global_parameter_names + result.parameter_names
 
