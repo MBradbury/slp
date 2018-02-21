@@ -750,7 +750,7 @@ class Analyse(object):
         if len(values) == 0:
             # Filtered values may legitimately have no values
             if header.startswith("filtered"):
-                return None
+                return 0
             else:
                 raise RuntimeError(f"There are no values for {header} to be able to average")
 
@@ -769,7 +769,7 @@ class Analyse(object):
         if len(values) == 0:
             # Filtered values may legitimately have no values
             if header.startswith("filtered"):
-                return None
+                return 0
             else:
                 raise RuntimeError(f"There are no values for {header} to be able to find the variance")
 
