@@ -319,6 +319,19 @@ implementation
 	}
 #endif
 
+	void start_consider_timer(uint32_t dt)
+	{
+		//simdbg("stdout", "Starting considertimer at %" PRIu32 " already running %" PRIu8 " next %" PRIu32 "\n",
+		//	at, call ConsiderTimer.isRunning(), call ConsiderTimer.getdt());
+
+		// Only start the timer if it would be earlier than is currently planned
+		if (!call ConsiderTimer.isRunning() ||
+			call ConsiderTimer.getNow() + dt < call ConsiderTimer.gett0() + call ConsiderTimer.getdt())
+		{
+			call ConsiderTimer.startOneShot(dt);
+		}
+	}
+
 	bool has_enough_messages_to_send(void)
 	{
 		return call MessageQueue.count() > 0;
@@ -326,7 +339,10 @@ implementation
 
 	message_queue_info_t* choose_message_to_send(void)
 	{
-		message_queue_info_t** const begin = call MessageQueue.begin();
+		message_queue_info_t** iter = call MessageQueue.begin();
+		message_queue_info_t** const end = call MessageQueue.end();
+
+		message_queue_info_t* selected;
 
 		// Cannot choose messages to send when there are no messages
 		if (call MessageQueue.count() == 0)
@@ -334,7 +350,22 @@ implementation
 			return NULL;
 		}
 
-		return begin[0];
+		selected = *iter;
+
+		++iter;
+
+		// Get message with earliest time to send
+		for (; iter != end; ++iter)
+		{
+			message_queue_info_t* info = *iter;
+
+			if (info->time_added + info->to_delay < selected->time_added + selected->to_delay)
+			{
+				selected = *iter;
+			}
+		}
+
+		return selected;
 	}
 
 	enum {
@@ -345,7 +376,7 @@ implementation
 	{
 		// Wait for a few messages to head out before doing this.
 
-		if (sequence_number_get(&normal_sequence_counter) <= 10)
+		if (sequence_number_get(&normal_sequence_counter) <= SLP_MESSAGES_BEFORE_DIRECT_TO_SINK)
 		{
 			return FALSE;
 		}
@@ -397,7 +428,6 @@ implementation
 			if (!item)
 			{
 				ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
-
 				return ENOMEM;
 			}
 
@@ -441,42 +471,37 @@ implementation
 		item->rtx_attempts = RTX_ATTEMPTS;
 		item->calculate_target_attempts = CALCULATE_TARGET_ATTEMPTS;
 
-		if (has_enough_messages_to_send())
+		// If this message is passed the sink, then do not add extra delay
+		if (sink_source_distance != UNKNOWN_HOP_DISTANCE &&
+			stored_normal_message->source_distance >= sink_source_distance)
 		{
-			uint16_t to_delay;
+			item->to_delay = ALPHA;
+		}
+		else
+		{
+			const uint16_t delay = stored_normal_message->delay;
+			const uint32_t time_taken_to_send = stored_normal_message->time_taken_to_send;
 
-			// If this message is passed the sink, then do not add extra delay
-			if (sink_source_distance != UNKNOWN_HOP_DISTANCE &&
-				stored_normal_message->source_distance >= sink_source_distance)
+			// If it took the previous sender more time to get this message delivered
+			// than the amount we should delay it for, then just use alpha.
+			// Otherwise, use the delay minus the extra time that has already been used
+			if (time_taken_to_send >= delay)
 			{
-				to_delay = ALPHA;
+				item->to_delay = ALPHA;
 			}
 			else
 			{
-				const uint16_t delay = stored_normal_message->delay;
-				const uint32_t time_taken_to_send = stored_normal_message->time_taken_to_send;
-
-				// If it took the previous sender more time to get this message delivered
-				// than the amount we should delay it for, then just use alpha.
-				// Otherwise, use the delay minus the extra time that has already been used
-				if (time_taken_to_send >= delay)
-				{
-					to_delay = ALPHA;
-				}
-				else
-				{
-					// Make sure that there is a minimum delay of ALPHA
-					to_delay = max(ALPHA, delay - time_taken_to_send);
-				}
+				// Make sure that there is a minimum delay of ALPHA
+				item->to_delay = delay - time_taken_to_send;
 			}
-
-			METRIC_GENERIC(METRIC_GENERIC_NEXT_NORMAL_DELAY,
-				NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32 ",%" PRIu16 ",%" PRIu16,
-				stored_normal_message->sequence_number, stored_normal_message->source_id,
-				(uint32_t)stored_normal_message->time_taken_to_send, (uint16_t)stored_normal_message->delay, to_delay);
-
-			call ConsiderTimer.startOneShot(to_delay);
 		}
+
+		METRIC_GENERIC(METRIC_GENERIC_NEXT_NORMAL_DELAY,
+			NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32 ",%" PRIu16 ",%" PRIu16,
+			stored_normal_message->sequence_number, stored_normal_message->source_id,
+			(uint32_t)stored_normal_message->time_taken_to_send, (uint16_t)stored_normal_message->delay, item->to_delay);
+
+		start_consider_timer(item->to_delay);
 
 		return SUCCESS;
 	}
@@ -486,7 +511,7 @@ implementation
 		if (error != SUCCESS)
 		{
 			// Failed to send the message
-			call ConsiderTimer.startOneShot(ALPHA_RETRY);
+			start_consider_timer(ALPHA);
 		}
 		else
 		{
@@ -541,7 +566,7 @@ implementation
 								"Failed to route message " NXSEQUENCE_NUMBER_SPEC " to avoid sink, giving up and routing to sink.\n",
 								normal_message->sequence_number);
 
-							call ConsiderTimer.startOneShot(ALPHA_RETRY);
+							start_consider_timer(ALPHA_RETRY);
 						}
 						else
 						{
@@ -555,13 +580,13 @@ implementation
 							// If we have more messages to send, lets queue them up!
 							if (has_enough_messages_to_send())
 							{
-								call ConsiderTimer.startOneShot(ALPHA_RETRY);
+								start_consider_timer(ALPHA_RETRY);
 							}
 						}
 					}
 					else
 					{
-						call ConsiderTimer.startOneShot(ALPHA * (RTX_ATTEMPTS - info->rtx_attempts));
+						start_consider_timer(ALPHA * (RTX_ATTEMPTS - info->rtx_attempts));
 					}
 				}
 				else
@@ -579,7 +604,7 @@ implementation
 					// If we have more messages to send, lets queue them up!
 					if (has_enough_messages_to_send())
 					{
-						call ConsiderTimer.startOneShot(ALPHA_RETRY);
+						start_consider_timer(ALPHA_RETRY);
 					}
 				}
 			}
@@ -653,9 +678,15 @@ implementation
 
 	ni_neighbour_detail_t* choose_random_neighbour(ni_neighbours_t* local_neighbours)
 	{
-		uint16_t rnd = call Random.rand16();
-		uint16_t neighbour_index = rnd % local_neighbours->size;
-		ni_neighbour_detail_t* neighbour = &local_neighbours->data[neighbour_index];
+		uint16_t rnd;
+		uint16_t neighbour_index;
+		ni_neighbour_detail_t* neighbour;
+
+		assert(local_neighbours->size > 0);
+
+		rnd = call Random.rand16();
+		neighbour_index = rnd % local_neighbours->size;
+		neighbour = &local_neighbours->data[neighbour_index];
 
 		// Try once more, to avoid always selecting the same target
 		if (local_neighbours->size > 1 && neighbour->address == previously_sent_to)
@@ -668,17 +699,15 @@ implementation
 		return neighbour;
 	}
 
-	void init_bad_neighbours(const message_queue_info_t* info, am_addr_t* bad_neighbours, uint8_t* bad_neighbours_size)
+	uint8_t init_bad_neighbours(const message_queue_info_t* info, am_addr_t* bad_neighbours, uint8_t max_bad_neighbours)
 	{
 		uint8_t i, j;
 
-		am_addr_t skippable_neighbours[RTX_ATTEMPTS+1];
-		uint8_t skippable_neighbours_count[RTX_ATTEMPTS+1];
+		am_addr_t skippable_neighbours[RTX_ATTEMPTS];
+		uint8_t skippable_neighbours_count[RTX_ATTEMPTS];
 		uint8_t skippable_neighbours_size = 0;
 
-		const uint8_t max_bad_neighbours = *bad_neighbours_size;
-
-		*bad_neighbours_size = 0;
+		uint8_t bad_neighbours_size = 0;
 
 		// Count how many neighbours turn up
 		for (i = 0; i != failed_neighbour_sends_length(info); ++i)
@@ -717,21 +746,21 @@ implementation
 		// Copy neighbours that are bad to the list
 		for (i = 0; i != skippable_neighbours_size; ++i)
 		{
-			if (skippable_neighbours_count[i] < BAD_NEIGHBOUR_THRESHOLD)
-			{
-				continue;
-			}
-
-			bad_neighbours[*bad_neighbours_size] = skippable_neighbours[i];
-			(*bad_neighbours_size)++;
-
 			// Stop copying if we have filled the output buffer
-			if (*bad_neighbours_size == max_bad_neighbours)
+			if (bad_neighbours_size == max_bad_neighbours)
 			{
 				ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours output buffer full\n");
 				break;
 			}
+
+			if (skippable_neighbours_count[i] >= BAD_NEIGHBOUR_THRESHOLD)
+			{
+				bad_neighbours[bad_neighbours_size] = skippable_neighbours[i];
+				bad_neighbours_size++;
+			}
 		}
+
+		return bad_neighbours_size;
 	}
 
 	bool neighbour_present(const am_addr_t* neighs, uint8_t neighs_size, am_addr_t neighbour)
@@ -784,14 +813,14 @@ implementation
 		uint8_t i;
 
 		am_addr_t bad_neighbours[RTX_ATTEMPTS+1];
-		uint8_t bad_neighbours_size = ARRAY_SIZE(bad_neighbours);
+		uint8_t bad_neighbours_size = 0;
 
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
 
 		// Find out if there are any bad neighbours present. If there are
 		// then we will try to pick a neighbour other than this one.
-		init_bad_neighbours(info, bad_neighbours, &bad_neighbours_size);
+		bad_neighbours_size = init_bad_neighbours(info, bad_neighbours, ARRAY_SIZE(bad_neighbours));
 
 		// Try to pick neighbours that have not been backtracked from first.
 		// If we can't find any, then use the neighbour that has been backtracked from.
@@ -879,14 +908,14 @@ implementation
 		bool success = FALSE;
 
 		am_addr_t bad_neighbours[RTX_ATTEMPTS+1];
-		uint8_t bad_neighbours_size = ARRAY_SIZE(bad_neighbours);
+		uint8_t bad_neighbours_size = 0;
 
 		ni_neighbours_t local_neighbours;
 		init_ni_neighbours(&local_neighbours);
 
 		// Find out if there are any bad neighbours present. If there are
 		// then we will try to pick a neighbour other than this one.
-		init_bad_neighbours(info, bad_neighbours, &bad_neighbours_size);
+		bad_neighbours_size = init_bad_neighbours(info, bad_neighbours, ARRAY_SIZE(bad_neighbours));
 
 		// Try sending to neighbours that are closer to the sink and further from the source
 		CHOOSE_NEIGHBOURS_WITH_PREDICATE(
@@ -1008,7 +1037,8 @@ implementation
 
 				if (!success)
 				{
-					if (sink_source_distance != UNKNOWN_HOP_DISTANCE && source_distance != UNKNOWN_HOP_DISTANCE && source_distance < sink_source_distance)
+					if (sink_source_distance != UNKNOWN_HOP_DISTANCE && source_distance != UNKNOWN_HOP_DISTANCE &&
+						source_distance < sink_source_distance)
 					{
 						// We are too close to the source and it is likely that we haven't yet gone
 						// around the sink. So lets try backtracking and finding another route.
@@ -1017,7 +1047,7 @@ implementation
 
 						success = find_next_in_avoid_sink_backtrack_route(info, next);
 
-						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", *next);
+						simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", *next);
 					}
 					else
 					{
@@ -1028,7 +1058,7 @@ implementation
 
 						success = find_next_in_to_sink_route(info, next);
 
-						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
+						simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
 					}
 				}
 			} break;
@@ -1041,7 +1071,7 @@ implementation
 
 				success = find_next_in_avoid_sink_route(info, next);
 
-				simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", *next);
+				simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
 
 			} break;
 
@@ -1084,28 +1114,39 @@ implementation
 		NormalMessage message;
 		NormalMessage* info_msg;
 
+		uint32_t time_taken_to_send;
+
 		simdbgverbose("stdout", "ConsiderTimer fired. [MessageQueue.count()=%u]\n",
 			call MessageQueue.count());
 
 		// If we don't have any messages to send, then there is nothing to do
 		if (!has_enough_messages_to_send())
 		{
-			LOG_STDOUT(ILPROUTING_NO_MESSAGES, "Unable to consider messages to send as we have no messages to send.\n");
+			LOG_STDOUT_VERBOSE(ILPROUTING_NO_MESSAGES, "Unable to consider messages to send as we have no messages to send.\n");
 			return;
 		}
 
 		// If we have no neighbour knowledge, then don't start sending
 		if (call Neighbours.count() == 0)
 		{
+			PollMessage poll_message;
+			poll_message.sink_distance_of_sender = sink_distance;
+			poll_message.source_distance_of_sender = source_distance;
+
+			call Neighbours.poll(&poll_message);
+
+			start_consider_timer(ALPHA_RETRY);
+
 			ERROR_OCCURRED(ERROR_NO_NEIGHBOURS, "Unable to consider messages to send as we have no neighbours.\n");
+
 			return;
 		}
 
 		// If the radio is busy sending an existing packet, then retry in a bit
 		if (busy)
 		{
-			call ConsiderTimer.startOneShot(ALPHA_RETRY);
-			LOG_STDOUT(ILPROUTING_BUSY, "Unable to consider messages to send as the radio is busy.\n");
+			start_consider_timer(ALPHA);
+			LOG_STDOUT_VERBOSE(ILPROUTING_BUSY, "Unable to consider messages to send as the radio is busy.\n");
 			return;
 		}
 
@@ -1118,6 +1159,15 @@ implementation
 		}
 
 		info_msg = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
+
+		time_taken_to_send = call LocalTime.get() - info->time_added;
+
+		// Check if it is time to send this message
+		if (time_taken_to_send < info->to_delay)
+		{
+			start_consider_timer(info->to_delay - time_taken_to_send);
+			return;
+		}
 
 		message = *info_msg;
 		message.source_distance += 1;
@@ -1133,7 +1183,7 @@ implementation
 			info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
 			message.source_distance_of_sender = source_distance;
-			message.time_taken_to_send = call LocalTime.get() - info->time_added;
+			message.time_taken_to_send = time_taken_to_send;
 
 			result = send_Normal_message_ex(&message, next, &info->ack_requested);
 			if (result != SUCCESS)
@@ -1142,7 +1192,7 @@ implementation
 				info->rtx_attempts += UINT8_C(1);
 
 				// If we failed to send the message, try again in a bit
-				call ConsiderTimer.startOneShot(ALPHA_RETRY);
+				start_consider_timer(ALPHA);
 
 				ERROR_OCCURRED(ERROR_FAILED_TO_SEND_NORMAL, "Failed to send Normal with %" PRIu8 ", retrying\n", result);
 			}
@@ -1167,7 +1217,7 @@ implementation
 					info_msg->stage = NORMAL_ROUTE_AVOID_SINK_1_CLOSER;
 					info->calculate_target_attempts = CALCULATE_TARGET_ATTEMPTS;
 
-					call ConsiderTimer.startOneShot(ALPHA_RETRY);
+					start_consider_timer(ALPHA);
 				}
 				else
 				{
@@ -1191,7 +1241,7 @@ implementation
 					call Neighbours.poll(&poll_message);
 				}
 
-				call ConsiderTimer.startOneShot(ALPHA * (CALCULATE_TARGET_ATTEMPTS - info->calculate_target_attempts));
+				start_consider_timer(ALPHA * (CALCULATE_TARGET_ATTEMPTS - info->calculate_target_attempts));
 			}
 		}
 	}
@@ -1301,7 +1351,7 @@ implementation
 				// was processed here.
 				//
 				// So we choose to do nothing.
-				simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u POSSIBLE PROBLEM CYCLE ON WAY TO SINK, OR PATH SPLIT (NO PROBLEM)\n",
+				simdbgverbose("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u POSSIBLE PROBLEM CYCLE ON WAY TO SINK, OR PATH SPLIT (NO PROBLEM)\n",
 					rcvd->sequence_number, source_addr, rcvd->stage);
 			}
 			else if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
@@ -1313,7 +1363,7 @@ implementation
 				// This is problematic as it indicates we have a cycle trying to avoid the near-sink area.
 				// Probably best to just give up and route to sink.
 
-				simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u PROBLEM CYCLE AVOIDING SINK\n",
+				simdbgverbose("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u PROBLEM CYCLE AVOIDING SINK\n",
 					rcvd->sequence_number, source_addr, rcvd->stage);
 
 				record_received_message(msg, NORMAL_ROUTE_TO_SINK);
@@ -1442,8 +1492,8 @@ implementation
 
 	event void Neighbours.rcv_poll(const PollMessage* rcvd, am_addr_t source_addr)
 	{
-		const int16_t sink_distance_of_sender_p1 = hop_distance_increment(rcvd->sink_distance_of_sender);
-		const int16_t source_distance_of_sender_p1 = hop_distance_increment(rcvd->source_distance_of_sender);
+		const hop_distance_t sink_distance_of_sender_p1 = hop_distance_increment(rcvd->sink_distance_of_sender);
+		const hop_distance_t source_distance_of_sender_p1 = hop_distance_increment(rcvd->source_distance_of_sender);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender, 0);
 
@@ -1464,8 +1514,8 @@ implementation
 
 	event void Neighbours.rcv_beacon(const BeaconMessage* rcvd, am_addr_t source_addr)
 	{
-		const int16_t sink_distance_of_sender_p1 = hop_distance_increment(rcvd->sink_distance_of_sender);
-		const int16_t source_distance_of_sender_p1 = hop_distance_increment(rcvd->source_distance_of_sender);
+		const hop_distance_t sink_distance_of_sender_p1 = hop_distance_increment(rcvd->sink_distance_of_sender);
+		const hop_distance_t source_distance_of_sender_p1 = hop_distance_increment(rcvd->source_distance_of_sender);
 
 		UPDATE_NEIGHBOURS(source_addr, rcvd->sink_distance_of_sender, rcvd->source_distance_of_sender, 0);
 

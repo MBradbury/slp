@@ -11,10 +11,6 @@ class Analyzer(AnalyzerCommon):
         return (
             ('Sent', 'TimeTaken'),
             ('NormalSent', 'TimeTaken'),
-
-            #('energy_impact', 'num_nodes'),
-            #(('energy_impact', 'num_nodes'), 'TimeTaken'),
-            #('daily_allowance_used', '1'),
         )
 
     def filtered_parameters(self):
