@@ -722,7 +722,7 @@ implementation
 		return FALSE;
 	}
 
-	int16_t neighbour_source_distance(const ni_container_t * neighbour)
+	hop_distance_t neighbour_source_distance(const ni_container_t * neighbour)
 	{
 		return neighbour->source_distance == UNKNOWN_HOP_DISTANCE
 					? hop_distance_increment(source_distance)
