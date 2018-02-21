@@ -25,8 +25,8 @@ enum NodeType
 
 
 // The amount of time in ms that it takes to send a message from one node to another
-#define ALPHA 10
-#define ALPHA_RETRY 20
+#define ALPHA 8
+#define ALPHA_RETRY (ALPHA * 2)
 
 #define SINK_AWAY_MESSAGES_TO_SEND 2
 #define SINK_AWAY_DELAY_MS (1 * 1000)
@@ -39,6 +39,8 @@ enum NodeType
 
 #define CALCULATE_TARGET_ATTEMPTS 5
 #define NO_NEIGHBOURS_DO_POLL_THRESHOLD 3
+
+#define SLP_MESSAGES_BEFORE_DIRECT_TO_SINK 10
 
 #define SLP_OBJECT_DETECTOR_START_DELAY_MS (4 * 1000)
 

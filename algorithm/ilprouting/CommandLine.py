@@ -2,12 +2,13 @@
 from datetime import timedelta
 import itertools
 
+import simulator.sim
 from simulator import CommandLineCommon
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 
-from data import results
+from data import results, submodule_loader
 from data.table import fake_result
 
 # Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
@@ -20,7 +21,11 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(protectionless.name, safety_period_equivalence=safety_period_equivalence)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+        subparser.add_argument("--show", action="store_true", default=False)
+
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
@@ -82,7 +87,7 @@ class CLI(CommandLineCommon.CLI):
             'failed avoid sink when captured',
         ]
 
-        self._create_results_table(args.sim, parameters)
+        self._create_results_table(args.sim, parameters, show=args.show)
 
     def _run_graph(self, args):
         graph_parameters = {
@@ -104,12 +109,13 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'received ratio': 100,
-            'norm(sent,time taken)': 300,
-            'captured': 9,
-            'normal latency': 4000,
+            #'norm(sent,time taken)': 300,
+            #'captured': 100,
+            #'normal latency': 4000,
         }
 
-        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
             xaxis_font = "',18'",
             yaxis_font = "',18'",
             xlabel_font = "',17'",

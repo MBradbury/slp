@@ -9,6 +9,7 @@ typedef struct message_queue_info
 {
 	message_t msg;
 	uint32_t time_added;
+    uint32_t to_delay;
 	am_addr_t proximate_source;
 	uint8_t rtx_attempts;
 	uint8_t calculate_target_attempts;
