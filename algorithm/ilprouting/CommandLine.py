@@ -1,19 +1,14 @@
-from __future__ import print_function
 
+from datetime import timedelta
 import itertools
-import os
 
 import simulator.sim
-from simulator.Simulation import Simulation
 from simulator import CommandLineCommon
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 
-from data import results, latex, submodule_loader
-from data.table import safety_period, direct_comparison, fake_result
-from data.graph import summary, versus
-from data.util import scalar_extractor
+from data import submodule_loader
 
 # Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
 safety_period_equivalence = {
@@ -29,6 +24,7 @@ class CLI(CommandLineCommon.CLI):
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
@@ -47,6 +43,54 @@ class CLI(CommandLineCommon.CLI):
 
     def time_after_first_normal_to_safety_period(self, tafn):
         return tafn * 2.0
+
+    def _cluster_time_estimator(self, sim, args, **kwargs):
+        historical_key_names = ('configuration', 'network size', 'source period')
+
+        if sim == "tossim":
+            historical = {
+                ('RandomPoissonDiskConnectedSeed2', '11', '0.25'): timedelta(seconds=3),
+                ('RandomPoissonDiskConnectedSeed2', '11', '0.5'): timedelta(seconds=3),
+                ('RandomPoissonDiskConnectedSeed2', '11', '1.0'): timedelta(seconds=4),
+                ('RandomPoissonDiskConnectedSeed2', '11', '2.0'): timedelta(seconds=4),
+                ('RandomPoissonDiskConnectedSeed2', '15', '0.25'): timedelta(seconds=12),
+                ('RandomPoissonDiskConnectedSeed2', '15', '0.5'): timedelta(seconds=12),
+                ('RandomPoissonDiskConnectedSeed2', '15', '1.0'): timedelta(seconds=14),
+                ('RandomPoissonDiskConnectedSeed2', '15', '2.0'): timedelta(seconds=16),
+                ('RandomPoissonDiskConnectedSeed2', '7', '0.25'): timedelta(seconds=2),
+                ('RandomPoissonDiskConnectedSeed2', '7', '0.5'): timedelta(seconds=2),
+                ('RandomPoissonDiskConnectedSeed2', '7', '1.0'): timedelta(seconds=2),
+                ('RandomPoissonDiskConnectedSeed2', '7', '2.0'): timedelta(seconds=2),
+                ('SourceCorner', '11', '0.25'): timedelta(seconds=5),
+                ('SourceCorner', '11', '0.5'): timedelta(seconds=6),
+                ('SourceCorner', '11', '1.0'): timedelta(seconds=7),
+                ('SourceCorner', '11', '2.0'): timedelta(seconds=7),
+                ('SourceCorner', '15', '0.25'): timedelta(seconds=11),
+                ('SourceCorner', '15', '0.5'): timedelta(seconds=12),
+                ('SourceCorner', '15', '1.0'): timedelta(seconds=14),
+                ('SourceCorner', '15', '2.0'): timedelta(seconds=17),
+                ('SourceCorner', '21', '0.25'): timedelta(seconds=31),
+                ('SourceCorner', '21', '0.5'): timedelta(seconds=33),
+                ('SourceCorner', '21', '1.0'): timedelta(seconds=38),
+                ('SourceCorner', '21', '2.0'): timedelta(seconds=46),
+                ('SourceCorner', '25', '0.25'): timedelta(seconds=57),
+                ('SourceCorner', '25', '0.5'): timedelta(seconds=61),
+                ('SourceCorner', '25', '1.0'): timedelta(seconds=69),
+                ('SourceCorner', '25', '2.0'): timedelta(seconds=83),
+                ('SourceCorner', '7', '0.25'): timedelta(seconds=2),
+                ('SourceCorner', '7', '0.5'): timedelta(seconds=2),
+                ('SourceCorner', '7', '1.0'): timedelta(seconds=2),
+                ('SourceCorner', '7', '2.0'): timedelta(seconds=3),
+            }
+
+        else:
+            historical = {}
+
+        return self._cluster_time_estimator_from_historical(
+            sim, args, kwargs, historical_key_names, historical,
+            allowance=0.35,
+            max_time=timedelta(days=2)
+        )
 
     def _run_table(self, args):
         parameters = [
@@ -82,7 +126,8 @@ class CLI(CommandLineCommon.CLI):
             'normal latency': 4000,
         }
 
-        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
             xaxis_font = "',16'",
             yaxis_font = "',16'",
             xlabel_font = "',18'",
@@ -93,13 +138,3 @@ class CLI(CommandLineCommon.CLI):
             generate_legend_graph = True,
             legend_font_size = 16,
         )
-
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
-
