@@ -115,6 +115,7 @@ class CLI(CommandLineCommon.CLI):
 
         varying = [
             (('network size', ''), ('msg group size', '')),
+            (('pr direct to sink', ''), ('msg group size', '')),
             #(('network size', ''), ('source period', ' seconds')),
             #(('network size', ''), ('pr direct to sink', '')),
         ]
