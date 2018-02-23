@@ -121,8 +121,8 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'received ratio': 100,
-            'norm(sent,time taken)': 300,
-            'captured': 9,
+            'norm(sent,time taken)': 500,
+            'captured': 25,
             'normal latency': 4000,
         }
 
