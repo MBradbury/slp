@@ -206,7 +206,7 @@ class Grapher(GrapherBase):
                 xvalues_padding = self.xvalues_padding
             else:
                 if self.xaxis == "network size":
-                    xvalues_padding = math.ceil(min(xvalues_as_num) / 10)
+                    xvalues_padding = 1
                 else:
                     xvalues_padding = 0.1
 
