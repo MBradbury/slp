@@ -73,6 +73,8 @@ class TableDataFormatter(object):
                 "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
                 "norm(norm(norm(sent,time taken),network size),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
 
+                "norm(norm(fake,time taken),network size)": ("$\\mathcal{F}$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
+
                 "protected sink hops": ("Protected", "Sink Hops"),
                 "activate period": ("$P_{activate}$", "(sec)"),
                 "cone type": ("Cone", "Type"),
