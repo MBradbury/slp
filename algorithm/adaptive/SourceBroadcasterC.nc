@@ -202,6 +202,24 @@ implementation
 		return distance;
 	}
 
+#elif defined(PB_FIXED1_APPROACH)
+	hop_distance_t get_dist_to_pull_back(void)
+	{
+		return 1;
+	}
+
+#elif defined(PB_FIXED2_APPROACH)
+	hop_distance_t get_dist_to_pull_back(void)
+	{
+		return 2;
+	}
+
+#elif defined(PB_RND_APPROACH)
+	hop_distance_t get_dist_to_pull_back(void)
+	{
+		return 1 + (call Random.rand16() % 2);
+	}
+
 #else
 #	error "Technique not specified"
 #endif
@@ -661,7 +679,7 @@ implementation
 			algorithm = (Algorithm)rcvd->algorithm;
 		}
 
-		sink_distance = sink_source_distance = hop_distance_min(sink_source_distance, rcvd->sink_distance + 1);
+		sink_distance = sink_source_distance = hop_distance_min(sink_source_distance, hop_distance_increment(rcvd->sink_distance));
 
 		if (sequence_number_before(&away_sequence_counter, rcvd->sequence_number))
 		{

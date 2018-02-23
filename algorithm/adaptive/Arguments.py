@@ -2,7 +2,7 @@
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.MobilityModel
 
-approaches = ("PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH")
+approaches = ("PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH", "PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH")
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
