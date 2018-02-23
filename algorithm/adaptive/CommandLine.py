@@ -42,6 +42,11 @@ class CLI(CommandLineCommon.CLI):
 
         if sim == "tossim":
             historical = {
+                (7, 0.125): timedelta(seconds=6),
+                (7, 0.25): timedelta(seconds=8),
+                (7, 0.5): timedelta(seconds=9),
+                (7, 1.0): timedelta(seconds=10),
+                (7, 2.0): timedelta(seconds=11),
                 (11, 0.125): timedelta(seconds=6),
                 (11, 0.25): timedelta(seconds=8),
                 (11, 0.5): timedelta(seconds=9),
@@ -78,7 +83,10 @@ class CLI(CommandLineCommon.CLI):
             args.sim, self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=(
-                'sent', 'delivered', 'time taken',
+                #'sent',
+                #'norm(norm(sent,time taken),network size)',
+                'norm(norm(fake,time taken),network size)',
+                'delivered', 'time taken',
                 'captured', 'received ratio', #'ssd', 'attacker distance',
                 'fake nodes at end', 'fake nodes at end when captured'
             ))
