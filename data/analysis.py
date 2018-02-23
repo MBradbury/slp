@@ -973,7 +973,7 @@ class AnalyzerCommon(object):
 
         result = None
 
-        if result_file_create_time < pickle_file_create_time and not flush:
+        if result_file_create_time >= pickle_file_create_time and not flush:
             with open(pickle_path, 'rb') as pickle_file:
                 saved_kwargs = pickle.load(pickle_file)
 
