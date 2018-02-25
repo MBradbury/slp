@@ -211,7 +211,7 @@ class dummy(ClusterCommon):
 
         return DummySubmitter(cluster_command, prepare_command, self.ppn)
 
-    def array_submitter(self, *args, **kwargs):
+    def array_submitter(self, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         class DummySubmitter(Submitter):
