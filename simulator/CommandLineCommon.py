@@ -168,6 +168,7 @@ class CLI(object):
         ###
 
         subparser = self._add_argument("per-parameter-grapher", self._run_per_parameter_grapher)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
         subparser.add_argument("--grapher", required=True)
         subparser.add_argument("--metric-name", required=True)
         subparser.add_argument("--show", action="store_true", default=False)
@@ -315,7 +316,7 @@ class CLI(object):
                 name = 'baseline-{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
 
                 g = baseline_versus.Grapher(
-                    self.algorithm_module.graphs_path(sim_name), name,
+                    sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
                     yextractor=scalar_extractor)
 
@@ -1072,9 +1073,9 @@ class CLI(object):
             results=heatmap_results)
 
         for name in heatmap_results:
-            heatmap.Grapher(self.algorithm_module.graphs_path(sim_name), results_summary, name).create()
+            heatmap.Grapher(args.sim, self.algorithm_module.graphs_path(args.sim), results_summary, name).create()
             summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path(sim_name), name),
+                os.path.join(self.algorithm_module.graphs_path(args.sim), name),
                 os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_")))
             ).run()
 
@@ -1086,9 +1087,9 @@ class CLI(object):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
 
         grapher = graph_type.Grapher(
-            os.path.join(self.algorithm_module.graphs_path(sim_name), args.grapher),
+            args.sim, os.path.join(self.algorithm_module.graphs_path(args.sim), args.grapher),
             args.metric_name,
-            self.parameter_names()
+            self.parameter_names(args.sim)
         )
 
         grapher.xaxis_label = args.metric_name
@@ -1099,7 +1100,7 @@ class CLI(object):
         )
 
         summary.GraphSummary(
-            os.path.join(self.algorithm_module.graphs_path(sim_name), args.grapher),
+            os.path.join(self.algorithm_module.graphs_path(args.sim), args.grapher),
             os.path.join(algorithm.results_directory_name, f"{self.algorithm_module.name}-{args.grapher}")
         ).run(show=args.show)
 

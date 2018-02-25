@@ -194,7 +194,7 @@ class Grapher(GrapherBase):
 
         # Right we need to look at the key equivalences then
 
-        global_parameter_names = simulator.common.global_parameter_names
+        global_parameter_names = self._key_names_base
 
         keys_to_try = []
 

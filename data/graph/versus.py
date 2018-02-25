@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 import collections
 import itertools
@@ -10,8 +9,6 @@ import numpy as np
 import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
-
-import simulator.sim
 
 class Grapher(GrapherBase):
 
