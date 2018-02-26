@@ -62,14 +62,20 @@ class Runner(object):
         for name in files_to_copy:
             shutil.copy(os.path.join(module_path, name), target_directory)
 
-        if self.sim_name == "tossim":
-            files_to_move = (
+        files_to_move = {
+            "tossim": (
                 "app.xml",
                 "_TOSSIM.so",
                 "TOSSIM.py",
-            )
-            for name in files_to_move:
-                shutil.move(os.path.join(module_path, name), target_directory)
+            ),
+
+            "cooja": (
+                "main.exe",
+                "main.ihex",
+            ),
+        }
+        for name in files_to_move.get(self.sim_name, []):
+            shutil.move(os.path.join(module_path, name), target_directory)
 
 
         print("All Done!")
