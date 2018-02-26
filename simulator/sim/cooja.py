@@ -70,7 +70,7 @@ def cooja_command(module, a, configuration):
 
     target_directory = module.replace(".", "/")
 
-    csc_file = os.path.join(target_directory, "build", "sim.csc")
+    csc_file = os.path.join(target_directory, f"sim.{a.args.seed}.csc")
 
     command = f"java -jar '{cooja_path}' -nogui='{csc_file}' -contiki='{os.environ['CONTIKI_DIR']}'"
 
@@ -85,7 +85,7 @@ def cooja_iter(iterable):
         line = line.rstrip()
 
         if line.startswith('Exception'):
-            raise RuntimeError("Cooja exception: {}".format(line))
+            raise RuntimeError(f"Cooja exception: {line}")
 
         time_us, rest = line.split("|", 1)
 

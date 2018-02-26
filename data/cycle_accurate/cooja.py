@@ -160,7 +160,7 @@ log.testOK(); /* Report test success and quit */
     pcsc('</simconf>')
 
 def write_csc(target_directory, a):
-    with open(os.path.join(target_directory, "build", "sim.csc"), "w") as csc:
+    with open(os.path.join(target_directory, f"sim.{a.args.seed}.csc"), "w") as csc:
         create_csc(csc, target_directory, a)
 
 def post_build_actions(target_directory, a):
