@@ -38,7 +38,9 @@ class RunSimulationsCommon(object):
         self._safety_periods = safety_periods
         self._safety_period_equivalence = safety_period_equivalence
 
-        self._global_parameter_names = submodule_loader.load(simulator.sim, self.sim_name).global_parameter_names
+        self._sim = submodule_loader.load(simulator.sim, self.sim_name)
+
+        self._global_parameter_names = self._sim.global_parameter_names
 
         if not os.path.exists(self._result_path):
             raise RuntimeError(f"{self._result_path} is not a directory")
@@ -55,6 +57,9 @@ class RunSimulationsCommon(object):
             self._load_existing_results(argument_names)
         
         self.driver.total_job_size = len(argument_product)
+
+        # Check if this simulator actually supports thread count as an option
+        sim_parsers_thread_count = any("thread count" in (parsers or []) for (name, inherits, parsers) in self._sim.parsers())
 
         for arguments in argument_product:
             darguments = OrderedDict(zip(argument_names, arguments))
@@ -80,10 +85,10 @@ class RunSimulationsCommon(object):
             if repeats_to_run is not None:
                 opts["--job-size"] = int(math.ceil(repeats_to_run / job_repeats))
 
-            if hasattr(self.driver, 'array_job_variable') and self.driver.array_job_variable is not None:
+            if getattr(self.driver, 'array_job_variable', None) is not None:
                 opts["--job-id"] = self.driver.array_job_variable
 
-            if hasattr(self.driver, 'job_thread_count') and self.driver.job_thread_count is not None:
+            if sim_parsers_thread_count and getattr(self.driver, 'job_thread_count', None) is not None:
                 opts["--thread-count"] = self.driver.job_thread_count
 
             for (name, value) in darguments.items():
