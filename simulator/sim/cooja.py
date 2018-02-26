@@ -49,6 +49,9 @@ def build(module, a):
     #(a, module, module_path, target_directory)
     builder.add_job((module, a), target)
 
+    # 0 For successful build result
+    return 0
+
 def print_version():
     import simulator.VersionDetection as VersionDetection
 

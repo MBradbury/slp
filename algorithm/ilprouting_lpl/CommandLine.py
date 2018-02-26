@@ -13,7 +13,8 @@ from data import submodule_loader
 # Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
 safety_period_equivalence = {
     "attacker model": {"SeqNosOOOReactiveAttacker()": "SeqNosReactiveAttacker()",
-                       "SeqNosOOOReactiveAttacker(message_detect='within_range(4.75)')": "SeqNosReactiveAttacker(message_detect='within_range(4.75)')"}
+                       "SeqNosOOOReactiveAttacker(message_detect='within_range(4.75)')": "SeqNosReactiveAttacker(message_detect='within_range(4.75)')"},
+    "low power listening": {"enabled": "disabled"},
 }
 
 class CLI(CommandLineCommon.CLI):
@@ -32,8 +33,10 @@ class CLI(CommandLineCommon.CLI):
 
         parameter_values = self._get_global_parameter_values(sim, parameters)
 
+        custom_mapping = {"pr direct to sink": "direct_to_sink_prs"}
+
         for parameter in self.algorithm_module.base_parameter_names:
-             parameter_values.append(self._get_local_parameter_values(parameters, parameter))
+             parameter_values.append(self._get_local_parameter_values(parameters, parameter, custom_mapping=custom_mapping))
 
         my_paramater_names = ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks')
         my_paramater_values = [self._get_local_parameter_values(parameters, parameter) for parameter in my_paramater_names]
