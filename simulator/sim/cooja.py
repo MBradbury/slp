@@ -172,7 +172,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
             write_csc(module.replace(".", "/"), a)
 
-            with subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, universal_newlines=True) as proc:
+            with subprocess.Popen(command, stdout=sys.stderr, stderr=subprocess.PIPE, universal_newlines=True) as proc:
 
                 proc_iter = iter(proc.stderr.readline, '')
 
