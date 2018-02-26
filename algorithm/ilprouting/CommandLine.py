@@ -12,7 +12,8 @@ from data import submodule_loader
 
 # Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
 safety_period_equivalence = {
-    "attacker model": {"SeqNosOOOReactiveAttacker()": "SeqNosReactiveAttacker()"}
+    "attacker model": {"SeqNosOOOReactiveAttacker()": "SeqNosReactiveAttacker()",
+                       "SeqNosOOOReactiveAttacker(message_detect='within_range(4.75)')": "SeqNosReactiveAttacker(message_detect='within_range(4.75)')"}
 }
 
 class CLI(CommandLineCommon.CLI):
