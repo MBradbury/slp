@@ -40,6 +40,8 @@ PLATFORM_TOOLS = {
 class Runner(object):
     required_safety_periods = False
 
+    kind = "TESTBED"
+
     def __init__(self, testbed, platform=None, quiet=False):
         
         self.total_job_size = None
@@ -53,7 +55,7 @@ class Runner(object):
             self._progress = Progress("building file")
             self._jobs_executed = 0
 
-        if testbed.generate_per_node_id_binary:
+        if getattr(testbed, "generate_per_node_id_binary", False):
             from multiprocessing.pool import ThreadPool
             self.pool = ThreadPool()
 
@@ -98,8 +100,8 @@ class Runner(object):
 
         # These are the arguments that will be passed to the compiler
         build_args = self.build_arguments(a)
-        build_args[self.mode()] = self.testbed.name()
-        build_args[self.mode() + "_" + self.testbed.name().upper()] = 1
+        build_args[self.kind] = self.testbed.name()
+        build_args[self.kind + "_" + self.testbed.name().upper()] = 1
         build_args["PLATFORM"] = self.platform
 
         if not self.quiet:
@@ -151,7 +153,7 @@ class Runner(object):
                 else:
                     raise
 
-        if self.testbed.generate_per_node_id_binary:
+        if getattr(self.testbed, "generate_per_node_id_binary", False):
             target_ihex = os.path.join(target_directory, "main.ihex")
 
             if not self.quiet:

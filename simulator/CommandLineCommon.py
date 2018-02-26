@@ -923,7 +923,7 @@ class CLI(object):
 
             skip_complete = not args.no_skip_complete
 
-            self._execute_runner(args.sim, cluster.builder(), cluster_directory,
+            self._execute_runner(args.sim, cluster.builder(args.sim), cluster_directory,
                                  time_estimator=None,
                                  skip_completed_simulations=skip_complete)
 
