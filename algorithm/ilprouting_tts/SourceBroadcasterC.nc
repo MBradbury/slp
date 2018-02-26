@@ -137,6 +137,8 @@ implementation
 
 	// Rest
 
+	void consider_message_to_send();
+
 	event void Boot.booted()
 	{
 		busy = FALSE;
@@ -252,7 +254,7 @@ implementation
 	event void StartDutyCycleTimer.fired()
 	{
 		// The sink does not do duty cycling and keeps its radio on at all times
-		assert(call NodeType.get() != SinkNode);
+		//assert(call NodeType.get() != SinkNode);
 		
 		call LowPowerListening.setLocalWakeupInterval(LPL_DEF_LOCAL_WAKEUP);
 	}
@@ -317,6 +319,19 @@ implementation
 	}
 #endif
 
+	void start_consider_timer(uint32_t dt)
+	{
+		//simdbg("stdout", "Starting considertimer at %" PRIu32 " already running %" PRIu8 " next %" PRIu32 "\n",
+		//	at, call ConsiderTimer.isRunning(), call ConsiderTimer.getdt());
+
+		// Only start the timer if it would be earlier than is currently planned
+		if (!call ConsiderTimer.isRunning() ||
+			call ConsiderTimer.getNow() + dt < call ConsiderTimer.gett0() + call ConsiderTimer.getdt())
+		{
+			call ConsiderTimer.startOneShot(dt);
+		}
+	}
+
 	bool has_enough_messages_to_send(void)
 	{
 		return call MessageQueue.count() > 0;
@@ -324,7 +339,10 @@ implementation
 
 	message_queue_info_t* choose_message_to_send(void)
 	{
-		message_queue_info_t** const begin = call MessageQueue.begin();
+		message_queue_info_t** iter = call MessageQueue.begin();
+		message_queue_info_t** const end = call MessageQueue.end();
+
+		message_queue_info_t* selected;
 
 		// Cannot choose messages to send when there are no messages
 		if (call MessageQueue.count() == 0)
@@ -332,7 +350,22 @@ implementation
 			return NULL;
 		}
 
-		return begin[0];
+		selected = *iter;
+
+		++iter;
+
+		// Get message with earliest time to send
+		for (; iter != end; ++iter)
+		{
+			message_queue_info_t* info = *iter;
+
+			if (info->time_added + info->to_delay < selected->time_added + selected->to_delay)
+			{
+				selected = *iter;
+			}
+		}
+
+		return selected;
 	}
 
 	enum {
@@ -417,10 +450,10 @@ implementation
 			const NormalMessage* rcvd = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
 			LOG_STDOUT(ILPROUTING_OVERWRITING_QUEUED_NORMAL,
-				"Overwriting Normal message (" NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ") [delay=%" PRIu16 "] with the same [delay=%" PRIu16 "]\n",
+				"Overwriting Normal message (" NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ") [tts=%" PRIu32 ",delay=%" PRIu16 "] with the same [tts=%" PRIu32 ",delay=%" PRIu16 "]\n",
 				rcvd->sequence_number, rcvd->source_id,
-				(uint16_t)current->delay,
-				(uint16_t)rcvd->delay);
+				(uint32_t)current->time_taken_to_send, (uint16_t)current->delay,
+				(uint32_t)rcvd->time_taken_to_send, (uint16_t)rcvd->delay);
 		}
 
 		item->msg = *msg;
@@ -438,14 +471,37 @@ implementation
 		item->rtx_attempts = RTX_ATTEMPTS;
 		item->calculate_target_attempts = CALCULATE_TARGET_ATTEMPTS;
 
-		if (has_enough_messages_to_send())
+		// If this message is passed the sink, then do not add extra delay
+		if (sink_source_distance != UNKNOWN_HOP_DISTANCE &&
+			stored_normal_message->source_distance >= sink_source_distance)
 		{
-			const uint32_t to_delay = (sink_source_distance == UNKNOWN_HOP_DISTANCE || stored_normal_message->source_distance < sink_source_distance)
-				? stored_normal_message->delay
-				: ALPHA;
-
-			call ConsiderTimer.startOneShot(to_delay);
+			item->to_delay = ALPHA;
 		}
+		else
+		{
+			const uint16_t delay = stored_normal_message->delay;
+			const uint32_t time_taken_to_send = stored_normal_message->time_taken_to_send;
+
+			// If it took the previous sender more time to get this message delivered
+			// than the amount we should delay it for, then just use alpha.
+			// Otherwise, use the delay minus the extra time that has already been used
+			if (time_taken_to_send >= delay)
+			{
+				item->to_delay = ALPHA;
+			}
+			else
+			{
+				// Make sure that there is a minimum delay of ALPHA
+				item->to_delay = delay - time_taken_to_send;
+			}
+		}
+
+		METRIC_GENERIC(METRIC_GENERIC_NEXT_NORMAL_DELAY,
+			NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32 ",%" PRIu16 ",%" PRIu16,
+			stored_normal_message->sequence_number, stored_normal_message->source_id,
+			(uint32_t)stored_normal_message->time_taken_to_send, (uint16_t)stored_normal_message->delay, item->to_delay);
+
+		start_consider_timer(item->to_delay);
 
 		return SUCCESS;
 	}
@@ -455,7 +511,7 @@ implementation
 		if (error != SUCCESS)
 		{
 			// Failed to send the message
-			call ConsiderTimer.startOneShot(ALPHA_RETRY);
+			start_consider_timer(ALPHA);
 		}
 		else
 		{
@@ -510,7 +566,7 @@ implementation
 								"Failed to route message " NXSEQUENCE_NUMBER_SPEC " to avoid sink, giving up and routing to sink.\n",
 								normal_message->sequence_number);
 
-							call ConsiderTimer.startOneShot(ALPHA_RETRY);
+							start_consider_timer(ALPHA_RETRY);
 						}
 						else
 						{
@@ -524,13 +580,13 @@ implementation
 							// If we have more messages to send, lets queue them up!
 							if (has_enough_messages_to_send())
 							{
-								call ConsiderTimer.startOneShot(ALPHA_RETRY);
+								start_consider_timer(ALPHA_RETRY);
 							}
 						}
 					}
 					else
 					{
-						call ConsiderTimer.startOneShot(ALPHA * (RTX_ATTEMPTS - info->rtx_attempts));
+						start_consider_timer(ALPHA * (RTX_ATTEMPTS - info->rtx_attempts));
 					}
 				}
 				else
@@ -548,7 +604,7 @@ implementation
 					// If we have more messages to send, lets queue them up!
 					if (has_enough_messages_to_send())
 					{
-						call ConsiderTimer.startOneShot(ALPHA_RETRY);
+						start_consider_timer(ALPHA_RETRY);
 					}
 				}
 			}
@@ -756,7 +812,7 @@ implementation
 		static const bool FT[] = {FALSE, TRUE};
 		uint8_t i;
 
-		am_addr_t bad_neighbours[RTX_ATTEMPTS];
+		am_addr_t bad_neighbours[RTX_ATTEMPTS+1];
 		uint8_t bad_neighbours_size = 0;
 
 		ni_neighbours_t local_neighbours;
@@ -851,7 +907,7 @@ implementation
 
 		bool success = FALSE;
 
-		am_addr_t bad_neighbours[RTX_ATTEMPTS];
+		am_addr_t bad_neighbours[RTX_ATTEMPTS+1];
 		uint8_t bad_neighbours_size = 0;
 
 		ni_neighbours_t local_neighbours;
@@ -991,7 +1047,7 @@ implementation
 
 						success = find_next_in_avoid_sink_backtrack_route(info, next);
 
-						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", *next);
+						simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", *next);
 					}
 					else
 					{
@@ -1002,7 +1058,7 @@ implementation
 
 						success = find_next_in_to_sink_route(info, next);
 
-						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
+						simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
 					}
 				}
 			} break;
@@ -1015,7 +1071,7 @@ implementation
 
 				success = find_next_in_avoid_sink_route(info, next);
 
-				simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
+				simdbgverbose("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
 
 			} break;
 
@@ -1049,7 +1105,7 @@ implementation
 		return success;
 	}
 
-	event void ConsiderTimer.fired()
+	void consider_message_to_send()
 	{
 		am_addr_t next = AM_BROADCAST_ADDR;
 		bool success = FALSE;
@@ -1057,6 +1113,8 @@ implementation
 		message_queue_info_t* info;
 		NormalMessage message;
 		NormalMessage* info_msg;
+
+		uint32_t time_taken_to_send;
 
 		simdbgverbose("stdout", "ConsiderTimer fired. [MessageQueue.count()=%u]\n",
 			call MessageQueue.count());
@@ -1077,7 +1135,7 @@ implementation
 
 			call Neighbours.poll(&poll_message);
 
-			call ConsiderTimer.startOneShot(ALPHA_RETRY);
+			start_consider_timer(ALPHA_RETRY);
 
 			ERROR_OCCURRED(ERROR_NO_NEIGHBOURS, "Unable to consider messages to send as we have no neighbours.\n");
 
@@ -1087,7 +1145,7 @@ implementation
 		// If the radio is busy sending an existing packet, then retry in a bit
 		if (busy)
 		{
-			call ConsiderTimer.startOneShot(ALPHA);
+			start_consider_timer(ALPHA);
 			LOG_STDOUT_VERBOSE(ILPROUTING_BUSY, "Unable to consider messages to send as the radio is busy.\n");
 			return;
 		}
@@ -1101,6 +1159,15 @@ implementation
 		}
 
 		info_msg = (NormalMessage*)call NormalSend.getPayload(&info->msg, sizeof(NormalMessage));
+
+		time_taken_to_send = call LocalTime.get() - info->time_added;
+
+		// Check if it is time to send this message
+		if (time_taken_to_send < info->to_delay)
+		{
+			start_consider_timer(info->to_delay - time_taken_to_send);
+			return;
+		}
 
 		message = *info_msg;
 		message.source_distance += 1;
@@ -1116,15 +1183,16 @@ implementation
 			info->ack_requested = (next != AM_BROADCAST_ADDR && info->rtx_attempts > 0);
 
 			message.source_distance_of_sender = source_distance;
+			message.time_taken_to_send = time_taken_to_send;
 
 			result = send_Normal_message_ex(&message, next, &info->ack_requested);
 			if (result != SUCCESS)
 			{
 				// Do not penalise failing to send the message here
-				//info->rtx_attempts += UINT8_C(1);
+				info->rtx_attempts += UINT8_C(1);
 
 				// If we failed to send the message, try again in a bit
-				call ConsiderTimer.startOneShot(ALPHA);
+				start_consider_timer(ALPHA);
 
 				ERROR_OCCURRED(ERROR_FAILED_TO_SEND_NORMAL, "Failed to send Normal with %" PRIu8 ", retrying\n", result);
 			}
@@ -1149,7 +1217,7 @@ implementation
 					info_msg->stage = NORMAL_ROUTE_AVOID_SINK_1_CLOSER;
 					info->calculate_target_attempts = CALCULATE_TARGET_ATTEMPTS;
 
-					call ConsiderTimer.startOneShot(ALPHA_RETRY);
+					start_consider_timer(ALPHA);
 				}
 				else
 				{
@@ -1173,22 +1241,31 @@ implementation
 					call Neighbours.poll(&poll_message);
 				}
 
-				call ConsiderTimer.startOneShot(ALPHA * (CALCULATE_TARGET_ATTEMPTS - info->calculate_target_attempts));
+				start_consider_timer(ALPHA * (CALCULATE_TARGET_ATTEMPTS - info->calculate_target_attempts));
 			}
 		}
 	}
 
-	event void AwaySenderTimer.fired()
+	event void ConsiderTimer.fired()
+	{
+		consider_message_to_send();
+	}
+
+	task void send_next_away_message()
 	{
 		AwayMessage message;
 		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.source_id = TOS_NODE_ID;
 		message.sink_distance = 0;
 
+		//simdbgverbose("stdout", "AwaySenderTimer fired.\n");
+
+		ASSERT_MESSAGE(message.sink_distance >= 0, "dsink=" HOP_DISTANCE_SPEC, message.sink_distance);
+
 		if (!send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			// Failed to send away message, so schedule to retry
-			call AwaySenderTimer.startOneShot(AWAY_RETRY_SEND_DELAY);
+			post send_next_away_message();
 		}
 		else
 		{
@@ -1202,6 +1279,11 @@ implementation
 				call AwaySenderTimer.startOneShot(SINK_AWAY_DELAY_MS);
 			}
 		}
+	}
+
+	event void AwaySenderTimer.fired()
+	{
+		post send_next_away_message();
 	}
 
 	void update_distances_from_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -1233,9 +1315,9 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			/*METRIC_GENERIC(METRIC_GENERIC_TIME_TAKEN_TO_SEND,
+			METRIC_GENERIC(METRIC_GENERIC_TIME_TAKEN_TO_SEND,
 				TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32,
-				seq_no_lookup.addr, seq_no_lookup.seq_no, source_addr, (uint32_t)rcvd->time_taken_to_send);*/
+				seq_no_lookup.addr, seq_no_lookup.seq_no, source_addr, (uint32_t)rcvd->time_taken_to_send);
 
 			// If we are routing from the sink, only do so for a short number of hops
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
@@ -1269,7 +1351,7 @@ implementation
 				// was processed here.
 				//
 				// So we choose to do nothing.
-				simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u POSSIBLE PROBLEM CYCLE ON WAY TO SINK, OR PATH SPLIT (NO PROBLEM)\n",
+				simdbgverbose("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u POSSIBLE PROBLEM CYCLE ON WAY TO SINK, OR PATH SPLIT (NO PROBLEM)\n",
 					rcvd->sequence_number, source_addr, rcvd->stage);
 			}
 			else if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
@@ -1281,7 +1363,7 @@ implementation
 				// This is problematic as it indicates we have a cycle trying to avoid the near-sink area.
 				// Probably best to just give up and route to sink.
 
-				simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u PROBLEM CYCLE AVOIDING SINK\n",
+				simdbgverbose("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u PROBLEM CYCLE AVOIDING SINK\n",
 					rcvd->sequence_number, source_addr, rcvd->stage);
 
 				record_received_message(msg, NORMAL_ROUTE_TO_SINK);

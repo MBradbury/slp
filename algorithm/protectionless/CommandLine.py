@@ -99,5 +99,5 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_versus_graph(args.sim, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
-            source_period_normalisation="NumSources"
+            #source_period_normalisation="NumSources"
         )

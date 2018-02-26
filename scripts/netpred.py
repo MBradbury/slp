@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function, division
+#!/usr/bin/env python3
 
 import ast
 import argparse
@@ -10,6 +9,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 import simulator.Configuration as Configuration
+from simulator.Topology import OrderedId
 
 class NetworkPredicateChecker(object):
     def __init__(self, configuration, with_node_id=False, nodes_to_show=None):
@@ -19,7 +19,7 @@ class NetworkPredicateChecker(object):
         self.nodes = configuration.topology.nodes
 
         if nodes_to_show is not None:
-            self.nodes_to_show = {x for l in (list(range(a, b+1)) for a, b in nodes_to_show) for x in l}
+            self.nodes_to_show = {OrderedId(x) for l in (list(range(a, b+1)) for a, b in nodes_to_show) for x in l}
 
             self.nodes = {nid: coord for (nid, coord) in self.nodes.items() if nid in self.nodes_to_show}
         else:
@@ -28,12 +28,12 @@ class NetworkPredicateChecker(object):
         print("Nodes:", self.nodes)
 
         self.graph = nx.DiGraph()
-        self.graph.add_nodes_from(self.nodes.keys())
+        self.graph.add_nodes_from([node.nid for node in self.nodes.keys()])
 
         # Store the coordinates
-        for (nid, coord) in self.nodes.items():
-            self.graph.node[nid]['pos'] = coord
-            self.graph.node[nid]['label'] = str(nid)
+        for (node, coord) in self.nodes.items():
+            self.graph.node[node.nid]['pos'] = coord
+            self.graph.node[node.nid]['label'] = str(node)
 
     def draw(self, show=True):
         fig = plt.figure(figsize=(11, 8))
@@ -44,24 +44,25 @@ class NetworkPredicateChecker(object):
         ax.invert_yaxis()
 
         # Add edges
-        for nid in self.nodes:
+        for node in self.nodes:
 
-            neighbours = self.neighbour_predicate(nid)
+            neighbours = self.neighbour_predicate(node)
 
-            print(nid, neighbours)
+            print(node, neighbours)
 
-            self.graph.add_edges_from((nid, n) for n in neighbours if n in self.nodes_to_show)
+            self.graph.add_edges_from((node.nid, n.nid) for n in neighbours if n in self.nodes_to_show)
 
-            self.graph.node[nid]['color'] = "white" if neighbours else "#DCDCDC"
-            self.graph.node[nid]['shape'] = 'o'
-            self.graph.node[nid]['size'] = 550
+            self.graph.node[node.nid]['color'] = "white" if neighbours else "#DCDCDC"
+            self.graph.node[node.nid]['shape'] = 'o'
+            self.graph.node[node.nid]['size'] = 550
 
-        for src in configuration.source_ids:
-            self.graph.node[src]['shape'] = 'p'
-            self.graph.node[src]['size'] = 900
+        for src in self.configuration.source_ids:
+            self.graph.node[src.nid]['shape'] = 'p'
+            self.graph.node[src.nid]['size'] = 900
 
-        self.graph.node[configuration.sink_id]['shape'] = 'H'
-        self.graph.node[configuration.sink_id]['size'] = 900
+        for sink_id in self.configuration.sink_ids:
+            self.graph.node[sink_id.nid]['shape'] = 'H'
+            self.graph.node[sink_id.nid]['size'] = 900
 
         node_shapes = {node_data['shape'] for (node, node_data) in self.graph.nodes(data=True)}
         
@@ -75,12 +76,14 @@ class NetworkPredicateChecker(object):
             color = [col[nid] for nid in nodes]
             size = [sizes[nid] for nid in nodes]
 
-            nx.draw_networkx_nodes(self.graph, pos,
+            drawn_nodes = nx.draw_networkx_nodes(self.graph, pos,
                 node_shape=shape,
                 node_color=color,
                 node_size=size,
                 nodelist=nodes,
             )
+
+            drawn_nodes.set_edgecolor('black')
 
         nx.draw_networkx_edges(self.graph, pos,
             width=4,
@@ -103,8 +106,7 @@ class NetworkPredicateChecker(object):
     def evaluate_predicate(self, nid):
 
         dsrc = self.configuration.node_source_distance
-        dsink = self.configuration.node_sink_distance
-        ssd = self.configuration.ssd
+        dsink = self._min_sink_distance
 
         return any(
             dsrc(neigh, source_id) > dsrc(nid, source_id) and
@@ -119,8 +121,8 @@ class NetworkPredicateChecker(object):
 
     def neighbour_predicate(self, nid):
         dsrc = self.configuration.node_source_distance
-        dsink = self.configuration.node_sink_distance
-        ssd = self.configuration.ssd
+        dsink = self._min_sink_distance
+        ssd = self._min_ssd
 
         return [
             neigh
@@ -136,25 +138,37 @@ class NetworkPredicateChecker(object):
             if dsrc(neigh, source_id) > dsrc(nid, source_id) and (dsink(nid) * 2 > ssd(source_id) or dsink(neigh) >= dsink(nid))
         ]
 
+    def _min_sink_distance(self, nid):
+        dsink = self.configuration.node_sink_distance
+        return min(dsink(nid, sink) for sink in self.configuration.sink_ids)
 
-parser = argparse.ArgumentParser(description="Network Predicate Checker", add_help=True)
+    def _min_ssd(self, source_id):
+        ssd = self.configuration.ssd
+        return min(ssd(sink, source_id) for sink in self.configuration.sink_ids)
 
-parser.add_argument("-c", "--configuration", type=str, required=True, choices=Configuration.names())
-parser.add_argument("-ns", "--network-size", type=int, required=True)
-parser.add_argument("-d", "--distance", type=float, default=4.5)
-parser.add_argument("--node-id-order", choices=("topology", "randomised"), default="topology")
 
-parser.add_argument("--nodes", type=ast.literal_eval, default=None, help="Show a subset of nodes")
+def main():
+    parser = argparse.ArgumentParser(description="Network Predicate Checker", add_help=True)
 
-parser.add_argument("--with-node-id", action='store_true', default=False)
-parser.add_argument("--no-show", action='store_true', default=False)
+    parser.add_argument("-c", "--configuration", type=str, required=True, choices=Configuration.names())
+    parser.add_argument("-ns", "--network-size", type=int, required=True)
+    parser.add_argument("-d", "--distance", type=float, default=4.5)
+    parser.add_argument("-nido", "--node-id-order", choices=("topology", "randomised"), default="topology")
 
-args = parser.parse_args(sys.argv[1:])
+    parser.add_argument("--nodes", type=ast.literal_eval, default=None, help="Show a subset of nodes")
 
-configuration = Configuration.create_specific(args.configuration, args.network_size, args.distance, args.node_id_order)
+    parser.add_argument("--with-node-id", action='store_true', default=False)
+    parser.add_argument("--no-show", action='store_true', default=False)
 
-print("Creating graph for ", configuration)
+    args = parser.parse_args(sys.argv[1:])
 
-drawer = NetworkPredicateChecker(configuration, with_node_id=args.with_node_id, nodes_to_show=args.nodes)
+    configuration = Configuration.create_specific(args.configuration, args.network_size, args.distance, args.node_id_order)
 
-drawer.draw(show=not args.no_show)
+    print("Creating graph for ", configuration)
+
+    drawer = NetworkPredicateChecker(configuration, with_node_id=args.with_node_id, nodes_to_show=args.nodes)
+
+    drawer.draw(show=not args.no_show)
+
+if __name__ == "__main__":
+    main()

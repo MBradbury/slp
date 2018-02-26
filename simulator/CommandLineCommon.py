@@ -135,6 +135,7 @@ class CLI(object):
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
+        subparser.add_argument("--flush", action="store_true", default=False, help="Flush any cached results.")
 
         ###
 
@@ -167,6 +168,7 @@ class CLI(object):
         ###
 
         subparser = self._add_argument("per-parameter-grapher", self._run_per_parameter_grapher)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
         subparser.add_argument("--grapher", required=True)
         subparser.add_argument("--metric-name", required=True)
         subparser.add_argument("--show", action="store_true", default=False)
@@ -178,7 +180,7 @@ class CLI(object):
 
         subparser = self._add_argument('historical-time-estimator', self._run_historical_time_estimator)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
-        subparser.add_argument("--key", nargs="+", metavar="P", default=('network size', 'source period'))
+        subparser.add_argument("--key", nargs="+", metavar="P", default=('configuration', 'network size', 'source period'))
 
         ###
 
@@ -314,7 +316,7 @@ class CLI(object):
                 name = 'baseline-{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
 
                 g = baseline_versus.Grapher(
-                    self.algorithm_module.graphs_path(sim_name), name,
+                    sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
                     yextractor=scalar_extractor)
 
@@ -739,6 +741,7 @@ class CLI(object):
         analyzer.run(self.algorithm_module.result_file,
                      results_finder,
                      nprocs=args.thread_count,
+                     flush=args.flush,
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound)
 
@@ -753,6 +756,7 @@ class CLI(object):
         analyzer.run(result_file,
                      results_finder,
                      nprocs=args.thread_count,
+                     flush=args.flush,
                      headers_to_skip=args.headers_to_skip,
                      keep_if_hit_upper_time_bound=args.keep_if_hit_upper_time_bound,
                      testbed=True)
@@ -996,7 +1000,8 @@ class CLI(object):
                                  results=('time taken', 'first normal sent time',
                                           'total wall time', 'wall time', 'event count',
                                           'repeats', 'captured', 'reached upper bound',
-                                          'memory rss', 'memory vms'),
+                                          #'memory rss',
+                                          'memory vms'),
         )
 
         fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
@@ -1017,8 +1022,8 @@ class CLI(object):
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
-        repeats = result.parameter_set()
-        repeats_diff_strings = ["|".join(k) for k in repeats]
+        repeats = {tuple(map(str, k)): v for (k, v) in result.parameter_set().items()}
+        repeats_diff_strings = ["|".join(str(k)) for k in repeats]
 
         parameter_names = sim.global_parameter_names + result.parameter_names
 
@@ -1068,9 +1073,9 @@ class CLI(object):
             results=heatmap_results)
 
         for name in heatmap_results:
-            heatmap.Grapher(self.algorithm_module.graphs_path(sim_name), results_summary, name).create()
+            heatmap.Grapher(args.sim, self.algorithm_module.graphs_path(args.sim), results_summary, name).create()
             summary.GraphSummary(
-                os.path.join(self.algorithm_module.graphs_path(sim_name), name),
+                os.path.join(self.algorithm_module.graphs_path(args.sim), name),
                 os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name.replace(" ", "_")))
             ).run()
 
@@ -1082,9 +1087,9 @@ class CLI(object):
         analyzer = self.algorithm_module.Analysis.Analyzer(self.algorithm_module.results_path)
 
         grapher = graph_type.Grapher(
-            os.path.join(self.algorithm_module.graphs_path(sim_name), args.grapher),
+            args.sim, os.path.join(self.algorithm_module.graphs_path(args.sim), args.grapher),
             args.metric_name,
-            self.parameter_names()
+            self.parameter_names(args.sim)
         )
 
         grapher.xaxis_label = args.metric_name
@@ -1095,7 +1100,7 @@ class CLI(object):
         )
 
         summary.GraphSummary(
-            os.path.join(self.algorithm_module.graphs_path(sim_name), args.grapher),
+            os.path.join(self.algorithm_module.graphs_path(args.sim), args.grapher),
             os.path.join(algorithm.results_directory_name, f"{self.algorithm_module.name}-{args.grapher}")
         ).run(show=args.show)
 

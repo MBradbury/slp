@@ -32,7 +32,7 @@ class Arguments(ArgumentsCommon):
         result["SLP_SEND_QUEUE_SIZE"] = self.args.buffer_size
         result["SLP_MAX_WALK_LENGTH"] = self.args.max_walk_length
 
-        result["SLP_PR_SEND_DIRECT_TO_SINK"] = self.args.pr_direct_to_sink
+        result["SLP_PR_SEND_DIRECT_TO_SINK"] = f"{self.args.pr_direct_to_sink}f"
 
         result["SLP_MESSAGE_GROUP_SIZE"] = self.args.msg_group_size
 

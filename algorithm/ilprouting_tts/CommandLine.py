@@ -45,50 +45,37 @@ class CLI(CommandLineCommon.CLI):
         return tafn * 2.0
 
     def _cluster_time_estimator(self, sim, args, **kwargs):
-        historical_key_names = ('configuration', 'network size', 'source period')
+        historical_key_names = ('network size', 'source period')
 
         if sim == "tossim":
             historical = {
-                ('RandomPoissonDiskConnectedSeed2', '11', '0.25'): timedelta(seconds=3),
-                ('RandomPoissonDiskConnectedSeed2', '11', '0.5'): timedelta(seconds=3),
-                ('RandomPoissonDiskConnectedSeed2', '11', '1.0'): timedelta(seconds=4),
-                ('RandomPoissonDiskConnectedSeed2', '11', '2.0'): timedelta(seconds=4),
-                ('RandomPoissonDiskConnectedSeed2', '15', '0.25'): timedelta(seconds=12),
-                ('RandomPoissonDiskConnectedSeed2', '15', '0.5'): timedelta(seconds=12),
-                ('RandomPoissonDiskConnectedSeed2', '15', '1.0'): timedelta(seconds=14),
-                ('RandomPoissonDiskConnectedSeed2', '15', '2.0'): timedelta(seconds=16),
-                ('RandomPoissonDiskConnectedSeed2', '7', '0.25'): timedelta(seconds=2),
-                ('RandomPoissonDiskConnectedSeed2', '7', '0.5'): timedelta(seconds=2),
-                ('RandomPoissonDiskConnectedSeed2', '7', '1.0'): timedelta(seconds=2),
-                ('RandomPoissonDiskConnectedSeed2', '7', '2.0'): timedelta(seconds=2),
-                ('SourceCorner', '11', '0.25'): timedelta(seconds=5),
-                ('SourceCorner', '11', '0.5'): timedelta(seconds=6),
-                ('SourceCorner', '11', '1.0'): timedelta(seconds=7),
-                ('SourceCorner', '11', '2.0'): timedelta(seconds=7),
-                ('SourceCorner', '15', '0.25'): timedelta(seconds=11),
-                ('SourceCorner', '15', '0.5'): timedelta(seconds=12),
-                ('SourceCorner', '15', '1.0'): timedelta(seconds=14),
-                ('SourceCorner', '15', '2.0'): timedelta(seconds=17),
-                ('SourceCorner', '21', '0.25'): timedelta(seconds=31),
-                ('SourceCorner', '21', '0.5'): timedelta(seconds=33),
-                ('SourceCorner', '21', '1.0'): timedelta(seconds=38),
-                ('SourceCorner', '21', '2.0'): timedelta(seconds=46),
-                ('SourceCorner', '25', '0.25'): timedelta(seconds=57),
-                ('SourceCorner', '25', '0.5'): timedelta(seconds=61),
-                ('SourceCorner', '25', '1.0'): timedelta(seconds=69),
-                ('SourceCorner', '25', '2.0'): timedelta(seconds=83),
-                ('SourceCorner', '7', '0.25'): timedelta(seconds=2),
-                ('SourceCorner', '7', '0.5'): timedelta(seconds=2),
-                ('SourceCorner', '7', '1.0'): timedelta(seconds=2),
-                ('SourceCorner', '7', '2.0'): timedelta(seconds=3),
+                ('7', '0.25'): timedelta(seconds=1),
+                ('7', '0.5'): timedelta(seconds=1),
+                ('7', '1.0'): timedelta(seconds=1),
+                ('7', '2.0'): timedelta(seconds=1),
+                ('11', '0.25'): timedelta(seconds=1),
+                ('11', '0.5'): timedelta(seconds=1),
+                ('11', '1.0'): timedelta(seconds=1),
+                ('11', '2.0'): timedelta(seconds=1),
+                ('15', '0.25'): timedelta(seconds=2),
+                ('15', '0.5'): timedelta(seconds=3),
+                ('15', '1.0'): timedelta(seconds=3),
+                ('15', '2.0'): timedelta(seconds=3),
+                ('21', '0.25'): timedelta(seconds=13),
+                ('21', '0.5'): timedelta(seconds=14),
+                ('21', '1.0'): timedelta(seconds=15),
+                ('21', '2.0'): timedelta(seconds=17),
+                ('25', '0.25'): timedelta(seconds=26),
+                ('25', '0.5'): timedelta(seconds=26),
+                ('25', '1.0'): timedelta(seconds=28),
+                ('25', '2.0'): timedelta(seconds=32),
             }
-
         else:
             historical = {}
 
         return self._cluster_time_estimator_from_historical(
             sim, args, kwargs, historical_key_names, historical,
-            allowance=0.35,
+            allowance=0.25,
             max_time=timedelta(days=2)
         )
 
@@ -103,7 +90,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
             #'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
             #'sent': ('Total Messages Sent', 'left top'),
@@ -115,24 +102,23 @@ class CLI(CommandLineCommon.CLI):
 
         varying = [
             (('network size', ''), ('msg group size', '')),
-            (('pr direct to sink', ''), ('msg group size', '')),
             #(('network size', ''), ('source period', ' seconds')),
             #(('network size', ''), ('pr direct to sink', '')),
         ]
 
         custom_yaxis_range_max = {
             'received ratio': 100,
-            'norm(sent,time taken)': 500,
-            'captured': 25,
-            'normal latency': 4000,
+            #'norm(sent,time taken)': 300,
+            #'captured': 100,
+            #'normal latency': 4000,
         }
 
         self._create_versus_graph(args.sim, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
-            xaxis_font = "',16'",
-            yaxis_font = "',16'",
-            xlabel_font = "',18'",
-            ylabel_font = "',18'",
+            xaxis_font = "',18'",
+            yaxis_font = "',18'",
+            xlabel_font = "',17'",
+            ylabel_font = "',17'",
             line_width = 3,
             point_size = 2,
             nokey = True,

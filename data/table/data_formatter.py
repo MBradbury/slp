@@ -73,6 +73,8 @@ class TableDataFormatter(object):
                 "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
                 "norm(norm(norm(sent,time taken),network size),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
 
+                "norm(norm(fake,time taken),network size)": ("$\\mathcal{F}$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
+
                 "protected sink hops": ("Protected", "Sink Hops"),
                 "activate period": ("$P_{activate}$", "(sec)"),
                 "cone type": ("Cone", "Type"),
@@ -109,7 +111,7 @@ class TableDataFormatter(object):
             return "${:.1f} \\pm {:.1f}$".format(value[0], self._convert_variance(value[1]))
         elif name in {"sent", "received", "delivered",
                       "fake", "away", "choose", "dummy normal",
-                      "normal latency"}:
+                      "normal latency", "event count"}:
             return "${:.0f} \\pm {:.0f}$".format(value[0], self._convert_variance(value[1]))
         elif name in {"memory rss", "memory vms"}:
             value = value / (1024 * 1024)

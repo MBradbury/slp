@@ -31,15 +31,27 @@ def pairwise(iterable):
     return zip(a, b)
 
 def message_type_to_colour(kind):
-    return {
-        "Normal": "blue",
-        "Fake": "red",
-        "Away": "magenta",
-        "Choose": "green",
-        "Notify": "cyan",
-        "Beacon": "black",
-        "Poll": "xkcd:orange",
-    }[kind]
+    mapping = {
+        "Normal": ["blue", "skyblue", "teal", "midnightblue"],
+        "Fake": ["red"],
+        "Away": ["magenta"],
+        "Choose": ["green"],
+        "Notify": ["cyan"],
+        "Beacon": ["black"],
+        "Poll": ["xkcd:orange"],
+    }
+
+    kinds = kind.split(":", 1)
+
+    if len(kinds) == 1:
+        return mapping[kind][0]
+    else:
+        kind, number = kinds
+
+        try:
+            return mapping[kind][int(number)]
+        except IndexError:
+            return mapping[kind][0]
 
 def node_type_to_colour(kind):
     return {
@@ -1552,14 +1564,10 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         except KeyError:
             contents = None
 
-
         self._bcasts[kind].append((time, ord_node_id, f"{contents}"))
 
     def log_time_deliver_event(self, d_or_e, node_id, time, detail):
-        try:
-            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
-        except ValueError:
-            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+        (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
 
         time = float(time)
         kind = self.message_kind_to_string(kind)
@@ -1662,7 +1670,7 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         if interactive:
             mpld3.show()
 
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches='tight')
 
     def finish(self):
         super().finish()
@@ -1698,6 +1706,48 @@ class MessageTimeMetricsGrapher(MetricsCommon):
     @staticmethod
     def build_arguments():
         return {}
+
+class ILPRoutingMessageTimeMetricsGrapher(MessageTimeMetricsGrapher):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def log_time_bcast_event(self, d_or_e, node_id, time, detail):
+        (kind, status, ultimate_source_id, sequence_number, tx_power, hex_buffer) = detail.split(',')
+
+        # If the BCAST succeeded, then status was SUCCESS (See TinyError.h)
+        if status != "0":
+            return
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        try:
+            contents = self.parse_message(kind, hex_buffer)
+        except KeyError:
+            contents = None
+
+        if kind == "Normal":
+            kind = f"{kind}:{int(sequence_number)%self.sim.args.msg_group_size}"
+
+        self._bcasts[kind].append((time, ord_node_id, f"{contents}"))
+
+    def log_time_deliver_event(self, d_or_e, node_id, time, detail):
+        (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
+
+        time = float(time)
+        kind = self.message_kind_to_string(kind)
+        ord_node_id, top_node_id = self._process_node_id(node_id)
+
+        try:
+            contents = self.parse_message(kind, hex_buffer)
+        except KeyError:
+            contents = None
+
+        if kind == "Normal":
+            kind = f"{kind}:{int(sequence_number)%self.sim.args.msg_group_size}"
+
+        self._delivers[kind].append((time, ord_node_id, f"{contents}"))
 
 class MessageDutyCycleBoundaryHistogram(MetricsCommon):
     """Generates a histogram of how far off the wakeup period
@@ -1889,7 +1939,8 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
 
 
 
-EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher)
+EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, ILPRoutingMessageTimeMetricsGrapher,
+                 MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
 def import_algorithm_metrics(module_name, sim, extra_metrics=None):

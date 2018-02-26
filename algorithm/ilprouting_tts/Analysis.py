@@ -41,4 +41,8 @@ class Analyzer(AnalyzerCommon):
         d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
 
+        #d['energy impact per node']   = lambda x: self._format_results(x, 'norm(energy_impact,num_nodes)')
+        #d['energy impact per node per second']   = lambda x: self._format_results(x, 'norm(norm(energy_impact,num_nodes),TimeTaken)')
+        #d['energy allowance used'] = lambda x: self._format_results(x, 'norm(daily_allowance_used,1)')
+
         return d

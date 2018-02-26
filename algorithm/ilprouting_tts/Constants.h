@@ -1,7 +1,9 @@
 #ifndef SLP_CONSTANTS_H
 #define SLP_CONSTANTS_H
 
-enum Channels
+#include "HopDistance.h"
+
+enum Channel
 {
 	NORMAL_CHANNEL = 1,
 	AWAY_CHANNEL = 2,
@@ -23,12 +25,11 @@ enum NodeType
 
 
 // The amount of time in ms that it takes to send a message from one node to another
-#define ALPHA 10
-#define ALPHA_RETRY 20
+#define ALPHA 8
+#define ALPHA_RETRY (ALPHA * 2)
 
 #define SINK_AWAY_MESSAGES_TO_SEND 2
 #define SINK_AWAY_DELAY_MS (1 * 1000)
-#define AWAY_RETRY_SEND_DELAY 65
 
 #define NORMAL_ROUTE_FROM_SINK_DISTANCE_LIMIT 4
 
@@ -45,15 +46,15 @@ enum NodeType
 
 typedef struct
 {
-	int16_t sink_distance;
-	int16_t source_distance;
+	hop_distance_t sink_distance;
+	hop_distance_t source_distance;
 	uint16_t backtracks_from;
 } ni_container_t;
 
 enum ApplicationSLPErrorCodes
 {
-    ERROR_RTX_FAILED = 1001,
-    ERROR_RTX_FAILED_TRYING_OTHER = 1002,
+	ERROR_RTX_FAILED = 1001,
+	ERROR_RTX_FAILED_TRYING_OTHER = 1002,
 
     ERROR_UNKNOWN_MSG_STAGE = 1003,
     ERROR_NO_ROUTE_TO_SINK = 1004,
