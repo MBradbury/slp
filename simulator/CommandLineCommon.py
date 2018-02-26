@@ -20,6 +20,7 @@ from simulator import CommunicationModel, NoiseModel
 import simulator.sim
 import simulator.ArgumentsCommon as ArgumentsCommon
 import simulator.Configuration as Configuration
+import simulator.CoojaRadioModel as CoojaRadioModel
 
 from data import results, latex, submodule_loader
 from data.run.common import MissingSafetyPeriodError
@@ -34,6 +35,14 @@ from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
 
 from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
+
+# From: https://stackoverflow.com/questions/32954486/zip-iterators-asserting-for-equal-length-in-python
+def zip_equal(*iterables):
+    sentinel = object()
+    for combo in itertools.zip_longest(*iterables, fillvalue=sentinel):
+        if sentinel in combo:
+            raise ValueError('Iterables have different lengths')
+        yield combo
 
 class CLI(object):
 
@@ -161,6 +170,7 @@ class CLI(object):
 
         subparser = self._add_argument("detect-missing", self._run_detect_missing, help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
+        subparser.add_argument("--show-all", action="store_true", default=False)
 
         subparser = self._add_argument("graph-heatmap", self._run_graph_heatmap, help="Graph the sent and received heatmaps.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
@@ -509,6 +519,15 @@ class CLI(object):
 
         return product_argument
 
+    def _get_local_parameter_values(self, parameters, local_name):
+        for appendix in ["s", "es", ""]:
+            try:
+                return getattr(parameters, local_name.replace(" ", "_") + appendix)
+                break
+            except AttributeError:
+                continue
+        else:
+            raise RuntimeError(f"Unable to find plural of {local_name}")
 
     def _argument_product(self, sim, extras=None):
         """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
@@ -522,18 +541,8 @@ class CLI(object):
 
         product_argument.extend(self._get_global_parameter_values(sim, parameters))
 
-        local_appendicies_to_try = ["s", "es", ""]
-
         # Now lets process the algorithm specific parameters
-        for local_name in self.algorithm_module.local_parameter_names:
-            for appendix in local_appendicies_to_try:
-                try:
-                    product_argument.append(getattr(parameters, local_name.replace(" ", "_") + appendix))
-                    break
-                except AttributeError:
-                    continue
-            else:
-                raise RuntimeError(f"Unable to find plural of {local_name}")
+        product_argument.append(self._get_local_parameter_values(parameters, local_name))
 
         if extras:
             for extra_name in extras:
@@ -656,14 +665,16 @@ class CLI(object):
         size = args['network size']
 
         if sim_name == "cooja":
-            if size == 7:
-                return timedelta(hours=36)
+            if size == 5:
+                return timedelta(hours=12)
+            elif size == 7:
+                return timedelta(hours=24)
             elif size == 9:
                 return timedelta(hours=48)
             elif size == 11:
                 return timedelta(hours=71)
             else:
-                raise RuntimeError("No time estimate for network sizes other than 7, 9 or 11")
+                raise RuntimeError("No time estimate for network sizes other than 5, 7, 9 or 11")
         else:
             if size == 7:
                 return timedelta(hours=7)
@@ -1015,17 +1026,37 @@ class CLI(object):
 
         sim = submodule_loader.load(simulator.sim, args.sim)
         result_file_path = self.algorithm_module.result_file_path(args.sim)
-        
-        argument_product = {tuple(map(str, row)) for row in self._argument_product(sim)}
+
+        def _format_item(name, item):
+            if name == "radio model":
+                return str(CoojaRadioModel.eval_input(item))
+            else:
+                return str(item)
+
+        names = sim.global_parameter_names + self.algorithm_module.local_parameter_names
+
+        argument_product = {
+            tuple(_format_item(name, item) for (name, item) in zip_equal(names, row))
+            for row
+            in self._argument_product(sim)
+        }
 
         result = results.Results(args.sim, result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
         repeats = {tuple(map(str, k)): v for (k, v) in result.parameter_set().items()}
-        repeats_diff_strings = ["|".join(str(k)) for k in repeats]
+        repeats_diff_strings = ["|".join(k) for k in repeats.keys()]
 
         parameter_names = sim.global_parameter_names + result.parameter_names
+
+        if args.show_all:
+            from pprint import pprint
+            print("All results:")
+            pprint(repeats)
+
+            print("User parameters:")
+            pprint(argument_product)
 
         print("Checking runs that were asked for, but not included...")
 
@@ -1040,7 +1071,10 @@ class CLI(object):
                     print("Close:")
                     for close in close_matches:
                         print(f"\t{close.split('|')}")
-                    print()
+                else:
+                    print("No close matches to existing results")
+                
+                print()
 
         print(f"Loading {result_file_path} to check for missing runs...")
 
