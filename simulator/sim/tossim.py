@@ -1,5 +1,7 @@
 from __future__ import print_function, division
 
+cluster_need_java = False
+
 def parsers():
     return [
         ("SINGLE", None, ["verbose", "debug", "seed", "configuration", "network size", "distance",

@@ -55,6 +55,7 @@ class Runner(object):
             'echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"',
             'echo "TOSROOT: $TOSROOT"',
             'echo "PYTHONPATH: $PYTHONPATH"',
+            'module list',
             'python --version',
             'python -c "import scipy, numpy; print(scipy.__name__, scipy.__version__); print(numpy.__name__, numpy.__version__)"',
             'lscpu'
