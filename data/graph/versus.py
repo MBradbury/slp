@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 
 import collections
 import itertools
@@ -10,8 +9,6 @@ import numpy as np
 import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
-
-import simulator.sim
 
 class Grapher(GrapherBase):
 
@@ -137,8 +134,8 @@ class Grapher(GrapherBase):
             else:
                 table.append([ '#' ] + vvalues)
 
-            for xvalue in sorted(xvalues):
-                row = [ self.xextractor(xvalue) ]
+            for (xvalue, extracted_xvalue) in sorted(((xvalue, self.xextractor(xvalue)) for xvalue in xvalues), key=lambda x: x[1]):
+                row = [ extracted_xvalue ]
                 for vvalue in vvalues:
                     yvalue = values.get((xvalue, vvalue), None)
 
@@ -206,7 +203,7 @@ class Grapher(GrapherBase):
                 xvalues_padding = self.xvalues_padding
             else:
                 if self.xaxis == "network size":
-                    xvalues_padding = int(min(xvalues_as_num) / 10)
+                    xvalues_padding = 1
                 else:
                     xvalues_padding = 0.1
 

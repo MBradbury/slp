@@ -1,19 +1,17 @@
-from __future__ import print_function
 
 import os.path
 
 import numpy as np
 
 from simulator import Configuration
-#from simulator.common import global_parameter_names
 
 import data.util
 from data import latex
 from data.graph.grapher import GrapherBase
 
 class Grapher(GrapherBase):
-    def __init__(self, output_directory, results, result_name):
-        super(Grapher, self).__init__(output_directory)
+    def __init__(self, sim_name, output_directory, results, result_name):
+        super(Grapher, self).__init__(sim_name, output_directory)
 
         self.results = results
         self.result_name = result_name
@@ -42,6 +40,8 @@ class Grapher(GrapherBase):
             """ Yield successive n-sized chunks from l."""
             for i in range(0, len(l), n):
                 yield l[i:i+n]
+
+        global_parameter_names = self._key_names_base
 
         # Pop the source period off the end of the parameters
         global_params_dict = dict(zip(global_parameter_names[:-1], global_params))

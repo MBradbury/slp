@@ -136,4 +136,6 @@ class CLI(CommandLineCommon.CLI):
             #'normal latency': 4000,
         }
 
-        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max)
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
+        )
