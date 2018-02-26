@@ -1,5 +1,6 @@
 
 from collections import OrderedDict
+import itertools
 import math
 import os.path
 import sys
@@ -166,16 +167,21 @@ class RunSimulationsCommon(object):
             else:
                 keys_to_try = []
 
-                # There exist some safety period equivalences, so lets try some
-                for (global_param, replacements) in self._safety_period_equivalence.items():
-                    global_param_index = self._global_parameter_names.index(global_param)
+                for perm in itertools.permutations(self._safety_period_equivalence.items()):
+                    new_key = tuple(key)
 
-                    for (search, replace) in replacements.items():
-                        if key[global_param_index] == search:
+                    for (global_param, replacements) in perm:
+                        global_param_index = self._global_parameter_names.index(global_param)
 
-                            new_key = key[:global_param_index] + (replace,) + key[global_param_index+1:]
+                        for (search, replace) in replacements.items():
+                            if new_key[global_param_index] == search:
 
-                            keys_to_try.append(new_key)
+                                new_key = new_key[:global_param_index] + (replace,) + new_key[global_param_index+1:]
+
+                                break
+
+                    keys_to_try.append(new_key)
+
 
                 # Try each of the possible combinations
                 for key_attempt in keys_to_try:
