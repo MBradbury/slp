@@ -273,6 +273,12 @@ class CLI(object):
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = f'{xaxis}-v-{yaxis}-w-{vary}'.replace(" ", "_")
 
+                if isinstance(yextractor, dict):
+                    try:
+                        yextractor = yextractor[yaxis]
+                    except KeyError:
+                        yextractor = scalar_extractor
+
                 g = versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,

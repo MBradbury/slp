@@ -9,6 +9,7 @@ import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 
 from data import submodule_loader
+from data.util import scalar_extractor
 
 # Use the safety periods for SeqNosReactiveAttacker() if none are available for SeqNosOOOReactiveAttacker()
 safety_period_equivalence = {
@@ -96,8 +97,10 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         parameters = [
             'normal latency', 'ssd', 'captured',
-            'received ratio', 'failed avoid sink',
-            'failed avoid sink when captured',
+            'received ratio',
+            'attacker distance',
+            #'failed avoid sink',
+            #'failed avoid sink when captured',
         ]
 
         self._create_results_table(args.sim, parameters, show=args.show)
@@ -110,6 +113,7 @@ class CLI(CommandLineCommon.CLI):
             #'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+            'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
             #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
             #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
         }
@@ -126,16 +130,23 @@ class CLI(CommandLineCommon.CLI):
             'norm(sent,time taken)': 500,
             'captured': 25,
             'normal latency': 4000,
+            'attacker distance': 80,
+        }            
+
+        yextractors = {
+            # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
+            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)]
         }
 
         self._create_versus_graph(args.sim, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
+            yextractor = yextractors,
             xaxis_font = "',16'",
             yaxis_font = "',16'",
             xlabel_font = "',18'",
             ylabel_font = "',18'",
             line_width = 3,
-            point_size = 2,
+            point_size = 1,
             nokey = True,
             generate_legend_graph = True,
             legend_font_size = 16,
