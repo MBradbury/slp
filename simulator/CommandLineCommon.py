@@ -542,7 +542,8 @@ class CLI(object):
         product_argument.extend(self._get_global_parameter_values(sim, parameters))
 
         # Now lets process the algorithm specific parameters
-        product_argument.append(self._get_local_parameter_values(parameters, local_name))
+        for local_name in self.algorithm_module.local_parameter_names:
+            product_argument.append(self._get_local_parameter_values(parameters, local_name))
 
         if extras:
             for extra_name in extras:
