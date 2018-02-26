@@ -7,6 +7,8 @@ re = None
 
 generate_per_node_id_binary = False
 
+cluster_need_java = True
+
 def parsers():
     # WARNING!!
     # Avrora cannot support "node id order" until there is a way for a node

@@ -2,6 +2,8 @@ from __future__ import print_function, division
 
 generate_per_node_id_binary = False
 
+cluster_need_java = True
+
 def parsers():
     # WARNING!!
     # Cooja cannot support a "node id order" of randomised until there is a way for a node

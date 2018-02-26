@@ -957,7 +957,7 @@ class CLI(object):
 
             submitter_fn = cluster.array_submitter if args.array else cluster.submitter
 
-            submitter = submitter_fn(notify_emails=emails_to_notify, dry_run=args.dry_run, unhold=args.unhold)
+            submitter = submitter_fn(args.sim, notify_emails=emails_to_notify, dry_run=args.dry_run, unhold=args.unhold)
 
             skip_complete = not args.no_skip_complete
 
