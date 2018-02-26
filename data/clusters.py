@@ -23,9 +23,21 @@ class ClusterCommon(object):
     def name(self):
         return type(self).__name__
 
-    def builder(self):
-        from data.run.driver.cluster_builder import Runner as Builder
-        return Builder()
+    def builder(self, sim_name):
+        if sim_name == "tossim":
+            from data.run.driver.cluster_builder import Runner as Builder
+            return Builder()
+        elif sim_name == "cooja":
+            from data.run.driver.cooja_builder import Runner as Builder
+
+            import data.cycle_accurate
+            from data import submodule_loader
+
+            cooja = submodule_loader.load(data.cycle_accurate, sim_name)
+
+            return Builder(cooja, max_buffer_size=255, platform="telosb")
+        else:
+            raise RuntimeError(f"Unknown sim {sim_name} to build for.")
 
     def copy_to(self, dirname, user=None):
         username = self._get_username(user)

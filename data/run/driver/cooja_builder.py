@@ -2,7 +2,9 @@
 from . import testbed_builder
 
 class Runner(testbed_builder.Runner):
-    required_safety_periods = False
+    required_safety_periods = True
+
+    kind = "CYCLEACCURATE"
 
     def __init__(self, cycle_accurate, max_buffer_size, platform=None, **kwargs):
         super(Runner, self).__init__(cycle_accurate, platform, **kwargs)
@@ -17,7 +19,7 @@ class Runner(testbed_builder.Runner):
         return a, module, module_path, target_directory
 
     def mode(self):
-        return "CYCLEACCURATE"
+        return "CLUSTER"
 
     def build_arguments(self, a):
         args = super(Runner, self).build_arguments(a)

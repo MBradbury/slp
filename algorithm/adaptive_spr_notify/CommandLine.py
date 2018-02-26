@@ -18,7 +18,7 @@ from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(protectionless.name)
+        super().__init__(protectionless.name)
 
         subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
