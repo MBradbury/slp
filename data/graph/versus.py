@@ -67,6 +67,7 @@ class Grapher(GrapherBase):
 
         self.generate_legend_graph = False
         self.legend_font_size = '14'
+        self.legend_divisor = 3
 
         self.missing_value_string = '?'
         self.set_datafile_missing = False
@@ -264,8 +265,8 @@ class Grapher(GrapherBase):
 
             column_count = len(vvalues)
 
-            legend_width = 9.8
-            legend_height = 0.3 * math.ceil(column_count / 3)
+            legend_width = 3.3 * self.legend_divisor
+            legend_height = 0.3 * math.ceil(column_count / self.legend_divisor)
 
             graph_p.write('set terminal pdf enhanced font ",{}" size {},{}\n'.format(
                 self.legend_font_size, legend_width, legend_height))

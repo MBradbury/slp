@@ -83,7 +83,9 @@ class CLI(CommandLineCommon.CLI):
             self.algorithm_module.result_file_path(args.sim),
             parameters=self.algorithm_module.local_parameter_names,
             results=(
-                'sent', 'delivered', 'time taken',
+                #'sent', 'delivered',
+                'norm(norm(fake,time taken),network size)',
+                'time taken',
                 'normal latency', 'ssd', 'captured',
                 'fake', 'received ratio', 'tfs', 'pfs',
                 #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
@@ -143,18 +145,21 @@ class CLI(CommandLineCommon.CLI):
         }
 
         custom_yaxis_range_max = {
-            'captured': 10,
+            'captured': 15,
             'received ratio': 100,
-            'attacker distance': 140,
-            'normal latency': 150,
-            'norm(norm(sent,time taken),network size)': 20,
-            'norm(norm(fake,time taken),network size)': 20,
+            'attacker distance': 160,
+            'normal latency': 120,
+            'norm(norm(sent,time taken),network size)': 15,
+            'norm(norm(fake,time taken),network size)': 15,
         }
 
         def filter_params(all_params):
             return (all_params['source period'] == '0.125' or
                     all_params['noise model'] == 'meyer-heavy' or
                     all_params['configuration'] != 'SourceCorner')
+
+        def adaptive_filter_params(all_params):
+            return filter_params(all_params) or all_params['approach'] in {"PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"}
 
         protectionless_analysis = protectionless.Analysis.Analyzer(args.sim, protectionless.results_path(args.sim))
 
@@ -174,7 +179,7 @@ class CLI(CommandLineCommon.CLI):
             args.sim, adaptive.result_file_path(args.sim),
             parameters=adaptive.local_parameter_names,
             results=graph_parameters.keys(),
-            results_filter=filter_params)
+            results_filter=adaptive_filter_params)
 
         template_results = results.Results(
             args.sim, template.result_file_path(args.sim),
@@ -206,9 +211,10 @@ class CLI(CommandLineCommon.CLI):
             g.xlabel_font = "',18'"
             g.ylabel_font = "',18'"
             g.line_width = 3
-            g.point_size = 2
-            g.nokey = False
+            g.point_size = 1
+            g.nokey = True
             g.legend_font_size = 16
+            g.legend_divisor = 4
 
             g.min_label = ['Dynamic - Lowest', 'Static - Lowest']
             g.max_label = ['Dynamic - Highest', 'Static - Highest']
