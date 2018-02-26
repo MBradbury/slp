@@ -57,8 +57,15 @@ class ResultTable(object):
                 print("Unable to find source period for  {}".format(ex))
                 continue
 
+            caption = " and ".join([
+                "{} \\textbf{{{}}}".format(name, latex.escape(value))
+                for (name, value)
+                in zip(self.results.global_parameter_names, table_key)
+            ])
+
             print('\\begin{table}[H]', file=stream)
             print('    \\centering', file=stream)
+            print('    \\caption{{Results for the {} }} '.format(caption), file=stream)
             print('    \\begin{{tabular}}{{{}}}'.format(self._column_layout()), file=stream)
             print('        \\hline', file=stream)
             print(self._title_row(0), file=stream)
@@ -82,13 +89,6 @@ class ResultTable(object):
                     print(" & ".join(to_print) + "\\\\", file=stream)
                 print('        \\hline', file=stream)
 
-            caption = " and ".join([
-                "{} \\textbf{{{}}}".format(name, latex.escape(value))
-                for (name, value)
-                in zip(self.results.global_parameter_names, table_key)
-            ])
-
             print('    \\end{tabular}', file=stream)
-            print('\\caption{{Results for the {} }} '.format(caption), file=stream)
             print('\\end{table}', file=stream)
             print('', file=stream)
