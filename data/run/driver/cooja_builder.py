@@ -19,7 +19,7 @@ class Runner(testbed_builder.Runner):
         return a, module, module_path, target_directory
 
     def mode(self):
-        return "CLUSTER"
+        return "CYCLEACCURATE"
 
     def build_arguments(self, a):
         args = super(Runner, self).build_arguments(a)

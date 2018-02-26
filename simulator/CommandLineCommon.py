@@ -519,7 +519,16 @@ class CLI(object):
 
         return product_argument
 
-    def _get_local_parameter_values(self, parameters, local_name):
+    def _get_local_parameter_values(self, parameters, local_name, custom_mapping=None):
+
+        if custom_mapping is not None:
+            value = custom_mapping.get(local_name, None)
+            if value is not None:
+                try:
+                    return getattr(parameters, value)
+                except AttributeError:
+                    pass
+
         for appendix in ["s", "es", ""]:
             try:
                 return getattr(parameters, local_name.replace(" ", "_") + appendix)

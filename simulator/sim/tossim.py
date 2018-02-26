@@ -42,7 +42,7 @@ def build(module, a):
     build_arguments.update(configuration.build_arguments())
 
     # Now build the simulation with the specified arguments
-    Builder.build_sim(module.replace(".", os.path.sep), **build_arguments)
+    return Builder.build_sim(module.replace(".", os.path.sep), **build_arguments)
 
 def print_version():
     import simulator.VersionDetection as VersionDetection

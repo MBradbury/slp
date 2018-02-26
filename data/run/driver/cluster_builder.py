@@ -3,17 +3,21 @@ import shlex
 import shutil
 
 import data.util
+from data import submodule_loader
 from data.progress import Progress
 
 import algorithm
 
+import simulator.sim
 from simulator import Builder
 from simulator import Configuration
 
 class Runner(object):
     required_safety_periods = True
 
-    def __init__(self):
+    def __init__(self, sim_name):
+        self.sim_name = sim_name
+        self._sim = submodule_loader.load(simulator.sim, self.sim_name)
         self._progress = Progress("building file")
         self.total_job_size = None
         self._jobs_executed = 0
@@ -37,11 +41,9 @@ class Runner(object):
         a = self.parse_arguments(module, argv)
 
         # Build the binary
-        build_args = self.build_arguments(a)        
+        print(f"Building for {self.sim_name}")
 
-        print(f"Building for {build_args}")
-
-        build_result = Builder.build_sim(module_path, **build_args)
+        build_result = self._sim.build(module, a)
 
         print(f"Build finished with result {build_result}...")
 
@@ -57,15 +59,17 @@ class Runner(object):
             "Metrics.py",
             "__init__.py",
         )
-        files_to_move = (
-            "app.xml",
-            "_TOSSIM.so",
-            "TOSSIM.py",
-        )
         for name in files_to_copy:
             shutil.copy(os.path.join(module_path, name), target_directory)
-        for name in files_to_move:
-            shutil.move(os.path.join(module_path, name), target_directory)
+
+        if self.sim_name == "tossim":
+            files_to_move = (
+                "app.xml",
+                "_TOSSIM.so",
+                "TOSSIM.py",
+            )
+            for name in files_to_move:
+                shutil.move(os.path.join(module_path, name), target_directory)
 
 
         print("All Done!")
