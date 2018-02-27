@@ -98,28 +98,53 @@ class CLI(CommandLineCommon.CLI):
     def _run_graph(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (ms)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
             'fake': ('Fake Messages Sent', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'tfs': ('Number of TFS Created', 'left top'),
-            'pfs': ('Number of PFS Created', 'left top'),
+            #'tfs': ('Number of TFS Created', 'left top'),
+            #'pfs': ('Number of PFS Created', 'left top'),
             'attacker distance': ('Meters', 'left top'),
-            'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+            'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
         }
 
         varying = [
-            (('network size', ''), ('source period', ' seconds')),
+            #(('network size', ''), ('source period', ' seconds')),
             #(('network size', ''), ('communication model', '~')),
+            (('network size', ''), ('approach', '')),
         ]
 
         custom_yaxis_range_max = {
             'received ratio': 100,
+            'norm(norm(fake,time taken),network size)': 25,
+            'norm(norm(sent,time taken),network size)': 25,
+            'captured': 14,
+            'normal latency': 120
         }
+
+        yextractors = {
+            # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
+            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)]
+        }
+
+        def vvalue_converter(name):
+            try:
+                return {
+                    "PB_FIXED1_APPROACH": "Fixed1",
+                    "PB_FIXED2_APPROACH": "Fixed2",
+                    "PB_RND_APPROACH": "Rnd",
+                    "PB_ATTACKER_EST_APPROACH": "AttackerEst",
+                    "PB_SINK_APPROACH": "Sink",
+                }[name]
+            except KeyError:
+                return name
 
         self._create_versus_graph(args.sim, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
+            vvalue_label_converter = vvalue_converter,
+            yextractor = yextractors,
         )
 
 
