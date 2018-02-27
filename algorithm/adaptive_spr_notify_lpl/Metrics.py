@@ -1,5 +1,5 @@
 
-from ..adaptive_spr_notify.Metrics import Metrics as MetricsCommon
+from algorithm.adaptive_spr_notify.Metrics import Metrics as MetricsCommon
 
 class Metrics(MetricsCommon):
     pass
