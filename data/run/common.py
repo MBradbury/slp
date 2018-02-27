@@ -200,6 +200,7 @@ class RunSimulationsCommon(object):
 
 
     def _load_existing_results(self, argument_names):
+        print("Loading existing results...")
         results_file_path = self.algorithm_module.result_file_path(self.sim_name)
         try:
             results_summary = results.Results(
@@ -208,7 +209,7 @@ class RunSimulationsCommon(object):
                 results=('repeats',))
 
             # (size, config, attacker_model, noise_model, communication_model, distance, period) -> repeats
-            self._existing_results = results_summary.parameter_set()
+            self._existing_results = {tuple(map(str, k)): v for (k, v) in results_summary.parameter_set().items()}
         except IOError as e:
             message = str(e)
             if 'No such file or directory' in message:
