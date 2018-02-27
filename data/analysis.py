@@ -15,7 +15,7 @@ import sys
 import traceback
 import zlib
 
-from more_itertools import unique_everseen
+from more_itertools import unique_everseen, one
 import numpy as np
 import pandas as pd
 import psutil
@@ -222,11 +222,23 @@ def _daily_allowance_used(columns, cached_cols, constants):
 def _time_after_first_normal(columns, cached_cols, constants):
     return columns["TimeTaken"] - columns["FirstNormalSentTime"]
 
+def _attacker_distance_wrt_src(columns, cached_cols, constants):
+    # TODO: Not going to work well for multiple sinks
+    # TODO: assumes the attacker starts at the sink
+
+    return columns["AttackerDistance"].apply(lambda x: {
+        (source_id, attacker_id): dist - one(ssd)
+        for ((source_id, attacker_id), dist) in x.items()
+        for ssd in [ssd for ((sink, src), ssd) in constants["ssds"].items() if src == source_id]
+    })
+
 def _get_calculation_columns():
     return {
         #"energy_impact": _energy_impact,
         #"daily_allowance_used": _daily_allowance_used,
         "time_after_first_normal": _time_after_first_normal,
+
+        "attacker_distance_wrt_src": _attacker_distance_wrt_src,
     }
 
 class Analyse(object):
@@ -495,12 +507,14 @@ class Analyse(object):
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
 
-                    columns_to_add[norm_head] = num_col / constants[den]
+                    columns_to_add[norm_head] = num_col if den == "1" else num_col / constants[den]
 
                 elif num in calc_cols and den in constants:
                     print(f"Creating {norm_head} using ({num},{den}) on the fast path n3")
 
-                    columns_to_add[norm_head] = get_cached_calc_cols(num) / constants[den]
+                    num_col = get_cached_calc_cols(num)
+
+                    columns_to_add[norm_head] = num_col if den == "1" else num_col / constants[den]
 
                 else:
                     print(f"Creating {norm_head} using ({num},{den}) on the slow path ns")
@@ -596,6 +610,14 @@ class Analyse(object):
 
         constants["num_nodes"] = configuration.size()
         constants["num_sources"] = len(configuration.source_ids)
+
+        o2t = configuration.topology.o2t
+
+        constants["ssds"] = {
+            (o2t(sink), o2t(source)): configuration.ssd_meters(sink, source)
+            for sink in configuration.sink_ids
+            for source in configuration.source_ids
+        }
 
         # Warning: This will only work for the FixedPeriodModel
         # All other models have variable source periods, so we cannot calculate this
@@ -853,7 +875,7 @@ class AnalyzerCommon(object):
         self.results_directory = results_directory
         
         self.normalised_values = self.normalised_parameters()
-        self.normalised_values += (('time_after_first_normal', '1'),)
+        self.normalised_values += (('time_after_first_normal', '1'),)# ('attacker_distance_wrt_src', '1'))
 
         self.filtered_values = self.filtered_parameters()
 
@@ -915,6 +937,7 @@ class AnalyzerCommon(object):
 
         d['attacker moves']     = lambda x: self._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance')
+        #d['attacker distance wrt src']  = lambda x: self._format_results(x, 'norm(attacker_distance_wrt_src,1)')
 
         d['errors']             = lambda x: self._format_results(x, 'Errors', allow_missing=True)
 
