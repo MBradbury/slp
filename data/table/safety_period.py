@@ -39,44 +39,49 @@ class TableGenerator:
         else:
             self._write_tables(*args, **kwargs)
 
-    def _write_tables(self, stream, param_filter=lambda *args: True):
+    def _write_tables(self, stream, param_filter=None):
 
-        communication_models = sorted(self._results.communication_models)
-        noise_models = sorted(self._results.noise_models)
-        attacker_models = sorted(self._results.attacker_models)
-        fault_models = sorted(self._results.fault_models)
-        configurations = sorted(self._results.configurations, key=configuration_rank)
-        sizes = sorted(self._results.network_sizes)
-        distances = sorted(self._results.distances)
-        node_id_orders = sorted(self._results.node_id_orders)
-        latest_start_times = sorted(self._results.latest_node_start_times)
+        global_parameter_names = self._results.global_parameter_names
 
-        product_all = list(itertools.product(
-            sizes, configurations,
-            attacker_models, noise_models, communication_models, fault_models,
-            distances, node_id_orders, latest_start_times
-        ))
+        global_values = [
+            tuple(sorted(getattr(self._results, self._results.name_to_attr(name))))
+            for name
+            in global_parameter_names
+        ]
 
-        product_three = list(filter(
-            lambda x: x in {(cm, nm, am, fm, c, d, nido, lst) for (s, c, am, nm, cm, fm, d, nido, lst) in self._results.data.keys()},
-            itertools.product(communication_models, noise_models, attacker_models, fault_models,
-                              configurations, distances, node_id_orders, latest_start_times)
-        ))
+        product_all = list(itertools.product(*global_values))
+
+        all_keys = set(self._results.data.keys())
+
+        network_size_index = global_parameter_names.index('network size')
+
+        # Get rid of network size
+        filtered_product = [x[:network_size_index] + x[network_size_index+1:] for x in product_all if x in all_keys]
+        global_parameter_names = global_parameter_names[:network_size_index] + global_parameter_names[network_size_index+1:]
+
+        network_sizes = {x[network_size_index] for x in product_all}
 
         if not any(table_key in self._results.data for table_key in product_all):
             raise RuntimeError("Could not find any parameter combination in the results")
 
-        for product_three_key in product_three:
-            if not param_filter(*product_three_key):
-                #print("Skipping {}".format(product_three_key))
+        for product_key in sorted(filtered_product):
+
+            product_key_dict = dict(zip(global_parameter_names, product_key))
+
+            print(product_key_dict)
+
+            if param_filter is not None and not param_filter(product_key_dict):
+                print("Skipping {}".format(product_key))
                 continue
 
-            (communication_model, noise_model, attacker_model, fault_model, config, distance, node_id_order, latest_start_time) = product_three_key
+            caption_string = " and ".join(
+                f"\\textbf{{{latex.escape(product_key[global_parameter_names.index(name)])}}} {name}"
+                for name in global_parameter_names
+            )
 
             print('\\begin{table}[H]', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
-            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} noise model and \\textbf{{{}}} communication model and \\textbf{{{}}} fault model and \\textbf{{{}}} distance and \\textbf{{{}}} node id order and \\textbf{{{}}} latest start time}}'.format(
-                config, latex.escape(attacker_model), noise_model, communication_model, fault_model, distance, node_id_order, latest_start_time), file=stream)
+            print('\\caption{{Safety Periods for the {}}}'.format(caption_string), file=stream)
             print('\\centering', file=stream)
             print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
@@ -85,12 +90,12 @@ class TableGenerator:
             print('\\hline', file=stream)
             print('', file=stream)
 
-            for size in sizes:
+            for size in sorted(network_sizes, key=int):
 
-                data_key = (size, config, attacker_model, noise_model, communication_model, fault_model, distance, node_id_order, latest_start_time)
+                data_key = product_key[:network_size_index] + (size,) + product_key[network_size_index:]
 
                 if data_key not in self._results.data:
-                    #print("Skipping {} as it could not be found in the results".format(data_key))
+                    print("Skipping {} as it could not be found in the results".format(data_key))
                     continue
 
                 for src_period in sorted(self._results.data[data_key]):
@@ -115,7 +120,6 @@ class TableGenerator:
                 print('', file=stream)
 
             print('\\end{tabular}', file=stream)
-            print('\\label{{tab:safety-periods-{}}}'.format(config), file=stream)
             print('\\end{table}', file=stream)
             print('', file=stream)
 

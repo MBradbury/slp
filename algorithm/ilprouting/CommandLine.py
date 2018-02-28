@@ -98,6 +98,7 @@ class CLI(CommandLineCommon.CLI):
         parameters = [
             'normal latency', 'ssd', 'captured',
             'received ratio',
+            #'attacker distance wrt src',
             'attacker distance',
             #'failed avoid sink',
             #'failed avoid sink when captured',
