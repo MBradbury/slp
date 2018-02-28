@@ -145,6 +145,15 @@ class CLI(CommandLineCommon.CLI):
             custom_yaxis_range_max=custom_yaxis_range_max,
             vvalue_label_converter = vvalue_converter,
             yextractor = yextractors,
+            xaxis_font = "',16'",
+            yaxis_font = "',16'",
+            xlabel_font = "',18'",
+            ylabel_font = "',18'",
+            line_width = 3,
+            point_size = 1,
+            nokey = True,
+            generate_legend_graph = True,
+            legend_font_size = 16,
         )
 
 
