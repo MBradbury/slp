@@ -275,14 +275,14 @@ class CLI(object):
 
                 if isinstance(yextractor, dict):
                     try:
-                        yextractor = yextractor[yaxis]
+                        yextractor_single = yextractor[yaxis]
                     except KeyError:
-                        yextractor = scalar_extractor
+                        yextractor_single = scalar_extractor
 
                 g = versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=yextractor, xextractor=xextractor)
+                    yextractor=yextractor_single, xextractor=xextractor)
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
@@ -887,17 +887,28 @@ class CLI(object):
             self._create_table(filename, safety_period_table, directory="testbed_results", show=args.show)
 
         else:
-            prod = itertools.product(NoiseModel.available_models(),
-                                     CommunicationModel.available_models())
 
-            for (noise_model, comm_model) in prod:
+            if args.sim == "tossim":
+                names = ("noise model", "communication model")
+                prod = list(itertools.product(NoiseModel.available_models(),
+                                              CommunicationModel.available_models()))
+            else:
+                names = tuple()
+                prod = []
 
-                print(f"Writing results table for the {noise_model} noise model and {comm_model} communication model")
+            if len(prod) > 0:
+                for p in prod:
+                    print(f"Writing results table for {' and '.join(str(x) for x in p)}")
 
-                filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
+                    filename = f'{self.algorithm_module.name}-{args.sim}-{"-".join(str(x) for x in p)}-safety'
 
-                self._create_table(filename, safety_period_table,
-                                   param_filter=lambda cm, nm, am, fm, c, d, nido, lst, noise_model=noise_model, comm_model=comm_model: nm == noise_model and cm == comm_model)
+                    self._create_table(filename, safety_period_table,
+                                       param_filter=lambda x: all(x[name] == value for (name, value) in zip(names, p)))
+            else:
+                filename = f'{self.algorithm_module.name}-{args.sim}-safety'
+
+                self._create_table(filename, safety_period_table, show=args.show)
+
 
     def _run_error_table(self, args):
         res = results.Results(
