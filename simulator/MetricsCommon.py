@@ -1340,14 +1340,18 @@ class TDMAMetricsCommon(MetricsCommon):
         self.period_starts[ord_node_id].append(time)
 
     def per_node_slot_changes(self):
+        o2t = self.topology.o2t
+
         return {
-            ord_node_id: len(changes)
+            o2t(ord_node_id): len(changes)
             for (ord_node_id, changes) in self.slot_changes.items()
         }
 
     def node_periods_started(self):
+        o2t = self.topology.o2t
+
         return {
-            ord_node_id: len(started)
+            o2t(ord_node_id): len(started)
             for (ord_node_id, started) in self.period_starts.items()
         }
 
@@ -1453,8 +1457,10 @@ class DutyCycleMetricsCommon(MetricsCommon):
         return duty_time / (end_time - start_time)
 
     def duty_cycle(self):
+        o2t = self.topology.o2t
+
         return {
-            nid: round(self._calculate_node_duty_cycle(nid), 5)
+            o2t(nid): round(self._calculate_node_duty_cycle(nid), 5)
             for nid in self._duty_cycle_state.keys()
         }
 
