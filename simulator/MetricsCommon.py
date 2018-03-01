@@ -1528,7 +1528,7 @@ class DutyCycleMetricsGrapher(MetricsCommon):
         ax.set_xlabel("Time (seconds)")
         ax.set_ylabel("Node ID")
 
-        plt.savefig("dutycycle.pdf")
+        plt.savefig("dutycycle.pdf", bbox_inches='tight')
 
     @staticmethod
     def items():
@@ -1770,9 +1770,9 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         self._radio_on_times = defaultdict(list)
 
         self._intervals = {
-            "Fake":   (int(1000 * self.sim.args.lpl_fake_early),   int(1000 * self.sim.args.lpl_fake_late)),
-            "Choose": (int(1000 * self.sim.args.lpl_choose_early), int(1000 * self.sim.args.lpl_choose_late)),
-            "Normal": (int(1000 * self.sim.args.lpl_normal_early), int(1000 * self.sim.args.lpl_normal_late)),
+            "Fake":   (int(self.sim.args.lpl_fake_early),   int(self.sim.args.lpl_fake_late)),
+            "Choose": (int(self.sim.args.lpl_choose_early), int(self.sim.args.lpl_choose_late)),
+            "Normal": (int(self.sim.args.lpl_normal_early), int(self.sim.args.lpl_normal_late)),
         }
 
     def log_time_receive_event_hist(self, d_or_e, node_id, time, detail):
@@ -1854,7 +1854,7 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
             ax.set_xlabel("Difference (ms)")
             ax.set_ylabel("Count")
 
-            plt.savefig(f"{message_name}dutycycleboundaryhist.pdf")
+            plt.savefig(f"{message_name}dutycycleboundaryhist.pdf", bbox_inches='tight')
 
     @staticmethod
     def build_arguments():
@@ -1939,7 +1939,7 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         ax.set_xlabel("Distance From Source (hops)")
         ax.set_ylabel("Travel Time (ms)")
 
-        plt.savefig(f"NormalMessageTravelTime.pdf")
+        plt.savefig(f"NormalMessageTravelTime.pdf", bbox_inches='tight')
 
 
 
