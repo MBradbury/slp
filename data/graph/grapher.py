@@ -15,6 +15,7 @@ from data import submodule_loader
 import simulator.sim
 import simulator.AttackerConfiguration as AttackerConfiguration
 import simulator.FaultModel as FaultModel
+import simulator.CoojaRadioModel as CoojaRadioModel
 
 def test_gnuplot_version(name):
     result = subprocess.check_output([name, "--version"]).decode("utf-8").strip()
@@ -80,6 +81,7 @@ class GrapherBase(object):
         very_long_parameter_names = {
             'attacker model': AttackerConfiguration.eval_input,
             'fault model': FaultModel.eval_input,
+            'radio model': CoojaRadioModel.eval_input,
         }
 
         key_values = list(key_values)
