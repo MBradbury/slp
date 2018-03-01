@@ -85,6 +85,8 @@ class TableDataFormatter(object):
                 "lpl fake late": ("$W_{l}(\\mathcal{F})$", "ms"),
                 "lpl choose early": ("$W_{e}(\\mathcal{C})$", "ms"),
                 "lpl choose late": ("$W_{l}(\\mathcal{C})$", "ms"),
+
+                "average duty cycle": ("Duty Cycle", "(\\%)"),
             }[name]
         except KeyError as ex:
             print("Failed to find the name '{}'. Using default. : {}".format(name, ex), file=sys.stderr)
@@ -109,6 +111,8 @@ class TableDataFormatter(object):
             return "${:.0f}$".format(value)
         elif name == "pr(tfs)" or name == "pr(pfs)":
             return "${:.0f}$".format(value * 100.0)
+        elif name == "average duty cycle":
+            return "${:.2f}$".format(value[0] * 100.0)
         elif name in {"tfs", "pfs", "tailfs"}:
             return "${:.1f}$".format(value[0])
         elif name == "approach":
