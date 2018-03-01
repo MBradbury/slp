@@ -7,6 +7,7 @@ import functools
 import itertools
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -269,9 +270,12 @@ class CLI(object):
             network_size_normalisation=network_size_normalisation,
             results_filter=results_filter)
 
+        def shorter_name(s):
+            return "".join(x[0] for x in re.split(r"[\s,(]", s))
+
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = f'{xaxis}-v-{yaxis}-w-{vary}'.replace(" ", "_")
+                name = f'{shorter_name(xaxis)}-v-{shorter_name(yaxis)}-w-{shorter_name(vary)}'
 
                 if isinstance(yextractor, dict):
                     try:
