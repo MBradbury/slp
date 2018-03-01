@@ -11,6 +11,8 @@ class Analyzer(AnalyzerCommon):
         return (
             ('Sent', 'TimeTaken'),
             ('NormalSent', 'TimeTaken'),
+
+            ('average_duty_cycle', '1'),
         )
 
     def filtered_parameters(self):
@@ -40,5 +42,7 @@ class Analyzer(AnalyzerCommon):
 
         d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
+
+        d['average duty cycle']   = lambda x: self._format_results(x, 'norm(average_duty_cycle,1)')
 
         return d
