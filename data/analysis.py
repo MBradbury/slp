@@ -26,6 +26,7 @@ from data.progress import Progress
 import simulator.sim
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
+from simulator.Topology import TopologyId
 
 def bytes2human(num):
     """Converts a number of bytes to a human readable string
@@ -232,6 +233,13 @@ def _attacker_distance_wrt_src(columns, cached_cols, constants):
         for ssd in [ssd for ((sink, src), ssd) in constants["ssds"].items() if src == source_id]
     })
 
+def _average_duty_cycle(columns, cached_cols, constants):
+    t2o = constants["configuration"].topology.t2o
+
+    return columns["DutyCycle"].apply(lambda x:
+        np.mean([d for (nid, d) in x.items() if t2o(TopologyId(nid)) not in constants["configuration"].sink_ids])
+    )
+
 def _get_calculation_columns():
     return {
         #"energy_impact": _energy_impact,
@@ -239,6 +247,8 @@ def _get_calculation_columns():
         "time_after_first_normal": _time_after_first_normal,
 
         "attacker_distance_wrt_src": _attacker_distance_wrt_src,
+
+        "average_duty_cycle": _average_duty_cycle,
     }
 
 class Analyse(object):
@@ -607,6 +617,8 @@ class Analyse(object):
         constants["1.0"] = 1.0
 
         configuration = self._get_configuration()
+
+        constants["configuration"] = configuration
 
         constants["num_nodes"] = configuration.size()
         constants["num_sources"] = len(configuration.source_ids)
