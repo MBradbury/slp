@@ -302,7 +302,7 @@ class Grapher(GrapherBase):
 
         dir_name = os.path.join(self.output_directory, self.result_name, *map(self._sanitize_path_name, key_values))
 
-        print("Currently in {}".format(dir_name))
+        print(f"Currently in {dir_name}")
 
         # Ensure that the dir we want to put the files in actually exists
         data.util.create_dirtree(dir_name)
@@ -311,7 +311,7 @@ class Grapher(GrapherBase):
         vvalues = list(self._order_keys({x[1] for x in values.keys()}))
 
         if len(vvalues) == 0:
-            print("WARNING no values to graph for '{}'".format(dir_name))
+            print(f"WARNING no values to graph for '{dir_name}'")
             return False
         else:
             # Write our data
