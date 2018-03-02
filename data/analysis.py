@@ -179,9 +179,9 @@ def dict_var(dict_list, mean):
 
     first = next(iter(dict_list))
 
-    lin = {k: list() for k in first}
+    lin = {k: [] for k in first}
 
-    for d in dict_list:
+    for d in islice(dict_list, 1, None):
         for (k, v) in d.items():
             lin[k].append(v)
 
@@ -640,57 +640,56 @@ class Analyse(object):
 
         return constants
 
+    def _get_good_move_ratio(self, name, values, constants):
+        if __debug__:
+            attacker_moves = values[self.headings.index("AttackerMoves")]
+
+            # We can't calculate the good move ratio if the attacker hasn't moved
+            for (attacker_id, num_moves) in attacker_moves.items():
+                if num_moves == 0:
+                    print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
+                    return None
+
+        try:
+            steps_towards = values[self.headings.index("AttackerStepsTowards")]
+            steps_away = values[self.headings.index("AttackerStepsAway")]
+        except ValueError as ex:
+            #print("Unable to calculate good_move_ratio due to the KeyError {}".format(ex))
+            return None
+
+        ratios = []
+
+        for key in steps_towards.keys():
+            steps_towards_node = steps_towards[key]
+            steps_away_from_node = steps_away[key]
+
+            ratios.append(steps_towards_node / (steps_towards_node + steps_away_from_node))
+
+        ave = np.mean(ratios)
+
+        return ave
+
     def _get_from_opts_or_values(self, name, values, constants):
         """Get either the row value for :name:, the constant of that name, or calculate the additional metric for that name."""
         try:
             index = self.headings.index(name)
-
-            #print(name + " " + key + " " + str(values))
-
             return values[index]
         except ValueError:
+            pass
 
-            try:
-                return constants[name]
-            except KeyError:
-                pass
+        try:
+            return constants[name]
+        except KeyError:
+            pass
 
-            if name == "good_move_ratio":
+        if name == "good_move_ratio":
+            return self._get_good_move_ratio(name, values, constants)
 
-                if __debug__:
-                    attacker_moves = values[self.headings.index("AttackerMoves")]
-
-                    # We can't calculate the good move ratio if the attacker hasn't moved
-                    for (attacker_id, num_moves) in attacker_moves.items():
-                        if num_moves == 0:
-                            print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
-                            return None
-
-                try:
-                    steps_towards = values[self.headings.index("AttackerStepsTowards")]
-                    steps_away = values[self.headings.index("AttackerStepsAway")]
-                except ValueError as ex:
-                    #print("Unable to calculate good_move_ratio due to the KeyError {}".format(ex))
-                    return None
-
-                ratios = []
-
-                for key in steps_towards.keys():
-                    steps_towards_node = steps_towards[key]
-                    steps_away_from_node = steps_away[key]
-
-                    ratios.append(steps_towards_node / (steps_towards_node + steps_away_from_node))
-
-                ave = np.mean(ratios)
-
-                return ave
-
-            else:
-                # Handle normalising with arbitrary numbers
-                try:
-                    return float(name)
-                except ValueError:
-                    return float(self.opts[name])
+        # Handle normalising with arbitrary numbers
+        try:
+            return float(name)
+        except ValueError:
+            return float(self.opts[name])
 
     def check_consistent(self, values, line_number):
         """Perform multiple sanity checks on the data generated"""
@@ -840,7 +839,7 @@ class AnalysisResults(object):
     def __init__(self, analysis):
         self.average_of = {}
         self.variance_of = {}
-        self.median_of = {}
+        #self.median_of = {}
 
         skip = ["Seed"]
 
@@ -868,7 +867,7 @@ class AnalysisResults(object):
                     print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
                     #print(traceback.format_exc(), file=sys.stderr)
 
-        self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
+        #self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
 
         self.opts = analysis.opts
         self.headers_to_skip = analysis.headers_to_skip
@@ -964,24 +963,22 @@ class AnalyzerCommon(object):
 
 
     @staticmethod
-    def _format_results(x, name, allow_missing=False, average_corrector=None, variance_corrector=None):
+    def _format_results(x, name, allow_missing=False):
         if name in x.variance_of:
             ave = x.average_of[name]
             var = x.variance_of[name]
 
-            if average_corrector is not None:
-                ave = average_corrector(ave)
-
-            if variance_corrector is not None:
-                var = variance_corrector(var)
+            #if isinstance(ave, dict):
+            #    std = {k: math.sqrt(v) for (k, v) in var.items()}
+            #    stderr = {k: v / math.sqrt(x.number_of_repeats) for (k, v) in std.items()}
+            #else:
+            #    std = math.sqrt(var)
+            #    stderr = std / math.sqrt(x.number_of_repeats)
 
             return f"{ave};{var}"
         else:
             try:
                 ave = x.average_of[name]
-
-                if average_corrector is not None:
-                    ave = average_corrector(ave)
 
                 return str(ave)
             except KeyError:
@@ -991,10 +988,7 @@ class AnalyzerCommon(object):
                     raise
 
     def analyse_path(self, path, **kwargs):
-        #try:
         return Analyse(path, self.normalised_values, self.filtered_values, **kwargs)
-        #except Exception as ex:
-        #    raise RuntimeError("Error analysing {}".format(path), ex)
 
     def analyse_and_summarise_path(self, path, flush, **kwargs):
         pickle_path = path.rsplit(".", 1)[0] + ".pickle"
