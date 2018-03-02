@@ -1,5 +1,3 @@
-from __future__ import print_function, division
-
 import sys
 import os.path
 import importlib
@@ -47,10 +45,10 @@ def print_arguments(module_name, a):
             raise RuntimeError("Don't know how to work out what these parameters are")
 
         if configuration != a.args.configuration:
-            raise RuntimeError("Configuration ({}) differs from the one specified ({})".format(configuration, a.args.configuration))
+            raise RuntimeError(f"Configuration ({configuration}) differs from the one specified ({a.args.configuration})")
 
         if fault_model != str(a.args.fault_model):
-            raise RuntimeError("FaultModel ({}) differs from the one specified ({})".format(fault_model, a.args.fault_model))
+            raise RuntimeError(f"FaultModel ({fault_model}) differs from the one specified ({a.args.fault_model})")
 
         # Last Parameter is always rf power
         rf_power = params.pop(-1)
@@ -61,7 +59,7 @@ def print_arguments(module_name, a):
         print(f"source_period=FixedPeriodModel(period={source_period})")
 
         for (name, value) in local_parameter_values:
-            print("{}={}".format(name.replace(" ", "_"), value.replace("_", ".")))
+            print(f"{name}={value}".replace(" ", "_"))
 
         print(f"rf_power={rf_power}")
 
@@ -70,9 +68,6 @@ def print_arguments(module_name, a):
             print(f"{k}={v}")
 
 def run_one_file(log_file, module, a, count=1, print_warnings=False):
-    import copy
-    import sys
-
     import simulator.Configuration as Configuration
     import simulator.OfflineLogConverter as OfflineLogConverter
 
@@ -92,13 +87,7 @@ def run_one_file(log_file, module, a, count=1, print_warnings=False):
     with OfflineLogConverter.create_specific(a.args.log_converter, log_file) as converted_event_log:
         with OfflineSimulation(module, configuration, a.args, event_log=converted_event_log) as sim:
 
-            # Create a copy of the provided attacker model
-            attacker = copy.deepcopy(a.args.attacker_model)
-
-            # Setup each attacker model
-            attacker.setup(sim, ident=0)
-
-            sim.add_attacker(attacker)
+            a.args.attacker_model.setup(sim)
 
             try:
                 sim.run()

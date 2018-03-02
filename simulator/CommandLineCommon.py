@@ -498,10 +498,8 @@ class CLI(object):
                 return getattr(parameters, name.replace(" ", "_") + appendix)
             except AttributeError:
                 continue
-        else:
-            raise RuntimeError(f"Unable to find plural of {name}")
 
-        return None
+        raise RuntimeError(f"Unable to find plural of {name}")
 
     def _get_global_parameter_values(self, sim, parameters):
         product_argument = []
@@ -544,8 +542,8 @@ class CLI(object):
                 return getattr(parameters, local_name.replace(" ", "_") + appendix)
             except AttributeError:
                 continue
-        else:
-            raise RuntimeError(f"Unable to find plural of {local_name}")
+
+        raise RuntimeError(f"Unable to find plural of {local_name}")
 
     def _argument_product(self, sim, extras=None):
         """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
