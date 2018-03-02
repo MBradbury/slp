@@ -31,6 +31,7 @@ class Attacker(object):
         self.moves = None
         self.ident = None
         self._has_gui = False
+        self._has_metrics_attacker_delivers = False
 
         # Metric initialisation from here onwards
         self.steps_towards = Counter()
@@ -206,7 +207,7 @@ class Attacker(object):
 
         # Check that the bcast was successful
         if status != "0":
-            return
+            return False
 
         ord_node_id = OrderedId(int(node_id))
 

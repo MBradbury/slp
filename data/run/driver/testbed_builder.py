@@ -21,12 +21,12 @@ def choose_platform(provided, available):
         elif isinstance(available, (tuple, list)) and len(available) == 1:
             return available[0]
         else:
-            raise RuntimeError("Unable to choose between the available platforms {}. Please specify one using --platform.".format(available))
+            raise RuntimeError(f"Unable to choose between the available platforms {available}. Please specify one using --platform.")
     else:
         if provided in available:
             return provided
         else:
-            raise RuntimeError("The provided platform {} is not in the available platforms {}".format(provided, available))
+            raise RuntimeError(f"The provided platform {provided} is not in the available platforms {available}")
 
 # The platform specific objcopy and objdump tools
 PLATFORM_TOOLS = {
@@ -39,8 +39,6 @@ PLATFORM_TOOLS = {
 
 class Runner(object):
     required_safety_periods = False
-
-    kind = "TESTBED"
 
     def __init__(self, testbed, platform=None, quiet=False):
         
@@ -100,8 +98,8 @@ class Runner(object):
 
         # These are the arguments that will be passed to the compiler
         build_args = self.build_arguments(a)
-        build_args[self.kind] = self.testbed.name()
-        build_args[self.kind + "_" + self.testbed.name().upper()] = 1
+        build_args[self.mode()] = self.testbed.name()
+        build_args[self.mode() + "_" + self.testbed.name().upper()] = 1
         build_args["PLATFORM"] = self.platform
 
         if not self.quiet:

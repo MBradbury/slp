@@ -227,3 +227,5 @@ def run_simulation(module, a, count=1, print_warnings=False):
                         proc.kill()
                         
                         return 52
+
+    return 0

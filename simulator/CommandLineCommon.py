@@ -542,7 +542,6 @@ class CLI(object):
         for appendix in ["s", "es", ""]:
             try:
                 return getattr(parameters, local_name.replace(" ", "_") + appendix)
-                break
             except AttributeError:
                 continue
         else:

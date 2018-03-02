@@ -176,7 +176,7 @@ class NodeCrashVariableFaultModel(FaultModel):
 
     def _check_variables(self, current_time):
         # Check each variable to see if it is equal to the failure value
-        for v in self.variables.keys():
+        for v in list(self.variables.keys()):
             if v.getData() == self.variable_value:
                 # node = self.sim.node_from_topology_nid(self.variables[v])
                 node = self.sim.node_from_ordered_nid(self.variables[v])
