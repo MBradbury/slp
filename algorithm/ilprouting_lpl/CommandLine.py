@@ -41,6 +41,8 @@ class CLI(CommandLineCommon.CLI):
         argument_product = list(itertools.product(*parameter_values))
 
         argument_product = self.add_extra_arguments(argument_product, extras)
+
+        #argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
         
         return argument_product
 
