@@ -1461,7 +1461,7 @@ class DutyCycleMetricsCommon(MetricsCommon):
 
         return {
             o2t(nid): round(self._calculate_node_duty_cycle(nid), 5)
-            for nid in self._duty_cycle_state.keys()
+            for nid in self._duty_cycle_state
         }
 
     @staticmethod

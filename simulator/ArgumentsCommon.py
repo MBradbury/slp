@@ -110,14 +110,14 @@ def _add_cc2420(parser, **kwargs):
                         type=int,
                         choices=[3, 7, 11, 15, 19, 23, 27, 31],
                         default=31,
-                        help="Used to set the power levels for the CC2420 radio chip. 3 is low, 31 is high. Default: 31"),
+                        help="Used to set the power levels for the CC2420 radio chip. 3 is low, 31 is high. Default: 31")
 
     # See http://www.ti.com/lit/ds/symlink/cc2420.pdf section 26
     parser.add_argument("--channel",
                         type=int,
                         choices=list(range(11, 27)), # Channels 11 - 26 inclusive
                         default=26,
-                        help="The IEEE 802.15.4 rf channel the CC2420 radio chip broadcasts on within the 2.4GHz band. Default: 26"),
+                        help="The IEEE 802.15.4 rf channel the CC2420 radio chip broadcasts on within the 2.4GHz band. Default: 26")
 
     parser.add_argument("--acks",
                         choices=["none", "software", "hardware"],

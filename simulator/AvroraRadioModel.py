@@ -2,16 +2,10 @@
 from data.restricted_eval import restricted_eval
 
 class AvroraRadioModel(object):
-    def __init__(self):
-        pass
-
     def __str__(self):
         return type(self).__name__ + "()"
 
 class LossyRadioModel(AvroraRadioModel):
-    def __init__(self):
-        super(LossyRadioModel, self).__init__()
-
     def avrora_options(self):
         return {
             "lossy-model": "true"
@@ -19,7 +13,7 @@ class LossyRadioModel(AvroraRadioModel):
 
 class RangeRadioModel(AvroraRadioModel):
     def __init__(self, radio_range):
-        super(RangeRadioModel, self).__init__()
+        super().__init__()
         self.radio_range = float(radio_range)
 
     def avrora_options(self):
@@ -33,7 +27,7 @@ class RangeRadioModel(AvroraRadioModel):
 
 def models():
     """A list of the names of the available medium models."""
-    return [subcls for subcls in AvroraRadioModel.__subclasses__()]  # pylint: disable=no-member
+    return AvroraRadioModel.__subclasses__()  # pylint: disable=no-member
 
 def eval_input(source):
     result = restricted_eval(source, models())
@@ -41,7 +35,7 @@ def eval_input(source):
     if isinstance(result, AvroraRadioModel):
         return result
     else:
-        raise RuntimeError("The medium model ({}) is not valid.".format(source))
+        raise RuntimeError(f"The medium model ({source}) is not valid.")
 
 def available_models():
     class WildcardModelChoice(object):

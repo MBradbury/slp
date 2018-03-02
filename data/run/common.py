@@ -138,6 +138,7 @@ class RunSimulationsCommon(object):
         evals = {
             'attacker model': lambda x: AttackerConfiguration.eval_input(x),
             'radio model': lambda x: CoojaRadioModel.eval_input(x),
+            #"low power listening": lambda x: "1" if x == "enabled" else "0"
         }
 
         eval_fn = evals.get(name, None)
@@ -145,7 +146,7 @@ class RunSimulationsCommon(object):
         if eval_fn:
             value = eval_fn(value)
 
-            if short:
+            if short and hasattr(value, "short_name"):
                 return value.short_name()
 
         return str(value)
@@ -232,10 +233,6 @@ class RunSimulationsCommon(object):
 
     def _sanitize_job_name(self, kv):
         value = self._prepare_argument_name(*kv, short=True)
-        name = kv[0]
-
-        if name == "low power listening":
-            value = "1" if name == "enabled" else "0"
 
         # These characters cause issues in file names.
         # They also need to be valid python module names.
