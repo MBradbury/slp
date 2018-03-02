@@ -110,11 +110,6 @@ def print_arguments(module, a):
             print("{}={}".format(k, v))
 
 def run_simulation(module, a, count=1, print_warnings=False):
-    global base64, pickle, re
-
-    import base64
-    import pickle
-    import re
     import shlex
     import sys
     import subprocess

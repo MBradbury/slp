@@ -519,4 +519,3 @@ class Scene:
     @informPlotters
     def updateText(self, ident, text):
         pass
-
