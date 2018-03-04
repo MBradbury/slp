@@ -1,3 +1,8 @@
+#include "TimeSyncMsg.h"
+
+//FTSP parameters
+#define TIMESYNC_ENTRY_VALID_LIMIT 4
+#define TIMESYNC_ENTRY_SEND_LIMIT 1
 
 module TDMAImplP
 {
@@ -5,26 +10,32 @@ module TDMAImplP
 
     provides interface Init;
 
-	uses interface LocalTime<TMilli>;
-
 	uses interface Timer<TMilli> as DissemTimer;
 	uses interface Timer<TMilli> as PreSlotTimer;
     uses interface Timer<TMilli> as SlotTimer;
     uses interface Timer<TMilli> as PostSlotTimer;
+    uses interface Timer<TMilli> as TimesyncTimer;
 
     uses interface MetricLogging;
+    uses interface NodeType;
 
-    uses interface CustomTime as Time;
+    uses interface TimeSyncMode;
+    uses interface TimeSyncNotify;
+    uses interface GlobalTime<TMilli>;
 }
 implementation
 {
 	uint16_t slot;
 	bool slot_active;
+    bool timesync_sent;
+    int32_t timesync_offset;
 
     command error_t Init.init()
     {
         slot = BOT;
         slot_active = FALSE;
+        timesync_sent = FALSE;
+        timesync_offset = 0;
 
         return SUCCESS;
     }
@@ -50,12 +61,15 @@ implementation
 	command void TDMA.start()
 	{
 		call DissemTimer.startOneShot(DISSEM_PERIOD_MS);
+        call TimeSyncMode.setMode(TS_USER_MODE);
 	}
 
 	event void DissemTimer.fired()
     {
-        const uint32_t now = call Time.local_to_global(call DissemTimer.gett0() + call DissemTimer.getdt());
-        
+        uint32_t now = call DissemTimer.gett0() + call DissemTimer.getdt();
+        timesync_sent = FALSE;
+        call TimeSyncMode.setMode(TS_USER_MODE); //XXX: Do this any earlier and it doesn't work
+
         if (signal TDMA.dissem_fired())
         {
         	call PreSlotTimer.startOneShotAt(now, DISSEM_PERIOD_MS);
@@ -68,14 +82,24 @@ implementation
 
 	event void PreSlotTimer.fired()
     {
-        const uint32_t now = call Time.local_to_global(call PreSlotTimer.gett0() + call PreSlotTimer.getdt());
-        const uint16_t s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
-        call SlotTimer.startOneShotAt(now, s * SLOT_PERIOD_MS);
+        uint32_t now, local_now, global_now;
+        uint16_t s;
+        local_now = global_now = call PreSlotTimer.gett0() + call PreSlotTimer.getdt();
+        if(call GlobalTime.local2Global(&global_now) == FAIL) {
+            global_now = local_now;
+        }
+
+        //XXX: Potentially 'now' could negatively wrap-around
+        now = local_now - (global_now - local_now + timesync_offset);
+        timesync_offset = local_now - global_now;
+
+        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
+        call SlotTimer.startOneShotAt(now, (s * SLOT_PERIOD_MS));
     }
 
     event void SlotTimer.fired()
     {
-        const uint32_t now = call Time.local_to_global(call SlotTimer.gett0() + call SlotTimer.getdt());
+        uint32_t now = call SlotTimer.gett0() + call SlotTimer.getdt();
         slot_active = TRUE;
 
         signal TDMA.slot_started();
@@ -85,10 +109,50 @@ implementation
 
     event void PostSlotTimer.fired()
     {
-        const uint32_t now = call Time.local_to_global(call PostSlotTimer.gett0() + call PostSlotTimer.getdt());
-        const uint16_t s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
+        uint32_t now, local_now, global_now;
+        uint16_t s;
+        local_now = global_now = call PostSlotTimer.gett0() + call PostSlotTimer.getdt();
+        if(call GlobalTime.local2Global(&global_now) == FAIL) {
+            global_now = local_now;
+        }
+
+        //XXX: Potentially 'now' could negatively wrap-around
+        now = local_now - (global_now - local_now + timesync_offset);
+        timesync_offset = local_now - global_now;
+
+        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
         signal TDMA.slot_finished();
         slot_active = FALSE;
+#if TDMA_TIMESYNC && TIMESYNC_PERIOD_MS > 0
+        call TimesyncTimer.startOneShotAt(now, (TDMA_NUM_SLOTS - (s-1)) * SLOT_PERIOD_MS);
+#else
         call DissemTimer.startOneShotAt(now, (TDMA_NUM_SLOTS - (s-1)) * SLOT_PERIOD_MS);
+#endif
+    }
+
+    event void TimesyncTimer.fired()
+    {
+#if TDMA_TIMESYNC && TIMESYNC_PERIOD_MS > 0
+        uint32_t now = call TimesyncTimer.gett0() + call TimesyncTimer.getdt();
+
+        if(call NodeType.is_node_sink()) {
+            timesync_sent = TRUE;
+            call TimeSyncMode.send();
+        }
+        call DissemTimer.startOneShotAt(now, TIMESYNC_PERIOD_MS);
+#endif
+    }
+
+    event void TimeSyncNotify.msg_sent() {
+        return;
+    }
+
+    event void TimeSyncNotify.msg_received() {
+#if TDMA_TIMESYNC && TIMESYNC_PERIOD_MS > 0
+        if(!timesync_sent) {
+            timesync_sent = TRUE;
+            call TimeSyncMode.send();
+        }
+#endif
     }
 }
