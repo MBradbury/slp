@@ -101,7 +101,7 @@ implementation
     IDList from;
 
     uint32_t period_counter = 0;
-    int dissem_sending;
+    /*int dissem_sending;*/
     bool start_node = FALSE;
     uint32_t redir_length = 0;
 
@@ -175,10 +175,10 @@ implementation
         return TDMA_PRE_BEACON_PERIODS;
     }
 
-    uint32_t get_dissem_timeout(void)
-    {
-        return TDMA_DISSEM_TIMEOUT;
-    }
+    /*uint32_t get_dissem_timeout(void)*/
+    /*{*/
+        /*return TDMA_DISSEM_TIMEOUT;*/
+    /*}*/
 
     uint32_t get_search_dist()
     {
@@ -228,10 +228,10 @@ implementation
         NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot());
     }
 
-    void set_dissem_timer(void)
-    {
-        dissem_sending = get_dissem_timeout();
-    }
+    /*void set_dissem_timer(void)*/
+    /*{*/
+        /*dissem_sending = get_dissem_timeout();*/
+    /*}*/
     //###################}}}
 
     //Startup Events
@@ -415,7 +415,7 @@ implementation
 
                         simdbgverbose("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
                             call TDMA.get_slot(), n_info_i->id, n_info_i->slot);
-                        set_dissem_timer();
+                        /*set_dissem_timer();*/
                     }
                 }
             }
@@ -425,7 +425,7 @@ implementation
             {
                 if(n_info.info[i].slot == BOT)
                 {
-                    set_dissem_timer();
+                    /*set_dissem_timer();*/
                     break;
                 }
 
@@ -768,7 +768,7 @@ implementation
                 NeighbourInfo* oldinfo = NeighbourList_get(&n_info, rcvd->N.info[i].id);
                 if(oldinfo == NULL || (rcvd->N.info[i].slot != oldinfo->slot && rcvd->N.info[i].slot < oldinfo->slot)) //XXX Stops stale data?
                 {
-                    set_dissem_timer();
+                    /*set_dissem_timer();*/
                     NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
                 }
             }
@@ -832,7 +832,7 @@ implementation
                     }
                 }
                 NeighbourList_add_info(&n_info, source);
-                set_dissem_timer();
+                /*set_dissem_timer();*/
             }
         }
     }
@@ -953,7 +953,7 @@ implementation
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
             NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
             NeighbourList_select(&n_info, &neighbours, &onehop);
-            set_dissem_timer(); //Restart sending dissem messages
+            /*set_dissem_timer(); //Restart sending dissem messages*/
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.a_node = choose(&npar);
             msg.len_d = rcvd->len_d - 1;
@@ -966,7 +966,7 @@ implementation
             normal = FALSE;
             call TDMA.set_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
-            set_dissem_timer(); //Restart sending dissem messages
+            /*set_dissem_timer(); //Restart sending dissem messages*/
             simdbgverbose("stdout", "Change messages ended\n");
             call NodeType.set(ChangeNode);
         }
