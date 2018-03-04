@@ -16,9 +16,11 @@ class Arguments(ArgumentsCommon):
         self.add_argument("-ai", "--slot-assignment-interval", type=int, required=True, help="The interval at which slot values are assigned")
         self.add_argument("-msp", "--minimum-setup-periods", type=int, required=True, help="Minimum number of periods required for setup")
         self.add_argument("-pbp", "--pre-beacon-periods", type=int, required=False, default=3, help="Number of periods of neighbour discovery")
-        self.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
+        # self.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
         # self.add_argument("-tsp", "--tdma-safety-periods", type=int, required=True, help="Safety period (in TDMA periods)")
         self.add_argument("-sd", "--search-distance", type=int, required=True, help="Distance search messages travel from the sink")
+        self.add_argument("--timesync", action="store_true", required=False, help="Activate TDMA timesync")
+        self.add_argument("-tsp", "--timesync-period", type=float, required=False, default=0, help="Time at the end of the TDMA period for FTSP timesync (0 turns timesync off)")
         self.add_argument("--source-mobility",
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
@@ -42,9 +44,11 @@ class Arguments(ArgumentsCommon):
         result["SLOT_ASSIGNMENT_INTERVAL"] = self.args.slot_assignment_interval
         result["TDMA_SETUP_PERIODS"] = self.args.minimum_setup_periods
         result["TDMA_PRE_BEACON_PERIODS"] = self.args.pre_beacon_periods
-        result["TDMA_DISSEM_TIMEOUT"] = self.args.dissem_timeout
+        # result["TDMA_DISSEM_TIMEOUT"] = self.args.dissem_timeout
         # result["SAFETY_PERIOD"] = ssd_hops
         result["SEARCH_DIST"] = self.args.search_distance
         result["CHANGE_LENGTH"] = ssd_hops - self.args.search_distance
+        result["TDMA_TIMESYNC"] = int(self.args.timesync)
+        result["TIMESYNC_PERIOD_MS"] = int(self.args.timesync_period * 1000)
 
         return result
