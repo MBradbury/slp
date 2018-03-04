@@ -17,4 +17,8 @@ implementation
 
     components MainC;
     App.Boot -> MainC;
+
+    components ActiveMessageC;
+    App.Packet -> ActiveMessageC;
+    App.PacketTimeStamp -> ActiveMessageC;
 }
