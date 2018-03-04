@@ -81,8 +81,7 @@ module SourceBroadcasterC
 
     uses interface FaultModel;
 
-    uses interface CustomTime as Time;
-    uses interface CustomTimeSync<DissemMessage> as TimeSync;
+    uses interface GlobalTime<TMilli>;
 }
 
 implementation
@@ -209,6 +208,11 @@ implementation
     uint32_t get_change_length()
     {
         return CHANGE_LENGTH;
+    }
+
+    uint32_t get_timesync_period(void)
+    {
+        return TIMESYNC_PERIOD_MS;
     }
     //###################}}}
 
@@ -338,7 +342,6 @@ implementation
         }
 
         IDList_add(&neighbours, TOS_NODE_ID);
-        set_dissem_timer();
     }
 
     void process_dissem(void)
@@ -469,21 +472,14 @@ implementation
 
     event void DissemTimerSender.fired()
     {
-        if(dissem_sending>0)
-        {
-            DissemMessage msg;
-            msg.normal = normal;
-            msg.parent = parent;
-            NeighbourList_select(&n_info, &neighbours, &(msg.N));
+        DissemMessage msg;
+        msg.normal = normal;
+        msg.parent = parent;
+        NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
-            call TimeSync.init_message(&msg, hop);
+        simdbgverbose("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbgverbose_clear("stdout", "\n");
 
-            simdbgverbose("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbgverbose_clear("stdout", "\n");
-
-            send_Dissem_message(&msg, AM_BROADCAST_ADDR);
-            dissem_sending--;
-        }
-        if(period_counter < get_pre_beacon_periods()) set_dissem_timer();
+        send_Dissem_message(&msg, AM_BROADCAST_ADDR);
         /*normal = TRUE; //TODO: Testing this line*/
     }
 
@@ -621,7 +617,8 @@ implementation
     event bool TDMA.dissem_fired()
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
-        const uint32_t now = call Time.global_time();
+        uint32_t now = call GlobalTime.getLocalTime();
+
         METRIC_START_PERIOD();
         period_counter++;
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
@@ -747,8 +744,6 @@ implementation
         NeighbourList rcvdList;
 
         METRIC_RCV_DISSEM(rcvd);
-
-        call TimeSync.update(rcvd, hop);
 
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
         source = NeighbourList_get(&rcvdList, source_addr);
