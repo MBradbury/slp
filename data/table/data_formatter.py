@@ -86,6 +86,11 @@ class TableDataFormatter(object):
                 "lpl choose early": ("$W_{e}(\\mathcal{C})$", "ms"),
                 "lpl choose late": ("$W_{l}(\\mathcal{C})$", "ms"),
 
+                "lpl remote wakeup": ("RW", "ms"),
+                "lpl local wakeup": ("LW", "ms"),
+                "lpl delay after receive": ("DAR", "ms"),
+                "lpl max cca checks": ("CCA", "~"),
+
                 "average duty cycle": ("Duty Cycle", "(\\%)"),
             }[name]
         except KeyError as ex:
