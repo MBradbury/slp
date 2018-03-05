@@ -272,7 +272,6 @@ class Analyse(object):
         "FirstNormalSentTime": np.float_,
         "TimeBinWidth": np.float_,
         "FailedRtx": np.uint32,
-        "FailedAvoidSink": np.float_,
         "TotalParentChanges": np.uint32,
         "TFS": np.uint32,
         "PFS": np.uint32,
@@ -315,6 +314,9 @@ class Analyse(object):
 
         "ParentChangeHeatMap": partial(_parse_dict_node_to_value, decompress=True),
 
+        # Can be None if MetricsCommon.num_normal_sent_if_finished is nan
+        "FailedAvoidSink": lambda x: np.float_('NaN') if x == "None" else np.float_(x),
+
         "DutyCycleStart": lambda x: None if x == "None" else np.float_(x), # Either None or float
         "DutyCycle": _parse_dict_node_to_value,
     }
@@ -332,6 +334,7 @@ class Analyse(object):
 
         with open(infile_path, 'r') as infile:
             line_number = 0
+            hash_line_number = None
 
             for line in infile:
 
@@ -339,6 +342,13 @@ class Analyse(object):
 
                 # We need to remove the new line at the end of the line
                 line = line.strip()
+
+                # If we have found the # line
+                if len(all_headings) != 0:
+                    if line.startswith('@'):
+                        raise RuntimeError(f"Multiple sets of metadata in {infile_path}")
+                    else:
+                        break
 
                 if line.startswith('@'):
                     # The attributes that contain some extra info
@@ -357,10 +367,9 @@ class Analyse(object):
                 elif line.startswith('#'):
                     # Read the headings
                     all_headings = line[1:].split('|')
+                    hash_line_number = line_number
 
-                    break
-
-        if line_number == 0:
+        if line_number == 0 or line_number == hash_line_number:
             raise EmptyFileError(infile_path)
 
         self.headers_to_skip = {header for header in all_headings if self._should_skip(header, headers_to_skip)}
@@ -391,11 +400,11 @@ class Analyse(object):
             names=all_headings, header=None,
             usecols=self.unnormalised_headings,
             sep='|',
-            skiprows=line_number,
+            skiprows=line_number - 1,
             comment='@',
             dtype=self.HEADING_DTYPES, converters=converters,
             compression=None,
-            verbose=True
+            verbose=True,
         )
 
         initial_length = len(df.index)
@@ -405,8 +414,9 @@ class Analyse(object):
 
         # Removes rows with infs in certain columns
         # If NormalLatency is inf then no Normal messages were ever received by a sink
+        # If FirstNormalSentTime is nan then no messages were ever sent by a source
         df = df.replace([np.inf, -np.inf], np.nan)
-        df.dropna(subset=["NormalLatency"], how="all", inplace=True)
+        df.dropna(subset=("NormalLatency", "FirstNormalSentTime"), how="any", inplace=True)
 
         current_length = len(df.index)
 
