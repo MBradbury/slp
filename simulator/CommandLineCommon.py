@@ -130,6 +130,7 @@ class CLI(object):
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
+        subparser.add_argument("--flush", action="store_true", default=False, help="Flush any cached results.")
 
         ###
 
@@ -792,15 +793,21 @@ class CLI(object):
     def _run_testbed_run(self, testbed, args):
         import multiprocessing.pool
 
-        results_path = self._testbed_results_path(testbed)
+        output_results_path = self._testbed_results_path(testbed)
+        input_results_path = os.path.join("testbed_results", testbed.name(), self.algorithm_module.name)
+
+        create_dirtree(output_results_path)
 
         excluded_dirs = {"bad"}
 
         results_dirs = [
             d
-            for d in os.listdir(results_path)
-            if os.path.isdir(os.path.join(results_path, d)) and d not in excluded_dirs
+            for d in os.listdir(input_results_path)
+            if os.path.isdir(os.path.join(input_results_path, d)) and d not in excluded_dirs
         ]
+
+        if not results_dirs:
+            raise RuntimeError(f"No directories to analyse in {input_results_path}")
 
         # All directories that have results for the same parameters
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
@@ -816,12 +823,12 @@ class CLI(object):
 
         for common_result_dir in common_results_dirs:
 
-            out_path = os.path.join(results_path, common_result_dir + ".txt")
+            out_path = os.path.join(output_results_path, common_result_dir + ".txt")
 
             command = "python3 -OO -X faulthandler run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
                 self.algorithm_module.name,
                 testbed.name(),
-                os.path.join(results_path, common_result_dir + "_*", testbed.result_file_name))
+                os.path.join(input_results_path, common_result_dir + "_*", testbed.result_file_name))
 
             settings = {
                 "--attacker-model": args.attacker_model,
@@ -831,12 +838,12 @@ class CLI(object):
             # Depending on if the fault model has been left out
             params = common_result_dir.split("-")
 
-            if len(params) == 4 + len(self.algorithm_module.local_parameter_names):
-                (configuration, fault_model, source_period) = params[:3]
-                fault_model = fault_model.replace("_", "(", 1)[:-1] + ")"
-            elif len(params) == 3 + len(self.algorithm_module.local_parameter_names):
-                (configuration, source_period) = params[:2]
+            if len(params) == 5 + len(self.algorithm_module.local_parameter_names):
+                (configuration, tx_power, channel, lpl, source_period) = params[:5]
                 fault_model = "ReliableFaultModel()"
+            #elif len(params) == 3 + len(self.algorithm_module.local_parameter_names):
+            #    (configuration, source_period) = params[:2]
+            #    fault_model = "ReliableFaultModel()"
             else:
                 raise RuntimeError("Unsure of arguments that the testbed job was run with")
 
