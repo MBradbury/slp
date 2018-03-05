@@ -320,7 +320,8 @@ class ArgumentsCommon(object):
         self.args = None
 
         # Don't show these arguments when printing the argument values before showing the results
-        self.arguments_to_hide = {"job_id", "verbose", "debug", "gui_node_label", "gui_scale", "mode", "seed", "thread_count"}
+        self.arguments_to_hide = {"job_id", "verbose", "debug", "gui_node_label", "gui_scale", "mode", "seed", "thread_count",
+                                  "show_raw_log"}
 
     def add_argument(self, *args, **kwargs):
         for sim in self._subparsers:
