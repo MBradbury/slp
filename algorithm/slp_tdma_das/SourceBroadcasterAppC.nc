@@ -124,12 +124,27 @@ implementation
     App.FaultModel -> FaultModelC;
     FaultModelC.MetricLogging -> MetricLogging;
 
-    components new CustomTimeSyncC(DissemMessage) as TimeSync;
-    App.TimeSync -> TimeSync;
-    App.Time -> TimeSync;
+    /*components new CustomTimeSyncC(DissemMessage) as TimeSync;*/
+    /*App.TimeSync -> TimeSync;*/
+    /*App.Time -> TimeSync;*/
+
+    /*components TDMAP;*/
+    /*TDMAP.CustomTime -> TimeSync;*/
+    /*App.TDMA -> TDMAP;*/
+    /*TDMAP.MetricLogging -> MetricLogging;*/
+
+    components TimeSyncC;
+    /*MainC.SoftwareInit -> TimeSyncC;*/
+    /*TimeSyncC.Boot -> MainC;*/
+    /*App.TimeSyncMode -> TimeSyncC;*/
+    /*App.TimeSyncNotify -> TimeSyncC;*/
+    /*App.TimeSyncInfo -> TimeSyncC;*/
+    App.GlobalTime -> TimeSyncC;
 
     components TDMAP;
-    TDMAP.CustomTime -> TimeSync;
+    /*TDMAP.GlobalTime -> TimeSyncC;*/
+    TDMAP.NodeType -> NodeTypeC;
     App.TDMA -> TDMAP;
     TDMAP.MetricLogging -> MetricLogging;
+    /*App.GlobalTime -> TDMAP.GlobalTime;*/
 }
