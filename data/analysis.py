@@ -1058,8 +1058,8 @@ class AnalyzerCommon(object):
             kwargs["verify_seeds"] = False
 
             # Need to remove parameters that testbed runs do not have
-            for name in simulator.common.testbed_missing_global_parameter_names:
-                del self.values[name]
+            #for name in simulator.common.testbed_missing_global_parameter_names:
+            #    del self.values[name]
 
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling
