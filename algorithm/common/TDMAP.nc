@@ -4,7 +4,7 @@ configuration TDMAP
 	provides interface TDMA;
 
 	uses interface MetricLogging;
-    uses interface CustomTime;
+    uses interface NodeType;
 }
 implementation
 {
@@ -12,24 +12,31 @@ implementation
 	App.TDMA = TDMA;
 
 	App.MetricLogging = MetricLogging;
+    App.NodeType = NodeType;
 
     components MainC;
     MainC.SoftwareInit -> App;
-
-	components LocalTimeMilliC;
-    App.LocalTime -> LocalTimeMilliC;
 
 	// Timers
     components
     	new TimerMilliC() as DissemTimer,
         new TimerMilliC() as PreSlotTimer,
         new TimerMilliC() as SlotTimer,
-        new TimerMilliC() as PostSlotTimer;
+        new TimerMilliC() as PostSlotTimer,
+        new TimerMilliC() as TimesyncTimer;
 
     App.DissemTimer -> DissemTimer;
     App.PreSlotTimer -> PreSlotTimer;
     App.SlotTimer -> SlotTimer;
     App.PostSlotTimer -> PostSlotTimer;
+    App.TimesyncTimer -> TimesyncTimer;
 
-    App.Time = CustomTime;
+    components TimeSyncC;
+    MainC.SoftwareInit -> TimeSyncC;
+    TimeSyncC.Boot -> MainC;
+    App.TimeSyncMode -> TimeSyncC;
+    App.TimeSyncNotify -> TimeSyncC;
+    App.GlobalTime -> TimeSyncC;
+
+    /*App.GlobalTime = GlobalTime;*/
 }
