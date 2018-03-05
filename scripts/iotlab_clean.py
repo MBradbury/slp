@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-from __future__ import print_function
-
+#!/usr/bin/env python3
 import os
 import sys
 
-from data.util import remove_dirtree
+from data.util import remove_dirtree, create_dirtree
 
 directory = sys.argv[1]
 
@@ -13,6 +11,8 @@ contents = list(sorted(os.listdir(directory)))
 to_check = ["aggregator_log.stderr", "aggregator_log.stdout", "run_script.log"]
 
 bad_dir = os.path.join(directory, "bad")
+
+create_dirtree(bad_dir)
 
 for run in contents:
 
