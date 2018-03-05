@@ -55,7 +55,7 @@ class NodeDetails:
         self.nid = int(self.network_address.split(".", 1)[0].split("-", 1)[1])
 
         try:
-            self.coords = (float(obj["x"]), float(obj["y"]), float(obj["z"]))
+            self.coords = (float(obj["x"]), float(obj["z"]), float(obj["y"]))
         except ValueError:
             self.coords = None
 
@@ -82,9 +82,9 @@ def process_site(site):
     with open(path, "r") as out_file:
         nodes = json.load(out_file, object_hook=create_node_objects)["items"]
 
-    nodes = [node for node in nodes if node.archi in supported_hardware and node.state in ("Alive", "Busy") and not node.mobile]
+    nodes = [node for node in nodes if node.archi in supported_hardware and not node.mobile]
 
-    if len(nodes) == 0:
+    if not any(node for node in nodes if node.state in ("Alive", "Busy")):
         raise RuntimeError("No nodes are alive or busy or suspected on {}".format(site))
 
     platforms = {archi_mapping[node.archi] for node in nodes}
@@ -109,12 +109,16 @@ def process_site(site):
         print('', file=out_file)
         print('    support_script_execution = {}'.format(site in sites_support_script_execution), file=out_file)
         print('', file=out_file)
-        print('    def __init__(self, subset=None):', file=out_file)
+        print('    def __init__(self, subset=None, include_all=False):', file=out_file)
         print('        super({}, self).__init__()'.format(site.title()), file=out_file)
         print('        ', file=out_file)
 
         for node in nodes:
-            print('        self.nodes[{}] = np.array({}, dtype=np.float64)'.format(node.nid, node.coords), file=out_file)
+            if node.state not in ("Alive", "Busy"):
+                print('        if include_all: # Status: {}'.format(node.state), file=out_file)
+                print('            self.nodes[{}] = np.array({}, dtype=np.float64)'.format(node.nid, node.coords), file=out_file)
+            else:
+                print('        self.nodes[{}] = np.array({}, dtype=np.float64)'.format(node.nid, node.coords), file=out_file)
 
         print('        ', file=out_file)
 
