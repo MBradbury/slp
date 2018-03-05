@@ -54,7 +54,7 @@ def print_version():
 def print_arguments(module, a):
     for (k, v) in sorted(vars(a.args).items()):
         if k not in a.arguments_to_hide:
-            print("{}={}".format(k, v))
+            print(f"{k}={v}")
 
 def run_simulation(module, a, count=1, print_warnings=False):
     import sys
@@ -69,7 +69,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
     elif a.args.mode == "GUI":
         from simulator.TosVis import GuiSimulation as Simulation
     else:
-        raise RuntimeError("Unknown mode {}".format(a.args.mode))
+        raise RuntimeError(f"Unknown mode {a.args.mode}")
 
     for n in range(count):
         with Simulation(module, configuration, a.args) as sim:
