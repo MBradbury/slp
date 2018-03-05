@@ -81,7 +81,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
             except Exception as ex:
                 import traceback
                 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
 
                 print("Killing run due to {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
@@ -100,7 +100,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
             except Exception as ex:
                 import traceback
 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
 
                 print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
