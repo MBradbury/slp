@@ -21,12 +21,12 @@ def choose_platform(provided, available):
         elif isinstance(available, (tuple, list)) and len(available) == 1:
             return available[0]
         else:
-            raise RuntimeError("Unable to choose between the available platforms {}. Please specify one using --platform.".format(available))
+            raise RuntimeError(f"Unable to choose between the available platforms {available}. Please specify one using --platform.")
     else:
         if provided in available:
             return provided
         else:
-            raise RuntimeError("The provided platform {} is not in the available platforms {}".format(provided, available))
+            raise RuntimeError(f"The provided platform {provided} is not in the available platforms {available}")
 
 # The platform specific objcopy and objdump tools
 PLATFORM_TOOLS = {
@@ -53,7 +53,7 @@ class Runner(object):
             self._progress = Progress("building file")
             self._jobs_executed = 0
 
-        if testbed.generate_per_node_id_binary:
+        if getattr(testbed, "generate_per_node_id_binary", False):
             from multiprocessing.pool import ThreadPool
             self.pool = ThreadPool()
 
@@ -151,7 +151,7 @@ class Runner(object):
                 else:
                     raise
 
-        if self.testbed.generate_per_node_id_binary:
+        if getattr(self.testbed, "generate_per_node_id_binary", False):
             target_ihex = os.path.join(target_directory, "main.ihex")
 
             if not self.quiet:

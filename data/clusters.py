@@ -4,6 +4,9 @@ import os
 import math
 import subprocess
 
+import simulator.sim
+from data import submodule_loader
+
 class ClusterCommon(object):
     def __init__(self, kind, url, ssh_auth, ppn, tpp, rpn, max_walltime=None):
         self.kind = kind
@@ -14,6 +17,8 @@ class ClusterCommon(object):
         self.ram_per_node = rpn
         self.max_walltime = max_walltime
 
+        self.java_prepare_command = None
+
     def submitter(self, notify_emails=None):
         raise NotImplementedError
 
@@ -23,9 +28,9 @@ class ClusterCommon(object):
     def name(self):
         return type(self).__name__
 
-    def builder(self):
+    def builder(self, sim_name):
         from data.run.driver.cluster_builder import Runner as Builder
-        return Builder()
+        return Builder(sim_name)
 
     def copy_to(self, dirname, user=None):
         username = self._get_username(user)
@@ -69,13 +74,32 @@ class ClusterCommon(object):
         # Just ask them for their username
         return input("Enter your {} username: ".format(self.name().title()))
 
+    def _java_prepare_command(self, sim_name):
+
+        sim = submodule_loader.load(simulator.sim, sim_name)
+
+        if not sim.cluster_need_java:
+            return ""
+
+        if self.java_prepare_command is None:
+            raise RuntimeError(f"{sim_name} need java to run, but cluster doesn't know how to load it")
+
+        # Nothign special to do
+        if self.java_prepare_command is True:
+            return ""
+
+        return self.java_prepare_command
+
+    def _get_prepare_command(self, sim_name, main):
+        return " ; ".join(x for x in filter(None, (main, self._java_prepare_command(sim_name))))
+
 
     def _ram_to_ask_for(self, ram_for_os_mb=2 * 1024):
         total_ram = self.ram_per_node * self.ppn
         app_ram = total_ram - ram_for_os_mb
         return int(app_ram // self.ppn) * self.ppn
 
-    def _pbs_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
+    def _pbs_submitter(self, sim_name, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_to_ask_for_mb = self._ram_to_ask_for()
@@ -89,11 +113,11 @@ class ClusterCommon(object):
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
-        prepare_command = "cd $PBS_O_WORKDIR"
+        prepare_command = self._get_prepare_command(sim_name, "cd $PBS_O_WORKDIR")
 
         return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
-    def _pbs_array_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
+    def _pbs_array_submitter(self, sim_name, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_per_node_mb = self._ram_to_ask_for() / self.ppn
@@ -115,12 +139,12 @@ class ClusterCommon(object):
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
-        prepare_command = "cd $PBS_O_WORKDIR"
+        prepare_command = self._get_prepare_command(sim_name, "cd $PBS_O_WORKDIR")
 
         return Submitter(cluster_command, prepare_command, num_jobs,
                          job_repeats=num_array_jobs, array_job_variable="$PBS_ARRAYID", dry_run=dry_run, max_walltime=self.max_walltime)
 
-    def _sge_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
+    def _sge_submitter(self, sim_name, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         # There is only 24GB available and there are 48 threads that can be used for execution.
@@ -145,11 +169,11 @@ class ClusterCommon(object):
         if notify_emails is not None and len(notify_emails) > 0:
             cluster_command += " -m ae -M {}".format(",".join(notify_emails))
 
-        prepare_command = ""
+        prepare_command = self._get_prepare_command(sim_name, "")
 
         return Submitter(cluster_command, prepare_command, jobs, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
-    def _moab_submitter(self, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
+    def _moab_submitter(self, sim_name, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         ram_to_ask_for_mb = self._ram_to_ask_for()
@@ -164,9 +188,9 @@ class ClusterCommon(object):
             cluster_command += " -m bae -M {}".format(",".join(notify_emails))
 
         if self.kind == "slurm":
-            prepare_command = "cd $SLURM_SUBMIT_DIR"
+            prepare_command = self._get_prepare_command(sim_name, "cd $SLURM_SUBMIT_DIR")
         else:
-            prepare_command = "cd $PBS_O_WORKDIR"
+            prepare_command = self._get_prepare_command(sim_name, "cd $PBS_O_WORKDIR")
 
         return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
@@ -188,7 +212,7 @@ class dummy(ClusterCommon):
     def copy_back(self, dirname, user=None):
         raise RuntimeError("Cannot copy back from the dummy cluster")
 
-    def submitter(self, unhold=False, *args, **kwargs):
+    def submitter(self, sim_name, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         class DummySubmitter(Submitter):
@@ -211,7 +235,7 @@ class dummy(ClusterCommon):
 
         return DummySubmitter(cluster_command, prepare_command, self.ppn)
 
-    def array_submitter(self, unhold=False, *args, **kwargs):
+    def array_submitter(self, sim_name, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
         class DummySubmitter(Submitter):
@@ -246,6 +270,8 @@ class flux(ClusterCommon):
             rpn=(32 * 1024) / 12, # 32GB per node
             max_walltime=timedelta(hours=48) # See "qstat -Qf" for the batch queue
         )
+
+        self.java_prepare_command = "module load jdk-8u51"
 
     def submitter(self, *args, **kwargs):
         notify_emails = kwargs.get("notify_emails", None)

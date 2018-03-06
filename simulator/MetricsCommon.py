@@ -1340,14 +1340,18 @@ class TDMAMetricsCommon(MetricsCommon):
         self.period_starts[ord_node_id].append(time)
 
     def per_node_slot_changes(self):
+        o2t = self.topology.o2t
+
         return {
-            ord_node_id: len(changes)
+            o2t(ord_node_id): len(changes)
             for (ord_node_id, changes) in self.slot_changes.items()
         }
 
     def node_periods_started(self):
+        o2t = self.topology.o2t
+
         return {
-            ord_node_id: len(started)
+            o2t(ord_node_id): len(started)
             for (ord_node_id, started) in self.period_starts.items()
         }
 
@@ -1453,9 +1457,11 @@ class DutyCycleMetricsCommon(MetricsCommon):
         return duty_time / (end_time - start_time)
 
     def duty_cycle(self):
+        o2t = self.topology.o2t
+
         return {
-            nid: round(self._calculate_node_duty_cycle(nid), 5)
-            for nid in self._duty_cycle_state.keys()
+            o2t(nid): round(self._calculate_node_duty_cycle(nid), 5)
+            for nid in self._duty_cycle_state
         }
 
     @staticmethod
@@ -1522,7 +1528,7 @@ class DutyCycleMetricsGrapher(MetricsCommon):
         ax.set_xlabel("Time (seconds)")
         ax.set_ylabel("Node ID")
 
-        plt.savefig("dutycycle.pdf")
+        plt.savefig("dutycycle.pdf", bbox_inches='tight')
 
     @staticmethod
     def items():
@@ -1764,9 +1770,9 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         self._radio_on_times = defaultdict(list)
 
         self._intervals = {
-            "Fake":   (int(1000 * self.sim.args.lpl_fake_early),   int(1000 * self.sim.args.lpl_fake_late)),
-            "Choose": (int(1000 * self.sim.args.lpl_choose_early), int(1000 * self.sim.args.lpl_choose_late)),
-            "Normal": (int(1000 * self.sim.args.lpl_normal_early), int(1000 * self.sim.args.lpl_normal_late)),
+            "Fake":   (int(self.sim.args.lpl_fake_early),   int(self.sim.args.lpl_fake_late)),
+            "Choose": (int(self.sim.args.lpl_choose_early), int(self.sim.args.lpl_choose_late)),
+            "Normal": (int(self.sim.args.lpl_normal_early), int(self.sim.args.lpl_normal_late)),
         }
 
     def log_time_receive_event_hist(self, d_or_e, node_id, time, detail):
@@ -1848,7 +1854,7 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
             ax.set_xlabel("Difference (ms)")
             ax.set_ylabel("Count")
 
-            plt.savefig(f"{message_name}dutycycleboundaryhist.pdf")
+            plt.savefig(f"{message_name}dutycycleboundaryhist.pdf", bbox_inches='tight')
 
     @staticmethod
     def build_arguments():
@@ -1933,7 +1939,7 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         ax.set_xlabel("Distance From Source (hops)")
         ax.set_ylabel("Travel Time (ms)")
 
-        plt.savefig(f"NormalMessageTravelTime.pdf")
+        plt.savefig(f"NormalMessageTravelTime.pdf", bbox_inches='tight')
 
 
 

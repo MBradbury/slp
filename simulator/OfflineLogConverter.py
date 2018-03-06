@@ -7,8 +7,6 @@ import traceback
 
 import pandas
 
-from data.restricted_eval import restricted_eval
-
 def _sanitise_string(input_string):
     if len(input_string) > 255:
         input_string = input_string[:255] + "..."

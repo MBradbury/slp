@@ -29,9 +29,6 @@ class MicaZNode(object):
       </interface_config>""".format(**kwargs)
 
 class CoojaPlatform(object):
-    def __init__(self):
-        pass
-
     def __str__(self):
         return type(self).__name__
 
@@ -48,9 +45,6 @@ class CoojaPlatform(object):
         pass
 
 class Sky(CoojaPlatform, MSP430Node):
-    def __init__(self):
-        super(Sky, self).__init__()
-
     def cooja_csc(self, firmware):
         return """org.contikios.cooja.mspmote.SkyMoteType
       <identifier>{platform}</identifier>
@@ -78,9 +72,6 @@ class Sky(CoojaPlatform, MSP430Node):
         return "telosb"
 
 class MicaZ(CoojaPlatform, MicaZNode):
-    def __init__(self):
-        super(MicaZ, self).__init__()
-
     def cooja_csc(self, firmware):
         # The firmware needs to have a .elf extension instead of .exe
         firmware = firmware.replace(".exe", ".elf")
@@ -111,9 +102,6 @@ class MicaZ(CoojaPlatform, MicaZNode):
         shutil.copyfile(os.path.join(target_directory, "main.exe"), os.path.join(target_directory, "main.elf"))
 
 class Z1(CoojaPlatform, MSP430Node):
-    def __init__(self):
-        super(Z1, self).__init__()
-
     def cooja_csc(self, firmware):
         return """org.contikios.cooja.mspmote.Z1MoteType
       <identifier>{platform}</identifier>
@@ -139,7 +127,7 @@ class Z1(CoojaPlatform, MSP430Node):
 
 def models():
     """A list of the names of the available radio models."""
-    return [subcls for subcls in CoojaPlatform.__subclasses__()]  # pylint: disable=no-member
+    return CoojaPlatform.__subclasses__()  # pylint: disable=no-member
 
 def eval_input(source):
     options = [x for x in models() if x.__name__ == source]

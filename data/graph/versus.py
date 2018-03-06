@@ -67,6 +67,7 @@ class Grapher(GrapherBase):
 
         self.generate_legend_graph = False
         self.legend_font_size = '14'
+        self.legend_divisor = 3
 
         self.missing_value_string = '?'
         self.set_datafile_missing = False
@@ -264,8 +265,8 @@ class Grapher(GrapherBase):
 
             column_count = len(vvalues)
 
-            legend_width = 9.8
-            legend_height = 0.3 * math.ceil(column_count / 3)
+            legend_width = 3.3 * self.legend_divisor
+            legend_height = 0.3 * math.ceil(column_count / self.legend_divisor)
 
             graph_p.write('set terminal pdf enhanced font ",{}" size {},{}\n'.format(
                 self.legend_font_size, legend_width, legend_height))
@@ -285,12 +286,12 @@ class Grapher(GrapherBase):
             if self.error_bars:
                 for x in range(1, column_count + 1):
                     plots.append('NaN with errorbars title "{} {}{}" linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
-                        self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix,
+                        self.vary_label, self._vvalue_label(vvalues[ x - 1 ]), self.vary_prefix,
                         x=x, ycol=x * 2, line_width=self.line_width))
             else:
                 for x in range(1, column_count + 1):
                     plots.append('NaN with lp title "{} {}{}" linewidth {line_width}'.format(
-                        self.vary_label, latex.escape(vvalues[ x - 1 ]), self.vary_prefix,
+                        self.vary_label, self._vvalue_label(vvalues[ x - 1 ]), self.vary_prefix,
                         line_width=self.line_width))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
@@ -301,7 +302,7 @@ class Grapher(GrapherBase):
 
         dir_name = os.path.join(self.output_directory, self.result_name, *map(self._sanitize_path_name, key_values))
 
-        print("Currently in {}".format(dir_name))
+        print(f"Currently in {dir_name}")
 
         # Ensure that the dir we want to put the files in actually exists
         data.util.create_dirtree(dir_name)
@@ -310,7 +311,7 @@ class Grapher(GrapherBase):
         vvalues = list(self._order_keys({x[1] for x in values.keys()}))
 
         if len(vvalues) == 0:
-            print("WARNING no values to graph for '{}'".format(dir_name))
+            print(f"WARNING no values to graph for '{dir_name}'")
             return False
         else:
             # Write our data

@@ -51,7 +51,7 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
     data.util.silent_remove(pdf_name)
 
     try:
-        command = "{} -output-directory=\"{}\" \"{}\"".format(executable, path, path_and_name)
+        command = f"{executable} -output-directory=\"{path}\" \"{path_and_name}\""
         print(command)
         subprocess.check_call(command, shell=True)
 

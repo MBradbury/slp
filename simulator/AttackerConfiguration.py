@@ -37,7 +37,7 @@ class SingleAttacker(AttackerConfiguration):
     This class allows an attacker configuration to act as an attacker model in a backwards compatible way.
     """
     def __init__(self, attacker):
-        super(SingleAttacker, self).__init__([attacker])
+        super().__init__([attacker])
 
     def __str__(self):
         return str(self.attackers[0])
@@ -52,7 +52,7 @@ class MultipleAttackers(AttackerConfiguration):
     For example a command might look like: -am "MultipleAttackers(SeqNosReactiveAttacker(start_location='top_right'),SeqNosReactiveAttacker())"
     """
     def __init__(self, *args):
-        super(MultipleAttackers, self).__init__(args)
+        super().__init__(args)
 
 
 def models():
@@ -72,10 +72,10 @@ def eval_input(source):
         result = SingleAttacker(result)
 
     if result in all_models:
-        raise RuntimeError("The source ({}) is not valid. (Did you forget the brackets after the name?)".format(source))
+        raise RuntimeError(f"The source ({source}) is not valid. (Did you forget the brackets after the name?)")
 
     if not isinstance(result, AttackerConfiguration):
-        raise RuntimeError("The source ({}) is not a valid instance of an Attacker.".format(source))
+        raise RuntimeError(f"The source ({source}) is not a valid instance of an Attacker.")
 
     return result
 

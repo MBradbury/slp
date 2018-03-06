@@ -2,6 +2,8 @@ from __future__ import print_function, division
 
 generate_per_node_id_binary = False
 
+cluster_need_java = True
+
 def parsers():
     # WARNING!!
     # Cooja cannot support a "node id order" of randomised until there is a way for a node
@@ -49,6 +51,9 @@ def build(module, a):
     #(a, module, module_path, target_directory)
     builder.add_job((module, a), target)
 
+    # 0 For successful build result
+    return 0
+
 def print_version():
     import simulator.VersionDetection as VersionDetection
 
@@ -67,7 +72,7 @@ def cooja_command(module, a, configuration):
 
     target_directory = module.replace(".", "/")
 
-    csc_file = os.path.join(target_directory, "build", "sim.csc")
+    csc_file = os.path.join(target_directory, f"sim.{a.args.seed}.csc")
 
     command = f"java -jar '{cooja_path}' -nogui='{csc_file}' -contiki='{os.environ['CONTIKI_DIR']}'"
 
@@ -82,7 +87,7 @@ def cooja_iter(iterable):
         line = line.rstrip()
 
         if line.startswith('Exception'):
-            raise RuntimeError("Cooja exception: {}".format(line))
+            raise RuntimeError(f"Cooja exception: {line}")
 
         time_us, rest = line.split("|", 1)
 
@@ -105,11 +110,6 @@ def print_arguments(module, a):
             print("{}={}".format(k, v))
 
 def run_simulation(module, a, count=1, print_warnings=False):
-    global base64, pickle, re
-
-    import base64
-    import pickle
-    import re
     import shlex
     import sys
     import subprocess
@@ -167,7 +167,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
 
             write_csc(module.replace(".", "/"), a)
 
-            with subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, universal_newlines=True) as proc:
+            with subprocess.Popen(command, stdout=sys.stderr, stderr=subprocess.PIPE, universal_newlines=True) as proc:
 
                 proc_iter = iter(proc.stderr.readline, '')
 
@@ -222,3 +222,5 @@ def run_simulation(module, a, count=1, print_warnings=False):
                         proc.kill()
                         
                         return 52
+
+    return 0

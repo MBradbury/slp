@@ -7,6 +7,7 @@ import functools
 import itertools
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -20,6 +21,7 @@ from simulator import CommunicationModel, NoiseModel
 import simulator.sim
 import simulator.ArgumentsCommon as ArgumentsCommon
 import simulator.Configuration as Configuration
+import simulator.CoojaRadioModel as CoojaRadioModel
 
 from data import results, latex, submodule_loader
 from data.run.common import MissingSafetyPeriodError
@@ -34,6 +36,14 @@ from data.table import safety_period, fake_result
 from data.table.data_formatter import TableDataFormatter
 
 from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
+
+# From: https://stackoverflow.com/questions/32954486/zip-iterators-asserting-for-equal-length-in-python
+def zip_equal(*iterables):
+    sentinel = object()
+    for combo in itertools.zip_longest(*iterables, fillvalue=sentinel):
+        if sentinel in combo:
+            raise ValueError('Iterables have different lengths')
+        yield combo
 
 class CLI(object):
 
@@ -120,6 +130,7 @@ class CLI(object):
         subparser.add_argument("--thread-count", type=int, default=None)
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
+        subparser.add_argument("--flush", action="store_true", default=False, help="Flush any cached results.")
 
         ###
 
@@ -161,6 +172,7 @@ class CLI(object):
 
         subparser = self._add_argument("detect-missing", self._run_detect_missing, help="List the parameter combinations that are missing results. This requires a filled in Parameters.py and for an 'analyse' to have been run.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
+        subparser.add_argument("--show-all", action="store_true", default=False)
 
         subparser = self._add_argument("graph-heatmap", self._run_graph_heatmap, help="Graph the sent and received heatmaps.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
@@ -259,14 +271,23 @@ class CLI(object):
             network_size_normalisation=network_size_normalisation,
             results_filter=results_filter)
 
+        def shorter_name(s):
+            return "".join(x[0] for x in re.split(r"[\s,(]", s))
+
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = f'{xaxis}-v-{yaxis}-w-{vary}'.replace(" ", "_")
+                name = f'{shorter_name(xaxis)}-v-{shorter_name(yaxis)}-w-{shorter_name(vary)}'
+
+                if isinstance(yextractor, dict):
+                    try:
+                        yextractor_single = yextractor[yaxis]
+                    except KeyError:
+                        yextractor_single = scalar_extractor
 
                 g = versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=yextractor, xextractor=xextractor)
+                    yextractor=yextractor_single, xextractor=xextractor)
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
@@ -478,10 +499,8 @@ class CLI(object):
                 return getattr(parameters, name.replace(" ", "_") + appendix)
             except AttributeError:
                 continue
-        else:
-            raise RuntimeError(f"Unable to find plural of {name}")
 
-        return None
+        raise RuntimeError(f"Unable to find plural of {name}")
 
     def _get_global_parameter_values(self, sim, parameters):
         product_argument = []
@@ -509,6 +528,23 @@ class CLI(object):
 
         return product_argument
 
+    def _get_local_parameter_values(self, parameters, local_name, custom_mapping=None):
+
+        if custom_mapping is not None:
+            value = custom_mapping.get(local_name, None)
+            if value is not None:
+                try:
+                    return getattr(parameters, value)
+                except AttributeError:
+                    pass
+
+        for appendix in ["s", "es", ""]:
+            try:
+                return getattr(parameters, local_name.replace(" ", "_") + appendix)
+            except AttributeError:
+                continue
+
+        raise RuntimeError(f"Unable to find plural of {local_name}")
 
     def _argument_product(self, sim, extras=None):
         """Produces the product of the arguments specified in a Parameters.py file of the self.algorithm_module.
@@ -522,18 +558,9 @@ class CLI(object):
 
         product_argument.extend(self._get_global_parameter_values(sim, parameters))
 
-        local_appendicies_to_try = ["s", "es", ""]
-
         # Now lets process the algorithm specific parameters
         for local_name in self.algorithm_module.local_parameter_names:
-            for appendix in local_appendicies_to_try:
-                try:
-                    product_argument.append(getattr(parameters, local_name.replace(" ", "_") + appendix))
-                    break
-                except AttributeError:
-                    continue
-            else:
-                raise RuntimeError(f"Unable to find plural of {local_name}")
+            product_argument.append(self._get_local_parameter_values(parameters, local_name))
 
         if extras:
             for extra_name in extras:
@@ -656,14 +683,16 @@ class CLI(object):
         size = args['network size']
 
         if sim_name == "cooja":
-            if size == 7:
-                return timedelta(hours=36)
+            if size == 5:
+                return timedelta(hours=12)
+            elif size == 7:
+                return timedelta(hours=24)
             elif size == 9:
                 return timedelta(hours=48)
             elif size == 11:
                 return timedelta(hours=71)
             else:
-                raise RuntimeError("No time estimate for network sizes other than 7, 9 or 11")
+                raise RuntimeError("No time estimate for network sizes other than 5, 7, 9 or 11")
         else:
             if size == 7:
                 return timedelta(hours=7)
@@ -764,15 +793,21 @@ class CLI(object):
     def _run_testbed_run(self, testbed, args):
         import multiprocessing.pool
 
-        results_path = self._testbed_results_path(testbed)
+        output_results_path = self._testbed_results_path(testbed)
+        input_results_path = os.path.join("testbed_results", testbed.name(), self.algorithm_module.name)
+
+        create_dirtree(output_results_path)
 
         excluded_dirs = {"bad"}
 
         results_dirs = [
             d
-            for d in os.listdir(results_path)
-            if os.path.isdir(os.path.join(results_path, d)) and d not in excluded_dirs
+            for d in os.listdir(input_results_path)
+            if os.path.isdir(os.path.join(input_results_path, d)) and d not in excluded_dirs
         ]
+
+        if not results_dirs:
+            raise RuntimeError(f"No directories to analyse in {input_results_path}")
 
         # All directories that have results for the same parameters
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
@@ -788,12 +823,12 @@ class CLI(object):
 
         for common_result_dir in common_results_dirs:
 
-            out_path = os.path.join(results_path, common_result_dir + ".txt")
+            out_path = os.path.join(output_results_path, common_result_dir + ".txt")
 
             command = "python3 -OO -X faulthandler run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
                 self.algorithm_module.name,
                 testbed.name(),
-                os.path.join(results_path, common_result_dir + "_*", testbed.result_file_name))
+                os.path.join(input_results_path, common_result_dir + "_*", testbed.result_file_name))
 
             settings = {
                 "--attacker-model": args.attacker_model,
@@ -803,12 +838,12 @@ class CLI(object):
             # Depending on if the fault model has been left out
             params = common_result_dir.split("-")
 
-            if len(params) == 4 + len(self.algorithm_module.local_parameter_names):
-                (configuration, fault_model, source_period) = params[:3]
-                fault_model = fault_model.replace("_", "(", 1)[:-1] + ")"
-            elif len(params) == 3 + len(self.algorithm_module.local_parameter_names):
-                (configuration, source_period) = params[:2]
+            if len(params) == 5 + len(self.algorithm_module.local_parameter_names):
+                (configuration, tx_power, channel, lpl, source_period) = params[:5]
                 fault_model = "ReliableFaultModel()"
+            #elif len(params) == 3 + len(self.algorithm_module.local_parameter_names):
+            #    (configuration, source_period) = params[:2]
+            #    fault_model = "ReliableFaultModel()"
             else:
                 raise RuntimeError("Unsure of arguments that the testbed job was run with")
 
@@ -860,17 +895,28 @@ class CLI(object):
             self._create_table(filename, safety_period_table, directory="testbed_results", show=args.show)
 
         else:
-            prod = itertools.product(NoiseModel.available_models(),
-                                     CommunicationModel.available_models())
 
-            for (noise_model, comm_model) in prod:
+            if args.sim == "tossim":
+                names = ("noise model", "communication model")
+                prod = list(itertools.product(NoiseModel.available_models(),
+                                              CommunicationModel.available_models()))
+            else:
+                names = tuple()
+                prod = []
 
-                print(f"Writing results table for the {noise_model} noise model and {comm_model} communication model")
+            if len(prod) > 0:
+                for p in prod:
+                    print(f"Writing results table for {' and '.join(str(x) for x in p)}")
 
-                filename = '{}-{}-{}-safety'.format(self.algorithm_module.name, noise_model, comm_model)
+                    filename = f'{self.algorithm_module.name}-{args.sim}-{"-".join(str(x) for x in p)}-safety'
 
-                self._create_table(filename, safety_period_table,
-                                   param_filter=lambda cm, nm, am, fm, c, d, nido, lst, noise_model=noise_model, comm_model=comm_model: nm == noise_model and cm == comm_model)
+                    self._create_table(filename, safety_period_table,
+                                       param_filter=lambda x: all(x[name] == value for (name, value) in zip(names, p)))
+            else:
+                filename = f'{self.algorithm_module.name}-{args.sim}-safety'
+
+                self._create_table(filename, safety_period_table, show=args.show)
+
 
     def _run_error_table(self, args):
         res = results.Results(
@@ -912,7 +958,7 @@ class CLI(object):
 
             skip_complete = not args.no_skip_complete
 
-            self._execute_runner(args.sim, cluster.builder(), cluster_directory,
+            self._execute_runner(args.sim, cluster.builder(args.sim), cluster_directory,
                                  time_estimator=None,
                                  skip_completed_simulations=skip_complete)
 
@@ -930,7 +976,7 @@ class CLI(object):
 
             submitter_fn = cluster.array_submitter if args.array else cluster.submitter
 
-            submitter = submitter_fn(notify_emails=emails_to_notify, dry_run=args.dry_run, unhold=args.unhold)
+            submitter = submitter_fn(args.sim, notify_emails=emails_to_notify, dry_run=args.dry_run, unhold=args.unhold)
 
             skip_complete = not args.no_skip_complete
 
@@ -1015,17 +1061,37 @@ class CLI(object):
 
         sim = submodule_loader.load(simulator.sim, args.sim)
         result_file_path = self.algorithm_module.result_file_path(args.sim)
-        
-        argument_product = {tuple(map(str, row)) for row in self._argument_product(sim)}
+
+        def _format_item(name, item):
+            if name == "radio model":
+                return str(CoojaRadioModel.eval_input(item))
+            else:
+                return str(item)
+
+        names = sim.global_parameter_names + self.algorithm_module.local_parameter_names
+
+        argument_product = {
+            tuple(_format_item(name, item) for (name, item) in zip_equal(names, row))
+            for row
+            in self._argument_product(sim)
+        }
 
         result = results.Results(args.sim, result_file_path,
                                  parameters=self.algorithm_module.local_parameter_names,
                                  results=('repeats',))
 
         repeats = {tuple(map(str, k)): v for (k, v) in result.parameter_set().items()}
-        repeats_diff_strings = ["|".join(str(k)) for k in repeats]
+        repeats_diff_strings = ["|".join(k) for k in repeats.keys()]
 
         parameter_names = sim.global_parameter_names + result.parameter_names
+
+        if args.show_all:
+            from pprint import pprint
+            print("All results:")
+            pprint(repeats)
+
+            print("User parameters:")
+            pprint(argument_product)
 
         print("Checking runs that were asked for, but not included...")
 
@@ -1040,7 +1106,10 @@ class CLI(object):
                     print("Close:")
                     for close in close_matches:
                         print(f"\t{close.split('|')}")
-                    print()
+                else:
+                    print("No close matches to existing results")
+                
+                print()
 
         print(f"Loading {result_file_path} to check for missing runs...")
 
