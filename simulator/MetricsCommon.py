@@ -1882,19 +1882,17 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         time = float(time)
         kind = self.message_kind_to_string(kind)
         ord_node_id, top_node_id = self._process_node_id(node_id)
+        ord_ult_node_id, top_ult_node_id = self._process_node_id(ultimate_source_id)
         sequence_number = int(sequence_number)
 
-        if ord_node_id in self.source_ids() and kind == "Normal":
-            key = (ord_node_id, sequence_number)
+        if ord_node_id == ord_ult_node_id:
+            key = (ord_node_id, kind, sequence_number)
 
             if key not in self._bcasts_at:
                 self._bcasts_at[key] = time
 
     def log_time_diff_deliver_event(self, d_or_e, node_id, time, detail):
-        try:
-            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
-        except ValueError:
-            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+        (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
 
         time = float(time)
         kind = self.message_kind_to_string(kind)
@@ -1902,44 +1900,77 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         ord_ult_node_id, top_ult_node_id = self._process_node_id(ultimate_source_id)
         sequence_number = int(sequence_number)
 
-        if kind == "Normal":
-            key = (ord_ult_node_id, sequence_number)
+        key = (ord_ult_node_id, kind, sequence_number)
 
-            if ord_node_id not in self._delivers_at[key]:
-                self._delivers_at[key][ord_node_id] = time
+        if ord_node_id not in self._delivers_at[key]:
+            self._delivers_at[key][ord_node_id] = time
 
     def finish(self):
         super().finish()
 
-        dsrc_vs_time = []
+        dsrc_vs_time = {}
+
+        dsrc_vs_time_dict = {}
 
         for (key, bcast_time) in self._bcasts_at.items():
-            (ord_src_id, sequence_number) = key
+            (ord_src_id, kind, sequence_number) = key
 
             for (ord_node_id, deliver_time) in self._delivers_at[key].items():
 
-                dsrc = self.sim.configuration.node_source_distance(ord_node_id, ord_src_id)
+                if ord_node_id == ord_src_id:
+                    continue
 
-                time = deliver_time - bcast_time
+                dsrc = self.sim.configuration.node_distance(ord_node_id, ord_src_id)
 
-                dsrc_vs_time.append((dsrc, time*1000))
+                # Convert to milliseconds
+                time = int((deliver_time - bcast_time) * 1000)
 
-        self._plot_message_travel_time_scatter(dsrc_vs_time)
+                dsrc_vs_time.setdefault(kind, []).append((dsrc, time))
 
-    def _plot_message_travel_time_scatter(self, dsrc_vs_time):
+                dsrc_vs_time_dict.setdefault(kind, {}).setdefault(dsrc, []).append(time)
+
+        for (kind, rest) in dsrc_vs_time.items():
+            self._plot_message_travel_time_scatter(kind, rest)
+
+        for (kind, rest) in dsrc_vs_time_dict.items():
+            self._plot_message_travel_time_histogram(kind, rest)
+
+    def _plot_message_travel_time_scatter(self, msg_name, dsrc_vs_time):
         import matplotlib.pyplot as plt
-        from matplotlib.font_manager import FontProperties
 
         fig, ax = plt.subplots()
 
         x, y = zip(*dsrc_vs_time)
 
-        ax.scatter(x, y, color=message_type_to_colour("Normal"))
+        ax.scatter(x, y, color=message_type_to_colour(msg_name))
 
         ax.set_xlabel("Distance From Source (hops)")
         ax.set_ylabel("Travel Time (ms)")
 
-        plt.savefig(f"NormalMessageTravelTime.pdf", bbox_inches='tight')
+        plt.savefig(f"{msg_name}MessageTravelTime.pdf", bbox_inches='tight')
+
+
+    def _plot_message_travel_time_histogram(self, msg_name, dsrc_vs_time):
+        import matplotlib.pyplot as plt
+
+        width = 3
+        height = math.ceil(len(dsrc_vs_time) / width)
+        size_factor = 6
+
+        fig, axs = plt.subplots(height, width, figsize=(width * size_factor, height * size_factor))
+
+        for (ax, (distance, x)) in zip(axs.flat, sorted(dsrc_vs_time.items(), key=lambda x: x[0])):
+
+            print(distance, x)
+
+            ax.hist(x, color=message_type_to_colour(msg_name))
+
+            ax.set_xlabel("Travel Time (ms)")
+            ax.set_ylabel("Count")
+
+            ax.set_title(f"Distance = {distance} (hops)")
+
+        plt.savefig(f"{msg_name}MessageTravelTimeHist.pdf", bbox_inches='tight')
 
 
 
