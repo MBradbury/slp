@@ -1,9 +1,5 @@
 #include "TimeSyncMsg.h"
 
-//FTSP parameters
-#define TIMESYNC_ENTRY_VALID_LIMIT 4
-#define TIMESYNC_ENTRY_SEND_LIMIT 1
-
 module TDMAImplP
 {
 	provides interface TDMA;
@@ -84,16 +80,24 @@ implementation
     {
         uint32_t now, local_now, global_now;
         uint16_t s;
+        int32_t timesync_overflow;
         local_now = global_now = call PreSlotTimer.gett0() + call PreSlotTimer.getdt();
         if(call GlobalTime.local2Global(&global_now) == FAIL) {
             global_now = local_now;
         }
 
+        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
+
         //XXX: Potentially 'now' could negatively wrap-around
         now = local_now - (global_now - local_now + timesync_offset);
         timesync_offset = local_now - global_now;
 
-        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
+        //If timesync_offset is too large for the timer, reduce the offset for
+        //this step and catch up in another timer
+        if((timesync_overflow = local_now - (now + (s * SLOT_PERIOD_MS))) > 0) {
+            timesync_offset -= timesync_overflow;
+        }
+
         call SlotTimer.startOneShotAt(now, (s * SLOT_PERIOD_MS));
     }
 
@@ -111,16 +115,24 @@ implementation
     {
         uint32_t now, local_now, global_now;
         uint16_t s;
+        int32_t timesync_overflow;
         local_now = global_now = call PostSlotTimer.gett0() + call PostSlotTimer.getdt();
         if(call GlobalTime.local2Global(&global_now) == FAIL) {
             global_now = local_now;
         }
 
+        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
+
         //XXX: Potentially 'now' could negatively wrap-around
         now = local_now - (global_now - local_now + timesync_offset);
         timesync_offset = local_now - global_now;
 
-        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
+        //If timesync_offset is too large for the timer, reduce the offset for
+        //this step and catch up in another timer
+        if((timesync_overflow = local_now - (now + ((TDMA_NUM_SLOTS - (s-1)) * SLOT_PERIOD_MS))) > 0) {
+            timesync_offset -= timesync_overflow;
+        }
+
         signal TDMA.slot_finished();
         slot_active = FALSE;
 #if TDMA_TIMESYNC && TIMESYNC_PERIOD_MS > 0
@@ -143,11 +155,11 @@ implementation
 #endif
     }
 
-    event void TimeSyncNotify.msg_sent() {
+    event void TimeSyncNotify.msg_sent(error_t err) {
         return;
     }
 
-    event void TimeSyncNotify.msg_received() {
+    event void TimeSyncNotify.msg_received(error_t err) {
 #if TDMA_TIMESYNC && TIMESYNC_PERIOD_MS > 0
         if(!timesync_sent) {
             timesync_sent = TRUE;
