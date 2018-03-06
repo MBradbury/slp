@@ -48,7 +48,7 @@ class CLI(CommandLineCommon.CLI):
             time_after_first_normal_to_safety_period
         )
 
-        filename = '{}-results'.format(self.algorithm_module.name)
+        filename = f'{self.algorithm_module.name}-results'
 
         self._create_table(filename, safety_period_table)
 

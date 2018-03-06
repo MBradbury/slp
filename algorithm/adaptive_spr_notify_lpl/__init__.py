@@ -9,4 +9,5 @@ def _setup():
 
 import algorithm.adaptive_spr_notify
 
-local_parameter_names = algorithm.adaptive_spr_notify.local_parameter_names + ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+base_parameter_names = algorithm.adaptive_spr_notify.local_parameter_names
+local_parameter_names = base_parameter_names + ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')

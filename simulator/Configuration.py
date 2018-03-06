@@ -717,9 +717,9 @@ class IndriyaTwoFloorsSrc31Sink60(Configuration):
         )
 
 class EuratechSinkCentre(Configuration):
-    def __init__(self):
+    def __init__(self, include_all=False):
         from data.testbed.fitiotlab import Euratech
-        euratech = Euratech()
+        euratech = Euratech(include_all=include_all)
 
         super().__init__(
             euratech,
@@ -848,5 +848,10 @@ def create(name, args):
         if all(hasattr(args, attr_name) for attr_name in req_attrs):
             pos_args = tuple(getattr(args, attr_name) for attr_name in req_attrs)
             kwargs = {attr_name: getattr(args, attr_name) for attr_name in kwd_attrs}
+
+    # TODO: FIX THIS
+    # Sometimes we want Euratech topologies to include nodes that may be down
+    if name.startswith("Euratech") and getattr(args, "non_strict", False):
+        kwargs["include_all"] = True
 
     return create_specific(name, *pos_args, **kwargs)

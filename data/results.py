@@ -13,9 +13,6 @@ import data.submodule_loader as submodule_loader
 from simulator import Configuration, SourcePeriodModel
 import simulator.sim
 
-def _name_to_attr(name):
-    return name.replace(" ", "_") + "s"
-
 def literal_eval_with_nan(value):
     if value.lower() == "nan":
         return float('NaN')
@@ -52,7 +49,7 @@ class Results(object):
 
         # Create attributes that will store all the parameter value for a given parameter
         for param in self.global_parameter_names:
-            setattr(self, _name_to_attr(param), set())
+            setattr(self, self.name_to_attr(param), set())
 
         self._read_results(result_file, results_filter, source_period_normalisation, network_size_normalisation)
 
@@ -64,9 +61,13 @@ class Results(object):
         to find out the name of the algorithm this is the results for."""
         return os.path.basename(self.result_file_name).split("-", 1)[0]
 
+    @staticmethod
+    def name_to_attr(name):
+        return name.replace(" ", "_") + "s"
+
     def parameters(self):
         return [
-            (param, getattr(self, _name_to_attr(param)))
+            (param, getattr(self, self.name_to_attr(param)))
             for param in self.global_parameter_names
         ]
 
@@ -152,7 +153,7 @@ class Results(object):
                         continue
 
                 for param in self.global_parameter_names:
-                    getattr(self, _name_to_attr(param)).add(dvalues[param])
+                    getattr(self, self.name_to_attr(param)).add(dvalues[param])
 
                 self.data.setdefault(table_key, {}).setdefault(source_period, {})[params] = results
 

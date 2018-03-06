@@ -78,6 +78,20 @@ class TableDataFormatter(object):
                 "protected sink hops": ("Protected", "Sink Hops"),
                 "activate period": ("$P_{activate}$", "(sec)"),
                 "cone type": ("Cone", "Type"),
+
+                "lpl normal early": ("$W_{e}(\\mathcal{N})$", "ms"),
+                "lpl normal late": ("$W_{l}(\\mathcal{N})$", "ms"),
+                "lpl fake early": ("$W_{e}(\\mathcal{F})$", "ms"),
+                "lpl fake late": ("$W_{l}(\\mathcal{F})$", "ms"),
+                "lpl choose early": ("$W_{e}(\\mathcal{C})$", "ms"),
+                "lpl choose late": ("$W_{l}(\\mathcal{C})$", "ms"),
+
+                "lpl remote wakeup": ("RW", "ms"),
+                "lpl local wakeup": ("LW", "ms"),
+                "lpl delay after receive": ("DAR", "ms"),
+                "lpl max cca checks": ("CCA", "~"),
+
+                "average duty cycle": ("Duty Cycle", "(\\%)"),
             }[name]
         except KeyError as ex:
             print("Failed to find the name '{}'. Using default. : {}".format(name, ex), file=sys.stderr)
@@ -95,10 +109,15 @@ class TableDataFormatter(object):
         elif name in {"source period", "fake period", "walk length", "walk retries",
                       "repeats", "short walk length", "long walk length"}:
             return "${}$".format(value)
-        elif name in {"duration", "temp fake duration"}:
+        elif name in {"duration", "temp fake duration",
+                      "lpl normal early", "lpl normal late",
+                      "lpl fake early", "lpl fake late",
+                      "lpl choose early", "lpl choose late"}:
             return "${:.0f}$".format(value)
         elif name == "pr(tfs)" or name == "pr(pfs)":
             return "${:.0f}$".format(value * 100.0)
+        elif name == "average duty cycle":
+            return "${:.2f}$".format(value[0] * 100.0)
         elif name in {"tfs", "pfs", "tailfs"}:
             return "${:.1f}$".format(value[0])
         elif name == "approach":

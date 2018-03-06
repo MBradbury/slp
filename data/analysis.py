@@ -15,7 +15,7 @@ import sys
 import traceback
 import zlib
 
-from more_itertools import unique_everseen
+from more_itertools import unique_everseen, one
 import numpy as np
 import pandas as pd
 import psutil
@@ -26,6 +26,7 @@ from data.progress import Progress
 import simulator.sim
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
+from simulator.Topology import TopologyId
 
 def bytes2human(num):
     """Converts a number of bytes to a human readable string
@@ -178,9 +179,9 @@ def dict_var(dict_list, mean):
 
     first = next(iter(dict_list))
 
-    lin = {k: list() for k in first}
+    lin = {k: [] for k in first}
 
-    for d in dict_list:
+    for d in islice(dict_list, 1, None):
         for (k, v) in d.items():
             lin[k].append(v)
 
@@ -222,11 +223,32 @@ def _daily_allowance_used(columns, cached_cols, constants):
 def _time_after_first_normal(columns, cached_cols, constants):
     return columns["TimeTaken"] - columns["FirstNormalSentTime"]
 
+def _attacker_distance_wrt_src(columns, cached_cols, constants):
+    # TODO: Not going to work well for multiple sinks
+    # TODO: assumes the attacker starts at the sink
+
+    return columns["AttackerDistance"].apply(lambda x: {
+        (source_id, attacker_id): dist - one(ssd)
+        for ((source_id, attacker_id), dist) in x.items()
+        for ssd in [ssd for ((sink, src), ssd) in constants["ssds"].items() if src == source_id]
+    })
+
+def _average_duty_cycle(columns, cached_cols, constants):
+    t2o = constants["configuration"].topology.t2o
+
+    return columns["DutyCycle"].apply(lambda x:
+        np.mean([d for (nid, d) in x.items() if t2o(TopologyId(nid)) not in constants["configuration"].sink_ids])
+    )
+
 def _get_calculation_columns():
     return {
         #"energy_impact": _energy_impact,
         #"daily_allowance_used": _daily_allowance_used,
         "time_after_first_normal": _time_after_first_normal,
+
+        "attacker_distance_wrt_src": _attacker_distance_wrt_src,
+
+        "average_duty_cycle": _average_duty_cycle,
     }
 
 class Analyse(object):
@@ -250,7 +272,6 @@ class Analyse(object):
         "FirstNormalSentTime": np.float_,
         "TimeBinWidth": np.float_,
         "FailedRtx": np.uint32,
-        "FailedAvoidSink": np.float_,
         "TotalParentChanges": np.uint32,
         "TFS": np.uint32,
         "PFS": np.uint32,
@@ -293,6 +314,9 @@ class Analyse(object):
 
         "ParentChangeHeatMap": partial(_parse_dict_node_to_value, decompress=True),
 
+        # Can be None if MetricsCommon.num_normal_sent_if_finished is nan
+        "FailedAvoidSink": lambda x: np.float_('NaN') if x == "None" else np.float_(x),
+
         "DutyCycleStart": lambda x: None if x == "None" else np.float_(x), # Either None or float
         "DutyCycle": _parse_dict_node_to_value,
     }
@@ -310,6 +334,7 @@ class Analyse(object):
 
         with open(infile_path, 'r') as infile:
             line_number = 0
+            hash_line_number = None
 
             for line in infile:
 
@@ -317,6 +342,13 @@ class Analyse(object):
 
                 # We need to remove the new line at the end of the line
                 line = line.strip()
+
+                # If we have found the # line
+                if len(all_headings) != 0:
+                    if line.startswith('@'):
+                        raise RuntimeError(f"Multiple sets of metadata in {infile_path}")
+                    else:
+                        break
 
                 if line.startswith('@'):
                     # The attributes that contain some extra info
@@ -335,10 +367,9 @@ class Analyse(object):
                 elif line.startswith('#'):
                     # Read the headings
                     all_headings = line[1:].split('|')
+                    hash_line_number = line_number
 
-                    break
-
-        if line_number == 0:
+        if line_number == 0 or line_number == hash_line_number:
             raise EmptyFileError(infile_path)
 
         self.headers_to_skip = {header for header in all_headings if self._should_skip(header, headers_to_skip)}
@@ -369,11 +400,11 @@ class Analyse(object):
             names=all_headings, header=None,
             usecols=self.unnormalised_headings,
             sep='|',
-            skiprows=line_number,
+            skiprows=line_number - 1,
             comment='@',
             dtype=self.HEADING_DTYPES, converters=converters,
             compression=None,
-            verbose=True
+            verbose=True,
         )
 
         initial_length = len(df.index)
@@ -383,8 +414,9 @@ class Analyse(object):
 
         # Removes rows with infs in certain columns
         # If NormalLatency is inf then no Normal messages were ever received by a sink
+        # If FirstNormalSentTime is nan then no messages were ever sent by a source
         df = df.replace([np.inf, -np.inf], np.nan)
-        df.dropna(subset=["NormalLatency"], how="all", inplace=True)
+        df.dropna(subset=("NormalLatency", "FirstNormalSentTime"), how="any", inplace=True)
 
         current_length = len(df.index)
 
@@ -495,12 +527,14 @@ class Analyse(object):
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
 
-                    columns_to_add[norm_head] = num_col / constants[den]
+                    columns_to_add[norm_head] = num_col if den == "1" else num_col / constants[den]
 
                 elif num in calc_cols and den in constants:
                     print(f"Creating {norm_head} using ({num},{den}) on the fast path n3")
 
-                    columns_to_add[norm_head] = get_cached_calc_cols(num) / constants[den]
+                    num_col = get_cached_calc_cols(num)
+
+                    columns_to_add[norm_head] = num_col if den == "1" else num_col / constants[den]
 
                 else:
                     print(f"Creating {norm_head} using ({num},{den}) on the slow path ns")
@@ -594,8 +628,18 @@ class Analyse(object):
 
         configuration = self._get_configuration()
 
+        constants["configuration"] = configuration
+
         constants["num_nodes"] = configuration.size()
         constants["num_sources"] = len(configuration.source_ids)
+
+        o2t = configuration.topology.o2t
+
+        constants["ssds"] = {
+            (o2t(sink), o2t(source)): configuration.ssd_meters(sink, source)
+            for sink in configuration.sink_ids
+            for source in configuration.source_ids
+        }
 
         # Warning: This will only work for the FixedPeriodModel
         # All other models have variable source periods, so we cannot calculate this
@@ -606,57 +650,56 @@ class Analyse(object):
 
         return constants
 
+    def _get_good_move_ratio(self, name, values, constants):
+        if __debug__:
+            attacker_moves = values[self.headings.index("AttackerMoves")]
+
+            # We can't calculate the good move ratio if the attacker hasn't moved
+            for (attacker_id, num_moves) in attacker_moves.items():
+                if num_moves == 0:
+                    print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
+                    return None
+
+        try:
+            steps_towards = values[self.headings.index("AttackerStepsTowards")]
+            steps_away = values[self.headings.index("AttackerStepsAway")]
+        except ValueError as ex:
+            #print("Unable to calculate good_move_ratio due to the KeyError {}".format(ex))
+            return None
+
+        ratios = []
+
+        for key in steps_towards.keys():
+            steps_towards_node = steps_towards[key]
+            steps_away_from_node = steps_away[key]
+
+            ratios.append(steps_towards_node / (steps_towards_node + steps_away_from_node))
+
+        ave = np.mean(ratios)
+
+        return ave
+
     def _get_from_opts_or_values(self, name, values, constants):
         """Get either the row value for :name:, the constant of that name, or calculate the additional metric for that name."""
         try:
             index = self.headings.index(name)
-
-            #print(name + " " + key + " " + str(values))
-
             return values[index]
         except ValueError:
+            pass
 
-            try:
-                return constants[name]
-            except KeyError:
-                pass
+        try:
+            return constants[name]
+        except KeyError:
+            pass
 
-            if name == "good_move_ratio":
+        if name == "good_move_ratio":
+            return self._get_good_move_ratio(name, values, constants)
 
-                if __debug__:
-                    attacker_moves = values[self.headings.index("AttackerMoves")]
-
-                    # We can't calculate the good move ratio if the attacker hasn't moved
-                    for (attacker_id, num_moves) in attacker_moves.items():
-                        if num_moves == 0:
-                            print("Unable to calculate good_move_ratio due to the attacker {} not having moved for row {}.".format(attacker_id, values.name))
-                            return None
-
-                try:
-                    steps_towards = values[self.headings.index("AttackerStepsTowards")]
-                    steps_away = values[self.headings.index("AttackerStepsAway")]
-                except ValueError as ex:
-                    #print("Unable to calculate good_move_ratio due to the KeyError {}".format(ex))
-                    return None
-
-                ratios = []
-
-                for key in steps_towards.keys():
-                    steps_towards_node = steps_towards[key]
-                    steps_away_from_node = steps_away[key]
-
-                    ratios.append(steps_towards_node / (steps_towards_node + steps_away_from_node))
-
-                ave = np.mean(ratios)
-
-                return ave
-
-            else:
-                # Handle normalising with arbitrary numbers
-                try:
-                    return float(name)
-                except ValueError:
-                    return float(self.opts[name])
+        # Handle normalising with arbitrary numbers
+        try:
+            return float(name)
+        except ValueError:
+            return float(self.opts[name])
 
     def check_consistent(self, values, line_number):
         """Perform multiple sanity checks on the data generated"""
@@ -806,7 +849,7 @@ class AnalysisResults(object):
     def __init__(self, analysis):
         self.average_of = {}
         self.variance_of = {}
-        self.median_of = {}
+        #self.median_of = {}
 
         skip = ["Seed"]
 
@@ -834,7 +877,7 @@ class AnalysisResults(object):
                     print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
                     #print(traceback.format_exc(), file=sys.stderr)
 
-        self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
+        #self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
 
         self.opts = analysis.opts
         self.headers_to_skip = analysis.headers_to_skip
@@ -853,7 +896,7 @@ class AnalyzerCommon(object):
         self.results_directory = results_directory
         
         self.normalised_values = self.normalised_parameters()
-        self.normalised_values += (('time_after_first_normal', '1'),)
+        self.normalised_values += (('time_after_first_normal', '1'),)# ('attacker_distance_wrt_src', '1'))
 
         self.filtered_values = self.filtered_parameters()
 
@@ -915,6 +958,7 @@ class AnalyzerCommon(object):
 
         d['attacker moves']     = lambda x: self._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance')
+        #d['attacker distance wrt src']  = lambda x: self._format_results(x, 'norm(attacker_distance_wrt_src,1)')
 
         d['errors']             = lambda x: self._format_results(x, 'Errors', allow_missing=True)
 
@@ -929,24 +973,22 @@ class AnalyzerCommon(object):
 
 
     @staticmethod
-    def _format_results(x, name, allow_missing=False, average_corrector=None, variance_corrector=None):
+    def _format_results(x, name, allow_missing=False):
         if name in x.variance_of:
             ave = x.average_of[name]
             var = x.variance_of[name]
 
-            if average_corrector is not None:
-                ave = average_corrector(ave)
-
-            if variance_corrector is not None:
-                var = variance_corrector(var)
+            #if isinstance(ave, dict):
+            #    std = {k: math.sqrt(v) for (k, v) in var.items()}
+            #    stderr = {k: v / math.sqrt(x.number_of_repeats) for (k, v) in std.items()}
+            #else:
+            #    std = math.sqrt(var)
+            #    stderr = std / math.sqrt(x.number_of_repeats)
 
             return f"{ave};{var}"
         else:
             try:
                 ave = x.average_of[name]
-
-                if average_corrector is not None:
-                    ave = average_corrector(ave)
 
                 return str(ave)
             except KeyError:
@@ -956,10 +998,7 @@ class AnalyzerCommon(object):
                     raise
 
     def analyse_path(self, path, **kwargs):
-        #try:
         return Analyse(path, self.normalised_values, self.filtered_values, **kwargs)
-        #except Exception as ex:
-        #    raise RuntimeError("Error analysing {}".format(path), ex)
 
     def analyse_and_summarise_path(self, path, flush, **kwargs):
         pickle_path = path.rsplit(".", 1)[0] + ".pickle"
@@ -1019,8 +1058,8 @@ class AnalyzerCommon(object):
             kwargs["verify_seeds"] = False
 
             # Need to remove parameters that testbed runs do not have
-            for name in simulator.common.testbed_missing_global_parameter_names:
-                del self.values[name]
+            #for name in simulator.common.testbed_missing_global_parameter_names:
+            #    del self.values[name]
 
         # Skip the overhead of the queue with 1 process.
         # This also allows easy profiling

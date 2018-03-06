@@ -268,7 +268,7 @@ class Gui:
     def _process_message(self, d_or_e, node_id, time, without_dbg):
         result = self._debug_analyzer.analyze(without_dbg)
         if result is None:
-            return
+            return None
 
         (event_type, detail) = result
 

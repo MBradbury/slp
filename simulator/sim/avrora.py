@@ -1,11 +1,11 @@
-from __future__ import print_function, division
 
-# Lets try to avoid importing these modules
-base64 = None
-pickle = None
-re = None
+import base64
+import pickle
+import re
 
 generate_per_node_id_binary = False
+
+cluster_need_java = True
 
 def parsers():
     # WARNING!!
@@ -121,7 +121,7 @@ def avrora_command(module, a, configuration):
         "report-seconds": "true",
         "seconds-precision": "6",
 
-        "Noise": "models/noise/{}.txt".format(a.args.noise_model),
+        "Noise": f"models/noise/{a.args.noise_model}.txt",
 
         # Performance stats, such as total cpu cycles executed
         #"throughput": "true",
@@ -133,9 +133,9 @@ def avrora_command(module, a, configuration):
     target_file = os.path.join(target_directory, "main.elf")
 
     if not os.path.isfile(target_file):
-        raise RuntimeError("Cannot find the binary '{}'".format(target_file))
+        raise RuntimeError(f"Cannot find the binary '{target_file}'")
 
-    options_string = " ".join("-{}='{}'".format(k,v) for (k,v) in options.items())
+    options_string = " ".join(f"-{k}='{v}'" for (k,v) in options.items())
 
     # Avrora is a bit crazy as it uses a one thread per node architecture
     # This is a problem when running on a cluster as we need a way to limit the number of cores being used.
@@ -143,7 +143,7 @@ def avrora_command(module, a, configuration):
     # For the time being we just use a niceness to prevent a system from freezing.
 
     # Give a niceness to allow system to continue to respond
-    command = "nice -15 java -jar '{}' {} {}".format(avrora_path, options_string, target_file)
+    command = f"nice -15 java -jar '{avrora_path}' {options_string} {target_file}"
 
     return command
 
@@ -197,7 +197,7 @@ def avrora_iter(iterable):
                 loading_count = None
 
             if not loaded and loading_count is not None and len(loading_count) >= 4:
-                raise RuntimeError("Failed to load binary with lines: {}".format(loading_count))
+                raise RuntimeError(f"Failed to load binary with lines: {loading_count}")
 
             if line.startswith(results_start):
                 started = True
@@ -301,11 +301,6 @@ def print_arguments(module, a):
             print("{}={}".format(k, v))
 
 def run_simulation(module, a, count=1, print_warnings=False):
-    global base64, pickle, re
-
-    import base64
-    import pickle
-    import re
     import shlex
     import sys
     import subprocess
@@ -413,6 +408,8 @@ def run_simulation(module, a, count=1, print_warnings=False):
                         proc.kill()
                         
                         return 52
+
+    return 0
 
 class JouleAndCycles(object):
     __slots__ = ('joule', 'cycles')

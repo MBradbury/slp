@@ -72,6 +72,8 @@ def build_actual(directory, platform, enable_fast_serial=False, **kwargs):
 
     del kwargs["MAX_TOSSIM_NODES"]
 
+    print(f"Building in {directory}")
+
     make_clean(directory)
 
     flags = " ".join(f"-D{k}={v!r}" for (k, v) in kwargs.items())

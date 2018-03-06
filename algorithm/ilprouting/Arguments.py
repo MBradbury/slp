@@ -10,8 +10,8 @@ def buffer_size(value):
     return value
 
 class Arguments(ArgumentsCommon):
-    def __init__(self):
-        super(Arguments, self).__init__("SLP ILP Routing", has_safety_period=True)
+    def __init__(self, **kwargs):
+        super(Arguments, self).__init__("SLP ILP Routing", has_safety_period=True, **kwargs)
 
         self.add_argument("--source-period",
                           type=simulator.SourcePeriodModel.eval_input, required=True)

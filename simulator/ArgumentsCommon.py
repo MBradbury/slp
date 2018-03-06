@@ -36,24 +36,29 @@ def _add_safety_period(parser, has_safety_period=False, has_safety_factor=False,
                                 required=False,
                                 default=1.0)
 
-def _add_low_power_listening(parser, **kwargs):
+def _add_low_power_listening(parser, lpl_parameters_mandatory=False, **kwargs):
     parser.add_argument("-lpl", "--low-power-listening", choices=("enabled", "disabled"), default="disabled",
                         help="Enables or disables low power listening. By default LPL is disabled and the radio will always be on.")
 
     parser.add_argument("--lpl-custom", type=str, default=None,
                         help="The custom module that will be used to provide LPL.")
 
-    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int, default=None,
-                        help="This is the period for which a node will turn the radio off.")
+    if lpl_parameters_mandatory:
+        lpl_kwargs = {"required": True}
+    else:
+        lpl_kwargs = {"default": None}
 
-    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int, default=None,
-                        help="This is a global setting, that configures the period a messages is retransmitted over after being sent.")
+    parser.add_argument("--lpl-local-wakeup", type=ArgumentsCommon.type_positive_int,
+                        help="This is the period for which a node will turn the radio off.", **lpl_kwargs)
 
-    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int, default=None,
-                        help="How long should the radio be kept on after a message is received.")
+    parser.add_argument("--lpl-remote-wakeup", type=ArgumentsCommon.type_positive_int,
+                        help="This is a global setting, that configures the period a messages is retransmitted over after being sent.", **lpl_kwargs)
 
-    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int, default=None,
-                        help="The maximum number of CCA checks performed on each wakeup.")
+    parser.add_argument("--lpl-delay-after-receive", type=ArgumentsCommon.type_positive_int,
+                        help="How long should the radio be kept on after a message is received.", **lpl_kwargs)
+
+    parser.add_argument("--lpl-max-cca-checks", type=ArgumentsCommon.type_positive_int,
+                        help="The maximum number of CCA checks performed on each wakeup.", **lpl_kwargs)
 
     parser.add_argument("--lpl-min-samples-before-detect", "-lpl-msbd", type=ArgumentsCommon.type_positive_int, default=None,
                         help="The minimum number of samples before a signal is considered detected.")
@@ -105,14 +110,14 @@ def _add_cc2420(parser, **kwargs):
                         type=int,
                         choices=[3, 7, 11, 15, 19, 23, 27, 31],
                         default=31,
-                        help="Used to set the power levels for the CC2420 radio chip. 3 is low, 31 is high. Default: 31"),
+                        help="Used to set the power levels for the CC2420 radio chip. 3 is low, 31 is high. Default: 31")
 
     # See http://www.ti.com/lit/ds/symlink/cc2420.pdf section 26
     parser.add_argument("--channel",
                         type=int,
                         choices=list(range(11, 27)), # Channels 11 - 26 inclusive
                         default=26,
-                        help="The IEEE 802.15.4 rf channel the CC2420 radio chip broadcasts on within the 2.4GHz band. Default: 26"),
+                        help="The IEEE 802.15.4 rf channel the CC2420 radio chip broadcasts on within the 2.4GHz band. Default: 26")
 
     parser.add_argument("--acks",
                         choices=["none", "software", "hardware"],
@@ -276,7 +281,7 @@ class CustomHelpFormatter(argparse.HelpFormatter):
             return ', '.join(parts)
 
 class ArgumentsCommon(object):
-    def __init__(self, description, has_safety_period=False, has_safety_factor=False):
+    def __init__(self, description, has_safety_period=False, has_safety_factor=False, lpl_parameters_mandatory=False):
         self._parser = argparse.ArgumentParser(description=description, add_help=True)
 
         self._subparsers = {}
@@ -307,13 +312,16 @@ class ArgumentsCommon(object):
                 for opt in opts:
                     OPTS[opt](parser_sub,
                               has_safety_period=has_safety_period,
-                              has_safety_factor=has_safety_factor)
+                              has_safety_factor=has_safety_factor,
+                              lpl_parameters_mandatory=lpl_parameters_mandatory,
+                    )
 
         # Haven't parsed anything yet
         self.args = None
 
         # Don't show these arguments when printing the argument values before showing the results
-        self.arguments_to_hide = {"job_id", "verbose", "debug", "gui_node_label", "gui_scale", "mode", "seed", "thread_count"}
+        self.arguments_to_hide = {"job_id", "verbose", "debug", "gui_node_label", "gui_scale", "mode", "seed", "thread_count",
+                                  "show_raw_log"}
 
     def add_argument(self, *args, **kwargs):
         for sim in self._subparsers:

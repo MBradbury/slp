@@ -15,6 +15,7 @@ from data import submodule_loader
 import simulator.sim
 import simulator.AttackerConfiguration as AttackerConfiguration
 import simulator.FaultModel as FaultModel
+import simulator.CoojaRadioModel as CoojaRadioModel
 
 def test_gnuplot_version(name):
     result = subprocess.check_output([name, "--version"]).decode("utf-8").strip()
@@ -64,6 +65,25 @@ def get_gnuplot_binary_name():
     else:
         raise RuntimeError("Could not find the gnuplot binary")
 
+class ApproachNameShortener:
+    def __init__(self, approach):
+        self.approach = approach
+
+    def __str__(self):
+        return self.approach
+
+    def short_name(self):
+        try:
+            return {
+                "PB_FIXED1_APPROACH": "Fixed1",
+                "PB_FIXED2_APPROACH": "Fixed2",
+                "PB_RND_APPROACH": "Rnd",
+                "PB_ATTACKER_EST_APPROACH": "AttackerEst",
+                "PB_SINK_APPROACH": "Sink",
+            }[self.approach]
+        except KeyError:
+            return self.approach
+
 class GrapherBase(object):
     def __init__(self, sim_name, output_directory):
         self.output_directory = output_directory
@@ -80,6 +100,8 @@ class GrapherBase(object):
         very_long_parameter_names = {
             'attacker model': AttackerConfiguration.eval_input,
             'fault model': FaultModel.eval_input,
+            'radio model': CoojaRadioModel.eval_input,
+            'approach': ApproachNameShortener,
         }
 
         key_values = list(key_values)

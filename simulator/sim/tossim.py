@@ -1,5 +1,7 @@
 from __future__ import print_function, division
 
+cluster_need_java = False
+
 def parsers():
     return [
         ("SINGLE", None, ["verbose", "debug", "seed", "configuration", "network size", "distance",
@@ -42,7 +44,7 @@ def build(module, a):
     build_arguments.update(configuration.build_arguments())
 
     # Now build the simulation with the specified arguments
-    Builder.build_sim(module.replace(".", os.path.sep), **build_arguments)
+    return Builder.build_sim(module.replace(".", os.path.sep), **build_arguments)
 
 def print_version():
     import simulator.VersionDetection as VersionDetection
@@ -52,7 +54,7 @@ def print_version():
 def print_arguments(module, a):
     for (k, v) in sorted(vars(a.args).items()):
         if k not in a.arguments_to_hide:
-            print("{}={}".format(k, v))
+            print(f"{k}={v}")
 
 def run_simulation(module, a, count=1, print_warnings=False):
     import sys
@@ -67,7 +69,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
     elif a.args.mode == "GUI":
         from simulator.TosVis import GuiSimulation as Simulation
     else:
-        raise RuntimeError("Unknown mode {}".format(a.args.mode))
+        raise RuntimeError(f"Unknown mode {a.args.mode}")
 
     for n in range(count):
         with Simulation(module, configuration, a.args) as sim:
@@ -79,7 +81,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
             except Exception as ex:
                 import traceback
                 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
 
                 print("Killing run due to {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
@@ -98,7 +100,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
             except Exception as ex:
                 import traceback
 
-                all_args = "\n".join("{}={}".format(k, v) for (k, v) in vars(a.args).items())
+                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
 
                 print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)

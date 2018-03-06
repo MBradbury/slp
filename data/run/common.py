@@ -1,5 +1,6 @@
 
 from collections import OrderedDict
+import itertools
 import math
 import os.path
 import sys
@@ -37,7 +38,9 @@ class RunSimulationsCommon(object):
         self._safety_periods = safety_periods
         self._safety_period_equivalence = safety_period_equivalence
 
-        self._global_parameter_names = submodule_loader.load(simulator.sim, self.sim_name).global_parameter_names
+        self._sim = submodule_loader.load(simulator.sim, self.sim_name)
+
+        self._global_parameter_names = self._sim.global_parameter_names
 
         if not os.path.exists(self._result_path):
             raise RuntimeError(f"{self._result_path} is not a directory")
@@ -54,6 +57,9 @@ class RunSimulationsCommon(object):
             self._load_existing_results(argument_names)
         
         self.driver.total_job_size = len(argument_product)
+
+        # Check if this simulator actually supports thread count as an option
+        sim_parsers_thread_count = any("thread count" in (parsers or []) for (name, inherits, parsers) in self._sim.parsers())
 
         for arguments in argument_product:
             darguments = OrderedDict(zip(argument_names, arguments))
@@ -79,10 +85,10 @@ class RunSimulationsCommon(object):
             if repeats_to_run is not None:
                 opts["--job-size"] = int(math.ceil(repeats_to_run / job_repeats))
 
-            if hasattr(self.driver, 'array_job_variable') and self.driver.array_job_variable is not None:
+            if getattr(self.driver, 'array_job_variable', None) is not None:
                 opts["--job-id"] = self.driver.array_job_variable
 
-            if hasattr(self.driver, 'job_thread_count') and self.driver.job_thread_count is not None:
+            if sim_parsers_thread_count and getattr(self.driver, 'job_thread_count', None) is not None:
                 opts["--thread-count"] = self.driver.job_thread_count
 
             for (name, value) in darguments.items():
@@ -132,6 +138,7 @@ class RunSimulationsCommon(object):
         evals = {
             'attacker model': lambda x: AttackerConfiguration.eval_input(x),
             'radio model': lambda x: CoojaRadioModel.eval_input(x),
+            #"low power listening": lambda x: "1" if x == "enabled" else "0"
         }
 
         eval_fn = evals.get(name, None)
@@ -139,7 +146,7 @@ class RunSimulationsCommon(object):
         if eval_fn:
             value = eval_fn(value)
 
-            if short:
+            if short and hasattr(value, "short_name"):
                 return value.short_name()
 
         return str(value)
@@ -166,16 +173,21 @@ class RunSimulationsCommon(object):
             else:
                 keys_to_try = []
 
-                # There exist some safety period equivalences, so lets try some
-                for (global_param, replacements) in self._safety_period_equivalence.items():
-                    global_param_index = self._global_parameter_names.index(global_param)
+                for perm in itertools.permutations(self._safety_period_equivalence.items()):
+                    new_key = tuple(key)
 
-                    for (search, replace) in replacements.items():
-                        if key[global_param_index] == search:
+                    for (global_param, replacements) in perm:
+                        global_param_index = self._global_parameter_names.index(global_param)
 
-                            new_key = key[:global_param_index] + (replace,) + key[global_param_index+1:]
+                        for (search, replace) in replacements.items():
+                            if new_key[global_param_index] == search:
 
-                            keys_to_try.append(new_key)
+                                new_key = new_key[:global_param_index] + (replace,) + new_key[global_param_index+1:]
+
+                                break
+
+                    keys_to_try.append(new_key)
+
 
                 # Try each of the possible combinations
                 for key_attempt in keys_to_try:
@@ -189,6 +201,7 @@ class RunSimulationsCommon(object):
 
 
     def _load_existing_results(self, argument_names):
+        print("Loading existing results...")
         results_file_path = self.algorithm_module.result_file_path(self.sim_name)
         try:
             results_summary = results.Results(
@@ -197,7 +210,7 @@ class RunSimulationsCommon(object):
                 results=('repeats',))
 
             # (size, config, attacker_model, noise_model, communication_model, distance, period) -> repeats
-            self._existing_results = results_summary.parameter_set()
+            self._existing_results = {tuple(map(str, k)): v for (k, v) in results_summary.parameter_set().items()}
         except IOError as e:
             message = str(e)
             if 'No such file or directory' in message:
@@ -220,10 +233,6 @@ class RunSimulationsCommon(object):
 
     def _sanitize_job_name(self, kv):
         value = self._prepare_argument_name(*kv, short=True)
-        name = kv[0]
-
-        if name == "low power listening":
-            value = "1" if name == "enabled" else "0"
 
         # These characters cause issues in file names.
         # They also need to be valid python module names.
