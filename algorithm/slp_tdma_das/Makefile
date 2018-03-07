@@ -7,10 +7,10 @@ COMPONENT = SourceBroadcasterAppC
 
 CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
-#CFLAGS += -DTOSH_DATA_LENGTH=40
+CFLAGS += -DTOSH_DATA_LENGTH=40
 
-#For additional timesync data
-CFLAGS += -DTOSH_DATA_LENGTH=60
+PFLAGS += -I$(TOSDIR)/lib/ftsp
+CFLAGS += -DTIMESYNC_ENTRY_VALID_LIMIT=4 -DTIMESYNC_ENTRY_SEND_LIMIT=1
 
 include ../common/makefile.common
 
