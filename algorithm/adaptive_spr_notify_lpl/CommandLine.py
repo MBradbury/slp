@@ -8,6 +8,7 @@ import simulator.sim
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
+adaptive_spr_notify = algorithm.import_algorithm("adaptive_spr_notify")
 
 from data import results, submodule_loader
 from data.table import fake_result
@@ -77,28 +78,37 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            #'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
             #'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            #'captured': ('Capture Ratio (%)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
             #'fake': ('Fake Messages Sent', 'left top'),
             #'sent': ('Total Messages Sent', 'left top'),
-            #'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
             #'tfs': ('Number of TFS Created', 'left top'),
             #'pfs': ('Number of PFS Created', 'left top'),
             #'tailfs': ('Number of TailFS Created', 'left top'),
-            #'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
-            'average duty cycle': ('Average duty cycle', 'right top'),
+            'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
+            'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
         }
 
+        lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+
         varying = [
-            (('network size', ''), ('source period', ' seconds')),
-            #(('network size', ''), ('communication model', '~')),
+            #(('network size', ''), ('source period', ' seconds')),
+            #(('network size', ''), (lpl_params, '~')),
+            (('source period', ''), (lpl_params, '~')),
         ]
 
         custom_yaxis_range_max = {
+            'captured': 40,
             'received ratio': 100,
+            'average duty cycle': 100,
+            'normal latency': 250,
+            'attacker distance': 70,
+            'norm(norm(fake,time taken),network size)': 5,
+            'norm(norm(sent,time taken),network size)': 7,
         }
 
         yextractors = {
@@ -106,7 +116,14 @@ class CLI(CommandLineCommon.CLI):
             "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)]
         }
 
-        self._create_versus_graph(args.sim, graph_parameters, varying,
+        def fetch_baseline_result(baseline_results, data_key, src_period, baseline_params):
+
+            # adaptive_spr_notify doesn't run with lpl enabled, but that is what we want to compare against
+            data_key = data_key[:-1] + ('disabled',)
+
+            return baseline_results.data[data_key][src_period][baseline_params]
+
+        self._create_baseline_versus_graph(args.sim, adaptive_spr_notify, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
             yextractor = yextractors,
             xaxis_font = "',16'",
@@ -118,4 +135,9 @@ class CLI(CommandLineCommon.CLI):
             nokey = True,
             generate_legend_graph = True,
             legend_font_size = 16,
+            legend_divisor = 3,
+            legend_base_height = 0.3,
+            vary_label = "",
+
+            fetch_baseline_result=fetch_baseline_result,
         )
