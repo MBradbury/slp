@@ -19,7 +19,7 @@ class Arguments(ArgumentsCommon):
         # self.add_argument("-dt", "--dissem-timeout", type=int, required=False, default=5, help="Timeout to stop sending dissem messages")
         # self.add_argument("-tsp", "--tdma-safety-periods", type=int, required=True, help="Safety period (in TDMA periods)")
         self.add_argument("-sd", "--search-distance", type=int, required=True, help="Distance search messages travel from the sink")
-        self.add_argument("--timesync", action="store_true", required=False, help="Activate TDMA timesync")
+        self.add_argument("--timesync", choices=("enabled", "disabled"), default="disabled", required=False, help="Activate TDMA timesync")
         self.add_argument("-tsp", "--timesync-period", type=float, required=False, default=0, help="Time at the end of the TDMA period for FTSP timesync (0 turns timesync off)")
         self.add_argument("--source-mobility",
                           type=simulator.MobilityModel.eval_input,
@@ -48,7 +48,7 @@ class Arguments(ArgumentsCommon):
         # result["SAFETY_PERIOD"] = ssd_hops
         result["SEARCH_DIST"] = self.args.search_distance
         result["CHANGE_LENGTH"] = ssd_hops - self.args.search_distance
-        result["TDMA_TIMESYNC"] = int(self.args.timesync)
+        result["TDMA_TIMESYNC"] = 1 if self.args.timesync == "enabled" else 0
         result["TIMESYNC_PERIOD_MS"] = int(self.args.timesync_period * 1000)
 
         return result
