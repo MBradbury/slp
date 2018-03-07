@@ -1968,7 +1968,7 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
             ax.set_xlabel("Travel Time (ms)")
             ax.set_ylabel("Count")
 
-            ax.set_title(f"Distance = {distance} (hops)")
+            ax.set_title(f"Distance {distance} (hops)")
 
         plt.savefig(f"{msg_name}MessageTravelTimeHist.pdf", bbox_inches='tight')
 
