@@ -5,6 +5,7 @@ import os.path
 import re
 import traceback
 
+import numpy as np
 import pandas
 
 def _sanitise_string(input_string):
@@ -14,9 +15,6 @@ def _sanitise_string(input_string):
     return input_string
 
 class OfflineLogConverter(object):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def __enter__(self):
         return self
 
@@ -27,20 +25,10 @@ class LineLogConverter(object):
     def __init__(self, log_path):
         super().__init__()
 
-        self.processed_lines = []
+        self.processed_lines = None
 
         with open(log_path, 'r', encoding="ascii", errors="ignore") as log_file:
             self._process_file(log_file)
-
-        self.processed_lines.sort(key=lambda x: x[0])
-
-        self.processed_lines = [
-
-            "{}|{}".format(node_time.strftime("%Y/%m/%d %H:%M:%S.%f"), output)
-
-            for (node_time, output)
-            in self.processed_lines
-        ]
 
     def _process_file(self, log_file):
         raise NotImplementedError()
@@ -78,6 +66,9 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
         return (node_time, output)
 
     def _process_file(self, log_file):
+
+        self.processed_lines = []
+
         for line in log_file:
             if line.startswith('#'):
                 continue
@@ -93,6 +84,9 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
             
             self.processed_lines.append(output)
 
+        # MUST sort output here, as flocklab output is grouped by node ids
+        self.processed_lines.sort(key=lambda x: x[0])
+
 
     # First line is a comment that begins with a #
     # Each line is comma separated with "timestamp,observer_id,node_id,direction,output"
@@ -105,31 +99,43 @@ class FitIotLab(OfflineLogConverter, LineLogConverter):
     def __init__(self, log_path):
         super().__init__(log_path)
 
-    def _process_line(self, line):
-
-        timestamp, node_id, output = line.split(";", 3)
-
-        timestamp = float(timestamp)
-
-        node_time = datetime.fromtimestamp(timestamp)
-
-        # Remove newline from output
-        output = output.strip()
-
-        return (node_time, output)
-
     def _process_file(self, log_file):
         self._check_nul_byte_log_file(log_file)
 
-        for line in log_file:
-            try:
-                output = self._process_line(line)
-            except BaseException as ex:
-                print("Failed to parse the line:", _sanitise_string(line))
-                #traceback.print_exc()
-                continue
+        usecols = ["globaltime", "metric", "localtime", "kind", "node", "data"]
 
-            self.processed_lines.append(output)
+        df = pandas.read_csv(log_file,
+            sep="[;:]",
+            header=None,
+            names=("globaltime", "testbed node", "metric", "kind", "node", "localtime", "data"),
+            usecols=usecols,
+            dtype={
+                "globaltime": np.float_,
+                #"metric": "category",
+                #"localtime": np.uint32,
+                #"node": np.uint16,
+            },
+            engine="python",
+            nrows=1000000,
+        )
+
+        # Remove missing data
+        df.dropna(subset=("node", "localtime"), how="any", inplace=True)
+
+        # Coerce types
+        df["globaltime"] = pandas.to_datetime(df["globaltime"], unit='s')
+        #df["localtime"] = df["localtime"].astype(np.uint32)
+        df["node"] = df["node"].astype(np.uint16)
+
+        # mergesort to be stable
+        #df.sort_values("globaltime", kind="mergesort", inplace=True)
+
+        # Change order
+        df = df[usecols]
+
+        #print(df[df["node"] == 153])
+
+        self.processed_lines = df.itertuples(index=False)
 
     def _check_nul_byte_log_file(self, log_file):
         firstn = log_file.read(1024)
