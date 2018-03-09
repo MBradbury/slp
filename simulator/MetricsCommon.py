@@ -1814,6 +1814,8 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
 
     def _plot_message_duty_cycle_boundary_histogram(self, message_name):
         import matplotlib.pyplot as plt
+        #import matplotlib.mlab as mlab
+        import scipy.stats
         from matplotlib.font_manager import FontProperties
 
         early_wakeup_ms, late_wakeup_ms = self._intervals.get(message_name, (0, 0))
@@ -1846,10 +1848,22 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         if len(hist_values) > 0:
             bins = int(math.ceil(max(hist_values)-min(hist_values))/5)
             try:
-                ax.hist(hist_values, bins=bins, color=message_type_to_colour(message_name))
+                result = ax.hist(hist_values, bins=bins, color=message_type_to_colour(message_name))
             except ValueError as ex:
                 print(ex)
-                ax.hist(hist_values, bins="auto", color=message_type_to_colour(message_name))
+                result = ax.hist(hist_values, bins="auto", color=message_type_to_colour(message_name))
+
+            ax.set_xlim((min(hist_values), max(hist_values)))
+
+            mean = np.mean(hist_values)
+            var = np.var(hist_values)
+            std = np.std(hist_values)
+            x = np.linspace(min(hist_values), max(hist_values), num=100)
+            dx = result[1][1] - result[1][0]
+            scale = len(hist_values) * dx
+            pdist_line = ax.plot(x, scipy.stats.norm.pdf(x, mean, std) * scale, label=f"N({mean:.0f},{var:.0f})")
+
+            ax.legend()
 
             ax.set_xlabel("Difference (ms)")
             ax.set_ylabel("Count")
@@ -1935,6 +1949,9 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         for (kind, rest) in dsrc_vs_time_dict.items():
             self._plot_message_travel_time_histogram(kind, rest)
 
+        for (kind, rest) in dsrc_vs_time_dict.items():
+            self._plot_pr_receive_message_within_b(kind, rest)
+
     def _plot_message_travel_time_scatter(self, msg_name, dsrc_vs_time):
         import matplotlib.pyplot as plt
 
@@ -1959,11 +1976,11 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
 
         fig, axs = plt.subplots(height, width, figsize=(width * size_factor, height * size_factor))
 
-        for (ax, (distance, x)) in zip(axs.flat, sorted(dsrc_vs_time.items(), key=lambda x: x[0])):
+        for (ax, (distance, xs)) in zip(axs.flat, sorted(dsrc_vs_time.items(), key=lambda x: x[0])):
 
-            print(distance, x)
+            print(distance, xs)
 
-            ax.hist(x, color=message_type_to_colour(msg_name))
+            ax.hist(xs, bins=range(min(xs), max(xs)+1), color=message_type_to_colour(msg_name))
 
             ax.set_xlabel("Travel Time (ms)")
             ax.set_ylabel("Count")
@@ -1971,6 +1988,59 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
             ax.set_title(f"Distance {distance} (hops)")
 
         plt.savefig(f"{msg_name}MessageTravelTimeHist.pdf", bbox_inches='tight')
+
+    def _plot_pr_receive_message_within_b(self, msg_name, dsrc_vs_time):
+        import matplotlib.pyplot as plt
+
+        bs = [5, 10, 20, 30, 40, 50, 60, 70]
+
+        fig, ax = plt.subplots()
+
+        for b in bs:
+
+            xys = []
+
+            for (distance, data) in sorted(dsrc_vs_time.items(), key=lambda x: x[0]):
+
+                total = len(data)
+                data = Counter(data)
+
+                prx = 0.0
+
+                for (t, c) in sorted(data.items(), key=lambda x: x[0]):
+                    prt = c / total
+
+                    print(f"Pr(X = {t}) = {prt}")
+
+                    pry = 0.0
+
+                    for t2 in range(t-b,t+b+1):
+                        pry += data.get(t2, 0) / total
+
+                    prx += pry * prt
+
+                print(f"{msg_name}: {distance}: Pr(x-a <= X <= x+a | X = x) = {prx}, where a = {b}")
+
+                xys.append((distance, prx))
+
+            xs, ys = zip(*xys)
+
+            ax.plot(xs, ys, label=f"{b}")
+
+            print()
+
+        ax.set_ylim((0, 1))
+
+        ax.set_xlabel("Distance from the source (hops)")
+        ax.set_ylabel("Probability")
+
+        ax.set_title(f"Pr(x-a <= X <= x+a | X = x)")
+
+        ax.legend()
+
+        plt.savefig(f"{msg_name}MessageReceiveProbability.pdf", bbox_inches='tight')
+
+
 
 
 
