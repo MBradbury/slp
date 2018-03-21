@@ -455,9 +455,20 @@ class OfflineSimulation(object):
         # Example line:
         #2016/07/27 14:47:34.418:Metric-COMM:2:D:42202:DELIVER:Normal,4,1,1,22
 
-        date_string, rest = line.split("|", 1)
+        # Some nice parsers might already be in the right form
+        if isinstance(line, tuple) and len(line) > 2:
+            if self.show_raw_log:
+                print(line)
 
-        current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f") if date_string != "None" else None
+            return line
+
+        if isinstance(line, str):
+            date_string, rest = line.split("|", 1)
+
+            current_time = datetime.strptime(date_string, "%Y/%m/%d %H:%M:%S.%f") if date_string != "None" else None
+
+        else:
+            current_time, rest = line
 
         match = self.LINE_RE.match(rest)
         if match is not None:
@@ -466,7 +477,7 @@ class OfflineSimulation(object):
             node_id = ast.literal_eval(node_id)
             node_local_time = ast.literal_eval(node_local_time)
 
-            if self.args.show_raw_log:
+            if self.show_raw_log:
                 print(line)
 
             return (current_time, kind, node_local_time, log_type, node_id, message_line)
