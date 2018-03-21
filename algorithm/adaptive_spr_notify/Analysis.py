@@ -20,6 +20,8 @@ class Analyzer(AnalyzerCommon):
             ((('FakeSent', 'TimeTaken'), 'num_nodes'), 'source_rate'),
 
             ('NormalSent', 'TimeTaken'),
+
+            ('average_duty_cycle', '1'),
         )
 
     def results_header(self):
@@ -53,5 +55,7 @@ class Analyzer(AnalyzerCommon):
         d['norm(norm(norm(fake,time taken),network size),source rate)']   = lambda x: self._format_results(x, 'norm(norm(norm(FakeSent,TimeTaken),num_nodes),source_rate)')
 
         d['norm(normal,time taken)']   = lambda x: self._format_results(x, 'norm(NormalSent,TimeTaken)')
+
+        d['average duty cycle']   = lambda x: self._format_results(x, 'norm(average_duty_cycle,1)')
 
         return d

@@ -255,6 +255,12 @@ class CLI(object):
 
         self._create_table(f"{self.algorithm_module.name}-{sim_name}-results", result_table, **kwargs)
 
+    @classmethod
+    def _shorter_name(cls, s):
+        if isinstance(s, tuple):
+            return cls._shorter_name("_".join(s))
+        else:
+            return "".join(x[0] for x in re.split(r"[\s,(]", str(s)) if x)
 
     def _create_versus_graph(self, sim_name, graph_parameters, varying, *,
                              custom_yaxis_range_max=None,
@@ -271,12 +277,9 @@ class CLI(object):
             network_size_normalisation=network_size_normalisation,
             results_filter=results_filter)
 
-        def shorter_name(s):
-            return "".join(x[0] for x in re.split(r"[\s,(]", s))
-
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = f'{shorter_name(xaxis)}-v-{shorter_name(yaxis)}-w-{shorter_name(vary)}'
+                name = f'{self._shorter_name(xaxis)}-v-{self._shorter_name(yaxis)}-w-{self._shorter_name(vary)}'
 
                 if isinstance(yextractor, dict):
                     try:
@@ -313,6 +316,7 @@ class CLI(object):
     def _create_baseline_versus_graph(self, sim_name, baseline_module, graph_parameters, varying, *,
                                       custom_yaxis_range_max=None,
                                       source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
+                                      yextractor=scalar_extractor, xextractor=None,
                                       **kwargs):
         from data.graph import baseline_versus
 
@@ -334,12 +338,18 @@ class CLI(object):
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = 'baseline-{}-v-{}-w-{}'.format(xaxis, yaxis, vary).replace(" ", "_")
+                name = f'{self._shorter_name(xaxis)}-bv-{self._shorter_name(yaxis)}-w-{self._shorter_name(vary)}'
+
+                if isinstance(yextractor, dict):
+                    try:
+                        yextractor_single = yextractor[yaxis]
+                    except KeyError:
+                        yextractor_single = scalar_extractor
 
                 g = baseline_versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
+                    yextractor=yextractor_single, xextractor=xextractor)
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
@@ -359,7 +369,7 @@ class CLI(object):
                 if g.create(algo_results, baseline_results):
                     summary.GraphSummary(
                         os.path.join(self.algorithm_module.graphs_path(sim_name), name),
-                        os.path.join(algorithm.results_directory_name, 'bl-{}_{}-{}'.format(self.algorithm_module.name, baseline_module.name, name))
+                        os.path.join(algorithm.results_directory_name, 'bv-{}_{}-{}'.format(self.algorithm_module.name, baseline_module.name, name))
                     ).run()
 
     def _create_min_max_versus_graph(self, sim_name, comparison_modules, baseline_module, graph_parameters, varying, *,
