@@ -18,10 +18,18 @@ def print_version():
 def print_arguments(module_name, a):
     # Try to extract parameters from the log file name
 
-    names = {os.path.dirname(name).rsplit("_", 1)[0] for name in a.args.log_file}
+    def _fix_lpl(name):
+        sname = name.split("-")
+        if sname[3] == "0":
+            sname[3] = "disabled"
+        if sname[3] == "1":
+            sname[3] = "enabled"
+        return "-".join(sname)
+
+    names = {_fix_lpl(os.path.dirname(name).rsplit("_", 1)[0]) for name in a.args.log_file}
 
     if len(names) != 1:
-        raise RuntimeError("Multiple names")
+        raise RuntimeError("Multiple names in provided arguments, so cannot reliably extract parameters")
         
     name = os.path.basename(next(iter(names)))
 
@@ -66,6 +74,8 @@ def print_arguments(module_name, a):
     print(f"rf_power={rf_power}")
     print(f"channel={channel}")
     print(f"low_power_listening={lpl}")
+
+    print(f"node_id_order=topology")
 
     for (k, v) in sorted(vars(a.args).items()):
         if k not in a.arguments_to_hide:
