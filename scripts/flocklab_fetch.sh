@@ -18,15 +18,15 @@ mkdir -p testbed_results/flocklab
 
 echo "Downloading results for ${TESTID}..."
 
-curl -s -S --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
+curl -s -S -w "%{http_code}" --user $USER:$PASSWORD $SERVER_URL/webdav/$TESTID/results.tar.gz --output testbed_results/flocklab/results.$TESTID.tar.gz
 
 if [ ! -f "./testbed_results/flocklab/results.$TESTID.tar.gz" ]
 then
-	echo "Failed to fetch file for $TESTID"
+	echo ": Failed to fetch file for $TESTID"
 	exit 1
 fi
 
-echo "Extracting results..."
+echo ": Extracting results..."
 
 tar xzf testbed_results/flocklab/results.$TESTID.tar.gz --directory testbed_results/flocklab
 
