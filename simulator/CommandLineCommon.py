@@ -263,7 +263,7 @@ class CLI(object):
             return "".join(x[0] for x in re.split(r"[\s,(]", str(s)) if x)
 
     def _create_versus_graph(self, sim_name, graph_parameters, varying, *,
-                             custom_yaxis_range_max=None,
+                             custom_yaxis_range_max=None, custom_yaxis_range_min=None,
                              source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                              yextractor=scalar_extractor, xextractor=None,
                              **kwargs):
@@ -307,6 +307,9 @@ class CLI(object):
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
+                if custom_yaxis_range_min is not None and yaxis in custom_yaxis_range_min:
+                    g.yaxis_range_min = custom_yaxis_range_min[yaxis]
+
                 if g.create(algo_results):
                     summary.GraphSummary(
                         os.path.join(self.algorithm_module.graphs_path(sim_name), name),
@@ -314,7 +317,7 @@ class CLI(object):
                     ).run()
 
     def _create_baseline_versus_graph(self, sim_name, baseline_module, graph_parameters, varying, *,
-                                      custom_yaxis_range_max=None,
+                                      custom_yaxis_range_max=None, custom_yaxis_range_min=None,
                                       source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
                                       yextractor=scalar_extractor, xextractor=None,
                                       **kwargs):
@@ -365,6 +368,9 @@ class CLI(object):
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
+                if custom_yaxis_range_min is not None and yaxis in custom_yaxis_range_min:
+                    g.yaxis_range_min = custom_yaxis_range_min[yaxis]                
 
                 if g.create(algo_results, baseline_results):
                     summary.GraphSummary(
@@ -831,14 +837,31 @@ class CLI(object):
 
         commands = []
 
+
+        # Some results have had lpl parameters renamed to save space
+        # "disabled" => "0", "enabled" => "1"
+        # We want these results to go into the same output file
+
+        to_process = defaultdict(list)
+
         for common_result_dir in common_results_dirs:
 
-            out_path = os.path.join(output_results_path, common_result_dir + ".txt")
+            params = list(common_result_dir.split("-"))
+            if params[3] == "0":
+                params[3] = "disabled"
+            if params[3] == "1":
+                params[3] = "enabled"
+
+            to_process["-".join(params)].append(common_result_dir)
+
+        for (out_param, in_params) in to_process.items():
+
+            log_files = " ".join(os.path.join(input_results_path, x + "_*", testbed.result_file_name) for x in in_params)
 
             command = "python3 -OO -X faulthandler run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
                 self.algorithm_module.name,
                 testbed.name(),
-                os.path.join(input_results_path, common_result_dir + "_*", testbed.result_file_name))
+                log_files)
 
             settings = {
                 "--attacker-model": args.attacker_model,
@@ -863,13 +886,15 @@ class CLI(object):
             if self.safety_period_module_name is not None:
                 source_period = source_period.replace("_", ".")
 
-                safety_key = (configuration, str(args.attacker_model), fault_model)
+                safety_key = (configuration, str(args.attacker_model), fault_model, 'topology', tx_power, channel, lpl)
                 settings["--safety-period"] = str(safety_periods[safety_key][source_period])
             
             command += " ".join(f"{k} \"{v}\"" for (k, v) in settings.items())
 
             if args.verbose:
                 command += " --verbose"
+
+            out_path = os.path.join(output_results_path, out_param + ".txt")
 
             commands.append((command, out_path))
 
