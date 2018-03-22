@@ -25,7 +25,7 @@ class Grapher(GrapherBase):
 
         self.xaxis_label = xaxis
         self.yaxis_label = yaxis
-        self.vary_label =  vary.title() if not isinstance(vary, collections.Sequence) else "/".join(x.title() for x in vary)
+        self.vary_label = vary.title() if not isinstance(vary, collections.Sequence) else "/".join(x.title() for x in vary)
         self.vary_prefix = ''
         self.vvalue_label_converter = lambda x: x
 
@@ -62,6 +62,7 @@ class Grapher(GrapherBase):
                 self.xextractor = float
 
         self.xvalues_padding = None
+        self.xvalues_to_tic_label = str
 
         self.error_bars = False
 
@@ -215,11 +216,12 @@ class Grapher(GrapherBase):
                 raise RuntimeError(f"There are no xvalues ({xvalues}) for {dir_name}")
 
             graph_p.write('set xrange [{}:{}]\n'.format(min(xvalues_as_num) - xvalues_padding, max(xvalues_as_num) + xvalues_padding))
-            graph_p.write('set xtics ({})\n'.format(",".join(map(str, sorted(xvalues_as_num)))))
 
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
 
+            xtics = ",".join(f"{self.xvalues_to_tic_label(x)} {x}" for x in sorted(xvalues_as_num))
+            graph_p.write('set xtics ({})\n'.format(xtics))
 
             if self.yaxis_range_min is not None:
                 ymin = self.yaxis_range_min
