@@ -87,7 +87,7 @@ class CLI(CommandLineCommon.CLI):
             #'tfs': ('Number of TFS Created', 'left top'),
             #'pfs': ('Number of PFS Created', 'left top'),
             #'tailfs': ('Number of TailFS Created', 'left top'),
-            'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
+            'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
             'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
@@ -102,14 +102,18 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         custom_yaxis_range_max = {
-            'captured': 40,
+            'captured': 25,
             'received ratio': 100,
             'average duty cycle': 100,
             'normal latency': 250,
             'attacker distance': 70,
-            'norm(norm(fake,time taken),network size)': 5,
-            'norm(norm(sent,time taken),network size)': 7,
+            'norm(norm(fake,time taken),network size)': 4,
+            'norm(norm(sent,time taken),network size)': 5,
         }
+
+        #custom_yaxis_range_min = {
+        #    'received ratio': 70,
+        #}
 
         yextractors = {
             # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
@@ -123,19 +127,24 @@ class CLI(CommandLineCommon.CLI):
 
             return baseline_results.data[data_key][src_period][baseline_params]
 
+        def filter_params(all_params):
+            return all_params['source period'] == '0.25'
+
         self._create_baseline_versus_graph(args.sim, adaptive_spr_notify, graph_parameters, varying,
+            results_filter=filter_params,
             custom_yaxis_range_max=custom_yaxis_range_max,
+            #custom_yaxis_range_min=custom_yaxis_range_min,
             yextractor = yextractors,
             xaxis_font = "',16'",
             yaxis_font = "',16'",
-            xlabel_font = "',18'",
-            ylabel_font = "',18'",
+            xlabel_font = "',14'",
+            ylabel_font = "',14'",
             line_width = 3,
             point_size = 1,
             nokey = True,
             generate_legend_graph = True,
             legend_font_size = 16,
-            legend_divisor = 3,
+            legend_divisor = 4,
             legend_base_height = 0.3,
             vary_label = "",
 
