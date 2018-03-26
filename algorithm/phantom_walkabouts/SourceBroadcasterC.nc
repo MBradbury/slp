@@ -1002,12 +1002,12 @@ implementation
 		}
 	}
 
-	void Normal_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		process_normal(msg, rcvd, source_addr);
 	}
 
-	void Sink_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		// It is helpful to have the sink forward Normal messages onwards
 		// Otherwise there is a chance the random walk would terminate at the sink and
@@ -1015,7 +1015,7 @@ implementation
 		process_normal(msg, rcvd, source_addr);
 	}
 
-	void Source_receieve_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
+	void Source_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
 		UPDATE_NEIGHBOURS_BR(rcvd, source_addr, landmark_distance_of_bottom_right_sender);
@@ -1030,9 +1030,9 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
-		case SourceNode: Source_receieve_Normal(msg, rcvd, source_addr); break;
-		case SinkNode: Sink_receieve_Normal(msg, rcvd, source_addr); break;
-		case NormalNode: Normal_receieve_Normal(msg, rcvd, source_addr); break;
+		case SourceNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
+		case SinkNode: Sink_receive_Normal(msg, rcvd, source_addr); break;
+		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
 	// If the sink snoops a normal message, we may as well just deliver it
@@ -1159,7 +1159,7 @@ implementation
 	RECEIVE_MESSAGE_END(Away)
 
 
-	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
+	void x_receive_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
 		UPDATE_NEIGHBOURS_BL(rcvd, source_addr, landmark_distance_of_bottom_left_sender);
 		UPDATE_LANDMARK_DISTANCE_BL(rcvd, landmark_distance_of_bottom_left_sender);
@@ -1179,6 +1179,6 @@ implementation
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)
 		case NormalNode:
 		case SourceNode:
-		case SinkNode: x_receieve_Beacon(msg, rcvd, source_addr); break;
+		case SinkNode: x_receive_Beacon(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Beacon)
 }
