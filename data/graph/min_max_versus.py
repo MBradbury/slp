@@ -12,8 +12,10 @@ class Grapher(GrapherBase):
                  result_name, xaxis, yaxis, vary, yextractor=None, key_equivalence=None):
 
         super(Grapher, self).__init__(
-            sim_name, output_directory, result_name, xaxis, yaxis, vary, yextractor
+            sim_name, output_directory, result_name, xaxis, yaxis, '', yextractor
         )
+
+        self.vary = vary
 
         self.max_label = 'Maximum'
         self.min_label = 'Minimum'
@@ -26,6 +28,8 @@ class Grapher(GrapherBase):
         self.allow_missing_comparison = False
 
         self.key_equivalence = key_equivalence
+
+        self.correct_data_key = tuple
 
     def create(self, comparison_results, actual_results, baseline_results=None):
         print('Removing existing directories')
@@ -42,6 +46,19 @@ class Grapher(GrapherBase):
         # Handle the case where a single comparison result is provided
         if not isinstance(comparison_results, (list, tuple)):
             comparison_results = [comparison_results]
+
+        if not isinstance(actual_results, (list, tuple)):
+            actual_results = [actual_results]
+
+        if not isinstance(self.comparison_label, (list, tuple)):
+            comparison_labels = [self.comparison_label]
+        else:
+            comparison_labels = self.comparison_label
+
+        if not isinstance(self.vary, (list, tuple)):
+            varys = [self.vary] * len(actual_results)
+        else:
+            varys = self.vary
 
         if not isinstance(self.max_label, (list, tuple)):
             self.max_label = [self.max_label]
@@ -99,60 +116,63 @@ class Grapher(GrapherBase):
         xvalues = set()
 
         # Extract the data we want to display
-        for (data_key, items1) in actual_results.data.items():
-            for (src_period, items2) in items1.items():
-                for (params, results) in items2.items():
+        for (actual_result, comparison_label, vary) in zip(actual_results, comparison_labels, varys):
+            for (data_key, items1) in actual_result.data.items():
+                for (src_period, items2) in items1.items():
+                    for (params, results) in items2.items():
 
-                    key_names = self._key_names_base + actual_results.parameter_names
+                        data_key = self.correct_data_key(data_key)
 
-                    values = list(data_key)
-                    values.append(src_period)
-                    values.extend(params)
+                        key_names = self._key_names_base + actual_result.parameter_names
 
-                    (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
-                    (key_names, values, vvalue) = self.remove_index(key_names, values, self.vary)
+                        values = list(data_key)
+                        values.append(src_period)
+                        values.extend(params)
 
-                    xvalues.add(xvalue)
+                        (key_names, values, xvalue) = self.remove_index(key_names, values, self.xaxis)
+                        (key_names, values, vvalue) = self.remove_index(key_names, values, vary)
 
-                    key_names = tuple(key_names)
-                    values = tuple(values)
+                        xvalues.add(xvalue)
 
-                    yvalue_index = actual_results.result_names.index(self.yaxis)
-                    yvalue = results[yvalue_index]
-                    yvalue = self._value_extractor(yvalue)
+                        key_names = tuple(key_names)
+                        values = tuple(values)
 
-                    comp_label = "{} ({})".format(self.comparison_label, self.vvalue_label_converter(vvalue))
+                        yvalue_index = actual_result.result_names.index(self.yaxis)
+                        yvalue = results[yvalue_index]
+                        yvalue = self._value_extractor(yvalue)
 
-                    dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue
+                        comp_label = "{} ({})".format(comparison_label, self.vvalue_label_converter(vvalue))
 
-                    for (i, (max_comparison_result, min_comparison_result)) in enumerate(zip(max_comparison_results, min_comparison_results)):
+                        dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue
 
-                        comparison_data_key = self._get_key_in_comparison(data_key, max_comparison_result, min_comparison_result)
+                        for (i, (max_comparison_result, min_comparison_result)) in enumerate(zip(max_comparison_results, min_comparison_results)):
 
-                        if comparison_data_key is not None:
+                            comparison_data_key = self._get_key_in_comparison(data_key, max_comparison_result, min_comparison_result)
 
-                            max_value = self._get_compairson_result(max_comparison_result, comparison_data_key, src_period, xvalue)
-                            min_value = self._get_compairson_result(min_comparison_result, comparison_data_key, src_period, xvalue)
+                            if comparison_data_key is not None:
 
-                            dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_value
+                                max_value = self._get_compairson_result(max_comparison_result, comparison_data_key, src_period, xvalue)
+                                min_value = self._get_compairson_result(min_comparison_result, comparison_data_key, src_period, xvalue)
 
-                            dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
+                                dat.setdefault((key_names, values), {})[(xvalue, self.max_label[i])] = max_value
 
-                            try:
-                                if np.isclose(min_value, max_value):
-                                    min_max_merge_consider[(key_names, values, self.max_label[i], self.min_label[i], i)].add(xvalue)
-                            except TypeError:
-                                # We can't compare default values that are strings,
-                                # so just skip trying to merge these ones
-                                pass
+                                dat.setdefault((key_names, values), {})[(xvalue, self.min_label[i])] = min_value
 
-                        else:
-                            print("Not processing {} as it is not in the min/max data:".format(data_key))
-                            for key in sorted(max_comparison_result):
-                                print("\t{}".format(key))
+                                try:
+                                    if np.isclose(min_value, max_value):
+                                        min_max_merge_consider[(key_names, values, self.max_label[i], self.min_label[i], i)].add(xvalue)
+                                except TypeError:
+                                    # We can't compare default values that are strings,
+                                    # so just skip trying to merge these ones
+                                    pass
 
-                    if baseline_results is not None:
-                        dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
+                            else:
+                                print(f"Not processing {data_key} as it is not in the min/max data:")
+                                for key in sorted(max_comparison_result):
+                                    print("\t{}".format(key))
+
+                        if baseline_results is not None:
+                            dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
 
         # If every min/max value are close to each other, then remove both and replace with one "same" line
         for ((key_names, values, max_label, min_label, i), this_xvalues) in min_max_merge_consider.items():
