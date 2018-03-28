@@ -10,6 +10,7 @@ import algorithm
 protectionless = algorithm.import_algorithm("protectionless", extras=["Analysis"])
 adaptive = algorithm.import_algorithm("adaptive")
 template = algorithm.import_algorithm("template")
+ilprouting = algorithm.import_algorithm("ilprouting")
 
 from data import results, submodule_loader
 from data.table import fake_result
@@ -28,6 +29,9 @@ class CLI(CommandLineCommon.CLI):
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
         subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
+        subparser = self._add_argument("min-max-ilp-versus", self._run_min_max_ilp_versus)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
     def time_after_first_normal_to_safety_period(self, tafn):
@@ -107,7 +111,7 @@ class CLI(CommandLineCommon.CLI):
             'tfs': ('Number of TFS Created', 'left top'),
             'pfs': ('Number of PFS Created', 'left top'),
             'tailfs': ('Number of TailFS Created', 'left top'),
-            'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
+            'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
         }
 
         varying = [
@@ -135,7 +139,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
 #            'tfs': ('Number of TFS Created', 'left top'),
 #            'pfs': ('Number of PFS Created', 'left top'),
-            'attacker distance': ('Attacker Distance From Source (meters)', 'left top'),
+            'attacker distance': ('Attacker-Source Distance (meters)', 'left top'),
             #'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             #'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
@@ -208,18 +212,20 @@ class CLI(CommandLineCommon.CLI):
 
             g.xaxis_font = "',16'"
             g.yaxis_font = "',16'"
-            g.xlabel_font = "',18'"
-            g.ylabel_font = "',18'"
+            g.xlabel_font = "',14'"
+            g.ylabel_font = "',14'"
             g.line_width = 3
             g.point_size = 1
             g.nokey = True
             g.legend_font_size = 16
-            g.legend_divisor = 4
 
-            g.min_label = ['Dynamic - Lowest', 'Static - Lowest']
-            g.max_label = ['Dynamic - Highest', 'Static - Highest']
-            g.comparison_label = 'DynamicSpr'
+            g.min_label = ['Static - Lowest']
+            g.max_label = ['Static - Highest']
+            g.comparison_label = ['Dynamic', 'DynamicSpr']
             g.vary_label = ''
+
+            if xaxis == 'network size':
+                g.xvalues_to_tic_label = lambda x: f'"{x}x{x}"'
 
             if result_name in custom_yaxis_range_max:
                 g.yaxis_range_max = custom_yaxis_range_max[result_name]
@@ -238,9 +244,152 @@ class CLI(CommandLineCommon.CLI):
             g.generate_legend_graph = True
 
             if result_name in protectionless_results.result_names:
-                g.create([adaptive_results, template_results], adaptive_spr_notify_results, baseline_results=protectionless_results)
+                g.create([template_results], [adaptive_results, adaptive_spr_notify_results], baseline_results=protectionless_results)
             else:
-                g.create([adaptive_results, template_results], adaptive_spr_notify_results)
+                g.create([template_results], [adaptive_results, adaptive_spr_notify_results])
+
+            summary.GraphSummary(
+                os.path.join(self.algorithm_module.graphs_path(args.sim), name),
+                os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
+            ).run()
+
+        for result_name in graph_parameters.keys():
+            graph_min_max_versus(result_name, 'network size')
+
+
+
+    def _run_min_max_ilp_versus(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
+#            'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+#            'normal': ('Normal Messages Sent', 'left top'),
+            'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'attacker distance': ('Attacker-Source Distance (meters)', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+#            'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+#            'norm(normal,time taken)': ('Messages Sent per Second', 'left top'),
+        }
+
+        custom_yaxis_range_max = {
+            'captured': 25,
+            'received ratio': 100,
+            'attacker distance': 120,
+            'normal latency': 4000,
+            'norm(sent,time taken)': 8000,
+            'norm(norm(sent,time taken),network size)': 15,
+        }
+
+        def filter_params(all_params):
+            return (all_params['source period'] == '0.125' or
+                    all_params['noise model'] == 'meyer-heavy' or
+                    all_params['configuration'] != 'SourceCorner')
+
+        def adaptive_filter_params(all_params):
+            return filter_params(all_params) or all_params['approach'] in {"PB_SINK_APPROACH", "PB_ATTACKER_EST_APPROACH"}
+
+        def ilprouting_filter_params(all_params):
+            return filter_params(all_params) or all_params["pr direct to sink"] != "0.2"
+
+        protectionless_analysis = protectionless.Analysis.Analyzer(args.sim, protectionless.results_path(args.sim))
+
+        protectionless_results = results.Results(
+            args.sim, protectionless.result_file_path(args.sim),
+            parameters=protectionless.local_parameter_names,
+            results=list(set(graph_parameters.keys()) & set(protectionless_analysis.results_header().keys())),
+            results_filter=filter_params)
+
+        adaptive_spr_notify_results = results.Results(
+            args.sim, self.algorithm_module.result_file_path(args.sim),
+            parameters=self.algorithm_module.local_parameter_names,
+            results=graph_parameters.keys(),
+            results_filter=filter_params)
+
+        adaptive_results = results.Results(
+            args.sim, adaptive.result_file_path(args.sim),
+            parameters=adaptive.local_parameter_names,
+            results=graph_parameters.keys(),
+            results_filter=adaptive_filter_params)
+
+        ilprouting_results = results.Results(
+            args.sim, ilprouting.result_file_path(args.sim),
+            parameters=ilprouting.local_parameter_names,
+            results=graph_parameters.keys(),
+            results_filter=ilprouting_filter_params)
+
+        sim = submodule_loader.load(simulator.sim, args.sim)
+
+        def graph_min_max_versus(result_name, xaxis):
+            name = 'min-max-ilp-versus-{}-{}'.format(result_name, xaxis)
+
+            if result_name == "attacker distance":
+                # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
+                def yextractor(yvalue):
+                    print(yvalue)
+                    return scalar_extractor(yvalue)[(0, 0)]
+            else:
+                yextractor = scalar_extractor
+
+            vary = ['approach', 'approach', ('buffer size', 'max walk length', 'pr direct to sink', 'msg group size')]
+
+            g = min_max_versus.Grapher(
+                args.sim, self.algorithm_module.graphs_path(args.sim), name,
+                xaxis=xaxis, yaxis=result_name, vary=vary, yextractor=yextractor)
+
+            g.xaxis_label = xaxis.title()
+            g.yaxis_label = graph_parameters[result_name][0]
+            g.key_position = graph_parameters[result_name][1]
+
+            g.xaxis_font = "',16'"
+            g.yaxis_font = "',16'"
+            g.xlabel_font = "',14'"
+            g.ylabel_font = "',14'"
+            g.line_width = 3
+            g.point_size = 1
+            g.nokey = True
+            g.legend_font_size = 16
+
+            #g.min_label = ['Static - Lowest']
+            #g.max_label = ['Static - Highest']
+            g.comparison_label = ['Dynamic', 'DynamicSpr', 'ILPRouting']
+            g.vary_label = ''
+
+            if xaxis == 'network size':
+                g.xvalues_to_tic_label = lambda x: f'"{x}x{x}"'
+
+            if result_name in custom_yaxis_range_max:
+                g.yaxis_range_max = custom_yaxis_range_max[result_name]
+
+            def vvalue_converter(name):
+                if isinstance(name, tuple):
+                    (buffer_size, max_walk_length, pr_direct_to_sink, msg_group_size) = name
+
+                    return f"Group Size {msg_group_size}"
+
+                try:
+                    return {
+                        "PB_FIXED1_APPROACH": "Fixed1",
+                        "PB_FIXED2_APPROACH": "Fixed2",
+                        "PB_RND_APPROACH": "Rnd",
+                    }[name]
+                except KeyError:
+                    return name
+            g.vvalue_label_converter = vvalue_converter
+
+            # Want to pretend SeqNosOOOReactiveAttacker is SeqNosReactiveAttacker
+            def correct_data_key(data_key):
+                data_key = list(data_key)
+                data_key[sim.global_parameter_names.index('attacker model')] = "SeqNosReactiveAttacker()"
+                return tuple(data_key)
+            g.correct_data_key = correct_data_key
+
+            g.generate_legend_graph = True
+
+            if result_name in protectionless_results.result_names:
+                g.create([], [adaptive_results, adaptive_spr_notify_results, ilprouting_results], baseline_results=protectionless_results)
+            else:
+                g.create([], [adaptive_results, adaptive_spr_notify_results, ilprouting_results])
 
             summary.GraphSummary(
                 os.path.join(self.algorithm_module.graphs_path(args.sim), name),
