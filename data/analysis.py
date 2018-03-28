@@ -1,7 +1,7 @@
 
 import ast
 import base64
-from collections import OrderedDict, Sequence
+from collections import OrderedDict, Sequence, defaultdict
 from functools import partial
 import gc
 from itertools import islice
@@ -176,12 +176,9 @@ def dict_mean(dict_list):
 
 def dict_var(dict_list, mean):
     """Dict variance"""
+    lin = defaultdict(list)
 
-    first = next(iter(dict_list))
-
-    lin = {k: [] for k in first}
-
-    for d in islice(dict_list, 1, None):
+    for d in dict_list:
         for (k, v) in d.items():
             lin[k].append(v)
 
