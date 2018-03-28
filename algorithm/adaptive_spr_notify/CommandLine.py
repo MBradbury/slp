@@ -16,6 +16,7 @@ from data import results, submodule_loader
 from data.table import fake_result
 from data.graph import summary, min_max_versus
 from data.util import scalar_extractor
+import data.testbed
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
@@ -24,6 +25,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("table", self._run_table)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--show", action="store_true", default=False)
+        subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
         
         subparser = self._add_argument("graph", self._run_graph)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
@@ -82,9 +84,10 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_table(self, args):
+        result_file_path = self.get_results_file_path(args.sim, testbed=args.testbed)
+
         adaptive_results = results.Results(
-            args.sim,
-            self.algorithm_module.result_file_path(args.sim),
+            args.sim, result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=(
                 #'sent', 'delivered',
