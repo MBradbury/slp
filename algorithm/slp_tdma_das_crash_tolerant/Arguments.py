@@ -17,6 +17,8 @@ class Arguments(ArgumentsCommon):
         self.add_argument("-msp", "--minimum-setup-periods", type=int, required=True, help="Minimum number of periods required for setup")
         self.add_argument("-pbp", "--pre-beacon-periods", type=int, required=False, default=3, help="Number of periods of neighbour discovery")
         self.add_argument("-sd", "--search-distance", type=int, required=True, help="Distance search messages travel from the sink")
+        self.add_argument("--timesync", choices=("enabled", "disabled"), default="disabled", required=False, help="Activate TDMA timesync")
+        self.add_argument("-tsp", "--timesync-period", type=float, required=False, default=0, help="Time at the end of the TDMA period for FTSP timesync (0 turns timesync off)")
         self.add_argument("--source-mobility",
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
@@ -42,5 +44,7 @@ class Arguments(ArgumentsCommon):
         result["TDMA_PRE_BEACON_PERIODS"] = self.args.pre_beacon_periods
         result["SEARCH_DIST"] = self.args.search_distance
         result["CHANGE_LENGTH"] = ssd_hops - self.args.search_distance
+        result["TDMA_TIMESYNC"] = 1 if self.args.timesync == "enabled" else 0
+        result["TIMESYNC_PERIOD_MS"] = int(self.args.timesync_period * 1000)
 
         return result
