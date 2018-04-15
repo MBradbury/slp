@@ -63,23 +63,37 @@ class Grapher(GrapherBase):
 
                         baseline_res = self.fetch_baseline_result(baseline_results, data_key, src_period, baseline_params)
 
-                        baseline_yvalue = baseline_res[ baseline_results.result_names.index(self.yaxis) ]
+                        try:
+                            baseline_yvalue = baseline_res[ baseline_results.result_names.index(self.yaxis) ]
+                        except ValueError:
+                            baseline_yvalue = None
 
-                        if self.force_vvalue_label:
-                            baseline_gkey = (xvalue, self.baseline_label)
-                        else:
-                            vary = self.vary if isinstance(self.vary, tuple) else (self.vary,)
-
-                            if any(v in baseline_results.parameter_names for v in vary):
-                                label = f"{vvalue} ({self.baseline_label})"
+                        if baseline_yvalue is not None:
+                            if self.force_vvalue_label:
+                                baseline_gkey = (xvalue, self.baseline_label)
                             else:
-                                label = self.baseline_label
+                                vary = self.vary if isinstance(self.vary, tuple) else (self.vary,)
 
-                            baseline_gkey = (xvalue, label)
+                                if any(v in baseline_results.parameter_names for v in vary):
+                                    label = f"{vvalue} ({self.baseline_label})"
+                                else:
+                                    label = self.baseline_label
 
-                        dat.setdefault((key_names, values), {})[baseline_gkey] = self._value_extractor(baseline_yvalue)
+                                baseline_gkey = (xvalue, label)
+
+                            dat.setdefault((key_names, values), {})[baseline_gkey] = self._value_extractor(baseline_yvalue)
 
         return self._build_plots_from_dat(dat)
+
+    def _order_keys(self, keys):
+        # Always sort the baseline label last
+        skeys = list(sorted(keys))
+
+        if self.baseline_label in skeys:
+            skeys.remove(self.baseline_label)
+            skeys.append(self.baseline_label)
+
+        return skeys
 
     def fetch_baseline_result(self, baseline_results, data_key, src_period, baseline_params):
         return baseline_results.data[data_key][src_period][baseline_params]
