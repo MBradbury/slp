@@ -2,7 +2,7 @@
 
 set terminal pdf enhanced
 
-set size ratio 1.4
+set size ratio 1.45
 
 set style fill solid 0.25 border -1
 set style boxplot outliers pointtype 7
