@@ -30,6 +30,9 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph", self._run_graph)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
+        subparser = self._add_argument("graph-testbed", self._run_graph_testbed)
+        subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="Select the testbed to analyse. (Only if not analysing regular results.)")
+
         subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
@@ -94,7 +97,9 @@ class CLI(CommandLineCommon.CLI):
                 'norm(norm(fake,time taken),network size)',
                 'time taken',
                 'normal latency', 'ssd', 'captured',
-                'fake', 'received ratio', 'tfs', 'pfs',
+                'fake', 'received ratio', 
+                'attacker distance',
+                #'tfs', 'pfs',
                 #'norm(sent,time taken)', 'norm(norm(sent,time taken),network size)',
                 #'norm(norm(norm(sent,time taken),network size),source rate)'
             ))
@@ -128,6 +133,68 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_versus_graph(args.sim, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
+        )
+
+    def _run_graph_testbed(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            #'fake': ('Fake Messages Sent', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            #'tfs': ('Number of TFS Created', 'left top'),
+            #'pfs': ('Number of PFS Created', 'left top'),
+            #'tailfs': ('Number of TailFS Created', 'left top'),
+            'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+            'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
+            'average power consumption': ('Average Power Consumption (mA)', 'left top'),
+            'average power used': ('Average Power Used (mAh)', 'left top'),
+        }
+
+        varying = [
+            #(('network size', ''), ('source period', ' seconds')),
+            (('source period', ' seconds'), ('approach', '~')),
+        ]
+
+        custom_yaxis_range_max = {
+            'received ratio': 100,
+            'captured': 5,
+            'norm(norm(sent,time taken),network size)': 6,
+            'norm(norm(fake,time taken),network size)': 6,
+        }
+
+        def vvalue_converter(name):
+            try:
+                return {
+                    "PB_FIXED1_APPROACH": "Fixed1",
+                    "PB_FIXED2_APPROACH": "Fixed2",
+                    "PB_RND_APPROACH": "Rnd",
+                }[name]
+            except KeyError:
+                return name
+            
+        yextractors = {
+            "attacker distance": lambda vvalue: scalar_extractor(vvalue)[(1, 0)]
+        }
+
+        self._create_baseline_versus_graph("real", protectionless, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
+            testbed=args.testbed,
+            vvalue_label_converter = vvalue_converter,
+            yextractor = yextractors,
+            generate_legend_graph = True,
+            xaxis_font = "',16'",
+            yaxis_font = "',16'",
+            xlabel_font = "',14'",
+            ylabel_font = "',14'",
+            line_width = 3,
+            point_size = 1,
+            nokey = True,
+            legend_divisor = 2,
+            legend_font_size = '14',
+            legend_base_height = 0.5,
         )
 
 
