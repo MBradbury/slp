@@ -64,7 +64,8 @@ class TableGenerator:
         if not any(table_key in self._results.data for table_key in product_all):
             raise RuntimeError("Could not find any parameter combination in the results")
 
-        for product_key in sorted(filtered_product):
+        # Convert to set to remove duplicates
+        for product_key in sorted(set(filtered_product)):
 
             product_key_dict = dict(zip(global_parameter_names, product_key))
 
