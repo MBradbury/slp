@@ -147,7 +147,7 @@ class Grapher(GrapherBase):
                     if self.error_bars:
 
                         if yvalue is not None and not isinstance(yvalue, np.ndarray):
-                            raise RuntimeError("Cannot display error bars for {} as no stddev is included in the results".format(dir_name))
+                            raise RuntimeError(f"Cannot display error bars for {dir_name} as no stddev is included in the results")
 
                         row.extend(yvalue if yvalue is not None else [self.missing_value_string, self.missing_value_string])
                     else:
@@ -290,14 +290,30 @@ class Grapher(GrapherBase):
 
             if self.error_bars:
                 for x in range(1, column_count + 1):
-                    plots.append('NaN with errorbars title "{} {}{}" linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
-                        self.vary_label, self._vvalue_label(vvalues[ x - 1 ]), self.vary_prefix,
-                        x=x, ycol=x * 2, line_width=self.line_width))
+                    prelabel = f"{self.vary_label} "
+                    label = self._vvalue_label(vvalues[ x - 1 ])
+                    postlabel = self.vary_prefix
+
+                    if getattr(self, "baseline_label", "") == label:
+                        prelabel = ""
+
+                    label = f"{prelabel}{label}{postlabel}"
+
+                    plots.append('NaN with errorbars title "{label}" linewidth {line_width} lc {x}, "" using 1:{ycol} with lines notitle lc {x}'.format(
+                        label=label, x=x, ycol=x * 2, line_width=self.line_width))
             else:
                 for x in range(1, column_count + 1):
-                    plots.append('NaN with lp title "{} {}{}" linewidth {line_width}'.format(
-                        self.vary_label, self._vvalue_label(vvalues[ x - 1 ]), self.vary_prefix,
-                        line_width=self.line_width))
+                    prelabel = f"{self.vary_label} "
+                    label = self._vvalue_label(vvalues[ x - 1 ])
+                    postlabel = self.vary_prefix
+
+                    if getattr(self, "baseline_label", "") == label:
+                        prelabel = ""
+
+                    label = f"{prelabel}{label}{postlabel}"
+
+                    plots.append('NaN with lp title "{label}" linewidth {line_width}'.format(
+                        label=label, line_width=self.line_width))
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
