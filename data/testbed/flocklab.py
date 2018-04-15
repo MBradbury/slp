@@ -41,6 +41,16 @@ def build_arguments():
 def fastserial_supported():
     return False
 
+extra_metrics = ["FlockLabEnergyMetricsCommon"]
+
+def testbed_header(analysis):
+    return {
+        'average node power consumption': lambda x: analysis._format_results(x, 'AverageNodePowerConsumption'),
+        'average power consumption': lambda x: analysis._format_results(x, 'AveragePowerConsumption'),
+        'total node power used': lambda x: analysis._format_results(x, 'TotalNodePowerUsed'),
+        'average power used': lambda x: analysis._format_results(x, 'AveragePowerUsed'),
+    }
+
 # Resources:
 # - https://www.flocklab.ethz.ch/wiki/wiki/Public/Index
 

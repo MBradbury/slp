@@ -3,6 +3,7 @@ from collections import Counter, OrderedDict, defaultdict, namedtuple
 import base64
 from itertools import zip_longest, tee
 import math
+import os.path
 import pickle
 import struct
 import sys
@@ -145,7 +146,6 @@ class MetricsCommon(object):
     def _non_strict_setup(self):
         """Set up any variables that may be missing in non-strict cases.
         For example testbed serial aggregators may miss important info."""
-        import os.path
         import re
 
         # Find the node and message, name and name associations
@@ -2094,14 +2094,101 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
 
         plt.savefig(f"{msg_name}MessageReceiveProbability.pdf", bbox_inches='tight')
 
+class FlockLabEnergyMetricsCommon(MetricsCommon):
+    """Only to use used with offline flocklab logs."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
+        self._average_node_power_consumption = {}
+        self._total_node_power_consumption = {}
 
+        if type(self.sim.configuration.topology).__name__ != "FlockLab":
+            raise RuntimeError("FlockLabEnergyMetricsCommon can only be used on offline FlockLab runs")
 
+    def finish(self):
+        import gzip
+
+        super().finish()
+
+        start, end = self.sim._real_start_time.timestamp(), self.sim._real_end_time.timestamp()
+
+        log_path = os.path.join(os.path.dirname(self.sim._event_log.log_path), "powerprofilingstats.csv")
+        with open(log_path, 'r') as log_file:
+            for line in log_file:
+                if line.startswith('#'):
+                    continue
+
+                observer_id, node_id, power_mA = line.split(',', 2)
+
+                node_id = OrderedId(int(node_id))
+
+                self._average_node_power_consumption[node_id] = float(power_mA)
+
+        #print(start, end, file=sys.stderr)
+
+        node_state = {}
+
+        log_path = os.path.join(os.path.dirname(self.sim._event_log.log_path), "powerprofiling.csv.gz")
+        with gzip.open(log_path, 'rt', encoding="utf-8") as log_file:
+            for line in log_file:
+                if line.startswith('#'):
+                    continue
+
+                timestamp, observer_id, node_id, power_mA = line.strip().split(',', 3)
+                timestamp = float(timestamp)
+                node_id = int(node_id)
+                power_mA = float(power_mA)
+
+                #print((timestamp, observer_id, node_id, power_mA), file=sys.stderr)
+
+                if timestamp < start:
+                    continue
+
+                if node_id not in node_state:
+                    node_state[node_id] = (timestamp, 0.0)
+                else:
+
+                    previous_timestamp, previous_energy = node_state[node_id]
+
+                    new_power = previous_energy + (timestamp - previous_timestamp) * power_mA
+
+                    node_state[node_id] = (timestamp, new_power)
+
+                if timestamp >= end:
+                    break
+
+        # power is in mAs, needs to be converted into mAh
+        self._total_node_power_consumption = {
+            OrderedId(node_id): power / 60 / 60
+            for (node_id, (timestamp, power)) in node_state.items()
+        }
+
+    def average_node_power_consumption(self):
+        return self._average_node_power_consumption
+
+    def average_power_consumption(self):
+        return np.mean(list(self._average_node_power_consumption.values()))
+
+    def total_node_power_used(self):
+        return self._total_node_power_consumption
+
+    def average_total_power_used(self):
+        return np.mean(list(self._total_node_power_consumption.values()))
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+        d["AverageNodePowerConsumption"]   = lambda x: MetricsCommon.smaller_dict_str(x.average_node_power_consumption(), sort=True)
+        d["AveragePowerConsumption"]       = lambda x: str(x.average_power_consumption())
+
+        d["TotalNodePowerUsed"]            = lambda x: MetricsCommon.smaller_dict_str(x.total_node_power_used(), sort=True)
+        d["AveragePowerUsed"]              = lambda x: str(x.average_total_power_used())
+        return d
 
 
 
 EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, ILPRoutingMessageTimeMetricsGrapher,
-                 MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher)
+                 MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher, FlockLabEnergyMetricsCommon)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
 def import_algorithm_metrics(module_name, sim, extra_metrics=None):

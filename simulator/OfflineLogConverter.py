@@ -25,6 +25,7 @@ class LineLogConverter(object):
     def __init__(self, log_path):
         super().__init__()
 
+        self.log_path = log_path
         self.processed_lines = None
 
         with open(log_path, 'r', encoding="ascii", errors="ignore") as log_file:
@@ -41,6 +42,7 @@ class Null(OfflineLogConverter):
     def __init__(self, log_path):
         super().__init__()
 
+        self.log_path = log_path
         self._log_file = open(log_path, 'r')
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -65,6 +67,24 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
 
         return (node_time, output)
 
+    def _process_gpio_line(self, line):
+        timestamp, observer_id, node_id, name, value = line.split(",", 4)
+
+        timestamp = float(timestamp)
+
+        node_time = datetime.fromtimestamp(timestamp)
+
+        if not name.startswith('LED'):
+            raise ValueError(f"Bad name {name}, expected LED")
+
+        led_num = int(name[len("LED"):]) - 1
+        led_value = "on" if value.strip() == "1" else "off"
+
+        # Remove newline from output
+        output = f"LedsC:D:{node_id}:None:{led_num},{led_value}"
+
+        return (node_time, output)
+
     def _process_file(self, log_file):
 
         self.processed_lines = []
@@ -81,8 +101,26 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
                 print("Failed to parse the line:", _sanitise_string(line))
                 traceback.print_exc()
                 continue
-            
+
             self.processed_lines.append(output)
+
+        # Also need to process gpio tracing
+        gpiotracing_path = os.path.join(os.path.dirname(log_file.name), "gpiotracing.csv")
+        with open(gpiotracing_path, "r") as gpiotracing_file:
+            for line in gpiotracing_file:
+                if line.startswith('#'):
+                    continue
+                if line.endswith("\0\n"):
+                    continue
+
+                try:
+                    output = self._process_gpio_line(line)
+                except ValueError as ex:
+                    print("Failed to parse the line:", _sanitise_string(line))
+                    traceback.print_exc()
+                    continue
+
+                self.processed_lines.append(output)
 
         # MUST sort output here, as flocklab output is grouped by node ids
         self.processed_lines.sort(key=lambda x: x[0])
