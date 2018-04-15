@@ -265,12 +265,12 @@ class CLI(object):
     def _create_versus_graph(self, sim_name, graph_parameters, varying, *,
                              custom_yaxis_range_max=None, custom_yaxis_range_min=None,
                              source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
-                             yextractor=scalar_extractor, xextractor=None,
+                             yextractor=scalar_extractor, xextractor=None, testbed=None,
                              **kwargs):
         from data.graph import versus
 
         algo_results = results.Results(
-            sim_name, self.algorithm_module.result_file_path(sim_name),
+            sim_name, self.get_results_file_path(sim_name, testbed=testbed),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
@@ -286,6 +286,8 @@ class CLI(object):
                         yextractor_single = yextractor[yaxis]
                     except KeyError:
                         yextractor_single = scalar_extractor
+                else:
+                    yextractor_single = scalar_extractor
 
                 g = versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
@@ -319,22 +321,25 @@ class CLI(object):
     def _create_baseline_versus_graph(self, sim_name, baseline_module, graph_parameters, varying, *,
                                       custom_yaxis_range_max=None, custom_yaxis_range_min=None,
                                       source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
-                                      yextractor=scalar_extractor, xextractor=None,
+                                      yextractor=scalar_extractor, xextractor=None, testbed=None,
                                       **kwargs):
         from data.graph import baseline_versus
 
         algo_results = results.Results(
-            sim_name, self.algorithm_module.result_file_path(sim_name),
+            sim_name, self.get_results_file_path(sim_name, testbed=testbed),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
             network_size_normalisation=network_size_normalisation,
             results_filter=results_filter)
 
+        baseline_result_file_path = self.get_results_file_path(sim_name, testbed=testbed, module=baseline_module)
+        baseline_analysis = baseline_module.Analysis.Analyzer(sim_name, baseline_result_file_path)
+
         baseline_results = results.Results(
-            sim_name, baseline_module.result_file_path(sim_name),
+            sim_name, baseline_result_file_path,
             parameters=baseline_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
+            results=tuple(set(graph_parameters.keys()) & set(baseline_analysis.results_header().keys())),
             source_period_normalisation=source_period_normalisation,
             network_size_normalisation=network_size_normalisation,
             results_filter=results_filter)
@@ -348,6 +353,8 @@ class CLI(object):
                         yextractor_single = yextractor[yaxis]
                     except KeyError:
                         yextractor_single = scalar_extractor
+                else:
+                    yextractor_single = scalar_extractor
 
                 g = baseline_versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
@@ -797,7 +804,7 @@ class CLI(object):
         results_path = self._testbed_results_path(testbed)
         result_file = os.path.basename(self.algorithm_module.result_file)
 
-        analyzer = self.algorithm_module.Analysis.Analyzer("real", results_path)
+        analyzer = self.algorithm_module.Analysis.Analyzer("real", results_path, testbed=testbed)
         analyzer.run(result_file,
                      results_finder,
                      nprocs=args.thread_count,
@@ -867,6 +874,10 @@ class CLI(object):
                 "--attacker-model": args.attacker_model,
             }
 
+            testbed_extra_metrics = getattr(testbed, "extra_metrics", [])
+            if testbed_extra_metrics:
+                settings["--extra-metrics"] = " ".join(testbed_extra_metrics)
+
             # The source period will either be the second or third entry in common_result_dir
             # Depending on if the fault model has been left out
             params = common_result_dir.split("-")
@@ -886,7 +897,7 @@ class CLI(object):
             if self.safety_period_module_name is not None:
                 source_period = source_period.replace("_", ".")
 
-                safety_key = (configuration, str(args.attacker_model), fault_model, 'topology', tx_power, channel, lpl)
+                safety_key = (configuration, str(args.attacker_model), fault_model, 'topology', tx_power, channel, 'disabled')
                 settings["--safety-period"] = str(safety_periods[safety_key][source_period])
             
             command += " ".join(f"{k} \"{v}\"" for (k, v) in settings.items())

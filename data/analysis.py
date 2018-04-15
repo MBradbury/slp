@@ -185,7 +185,7 @@ def dict_var(dict_list, mean):
     for k in lin:
         lin[k] = np.var(lin[k], dtype=np.float64)
 
-    return lin
+    return dict(lin)
 
 """
 def _energy_impact(columns, cached_cols, constants):
@@ -276,6 +276,8 @@ class Analyse(object):
         "FakeToNormal": np.uint32,
         "FakeToFake": np.uint32,
         "FakeNodesAtEnd": np.uint32,
+        "AveragePowerConsumption": np.float_,
+        "AveragePowerUsed": np.float_,
     }
 
     HEADING_CONVERTERS = {
@@ -316,6 +318,9 @@ class Analyse(object):
 
         "DutyCycleStart": lambda x: None if x == "None" else np.float_(x), # Either None or float
         "DutyCycle": _parse_dict_node_to_value,
+
+        "AverageNodePowerConsumption": _parse_dict_node_to_value,
+        "TotalNodePowerUsed": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
@@ -888,7 +893,7 @@ class AnalysisResults(object):
         self.configuration = analysis._get_configuration()
 
 class AnalyzerCommon(object):
-    def __init__(self, sim_name, results_directory):
+    def __init__(self, sim_name, results_directory, testbed=None):
         self.sim_name = sim_name
         self.results_directory = results_directory
         
@@ -902,6 +907,9 @@ class AnalyzerCommon(object):
         self.values['dropped no sink delivery'] = lambda x: str(x.dropped_no_sink_delivery)
         self.values['dropped hit upper bound']  = lambda x: str(x.dropped_hit_upper_bound)
         self.values['dropped duplicates']       = lambda x: str(x.dropped_duplicates)
+
+        if testbed and hasattr(testbed, "testbed_header"):
+            self.values.update(testbed.testbed_header(self))
 
     def common_results_header(self, local_parameter_names):
         d = OrderedDict()
