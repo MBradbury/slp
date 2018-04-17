@@ -336,7 +336,8 @@ NeighbourInfo* NeighbourList_info_for_min_hop(NeighbourList* list, const IDList*
         //simdbg("stdout", "Checking pparent %u.\n", parents->ids[i]);
 
         // If a node is a potential parent, we must have information on them.
-        assert(info != NULL);
+        //assert(info != NULL);
+        if(!info) continue;
 
         //simdbg("stdout", "Retrieved id %u.\n", info->id);
         if(info->hop < minhop)

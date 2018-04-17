@@ -686,7 +686,8 @@ implementation
             int i;
             for(i = 0; i < crash_suspects.count; i++)
             {
-                if(NeighbourList_get(&n_info, crash_suspects.ids[i])->slot != BOT)
+                NeighbourInfo* suspect = NeighbourList_get(&n_info, crash_suspects.ids[i]);
+                if(suspect != NULL && suspect->slot != BOT)
                 {
                     IDList_remove(&neighbours, crash_suspects.ids[i]);
                     IDList_remove(&potential_parents, crash_suspects.ids[i]);
