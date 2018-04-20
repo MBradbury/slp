@@ -570,6 +570,13 @@ class Analyse(object):
                 print("Merging normalised columns with the loaded data...")
                 self.normalised_columns = pd.DataFrame.from_dict(columns_to_add)
 
+                if __debug__:
+                    # Lets do a sanity check that the columns were merged correctly
+                    for (name, col) in columns_to_add.items():
+                        if self.normalised_columns[name].iloc[0] != col.iloc[0]:
+                            raise RuntimeError("Mismatch between {} expected {} obtained {}".format(
+                                name, col.iloc[0], self.normalised_columns[name].iloc[0]))
+
         print("Columns:", df.info(memory_usage='deep'))
 
         if self.normalised_columns is not None:
