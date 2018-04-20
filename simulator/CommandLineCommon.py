@@ -911,7 +911,7 @@ class CLI(object):
 
         def runner(arguments):
             (command, out_path) = arguments
-            print("Executing:", command, ">>", out_path)
+            print("Executing:", command, ">", out_path)
             with open(out_path, "w") as stdout_file:
                 subprocess.check_call(command, stdout=stdout_file, shell=True)
 
