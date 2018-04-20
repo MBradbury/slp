@@ -66,6 +66,7 @@ class CLI(CommandLineCommon.CLI):
             args.sim, result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=(
+                'repeats',
                 'sent',
                 #'delivered',
                 'time taken',
