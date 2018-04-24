@@ -45,7 +45,7 @@ typedef enum
 
 #define ALPHA 10
 #define ALPHA_RETRY 10
-#define RTX_ATTEMPTS 10
+#define RTX_ATTEMPTS 20
 
 #define SourceCorner 1
 #define Source2CornerTop 2
