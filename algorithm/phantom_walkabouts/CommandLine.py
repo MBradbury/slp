@@ -39,6 +39,7 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(protectionless.name)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("graph", self._run_graph)
@@ -89,14 +90,17 @@ class CLI(CommandLineCommon.CLI):
         return tafn * 1.0
 
     def _run_table(self, args):
-        phantom_walkabouts_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
+        parameters = [
+            'captured',
+            'received ratio', 'sent', 'normal latency',
+            #'attacker distance wrt src',
+            #'attacker distance',
+            #'failed avoid sink',
+            #'failed avoid sink when captured',
+        ]
 
-        result_table = fake_result.ResultTable(phantom_walkabouts_results)
+        self._create_results_table(args.sim, parameters, show=args.show)
 
-        self._create_table("{}-results".format(self.algorithm_module.name), result_table, orientation='landscape', show=args.show)
 
     @staticmethod
     def vvalue_converter(name):
