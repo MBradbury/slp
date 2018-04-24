@@ -1080,8 +1080,8 @@ class MetricsCommon(object):
 
         if len(self.node_booted_at) != self.sim.configuration.size():
             print("Some node's boot events were missed:", file=stream)
-            print("\tMissing:", set(self.sim.configuration.topology.nodes.keys()) - set(self.node_booted_at.keys()))
-            print("\tExtra:", set(self.node_booted_at.keys()) - set(self.sim.configuration.topology.nodes.keys()))
+            print("\tMissing:", set(self.sim.configuration.topology.nodes.keys()) - set(self.node_booted_at.keys()), file=stream)
+            print("\tExtra:", set(self.node_booted_at.keys()) - set(self.sim.configuration.topology.nodes.keys()), file=stream)
 
         for (nid, events) in self.node_booted_at.items():
             if len(events) > 1:

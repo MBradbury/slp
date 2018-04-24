@@ -8,7 +8,7 @@ import simulator.sim
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless", extras=["Analysis"])
-adaptive_spr_notify = algorithm.import_algorithm("adaptive_spr_notify")
+adaptive_spr_notify = algorithm.import_algorithm("adaptive_spr_notify", extras=["Analysis"])
 
 from data import results, submodule_loader
 from data.table import fake_result
@@ -31,6 +31,7 @@ class CLI(CommandLineCommon.CLI):
         
         subparser = self._add_argument("graph", self._run_graph)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+        subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("graph-testbed", self._run_graph_testbed)
         subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="Select the testbed to analyse. (Only if not analysing regular results.)")
@@ -130,6 +131,9 @@ class CLI(CommandLineCommon.CLI):
 
         def fetch_baseline_result(baseline_results, data_key, src_period, baseline_params):
 
+            if data_key[-1] != 'enabled':
+                raise RuntimeError(f"Expected 'enabled', got {data_key[-1]}")
+
             # adaptive_spr_notify doesn't run with lpl enabled, but that is what we want to compare against
             data_key = data_key[:-1] + ('disabled',)
 
@@ -139,6 +143,8 @@ class CLI(CommandLineCommon.CLI):
             return all_params['source period'] == '0.25'
 
         self._create_baseline_versus_graph(args.sim, adaptive_spr_notify, graph_parameters, varying,
+            testbed=args.testbed,
+
             results_filter=filter_params,
             custom_yaxis_range_max=custom_yaxis_range_max,
             #custom_yaxis_range_min=custom_yaxis_range_min,
@@ -177,9 +183,12 @@ class CLI(CommandLineCommon.CLI):
             'average power used': ('Average Power Used (mAh)', 'left top'),
         }
 
+        lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+
         varying = [
             #(('network size', ''), ('source period', ' seconds')),
-            (('source period', ' seconds'), ('approach', '~')),
+            #(('source period', ' seconds'), ('approach', '~')),
+            (('source period', ' seconds'), (lpl_params, '~')),
         ]
 
         custom_yaxis_range_max = {
@@ -194,7 +203,6 @@ class CLI(CommandLineCommon.CLI):
                 return {
                     "PB_FIXED1_APPROACH": "Fixed1",
                     "PB_FIXED2_APPROACH": "Fixed2",
-                    "PB_RND_APPROACH": "Rnd",
                 }[name]
             except KeyError:
                 return name
@@ -205,12 +213,15 @@ class CLI(CommandLineCommon.CLI):
 
         def fetch_baseline_result(baseline_results, data_key, src_period, baseline_params):
 
+            if data_key[-1] != 'enabled':
+                raise RuntimeError(f"Expected 'enabled', got {data_key[-1]}")
+
             # adaptive_spr_notify doesn't run with lpl enabled, but that is what we want to compare against
             data_key = data_key[:-1] + ('disabled',)
 
             return baseline_results.data[data_key][src_period][baseline_params]
 
-        self._create_baseline_versus_graph("real", protectionless, graph_parameters, varying,
+        self._create_baseline_versus_graph("real", adaptive_spr_notify, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
             testbed=args.testbed,
             vvalue_label_converter = vvalue_converter,
@@ -222,10 +233,12 @@ class CLI(CommandLineCommon.CLI):
             ylabel_font = "',14'",
             line_width = 3,
             point_size = 1,
-            nokey = True,
+            #nokey = False,
             legend_divisor = 2,
             legend_font_size = '14',
             legend_base_height = 0.5,
+
+            vary_label="Early/Late Wakeups",#"N_e, N_l, F_e, F_l, C_e, C_l",
 
             fetch_baseline_result=fetch_baseline_result,
         )
