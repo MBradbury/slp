@@ -13,16 +13,14 @@ import simulator.sim
 from simulator import CommandLineCommon
 from simulator import Configuration
 
-import algorithm
-
 #import algorithm.protectionless as protectionless
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
-phantom_chen = algorithm.import_algorithm("phantom_chen")
-ilprouting_chen = algorithm.import_algorithm("ilprouting_chen")
-adaptive_spr_notify_chen = algorithm.import_algorithm("adaptive_spr_notify_chen")
-protectionless_chen = algorithm.import_algorithm("protectionless_chen")
-protectionless_ctp_chen = algorithm.import_algorithm("protectionless_ctp_chen")
+#phantom_chen = algorithm.import_algorithm("phantom_chen")
+#lprouting_chen = algorithm.import_algorithm("ilprouting_chen")
+#adaptive_spr_notify_chen = algorithm.import_algorithm("adaptive_spr_notify_chen")
+#protectionless_chen = algorithm.import_algorithm("protectionless_chen")
+#protectionless_ctp_chen = algorithm.import_algorithm("protectionless_ctp_chen")
 
 
 from data import results

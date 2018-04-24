@@ -1,9 +1,6 @@
-
 from simulator.ArgumentsCommon import ArgumentsCommon
 import simulator.SourcePeriodModel
 import simulator.MobilityModel
-
-order_choices = ["LongShort", "ShortLong"]
 
 def buffer_size(value):
     value = int(value)
@@ -11,13 +8,15 @@ def buffer_size(value):
         raise RuntimeError("Buffer size must be between 1 and 254 inclusive.")
     return value
 
+order_choices = ["LongShort", "ShortLong"]
+
 class Arguments(ArgumentsCommon):
     def __init__(self):
-        super(Arguments, self).__init__("SLP Phantom_Walkabouts ACK",
+        super(Arguments, self).__init__("SLP Phantom_Walkabouts",
             has_safety_period=True, has_safety_factor=True)
 
         self.add_argument("--source-period",
-                          type=self.type_positive_float, required=True)
+                          type=simulator.SourcePeriodModel.eval_input, required=True)
         self.add_argument("--source-mobility",
                           type=simulator.MobilityModel.eval_input,
                           default=simulator.MobilityModel.StationaryMobilityModel())
@@ -41,6 +40,8 @@ class Arguments(ArgumentsCommon):
 
         result["BOTTOM_LEFT_NODE_ID"] = self._get_node_id("bottom_left")
         result["BOTTOM_RIGHT_NODE_ID"] = self._get_node_id("bottom_right")
+        result["TOP_LEFT_NODE_ID"] = self._get_node_id("top_left")
+        result["TOP_RIGHT_NODE_ID"] = self._get_node_id("top_right")
 
         result["WAIT_BEFORE_SHORT_MS"] = int(self.args.wait_before_short)
 

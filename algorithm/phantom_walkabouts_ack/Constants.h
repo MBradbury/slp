@@ -34,7 +34,7 @@ typedef enum
 }SetType;
 
 #define SLP_MAX_NUM_SINKS 1
-#define SLP_MAX_NUM_SOURCES 20
+#define SLP_MAX_NUM_SOURCES 10
 #define SLP_MAX_1_HOP_NEIGHBOURHOOD 16
 #define SLP_MAX_NUM_AWAY_MESSAGES 4
 #define MAX_NUM_NEIGHBOURS 2 //max neighbours each direction
