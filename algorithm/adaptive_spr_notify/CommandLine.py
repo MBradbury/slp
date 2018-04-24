@@ -93,6 +93,7 @@ class CLI(CommandLineCommon.CLI):
             args.sim, result_file_path,
             parameters=self.algorithm_module.local_parameter_names,
             results=(
+                'repeats',
                 #'sent', 'delivered',
                 'norm(norm(fake,time taken),network size)',
                 'time taken',
