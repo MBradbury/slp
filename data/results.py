@@ -119,6 +119,9 @@ class Results(object):
 
 
     def _read_results(self, result_path, results_filter, source_period_normalisation, network_size_normalisation):
+
+        print(f"Reading results from {result_path}")
+
         with open(result_path, 'r') as result_file:
 
             reader = csv.reader(result_file, delimiter='|')
@@ -165,7 +168,7 @@ class Results(object):
 
         if name == 'captured':
             return float(value) * 100.0
-        elif name in {'received ratio', 'paths reached end', 'source dropped'}:
+        elif name in {'received ratio', 'paths reached end', 'source dropped', 'average duty cycle'}:
             # Convert from percentage in [0, 1] to [0, 100]
             return extract_average_and_stddev(value) * 100.0
         elif name == 'normal latency':

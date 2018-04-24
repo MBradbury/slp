@@ -105,7 +105,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             #'tfs': ('Number of TFS Created', 'left top'),
             #'pfs': ('Number of PFS Created', 'left top'),
-            'attacker distance': ('Meters', 'left top'),
+            'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
         }
@@ -147,13 +147,14 @@ class CLI(CommandLineCommon.CLI):
             yextractor = yextractors,
             xaxis_font = "',16'",
             yaxis_font = "',16'",
-            xlabel_font = "',18'",
-            ylabel_font = "',18'",
+            xlabel_font = "',14'",
+            ylabel_font = "',14'",
             line_width = 3,
             point_size = 1,
             nokey = True,
             generate_legend_graph = True,
             legend_font_size = 16,
+            xvalues_to_tic_label = lambda x: f'"{x}x{x}"'
         )
 
 

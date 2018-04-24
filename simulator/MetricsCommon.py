@@ -3,6 +3,7 @@ from collections import Counter, OrderedDict, defaultdict, namedtuple
 import base64
 from itertools import zip_longest, tee
 import math
+import os.path
 import pickle
 import struct
 import sys
@@ -145,7 +146,6 @@ class MetricsCommon(object):
     def _non_strict_setup(self):
         """Set up any variables that may be missing in non-strict cases.
         For example testbed serial aggregators may miss important info."""
-        import os.path
         import re
 
         # Find the node and message, name and name associations
@@ -1596,24 +1596,31 @@ class MessageTimeMetricsGrapher(MetricsCommon):
 
         self._node_change[new_name].append((time, ord_node_id, f"{old_name}"))
 
-    def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False, interactive=False):
+    def _plot_message_events(self, values, filename, line_values=None, all_line_values=None,
+                             y2label=None, with_dutycycle=False, interactive=False, legend=True,
+                             legend_types={"msg", "node", "line"}):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
 
         if interactive:
             import mpld3
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(1.618 * 5, 1 * 4))
 
-        # From: https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
-        box = ax.get_position()
-        ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
+        ax2 = None
+        max_ax2_ys = 0
+
+        if legend:
+            # From: https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
+            box = ax.get_position()
+            ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
         # Plot events
         for (kind, details) in sorted(values.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=message_type_to_colour(kind), label=kind, s=4, zorder=4, marker="o")
+            label = kind if "msg" in legend_types else "_nolegend_"
+            scatter = ax.scatter(xs, ys, c=message_type_to_colour(kind), label=label, s=4, zorder=10, marker="o")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1623,7 +1630,8 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, details) in sorted(self._node_change.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=node_type_to_colour(kind), label=kind[:-len("Node")], s=12, zorder=3, marker="s")
+            label = kind[:-len("Node")] if "node" in legend_types else "_nolegend_"
+            scatter = ax.scatter(xs, ys, c=node_type_to_colour(kind), label=label, s=12, zorder=9, marker="s")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1633,19 +1641,38 @@ class MessageTimeMetricsGrapher(MetricsCommon):
             xs, ys = zip(*line_values)
 
             if y2label is None:
-                ax.plot(xs, ys)
+                line = ax.plot(xs, ys)
             else:
                 ax2 = ax.twinx()
-                ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
-
-                ax2.plot(xs, ys, zorder=5)
-
                 ax2.set_ylabel(y2label)
 
-                ymin, ymax = 0, max(ys)
-                ymin -= 0.05 * (ymax - ymin)
-                ymax += 0.05 * (ymax - ymin)
-                ax2.set_ylim(bottom=ymin, top=ymax)
+                line = ax2.plot(xs, ys)
+
+                max_ax2_ys = max(ys)
+
+        elif all_line_values is not None:
+
+            ax2 = ax.twinx()
+            ax2.set_ylabel(y2label)
+
+            max_ax2_ys = 0
+
+            for (line_values, label, main_y) in all_line_values:
+                xs, ys = zip(*line_values)
+
+                label = label if "line" in legend_types else "_nolegend_"
+
+                if main_y:
+                    line = ax.plot(xs, ys, label=label)
+
+                    next(ax2._get_lines.prop_cycler)
+
+                else:
+                    line = ax2.plot(xs, ys, label=label)
+
+                    next(ax._get_lines.prop_cycler)
+
+                    max_ax2_ys = max(max_ax2_ys, *ys)
 
         if with_dutycycle:
             for node_id in self.topology.nodes:
@@ -1665,13 +1692,31 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         ymax += 0.05 * (ymax - ymin)
         ax.set_ylim(bottom=ymin, top=ymax)
 
-        font_prop = FontProperties()
-        font_prop.set_size("small")
+        if ax2:
+            if legend:
+                ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-        legend = ax.legend(loc="upper center", bbox_to_anchor=(0.45,-0.15), ncol=6, prop=font_prop)
+            ymin, ymax = 0, max_ax2_ys
+            ymin -= 0.05 * (ymax - ymin)
+            ymax += 0.05 * (ymax - ymin)
+            ax2.set_ylim(bottom=ymin, top=ymax)
+
+        if legend:
+            font_prop = FontProperties()
+            font_prop.set_size("small")
+
+            handles, labels = ax.get_legend_handles_labels()
+            handles2, labels2 = ax2.get_legend_handles_labels() if ax2 is not None else ([], [])
+
+            ax.legend(handles + handles2, labels + labels2,
+                      loc="upper center", bbox_to_anchor=(0.45,-0.15), ncol=6, prop=font_prop)
 
         ax.set_xlabel("Time (seconds)")
         ax.set_ylabel("Node ID")
+
+        if ax2:
+            ax.set_zorder(ax2.get_zorder()+1)
+            ax.patch.set_visible(False)
 
         if interactive:
             mpld3.show()
@@ -1688,21 +1733,31 @@ class MessageTimeMetricsGrapher(MetricsCommon):
             self._plot_message_events(self._bcasts, "bcasts_duty.pdf", with_dutycycle=True)
             self._plot_message_events(self._delivers, "delivers_duty.pdf", with_dutycycle=True)
 
+
         for (attacker_id, values) in self._attacker_delivers.items():
+
+            all_line_values = []
+
             line_values = [(time, node_id.nid) for (time, node_id) in self._attacker_history[attacker_id]]
             values = {k: [detail + (None,) for detail in details] for (k, details) in values.items()}
-            self._plot_message_events(values, f"attacker{attacker_id}_delivers_nid.pdf", line_values=line_values)
+            self._plot_message_events(values, f"attacker{attacker_id}_delivers_nid.pdf", line_values=line_values, legend=False)
 
-        for source_id in self.configuration.source_ids:
-            for (attacker_id, values) in self._attacker_delivers.items():
+            all_line_values.append((line_values, f"Attacker Position", True))
+
+            for source_id in self.configuration.source_ids:
                 line_values = [
                     (time, self.configuration.node_source_distance_meters(node_id, source_id))
                     for (time, node_id)
                     in self._attacker_history[attacker_id]
                 ]
-                values = {k: [detail + (None,) for detail in details] for (k, details) in values.items()}
                 self._plot_message_events(values, f"attacker{attacker_id}_delivers_dsrcm{source_id}.pdf",
-                           line_values=line_values, y2label=f"Source {source_id} Distance (meters)")
+                           line_values=line_values, y2label=f"Source {source_id} Distance (meters)", legend=False)
+
+                all_line_values.append((line_values, f"Source {source_id} Distance", False))
+
+            self._plot_message_events(values, f"attacker{attacker_id}_delivers.pdf",
+                           all_line_values=all_line_values, y2label=f"Source Distance (meters)",
+                           legend_types={"line"})
 
     @staticmethod
     def items():
@@ -1814,6 +1869,7 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
 
     def _plot_message_duty_cycle_boundary_histogram(self, message_name):
         import matplotlib.pyplot as plt
+        import scipy.stats
         from matplotlib.font_manager import FontProperties
 
         early_wakeup_ms, late_wakeup_ms = self._intervals.get(message_name, (0, 0))
@@ -1846,10 +1902,22 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
         if len(hist_values) > 0:
             bins = int(math.ceil(max(hist_values)-min(hist_values))/5)
             try:
-                ax.hist(hist_values, bins=bins, color=message_type_to_colour(message_name))
+                result = ax.hist(hist_values, bins=bins, color=message_type_to_colour(message_name))
             except ValueError as ex:
                 print(ex)
-                ax.hist(hist_values, bins="auto", color=message_type_to_colour(message_name))
+                result = ax.hist(hist_values, bins="auto", color=message_type_to_colour(message_name))
+
+            ax.set_xlim((min(hist_values), max(hist_values)))
+
+            mean = np.mean(hist_values)
+            var = np.var(hist_values)
+            std = np.std(hist_values)
+            x = np.linspace(min(hist_values), max(hist_values), num=100)
+            dx = result[1][1] - result[1][0]
+            scale = len(hist_values) * dx
+            pdist_line = ax.plot(x, scipy.stats.norm.pdf(x, mean, std) * scale, label=f"N({mean:.0f},{var:.0f})")
+
+            ax.legend()
 
             ax.set_xlabel("Difference (ms)")
             ax.set_ylabel("Count")
@@ -1882,19 +1950,17 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         time = float(time)
         kind = self.message_kind_to_string(kind)
         ord_node_id, top_node_id = self._process_node_id(node_id)
+        ord_ult_node_id, top_ult_node_id = self._process_node_id(ultimate_source_id)
         sequence_number = int(sequence_number)
 
-        if ord_node_id in self.source_ids() and kind == "Normal":
-            key = (ord_node_id, sequence_number)
+        if ord_node_id == ord_ult_node_id:
+            key = (ord_node_id, kind, sequence_number)
 
             if key not in self._bcasts_at:
                 self._bcasts_at[key] = time
 
     def log_time_diff_deliver_event(self, d_or_e, node_id, time, detail):
-        try:
-            (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
-        except ValueError:
-            (kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi) = detail.split(',')
+        (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
 
         time = float(time)
         kind = self.message_kind_to_string(kind)
@@ -1902,51 +1968,227 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         ord_ult_node_id, top_ult_node_id = self._process_node_id(ultimate_source_id)
         sequence_number = int(sequence_number)
 
-        if kind == "Normal":
-            key = (ord_ult_node_id, sequence_number)
+        key = (ord_ult_node_id, kind, sequence_number)
 
-            if ord_node_id not in self._delivers_at[key]:
-                self._delivers_at[key][ord_node_id] = time
+        if ord_node_id not in self._delivers_at[key]:
+            self._delivers_at[key][ord_node_id] = time
 
     def finish(self):
         super().finish()
 
-        dsrc_vs_time = []
+        dsrc_vs_time = {}
+
+        dsrc_vs_time_dict = {}
 
         for (key, bcast_time) in self._bcasts_at.items():
-            (ord_src_id, sequence_number) = key
+            (ord_src_id, kind, sequence_number) = key
 
             for (ord_node_id, deliver_time) in self._delivers_at[key].items():
 
-                dsrc = self.sim.configuration.node_source_distance(ord_node_id, ord_src_id)
+                if ord_node_id == ord_src_id:
+                    continue
 
-                time = deliver_time - bcast_time
+                dsrc = self.sim.configuration.node_distance(ord_node_id, ord_src_id)
 
-                dsrc_vs_time.append((dsrc, time*1000))
+                # Convert to milliseconds
+                time = int((deliver_time - bcast_time) * 1000)
 
-        self._plot_message_travel_time_scatter(dsrc_vs_time)
+                dsrc_vs_time.setdefault(kind, []).append((dsrc, time))
 
-    def _plot_message_travel_time_scatter(self, dsrc_vs_time):
+                dsrc_vs_time_dict.setdefault(kind, {}).setdefault(dsrc, []).append(time)
+
+        for (kind, rest) in dsrc_vs_time.items():
+            self._plot_message_travel_time_scatter(kind, rest)
+
+        for (kind, rest) in dsrc_vs_time_dict.items():
+            self._plot_message_travel_time_histogram(kind, rest)
+
+        for (kind, rest) in dsrc_vs_time_dict.items():
+            self._plot_pr_receive_message_within_b(kind, rest)
+
+    def _plot_message_travel_time_scatter(self, msg_name, dsrc_vs_time):
         import matplotlib.pyplot as plt
-        from matplotlib.font_manager import FontProperties
 
         fig, ax = plt.subplots()
 
         x, y = zip(*dsrc_vs_time)
 
-        ax.scatter(x, y, color=message_type_to_colour("Normal"))
+        ax.scatter(x, y, color=message_type_to_colour(msg_name))
 
         ax.set_xlabel("Distance From Source (hops)")
         ax.set_ylabel("Travel Time (ms)")
 
-        plt.savefig(f"NormalMessageTravelTime.pdf", bbox_inches='tight')
+        plt.savefig(f"{msg_name}MessageTravelTime.pdf", bbox_inches='tight')
 
 
+    def _plot_message_travel_time_histogram(self, msg_name, dsrc_vs_time):
+        import matplotlib.pyplot as plt
+
+        width = 3
+        height = math.ceil(len(dsrc_vs_time) / width)
+        size_factor = 6
+
+        fig, axs = plt.subplots(height, width, figsize=(width * size_factor, height * size_factor))
+
+        for (ax, (distance, xs)) in zip(axs.flat, sorted(dsrc_vs_time.items(), key=lambda x: x[0])):
+
+            print(distance, xs)
+
+            ax.hist(xs, bins=range(min(xs), max(xs)+1), color=message_type_to_colour(msg_name))
+
+            ax.set_xlabel("Travel Time (ms)")
+            ax.set_ylabel("Count")
+
+            ax.set_title(f"Distance {distance} (hops)")
+
+        plt.savefig(f"{msg_name}MessageTravelTimeHist.pdf", bbox_inches='tight')
+
+    def _plot_pr_receive_message_within_b(self, msg_name, dsrc_vs_time):
+        import matplotlib.pyplot as plt
+
+        bs = [5, 10, 20, 30, 40, 50, 60, 70]
+
+        fig, ax = plt.subplots()
+
+        for b in bs:
+
+            xys = []
+
+            for (distance, data) in sorted(dsrc_vs_time.items(), key=lambda x: x[0]):
+
+                total = len(data)
+                data = Counter(data)
+
+                prx = 0.0
+
+                for (t, c) in sorted(data.items(), key=lambda x: x[0]):
+                    prt = c / total
+
+                    print(f"Pr(X = {t}) = {prt}")
+
+                    pry = 0.0
+
+                    for t2 in range(t-b,t+b+1):
+                        pry += data.get(t2, 0) / total
+
+                    prx += pry * prt
+
+                print(f"{msg_name}: {distance}: Pr(x-a <= X <= x+a | X = x) = {prx}, where a = {b}")
+
+                xys.append((distance, prx))
+
+            xs, ys = zip(*xys)
+
+            ax.plot(xs, ys, label=f"{b}")
+
+            print()
+
+        ax.set_ylim((0, 1))
+
+        ax.set_xlabel("Distance from the source (hops)")
+        ax.set_ylabel("Probability")
+
+        ax.set_title(f"Pr(x-a <= X <= x+a | X = x)")
+
+        ax.legend()
+
+        plt.savefig(f"{msg_name}MessageReceiveProbability.pdf", bbox_inches='tight')
+
+class FlockLabEnergyMetricsCommon(MetricsCommon):
+    """Only to use used with offline flocklab logs."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._average_node_power_consumption = {}
+        self._total_node_power_consumption = {}
+
+        if type(self.sim.configuration.topology).__name__ != "FlockLab":
+            raise RuntimeError("FlockLabEnergyMetricsCommon can only be used on offline FlockLab runs")
+
+    def finish(self):
+        import gzip
+
+        super().finish()
+
+        start, end = self.sim._real_start_time.timestamp(), self.sim._real_end_time.timestamp()
+
+        log_path = os.path.join(os.path.dirname(self.sim._event_log.log_path), "powerprofilingstats.csv")
+        with open(log_path, 'r') as log_file:
+            for line in log_file:
+                if line.startswith('#'):
+                    continue
+
+                observer_id, node_id, power_mA = line.split(',', 2)
+
+                node_id = OrderedId(int(node_id))
+
+                self._average_node_power_consumption[node_id] = float(power_mA)
+
+        #print(start, end, file=sys.stderr)
+
+        node_state = {}
+
+        log_path = os.path.join(os.path.dirname(self.sim._event_log.log_path), "powerprofiling.csv.gz")
+        with gzip.open(log_path, 'rt', encoding="utf-8") as log_file:
+            for line in log_file:
+                if line.startswith('#'):
+                    continue
+
+                timestamp, observer_id, node_id, power_mA = line.strip().split(',', 3)
+                timestamp = float(timestamp)
+                node_id = int(node_id)
+                power_mA = float(power_mA)
+
+                #print((timestamp, observer_id, node_id, power_mA), file=sys.stderr)
+
+                if timestamp < start:
+                    continue
+
+                if node_id not in node_state:
+                    node_state[node_id] = (timestamp, 0.0)
+                else:
+
+                    previous_timestamp, previous_energy = node_state[node_id]
+
+                    new_power = previous_energy + (timestamp - previous_timestamp) * power_mA
+
+                    node_state[node_id] = (timestamp, new_power)
+
+                if timestamp >= end:
+                    break
+
+        # power is in mAs, needs to be converted into mAh
+        self._total_node_power_consumption = {
+            OrderedId(node_id): power / 60 / 60
+            for (node_id, (timestamp, power)) in node_state.items()
+        }
+
+    def average_node_power_consumption(self):
+        return self._average_node_power_consumption
+
+    def average_power_consumption(self):
+        return np.mean(list(self._average_node_power_consumption.values()))
+
+    def total_node_power_used(self):
+        return self._total_node_power_consumption
+
+    def average_total_power_used(self):
+        return np.mean(list(self._total_node_power_consumption.values()))
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+        d["AverageNodePowerConsumption"]   = lambda x: MetricsCommon.smaller_dict_str(x.average_node_power_consumption(), sort=True)
+        d["AveragePowerConsumption"]       = lambda x: str(x.average_power_consumption())
+
+        d["TotalNodePowerUsed"]            = lambda x: MetricsCommon.smaller_dict_str(x.total_node_power_used(), sort=True)
+        d["AveragePowerUsed"]              = lambda x: str(x.average_total_power_used())
+        return d
 
 
 
 EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, ILPRoutingMessageTimeMetricsGrapher,
-                 MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher)
+                 MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher, FlockLabEnergyMetricsCommon)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
 def import_algorithm_metrics(module_name, sim, extra_metrics=None):

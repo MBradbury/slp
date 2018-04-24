@@ -443,10 +443,10 @@ class ResultsProcessor(object):
         }
 
         node_info = [
-            (nid, coord, z[nid])
+            (nid, coord, z[nid.nid])
             for (nid, coord)
             in self.testbed_topology.nodes.items()
-            if nid in z
+            if nid.nid in z
         ]
 
         n, coords, cs = zip(*node_info)
@@ -457,7 +457,8 @@ class ResultsProcessor(object):
         minx, maxx = min(xs), max(xs)
         miny, maxy = min(ys), max(ys)
 
-        vmin, vmax = -100, -83
+        #vmin, vmax = -100, -83
+        vmin, vmax = -98, -92
 
         try:
             zs = [coord[2] for coord in coords]
@@ -465,10 +466,17 @@ class ResultsProcessor(object):
             zs = None
 
         if zs is None:
-            ax = plt.gca()
+            rangex, rangey = max(xs) - min(xs), max(ys) - min(ys)
+
+            scale = 8
+
+            fig, ax = plt.subplots(figsize=(scale * (rangex / rangex), scale * (rangey / rangex)))
+
             plt.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r", vmin=vmin, vmax=vmax)
             ax.set_yticklabels([])
             ax.set_xticklabels([])
+
+            ax.set_aspect('equal', 'datalim')
 
             plt.colorbar()
 
