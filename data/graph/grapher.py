@@ -84,6 +84,16 @@ class ApproachNameShortener:
         except KeyError:
             return self.approach
 
+class AttackerNameShortener:
+    def __init__(self, attacker):
+        self.attacker = AttackerConfiguration.eval_input(attacker)
+
+    def __str__(self):
+        return str(self.attacker)
+
+    def short_name(self):
+        return re.sub(r"message_detect='within_range\(([0-9.]+)\)'", r"md=wr(\1)", self.attacker.short_name())
+
 class GrapherBase(object):
     def __init__(self, sim_name, output_directory):
         self.output_directory = output_directory
@@ -98,7 +108,7 @@ class GrapherBase(object):
     def _shorten_long_names(key_names, key_values):
         # Some of these values get much too long
         very_long_parameter_names = {
-            'attacker model': AttackerConfiguration.eval_input,
+            'attacker model': AttackerNameShortener,
             'fault model': FaultModel.eval_input,
             'radio model': CoojaRadioModel.eval_input,
             'approach': ApproachNameShortener,

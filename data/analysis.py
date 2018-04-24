@@ -1,7 +1,7 @@
 
 import ast
 import base64
-from collections import OrderedDict, Sequence
+from collections import OrderedDict, Sequence, defaultdict
 from functools import partial
 import gc
 from itertools import islice
@@ -176,19 +176,16 @@ def dict_mean(dict_list):
 
 def dict_var(dict_list, mean):
     """Dict variance"""
+    lin = defaultdict(list)
 
-    first = next(iter(dict_list))
-
-    lin = {k: [] for k in first}
-
-    for d in islice(dict_list, 1, None):
+    for d in dict_list:
         for (k, v) in d.items():
             lin[k].append(v)
 
     for k in lin:
         lin[k] = np.var(lin[k], dtype=np.float64)
 
-    return lin
+    return dict(lin)
 
 """
 def _energy_impact(columns, cached_cols, constants):
@@ -279,6 +276,8 @@ class Analyse(object):
         "FakeToNormal": np.uint32,
         "FakeToFake": np.uint32,
         "FakeNodesAtEnd": np.uint32,
+        "AveragePowerConsumption": np.float_,
+        "AveragePowerUsed": np.float_,
     }
 
     HEADING_CONVERTERS = {
@@ -319,6 +318,9 @@ class Analyse(object):
 
         "DutyCycleStart": lambda x: None if x == "None" else np.float_(x), # Either None or float
         "DutyCycle": _parse_dict_node_to_value,
+
+        "AverageNodePowerConsumption": _parse_dict_node_to_value,
+        "TotalNodePowerUsed": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
@@ -567,6 +569,13 @@ class Analyse(object):
             if len(columns_to_add) > 0:
                 print("Merging normalised columns with the loaded data...")
                 self.normalised_columns = pd.DataFrame.from_dict(columns_to_add)
+
+                if __debug__:
+                    # Lets do a sanity check that the columns were merged correctly
+                    for (name, col) in columns_to_add.items():
+                        if self.normalised_columns[name].iloc[0] != col.iloc[0]:
+                            raise RuntimeError("Mismatch between {} expected {} obtained {}".format(
+                                name, col.iloc[0], self.normalised_columns[name].iloc[0]))
 
         print("Columns:", df.info(memory_usage='deep'))
 
@@ -891,7 +900,7 @@ class AnalysisResults(object):
         self.configuration = analysis._get_configuration()
 
 class AnalyzerCommon(object):
-    def __init__(self, sim_name, results_directory):
+    def __init__(self, sim_name, results_directory, testbed=None):
         self.sim_name = sim_name
         self.results_directory = results_directory
         
@@ -905,6 +914,9 @@ class AnalyzerCommon(object):
         self.values['dropped no sink delivery'] = lambda x: str(x.dropped_no_sink_delivery)
         self.values['dropped hit upper bound']  = lambda x: str(x.dropped_hit_upper_bound)
         self.values['dropped duplicates']       = lambda x: str(x.dropped_duplicates)
+
+        if testbed and hasattr(testbed, "testbed_header"):
+            self.values.update(testbed.testbed_header(self))
 
     def common_results_header(self, local_parameter_names):
         d = OrderedDict()
