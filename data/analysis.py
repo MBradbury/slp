@@ -24,6 +24,7 @@ import data.submodule_loader as submodule_loader
 from data.progress import Progress
 
 import simulator.sim
+import simulator.testbed
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 from simulator.Topology import TopologyId
@@ -915,8 +916,12 @@ class AnalyzerCommon(object):
         self.values['dropped hit upper bound']  = lambda x: str(x.dropped_hit_upper_bound)
         self.values['dropped duplicates']       = lambda x: str(x.dropped_duplicates)
 
-        if testbed and hasattr(testbed, "testbed_header"):
-            self.values.update(testbed.testbed_header(self))
+        if testbed:
+            if isinstance(testbed, str):
+                testbed = submodule_loader.load(simulator.testbed, testbed)
+
+            if hasattr(testbed, "testbed_header"):
+                self.values.update(testbed.testbed_header(self))
 
     def common_results_header(self, local_parameter_names):
         d = OrderedDict()
