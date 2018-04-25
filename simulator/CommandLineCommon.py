@@ -321,7 +321,7 @@ class CLI(object):
     def _create_baseline_versus_graph(self, sim_name, baseline_module, graph_parameters, varying, *,
                                       custom_yaxis_range_max=None, custom_yaxis_range_min=None,
                                       source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
-                                      yextractor=scalar_extractor, xextractor=None, testbed=None, vary_label=None,
+                                      yextractor=scalar_extractor, xextractor=None, testbed=None, #vary_label=None,
                                       **kwargs):
         from data.graph import baseline_versus
 
@@ -372,7 +372,7 @@ class CLI(object):
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
-                g.vary_label = ("/".join(x.title() for x in vary) if isinstance(vary, tuple) else vary.title()) if not vary_label else vary_label
+                g.vary_label = "/".join(x.title() for x in vary) if isinstance(vary, tuple) else vary.title()
                 g.vary_prefix = vary_units
                 g.key_position = key_position
 
@@ -887,9 +887,9 @@ class CLI(object):
             if testbed_extra_metrics:
                 settings["--extra-metrics"] = " ".join(testbed_extra_metrics)
 
-            # The source period will either be the second or third entry in common_result_dir
+            # The source period will either be the second or third entry in out_param
             # Depending on if the fault model has been left out
-            params = common_result_dir.split("-")
+            params = out_param.split("-")
 
             if len(params) == 5 + len(self.algorithm_module.local_parameter_names):
                 (configuration, tx_power, channel, lpl, source_period) = params[:5]
