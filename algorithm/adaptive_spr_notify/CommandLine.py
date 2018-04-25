@@ -152,6 +152,8 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
             'average power consumption': ('Average Power Consumption (mA)', 'left top'),
             'average power used': ('Average Power Used (mAh)', 'left top'),
+            'norm(average power used,time taken)': ('Normalised Average Power Used (mAh)', 'left top'),
+            'time taken': ('Time Taken (sec)', 'left top'),
         }
 
         varying = [
@@ -161,9 +163,11 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'received ratio': 100,
-            'captured': 5,
+            'captured': 20,
             'norm(norm(sent,time taken),network size)': 6,
             'norm(norm(fake,time taken),network size)': 6,
+            'average power used': 0.035,
+            'average power consumption': 20,
         }
 
         def vvalue_converter(name):
@@ -179,6 +183,9 @@ class CLI(CommandLineCommon.CLI):
         yextractors = {
             "attacker distance": lambda vvalue: scalar_extractor(vvalue)[(1, 0)]
         }
+
+        def filter_params(all_params):
+            return all_params['source period'] == '0.5'
 
         self._create_baseline_versus_graph("real", protectionless, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
@@ -196,6 +203,11 @@ class CLI(CommandLineCommon.CLI):
             legend_divisor = 2,
             legend_font_size = '14',
             legend_base_height = 0.5,
+
+            vary_label = "",
+            baseline_label="Protectionless",
+
+            results_filter=filter_params,
         )
 
 
