@@ -239,6 +239,17 @@ implementation
         NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot());
     }
 
+    void set_parent(uint16_t new_parent) {
+        if(parent != BOT) {
+            simdbg("DAS-State", "arrow,-,%" PRIu16 ",%" PRIu16 ",(1,0.4,0)\n", TOS_NODE_ID, parent);
+        }
+        if(new_parent != BOT) {
+            simdbg("DAS-State", "arrow,+,%" PRIu16 ",%" PRIu16 ",(1,0.4,0)\n", TOS_NODE_ID, new_parent);
+        }
+        simdbg("stdout", "Changing parent: %" PRIu16 " -> %" PRIu16 "\n", parent, new_parent);
+        parent = new_parent;
+    }
+
     void set_path_parent(uint16_t new_parent) {
         path_parent = new_parent;
         simdbg("stdout", "Set path parent to %" PRIu16 " (slot=%u)\n", path_parent, call TDMA.get_slot());
@@ -271,6 +282,7 @@ implementation
         call MessageType.register_pair(SEARCH_CHANNEL, "Search");
         call MessageType.register_pair(CHANGE_CHANNEL, "Change");
         call MessageType.register_pair(EMPTYNORMAL_CHANNEL, "EmptyNormal");
+        call MessageType.register_pair(CRASH_CHANNEL, "Crash");
 
         call NodeType.register_pair(SourceNode, "SourceNode");
         call NodeType.register_pair(SinkNode, "SinkNode");
@@ -372,7 +384,7 @@ implementation
     void process_dissem(void)
     {
         int i;
-        if(call TDMA.get_slot() == BOT)
+        if(call TDMA.get_slot() == BOT && !active)
         {
             const NeighbourInfo* parent_info = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
             OtherInfo* other_info;
@@ -389,7 +401,7 @@ implementation
                 return;
             }
 
-            parent = parent_info->id;
+            set_parent(parent_info->id);
             set_hop(parent_info->hop + 1);
             call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             active = TRUE;
@@ -409,6 +421,26 @@ implementation
                     }
                 }
                 /*simdbgverbose("stdout", "Added children to list: "); IDList_print(&children); simdbgverbose_clear("stdout", "\n");*/
+            }
+        }
+        else
+        {
+            const NeighbourInfo* pparent = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
+            OtherInfo* other_info;
+            if(!pparent || pparent->id == parent) return;
+            other_info = OtherList_get(&others, pparent->id);
+            if(!other_info) return;
+
+            if(pparent->hop < hop) {
+                simdbg("stdout", "SPECIAL PARENT CHANGE\n");
+                set_parent(pparent->id);
+                set_hop(pparent->hop + 1);
+                call TDMA.set_slot(pparent->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
+            }
+
+            IDList_copy(&children, &neighbours);
+            for(i = 0; i < potential_parents.count; i++) {
+                IDList_minus_parent(&children, potential_parents.ids[i]);
             }
         }
     }
@@ -669,7 +701,9 @@ implementation
     void reset_node() {
         call TDMA.set_slot(BOT);
         set_hop(BOT);
-        parent = BOT;
+        set_parent(BOT);
+        IDList_clear(&potential_parents);
+        IDList_clear(&children);
         {
             int i;
             for(i = 0; i < n_info.count; i++) {
@@ -718,7 +752,7 @@ implementation
                     send_crash_init();
                     return;
                 }
-                parent = parent_info->id;
+                set_parent(parent_info->id);
                 set_hop(parent_info->hop + 1);
                 call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             }
@@ -986,6 +1020,11 @@ implementation
 
         if(rcvd->normal)
         {
+            //Keeps checking for potential parents even after assignment
+            if(source->hop != BOT && hop != BOT && source->hop < hop) {
+                IDList_add(&potential_parents, source_addr);
+            }
+
             if(call TDMA.get_slot() == BOT && source->slot != BOT)
             {
                 OtherInfo* others_source_addr;
@@ -1030,6 +1069,18 @@ implementation
                 }
                 NeighbourList_add_info(&n_info, source);
             }
+        }
+
+        if(rcvd->parent == TOS_NODE_ID && parent == source_addr && hop < source->hop) {
+            IDList_remove(&potential_parents, source_addr);
+            reset_node();
+            return;
+        }
+        if(parent == source_addr && source->slot != BOT && source->slot <= call TDMA.get_slot()) {
+            int8_t reduction = 1;
+            OtherInfo* other_info = OtherList_get(&others, source_addr);
+            if(other_info) reduction = rank(&(other_info->N), TOS_NODE_ID);
+            call TDMA.set_slot(source->slot - reduction - get_assignment_interval() - 1);
         }
 
         //Update the still alive count of the parent/child in the path
@@ -1330,7 +1381,7 @@ implementation
                     send_Crash_message(&msg, AM_BROADCAST_ADDR);
                     return;
                 }
-                parent = parent_info->id;
+                set_parent(parent_info->id);
                 set_hop(parent_info->hop + 1);
                 call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             }
