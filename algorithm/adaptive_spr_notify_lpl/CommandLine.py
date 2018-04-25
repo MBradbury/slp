@@ -161,6 +161,7 @@ class CLI(CommandLineCommon.CLI):
             legend_divisor = 4,
             legend_base_height = 0.3,
             vary_label = "",
+            baseline_label="DynamicSPR (no duty cycle)",
 
             fetch_baseline_result=fetch_baseline_result,
         )
@@ -181,6 +182,8 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
             'average power consumption': ('Average Power Consumption (mA)', 'left top'),
             'average power used': ('Average Power Used (mAh)', 'left top'),
+            'time taken': ('Time Taken (sec)', 'left top'),
+            'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
         }
 
         lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
@@ -193,9 +196,14 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'received ratio': 100,
-            'captured': 5,
-            'norm(norm(sent,time taken),network size)': 6,
-            'norm(norm(fake,time taken),network size)': 6,
+            'captured': 30,
+            'norm(norm(sent,time taken),network size)': 4,
+            'norm(norm(fake,time taken),network size)': 4,
+            'average power consumption': 20,
+            'average power used': 0.04,
+            'normal latency': 300,
+            'attacker distance': 600,
+            'average duty cycle': 100,
         }
 
         def vvalue_converter(name):
@@ -221,6 +229,9 @@ class CLI(CommandLineCommon.CLI):
 
             return baseline_results.data[data_key][src_period][baseline_params]
 
+        def filter_params(all_params):
+            return all_params['source period'] == '0.5'
+
         self._create_baseline_versus_graph("real", adaptive_spr_notify, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
             testbed=args.testbed,
@@ -233,13 +244,15 @@ class CLI(CommandLineCommon.CLI):
             ylabel_font = "',14'",
             line_width = 3,
             point_size = 1,
-            #nokey = False,
-            legend_divisor = 2,
+            nokey = True,
+            legend_divisor = 3,
             legend_font_size = '14',
             legend_base_height = 0.5,
 
-            vary_label="Early/Late Wakeups",#"N_e, N_l, F_e, F_l, C_e, C_l",
+            vary_label = "",
+            baseline_label="DynamicSPR (no duty cycle)",
 
             fetch_baseline_result=fetch_baseline_result,
-        )
 
+            results_filter=filter_params,
+        )
