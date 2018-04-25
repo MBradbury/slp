@@ -21,10 +21,10 @@ import pandas as pd
 import psutil
 
 import data.submodule_loader as submodule_loader
+import data.testbed
 from data.progress import Progress
 
 import simulator.sim
-import simulator.testbed
 import simulator.Configuration as Configuration
 import simulator.SourcePeriodModel as SourcePeriodModel
 from simulator.Topology import TopologyId
@@ -918,10 +918,13 @@ class AnalyzerCommon(object):
 
         if testbed:
             if isinstance(testbed, str):
-                testbed = submodule_loader.load(simulator.testbed, testbed)
+                testbed = submodule_loader.load(data.testbed, testbed)
 
             if hasattr(testbed, "testbed_header"):
                 self.values.update(testbed.testbed_header(self))
+
+            if hasattr(testbed, "testbed_normalised"):
+                self.normalised_values += testbed.testbed_normalised(self)
 
     def common_results_header(self, local_parameter_names):
         d = OrderedDict()
