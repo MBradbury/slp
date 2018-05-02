@@ -181,7 +181,7 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
             'average power consumption': ('Average Power Consumption (mA)', 'left top'),
-            'average power used': ('Average Power Used (mAh)', 'left top'),
+            'average power used': ('Average Energy Consumed (mAh)', 'left top'),
             'time taken': ('Time Taken (sec)', 'left top'),
             'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
         }
