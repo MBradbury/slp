@@ -300,13 +300,20 @@ class ResultsProcessor(object):
 
 
     def _draw_link_heatmap_fn(self, args, heatmap_name, converter=lambda x: x, min_max=None):
+        import matplotlib
         import matplotlib.pyplot as plt
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+        matplotlib.rcParams.update({'font.size': 18, 'figure.autolayout': True})
+
+        plt.tight_layout()
+
         rssi, lqi, prr = map(converter, self._get_combined_link_results())
 
         tx_powers = {result.broadcast_power for result in self.link_results}
+
+        prr = {k: v * 100 for (k, v) in prr.items()}
 
         details = [("prr", prr, "%"), ("rssi", rssi, "dBm"), ("lqi", lqi, "")]
 
@@ -318,6 +325,10 @@ class ResultsProcessor(object):
                 else:
                     vmin, vmax = min_max[name]
 
+                if name == "prr":
+                    vmin *= 100
+                    vmax *= 100
+
                 if args.combine:
                     ax = plt.subplot(1, len(details), i)
                 else:
@@ -325,7 +336,7 @@ class ResultsProcessor(object):
 
                 im = ax.imshow(value[power], cmap="PiYG", aspect="equal", origin="lower", vmin=vmin, vmax=vmax)
 
-                title = name if not label else "{} ({})".format(name, label)
+                title = name.upper() if not label else "{} ({})".format(name.upper(), label)
 
                 plt.title(title)
                 plt.ylabel("Sender")
