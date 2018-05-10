@@ -5,6 +5,7 @@ import os
 import datetime
 
 from simulator import CommandLineCommon
+import simulator.Configuration
 
 import algorithm
 
@@ -20,18 +21,23 @@ class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
         # tafn = super(RunSimulations, self)._get_safety_period(darguments)
 
+        #XXX Ugly hack using 0 as seed but we need the config only for SSD
+        configuration = simulator.Configuration.create(darguments["configuration"], {"seed":0, **darguments})
+        (source_id,) = configuration.source_ids
+        (sink_id,) = configuration.sink_ids
+
         network_size = darguments["network size"]
         search_distance = darguments["search distance"]
         dissem_period = darguments["dissem period"]
         slot_period = darguments["slot period"]
         tdma_num_slots = darguments["tdma num slots"]
         tdma_period_length = dissem_period + (slot_period * tdma_num_slots)
-        ssd = network_size - 1                                                  #XXX Cheap fix until I find the real solution
+        ssd = configuration.ssd(sink_id, source_id)
         change_distance = ssd // 3
         path_length = search_distance + change_distance
 
         # return path_length*tdma_period_length
-        return (1 + ssd)*tdma_period_length*2
+        return (1 + ssd)*tdma_period_length*1.4
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
@@ -105,17 +111,25 @@ class CLI(CommandLineCommon.CLI):
             'attacker distance': ('Meters', 'left top'),
         }
 
+        # slp_tdma_das_results = results.Results(
+            # self.algorithm_module.result_file_path,
+            # parameters=self.algorithm_module.local_parameter_names,
+            # results=tuple(graph_parameters.keys()))
+
         slp_tdma_das_results = results.Results(
-            self.algorithm_module.result_file_path,
+            "tossim",
+            self.algorithm_module.result_file_path("tossim"),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()))
 
-        for (vary, vary_prefix) in [("source period", " seconds")]:
+        # for (vary, vary_prefix) in [("source period", " seconds"), ("attacker model", "")]:
+        for (vary, vary_prefix) in [("attacker model", "")]:
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
                 name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
 
                 g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
+                    "tossim",
+                    self.algorithm_module.graphs_path("tossim"), name,
                     xaxis='network size', yaxis=yaxis, vary=vary,
                     yextractor=scalar_extractor)
 
@@ -128,7 +142,7 @@ class CLI(CommandLineCommon.CLI):
                 g.create(slp_tdma_das_results)
 
                 summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
+                    os.path.join(self.algorithm_module.graphs_path("tossim"), name),
                     os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
                 ).run()
 
