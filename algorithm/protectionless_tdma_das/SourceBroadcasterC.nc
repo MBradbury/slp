@@ -26,6 +26,7 @@ module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
+    uses interface Crc;
     uses interface Random;
     uses interface LocalTime<TMilli>;
 
@@ -76,7 +77,7 @@ implementation
     bool normal = TRUE;
 
     uint32_t period_counter = 0;
-    int dissem_sending;
+    /*int dissem_sending;*/
 
     enum
 	{
@@ -132,10 +133,10 @@ implementation
         return TDMA_PRE_BEACON_PERIODS;
     }
 
-    uint32_t get_dissem_timeout(void)
-    {
-        return TDMA_DISSEM_TIMEOUT;
-    }
+    /*uint32_t get_dissem_timeout(void)*/
+    /*{*/
+        /*return TDMA_DISSEM_TIMEOUT;*/
+    /*}*/
     //###################}}}
 
     //Setter Functions{{{
@@ -150,10 +151,10 @@ implementation
         NeighbourList_add(&n_info, TOS_NODE_ID, hop, call TDMA.get_slot());
     }
 
-    void set_dissem_timer(void)
-    {
-        dissem_sending = get_dissem_timeout();
-    }
+    /*void set_dissem_timer(void)*/
+    /*{*/
+        /*dissem_sending = get_dissem_timeout();*/
+    /*}*/
     //###################}}}
 
     //Startup Events{{{
@@ -254,7 +255,7 @@ implementation
         }
 
         IDList_add(&neighbours, TOS_NODE_ID); // TODO: Should this be added to the algorithm
-        set_dissem_timer();
+        /*set_dissem_timer();*/
     }
 
 
@@ -319,7 +320,7 @@ implementation
 
                         simdbgverbose("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
                             call TDMA.get_slot(), n_info_i->id, n_info_i->slot);
-                        set_dissem_timer();
+                        /*set_dissem_timer();*/
                     }
                 }
             }
@@ -329,8 +330,8 @@ implementation
             {
                 if(n_info.info[i].slot == BOT)
                 {
-                    set_dissem_timer();
-                    simdbgverbose("stdout", "Detected node with slot=BOT, dissem_sending = TRUE\n");
+                    /*set_dissem_timer();*/
+                    /*simdbgverbose("stdout", "Detected node with slot=BOT, dissem_sending = TRUE\n");*/
                     break;
                 }
 
@@ -360,8 +361,8 @@ implementation
 
     event void DissemTimerSender.fired()
     {
-        if(dissem_sending>0)
-        {
+        /*if(dissem_sending>0)*/
+        /*{*/
             DissemMessage msg;
             msg.normal = normal;
             NeighbourList_select(&n_info, &neighbours, &(msg.N));
@@ -369,9 +370,9 @@ implementation
             simdbgverbose("stdout", "Sending dissem with: "); OnehopList_print(&(msg.N)); simdbgverbose_clear("stdout", "\n");
 
             send_Dissem_message(&msg, AM_BROADCAST_ADDR);
-            dissem_sending--;
-        }
-        if(period_counter < get_pre_beacon_periods()) set_dissem_timer();
+            /*dissem_sending--;*/
+        /*}*/
+        /*if(period_counter < get_pre_beacon_periods()) set_dissem_timer();*/
     }
 
 	task void send_normal(void)
@@ -594,8 +595,8 @@ implementation
                     NeighbourInfo* oldinfo = NeighbourList_get(&n_info, rcvd->N.info[i].id);
                     if(oldinfo == NULL || (rcvd->N.info[i].slot != oldinfo->slot && rcvd->N.info[i].slot < oldinfo->slot)) //XXX Stops stale data?
                     {
-                        set_dissem_timer();
-                        simdbgverbose("stdout", "### Slot information was different, dissem_sending = TRUE\n");
+                        /*set_dissem_timer();*/
+                        /*simdbgverbose("stdout", "### Slot information was different, dissem_sending = TRUE\n");*/
                         NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
                     }
                 }
