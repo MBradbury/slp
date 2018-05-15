@@ -47,16 +47,18 @@ class CLI(CommandLineCommon.CLI):
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
-        if size == 11:
-            return datetime.timedelta(hours=1)
+        if size == 7:
+            return datetime.timedelta(hours=8)
+        elif size == 11:
+            return datetime.timedelta(hours=8)
         elif size == 15:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8)
         elif size == 21:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8)
         elif size == 25:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8)
         else:
-            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+            raise RuntimeError("No time estimate for network sizes other than 7, 11, 15, 21 or 25")
 
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
@@ -68,7 +70,8 @@ class CLI(CommandLineCommon.CLI):
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
-            parameters.pre_beacon_periods, parameters.search_distance
+            parameters.pre_beacon_periods, parameters.search_distance,
+            [parameters.timesync], parameters.timesync_periods
         ))
 
         # argument_product = list(itertools.product(
