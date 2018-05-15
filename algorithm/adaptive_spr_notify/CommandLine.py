@@ -121,6 +121,7 @@ class CLI(CommandLineCommon.CLI):
             'pfs': ('Number of PFS Created', 'left top'),
             'tailfs': ('Number of TailFS Created', 'left top'),
             'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
+            "attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
         }
 
         varying = [
@@ -223,6 +224,7 @@ class CLI(CommandLineCommon.CLI):
 #            'tfs': ('Number of TFS Created', 'left top'),
 #            'pfs': ('Number of PFS Created', 'left top'),
             'attacker distance': ('Attacker-Source Distance (meters)', 'left top'),
+            "attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
             #'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             #'norm(fake,time taken)': ('Messages Sent per Second', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
