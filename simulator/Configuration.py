@@ -1,4 +1,6 @@
 
+import numpy as np
+
 from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
@@ -94,6 +96,19 @@ class Configuration(object):
         for nid in self.topology.nodes.keys():
             if nid != ordered_nid and self.is_connected(ordered_nid, nid):
                 yield nid
+
+    def max_source_distance_meters(self):
+        o2i = self.topology.o2i
+
+        m = 0
+
+        for source in self.source_ids:
+            s = o2i(source).nid
+
+            m = max(m, np.max(self._dist_matrix_meters[s:]))
+
+        return m
+
 
     def node_distance(self, ordered_nidi, ordered_nidj):
         """Get the distance between two ordered nodes in hops."""

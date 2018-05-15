@@ -524,13 +524,20 @@ class Analyse(object):
                     den_col = columns_to_add[den] if den in columns_to_add else df[den]
 
                     columns_to_add[norm_head] = num_col / den_col
+                    
 
                 elif num in self.headings and den in constants:
                     print(f"Creating {norm_head} using ({num},{den}) on the fast path n2")
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
 
-                    columns_to_add[norm_head] = num_col if den == "1" else num_col / constants[den]
+                    try:
+                        columns_to_add[norm_head] = num_col if den == "1" else num_col / constants[den]
+                    except TypeError:
+                        #axis=1 means to apply per row
+                        columns_to_add[norm_head] = df.apply(self._get_norm_dict_value,
+                                                         axis=1, raw=True, reduce=True,
+                                                         args=(num, den, constants))
 
                 elif num in calc_cols and den in constants:
                     print(f"Creating {norm_head} using ({num},{den}) on the fast path n3")
@@ -607,6 +614,15 @@ class Analyse(object):
 
         return np.float_(num_value / den_value)
 
+    def _get_norm_dict_value(self, row, num, den, constants):
+        num_value = self._get_from_opts_or_values(num, row, constants)
+        den_value = self._get_from_opts_or_values(den, row, constants)
+
+        if num_value is None or den_value is None:
+            return None
+
+        return {k: v / den_value for (k, v) in num_value.items()}
+
 
     def _get_configuration(self):
         arg_converters = {
@@ -657,6 +673,8 @@ class Analyse(object):
         constants["source_rate"] = 1.0 / constants["source_period"]
         constants["source_period_per_num_sources"] = constants["source_period"] / constants["num_sources"]
         constants["source_rate_per_num_sources"] = constants["source_rate"] / constants["num_sources"]
+
+        constants["max_source_distance_meters"] = configuration.max_source_distance_meters()
 
         return constants
 
@@ -906,7 +924,10 @@ class AnalyzerCommon(object):
         self.results_directory = results_directory
         
         self.normalised_values = self.normalised_parameters()
-        self.normalised_values += (('time_after_first_normal', '1'),)# ('attacker_distance_wrt_src', '1'))
+        self.normalised_values += (
+            ('time_after_first_normal', '1'),
+            ('AttackerDistance', 'max_source_distance_meters')
+        )
 
         self.filtered_values = self.filtered_parameters()
 
@@ -978,6 +999,7 @@ class AnalyzerCommon(object):
 
         d['attacker moves']     = lambda x: self._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance')
+        d["attacker distance percentage"] = lambda x: self._format_results(x, 'norm(AttackerDistance,max_source_distance_meters)')
         #d['attacker distance wrt src']  = lambda x: self._format_results(x, 'norm(attacker_distance_wrt_src,1)')
 
         d['errors']             = lambda x: self._format_results(x, 'Errors', allow_missing=True)
