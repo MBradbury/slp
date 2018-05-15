@@ -2,8 +2,8 @@
 #define CUSTOM_TIMESYNC_H
 
 typedef nx_struct CustomTimeSyncMessage {
-    nx_am_addr_t sender_id;
-    nx_uint32_t local_time;
+    //nx_am_addr_t sender_id;
+    //nx_uint32_t local_time;
     nx_uint32_t global_time;
     nx_uint16_t hops;
 } CustomTimeSyncMessage;

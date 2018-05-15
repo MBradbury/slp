@@ -8,7 +8,7 @@ def _setup():
 
 local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval',
                          'minimum setup periods', 'pre beacon periods',
-                         'search distance')
+                         'search distance', 'timesync', 'timesync period')
 
 # local_parameter_names = ('slot period', 'dissem period', 'tdma num slots', 'slot assignment interval',
                          # 'minimum setup periods', 'pre beacon periods', 'dissem timeout',
