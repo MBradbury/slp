@@ -98,6 +98,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         parameters = [
+            "attacker distance percentage",
             'normal latency', 'ssd', 'captured',
             'received ratio',
             #'attacker distance wrt src',
@@ -117,6 +118,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
             'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
+            "attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
             #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
             #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
         }
@@ -138,7 +140,8 @@ class CLI(CommandLineCommon.CLI):
 
         yextractors = {
             # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
-            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)]
+            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)],
+            "attacker distance percentage": lambda yvalue: scalar_extractor(yvalue)[(0, 0)] * 100
         }
 
         kwargs = {
@@ -161,6 +164,6 @@ class CLI(CommandLineCommon.CLI):
             (('network size', ''), ('msg group size', '')),
         ]
 
-        kwargs["xvalues_to_tic_label"] = lambda x: f'"{x}x{x}"'
+        kwargs["xvalues_to_tic_label"] = lambda x: f'{x}x{x}'
 
         self._create_versus_graph(args.sim, graph_parameters, varying, **kwargs)

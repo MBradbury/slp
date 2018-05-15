@@ -49,7 +49,11 @@ def testbed_header(analysis):
         'average power consumption': lambda x: analysis._format_results(x, 'AveragePowerConsumption'),
         'total node power used': lambda x: analysis._format_results(x, 'TotalNodePowerUsed'),
         'average power used': lambda x: analysis._format_results(x, 'AveragePowerUsed'),
+        'norm(average power used,time taken)': lambda x: analysis._format_results(x, 'norm(AveragePowerUsed,TimeTaken)'),
     }
+
+def testbed_normalised(analysis):
+    return (('AveragePowerUsed', 'TimeTaken'),)
 
 # Resources:
 # - https://www.flocklab.ethz.ch/wiki/wiki/Public/Index

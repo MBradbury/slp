@@ -11,7 +11,7 @@ class TableGenerator:
         self._sim_name = sim_name
         self._result_names = ('received ratio',
                               'normal latency', 'ssd', 'captured',
-                              'time after first normal')
+                              'time after first normal', 'repeats')
 
         self._results = results.Results(
             sim_name,
@@ -84,10 +84,10 @@ class TableGenerator:
             print('\\vspace{-0.35cm}', file=stream)
             print('\\caption{{Safety Periods for the {}}}'.format(caption_string), file=stream)
             print('\\centering', file=stream)
-            print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
+            print('\\begin{tabular}{ | c | c || c | c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
-            print('Size & Period & Received & Source-Sink   & Latency   & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
-            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
+            print('Size & Period & Received & Source-Sink   & Latency   & Repeats & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
+            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & ~       & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
             print('\\hline', file=stream)
             print('', file=stream)
 
@@ -114,8 +114,9 @@ class TableGenerator:
                     lat = self.fmt.format_value(*get_name_and_value('normal latency'))
                     tafn = self.fmt.format_value(*get_name_and_value('time after first normal'))
                     cap = self.fmt.format_value(*get_name_and_value('captured'))
+                    repeats = self.fmt.format_value(*get_name_and_value('repeats'))
                 
-                    print(f'{size} & {src_period} & {rcvd_ratio} & {ssd} & {lat} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
+                    print(f'{size} & {src_period} & {rcvd_ratio} & {ssd} & {lat} & {repeats} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
                     
                 print('\\hline', file=stream)
                 print('', file=stream)
@@ -159,10 +160,10 @@ class TableGenerator:
             print('\\vspace{-0.35cm}', file=stream)
             print('\\caption{{Safety Periods for the {}}}'.format(caption_string), file=stream)
             print('\\centering', file=stream)
-            print('\\begin{tabular}{ | c || c | c | c | c || c || c | }', file=stream)
+            print('\\begin{tabular}{ | c || c | c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
-            print('Period & Received & Source-Sink   & Latency   & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
-            print('(sec)  & (\\%)    & Distance (hop)& (msec)    & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
+            print('Period & Received & Source-Sink   & Latency   & Repeats & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
+            print('(sec)  & (\\%)    & Distance (hop)& (msec)    & ~       & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
             print('\\hline', file=stream)
             print('', file=stream)
 
@@ -185,8 +186,9 @@ class TableGenerator:
                 lat = self.fmt.format_value(*get_name_and_value('normal latency'))
                 tafn = self.fmt.format_value(*get_name_and_value('time after first normal'))
                 cap = self.fmt.format_value(*get_name_and_value('captured'))
+                repeats = self.fmt.format_value(*get_name_and_value('repeats'))
             
-                print(f'{src_period} & {rcvd_ratio} & {ssd} & {lat} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
+                print(f'{src_period} & {rcvd_ratio} & {ssd} & {lat} & {repeats} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
 
             print('\\hline', file=stream)
             print('\\end{tabular}', file=stream)
