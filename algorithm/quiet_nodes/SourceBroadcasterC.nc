@@ -1,6 +1,8 @@
 #include "Constants.h"
 #include "Common.h"
+
 #include "SendReceiveFunctions.h"
+
 #include "NeighbourDetail.h"
 #include "HopDistance.h"
 
@@ -91,7 +93,11 @@ implementation
 	hop_distance_t source_distance = BOTTOM;
 	hop_distance_t sink_source_distance = BOTTOM;
 
+	uint8_t away_messages_to_send;
+
 	distance_neighbours_t neighbours;
+
+	SequenceNumber away_sequence_counter;
 
 	bool busy = FALSE;
 	int16_t nc = BOTTOM;
@@ -128,6 +134,10 @@ implementation
 
 		init_distance_neighbours(&neighbours);
 
+		sequence_number_init(&away_sequence_counter);
+
+		away_messages_to_send = SINK_AWAY_MESSAGES_TO_SEND;
+
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
 		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
@@ -139,6 +149,8 @@ implementation
 		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
+
+			call AwaySenderTimer.startOneShot(1 * 1000);
 		}
 		else
 		{
@@ -154,12 +166,7 @@ implementation
 		{
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
-			call ObjectDetector.start_later(4 * 1000);
-
-			if (call NodeType.get() == SinkNode)
-			{
-				call AwaySenderTimer.startOneShot(1 * 1000); // One second
-			}
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 		}
 		else
 		{
@@ -222,23 +229,21 @@ implementation
 	event void AwaySenderTimer.fired()
 	{
 		AwayMessage message;
-
-		sink_distance = 0;
-
-		simdbgverbose("SourceBroadcasterC", "AwaySenderTimer fired.\n");
-
-		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		message.sequence_number = sequence_number_next(&away_sequence_counter);
 		message.source_id = TOS_NODE_ID;
-		message.sink_distance = sink_distance;
-
-		call Packet.clear(&packet);
+		message.sink_distance = 0;
 
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
-			call AwaySeqNos.increment(TOS_NODE_ID);
+			sequence_number_increment(&away_sequence_counter);
 		}
-
-		simdbgverbose("stdout", "Away sent\n");
+		else
+		{
+			if (away_messages_to_send > 0)
+			{
+				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
+			}
+		}
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -376,8 +381,6 @@ implementation
 		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
-
-
 	// If the sink snoops a normal message, we may as well just deliver it
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -403,9 +406,6 @@ implementation
 		case SinkNode: Sink_snoop_Normal(msg, rcvd, source_addr); break;
 		case NormalNode: x_snoop_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
-
-
-
 
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -439,7 +439,6 @@ implementation
 		case SourceNode:
 		case SinkNode: x_receive_Away(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Away)
-
 
 	void x_receieve_Beacon(message_t* msg, const BeaconMessage* const rcvd, am_addr_t source_addr)
 	{
