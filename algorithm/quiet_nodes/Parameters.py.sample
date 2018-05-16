@@ -36,4 +36,6 @@ fault_models = ['ReliableFaultModel()']
 
 quiet_node_distance = [0, 1, 2, 3]
 
+safety_factors = [1.0, 1.2, 1.4, 1.6, 1.8]
+
 repeats = 1000

@@ -11,7 +11,7 @@ typedef nx_struct AwayMessage
 
   // The number of hops that this message
   // has travelled from the landmark node. 
-  nx_uint16_t landmark_distance;
+  nx_uint16_t sink_distance;
 
 } AwayMessage;
 
