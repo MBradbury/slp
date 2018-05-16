@@ -2,6 +2,7 @@
 #include "Common.h"
 #include "SendReceiveFunctions.h"
 #include "NeighbourDetail.h"
+#include "HopDistance.h"
 
 #include "NormalMessage.h"
 #include "AwayMessage.h"
@@ -10,13 +11,13 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->sink_distance))
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, AM_BROADCAST_ADDR, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
 
 typedef struct
 {
-	int16_t distance;
+	hop_distance_t distance;
 } distance_container_t;
 
 void distance_container_update(distance_container_t* find, distance_container_t const* given)
@@ -42,7 +43,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_container_updat
 { \
 	if (rcvd->name != BOTTOM) \
 	{ \
-		landmark_distance = minbot(landmark_distance, rcvd->name + 1); \
+		sink_distance = minbot(sink_distance, rcvd->name + 1); \
 	} \
 }
 
@@ -86,21 +87,9 @@ module SourceBroadcasterC
 
 implementation 
 {
-	enum
-	{
-		SourceNode, SinkNode, NormalNode
-	};
-
-	enum
-	{
-		SleepNode, OtherNode
-	};
-
-
-	int16_t landmark_distance = BOTTOM;
-	int16_t source_distance = BOTTOM;
-	int16_t sink_source_distance = BOTTOM;
-	//int16_t sleep_timer = SLEEP_DURATION_FACTOR;
+	hop_distance_t sink_distance = BOTTOM;
+	hop_distance_t source_distance = BOTTOM;
+	hop_distance_t sink_source_distance = BOTTOM;
 
 	distance_neighbours_t neighbours;
 
@@ -109,8 +98,6 @@ implementation
 	bool sleep_status = FALSE;
 
 	message_t packet;
-
-	unsigned int extra_to_send = 0;
 
 	// Produces a random float between 0 and 1
 	float random_float()
@@ -131,9 +118,9 @@ implementation
 		return 75U + (uint32_t)(50U * random_float());
 	}
 
-	USE_MESSAGE(Normal);
-	USE_MESSAGE(Away);
-	USE_MESSAGE(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	event void Boot.booted()
 	{
@@ -152,7 +139,6 @@ implementation
 		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
-			//sink_distance = 0;
 		}
 		else
 		{
@@ -168,8 +154,7 @@ implementation
 		{
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
-			call ObjectDetector.start_later(1000);
-			//call ObjectDetector.start();
+			call ObjectDetector.start_later(4 * 1000);
 
 			if (call NodeType.get() == SinkNode)
 			{
@@ -223,9 +208,9 @@ implementation
 		message.sequence_number = call NormalSeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.source_distance = 0;
-		message.sink_source_distance = landmark_distance;
+		message.sink_source_distance = sink_distance;
 
-		//simdbg("stdout", "sink-source -distance is %d\n", landmark_distance);
+		//simdbg("stdout", "sink-source distance is %d\n", sink_distance);
 
 		if (send_Normal_message(&message, AM_BROADCAST_ADDR))
 		{
@@ -238,17 +223,16 @@ implementation
 	{
 		AwayMessage message;
 
-		landmark_distance = 0;
+		sink_distance = 0;
 
 		simdbgverbose("SourceBroadcasterC", "AwaySenderTimer fired.\n");
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
-		message.landmark_distance = landmark_distance;
+		message.sink_distance = sink_distance;
 
 		call Packet.clear(&packet);
 
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
@@ -263,7 +247,7 @@ implementation
 
 		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
-		message.landmark_distance_of_sender = landmark_distance;
+		message.landmark_distance_of_sender = sink_distance;
 
 		call Packet.clear(&packet);
 
@@ -279,11 +263,11 @@ implementation
 
 		//simdbg("stdout", "[%d]rnd = %d\n", TOS_NODE_ID, rnd);
 
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
 
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			//call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -292,24 +276,23 @@ implementation
 			forwarding_message = *rcvd;
 			forwarding_message.source_distance += 1;
 
-
 			// Update the source-node distance
 			if (source_distance == BOTTOM || source_distance > rcvd->source_distance + 1)
 			{
 				source_distance = rcvd->source_distance + 1;
 			}
 
-			// landmark_distance is 1 , p = 100. 
-			become_sleep_p = 100 * (sink_source_distance - landmark_distance) / (sink_source_distance - 1);
+			// sink_distance is 1 , p = 100. 
+			become_sleep_p = 100 * (sink_source_distance - sink_distance) / (sink_source_distance - 1);
 
-			// landmark_distance = 1, duration is sink_source_distance; 
-			// landmark_distance = 0.5 sink_source_distance, duration is 1.
-			sleep_duration = (sink_source_distance-1)*landmark_distance/(1-0.5*sink_source_distance) + (1-0.5*sink_source_distance*sink_source_distance)/(1-0.5*sink_source_distance);
+			// sink_distance = 1, duration is sink_source_distance; 
+			// sink_distance = 0.5 sink_source_distance, duration is 1.
+			sleep_duration = (sink_source_distance-1)*sink_distance/(1-0.5*sink_source_distance) + (1-0.5*sink_source_distance*sink_source_distance)/(1-0.5*sink_source_distance);
 
 			sleep_timer = sleep_duration;
 
 			// Update the nodes classification
-			if (source_distance + landmark_distance <= sink_source_distance + 2 * QUIET_NODE_DISTANCE)
+			if (source_distance + sink_distance <= sink_source_distance + 2 * QUIET_NODE_DISTANCE)
 			{
 				nc = SleepNode;
 			}
@@ -319,7 +302,7 @@ implementation
 			}
 
 			simdbg("stdout", "[%d] NC = %d. the source distance is %d, sink distance is %d, sink-source distance is %d\n", 
-						TOS_NODE_ID, nc, source_distance, landmark_distance, sink_source_distance);
+						TOS_NODE_ID, nc, source_distance, sink_distance, sink_source_distance);
 
 			if (sleep_status == FALSE)
 			{
@@ -327,7 +310,7 @@ implementation
 				{
 					case SleepNode:
 					{
-						if ((forwarding_message.sequence_number == landmark_distance || forwarding_message.sequence_number +1 == landmark_distance) 
+						if ((forwarding_message.sequence_number == sink_distance || forwarding_message.sequence_number +1 == sink_distance) 
 							&& rnd <= become_sleep_p && sleep_timer > 0)
 						{
 							sleep_status = TRUE;
@@ -335,19 +318,23 @@ implementation
 							simdbg("stdout", "[Sequence:%d, ID: %d, P = %d], {Strong}I am sleep.\n", forwarding_message.sequence_number, TOS_NODE_ID, become_sleep_p);
 						}
 						else
+						{
 							send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+						}
 						break;
 					}
 					case OtherNode:
 					{
-						if (forwarding_message.sequence_number == landmark_distance && rnd <= SLEEP_NODE_LOW_P && sleep_timer > 0)
+						if (forwarding_message.sequence_number == sink_distance && rnd <= SLEEP_NODE_LOW_P && sleep_timer > 0)
 						{
 							sleep_status = TRUE;
 							sleep_timer --;
 							//simdbg("stdout", "[Sequence:%d, ID: %d], {Weak}I am sleep.\n", forwarding_message.sequence_number, TOS_NODE_ID);
 						}
 						else
+						{
 							send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+						}
 						break;
 					}
 					default:
@@ -370,10 +357,8 @@ implementation
 
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-
 			METRIC_RCV_NORMAL(rcvd);
 		}
 	}
@@ -391,6 +376,8 @@ implementation
 		case NormalNode: Normal_receive_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)
 
+
+
 	// If the sink snoops a normal message, we may as well just deliver it
 	void Sink_snoop_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
@@ -406,7 +393,7 @@ implementation
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
 		//simdbgverbose("stdout", "Snooped a normal from %u intended for %u (rcvd-dist=%d, my-dist=%d)\n",
-		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, landmark_distance);
+		//  source_addr, call AMPacket.destination(msg), rcvd->landmark_distance_of_sender, sink_distance);
 	}
 
 	// We need to snoop packets that may be unicasted,
@@ -418,26 +405,25 @@ implementation
 	RECEIVE_MESSAGE_END(Normal)
 
 
+
+
 	void x_receive_Away(message_t* msg, const AwayMessage* const rcvd, am_addr_t source_addr)
 	{
-		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance);
+		UPDATE_NEIGHBOURS(rcvd, source_addr, sink_distance);
 
-		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
+		UPDATE_LANDMARK_DISTANCE(rcvd, sink_distance);
 
-		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (call AwaySeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
-
-			call AwaySeqNos.update(rcvd->source_id, rcvd->sequence_number);
 			
 			METRIC_RCV_AWAY(rcvd);
 
 			forwarding_message = *rcvd;
-			forwarding_message.landmark_distance += 1;
+			forwarding_message.sink_distance += 1;
 
 			call Packet.clear(&packet);
 			
-			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());

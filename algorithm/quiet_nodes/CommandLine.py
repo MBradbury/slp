@@ -51,7 +51,7 @@ class CLI(CommandLineCommon.CLI):
             parameters.attacker_models, parameters.noise_models,
             parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.quiet_node_distance
+            parameters.source_periods, parameters.quiet_node_distance, parameters.safety_factors
         ))
 
         argument_product = self.add_extra_arguments(argument_product, extras)
@@ -61,7 +61,7 @@ class CLI(CommandLineCommon.CLI):
         return argument_product
 
     def time_after_first_normal_to_safety_period(self, tafn):
-        return tafn * 1.3
+        return tafn * 1.0
 
 
     def _run_table(self, args):
