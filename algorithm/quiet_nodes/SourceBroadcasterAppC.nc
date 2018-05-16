@@ -90,10 +90,8 @@ implementation
 	App.SourcePeriodModel -> SourcePeriodModelP;
 
 	components
-		new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos,
-		new SequenceNumbersC(SLP_MAX_NUM_SINKS) as AwaySeqNos;
+		new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
-	App.AwaySeqNos -> AwaySeqNos;
  
     // Random
     components RandomC;

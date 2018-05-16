@@ -82,7 +82,6 @@ module SourceBroadcasterC
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
-	uses interface SequenceNumbers as AwaySeqNos;
 	 
 	uses interface Random;
 }
@@ -272,8 +271,6 @@ implementation
 		{
 			NormalMessage forwarding_message;
 
-			//call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
-
 			METRIC_RCV_NORMAL(rcvd);
 
 			sink_source_distance = rcvd->sink_source_distance;
@@ -413,7 +410,7 @@ implementation
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, sink_distance);
 
-		if (call AwaySeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
+		if (sequence_number_before_and_update(&away_sequence_counter, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
 			
