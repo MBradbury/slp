@@ -6,21 +6,19 @@ algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
 
 class Analyzer(AnalyzerCommon):
-	def __init__(self, sim_name, results_directory):
-		super().__init__(sim_name, results_directory, self.normalised_parameters())
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 
-	@staticmethod
-	def normalised_parameters():
-		return [
+	def normalised_parameters(self):
+		return (
 			('Sent', 'TimeTaken'),
 			(('Sent', 'TimeTaken'), 'num_nodes'),
 
 			('Captured', 'ReceiveRatio'),
 			(('Sent', 'TimeTaken'), 'ReceiveRatio'),
-		]
+		)
 
-	@staticmethod
-	def results_header():
+	def results_header(self):
 		d = self.common_results_header(algorithm_module.local_parameter_names)
 
 		self.common_results(d)

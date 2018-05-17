@@ -119,6 +119,9 @@ class Results(object):
 
 
     def _read_results(self, result_path, results_filter, source_period_normalisation, network_size_normalisation):
+
+        print(f"Reading results from {result_path}")
+
         with open(result_path, 'r') as result_file:
 
             reader = csv.reader(result_file, delimiter='|')

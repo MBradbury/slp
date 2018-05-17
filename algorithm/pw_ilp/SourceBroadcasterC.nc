@@ -142,8 +142,6 @@ implementation
 
 	event void Boot.booted()
 	{
-
-
 		busy = FALSE;
 		sink_distance = UNKNOWN_HOP_DISTANCE;
 		source_distance = UNKNOWN_HOP_DISTANCE;
@@ -191,7 +189,7 @@ implementation
 	{
 		if (err == SUCCESS)
 		{
-			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
+			//LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
 			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 
@@ -202,7 +200,7 @@ implementation
 		}
 		else
 		{
-			ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
+			//ERROR_OCCURRED(ERROR_RADIO_CONTROL_START_FAIL, "RadioControl failed to start, retrying.\n");
 
 			call RadioControl.start();
 		}
@@ -223,7 +221,7 @@ implementation
 			source_distance = 0;
 			sink_source_distance = sink_distance;
 
-			call BroadcastNormalTimer.startOneShot(5 * 1000);	//wait till beacon messages send finished.
+			call BroadcastNormalTimer.startOneShot(2 * 1000);
 		}
 	}
 
@@ -522,14 +520,14 @@ implementation
 
 			if (!rcvd)
 			{
-				ERROR_OCCURRED(ERROR_PACKET_HAS_NO_PAYLOAD, "In record_received_message: Packet has no payload.\n");
+				//ERROR_OCCURRED(ERROR_PACKET_HAS_NO_PAYLOAD, "In record_received_message: Packet has no payload.\n");
 				return FAIL;
 			}
 
 			item = call MessagePool.get();
 			if (!item)
 			{
-				ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
+				//ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another message.\n");
 
 				return ENOMEM;
 			}
@@ -540,7 +538,7 @@ implementation
 			success = call MessageQueue.put(seq_no_lookup, item);
 			if (!success)
 			{
-				ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
+				//ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another message.\n");
 
 				call MessagePool.put(item);
 
@@ -619,7 +617,7 @@ implementation
 						message.sink_distance_of_sender = sink_distance;
 						message.source_distance_of_sender = source_distance;
 
-						simdbg("stdout", "RTX failed several times, sending poll (dsink=%d, dsrc=%d)\n", sink_distance, source_distance);
+						//simdbg("stdout", "RTX failed several times, sending poll (dsink=%d, dsrc=%d)\n", sink_distance, source_distance);
 
 						//print_ni_neighbours("stdout", &neighbours);
 
@@ -635,17 +633,17 @@ implementation
 							normal_message->stage = NORMAL_ROUTE_TO_SINK;
 							info->rtx_attempts = RTX_ATTEMPTS;
 
-							ERROR_OCCURRED(ERROR_RTX_FAILED_TRYING_OTHER,
-								"Failed to route message " NXSEQUENCE_NUMBER_SPEC " to avoid sink, giving up and routing to sink.\n",
-								normal_message->sequence_number);
+							//ERROR_OCCURRED(ERROR_RTX_FAILED_TRYING_OTHER,
+							//	"Failed to route message " NXSEQUENCE_NUMBER_SPEC " to avoid sink, giving up and routing to sink.\n",
+							//	normal_message->sequence_number);
 
 							call ConsiderTimer.startOneShot(ALPHA_RETRY);
 						}
 						else
 						{
-							ERROR_OCCURRED(ERROR_RTX_FAILED,
-								"Failed to send message " NXSEQUENCE_NUMBER_SPEC " at stage %u.\n",
-								normal_message->sequence_number, normal_message->stage);
+							//ERROR_OCCURRED(ERROR_RTX_FAILED,
+							//	"Failed to send message " NXSEQUENCE_NUMBER_SPEC " at stage %u.\n",
+							//	normal_message->sequence_number, normal_message->stage);
 
 							// Failed to route to sink, so remove from queue.
 							put_back_in_pool(info);
@@ -686,8 +684,8 @@ implementation
 			{
 				const NormalMessage* const normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
 
-				ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ", %" PRIu16 ") for the message\n",
-					normal_message->sequence_number, normal_message->source_id);
+				//ERROR_OCCURRED(ERROR_DICTIONARY_KEY_NOT_FOUND, "Unable to find the dict key (%" PRIu32 ", %" PRIu16 ") for the message\n",
+				//	normal_message->sequence_number, normal_message->source_id);
 			}
 		}
 	}
@@ -721,9 +719,9 @@ implementation
 
 		half_ssd = sink_distance / 2 - 1;
 		random_walk_hops = call Random.rand16() % half_ssd + 2;
-		long_random_walk_hops = call Random.rand16() % half_ssd + 3*sink_distance + 2;
+		long_random_walk_hops = call Random.rand16() % sink_distance + sink_distance;
 				
-		//simdbg("stdout","(short random walk hop=%d, long random walk hop=%d\n", random_walk_hops, long_random_walk_hops);
+		//simdbg("stdout","ssd: %d (short random walk hop=%d, long random walk hop=%d)\n", sink_distance, random_walk_hops, long_random_walk_hops);
 
 		#ifdef SHORT_LONG_SEQUENCE
 		{
@@ -752,6 +750,8 @@ implementation
 		message->source_id = TOS_NODE_ID;	
 		message->broadcast = FALSE;
 		message->further_or_closer_set = UnknownSet;
+
+		message->time_added = call LocalTime.get();
 
 		if (messagetype == ShortRandomWalk)
 		{
@@ -824,7 +824,7 @@ implementation
 			{
 				if (skippable_neighbours_size == ARRAY_SIZE(skippable_neighbours))
 				{
-					ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours internal buffer full\n");
+					//ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours internal buffer full\n");
 				}
 				else
 				{
@@ -855,7 +855,7 @@ implementation
 			// Stop copying if we have filled the output buffer
 			if (*bad_neighbours_size == max_bad_neighbours)
 			{
-				ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours output buffer full\n");
+				//ERROR_OCCURRED(ERROR_NO_MEMORY, "init_bad_neighbours output buffer full\n");
 				break;
 			}
 		}
@@ -1182,7 +1182,7 @@ implementation
 
 						success = find_next_in_avoid_sink_backtrack_route(info, next);
 
-						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", *next);
+						//simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_AVOID_SINK_BACKTRACK chosen " TOS_NODE_ID_SPEC "\n", *next);
 					}
 					else
 					{
@@ -1193,7 +1193,7 @@ implementation
 
 						success = find_next_in_to_sink_route(info, next);
 
-						simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
+						//simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK to NORMAL_ROUTE_TO_SINK chosen " TOS_NODE_ID_SPEC "\n", *next);
 					}
 				}
 			} break;
@@ -1206,7 +1206,7 @@ implementation
 
 				success = find_next_in_avoid_sink_route(info, next);
 
-				simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", *next);
+				//simdbg("stdout", "Switching from NORMAL_ROUTE_AVOID_SINK_BACKTRACK to NORMAL_ROUTE_AVOID_SINK chosen %u\n", *next);
 
 			} break;
 
@@ -1228,7 +1228,7 @@ implementation
 			case NORMAL_ROUTE_FROM_SINK:
 			{
 				// AM_BROADCAST_ADDR is valid for this function
-				success = find_next_in_from_sink_route(info, next);
+				//success = find_next_in_from_sink_route(info, next);
 			} break;
 
 			case NORMAL_ROUTE_AVOID_SINK_1_CLOSER:
@@ -1243,7 +1243,7 @@ implementation
 
 			default:
 			{
-				ERROR_OCCURRED(ERROR_UNKNOWN_MSG_STAGE, "Unknown message stage %" PRIu8 "\n", message->stage);
+				//ERROR_OCCURRED(ERROR_UNKNOWN_MSG_STAGE, "Unknown message stage %" PRIu8 "\n", message->stage);
 			} break;
 		}
 
@@ -1259,28 +1259,28 @@ implementation
 		NormalMessage message;
 		NormalMessage* info_msg;
 
-		simdbgverbose("stdout", "ConsiderTimer fired. [MessageQueue.count()=%u]\n",
-			call MessageQueue.count());
+		//simdbgverbose("stdout", "ConsiderTimer fired. [MessageQueue.count()=%u]\n",
+		//	call MessageQueue.count());
 
 		// If we don't have any messages to send, then there is nothing to do
 		if (!has_enough_messages_to_send())
 		{
-			LOG_STDOUT(ILPROUTING_NO_MESSAGES, "Unable to consider messages to send as we have no messages to send.\n");
+			//LOG_STDOUT(ILPROUTING_NO_MESSAGES, "Unable to consider messages to send as we have no messages to send.\n");
 			return;
 		}
 
 		// If we have no neighbour knowledge, then don't start sending
 		if (call Neighbours.count() == 0)
 		{
-			ERROR_OCCURRED(ERROR_NO_NEIGHBOURS, "Unable to consider messages to send as we have no neighbours.\n");
+			//ERROR_OCCURRED(ERROR_NO_NEIGHBOURS, "Unable to consider messages to send as we have no neighbours.\n");
 			return;
 		}
 
 		info = choose_message_to_send();
 		if (info == NULL)
 		{
-			ERROR_OCCURRED(ERROR_FAILED_CHOOSE_MSG, "Unable to choose a message to send (call MessageQueue.count()=%u).\n",
-				call MessageQueue.count());
+			//ERROR_OCCURRED(ERROR_FAILED_CHOOSE_MSG, "Unable to choose a message to send (call MessageQueue.count()=%u).\n",
+			//	call MessageQueue.count());
 			return;
 		}
 
@@ -1309,14 +1309,14 @@ implementation
 				// If we failed to send the message, try again in a bit
 				call ConsiderTimer.startOneShot(ALPHA_RETRY);
 
-				ERROR_OCCURRED(ERROR_FAILED_TO_SEND_NORMAL, "Failed to send Normal with %" PRIu8 ", retrying\n", result);
+				//ERROR_OCCURRED(ERROR_FAILED_TO_SEND_NORMAL, "Failed to send Normal with %" PRIu8 ", retrying\n", result);
 			}
 		}
 		else
 		{
 			if (message.stage == NORMAL_ROUTE_TO_SINK && call NodeType.get() != SinkNode)
 			{
-				ERROR_OCCURRED(ERROR_NO_ROUTE_TO_SINK, "Cannot find route to sink.\n");
+				//ERROR_OCCURRED(ERROR_NO_ROUTE_TO_SINK, "Cannot find route to sink.\n");
 			}
 
 			// Remove if unable to send
@@ -1336,9 +1336,9 @@ implementation
 				}
 				else
 				{
-					ERROR_OCCURRED(ERROR_FAILED_TO_FIND_MSG_ROUTE, 
-						"Removing the message " NXSEQUENCE_NUMBER_SPEC " from the pool as we have failed to work out where to send it.\n",
-						message.sequence_number);
+					//ERROR_OCCURRED(ERROR_FAILED_TO_FIND_MSG_ROUTE, 
+					//	"Removing the message " NXSEQUENCE_NUMBER_SPEC " from the pool as we have failed to work out where to send it.\n",
+					//	message.sequence_number);
 
 					put_back_in_pool(info);
 				}
@@ -1351,7 +1351,7 @@ implementation
 					poll_message.sink_distance_of_sender = sink_distance;
 					poll_message.source_distance_of_sender = source_distance;
 
-					LOG_STDOUT(ILPROUTING_EVENT_SEND_POLL, "Couldn't calculate target several times, sending poll to get more info\n");
+					//LOG_STDOUT(ILPROUTING_EVENT_SEND_POLL, "Couldn't calculate target several times, sending poll to get more info\n");
 
 					call Neighbours.poll(&poll_message);
 				}
@@ -1429,13 +1429,13 @@ implementation
 				TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC "," TOS_NODE_ID_SPEC ",%" PRIu32,
 				seq_no_lookup.addr, seq_no_lookup.seq_no, source_addr, (uint32_t)rcvd->time_taken_to_send);
 
-			// If we are routing from the sink, only do so for a short number of hops
+			// do not route a small number of hops from sink.
 			if (rcvd->stage == NORMAL_ROUTE_FROM_SINK)
 			{
-				if (sink_distance <= NORMAL_ROUTE_FROM_SINK_DISTANCE_LIMIT)
-				{
-					record_received_message(msg, UINT8_MAX);
-				}
+				//if (sink_distance <= sink_source_distance)
+				//{
+				//	record_received_message(msg, UINT8_MAX);
+				//}
 			}
 			else
 			{
@@ -1461,8 +1461,8 @@ implementation
 				// was processed here.
 				//
 				// So we choose to do nothing.
-				simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u POSSIBLE PROBLEM CYCLE ON WAY TO SINK, OR PATH SPLIT (NO PROBLEM)\n",
-					rcvd->sequence_number, source_addr, rcvd->stage);
+				//simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u POSSIBLE PROBLEM CYCLE ON WAY TO SINK, OR PATH SPLIT (NO PROBLEM)\n",
+				//	rcvd->sequence_number, source_addr, rcvd->stage);
 			}
 			else if (rcvd->stage == NORMAL_ROUTE_PHANTOM)
 			{
@@ -1481,8 +1481,8 @@ implementation
 				// This is problematic as it indicates we have a cycle trying to avoid the near-sink area.
 				// Probably best to just give up and route to sink.
 
-				simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u PROBLEM CYCLE AVOIDING SINK\n",
-					rcvd->sequence_number, source_addr, rcvd->stage);
+				//simdbg("stdout", "Ignoring message previously received seqno=" NXSEQUENCE_NUMBER_SPEC " proxsrc=" TOS_NODE_ID_SPEC " stage=%u PROBLEM CYCLE AVOIDING SINK\n",
+				//	rcvd->sequence_number, source_addr, rcvd->stage);
 
 				record_received_message(msg, NORMAL_ROUTE_TO_SINK);
 			}
@@ -1499,6 +1499,7 @@ implementation
 
 	void Sink_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+		int32_t time_cost;
 		const SeqNoWithFlag seq_no_lookup = {rcvd->sequence_number, rcvd->source_id, rcvd->stage};
 
 		ASSERT_MESSAGE(rcvd->source_distance >= 0, "dsrc=" HOP_DISTANCE_SPEC, rcvd->source_distance);
@@ -1514,6 +1515,13 @@ implementation
 
 			record_received_message(msg, NORMAL_ROUTE_FROM_SINK);
 		}
+
+		// one transmission time cost
+		time_cost = (call LocalTime.get() - rcvd->time_added) / rcvd->source_distance;
+
+		simdbg("stdout","[%u] Sink receives message at time: %d, source sends message at time: %d. (Transmission between each two nodes costs %d miliseconds, totoally time used: %d, %d hops from source to sink, random walk hops:%d)\n", 
+			   rcvd->sequence_number, call LocalTime.get(), rcvd->time_added, time_cost,
+			   (int)(call LocalTime.get() - rcvd->time_added), rcvd->source_distance, rcvd->random_walk_hops);
 	}
 
 	event void AwaySenderTimer.fired()
@@ -1593,8 +1601,6 @@ implementation
 
 		case SinkNode: break;
 	RECEIVE_MESSAGE_END(Away)
-
-
 	
 	// Neighbour management
 
@@ -1653,15 +1659,6 @@ implementation
 		{
 			sink_source_distance = hop_distance_min(sink_source_distance, source_distance);
 		}
-
-#ifdef LOW_POWER_LISTENING
-		// If the local wakeup is 0, then we need to set the sleep length
-		// in a bit now we have found our neighbours
-		if (call LowPowerListening.getLocalWakeupInterval() == 0)
-		{
-			call StartDutyCycleTimer.startOneShot(250);
-		}
-#endif
 	}
 
 	command bool SeqNoWithAddrCompare.equals(const SeqNoWithAddr* a, const SeqNoWithAddr* b)

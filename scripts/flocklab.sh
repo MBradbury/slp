@@ -51,7 +51,8 @@ do
   case $OPTION in
     v)
       RESPONSE=`curl $CURL_PARAMS -o - -F username="$USER" -F password="$PASSWORD" -F first="no" -F xmlfile=@$OPTARG $SERVER_URL/xmlvalidate.php`
-      if [ $? -eq 0 ]
+      ERROR_CODE=$?
+      if [ $ERROR_CODE -eq 0 ]
       then
         if [ `echo $RESPONSE | wc -m` -lt 2 ]
         then
@@ -66,7 +67,7 @@ do
           echo 'The file validated correctly.'
         fi
       else
-        echo 'There were connection problems contacting the FlockLab server '$SERVER_URL
+        echo "There were connection problems contacting the FlockLab server $SERVER_URL with the error $ERROR_CODE"
       fi
       ;;
     c)

@@ -3,6 +3,7 @@ from collections import Counter, OrderedDict, defaultdict, namedtuple
 import base64
 from itertools import zip_longest, tee
 import math
+import os.path
 import pickle
 import struct
 import sys
@@ -145,7 +146,6 @@ class MetricsCommon(object):
     def _non_strict_setup(self):
         """Set up any variables that may be missing in non-strict cases.
         For example testbed serial aggregators may miss important info."""
-        import os.path
         import re
 
         # Find the node and message, name and name associations
@@ -1080,8 +1080,8 @@ class MetricsCommon(object):
 
         if len(self.node_booted_at) != self.sim.configuration.size():
             print("Some node's boot events were missed:", file=stream)
-            print("\tMissing:", set(self.sim.configuration.topology.nodes.keys()) - set(self.node_booted_at.keys()))
-            print("\tExtra:", set(self.node_booted_at.keys()) - set(self.sim.configuration.topology.nodes.keys()))
+            print("\tMissing:", set(self.sim.configuration.topology.nodes.keys()) - set(self.node_booted_at.keys()), file=stream)
+            print("\tExtra:", set(self.node_booted_at.keys()) - set(self.sim.configuration.topology.nodes.keys()), file=stream)
 
         for (nid, events) in self.node_booted_at.items():
             if len(events) > 1:
@@ -1596,24 +1596,31 @@ class MessageTimeMetricsGrapher(MetricsCommon):
 
         self._node_change[new_name].append((time, ord_node_id, f"{old_name}"))
 
-    def _plot_message_events(self, values, filename, line_values=None, y2label=None, with_dutycycle=False, interactive=False):
+    def _plot_message_events(self, values, filename, line_values=None, all_line_values=None,
+                             y2label=None, with_dutycycle=False, interactive=False, legend=True,
+                             legend_types={"msg", "node", "line"}):
         import matplotlib.pyplot as plt
         from matplotlib.font_manager import FontProperties
 
         if interactive:
             import mpld3
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(1.618 * 5, 1 * 4))
 
-        # From: https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
-        box = ax.get_position()
-        ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
+        ax2 = None
+        max_ax2_ys = 0
+
+        if legend:
+            # From: https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
+            box = ax.get_position()
+            ax.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
         # Plot events
         for (kind, details) in sorted(values.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=message_type_to_colour(kind), label=kind, s=4, zorder=4, marker="o")
+            label = kind if "msg" in legend_types else "_nolegend_"
+            scatter = ax.scatter(xs, ys, c=message_type_to_colour(kind), label=label, s=4, zorder=10, marker="o")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1623,7 +1630,8 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         for (kind, details) in sorted(self._node_change.items(), key=lambda x: x[0]):
             xya = [(time, ord_node_id.nid, anno) for (time, ord_node_id, anno) in details]
             xs, ys, annos = zip(*xya)
-            scatter = ax.scatter(xs, ys, c=node_type_to_colour(kind), label=kind[:-len("Node")], s=12, zorder=3, marker="s")
+            label = kind[:-len("Node")] if "node" in legend_types else "_nolegend_"
+            scatter = ax.scatter(xs, ys, c=node_type_to_colour(kind), label=label, s=12, zorder=9, marker="s")
 
             if interactive:
                 tooltip = mpld3.plugins.PointLabelTooltip(scatter, labels=annos)
@@ -1633,19 +1641,38 @@ class MessageTimeMetricsGrapher(MetricsCommon):
             xs, ys = zip(*line_values)
 
             if y2label is None:
-                ax.plot(xs, ys)
+                line = ax.plot(xs, ys)
             else:
                 ax2 = ax.twinx()
-                ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
-
-                ax2.plot(xs, ys, zorder=5)
-
                 ax2.set_ylabel(y2label)
 
-                ymin, ymax = 0, max(ys)
-                ymin -= 0.05 * (ymax - ymin)
-                ymax += 0.05 * (ymax - ymin)
-                ax2.set_ylim(bottom=ymin, top=ymax)
+                line = ax2.plot(xs, ys)
+
+                max_ax2_ys = max(ys)
+
+        elif all_line_values is not None:
+
+            ax2 = ax.twinx()
+            ax2.set_ylabel(y2label)
+
+            max_ax2_ys = 0
+
+            for (line_values, label, main_y) in all_line_values:
+                xs, ys = zip(*line_values)
+
+                label = label if "line" in legend_types else "_nolegend_"
+
+                if main_y:
+                    line = ax.plot(xs, ys, label=label)
+
+                    next(ax2._get_lines.prop_cycler)
+
+                else:
+                    line = ax2.plot(xs, ys, label=label)
+
+                    next(ax._get_lines.prop_cycler)
+
+                    max_ax2_ys = max(max_ax2_ys, *ys)
 
         if with_dutycycle:
             for node_id in self.topology.nodes:
@@ -1665,13 +1692,31 @@ class MessageTimeMetricsGrapher(MetricsCommon):
         ymax += 0.05 * (ymax - ymin)
         ax.set_ylim(bottom=ymin, top=ymax)
 
-        font_prop = FontProperties()
-        font_prop.set_size("small")
+        if ax2:
+            if legend:
+                ax2.set_position((box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9))
 
-        legend = ax.legend(loc="upper center", bbox_to_anchor=(0.45,-0.15), ncol=6, prop=font_prop)
+            ymin, ymax = 0, max_ax2_ys
+            ymin -= 0.05 * (ymax - ymin)
+            ymax += 0.05 * (ymax - ymin)
+            ax2.set_ylim(bottom=ymin, top=ymax)
+
+        if legend:
+            font_prop = FontProperties()
+            font_prop.set_size("small")
+
+            handles, labels = ax.get_legend_handles_labels()
+            handles2, labels2 = ax2.get_legend_handles_labels() if ax2 is not None else ([], [])
+
+            ax.legend(handles + handles2, labels + labels2,
+                      loc="upper center", bbox_to_anchor=(0.45,-0.15), ncol=6, prop=font_prop)
 
         ax.set_xlabel("Time (seconds)")
         ax.set_ylabel("Node ID")
+
+        if ax2:
+            ax.set_zorder(ax2.get_zorder()+1)
+            ax.patch.set_visible(False)
 
         if interactive:
             mpld3.show()
@@ -1688,21 +1733,31 @@ class MessageTimeMetricsGrapher(MetricsCommon):
             self._plot_message_events(self._bcasts, "bcasts_duty.pdf", with_dutycycle=True)
             self._plot_message_events(self._delivers, "delivers_duty.pdf", with_dutycycle=True)
 
+
         for (attacker_id, values) in self._attacker_delivers.items():
+
+            all_line_values = []
+
             line_values = [(time, node_id.nid) for (time, node_id) in self._attacker_history[attacker_id]]
             values = {k: [detail + (None,) for detail in details] for (k, details) in values.items()}
-            self._plot_message_events(values, f"attacker{attacker_id}_delivers_nid.pdf", line_values=line_values)
+            self._plot_message_events(values, f"attacker{attacker_id}_delivers_nid.pdf", line_values=line_values, legend=False)
 
-        for source_id in self.configuration.source_ids:
-            for (attacker_id, values) in self._attacker_delivers.items():
+            all_line_values.append((line_values, f"Attacker Position", True))
+
+            for source_id in self.configuration.source_ids:
                 line_values = [
                     (time, self.configuration.node_source_distance_meters(node_id, source_id))
                     for (time, node_id)
                     in self._attacker_history[attacker_id]
                 ]
-                values = {k: [detail + (None,) for detail in details] for (k, details) in values.items()}
                 self._plot_message_events(values, f"attacker{attacker_id}_delivers_dsrcm{source_id}.pdf",
-                           line_values=line_values, y2label=f"Source {source_id} Distance (meters)")
+                           line_values=line_values, y2label=f"Source {source_id} Distance (meters)", legend=False)
+
+                all_line_values.append((line_values, f"Source {source_id} Distance", False))
+
+            self._plot_message_events(values, f"attacker{attacker_id}_delivers.pdf",
+                           all_line_values=all_line_values, y2label=f"Source Distance (meters)",
+                           legend_types={"line"})
 
     @staticmethod
     def items():
@@ -1813,10 +1868,11 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
             self._plot_message_duty_cycle_boundary_histogram(message_type)
 
     def _plot_message_duty_cycle_boundary_histogram(self, message_name):
+        import matplotlib
         import matplotlib.pyplot as plt
-        #import matplotlib.mlab as mlab
         import scipy.stats
-        from matplotlib.font_manager import FontProperties
+
+        matplotlib.rcParams.update({'font.size': 20})
 
         early_wakeup_ms, late_wakeup_ms = self._intervals.get(message_name, (0, 0))
 
@@ -1861,7 +1917,7 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
             x = np.linspace(min(hist_values), max(hist_values), num=100)
             dx = result[1][1] - result[1][0]
             scale = len(hist_values) * dx
-            pdist_line = ax.plot(x, scipy.stats.norm.pdf(x, mean, std) * scale, label=f"N({mean:.0f},{var:.0f})")
+            pdist_line = ax.plot(x, scipy.stats.norm.pdf(x, mean, std) * scale, label=f"N({mean:.0f},{var:.0f})", linewidth=3)
 
             ax.legend()
 
@@ -1990,7 +2046,10 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         plt.savefig(f"{msg_name}MessageTravelTimeHist.pdf", bbox_inches='tight')
 
     def _plot_pr_receive_message_within_b(self, msg_name, dsrc_vs_time):
+        import matplotlib
         import matplotlib.pyplot as plt
+
+        matplotlib.rcParams.update({'font.size': 16})
 
         bs = [5, 10, 20, 30, 40, 50, 60, 70]
 
@@ -2036,18 +2095,105 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
 
         ax.set_title(f"Pr(x-a <= X <= x+a | X = x)")
 
-        ax.legend()
+        ax.legend(ncol=4, prop={'size': 14})
 
         plt.savefig(f"{msg_name}MessageReceiveProbability.pdf", bbox_inches='tight')
 
+class FlockLabEnergyMetricsCommon(MetricsCommon):
+    """Only to use used with offline flocklab logs."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
+        self._average_node_power_consumption = {}
+        self._total_node_power_consumption = {}
 
+        if type(self.sim.configuration.topology).__name__ != "FlockLab":
+            raise RuntimeError("FlockLabEnergyMetricsCommon can only be used on offline FlockLab runs")
 
+    def finish(self):
+        import gzip
+
+        super().finish()
+
+        start, end = self.sim._real_start_time.timestamp(), self.sim._real_end_time.timestamp()
+
+        log_path = os.path.join(os.path.dirname(self.sim._event_log.log_path), "powerprofilingstats.csv")
+        with open(log_path, 'r') as log_file:
+            for line in log_file:
+                if line.startswith('#'):
+                    continue
+
+                observer_id, node_id, power_mA = line.split(',', 2)
+
+                node_id = OrderedId(int(node_id))
+
+                self._average_node_power_consumption[node_id] = float(power_mA)
+
+        #print(start, end, file=sys.stderr)
+
+        node_state = {}
+
+        log_path = os.path.join(os.path.dirname(self.sim._event_log.log_path), "powerprofiling.csv.gz")
+        with gzip.open(log_path, 'rt', encoding="utf-8") as log_file:
+            for line in log_file:
+                if line.startswith('#'):
+                    continue
+
+                timestamp, observer_id, node_id, power_mA = line.strip().split(',', 3)
+                timestamp = float(timestamp)
+                node_id = int(node_id)
+                power_mA = float(power_mA)
+
+                #print((timestamp, observer_id, node_id, power_mA), file=sys.stderr)
+
+                if timestamp < start:
+                    continue
+
+                if node_id not in node_state:
+                    node_state[node_id] = (timestamp, 0.0)
+                else:
+
+                    previous_timestamp, previous_energy = node_state[node_id]
+
+                    new_power = previous_energy + (timestamp - previous_timestamp) * power_mA
+
+                    node_state[node_id] = (timestamp, new_power)
+
+                if timestamp >= end:
+                    break
+
+        # power is in mAs, needs to be converted into mAh
+        self._total_node_power_consumption = {
+            OrderedId(node_id): power / 60 / 60
+            for (node_id, (timestamp, power)) in node_state.items()
+        }
+
+    def average_node_power_consumption(self):
+        return self._average_node_power_consumption
+
+    def average_power_consumption(self):
+        return np.mean(list(self._average_node_power_consumption.values()))
+
+    def total_node_power_used(self):
+        return self._total_node_power_consumption
+
+    def average_total_power_used(self):
+        return np.mean(list(self._total_node_power_consumption.values()))
+
+    @staticmethod
+    def items():
+        d = OrderedDict()
+        d["AverageNodePowerConsumption"]   = lambda x: MetricsCommon.smaller_dict_str(x.average_node_power_consumption(), sort=True)
+        d["AveragePowerConsumption"]       = lambda x: str(x.average_power_consumption())
+
+        d["TotalNodePowerUsed"]            = lambda x: MetricsCommon.smaller_dict_str(x.total_node_power_used(), sort=True)
+        d["AveragePowerUsed"]              = lambda x: str(x.average_total_power_used())
+        return d
 
 
 
 EXTRA_METRICS = (DutyCycleMetricsGrapher, MessageTimeMetricsGrapher, ILPRoutingMessageTimeMetricsGrapher,
-                 MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher)
+                 MessageDutyCycleBoundaryHistogram, MessageArrivalTimeScatterGrapher, FlockLabEnergyMetricsCommon)
 EXTRA_METRICS_CHOICES = [cls.__name__ for cls in EXTRA_METRICS]
 
 def import_algorithm_metrics(module_name, sim, extra_metrics=None):

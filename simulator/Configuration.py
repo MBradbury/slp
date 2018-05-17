@@ -1,4 +1,6 @@
 
+import numpy as np
+
 from scipy.sparse.csgraph import shortest_path
 from scipy.spatial.distance import cdist
 
@@ -94,6 +96,19 @@ class Configuration(object):
         for nid in self.topology.nodes.keys():
             if nid != ordered_nid and self.is_connected(ordered_nid, nid):
                 yield nid
+
+    def max_source_distance_meters(self):
+        o2i = self.topology.o2i
+
+        m = 0
+
+        for source in self.source_ids:
+            s = o2i(source).nid
+
+            m = max(m, np.max(self._dist_matrix_meters[s:]))
+
+        return m
+
 
     def node_distance(self, ordered_nidi, ordered_nidj):
         """Get the distance between two ordered nodes in hops."""
@@ -314,7 +329,7 @@ class Source3CornerTopLinear(Configuration):
         super().__init__(
             grid,
             source_ids={0, 2, 4},
-            sink_id=(len(grid.nodes) - 1) // 2,
+            sink_ids={(len(grid.nodes) - 1) // 2},
             space_behind_sink=True
         )
 
@@ -358,7 +373,7 @@ class SinkCorner3SourceLinear(Configuration):
         super().__init__(
             grid,
             source_ids={(len(grid.nodes) - 1)//2 - 2, (len(grid.nodes) - 1)//2, (len(grid.nodes) - 1)//2 + 2},
-            sink_id=len(grid.nodes) - 1,
+            sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )
 
@@ -389,6 +404,17 @@ class FurtherSinkCorner3Source(Configuration):
         super().__init__(
             grid,
             source_ids={0, 2, grid.size+1},
+            sink_ids={len(grid.nodes) - 1},
+            space_behind_sink=False
+        )
+
+class FurtherSinkCorner3SourceLinear(Configuration):
+    def __init__(self, *args, **kwargs):
+        grid = Grid(*args, **kwargs)
+
+        super().__init__(
+            grid,
+            source_ids={0, 2, 4},
             sink_ids={len(grid.nodes) - 1},
             space_behind_sink=False
         )

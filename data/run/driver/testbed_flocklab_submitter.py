@@ -72,7 +72,8 @@ class Runner(object):
         short_name = self.short_name(name)
 
         if len(short_name) > 45:
-            raise RuntimeError(f"Name {short_name} too long at {len(short_name)} characters")
+            print(f"Name {short_name} too long at {len(short_name)} characters needs to be 45, truncating it")
+            short_name = short_name[:45]
 
         duration_secs = int(duration.total_seconds())
         

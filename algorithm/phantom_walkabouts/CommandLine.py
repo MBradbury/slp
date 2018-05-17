@@ -9,19 +9,18 @@ import numpy as np
 
 from data.results_transformer import EliminateDominatedResultsTransformer
 
+import simulator.sim
 from simulator import CommandLineCommon
 from simulator import Configuration
-
-import algorithm
 
 #import algorithm.protectionless as protectionless
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
-phantom_chen = algorithm.import_algorithm("phantom_chen")
-ilprouting_chen = algorithm.import_algorithm("ilprouting_chen")
-adaptive_spr_notify_chen = algorithm.import_algorithm("adaptive_spr_notify_chen")
-protectionless_chen = algorithm.import_algorithm("protectionless_chen")
-protectionless_ctp_chen = algorithm.import_algorithm("protectionless_ctp_chen")
+#phantom_chen = algorithm.import_algorithm("phantom_chen")
+#lprouting_chen = algorithm.import_algorithm("ilprouting_chen")
+#adaptive_spr_notify_chen = algorithm.import_algorithm("adaptive_spr_notify_chen")
+#protectionless_chen = algorithm.import_algorithm("protectionless_chen")
+#protectionless_ctp_chen = algorithm.import_algorithm("protectionless_ctp_chen")
 
 
 from data import results
@@ -32,14 +31,20 @@ from data.util import scalar_extractor, useful_log10
 
 from data.run.common import RunSimulationsCommon
 
+from data import submodule_loader
+
+
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
         super(CLI, self).__init__(protectionless.name)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--show", action="store_true", default=False)
 
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
         subparser = self._add_argument("graph-min-max", self._run_min_max_versus)
         subparser = self._add_argument("graph-dominating-min-max", self._run_dominating_min_max_versus)
         subparser = self._add_argument("graph-multi", self._run_multi_versus)
@@ -85,14 +90,17 @@ class CLI(CommandLineCommon.CLI):
         return tafn * 1.0
 
     def _run_table(self, args):
-        phantom_walkabouts_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio'))
+        parameters = [
+            'captured',
+            'received ratio', 'sent', 'normal latency',
+            #'attacker distance wrt src',
+            #'attacker distance',
+            #'failed avoid sink',
+            #'failed avoid sink when captured',
+        ]
 
-        result_table = fake_result.ResultTable(phantom_walkabouts_results)
+        self._create_results_table(args.sim, parameters, show=args.show)
 
-        self._create_table("{}-results".format(self.algorithm_module.name), result_table, orientation='landscape', show=args.show)
 
     @staticmethod
     def vvalue_converter(name):
@@ -112,38 +120,42 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_graph(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (ms)', 'left bottom'),
-            'captured': ('Capture Ratio (%)', 'left right'),
+            'normal latency': ('Message Latency (msec)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
             #'sent': ('Total Messages Sent', 'left top'),
-            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            #'utility animal': ('Utility (Animal)', 'left top'),
-            #'utility monitor': ('Utility (Monitor)', 'left top'),
-            #'utility military': ('Utility (Military)', 'left top'),
+            'norm(sent,time taken)': ('Messages Transmission (messages)', 'left top'),
+            #'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
+            #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
+            #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
         }
 
         varying = [
-            #(('network size', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
-            #(('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
             (('network size', ''), ('source period', '')),
         ]
 
         custom_yaxis_range_max = {
-            'captured': 80,
+            'captured': 100,
             'received ratio': 100,
-            'normal latency': 200,
-            'norm(sent,time taken)': 2000
-        }
+            'normal latency': 300,
+            'norm(sent,time taken)': 2500
+        }           
 
-        def filter_params(all_params):
-            return all_params['safety factor'] != '1.3'
+        yextractors = { }      
 
-
-        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
-            #source_period_normalisation="NumSources",
-            results_filter=filter_params,
-            #vary_label='PW',
-            #vvalue_label_converter=self.vvalue_converter,
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
+            yextractor = yextractors,
+            xaxis_font = "',16'",
+            yaxis_font = "',16'",
+            xlabel_font = "',18'",
+            ylabel_font = "',16'",
+            line_width = 3,
+            point_size = 1,
+            nokey = True,
+            generate_legend_graph = True,
+            legend_font_size = 16,
         )
 
     def _run_dominating_min_max_versus(self, args):

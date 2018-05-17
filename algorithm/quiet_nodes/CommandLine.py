@@ -1,19 +1,14 @@
-from __future__ import print_function
 
+import datetime
 import itertools
-import os
 
+import simulator.sim
 from simulator import CommandLineCommon
 
 import algorithm
-
 protectionless = algorithm.import_algorithm("protectionless")
-adaptive = algorithm.import_algorithm("adaptive")
 
-from data import results
-
-from data.table import safety_period, fake_result
-from data.graph import summary, versus, min_max_versus, dual_min_max_versus
+from data import submodule_loader
 from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
@@ -21,109 +16,108 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(protectionless.name)
 
         subparser = self._add_argument("table", self._run_table)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+        subparser.add_argument("--show", action="store_true", default=False)
+        
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
         subparser = self._add_argument("min-max-versus", self._run_min_max_versus)
         subparser = self._add_argument("dual-min-max-versus", self._run_dual_min_max_versus)
+        subparser = self._add_argument("graph-sf", self._run_graph_safety_factor)
 
+    def _cluster_time_estimator(self, sim, args, **kwargs):
+        """Estimates how long simulations are run for. Override this in algorithm
+        specific CommandLine if these values are too small or too big. In general
+        these have been good amounts of time to run simulations for. You might want
+        to adjust the number of repeats to get the simulation time in this range."""
+        size = args['network size']
+        if size == 11:
+            return datetime.timedelta(hours=2)
+        elif size == 15:
+            return datetime.timedelta(hours=2)
+        elif size == 21:
+            return datetime.timedelta(hours=2)
+        elif size == 25:
+            return datetime.timedelta(hours=2)
+        else:
+            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+        
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
 
-        argument_product = list(filter(
-            lambda x: x[10] in parameters.walk_hop_lengths[x[0]],
-            itertools.product(
-                parameters.sizes, parameters.configurations,
-                parameters.attacker_models, parameters.noise_models, parameters.communication_models, parameters.fault_models,
-                [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-                parameters.source_periods,
-                set(itertools.chain(*parameters.walk_hop_lengths.values())), parameters.landmark_nodes
-            )
+        argument_product = list(itertools.product(
+            parameters.sizes, parameters.configurations,
+            parameters.attacker_models, parameters.noise_models,
+            parameters.communication_models, parameters.fault_models,
+            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
+            parameters.source_periods, parameters.quiet_node_distance
         ))
 
         argument_product = self.add_extra_arguments(argument_product, extras)
 
-        # Factor in the number of sources when selecting the source period.
-        # This is done so that regardless of the number of sources the overall
-        # network's normal message generation rate is the same.
         argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
 
         return argument_product
 
     def time_after_first_normal_to_safety_period(self, tafn):
-        return tafn * 2.0
+        return tafn * 1.3
 
 
     def _run_table(self, args):
-        phantom_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end', 'source dropped'))
+        parameters = [
+            #'normal latency', 
+            #'sent', 
+            'captured',
+            'received ratio',
+            #'attacker distance wrt src',
+            #'attacker distance',
+            #'failed avoid sink',
+            #'failed avoid sink when captured',
+        ]
 
-        result_table = fake_result.ResultTable(phantom_results)
-
-        self._create_table("{}-results".format(self.algorithm_module.name), result_table)
+        self._create_results_table(args.sim, parameters, show=args.show)
 
     def _run_graph(self, args):
         graph_parameters = {
-            'normal latency': ('Normal Message Latency (ms)', 'left top'),
-            'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'right top'),
-            'sent': ('Total Messages Sent', 'left top'),
+            'normal latency': ('Message Latency (msec)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'paths reached end': ('Paths Reached End (%)', 'right top'),
-            'source dropped': ('Source Dropped Messages (%)', 'right top'),
+            'norm(sent,time taken)': ('Messages Transmission (messages)', 'left top'),
+            #'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
+            #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
+            #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
         }
 
-        custom_yaxis_range_max = {
-            'source dropped': 100,
-            'paths reached end': 100,
-        }
-
-        phantom_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
-            network_size_normalisation="UseNumNodes"
-        )
-
-        parameters = [
-            ('source period', ' seconds'),
-            ('walk length', ' hops')
+        varying = [
+            #(('network size', ''), ('source period', '')),
+            (('network size', ''), ('quiet node distance', '')),
         ]
 
-        for (parameter_name, parameter_unit) in parameters:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), parameter_name.replace(" ", "-"))
+        custom_yaxis_range_max = {
+            'captured': 100,
+            'received ratio': 100,
+            'normal latency': 300,
+            'norm(sent,time taken)': 2500
+        }           
 
-                g = versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=parameter_name,
-                    yextractor=scalar_extractor
-                )
+        yextractors = { }      
 
-                g.xaxis_label = 'Number of Nodes'
-                g.yaxis_label = yaxis_label
-                g.vary_label = parameter_name.title()
-                g.vary_prefix = parameter_unit
-                g.key_position = key_position
-
-                g.nokey = True
-
-                g.generate_legend_graph = True
-
-                g.point_size = 1.3
-                g.line_width = 4
-                g.yaxis_font = "',14'"
-                g.xaxis_font = "',12'"
-
-                if yaxis in custom_yaxis_range_max:
-                    g.yaxis_range_max = custom_yaxis_range_max[yaxis]
-
-                g.create(phantom_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, self.algorithm_module.name + '-' + name)
-                ).run()
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
+            yextractor = yextractors,
+            xaxis_font = "',16'",
+            yaxis_font = "',16'",
+            xlabel_font = "',18'",
+            ylabel_font = "',16'",
+            line_width = 3,
+            point_size = 1,
+            nokey = True,
+            generate_legend_graph = True,
+            legend_font_size = 16,
+        )
 
     def _run_min_max_versus(self, args):
         graph_parameters = {
@@ -249,6 +243,50 @@ class CLI(CommandLineCommon.CLI):
             network_size_normalisation="UseNumNodes"
         )
 
+    def _run_graph_safety_factor(self, args):
+        graph_parameters = {
+            'normal latency': ('Normal Message Latency (seconds)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'right top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'utility equal': ('Utility (Equal)', 'right top'),
+            'utility animal': ('Utility (Animal)', 'right top'),
+            'utility battle': ('Utility (Battle)', 'right top'),
+        }
+
+        varying = [
+            (('safety factor', ''), (('walk length'), '')),
+        ]
+
+        custom_yaxis_range_max = {
+            'normal latency': 500,
+            'norm(sent,time taken)': 600,
+            'received ratio': 100,
+            'capture ratio': 100,
+            'utility equal': 0.8,
+            'utility animal': 0.8,
+            'utility battle': 0.8,
+
+        }
+
+        def vvalue_converter(name):
+            (bias, order, short_count, long_count, wait) = name
+
+            if short_count == 1 and long_count == 0:
+                return "PW(1, 0)"
+            elif short_count == 1 and long_count == 1:
+                return "PW(1, 1)"
+            elif short_count == 1 and long_count == 2:
+                return "PW(1, 2)"
+            else:
+                return name
+
+        self._create_versus_graph(graph_parameters, varying, custom_yaxis_range_max,
+            source_period_normalisation="NumSources",
+            vary_label='',
+            #vvalue_label_converter=vvalue_converter,
+        )
+
         def graph_dual_min_max_versus(result_name1, result_name2, xaxis):
             name = 'dual-min-max-{}-versus-{}_{}-{}'.format(adaptive.name, result_name1, result_name2, xaxis)
 
@@ -298,17 +336,3 @@ class CLI(CommandLineCommon.CLI):
         for (result_name1, result_name2) in graph_parameters.keys():
             graph_dual_min_max_versus(result_name1, result_name2, 'network size')
 
-    def run(self, args):
-        args = super(CLI, self).run(args)
-
-        if 'table' == args.mode:
-            self._run_table(args)
-
-        if 'graph' == args.mode:
-            self._run_graph(args)
-
-        if 'min-max-versus' == args.mode:
-            self._run_min_max_versus(args)
-
-        if 'dual-min-max-versus' == args.mode:
-            self._run_dual_min_max_versus(args)

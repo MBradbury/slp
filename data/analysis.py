@@ -1,7 +1,7 @@
 
 import ast
 import base64
-from collections import OrderedDict, Sequence
+from collections import OrderedDict, Sequence, defaultdict
 from functools import partial
 import gc
 from itertools import islice
@@ -21,6 +21,7 @@ import pandas as pd
 import psutil
 
 import data.submodule_loader as submodule_loader
+import data.testbed
 from data.progress import Progress
 
 import simulator.sim
@@ -176,19 +177,16 @@ def dict_mean(dict_list):
 
 def dict_var(dict_list, mean):
     """Dict variance"""
+    lin = defaultdict(list)
 
-    first = next(iter(dict_list))
-
-    lin = {k: [] for k in first}
-
-    for d in islice(dict_list, 1, None):
+    for d in dict_list:
         for (k, v) in d.items():
             lin[k].append(v)
 
     for k in lin:
         lin[k] = np.var(lin[k], dtype=np.float64)
 
-    return lin
+    return dict(lin)
 
 """
 def _energy_impact(columns, cached_cols, constants):
@@ -279,6 +277,8 @@ class Analyse(object):
         "FakeToNormal": np.uint32,
         "FakeToFake": np.uint32,
         "FakeNodesAtEnd": np.uint32,
+        "AveragePowerConsumption": np.float_,
+        "AveragePowerUsed": np.float_,
     }
 
     HEADING_CONVERTERS = {
@@ -319,6 +319,9 @@ class Analyse(object):
 
         "DutyCycleStart": lambda x: None if x == "None" else np.float_(x), # Either None or float
         "DutyCycle": _parse_dict_node_to_value,
+
+        "AverageNodePowerConsumption": _parse_dict_node_to_value,
+        "TotalNodePowerUsed": _parse_dict_node_to_value,
     }
 
     def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
@@ -521,13 +524,20 @@ class Analyse(object):
                     den_col = columns_to_add[den] if den in columns_to_add else df[den]
 
                     columns_to_add[norm_head] = num_col / den_col
+                    
 
                 elif num in self.headings and den in constants:
                     print(f"Creating {norm_head} using ({num},{den}) on the fast path n2")
 
                     num_col = columns_to_add[num] if num in columns_to_add else df[num]
 
-                    columns_to_add[norm_head] = num_col if den == "1" else num_col / constants[den]
+                    try:
+                        columns_to_add[norm_head] = num_col if den == "1" else num_col / constants[den]
+                    except TypeError:
+                        #axis=1 means to apply per row
+                        columns_to_add[norm_head] = df.apply(self._get_norm_dict_value,
+                                                         axis=1, raw=True, reduce=True,
+                                                         args=(num, den, constants))
 
                 elif num in calc_cols and den in constants:
                     print(f"Creating {norm_head} using ({num},{den}) on the fast path n3")
@@ -568,6 +578,13 @@ class Analyse(object):
                 print("Merging normalised columns with the loaded data...")
                 self.normalised_columns = pd.DataFrame.from_dict(columns_to_add)
 
+                if __debug__:
+                    # Lets do a sanity check that the columns were merged correctly
+                    for (name, col) in columns_to_add.items():
+                        if self.normalised_columns[name].iloc[0] != col.iloc[0]:
+                            raise RuntimeError("Mismatch between {} expected {} obtained {}".format(
+                                name, col.iloc[0], self.normalised_columns[name].iloc[0]))
+
         print("Columns:", df.info(memory_usage='deep'))
 
         if self.normalised_columns is not None:
@@ -596,6 +613,15 @@ class Analyse(object):
             return None
 
         return np.float_(num_value / den_value)
+
+    def _get_norm_dict_value(self, row, num, den, constants):
+        num_value = self._get_from_opts_or_values(num, row, constants)
+        den_value = self._get_from_opts_or_values(den, row, constants)
+
+        if num_value is None or den_value is None:
+            return None
+
+        return {k: v / den_value for (k, v) in num_value.items()}
 
 
     def _get_configuration(self):
@@ -647,6 +673,8 @@ class Analyse(object):
         constants["source_rate"] = 1.0 / constants["source_period"]
         constants["source_period_per_num_sources"] = constants["source_period"] / constants["num_sources"]
         constants["source_rate_per_num_sources"] = constants["source_rate"] / constants["num_sources"]
+
+        constants["max_source_distance_meters"] = configuration.max_source_distance_meters()
 
         return constants
 
@@ -891,12 +919,15 @@ class AnalysisResults(object):
         self.configuration = analysis._get_configuration()
 
 class AnalyzerCommon(object):
-    def __init__(self, sim_name, results_directory):
+    def __init__(self, sim_name, results_directory, testbed=None):
         self.sim_name = sim_name
         self.results_directory = results_directory
         
         self.normalised_values = self.normalised_parameters()
-        self.normalised_values += (('time_after_first_normal', '1'),)# ('attacker_distance_wrt_src', '1'))
+        self.normalised_values += (
+            ('time_after_first_normal', '1'),
+            ('AttackerDistance', 'max_source_distance_meters')
+        )
 
         self.filtered_values = self.filtered_parameters()
 
@@ -905,6 +936,16 @@ class AnalyzerCommon(object):
         self.values['dropped no sink delivery'] = lambda x: str(x.dropped_no_sink_delivery)
         self.values['dropped hit upper bound']  = lambda x: str(x.dropped_hit_upper_bound)
         self.values['dropped duplicates']       = lambda x: str(x.dropped_duplicates)
+
+        if testbed:
+            if isinstance(testbed, str):
+                testbed = submodule_loader.load(data.testbed, testbed)
+
+            if hasattr(testbed, "testbed_header"):
+                self.values.update(testbed.testbed_header(self))
+
+            if hasattr(testbed, "testbed_normalised"):
+                self.normalised_values += testbed.testbed_normalised(self)
 
     def common_results_header(self, local_parameter_names):
         d = OrderedDict()
@@ -958,6 +999,7 @@ class AnalyzerCommon(object):
 
         d['attacker moves']     = lambda x: self._format_results(x, 'AttackerMoves')
         d['attacker distance']  = lambda x: self._format_results(x, 'AttackerDistance')
+        d["attacker distance percentage"] = lambda x: self._format_results(x, 'norm(AttackerDistance,max_source_distance_meters)')
         #d['attacker distance wrt src']  = lambda x: self._format_results(x, 'norm(attacker_distance_wrt_src,1)')
 
         d['errors']             = lambda x: self._format_results(x, 'Errors', allow_missing=True)

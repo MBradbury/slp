@@ -114,9 +114,6 @@ class Simulation(object):
         return self
 
     def __exit__(self, tp, value, tb):
-
-        self.metrics.finish()
-
         # Turn off to allow subsequent simulations
         for node in self.nodes:
             node.tossim_node.turnOff()
@@ -209,6 +206,8 @@ class Simulation(object):
             self.metrics.wall_time = None
 
         self.metrics.event_count = event_count
+
+        self.metrics.finish()
 
     def trigger_duration_run_start(self, time):
         if self._duration_start_time is None:
@@ -376,7 +375,7 @@ class OfflineSimulation(object):
         return self
 
     def __exit__(self, tp, value, tb):
-        self.metrics.finish()
+        pass
 
     def register_output_handler(self, name, function):
         if name not in self._line_handlers:
@@ -444,6 +443,8 @@ class OfflineSimulation(object):
             self.metrics.wall_time = None
 
         self.metrics.event_count = event_count
+
+        self.metrics.finish()
 
     def continue_predicate(self):
         """Specifies if the simulator run loop should continue executing."""

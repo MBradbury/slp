@@ -20,7 +20,6 @@
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
 #define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->landmark_distance))
-
 #define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, AM_BROADCAST_ADDR, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
 
 typedef struct
@@ -130,6 +129,7 @@ module SourceBroadcasterC
 	uses interface AMSend as BeaconSend;
 	uses interface Receive as BeaconReceive;
 
+	uses interface SourcePeriodModel;
 	uses interface ObjectDetector;
 
 	uses interface SequenceNumbers as NormalSeqNos;
@@ -187,7 +187,7 @@ implementation
 	uint32_t get_source_period()
 	{
 		assert(call NodeType.get() == SourceNode);
-		return SOURCE_PERIOD_MS;
+		return call SourcePeriodModel.get();
 	}
 
 	// Produces a random float between 0 and 1
@@ -950,6 +950,10 @@ implementation
 		}
 	}
 
+		event void SourcePeriodModel.fired()
+	{
+	}
+
 	event void BroadcastNormalTimer.fired()
 	{
 		message_t msg;
@@ -1129,7 +1133,7 @@ implementation
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
-		case SourceNode: Source_receieve_Normal(msg, rcvd, source_addr); break;
+		case SourceNode: Normal_receieve_Normal(msg, rcvd, source_addr); break;
 		case SinkNode: Sink_receieve_Normal(msg, rcvd, source_addr); break;
 		case NormalNode: Normal_receieve_Normal(msg, rcvd, source_addr); break;
 	RECEIVE_MESSAGE_END(Normal)

@@ -11,7 +11,7 @@ class TableGenerator:
         self._sim_name = sim_name
         self._result_names = ('received ratio',
                               'normal latency', 'ssd', 'captured',
-                              'time after first normal')
+                              'time after first normal', 'repeats')
 
         self._results = results.Results(
             sim_name,
@@ -64,7 +64,8 @@ class TableGenerator:
         if not any(table_key in self._results.data for table_key in product_all):
             raise RuntimeError("Could not find any parameter combination in the results")
 
-        for product_key in sorted(filtered_product):
+        # Convert to set to remove duplicates
+        for product_key in sorted(set(filtered_product)):
 
             product_key_dict = dict(zip(global_parameter_names, product_key))
 
@@ -75,18 +76,18 @@ class TableGenerator:
                 continue
 
             caption_string = " and ".join(
-                f"\\textbf{{{latex.escape(product_key[global_parameter_names.index(name)])}}} {name}"
-                for name in global_parameter_names
+                f"\\textbf{{{latex.escape(product_key[i])}}} {name}"
+                for (i, name) in enumerate(global_parameter_names)
             )
 
             print('\\begin{table}[H]', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
             print('\\caption{{Safety Periods for the {}}}'.format(caption_string), file=stream)
             print('\\centering', file=stream)
-            print('\\begin{tabular}{ | c | c || c | c | c | c || c || c | }', file=stream)
+            print('\\begin{tabular}{ | c | c || c | c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
-            print('Size & Period & Received & Source-Sink   & Latency   & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
-            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
+            print('Size & Period & Received & Source-Sink   & Latency   & Repeats & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
+            print('~    & (sec)  & (\\%)    & Distance (hop)& (msec)    & ~       & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
             print('\\hline', file=stream)
             print('', file=stream)
 
@@ -113,8 +114,9 @@ class TableGenerator:
                     lat = self.fmt.format_value(*get_name_and_value('normal latency'))
                     tafn = self.fmt.format_value(*get_name_and_value('time after first normal'))
                     cap = self.fmt.format_value(*get_name_and_value('captured'))
+                    repeats = self.fmt.format_value(*get_name_and_value('repeats'))
                 
-                    print(f'{size} & {src_period} & {rcvd_ratio} & {ssd} & {lat} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
+                    print(f'{size} & {src_period} & {rcvd_ratio} & {ssd} & {lat} & {repeats} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
                     
                 print('\\hline', file=stream)
                 print('', file=stream)
@@ -125,52 +127,53 @@ class TableGenerator:
 
     def _write_testbed_tables(self, stream, param_filter=lambda *args: True):
 
-        attacker_models = sorted(self._results.attacker_models)
-        fault_models = sorted(self._results.fault_models)
-        configurations = sorted(self._results.configurations, key=configuration_rank)
+        global_parameter_names = self._results.global_parameter_names
 
-        product_all = list(itertools.product(
-            configurations, attacker_models, fault_models
-        ))
+        global_values = [
+            tuple(sorted(getattr(self._results, self._results.name_to_attr(name))))
+            for name
+            in global_parameter_names
+        ]
 
-        print(self._results.data.keys())
+        product_all = list(itertools.product(*global_values))
 
-        product_filtered = list(filter(
-            lambda x: x in {(c, am, fm) for (c, am, fm) in self._results.data.keys()},
-            product_all
-        ))
+        all_keys = set(self._results.data.keys())
 
         if not any(table_key in self._results.data for table_key in product_all):
             raise RuntimeError("Could not find any parameter combination in the results")
 
-        for product_filtered_key in product_filtered:
-            if not param_filter(*product_filtered_key):
-                #print("Skipping {}".format(product_filtered_key))
+        for product_key in sorted(product_all):
+            product_key_dict = dict(zip(global_parameter_names, product_key))
+
+            print(product_key_dict)
+
+            if param_filter is not None and not param_filter(product_key_dict):
+                print("Skipping {}".format(product_key))
                 continue
 
-            (config, attacker_model, fault_model) = product_filtered_key
+            caption_string = " and ".join(
+                f"\\textbf{{{latex.escape(product_key[i])}}} {name}"
+                for (i, name) in enumerate(global_parameter_names)
+            )
 
             print('\\begin{table}[H]', file=stream)
             print('\\vspace{-0.35cm}', file=stream)
-            print('\\caption{{Safety Periods for the \\textbf{{{}}} configuration and \\textbf{{{}}} attacker model and \\textbf{{{}}} fault model}}'.format(
-                config, latex.escape(attacker_model), fault_model), file=stream)
+            print('\\caption{{Safety Periods for the {}}}'.format(caption_string), file=stream)
             print('\\centering', file=stream)
-            print('\\begin{tabular}{ | c || c | c | c | c || c || c | }', file=stream)
+            print('\\begin{tabular}{ | c || c | c | c | c | c || c || c | }', file=stream)
             print('\\hline', file=stream)
-            print('Period & Received & Source-Sink   & Latency   & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
-            print('(sec)  & (\\%)    & Distance (hop)& (msec)    & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
+            print('Period & Received & Source-Sink   & Latency   & Repeats & Time After First  & Safety Period & Captured \\tabularnewline', file=stream)
+            print('(sec)  & (\\%)    & Distance (hop)& (msec)    & ~       & Normal (seconds)  & (seconds)     & (\\%)    \\tabularnewline', file=stream)
             print('\\hline', file=stream)
             print('', file=stream)
 
-            data_key = (config, attacker_model, fault_model)
-
-            if data_key not in self._results.data:
-                #print("Skipping {} as it could not be found in the results".format(data_key))
+            if product_key not in self._results.data:
+                print("Skipping {} as it could not be found in the results".format(data_key))
                 continue
 
-            for src_period in sorted(self._results.data[data_key]):
+            for src_period in sorted(self._results.data[product_key]):
 
-                result = self._results.data[data_key][src_period][tuple()]
+                result = self._results.data[product_key][src_period][tuple()]
 
                 get_name_and_value = partial(self._get_name_and_value, result)
                 get_just_value = partial(self._get_just_value, result)
@@ -183,12 +186,12 @@ class TableGenerator:
                 lat = self.fmt.format_value(*get_name_and_value('normal latency'))
                 tafn = self.fmt.format_value(*get_name_and_value('time after first normal'))
                 cap = self.fmt.format_value(*get_name_and_value('captured'))
+                repeats = self.fmt.format_value(*get_name_and_value('repeats'))
             
-                print(f'{src_period} & {rcvd_ratio} & {ssd} & {lat} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
+                print(f'{src_period} & {rcvd_ratio} & {ssd} & {lat} & {repeats} & {tafn} & {safety_period:0.2f} & {cap} \\tabularnewline', file=stream)
 
             print('\\hline', file=stream)
             print('\\end{tabular}', file=stream)
-            print('\\label{{tab:safety-periods-{}}}'.format(config), file=stream)
             print('\\end{table}', file=stream)
             print('', file=stream)
 
