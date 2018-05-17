@@ -37,7 +37,7 @@ class RunSimulations(RunSimulationsCommon):
         path_length = search_distance + change_distance
 
         # return path_length*tdma_period_length
-        return (1 + ssd)*tdma_period_length*1.4
+        return (1 + ssd)*tdma_period_length*1.5
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
