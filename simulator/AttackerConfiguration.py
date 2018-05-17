@@ -1,4 +1,6 @@
 
+import copy
+
 import simulator.Attacker as Attacker
 
 from data.restricted_eval import restricted_eval
@@ -11,9 +13,12 @@ class AttackerConfiguration(object):
         # Setup each attacker model, giving them their own unique identifier
         for (i, attacker) in enumerate(self.attackers):
 
-            attacker.setup(sim, ident=i)
+            # Need to copy each attacker to ensure subsequent attacker configuration reuse
+            # does not pull in modified attacker state
+            new_attacker = copy.deepcopy(attacker)
+            new_attacker.setup(sim, ident=i)
 
-            sim.add_attacker(attacker)
+            sim.add_attacker(new_attacker)
 
     def build_arguments(self):
         arguments = {}

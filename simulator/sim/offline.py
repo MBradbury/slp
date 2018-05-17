@@ -18,10 +18,18 @@ def print_version():
 def print_arguments(module_name, a):
     # Try to extract parameters from the log file name
 
-    names = {os.path.dirname(name).rsplit("_", 1)[0] for name in a.args.log_file}
+    def _fix_lpl(name):
+        sname = name.split("-")
+        if sname[3] == "0":
+            sname[3] = "disabled"
+        if sname[3] == "1":
+            sname[3] = "enabled"
+        return "-".join(sname)
+
+    names = {_fix_lpl(os.path.dirname(name).rsplit("_", 1)[0]) for name in a.args.log_file}
 
     if len(names) != 1:
-        raise RuntimeError("Multiple names")
+        raise RuntimeError("Multiple names in provided arguments, so cannot reliably extract parameters")
         
     name = os.path.basename(next(iter(names)))
 
@@ -67,38 +75,43 @@ def print_arguments(module_name, a):
     print(f"channel={channel}")
     print(f"low_power_listening={lpl}")
 
+    print(f"node_id_order=topology")
+
     for (k, v) in sorted(vars(a.args).items()):
         if k not in a.arguments_to_hide:
             print(f"{k}={v}")
 
 def run_one_file(log_file, module, a, count=1, print_warnings=False):
+    import copy
+
     import simulator.Configuration as Configuration
     import simulator.OfflineLogConverter as OfflineLogConverter
 
+    args = copy.deepcopy(a.args)
+
     # Get the correct Simulation constructor
-    if a.args.mode == "SINGLE":
+    if args.mode == "SINGLE":
         from simulator.Simulation import OfflineSimulation
-    elif a.args.mode == "GUI":
+    elif args.mode == "GUI":
         from simulator.TosVis import GuiOfflineSimulation as OfflineSimulation
     else:
-        raise RuntimeError(f"Unknown mode {a.args.mode}")
+        raise RuntimeError(f"Unknown mode {args.mode}")
 
-    configuration = Configuration.create(a.args.configuration, a.args)
+    configuration = Configuration.create(args.configuration, args)
 
-    if a.args.verbose:
-        print(f"Analysing log file {log_file}", file=sys.stderr)
+    print(f"Analysing log file {log_file}", file=sys.stderr)
 
-    with OfflineLogConverter.create_specific(a.args.log_converter, log_file) as converted_event_log:
-        with OfflineSimulation(module, configuration, a.args, event_log=converted_event_log) as sim:
+    with OfflineLogConverter.create_specific(args.log_converter, log_file) as converted_event_log:
+        with OfflineSimulation(module, configuration, args, event_log=converted_event_log) as sim:
 
-            a.args.attacker_model.setup(sim)
+            args.attacker_model.setup(sim)
 
             try:
                 sim.run()
             except Exception as ex:
                 import traceback
 
-                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
+                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(args).items())
 
                 print("Killing run due to {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
@@ -113,12 +126,12 @@ def run_one_file(log_file, module, a, count=1, print_warnings=False):
                 sim.metrics.print_results()
 
                 if print_warnings:
-                    sim.metrics.print_warnings()
+                    sim.metrics.print_warnings(sys.stderr)
 
             except Exception as ex:
                 import traceback
 
-                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(a.args).items())
+                all_args = "\n".join(f"{k}={v}" for (k, v) in vars(args).items())
 
                 print("Failed to print metrics due to: {}".format(ex), file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)

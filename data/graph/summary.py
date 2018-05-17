@@ -17,6 +17,7 @@ class GraphSummary:
 
     def _write_latex_header(self, stream):
         stream.write("\\documentclass[twocolumn]{article}\n")
+        stream.write('\\pdfsuppresswarningpagegroup=1\n')
         stream.write("\\usepackage[margin=0.2in,portrait]{geometry}\n")
         stream.write("\\usepackage{graphicx}\n")
         stream.write("\\usepackage{grffile}\n") # Long file names

@@ -117,7 +117,7 @@ class TableDataFormatter(object):
         elif name == "pr(tfs)" or name == "pr(pfs)":
             return "${:.0f}$".format(value * 100.0)
         elif name == "average duty cycle":
-            return "${:.2f}$".format(value[0] * 100.0)
+            return "${:.2f}$".format(value[0])
         elif name in {"tfs", "pfs", "tailfs"}:
             return "${:.1f}$".format(value[0])
         elif name == "approach":

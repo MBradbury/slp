@@ -98,6 +98,7 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         parameters = [
+            "attacker distance percentage",
             'normal latency', 'ssd', 'captured',
             'received ratio',
             #'attacker distance wrt src',
@@ -116,13 +117,14 @@ class CLI(CommandLineCommon.CLI):
             #'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
-            'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
+            'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
+            "attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
             #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
             #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
         }
 
         varying = [
-            (('network size', ''), ('msg group size', '')),
+            #(('network size', ''), ('msg group size', '')),
             (('pr direct to sink', ''), ('msg group size', '')),
             #(('network size', ''), ('source period', ' seconds')),
             #(('network size', ''), ('pr direct to sink', '')),
@@ -138,19 +140,30 @@ class CLI(CommandLineCommon.CLI):
 
         yextractors = {
             # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
-            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)]
+            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)],
+            "attacker distance percentage": lambda yvalue: scalar_extractor(yvalue)[(0, 0)] * 100
         }
 
-        self._create_versus_graph(args.sim, graph_parameters, varying,
-            custom_yaxis_range_max=custom_yaxis_range_max,
-            yextractor = yextractors,
-            xaxis_font = "',16'",
-            yaxis_font = "',16'",
-            xlabel_font = "',18'",
-            ylabel_font = "',18'",
-            line_width = 3,
-            point_size = 1,
-            nokey = True,
-            generate_legend_graph = True,
-            legend_font_size = 16,
-        )
+        kwargs = {
+            "custom_yaxis_range_max": custom_yaxis_range_max,
+            "yextractor": yextractors,
+            "xaxis_font": "',16'",
+            "yaxis_font": "',16'",
+            "xlabel_font": "',14'",
+            "ylabel_font": "',14'",
+            "line_width": 3,
+            "point_size": 1,
+            "nokey": True,
+            "generate_legend_graph": True,
+            "legend_font_size": 16,
+        }
+
+        self._create_versus_graph(args.sim, graph_parameters, varying, **kwargs)
+
+        varying = [
+            (('network size', ''), ('msg group size', '')),
+        ]
+
+        kwargs["xvalues_to_tic_label"] = lambda x: f'{x}x{x}'
+
+        self._create_versus_graph(args.sim, graph_parameters, varying, **kwargs)

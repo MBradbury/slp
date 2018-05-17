@@ -21,8 +21,9 @@ implementation
 	App.Crc -> CrcC;
 
 	components MetricLoggingP as MetricLogging;
+
 	App.MetricLogging -> MetricLogging;
-	
+
 	components MetricHelpersP as MetricHelpers;
 	App.MetricHelpers -> MetricHelpers;
 
@@ -43,25 +44,9 @@ implementation
 
 
 	// Timers
-	components new TimerMilliC() as BroadcastNormalTimer;
-
-	App.BroadcastNormalTimer -> BroadcastNormalTimer;
-
 	components new TimerMilliC() as AwaySenderTimer;
 
 	App.AwaySenderTimer -> AwaySenderTimer;
-
-	components new TimerMilliC() as DelayBLSenderTimer;
-
-	App.DelayBLSenderTimer -> DelayBLSenderTimer;
-
-	components new TimerMilliC() as DelayBRSenderTimer;
-
-	App.DelayBRSenderTimer -> DelayBRSenderTimer;
-
-	components new TimerMilliC() as DelayTRSenderTimer;
-
-	App.DelayTRSenderTimer -> DelayTRSenderTimer;
 
 	components new TimerMilliC() as BeaconSenderTimer;
 
@@ -106,7 +91,7 @@ implementation
 
 	components
 		new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos,
-		new SequenceNumbersC(SLP_MAX_NUM_AWAY_MESSAGES) as AwaySeqNos;
+		new SequenceNumbersC(SLP_MAX_NUM_SINKS) as AwaySeqNos;
 	App.NormalSeqNos -> NormalSeqNos;
 	App.AwaySeqNos -> AwaySeqNos;
  

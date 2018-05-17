@@ -15,6 +15,7 @@ def print_header(stream, orientation='portrait'):
         geometry_args += ",landscape"
 
     print('\\documentclass[a4paper,notitlepage]{article}', file=stream)
+    print('\\pdfsuppresswarningpagegroup=1', file=stream)
     print('\\usepackage[{}]{{geometry}}'.format(geometry_args), file=stream)
     print('\\usepackage{multirow}', file=stream)
     print('\\usepackage{boxedminipage}', file=stream)

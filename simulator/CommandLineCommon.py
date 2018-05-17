@@ -263,14 +263,14 @@ class CLI(object):
             return "".join(x[0] for x in re.split(r"[\s,(]", str(s)) if x)
 
     def _create_versus_graph(self, sim_name, graph_parameters, varying, *,
-                             custom_yaxis_range_max=None,
+                             custom_yaxis_range_max=None, custom_yaxis_range_min=None,
                              source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
-                             yextractor=scalar_extractor, xextractor=None,
+                             yextractor=scalar_extractor, xextractor=None, testbed=None,
                              **kwargs):
         from data.graph import versus
 
         algo_results = results.Results(
-            sim_name, self.algorithm_module.result_file_path(sim_name),
+            sim_name, self.get_results_file_path(sim_name, testbed=testbed),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
@@ -286,6 +286,8 @@ class CLI(object):
                         yextractor_single = yextractor[yaxis]
                     except KeyError:
                         yextractor_single = scalar_extractor
+                else:
+                    yextractor_single = scalar_extractor
 
                 g = versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
@@ -307,6 +309,9 @@ class CLI(object):
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
 
+                if custom_yaxis_range_min is not None and yaxis in custom_yaxis_range_min:
+                    g.yaxis_range_min = custom_yaxis_range_min[yaxis]
+
                 if g.create(algo_results):
                     summary.GraphSummary(
                         os.path.join(self.algorithm_module.graphs_path(sim_name), name),
@@ -314,24 +319,36 @@ class CLI(object):
                     ).run()
 
     def _create_baseline_versus_graph(self, sim_name, baseline_module, graph_parameters, varying, *,
-                                      custom_yaxis_range_max=None,
+                                      custom_yaxis_range_max=None, custom_yaxis_range_min=None,
                                       source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
-                                      yextractor=scalar_extractor, xextractor=None,
+                                      yextractor=scalar_extractor, xextractor=None, testbed=None, #vary_label=None,
                                       **kwargs):
         from data.graph import baseline_versus
 
         algo_results = results.Results(
-            sim_name, self.algorithm_module.result_file_path(sim_name),
+            sim_name, self.get_results_file_path(sim_name, testbed=testbed),
             parameters=self.algorithm_module.local_parameter_names,
             results=tuple(graph_parameters.keys()),
             source_period_normalisation=source_period_normalisation,
             network_size_normalisation=network_size_normalisation,
             results_filter=results_filter)
 
+        baseline_result_file_path = self.get_results_file_path(sim_name, testbed=testbed, module=baseline_module)
+        baseline_analysis = baseline_module.Analysis.Analyzer(sim_name, baseline_result_file_path, testbed=testbed)
+
+        graph_parameters_set = set(graph_parameters.keys())
+        baseline_parameters_set = set(baseline_analysis.values.keys())
+
+        if len(graph_parameters_set - baseline_parameters_set) != 0:
+            print(f"Warning graph_parameters_set != baseline_parameters_set, extra = {graph_parameters_set - baseline_parameters_set}")
+
+        baseline_parameters_to_load = tuple(graph_parameters_set & baseline_parameters_set)
+
+
         baseline_results = results.Results(
-            sim_name, baseline_module.result_file_path(sim_name),
+            sim_name, baseline_result_file_path,
             parameters=baseline_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()),
+            results=baseline_parameters_to_load,
             source_period_normalisation=source_period_normalisation,
             network_size_normalisation=network_size_normalisation,
             results_filter=results_filter)
@@ -345,6 +362,8 @@ class CLI(object):
                         yextractor_single = yextractor[yaxis]
                     except KeyError:
                         yextractor_single = scalar_extractor
+                else:
+                    yextractor_single = scalar_extractor
 
                 g = baseline_versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
@@ -365,6 +384,9 @@ class CLI(object):
 
                 if custom_yaxis_range_max is not None and yaxis in custom_yaxis_range_max:
                     g.yaxis_range_max = custom_yaxis_range_max[yaxis]
+
+                if custom_yaxis_range_min is not None and yaxis in custom_yaxis_range_min:
+                    g.yaxis_range_min = custom_yaxis_range_min[yaxis]                
 
                 if g.create(algo_results, baseline_results):
                     summary.GraphSummary(
@@ -791,7 +813,7 @@ class CLI(object):
         results_path = self._testbed_results_path(testbed)
         result_file = os.path.basename(self.algorithm_module.result_file)
 
-        analyzer = self.algorithm_module.Analysis.Analyzer("real", results_path)
+        analyzer = self.algorithm_module.Analysis.Analyzer("real", results_path, testbed=testbed)
         analyzer.run(result_file,
                      results_finder,
                      nprocs=args.thread_count,
@@ -831,22 +853,43 @@ class CLI(object):
 
         commands = []
 
+
+        # Some results have had lpl parameters renamed to save space
+        # "disabled" => "0", "enabled" => "1"
+        # We want these results to go into the same output file
+
+        to_process = defaultdict(list)
+
         for common_result_dir in common_results_dirs:
 
-            out_path = os.path.join(output_results_path, common_result_dir + ".txt")
+            params = list(common_result_dir.split("-"))
+            if params[3] == "0":
+                params[3] = "disabled"
+            if params[3] == "1":
+                params[3] = "enabled"
+
+            to_process["-".join(params)].append(common_result_dir)
+
+        for (out_param, in_params) in to_process.items():
+
+            log_files = " ".join(os.path.join(input_results_path, x + "_*", testbed.result_file_name) for x in in_params)
 
             command = "python3 -OO -X faulthandler run.py algorithm.{} offline SINGLE --log-converter {} --log-file {} --non-strict ".format(
                 self.algorithm_module.name,
                 testbed.name(),
-                os.path.join(input_results_path, common_result_dir + "_*", testbed.result_file_name))
+                log_files)
 
             settings = {
                 "--attacker-model": args.attacker_model,
             }
 
-            # The source period will either be the second or third entry in common_result_dir
+            testbed_extra_metrics = getattr(testbed, "extra_metrics", [])
+            if testbed_extra_metrics:
+                settings["--extra-metrics"] = " ".join(testbed_extra_metrics)
+
+            # The source period will either be the second or third entry in out_param
             # Depending on if the fault model has been left out
-            params = common_result_dir.split("-")
+            params = out_param.split("-")
 
             if len(params) == 5 + len(self.algorithm_module.local_parameter_names):
                 (configuration, tx_power, channel, lpl, source_period) = params[:5]
@@ -863,7 +906,7 @@ class CLI(object):
             if self.safety_period_module_name is not None:
                 source_period = source_period.replace("_", ".")
 
-                safety_key = (configuration, str(args.attacker_model), fault_model)
+                safety_key = (configuration, str(args.attacker_model), fault_model, 'topology', tx_power, channel, 'disabled')
                 settings["--safety-period"] = str(safety_periods[safety_key][source_period])
             
             command += " ".join(f"{k} \"{v}\"" for (k, v) in settings.items())
@@ -871,11 +914,13 @@ class CLI(object):
             if args.verbose:
                 command += " --verbose"
 
+            out_path = os.path.join(output_results_path, out_param + ".txt")
+
             commands.append((command, out_path))
 
         def runner(arguments):
             (command, out_path) = arguments
-            print("Executing:", command, ">>", out_path)
+            print("Executing:", command, ">", out_path)
             with open(out_path, "w") as stdout_file:
                 subprocess.check_call(command, stdout=stdout_file, shell=True)
 
