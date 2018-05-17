@@ -516,6 +516,17 @@ You will need to manually remove the backup files which are left behind in case 
 
 # Deploying on a testbed
 
+## FlockLab Setup
+
+You will need to register for an account at https://flocklab.ethz.ch
+The credentials you used to register will need to be saved in a file at "~/.flocklabauth" with the format of the file:
+```bash
+USER=username
+PASSWORD=password
+```
+Replace `username` and `password` with the username and password that you registered with.
+
+
 ## FiT IoT-Lab Setup
 
 Install the python tools by following the instructions at https://github.com/iot-lab/iot-lab/wiki/CLI-Tools-Installation
