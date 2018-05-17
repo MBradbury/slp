@@ -110,6 +110,14 @@ class Runner(object):
         print('        <port>usb</port>', file=config_file)
         print('        <baudrate>115200</baudrate>', file=config_file)
         print('        <mode>ascii</mode>', file=config_file)
+
+        # Note that we don't actually use the remoteIp.
+        # If no IP address is specified then our IP address will be used
+        # IPv6 is not supported, so if we send an IPv6 address then an error
+        # will be returned. To fix this we just supply a valid IPv4 address.
+        # See: https://gitlab.ethz.ch/tec/public/flocklab/wikis/Man/XmlConfig
+        print('        <remoteIp>127.0.0.1</remoteIp>', file=config_file)
+
         print('    </serialConf>', file=config_file)
 
         with open(exe_path, "rb") as exe_file:
