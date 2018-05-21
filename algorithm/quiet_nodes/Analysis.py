@@ -27,13 +27,13 @@ class Analyzer(AnalyzerCommon):
 		d['away']               = lambda x: self._format_results(x, 'AwaySent')
 		d['beacon']             = lambda x: self._format_results(x, 'BeaconSent')
 
-		d['paths reached end']  = lambda x: self._format_results(x, 'PathsReachedEnd')
-		d['source dropped']     = lambda x: self._format_results(x, 'SourceDropped')
-		d['path dropped']       = lambda x: self._format_results(x, 'PathDropped', allow_missing=True)
-		d['path dropped length']= lambda x: self._format_results(x, 'PathDroppedLength', allow_missing=True)
+		#d['paths reached end']  = lambda x: self._format_results(x, 'PathsReachedEnd')
+		#d['source dropped']     = lambda x: self._format_results(x, 'SourceDropped')
+		#d['path dropped']       = lambda x: self._format_results(x, 'PathDropped', allow_missing=True)
+		#d['path dropped length']= lambda x: self._format_results(x, 'PathDroppedLength', allow_missing=True)
 		
-		d['sent heatmap']       = lambda x: self._format_results(x, 'SentHeatMap')
-		d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
+		#d['sent heatmap']       = lambda x: self._format_results(x, 'SentHeatMap')
+		#d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
 
 		d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
 		d['norm(norm(sent,time taken),num_nodes)']   = lambda x: self._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')

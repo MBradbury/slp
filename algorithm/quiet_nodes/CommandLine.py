@@ -86,6 +86,7 @@ class CLI(CommandLineCommon.CLI):
             #'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'norm(sent,time taken)': ('Messages Transmission (messages)', 'left top'),
+            #'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
             #'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
             #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
             #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
@@ -93,7 +94,8 @@ class CLI(CommandLineCommon.CLI):
 
         varying = [
             #(('network size', ''), ('source period', '')),
-            (('network size', ''), ('quiet node distance', '')),
+            #(('network size', ''), ('quiet node distance', '')),
+            (('safety factor', ''), ('quiet node distance', '')),
         ]
 
         custom_yaxis_range_max = {
