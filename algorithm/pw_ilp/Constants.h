@@ -41,7 +41,7 @@ typedef enum
 #define ALPHA 10
 #define ALPHA_RETRY 20
 
-#define SINK_AWAY_MESSAGES_TO_SEND 2
+#define SINK_AWAY_MESSAGES_TO_SEND 3
 #define SINK_AWAY_DELAY_MS (1 * 1000)
 #define AWAY_RETRY_SEND_DELAY 65
 
