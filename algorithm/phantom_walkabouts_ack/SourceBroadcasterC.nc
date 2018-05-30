@@ -170,6 +170,8 @@ implementation
 	int16_t srw_count;	//short random walk count.
 	int16_t lrw_count;	//long random walk count.
 
+	uint8_t away_messages_to_send;
+
 	hop_distance_t random_walk_hops;
 	hop_distance_t long_random_walk_hops;
 
@@ -833,6 +835,8 @@ implementation
 		sequence_number_init(&normal_sequence_counter);
 		sequence_number_init(&away_sequence_counter);
 
+		away_messages_to_send = SINK_AWAY_MESSAGES_TO_SEND;
+
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
 		call MessageType.register_pair(AWAY_CHANNEL, "Away");
 		call MessageType.register_pair(BEACON_CHANNEL, "Beacon");
@@ -921,14 +925,27 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = 0;
 
-		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		//message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		message.sequence_number = sequence_number_next(&away_sequence_counter);
 
-		call Packet.clear(&packet);
+		//call Packet.clear(&packet);
 
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
-			call AwaySeqNos.increment(TOS_NODE_ID);
+			sequence_number_increment(&away_sequence_counter);
 		}
+		else
+		{
+			if (away_messages_to_send > 0)
+			{
+				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
+			}
+		}
+
+		//if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		//{
+		//	call AwaySeqNos.increment(TOS_NODE_ID);
+		//}
 	}
 
 	event void DelayBRSenderTimer.fired()
@@ -940,14 +957,28 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = 0;
 
-		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
+		message.sequence_number = sequence_number_next(&away_sequence_counter);
 
-		call Packet.clear(&packet);
+		//message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
-			call AwaySeqNos.increment(TOS_NODE_ID);
+			sequence_number_increment(&away_sequence_counter);
 		}
+		else
+		{
+			if (away_messages_to_send > 0)
+			{
+				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
+			}
+		}
+
+		//call Packet.clear(&packet);
+
+		//if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		//{
+		//	call AwaySeqNos.increment(TOS_NODE_ID);
+		//}
 	}
 
 		event void SourcePeriodModel.fired()
@@ -1052,12 +1083,24 @@ implementation
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = 0;
 
-		call Packet.clear(&packet);
-
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
-			call AwaySeqNos.increment(TOS_NODE_ID);
+			sequence_number_increment(&away_sequence_counter);
 		}
+		else
+		{
+			if (away_messages_to_send > 0)
+			{
+				call AwaySenderTimer.startOneShot(AWAY_DELAY_MS);
+			}
+		}
+
+		//call Packet.clear(&packet);
+
+		//if (send_Away_message(&message, AM_BROADCAST_ADDR))
+		//{
+		//	call AwaySeqNos.increment(TOS_NODE_ID);
+		//}
 
 	}
 
