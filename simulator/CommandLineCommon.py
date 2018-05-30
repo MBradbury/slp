@@ -321,7 +321,7 @@ class CLI(object):
     def _create_baseline_versus_graph(self, sim_name, baseline_module, graph_parameters, varying, *,
                                       custom_yaxis_range_max=None, custom_yaxis_range_min=None,
                                       source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
-                                      yextractor=scalar_extractor, xextractor=None, testbed=None,
+                                      yextractor=scalar_extractor, xextractor=None, testbed=None, #vary_label=None,
                                       **kwargs):
         from data.graph import baseline_versus
 
@@ -334,12 +334,21 @@ class CLI(object):
             results_filter=results_filter)
 
         baseline_result_file_path = self.get_results_file_path(sim_name, testbed=testbed, module=baseline_module)
-        baseline_analysis = baseline_module.Analysis.Analyzer(sim_name, baseline_result_file_path)
+        baseline_analysis = baseline_module.Analysis.Analyzer(sim_name, baseline_result_file_path, testbed=testbed)
+
+        graph_parameters_set = set(graph_parameters.keys())
+        baseline_parameters_set = set(baseline_analysis.values.keys())
+
+        if len(graph_parameters_set - baseline_parameters_set) != 0:
+            print(f"Warning graph_parameters_set != baseline_parameters_set, extra = {graph_parameters_set - baseline_parameters_set}")
+
+        baseline_parameters_to_load = tuple(graph_parameters_set & baseline_parameters_set)
+
 
         baseline_results = results.Results(
             sim_name, baseline_result_file_path,
             parameters=baseline_module.local_parameter_names,
-            results=tuple(set(graph_parameters.keys()) & set(baseline_analysis.results_header().keys())),
+            results=baseline_parameters_to_load,
             source_period_normalisation=source_period_normalisation,
             network_size_normalisation=network_size_normalisation,
             results_filter=results_filter)
@@ -878,9 +887,9 @@ class CLI(object):
             if testbed_extra_metrics:
                 settings["--extra-metrics"] = " ".join(testbed_extra_metrics)
 
-            # The source period will either be the second or third entry in common_result_dir
+            # The source period will either be the second or third entry in out_param
             # Depending on if the fault model has been left out
-            params = common_result_dir.split("-")
+            params = out_param.split("-")
 
             if len(params) == 5 + len(self.algorithm_module.local_parameter_names):
                 (configuration, tx_power, channel, lpl, source_period) = params[:5]

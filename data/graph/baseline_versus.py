@@ -66,6 +66,7 @@ class Grapher(GrapherBase):
                         try:
                             baseline_yvalue = baseline_res[ baseline_results.result_names.index(self.yaxis) ]
                         except ValueError:
+                            print(f"No baseline value for {self.yaxis}, not including it")
                             baseline_yvalue = None
 
                         if baseline_yvalue is not None:

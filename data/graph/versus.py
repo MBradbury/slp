@@ -220,7 +220,7 @@ class Grapher(GrapherBase):
             if self.xaxis_font is not None:
                 graph_p.write('set xtics font {}\n'.format(self.xaxis_font))
 
-            xtics = ",".join(f"{self.xvalues_to_tic_label(x)} {x}" for x in sorted(xvalues_as_num))
+            xtics = ",".join(f"'{self.xvalues_to_tic_label(x)}' {x}" for x in sorted(xvalues_as_num))
             graph_p.write('set xtics ({})\n'.format(xtics))
 
             if self.yaxis_range_min is not None:

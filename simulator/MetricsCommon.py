@@ -1080,8 +1080,8 @@ class MetricsCommon(object):
 
         if len(self.node_booted_at) != self.sim.configuration.size():
             print("Some node's boot events were missed:", file=stream)
-            print("\tMissing:", set(self.sim.configuration.topology.nodes.keys()) - set(self.node_booted_at.keys()))
-            print("\tExtra:", set(self.node_booted_at.keys()) - set(self.sim.configuration.topology.nodes.keys()))
+            print("\tMissing:", set(self.sim.configuration.topology.nodes.keys()) - set(self.node_booted_at.keys()), file=stream)
+            print("\tExtra:", set(self.node_booted_at.keys()) - set(self.sim.configuration.topology.nodes.keys()), file=stream)
 
         for (nid, events) in self.node_booted_at.items():
             if len(events) > 1:
@@ -1868,9 +1868,11 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
             self._plot_message_duty_cycle_boundary_histogram(message_type)
 
     def _plot_message_duty_cycle_boundary_histogram(self, message_name):
+        import matplotlib
         import matplotlib.pyplot as plt
         import scipy.stats
-        from matplotlib.font_manager import FontProperties
+
+        matplotlib.rcParams.update({'font.size': 20})
 
         early_wakeup_ms, late_wakeup_ms = self._intervals.get(message_name, (0, 0))
 
@@ -1915,7 +1917,7 @@ class MessageDutyCycleBoundaryHistogram(MetricsCommon):
             x = np.linspace(min(hist_values), max(hist_values), num=100)
             dx = result[1][1] - result[1][0]
             scale = len(hist_values) * dx
-            pdist_line = ax.plot(x, scipy.stats.norm.pdf(x, mean, std) * scale, label=f"N({mean:.0f},{var:.0f})")
+            pdist_line = ax.plot(x, scipy.stats.norm.pdf(x, mean, std) * scale, label=f"N({mean:.0f},{var:.0f})", linewidth=3)
 
             ax.legend()
 
@@ -2044,7 +2046,10 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
         plt.savefig(f"{msg_name}MessageTravelTimeHist.pdf", bbox_inches='tight')
 
     def _plot_pr_receive_message_within_b(self, msg_name, dsrc_vs_time):
+        import matplotlib
         import matplotlib.pyplot as plt
+
+        matplotlib.rcParams.update({'font.size': 16})
 
         bs = [5, 10, 20, 30, 40, 50, 60, 70]
 
@@ -2090,7 +2095,7 @@ class MessageArrivalTimeScatterGrapher(MetricsCommon):
 
         ax.set_title(f"Pr(x-a <= X <= x+a | X = x)")
 
-        ax.legend()
+        ax.legend(ncol=4, prop={'size': 14})
 
         plt.savefig(f"{msg_name}MessageReceiveProbability.pdf", bbox_inches='tight')
 
