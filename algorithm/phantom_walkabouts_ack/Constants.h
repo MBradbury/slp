@@ -54,4 +54,7 @@ typedef enum
 #define SinkCorner2Source 5
 #define SinkCorner3Source 6
 
+#define SINK_AWAY_MESSAGES_TO_SEND 5
+#define AWAY_DELAY_MS 250
+
 #endif // SLP_CONSTANTS_H
