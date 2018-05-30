@@ -145,7 +145,8 @@ class Grapher(GrapherBase):
 
                         dat.setdefault((key_names, values), {})[(xvalue, comp_label)] = yvalue
 
-                        for (i, (max_comparison_result, min_comparison_result)) in enumerate(zip(max_comparison_results, min_comparison_results)):
+                        for (i, (comparison_result, max_comparison_result, min_comparison_result)) \
+                        in enumerate(zip(comparison_results, max_comparison_results, min_comparison_results)):
 
                             comparison_data_key = self._get_key_in_comparison(data_key, max_comparison_result, min_comparison_result)
 
@@ -167,7 +168,7 @@ class Grapher(GrapherBase):
                                     pass
 
                             else:
-                                print(f"Not processing {data_key} as it is not in the min/max data:")
+                                print(f"Not processing {data_key} for comparison result {i}:{comparison_result.name} as it is not in the min/max data:")
                                 for key in sorted(max_comparison_result):
                                     print("\t{}".format(key))
 
