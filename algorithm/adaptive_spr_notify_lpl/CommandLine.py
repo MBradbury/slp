@@ -8,7 +8,7 @@ import simulator.sim
 
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless", extras=["Analysis"])
-adaptive_spr_notify = algorithm.import_algorithm("adaptive_spr_notify")
+adaptive_spr_notify = algorithm.import_algorithm("adaptive_spr_notify", extras=["Analysis"])
 
 from data import results, submodule_loader
 from data.table import fake_result
@@ -31,6 +31,7 @@ class CLI(CommandLineCommon.CLI):
         
         subparser = self._add_argument("graph", self._run_graph)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+        subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("graph-testbed", self._run_graph_testbed)
         subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="Select the testbed to analyse. (Only if not analysing regular results.)")
@@ -96,9 +97,10 @@ class CLI(CommandLineCommon.CLI):
             #'pfs': ('Number of PFS Created', 'left top'),
             #'tailfs': ('Number of TailFS Created', 'left top'),
             'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
+            #"attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
             'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
-            'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
-            'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per Sec per Node', 'left top'),
+            'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Sec per Node', 'left top'),
         }
 
         lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
@@ -130,6 +132,9 @@ class CLI(CommandLineCommon.CLI):
 
         def fetch_baseline_result(baseline_results, data_key, src_period, baseline_params):
 
+            if data_key[-1] != 'enabled':
+                raise RuntimeError(f"Expected 'enabled', got {data_key[-1]}")
+
             # adaptive_spr_notify doesn't run with lpl enabled, but that is what we want to compare against
             data_key = data_key[:-1] + ('disabled',)
 
@@ -139,14 +144,16 @@ class CLI(CommandLineCommon.CLI):
             return all_params['source period'] == '0.25'
 
         self._create_baseline_versus_graph(args.sim, adaptive_spr_notify, graph_parameters, varying,
+            testbed=args.testbed,
+
             results_filter=filter_params,
             custom_yaxis_range_max=custom_yaxis_range_max,
             #custom_yaxis_range_min=custom_yaxis_range_min,
             yextractor = yextractors,
-            xaxis_font = "',16'",
-            yaxis_font = "',16'",
-            xlabel_font = "',14'",
-            ylabel_font = "',14'",
+            xaxis_font = "',18'",
+            yaxis_font = "',18'",
+            xlabel_font = "',16'",
+            ylabel_font = "',15'",
             line_width = 3,
             point_size = 1,
             nokey = True,
@@ -155,6 +162,7 @@ class CLI(CommandLineCommon.CLI):
             legend_divisor = 4,
             legend_base_height = 0.3,
             vary_label = "",
+            baseline_label="DynamicSPR (no duty cycle)",
 
             fetch_baseline_result=fetch_baseline_result,
         )
@@ -171,22 +179,33 @@ class CLI(CommandLineCommon.CLI):
             #'pfs': ('Number of PFS Created', 'left top'),
             #'tailfs': ('Number of TailFS Created', 'left top'),
             'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
+            #"attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
             'average power consumption': ('Average Power Consumption (mA)', 'left top'),
-            'average power used': ('Average Power Used (mAh)', 'left top'),
+            'average power used': ('Average Energy Consumed (mAh)', 'left top'),
+            'time taken': ('Time Taken (sec)', 'left top'),
+            'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
         }
+
+        lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
 
         varying = [
             #(('network size', ''), ('source period', ' seconds')),
-            (('source period', ' seconds'), ('approach', '~')),
+            #(('source period', ' seconds'), ('approach', '~')),
+            (('source period', ' seconds'), (lpl_params, '~')),
         ]
 
         custom_yaxis_range_max = {
             'received ratio': 100,
-            'captured': 5,
-            'norm(norm(sent,time taken),network size)': 6,
-            'norm(norm(fake,time taken),network size)': 6,
+            'captured': 30,
+            'norm(norm(sent,time taken),network size)': 4,
+            'norm(norm(fake,time taken),network size)': 4,
+            'average power consumption': 20,
+            'average power used': 0.04,
+            'normal latency': 300,
+            'attacker distance': 600,
+            'average duty cycle': 100,
         }
 
         def vvalue_converter(name):
@@ -194,7 +213,6 @@ class CLI(CommandLineCommon.CLI):
                 return {
                     "PB_FIXED1_APPROACH": "Fixed1",
                     "PB_FIXED2_APPROACH": "Fixed2",
-                    "PB_RND_APPROACH": "Rnd",
                 }[name]
             except KeyError:
                 return name
@@ -205,12 +223,18 @@ class CLI(CommandLineCommon.CLI):
 
         def fetch_baseline_result(baseline_results, data_key, src_period, baseline_params):
 
+            if data_key[-1] != 'enabled':
+                raise RuntimeError(f"Expected 'enabled', got {data_key[-1]}")
+
             # adaptive_spr_notify doesn't run with lpl enabled, but that is what we want to compare against
             data_key = data_key[:-1] + ('disabled',)
 
             return baseline_results.data[data_key][src_period][baseline_params]
 
-        self._create_baseline_versus_graph("real", protectionless, graph_parameters, varying,
+        def filter_params(all_params):
+            return all_params['source period'] == '0.5'
+
+        self._create_baseline_versus_graph("real", adaptive_spr_notify, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
             testbed=args.testbed,
             vvalue_label_converter = vvalue_converter,
@@ -223,10 +247,14 @@ class CLI(CommandLineCommon.CLI):
             line_width = 3,
             point_size = 1,
             nokey = True,
-            legend_divisor = 2,
+            legend_divisor = 3,
             legend_font_size = '14',
             legend_base_height = 0.5,
 
-            fetch_baseline_result=fetch_baseline_result,
-        )
+            vary_label = "",
+            baseline_label="DynamicSPR (no duty cycle)",
 
+            fetch_baseline_result=fetch_baseline_result,
+
+            results_filter=filter_params,
+        )

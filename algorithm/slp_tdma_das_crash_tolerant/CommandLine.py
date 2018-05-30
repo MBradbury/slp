@@ -5,12 +5,14 @@ import os
 import datetime
 
 from simulator import CommandLineCommon
+import simulator.sim
+import simulator.Configuration
 
 import algorithm
 
 slp_tdma_das = algorithm.import_algorithm("slp_tdma_das")
 
-from data import results
+from data import results, submodule_loader
 from data.run.common import RunSimulationsCommon
 from data.graph import summary, versus
 from data.table import safety_period
@@ -20,18 +22,23 @@ class RunSimulations(RunSimulationsCommon):
     def _get_safety_period(self, darguments):
         # tafn = super(RunSimulations, self)._get_safety_period(darguments)
 
+        #XXX Ugly hack using 0 as seed but we need the config only for SSD
+        configuration = simulator.Configuration.create(darguments["configuration"], {"seed":0, **darguments})
+        (source_id,) = configuration.source_ids
+        (sink_id,) = configuration.sink_ids
+
         network_size = darguments["network size"]
         # search_distance = darguments["search distance"]
         dissem_period = darguments["dissem period"]
         slot_period = darguments["slot period"]
         tdma_num_slots = darguments["tdma num slots"]
         tdma_period_length = dissem_period + (slot_period * tdma_num_slots)
-        ssd = network_size - 1                                                  #XXX Cheap fix until I find the real solution
+        ssd = configuration.ssd(sink_id, source_id)
         # change_distance = ssd // 3
         # path_length = search_distance + change_distance
 
         # return path_length*tdma_period_length
-        return (1 + ssd)*tdma_period_length*2
+        return (1 + ssd)*tdma_period_length*1.5
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
@@ -40,6 +47,7 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
         subparser = self._add_argument("graph-min-max", self._run_graph_min_max)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
     def _cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -47,16 +55,18 @@ class CLI(CommandLineCommon.CLI):
         these have been good amounts of time to run simulations for. You might want
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
-        if size == 11:
-            return datetime.timedelta(hours=1)
+        if size == 7:
+            return datetime.timedelta(hours=8)
+        elif size == 11:
+            return datetime.timedelta(hours=8)
         elif size == 15:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8)
         elif size == 21:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8)
         elif size == 25:
-            return datetime.timedelta(hours=1)
+            return datetime.timedelta(hours=8)
         else:
-            raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
+            raise RuntimeError("No time estimate for network sizes other than 7, 11, 15, 21 or 25")
 
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
@@ -68,7 +78,8 @@ class CLI(CommandLineCommon.CLI):
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
-            parameters.pre_beacon_periods, parameters.search_distance
+            parameters.pre_beacon_periods, parameters.search_distance,
+            [parameters.timesync], parameters.timesync_periods
         ))
 
         # argument_product = list(itertools.product(
@@ -182,11 +193,15 @@ class CLI(CommandLineCommon.CLI):
 
         custom_yaxis_range_max = {
             'received ratio': 100,
-            'overhead': 1.0,
+            'overhead': 2.0,
+            'captured': 25,
         }
 
+        font = "',20'"
+
         self._create_min_max_versus_graph(
-            [slp_tdma_das], None, graph_parameters, varying, None, custom_yaxis_range_max,
+            args.sim, [slp_tdma_das], None, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
             min_label=['SLP TDMA DAS - Lowest'],
             max_label=['SLP TDMA DAS - Highest'],
             vary_label="",
@@ -197,6 +212,8 @@ class CLI(CommandLineCommon.CLI):
             #baseline_label="SLP TDMA DAS",
             nokey=True,
             generate_legend_graph=True,
-            legend_font_size='8',
-            network_size_normalisation="UseNumNodes"
+            legend_font_size='20',
+            network_size_normalisation="UseNumNodes",
+            xaxis_font=font, yaxis_font=font,
+            xlabel_font=font, ylabel_font=font
         )

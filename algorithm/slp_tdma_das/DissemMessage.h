@@ -3,10 +3,7 @@
 
 #include "utils.h"
 
-#include "CustomTimeSync.h"
-
 typedef nx_struct DissemMessage {
-    CUSTOM_TIMESYNC_MSG_DATA;
     OnehopList N;
     nx_uint8_t normal;
     nx_am_addr_t parent;

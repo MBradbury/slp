@@ -29,7 +29,7 @@ class CLI(CommandLineCommon.CLI):
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.slot_period, parameters.dissem_period,
             parameters.tdma_num_slots, parameters.slot_assignment_interval, parameters.minimum_setup_periods,
-            parameters.pre_beacon_periods, parameters.dissem_timeout
+            parameters.pre_beacon_periods, parameters.timesync, parameters.timesync_periods
         ))
 
         argument_product = self.add_extra_arguments(argument_product, extras)

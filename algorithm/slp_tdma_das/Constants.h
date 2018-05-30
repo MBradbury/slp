@@ -14,7 +14,10 @@ enum Channel
 
 #define SLP_MAX_NUM_SOURCES 1
 #define SLP_MAX_NUM_SINKS 1
-#define SLP_MAX_1_HOP_NEIGHBOURHOOD 5
-#define SLP_MAX_2_HOP_NEIGHBOURHOOD 13
+//#define SLP_MAX_1_HOP_NEIGHBOURHOOD 5
+//#define SLP_MAX_2_HOP_NEIGHBOURHOOD 13
+//For low-asymmetry, could have diagonal neighbours
+#define SLP_MAX_1_HOP_NEIGHBOURHOOD 9
+#define SLP_MAX_2_HOP_NEIGHBOURHOOD 25
 
 #endif // SLP_CONSTANTS_H
