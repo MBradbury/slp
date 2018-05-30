@@ -169,8 +169,10 @@ class Grapher(GrapherBase):
 
                             else:
                                 print(f"Not processing {data_key} for comparison result {i}:{comparison_result.name} as it is not in the min/max data:")
-                                for key in sorted(max_comparison_result):
-                                    print("\t{}".format(key))
+                                for key in sorted(set(max_comparison_result.keys()) | set(min_comparison_result.keys())):
+                                    minlabel = 'min' if key in min_comparison_result else "   "
+                                    maxlabel = 'max' if key in max_comparison_result else "   "
+                                    print(f"\t{minlabel}|{maxlabel} - {key}")
 
                         if baseline_results is not None:
                             dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
