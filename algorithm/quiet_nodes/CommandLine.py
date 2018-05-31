@@ -9,6 +9,8 @@ from simulator import CommandLineCommon
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
 phantom_chen = algorithm.import_algorithm("phantom_chen")
+lprouting_chen = algorithm.import_algorithm("ilprouting_chen")
+adaptive_spr_notify_chen = algorithm.import_algorithm("adaptive_spr_notify_chen")
 
 from data import results
 
@@ -142,8 +144,8 @@ class CLI(CommandLineCommon.CLI):
         custom_yaxis_range_max = {
             'captured': 100,
             'received ratio': 100,
-            'normal latency': 300,
-            'norm(sent,time taken)': 3000
+            'normal latency': 3000,
+            'norm(sent,time taken)': 2000
         }
 
         key_equivalence = {
@@ -155,13 +157,13 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         args = (
-            args.sim, [phantom_chen], None, graph_parameters, varying
+            args.sim, [phantom_chen, lprouting_chen, adaptive_spr_notify_chen], None, graph_parameters, varying
         )
 
         kwargs = {
-            "min_label": ["Phantom - Min"],
-            "max_label": ["Phantom - Max"],
-            "min_max_same_label": ["Phantom"],
+            "min_label": ["Phantom - Min", "ILP - Min", "AdaptiveSPR - Min"],
+            "max_label": ["Phantom - Max", "ILP - Max", "AdaptiveSPR - Max"],
+            "min_max_same_label": ["Phantom", "ILP", "AdaptiveSPR"],
             "vary_label": "",
             #"comparison_label": "PW",
             #"vvalue_label_converter": self.vvalue_converter,
