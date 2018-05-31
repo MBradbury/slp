@@ -312,7 +312,8 @@ implementation
 				{
 					case SleepNode:
 					{
-						if ((forwarding_message.sequence_number == sink_distance || forwarding_message.sequence_number +1 == sink_distance) 
+						if ((forwarding_message.sequence_number % sink_source_distance == sink_distance 
+							|| (forwarding_message.sequence_number +1) % sink_source_distance == sink_distance) 
 							&& rnd <= become_sleep_p && sleep_timer > 0)
 						{
 							sleep_status = TRUE;
@@ -327,7 +328,7 @@ implementation
 					}
 					case OtherNode:
 					{
-						if (forwarding_message.sequence_number == sink_distance && rnd <= SLEEP_NODE_LOW_P && sleep_timer > 0)
+						if (forwarding_message.sequence_number % sink_source_distance == sink_distance && rnd <= SLEEP_NODE_LOW_P && sleep_timer > 0)
 						{
 							sleep_status = TRUE;
 							sleep_timer --;
