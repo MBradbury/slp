@@ -79,23 +79,23 @@ implementation
     uint32_t period_counter = 0;
     /*int dissem_sending;*/
 
-    enum
-	{
-		SourceNode, SinkNode, NormalNode
-	};
-
     // Produces a random float between 0 and 1
-    float random_float(void)
-    {
-        // There appears to be problem with the 32 bit random number generator
-        // in TinyOS that means it will not generate numbers in the full range
-        // that a 32 bit integer can hold. So use the 16 bit value instead.
-        // With the 16 bit integer we get better float values to compared to the
-        // fake source probability.
-        // Ref: https://github.com/tinyos/tinyos-main/issues/248
-        const uint16_t rnd = call Random.rand16();
+    /*float random_float(void)*/
+    /*{*/
+        /*// There appears to be problem with the 32 bit random number generator*/
+        /*// in TinyOS that means it will not generate numbers in the full range*/
+        /*// that a 32 bit integer can hold. So use the 16 bit value instead.*/
+        /*// With the 16 bit integer we get better float values to compared to the*/
+        /*// fake source probability.*/
+        /*// Ref: https://github.com/tinyos/tinyos-main/issues/248*/
+        /*const uint16_t rnd = call Random.rand16();*/
 
-        return ((float)rnd) / UINT16_MAX;
+        /*return ((float)rnd) / UINT16_MAX;*/
+    /*}*/
+
+    uint16_t random_interval(uint16_t min, uint16_t max)
+    {
+        return min + call Random.rand16() / (UINT16_MAX / (max - min + 1) + 1);
     }
 
 	bool busy = FALSE; //Used in the macros
@@ -444,7 +444,8 @@ implementation
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(call TDMA.get_slot() != BOT || period_counter < get_pre_beacon_periods())
         {
-            call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_slot_period() * random_float()));
+            /*call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_slot_period() * random_float()));*/
+            call DissemTimerSender.startOneShotAt(now, random_interval(0, get_dissem_period()));
         }
 
         if(period_counter > get_pre_beacon_periods())
