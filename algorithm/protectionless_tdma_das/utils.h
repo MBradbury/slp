@@ -1,12 +1,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "Common.h"
 #include "Constants.h"
 
 #include <string.h>
 #include <stdlib.h>
-
-#include <assert.h>
 
 #define MAX_ONEHOP SLP_MAX_1_HOP_NEIGHBOURHOOD
 #define MAX_TWOHOP SLP_MAX_2_HOP_NEIGHBOURHOOD
@@ -46,12 +45,15 @@ typedef nx_struct OtherList {
 
 
 IDList IDList_new();
+IDList IDList_clone(IDList* list);
 void IDList_add(IDList* list, am_addr_t id);
+void IDList_remove(IDList* list, am_addr_t id);
 void IDList_sort(IDList* list);
 uint16_t IDList_indexOf(IDList* list, am_addr_t el);
 IDList IDList_minus_parent(IDList* list, am_addr_t parent);
 void IDList_clear(IDList* list);
 void IDList_print(const IDList* list);
+void IDList_copy(IDList* to, IDList* from);
 
 uint16_t rank(IDList* list, am_addr_t id);
 
@@ -59,6 +61,7 @@ NeighbourInfo NeighbourInfo_new(am_addr_t id, uint16_t hop, uint16_t slot);
 NeighbourList NeighbourList_new();
 void NeighbourList_add(NeighbourList* list, am_addr_t id, uint16_t hop, uint16_t slot);
 void NeighbourList_add_info(NeighbourList* list, const NeighbourInfo* info);
+void NeighbourList_remove(NeighbourList* list, am_addr_t id);
 uint16_t NeighbourList_indexOf(const NeighbourList* list, am_addr_t id);
 NeighbourInfo* NeighbourList_get(NeighbourList* list, am_addr_t id);
 NeighbourInfo* NeighbourList_info_for_min_hop(NeighbourList* list, const IDList* parents);
@@ -84,6 +87,8 @@ uint16_t OnehopList_min_slot(OnehopList* list)
 OtherInfo OtherInfo_new(am_addr_t id);
 OtherList OtherList_new();
 void OtherList_add(OtherList* list, OtherInfo info);
+void OtherList_remove(OtherList* list, am_addr_t id);
+void OtherList_remove_all(OtherList* list, am_addr_t id);
 uint16_t OtherList_indexOf(const OtherList* list, am_addr_t id);
 OtherInfo* OtherList_get(OtherList* list, am_addr_t id);
 
@@ -93,6 +98,18 @@ IDList IDList_new()
     IDList list;
     list.count = 0;
     return list;
+}
+
+IDList IDList_clone(IDList* list)
+{
+    int i;
+    IDList new_list = IDList_new();
+    new_list.count = list->count;
+    for(i = 0; i < list->count; i++)
+    {
+        new_list.ids[i] = list->ids[i];
+    }
+    return new_list;
 }
 
 void IDList_add(IDList* list, am_addr_t id)
@@ -106,6 +123,37 @@ void IDList_add(IDList* list, am_addr_t id)
     if(IDList_indexOf(list, id) != UINT16_MAX) return;
     list->ids[list->count] = id;
     list->count = list->count + 1;
+}
+
+void IDList_remove(IDList* list, am_addr_t id)
+{
+    int i;
+    if((i = IDList_indexOf(list, id)) == UINT16_MAX) return;
+    //{
+        //uint16_t j;
+        //simdbg("stdout", "Before IDList size=%u [", list->count);
+        //for (j = 0; j < list->count; ++j)
+        //{
+            //simdbg("stdout", "%u, ", list->ids[j]);
+        //}
+        //simdbg("stdout", "]\n");
+    //}
+
+    list->count = list->count - 1;
+    for(; i < list->count; i++)
+    {
+        list->ids[i] = list->ids[i+1];
+    }
+
+    //{
+        //uint16_t j;
+        //simdbg("stdout", "After IDList size=%u [", list->count);
+        //for (j = 0; j < list->count; ++j)
+        //{
+            //simdbg("stdout", "%u, ", list->ids[j]);
+        //}
+        //simdbg("stdout", "]\n");
+    //}
 }
 
 int IDList_compare(const void* elem1, const void* elem2)
@@ -171,12 +219,23 @@ void IDList_clear(IDList* list)
 void IDList_print(const IDList* list)
 {
     uint16_t i;
-    simdbgverbose_clear("stdout", "IDList size=%u [", list->count);
+    simdbg_clear("stdout", "IDList size=%u [", list->count);
     for (i = 0; i < list->count; ++i)
     {
-        simdbgverbose_clear("stdout", "%u, ", list->ids[i]);
+        simdbg_clear("stdout", "%u, ", list->ids[i]);
     }
-    simdbgverbose_clear("stdout", "]");
+    simdbg_clear("stdout", "]");
+}
+
+void IDList_copy(IDList* to, IDList* from)
+{
+    int i;
+    IDList_clear(to);
+    to->count = from->count;
+    for(i = 0; i < from->count; i++)
+    {
+        to->ids[i] = from->ids[i];
+    }
 }
 
 uint16_t rank(IDList* list, am_addr_t id)
@@ -229,6 +288,17 @@ void NeighbourList_add_info(NeighbourList* list, const NeighbourInfo* info)
     list->info[i] = *info;
 }
 
+void NeighbourList_remove(NeighbourList* list, am_addr_t id)
+{
+    int i;
+    if((i = NeighbourList_indexOf(list, id)) == UINT16_MAX) return;
+    list->count = list->count - 1;
+    for(; i < list->count; i++)
+    {
+        list->info[i] = list->info[i+1];
+    }
+}
+
 uint16_t NeighbourList_indexOf(const NeighbourList* list, am_addr_t id)
 {
     uint16_t i;
@@ -266,7 +336,8 @@ NeighbourInfo* NeighbourList_info_for_min_hop(NeighbourList* list, const IDList*
         //simdbg("stdout", "Checking pparent %u.\n", parents->ids[i]);
 
         // If a node is a potential parent, we must have information on them.
-        assert(info != NULL);
+        //assert(info != NULL);
+        if(!info) continue;
 
         //simdbg("stdout", "Retrieved id %u.\n", info->id);
         if(info->hop < minhop)
@@ -378,6 +449,27 @@ void OtherList_add(OtherList* list, OtherInfo info)
         list->count = list->count + 1;
     }
     list->info[i] = info;
+}
+
+void OtherList_remove(OtherList* list, am_addr_t id)
+{
+    int i;
+    if((i = OtherList_indexOf(list, id)) == UINT16_MAX) return;
+    list->count = list->count - 1;
+    for(; i < list->count; i++)
+    {
+        list->info[i] = list->info[i+1];
+    }
+}
+
+void OtherList_remove_all(OtherList* list, am_addr_t id)
+{
+    int i;
+    OtherList_remove(list, id);
+    for(i = 0; i < list->count; i++)
+    {
+        IDList_remove(&(list->info[i].N), id);
+    }
 }
 
 uint16_t OtherList_indexOf(const OtherList* list, am_addr_t id)
