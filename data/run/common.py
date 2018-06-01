@@ -47,7 +47,7 @@ class RunSimulationsCommon(object):
 
         self._existing_results = {}
 
-    def run(self, repeats, argument_names, argument_product, time_estimator=None, verbose=False):
+    def run(self, repeats, argument_names, argument_product, time_estimator=None, verbose=False, debug=False):
 
         if len(argument_names) != len(argument_product[0]):
             raise RuntimeError("Number of argument names ({}) does not equal number of arguments ({})".format(
@@ -103,6 +103,9 @@ class RunSimulationsCommon(object):
 
             if verbose:
                 opt_items.append("--verbose")
+
+            if debug:
+                opt_items.append("--debug")
 
             options = f'algorithm.{self.algorithm_module.name} {self.sim_name} {self._mode()} {" ".join(opt_items)}'
 
