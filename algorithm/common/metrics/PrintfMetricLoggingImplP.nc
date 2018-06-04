@@ -25,7 +25,7 @@ implementation
 {
 	void snprintf_hex_buffer(char* buf, uint8_t buf_len, const void* payload, uint8_t payload_len)
 	{
-		static const char hex_str[] = "0123456789ABCDEF";
+		static const char* hex_str = "0123456789ABCDEF";
 
 		const uint8_t* const payload_u8 = (const uint8_t*)payload;
 		int16_t i;
