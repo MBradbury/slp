@@ -31,4 +31,7 @@ implementation
 	// Time
 	components LocalTimeMilliC;
 	App.LocalTime -> LocalTimeMilliC;
+
+	components Base16C;
+	App.Encode -> Base16C;
 }
