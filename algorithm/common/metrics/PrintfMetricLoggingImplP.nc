@@ -16,7 +16,7 @@
 #define BASE16_LENGTH(inlen) (((inlen) * 2) + 1)
 #define BASE64_LENGTH(inlen) (((((inlen) + 2) / 3) * 4) + 1)
 
-#define MESSAGE_CONTENTS_BUF_LEN BASE64_LENGTH
+#define MESSAGE_CONTENTS_BUF_LEN BASE16_LENGTH
 
 module PrintfMetricLoggingImplP
 {
