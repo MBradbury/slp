@@ -436,8 +436,10 @@ class MetricsCommon(object):
         (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
 
         if __debug__:
+            key = (proximate_source_id, kind, ultimate_source_id, sequence_number)
+
             try:
-                sent_hex_buffers = self.messages_broadcast[(proximate_source_id, kind, ultimate_source_id, sequence_number)]
+                sent_hex_buffers = self.messages_broadcast[key]
 
                 if all(sent_hex_buffer != hex_buffer for sent_hex_buffer in sent_hex_buffers):
                     sent_hex_buffer_str = "\n".join(f"\t{sent_hex_buffer} (len={len(sent_hex_buffer)/2})" for sent_hex_buffer in sent_hex_buffers)
@@ -448,7 +450,7 @@ class MetricsCommon(object):
                         hex_buffer, len(hex_buffer)/2))
 
             except KeyError as ex:
-                print(f"Received {hex_buffer} but unable to find a matching key", file=sys.stderr)
+                print(f"Received {hex_buffer} on {node_id} but unable to find a matching key for {key}", file=sys.stderr)
                 for (k, v) in self.messages_broadcast.items():
                     print(f"{k}: {v}", file=sys.stderr)
                 raise
