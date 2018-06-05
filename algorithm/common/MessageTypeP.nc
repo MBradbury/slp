@@ -68,7 +68,7 @@ implementation
 		}
 
 #ifdef SLP_DEBUG
-		ERROR_OCCURRED(ERROR_UNKNOWN_MESSAGE_TYPE, "Unable to convert message name %s\n", name);
+		ERROR_OCCURRED(ERROR_UNKNOWN_MESSAGE_TYPE, "Unable to convert message name %s (total %" PRIu8 ")\n", name, size);
 #endif
 
 		return UNKNOWN_MESSAGE_TYPE;
@@ -86,7 +86,7 @@ implementation
 		}
 
 #ifdef SLP_DEBUG
-		ERROR_OCCURRED(ERROR_UNKNOWN_MESSAGE_TYPE, "Unknown message type %" PRIu8 "\n", ident);
+		ERROR_OCCURRED(ERROR_UNKNOWN_MESSAGE_TYPE, "Unknown message type %" PRIu8 " (total %" PRIu8 ")\n", ident, size);
 #endif
 
 		return "<unknown>";

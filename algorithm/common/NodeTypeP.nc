@@ -75,7 +75,7 @@ implementation
 		}
 
 #ifdef SLP_DEBUG
-		ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unable to convert node type name %s\n", name);
+		ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unable to convert node type name %s (total %" PRIu8 ")\n", name, size);
 #endif
 
 		return UNKNOWN_NODE_TYPE;
@@ -93,7 +93,7 @@ implementation
 		}
 
 #ifdef SLP_DEBUG
-		ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unknown node type %" PRIu8 "\n", ident);
+		ERROR_OCCURRED(ERROR_UNKNOWN_NODE_TYPE, "Unknown node type %" PRIu8 " (total %" PRIu8 ")\n", ident, size);
 #endif
 
 		return "<unknown>";
