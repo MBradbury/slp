@@ -7,7 +7,7 @@ module Base16C
 }
 implementation
 {
-    command bool Encode.encode(char* buf, uint8_t buf_len, const void* payload, uint8_t payload_len)
+    command void Encode.encode(char* buf, uint8_t buf_len, const void* payload, uint8_t payload_len)
     {
         static const char* hex_str = "0123456789ABCDEF";
 
@@ -17,13 +17,13 @@ implementation
         if (buf_len < BASE16_LENGTH(payload_len))
         {
             buf[0] = '\0';
-            return FALSE;
+            return;
         }
 
         /*if (!payload_u8)
         {
             buf[0] = '\0';
-            return FALSE;
+            return;
         }*/
 
         for (i = 0; i != payload_len; ++i)
@@ -33,7 +33,5 @@ implementation
         }
 
         buf[payload_len * 2] = '\0';
-
-        return TRUE;
     }
 }
