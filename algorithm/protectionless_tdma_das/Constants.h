@@ -7,7 +7,14 @@ enum Channel
 {
 	NORMAL_CHANNEL = 1,
     DISSEM_CHANNEL = 2,
-    EMPTYNORMAL_CHANNEL = 3
+    EMPTYNORMAL_CHANNEL = 3,
+};
+
+enum
+{
+    SourceNode = 0,
+    SinkNode = 1,
+    NormalNode = 2,
 };
 
 #define SLP_MAX_NUM_SOURCES 1

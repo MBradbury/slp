@@ -67,6 +67,10 @@ implementation
 			}
 		}
 
+#ifdef SLP_DEBUG
+		ERROR_OCCURRED(ERROR_UNKNOWN_MESSAGE_TYPE, "Unable to convert message name %s\n", name);
+#endif
+
 		return UNKNOWN_MESSAGE_TYPE;
 	}
 
@@ -80,6 +84,10 @@ implementation
 				return names[i];
 			}
 		}
+
+#ifdef SLP_DEBUG
+		ERROR_OCCURRED(ERROR_UNKNOWN_MESSAGE_TYPE, "Unknown message type %" PRIu8 "\n", ident);
+#endif
 
 		return "<unknown>";
 	}

@@ -115,6 +115,7 @@ class CLI(object):
         subparser = testbed_subparsers.add_parser("build", help="Build the binaries used to run jobs on the testbed. One set of binaries will be created per parameter combination you request.")
         subparser.add_argument("--platform", type=str, default=None)
         subparser.add_argument("-v", "--verbose", default=False, action="store_true", help="Produce verbose logging output from the testbed binaries")
+        subparser.add_argument("--debug", default=False, action="store_true", help="Build debug binaries")
 
         subparser = testbed_subparsers.add_parser("submit", help="Use this command to submit the testbed jobs. Run this on your machine.")
         subparser.add_argument("--duration", type=str, help="How long you wish to run on the testbed for.", required=True)
@@ -621,7 +622,7 @@ class CLI(object):
         return time_after_first_normal
 
     def _execute_runner(self, sim_name, driver, result_path, time_estimator=None,
-                        skip_completed_simulations=True, verbose=False):
+                        skip_completed_simulations=True, verbose=False, debug=False):
         testbed_name = None
 
         if driver.mode() == "TESTBED":
@@ -682,7 +683,8 @@ class CLI(object):
                        self.parameter_names(sim) + extra_argument_names,
                        argument_product,
                        time_estimator,
-                       verbose=verbose)
+                       verbose=verbose,
+                       debug=debug)
         except MissingSafetyPeriodError as ex:
             from pprint import pprint
             import traceback
@@ -1063,7 +1065,8 @@ class CLI(object):
             self._execute_runner("real", builder, testbed_directory,
                                  time_estimator=None,
                                  skip_completed_simulations=False,
-                                 verbose=args.verbose)
+                                 verbose=args.verbose,
+                                 debug=args.debug)
 
         elif 'submit' == args.testbed_mode:
 
