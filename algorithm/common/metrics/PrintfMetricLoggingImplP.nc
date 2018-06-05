@@ -13,6 +13,11 @@
 #	define MESSAGE_TYPE_CONVERTER(message_type) message_type
 #endif
 
+#define BASE16_LENGTH(inlen) (((inlen) * 2) + 1)
+#define BASE64_LENGTH(inlen) (((((inlen) + 2) / 3) * 4) + 1)
+
+#define MESSAGE_CONTENTS_BUF_LEN BASE16_LENGTH
+
 module PrintfMetricLoggingImplP
 {
 	provides interface MetricLogging;
@@ -20,37 +25,11 @@ module PrintfMetricLoggingImplP
 	uses interface MessageType;
 
 	uses interface LocalTime<TMilli>;
+
+	uses interface Encode;
 }
 implementation
 {
-	void snprintf_hex_buffer(char* buf, uint8_t buf_len, const void* payload, uint8_t payload_len)
-	{
-		static const char* hex_str = "0123456789ABCDEF";
-
-		const uint8_t* const payload_u8 = (const uint8_t*)payload;
-		uint8_t i;
-
-		if (buf_len < payload_len * 2 + 1)
-		{
-			buf[0] = '\0';
-			return;
-		}
-
-		if (!payload)
-		{
-			buf[0] = '\0';
-			return;
-		}
-
-		for (i = 0; i != payload_len; ++i)
-		{
-			buf[i * 2 + 0] = hex_str[(payload_u8[i] >> 4) & 0x0F];
-			buf[i * 2 + 1] = hex_str[(payload_u8[i]     ) & 0x0F];
-		}
-
-		buf[payload_len * 2] = '\0';
-	}
-
 	command void MetricLogging.log_metric_boot()
 	{
 		simdbg("M-B", "booted\n");
@@ -91,8 +70,8 @@ implementation
 		uint8_t tx_power
 		)
 	{
-		char payload_str[TOSH_DATA_LENGTH * 2 + 1];
-		snprintf_hex_buffer(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
+		char payload_str[MESSAGE_CONTENTS_BUF_LEN(TOSH_DATA_LENGTH)];
+		call Encode.encode(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
 
 		if (sequence_number <= UNKNOWN_SEQNO)
 		{
@@ -124,8 +103,8 @@ implementation
 		int16_t lqi
 		)
 	{
-		char payload_str[TOSH_DATA_LENGTH * 2 + 1];
-		snprintf_hex_buffer(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
+		char payload_str[MESSAGE_CONTENTS_BUF_LEN(TOSH_DATA_LENGTH)];
+		call Encode.encode(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
 
 		if (sequence_number <= UNKNOWN_SEQNO)
 		{
@@ -277,8 +256,8 @@ implementation
 		uint16_t calc_crc
 		)
 	{
-		char payload_str[TOSH_DATA_LENGTH * 2 + 1];
-		snprintf_hex_buffer(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
+		char payload_str[MESSAGE_CONTENTS_BUF_LEN(TOSH_DATA_LENGTH)];
+		call Encode.encode(payload_str, ARRAY_SIZE(payload_str), payload, msg_size);
 
 		simdbgerror("stderr",
 			"%" PRIu16 "," MESSAGE_TYPE_SPEC ",%04X,%04X,%s\n",

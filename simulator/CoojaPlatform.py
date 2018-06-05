@@ -134,7 +134,7 @@ def eval_input(source):
     if len(options) == 1:
         return options[0]()
     else:
-        raise RuntimeError(f"The radio model ({source}) is not valid.")
+        raise RuntimeError(f"The cooja platform ({source}) is not valid.")
 
 def available_models():
     return [x.__name__ for x in models()]
