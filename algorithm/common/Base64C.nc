@@ -51,7 +51,7 @@ module Base64C
 }
 implementation
 {
-    command bool Encode.encode(char* out, uint8_t outlen, const void* inVoid, uint8_t inlen)
+    command void Encode.encode(char* out, uint8_t outlen, const void* inVoid, uint8_t inlen)
     {
         static const char* b64str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -60,7 +60,7 @@ implementation
         if (outlen < BASE64_LENGTH(inlen))
         {
             out[0] = '\0';
-            return FALSE;
+            return;
         }
 
         while (inlen && outlen)
@@ -90,7 +90,5 @@ implementation
 
         if (outlen)
             *out = '\0';
-
-        return TRUE;
     }
 }
