@@ -14,7 +14,7 @@ implementation
 	App.MetricLogging = MetricLogging;
     App.NodeType = NodeType;
 
-    components MainC;
+    components DelayedBootEventMainP as MainC;
     MainC.SoftwareInit -> App;
 
 	// Timers
