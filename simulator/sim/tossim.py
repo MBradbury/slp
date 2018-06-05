@@ -4,7 +4,7 @@ cluster_need_java = False
 
 def parsers():
     return [
-        ("SINGLE", None, ["verbose", "debug", "seed", "configuration", "network size", "distance",
+        ("SINGLE", None, ["verbose", "debug", "show raw log", "seed", "configuration", "network size", "distance",
                           "node id order", "safety period",
                           "communication model", "noise model", "attacker model", "fault model",
                           "start time", "extra metrics"]),

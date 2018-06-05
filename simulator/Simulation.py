@@ -125,6 +125,17 @@ class Simulation(object):
     def register_output_handler(self, name, function):
         """Registers this class to catch the output from the simulation on the given channel."""
 
+        if self.args.show_raw_log:
+            # Only add if no callbacks were previously present for this name
+            if not self.tossim.hasCallback(name):
+                def process_one_line(line):
+                    # Do not pass newline in detail onwards
+                    args = line[:-1].split(':', 3)
+
+                    print(name, args)
+
+                self.tossim.addCallback(name, process_one_line)
+
         if function is not None:
             def process_one_line(line):
                 # Do not pass newline in detail onwards
