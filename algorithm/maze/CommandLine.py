@@ -103,8 +103,7 @@ class CLI(CommandLineCommon.CLI):
 
         varying = [
             #(('network size', ''), ('source period', '')),
-            (('network size', ''), ('quiet node distance', '')),
-            #(('safety factor', ''), ('quiet node distance', '')),
+            (('network size', ''), ('sleep probability', '')),
         ]
 
         custom_yaxis_range_max = {
@@ -154,7 +153,7 @@ class CLI(CommandLineCommon.CLI):
         }
 
         varying = [
-            (('safety factor', ''), ('quiet node distance', '')),
+            (('safety factor', ''), ('sleep probability', '')),
         ]
 
         args = (
