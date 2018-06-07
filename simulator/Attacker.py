@@ -101,6 +101,10 @@ class Attacker(object):
         if self._message_detect == "using_position":
             self._sim.register_output_handler('A-R', self.process_attacker_rcv_event)
 
+        elif self._message_detect == "using_deliver":
+            self._sim.register_output_handler('M-CD', self.process_attacker_node_deliver_event)
+            self._sim.register_output_handler('A-R', None)
+
         elif self._message_detect.startswith("within_range"):
 
             self._listen_range = float(self._message_detect[self._message_detect.find('(')+1:self._message_detect.find(')')])
@@ -221,6 +225,13 @@ class Attacker(object):
             return self.process_attacker_rcv_event("D", self.position.nid, time, ",".join(str(x) for x in detail))
 
         return False
+
+    def process_attacker_node_deliver_event(self, d_or_e, node_id, time, detail):
+        (kind, target, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi, hex_buffer) = detail.split(',')
+
+        detail = ",".join([kind, proximate_source_id, ultimate_source_id, sequence_number, rssi, lqi])
+
+        self.process_attacker_rcv_event("D", node_id, time, detail)
 
 
     def found_source_slow(self):
