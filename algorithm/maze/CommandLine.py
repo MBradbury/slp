@@ -63,7 +63,9 @@ class CLI(CommandLineCommon.CLI):
             parameters.communication_models, parameters.fault_models,
             [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
             parameters.source_periods, parameters.sleep_duration, parameters.sleep_probability, 
-            parameters.non_sleep_closer_to_source, parameters.non_sleep_closer_to_sink, parameters.safety_factors
+            parameters.non_sleep_closer_to_source, parameters.non_sleep_closer_to_sink,
+            parameters.approaches, parameters.forced_sleep, 
+            parameters.safety_factors
         ))
 
         argument_product = self.add_extra_arguments(argument_product, extras)

@@ -15,7 +15,7 @@ enum
 
 enum
 {
-	SleepNode, OtherNode
+	SleepNode, NonSleepNode
 };
 
 #define SLP_MAX_NUM_SINKS 1
