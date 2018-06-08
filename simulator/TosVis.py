@@ -221,6 +221,10 @@ class Gui:
             "NormalNode":   (0, 0, 0),
             "SourceNode":   (64, 168, 73),
             "SinkNode":     (36, 160, 201),
+
+            # For mmaze
+            "RealSleepNode":(225, 41, 41),
+            "NonSleepNode": (196, 196, 37),
         }
 
         try:
