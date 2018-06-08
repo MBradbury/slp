@@ -17,8 +17,6 @@ typedef nx_struct NormalMessage
   // The distance between sink and source
   nx_uint16_t sink_source_distance;
 
-  nx_int16_t landmark_distance_of_sender;
-
 } NormalMessage;
 
 inline SequenceNumberWithBottom Normal_get_sequence_number(const NormalMessage* msg) { return msg->sequence_number; }
