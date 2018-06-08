@@ -88,9 +88,9 @@ module SourceBroadcasterC
 
 implementation 
 {
-	hop_distance_t sink_distance = BOTTOM;
-	hop_distance_t source_distance = BOTTOM;
-	hop_distance_t sink_source_distance = BOTTOM;
+	hop_distance_t sink_distance;
+	hop_distance_t source_distance;
+	hop_distance_t sink_source_distance;
 
 	uint8_t away_messages_to_send;
 
@@ -98,31 +98,21 @@ implementation
 
 	SequenceNumber away_sequence_counter;
 
-	bool busy = FALSE;
-	int16_t nc = BOTTOM;
-	bool sleep_status = FALSE;
-	int16_t sleep_timer = SLEEP_DURATION;
+	bool busy;
+	bool sleep_status;
+	int16_t sleep_timer;
 
 	message_t packet;
 
-	// Produces a random float between 0 and 1
-	float random_float()
+	uint16_t random_interval(uint16_t min, uint16_t max)
 	{
-		// There appears to be problem with the 32 bit random number generator
-		// in TinyOS that means it will not generate numbers in the full range
-		// that a 32 bit integer can hold. So use the 16 bit value instead.
-		// With the 16 bit integer we get better float values to compared to the
-		// fake source probability.
-		// Ref: https://github.com/tinyos/tinyos-main/issues/248
-		const uint16_t rnd = call Random.rand16();
-
-		return ((float)rnd) / UINT16_MAX;
+		return min + call Random.rand16() / (UINT16_MAX / (max - min + 1) + 1);
 	}
 
 	// The function ensure that nodes go to quiet state backwards based on the SeqNo
 	int16_t calculate_distance_with_seqno(int16_t msgSeqNo)
 	{
-		int16_t non_sleep_distance =  sink_source_distance - NON_SLEEP_CLOSER_TO_SOURCE - NON_SLEEP_CLOSER_TO_SINK;
+		hop_distance_t non_sleep_distance =  sink_source_distance - NON_SLEEP_CLOSE_TO_SOURCE - NON_SLEEP_CLOSE_TO_SINK;
 		int16_t m = 2*(non_sleep_distance - 1);
 
 		if (msgSeqNo % m <= non_sleep_distance && msgSeqNo % m != 0)
@@ -140,7 +130,78 @@ implementation
 
 	uint32_t beacon_send_wait()
 	{
-		return 75U + (uint32_t)(50U * random_float());
+		return 75U + random_interval(0, 50);
+	}
+
+	int sleep_node_type()
+	{
+		// Only the nodes between sink and source could be selected as sleep nodes.
+#if defined(RESTRICT)
+		//simdbg("stdout", "SINK_SOURCE_NODES\n");
+		if (source_distance > hop_distance_increment(sink_source_distance) ||
+			source_distance <= NON_SLEEP_CLOSE_TO_SOURCE ||
+			sink_distance <= NON_SLEEP_CLOSE_TO_SINK)
+
+#elif defined(BROAD)
+		//simdbg("stdout", "BROAD_NODES\n");
+		if (source_distance <= NON_SLEEP_CLOSE_TO_SOURCE ||
+			sink_distance <= NON_SLEEP_CLOSE_TO_SINK)
+#elif defined(NONE)
+		if (FALSE)
+#else
+#	error "Technique not specified"
+#endif
+		{
+			return NonSleepNode;
+		}
+		else
+		{
+			return SleepNode;
+		}
+	}
+
+	bool sleep_node_should_drop_message(const NormalMessage* rcvd)
+	{
+		const int16_t non_sleep_distance = sink_source_distance - NON_SLEEP_CLOSE_TO_SOURCE - NON_SLEEP_CLOSE_TO_SINK;
+
+		const uint16_t rnd = (call Random.rand16() % 100);
+		const bool rnd_test = rnd <= SLEEP_PROBABILITY;
+
+		bool result;
+
+#if defined(SINK_TO_SOURCE_WAVE)
+		//simdbg("stdout", "SINK_TO_SOURCE_WAVE\n");
+		result = (rcvd->sequence_number % non_sleep_distance == sink_distance ||
+			      (rcvd->sequence_number +1) % non_sleep_distance == sink_distance) 
+			&& rnd_test && sleep_timer > 0;
+
+#elif defined(SINK_TO_SOURCE_BACKWARDS)
+		//simdbg("stdout", "SINK_TO_SOURCE_BACKWARDS\n");
+		result = (calculate_distance_with_seqno(rcvd->sequence_number) == sink_distance ||
+			      calculate_distance_with_seqno(rcvd->sequence_number+1) == sink_distance)
+			&& rnd_test && sleep_timer > 0;
+
+#elif defined(SOURCE_TO_SINK_WAVE)
+		//simdbg("stdout", "SOURCE_TO_SINK_WAVE\n");
+		result = (rcvd->sequence_number % non_sleep_distance == source_distance ||
+			      (rcvd->sequence_number +1) % non_sleep_distance == source_distance) 
+			&& rnd_test && sleep_timer > 0;
+
+#elif defined(SOURCE_TO_SINK_BACKWARDS)
+		//simdbg("stdout", "SOURCE_TO_SINK_BACKWARDS\n");
+		result = (calculate_distance_with_seqno(rcvd->sequence_number) == source_distance ||
+			      calculate_distance_with_seqno(rcvd->sequence_number+1) == source_distance)
+			&& rnd_test && sleep_timer > 0;
+
+#else
+#	error "Technique not specified"
+#endif
+		
+		simdbg("stdout",
+			"[Sequence:%d, Node ID: %d] distance to source: %d, distance to sink: %d, ssd = %d,rnd = %d, P = %d. I am sleep = %d.\n", 
+			rcvd->sequence_number, TOS_NODE_ID, source_distance, sink_distance, sink_source_distance, rnd, SLEEP_PROBABILITY, result);
+
+		return result;
 	}
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
@@ -150,6 +211,15 @@ implementation
 	event void Boot.booted()
 	{
 		simdbgverbose("Boot", "Application booted.\n");
+
+		sink_distance = UNKNOWN_HOP_DISTANCE;
+		source_distance = UNKNOWN_HOP_DISTANCE;
+		sink_source_distance = UNKNOWN_HOP_DISTANCE;
+
+		busy = FALSE;
+
+		sleep_status = FALSE;
+		sleep_timer = SLEEP_DURATION;
 
 		init_distance_neighbours(&neighbours);
 
@@ -280,9 +350,6 @@ implementation
 
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-		const uint16_t rnd = call Random.rand16() % 100;
-		int16_t non_sleep_distance = sink_source_distance - NON_SLEEP_CLOSER_TO_SOURCE - NON_SLEEP_CLOSER_TO_SINK;;
-		
 		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage forwarding_message;
@@ -300,78 +367,32 @@ implementation
 				source_distance = rcvd->source_distance + 1;
 			}
 
-			// Nodes classification
-// Only the nodes betwwen sink and source could be selected as sleep nodes.
-#if defined(RESTRICT)
-			//simdbg("stdout", "SINK_SOURCE_NODES\n");
-			if (source_distance > (sink_source_distance + 1) || source_distance <= NON_SLEEP_CLOSER_TO_SOURCE || sink_distance <= NON_SLEEP_CLOSER_TO_SINK)
-
-#elif defined(BROAD)
-			//simdbg("stdout", "BROAD_NODES\n");
-			if (source_distance <= NON_SLEEP_CLOSER_TO_SOURCE || sink_distance <= NON_SLEEP_CLOSER_TO_SINK)
-#else
-#	error "Technique not specified"
-#endif		
-			{
-				nc = NonSleepNode;
-			}
-			else
-			{
-				nc = SleepNode;
-			}
-
 			if (sleep_status == FALSE)
 			{
+				const int16_t nc = sleep_node_type();
+
 				switch (nc)
 				{
 					case SleepNode:
 					{
-
-#if defined(SINK_TO_SOURCE_WAVE)
-						//simdbg("stdout", "SINK_TO_SOURCE_WAVE\n");
-						if ((forwarding_message.sequence_number % non_sleep_distance == sink_distance 
-							|| (forwarding_message.sequence_number +1) % non_sleep_distance == sink_distance) 
-							&& rnd <= SLEEP_PROBABILITY && sleep_timer > 0)
-
-#elif defined(SINK_TO_SOURCE_BACKWARDS)
-						//simdbg("stdout", "SINK_TO_SOURCE_BACKWARDS\n");
-						if ((calculate_distance_with_seqno(forwarding_message.sequence_number) == sink_distance || calculate_distance_with_seqno(forwarding_message.sequence_number+1) == sink_distance)
-							&& rnd <= SLEEP_PROBABILITY && sleep_timer > 0)
-
-#elif defined(SOURCE_TO_SINK_WAVE)
-						//simdbg("stdout", "SOURCE_TO_SINK_WAVE\n");
-						if ((forwarding_message.sequence_number % non_sleep_distance == source_distance 
-							|| (forwarding_message.sequence_number +1) % non_sleep_distance == source_distance) 
-							&& rnd <= SLEEP_PROBABILITY && sleep_timer > 0)
-
-#elif defined(SOURCE_TO_SINK_BACKWARDS)
-						//simdbg("stdout", "SOURCE_TO_SINK_BACKWARDS\n");
-						if ((calculate_distance_with_seqno(forwarding_message.sequence_number) == source_distance || calculate_distance_with_seqno(forwarding_message.sequence_number+1) == source_distance)
-							&& rnd <= SLEEP_PROBABILITY && sleep_timer > 0)
-
-#else
-#	error "Technique not specified"
-#endif
-
+						if (sleep_node_should_drop_message(rcvd))
 						{
 							sleep_status = TRUE;
 							sleep_timer --;
-							simdbg("stdout", "[Sequence:%d, Node ID: %d] distance to source: %d, distance to sink: %d, ssd = %d,rnd = %d, P = %d. I am sleep.\n", 
-								forwarding_message.sequence_number, TOS_NODE_ID, source_distance, sink_distance, sink_source_distance, rnd, SLEEP_PROBABILITY);
 						}
 						else
 						{
 							send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 						}
-						break;
-					}
+						
+					} break;
+
 					case NonSleepNode:
+					default:
 					{						
 						send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
-						break;
-					}
-					default:
-						send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+						
+					} break;
 				}
 			}
 			// nodes in the sleep state
