@@ -31,6 +31,9 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph", self._run_graph)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
+        subparser = self._add_argument("graph-sf", self._run_graph_sf)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
         subparser = self._add_argument("graph-min-max", self._run_min_max_versus)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
@@ -121,6 +124,48 @@ class CLI(CommandLineCommon.CLI):
         self._create_versus_graph(args.sim, graph_parameters, varying,
             custom_yaxis_range_max=custom_yaxis_range_max,
             results_filter=filter_params,
+            yextractor = yextractors,
+            xaxis_font = "',16'",
+            yaxis_font = "',16'",
+            xlabel_font = "',18'",
+            ylabel_font = "',16'",
+            line_width = 3,
+            point_size = 1,
+            nokey = True,
+            generate_legend_graph = True,
+            legend_font_size = 16,
+        )
+
+    def _run_graph_sf(self, args):
+        graph_parameters = {
+            'normal latency': ('Message Latency (msec)', 'left top'),
+            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            'captured': ('Capture Ratio (%)', 'left top'),
+            #'sent': ('Total Messages Sent', 'left top'),
+            'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            'norm(sent,time taken)': ('Messages Transmission (messages)', 'left top'),
+            #'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+            #'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
+            #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
+            #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
+        }
+
+        varying = [
+            #(('network size', ''), ('source period', '')),
+            (('safety factor', ''), ('sleep probability', '')),
+        ]
+
+        custom_yaxis_range_max = {
+            'captured': 100,
+            'received ratio': 100,
+            'normal latency': 200,
+            'norm(sent,time taken)': 2000
+        }          
+
+        yextractors = { }      
+
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+            custom_yaxis_range_max=custom_yaxis_range_max,
             yextractor = yextractors,
             xaxis_font = "',16'",
             yaxis_font = "',16'",

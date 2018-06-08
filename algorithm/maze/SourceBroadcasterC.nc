@@ -281,7 +281,7 @@ implementation
 			}
 
 			// Update the nodes classification
-			if (source_distance <= NON_SLEEP_CLOSER_TO_SOURCE || sink_distance <= NON_SLEEP_CLOSER_TO_SINK)
+			if (source_distance > sink_source_distance || source_distance <= NON_SLEEP_CLOSER_TO_SOURCE || sink_distance <= NON_SLEEP_CLOSER_TO_SINK)
 			{
 				nc = OtherNode;
 			}
