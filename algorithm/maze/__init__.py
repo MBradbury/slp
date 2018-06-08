@@ -7,4 +7,4 @@ def _setup():
 (name, results_path, result_file, result_file_path, graphs_path) = _setup()
 
 
-local_parameter_names = ('sleep duration', 'sleep probability', 'non sleep closer to source', 'non sleep closer to sink', 'safety factor',)
+local_parameter_names = ('sleep duration', 'sleep probability', 'non sleep closer to source', 'non sleep closer to sink', 'approaches', 'forced sleep', 'safety factor',)

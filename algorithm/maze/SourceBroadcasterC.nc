@@ -119,6 +119,25 @@ implementation
 		return ((float)rnd) / UINT16_MAX;
 	}
 
+	// The function ensure that nodes go to quiet state backwards based on the SeqNo
+	int16_t calculate_distance_with_seqno(int16_t msgSeqNo)
+	{
+		int16_t non_sleep_distance =  sink_source_distance - NON_SLEEP_CLOSER_TO_SOURCE - NON_SLEEP_CLOSER_TO_SINK;
+		int16_t m = 2*(non_sleep_distance - 1);
+
+		if (msgSeqNo % m <= non_sleep_distance && msgSeqNo % m != 0)
+  		{
+    		return msgSeqNo % m;
+  		}
+  		else
+  		{
+    		if (msgSeqNo % m == 0)
+      			return 2;
+    		else
+      			return 2 * non_sleep_distance - msgSeqNo % m;
+		}
+	}
+
 	uint32_t beacon_send_wait()
 	{
 		return 75U + (uint32_t)(50U * random_float());
@@ -262,6 +281,7 @@ implementation
 	void Normal_receive_Normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
 		const uint16_t rnd = call Random.rand16() % 100;
+		int16_t non_sleep_distance = sink_source_distance - NON_SLEEP_CLOSER_TO_SOURCE - NON_SLEEP_CLOSER_TO_SINK;;
 		
 		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -280,18 +300,25 @@ implementation
 				source_distance = rcvd->source_distance + 1;
 			}
 
-			// Update the nodes classification
-			if (source_distance > sink_source_distance || source_distance <= NON_SLEEP_CLOSER_TO_SOURCE || sink_distance <= NON_SLEEP_CLOSER_TO_SINK)
+			// Nodes classification
+// Only the nodes betwwen sink and source could be selected as sleep nodes.
+#if defined(RESTRICT)
+			//simdbg("stdout", "SINK_SOURCE_NODES\n");
+			if (source_distance > (sink_source_distance + 1) || source_distance <= NON_SLEEP_CLOSER_TO_SOURCE || sink_distance <= NON_SLEEP_CLOSER_TO_SINK)
+
+#elif defined(BROAD)
+			//simdbg("stdout", "BROAD_NODES\n");
+			if (source_distance <= NON_SLEEP_CLOSER_TO_SOURCE || sink_distance <= NON_SLEEP_CLOSER_TO_SINK)
+#else
+#	error "Technique not specified"
+#endif		
 			{
-				nc = OtherNode;
+				nc = NonSleepNode;
 			}
 			else
 			{
 				nc = SleepNode;
 			}
-
-			//simdbg("stdout", "[%d] NC = %d. the source distance is %d, sink distance is %d, sink-source distance is %d\n", 
-			//			TOS_NODE_ID, nc, source_distance, sink_distance, sink_source_distance);
 
 			if (sleep_status == FALSE)
 			{
@@ -299,13 +326,38 @@ implementation
 				{
 					case SleepNode:
 					{
-						if ((forwarding_message.sequence_number % (sink_source_distance - NON_SLEEP_CLOSER_TO_SOURCE - NON_SLEEP_CLOSER_TO_SINK) == sink_distance 
-							|| (forwarding_message.sequence_number +1) % (sink_source_distance - NON_SLEEP_CLOSER_TO_SOURCE - NON_SLEEP_CLOSER_TO_SINK) == sink_distance) 
+
+#if defined(SINK_TO_SOURCE_WAVE)
+						//simdbg("stdout", "SINK_TO_SOURCE_WAVE\n");
+						if ((forwarding_message.sequence_number % non_sleep_distance == sink_distance 
+							|| (forwarding_message.sequence_number +1) % non_sleep_distance == sink_distance) 
 							&& rnd <= SLEEP_PROBABILITY && sleep_timer > 0)
+
+#elif defined(SINK_TO_SOURCE_BACKWARDS)
+						//simdbg("stdout", "SINK_TO_SOURCE_BACKWARDS\n");
+						if ((calculate_distance_with_seqno(forwarding_message.sequence_number) == sink_distance || calculate_distance_with_seqno(forwarding_message.sequence_number+1) == sink_distance)
+							&& rnd <= SLEEP_PROBABILITY && sleep_timer > 0)
+
+#elif defined(SOURCE_TO_SINK_WAVE)
+						//simdbg("stdout", "SOURCE_TO_SINK_WAVE\n");
+						if ((forwarding_message.sequence_number % non_sleep_distance == source_distance 
+							|| (forwarding_message.sequence_number +1) % non_sleep_distance == source_distance) 
+							&& rnd <= SLEEP_PROBABILITY && sleep_timer > 0)
+
+#elif defined(SOURCE_TO_SINK_BACKWARDS)
+						//simdbg("stdout", "SOURCE_TO_SINK_BACKWARDS\n");
+						if ((calculate_distance_with_seqno(forwarding_message.sequence_number) == source_distance || calculate_distance_with_seqno(forwarding_message.sequence_number+1) == source_distance)
+							&& rnd <= SLEEP_PROBABILITY && sleep_timer > 0)
+
+#else
+#	error "Technique not specified"
+#endif
+
 						{
 							sleep_status = TRUE;
 							sleep_timer --;
-							simdbg("stdout", "[Sequence:%d ID: %d]: rnd = %d, P = %d. I am sleep.\n", forwarding_message.sequence_number, TOS_NODE_ID, rnd, SLEEP_PROBABILITY);
+							simdbg("stdout", "[Sequence:%d, Node ID: %d] distance to source: %d, distance to sink: %d, ssd = %d,rnd = %d, P = %d. I am sleep.\n", 
+								forwarding_message.sequence_number, TOS_NODE_ID, source_distance, sink_distance, sink_source_distance, rnd, SLEEP_PROBABILITY);
 						}
 						else
 						{
@@ -313,7 +365,7 @@ implementation
 						}
 						break;
 					}
-					case OtherNode:
+					case NonSleepNode:
 					{						
 						send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 						break;
