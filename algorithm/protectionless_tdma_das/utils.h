@@ -222,7 +222,7 @@ void IDList_print(const IDList* list)
     simdbgverbose_clear("stdout", "IDList size=%u [", list->count);
     for (i = 0; i < list->count; ++i)
     {
-        simdbg_clear("stdout", "%u, ", list->ids[i]);
+        simdbgverbose_clear("stdout", "%u, ", list->ids[i]);
     }
     simdbgverbose_clear("stdout", "]");
 }
