@@ -117,4 +117,8 @@ implementation
     components
         new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
     App.NormalSeqNos -> NormalSeqNos;
+
+    components
+        new SequenceNumbersC(SLP_MAX_1_HOP_NEIGHBOURHOOD) as EmptyNormalSeqNos;
+    App.EmptyNormalSeqNos -> EmptyNormalSeqNos;
 }
