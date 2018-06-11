@@ -14,8 +14,8 @@
 #include <stdlib.h>
 
 #define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
-#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, UNKNOWN_SEQNO, 1)
+#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, msg->sequence_number, 1)
 
 #define BOT UINT16_MAX
 
@@ -644,7 +644,7 @@ implementation
 
     void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
     {
-		if (call EmptyNormalSeqNos.before_and_update(source_addr, rcvd->sequence_number)) {
+        if (call EmptyNormalSeqNos.before_and_update(source_addr, rcvd->sequence_number)) {
             METRIC_RCV_EMPTYNORMAL(rcvd);
         }
     }
