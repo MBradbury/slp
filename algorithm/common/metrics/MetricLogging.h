@@ -66,9 +66,11 @@
 	call MetricLogging.log_metric_deliver(#TYPE, MSG, PAYLOAD, MSG_SIZE, TARGET, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, RSSI, LQI)
 
 #if defined(SLP_ATTACKER_USES_A_R_EVENT) && SLP_ATTACKER_USES_A_R_EVENT == 1
+#warning "Simulations WILL generate the attacker receive event"
 #define ATTACKER_RCV(TYPE, MSG, PAYLOAD, MSG_SIZE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, RSSI, LQI) \
 	call MetricLogging.log_attacker_receive(#TYPE, MSG, PAYLOAD, MSG_SIZE, PROXIMATE_SOURCE, ULTIMATE_SOURCE, SEQUENCE_NUMBER, RSSI, LQI)
 #else
+#warning "Simulations WILL NOT generate the attacker receive event"
 #define ATTACKER_RCV(...)
 #endif
 
