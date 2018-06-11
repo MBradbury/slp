@@ -60,6 +60,7 @@ module SourceBroadcasterC
 	uses interface SourcePeriodModel;
 
 	uses interface SequenceNumbers as NormalSeqNos;
+	uses interface SequenceNumbers as EmptyNormalSeqNos;
 }
 
 implementation
@@ -406,6 +407,8 @@ implementation
         else
         {
             EmptyNormalMessage msg;
+            msg.sequence_number = call EmptyNormalSeqNos.next(TOS_NODE_ID);
+            call EmptyNormalSeqNos.increment(TOS_NODE_ID);
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
         }
 	}
@@ -504,11 +507,9 @@ implementation
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
         /*simdbgverbose("stdout", "Received normal.\n");*/
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage* forwarding_message;
-
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -643,7 +644,9 @@ implementation
 
     void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
     {
-        METRIC_RCV_EMPTYNORMAL(rcvd);
+		if (call EmptyNormalSeqNos.before_and_update(source_addr, rcvd->sequence_number)) {
+            METRIC_RCV_EMPTYNORMAL(rcvd);
+        }
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
