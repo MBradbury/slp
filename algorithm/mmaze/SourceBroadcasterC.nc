@@ -348,7 +348,10 @@ implementation
 				signal SleepIntervalTimer.fired();
 			}
 
-			send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+			if (call NodeType.get() != RealSleepNode)
+			{
+				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+			}
 		}
 	}
 
