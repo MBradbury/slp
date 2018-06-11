@@ -119,25 +119,43 @@ implementation
 
 	bool is_sleep_cycle()
 	{
+		uint16_t i;
+		for (i = 0; i < SLEEP_DEPTH; ++i)
+		{
 #if defined(SINK_SRC)
-		return (sink_distance - NON_SLEEP_SINK) == sleep_cycle_count;
+			if ((sink_distance - NON_SLEEP_SINK) == sleep_cycle_count + i)
+			{
+				return TRUE;
+			}
 
 #elif defined(SRC_SINK)
-		return (source_distance - NON_SLEEP_SOURCE) == sleep_cycle_count;
+			if ((source_distance - NON_SLEEP_SOURCE) == sleep_cycle_count + i)
+			{
+				return TRUE;
+			}
 
 #elif defined(SINK_SRC_SINK)
-		return !inverse_order
-			? (sink_distance - NON_SLEEP_SINK) == sleep_cycle_count
-			: (source_distance - NON_SLEEP_SOURCE) == sleep_cycle_count;
+			if (!inverse_order
+				? (sink_distance - NON_SLEEP_SINK) == sleep_cycle_count + i
+				: (source_distance - NON_SLEEP_SOURCE) == sleep_cycle_count + i)
+			{
+				return TRUE;
+			}
 
 #elif defined(SRC_SINK_SRC)
-		return !inverse_order
-			? (source_distance - NON_SLEEP_SOURCE) == sleep_cycle_count
-			: (sink_distance - NON_SLEEP_SINK) == sleep_cycle_count;
+			if (!inverse_order
+				? (source_distance - NON_SLEEP_SOURCE) == sleep_cycle_count + i
+				: (sink_distance - NON_SLEEP_SINK) == sleep_cycle_count + i)
+			{
+				return TRUE;
+			}
 
 #else
 #	error "Technique not specified"
 #endif
+		}
+
+		return FALSE;
 	}
 
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
@@ -154,7 +172,7 @@ implementation
 
 		busy = FALSE;
 
-		sleep_cycle_count = 0;
+		sleep_cycle_count = 1;
 
 #if defined(SINK_SRC_SINK) || (SRC_SINK_SRC)
 		inverse_order = FALSE;
