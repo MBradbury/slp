@@ -25,12 +25,14 @@ class Arguments(ArgumentsCommon):
 
         self.add_argument("--approach", type=str, choices=approaches, required=True)
         self.add_argument("--restricted-sleep", type=str, choices=restricted_sleep, required=True)
+        self.add_argument("--depth", type=self.type_positive_int, required=True)
 
     def build_arguments(self):
         result = super().build_arguments()
 
         result["SLEEP_DURATION_MS"] = int(self.args.sleep_duration * 1000)
         result["SLEEP_PROBABILITY"] = int(self.args.sleep_probability * 100)
+        result["SLEEP_DEPTH"] = int(self.args.depth)
 
         result["NON_SLEEP_SOURCE"] = self.args.non_sleep_source # hops
         result["NON_SLEEP_SINK"] = self.args.non_sleep_sink # hops
