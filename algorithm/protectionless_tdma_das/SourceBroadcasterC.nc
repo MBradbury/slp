@@ -504,11 +504,9 @@ implementation
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
         /*simdbgverbose("stdout", "Received normal.\n");*/
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage* forwarding_message;
-
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
