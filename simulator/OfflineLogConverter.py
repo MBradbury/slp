@@ -1,4 +1,5 @@
 
+import binascii
 from datetime import datetime
 import glob
 import os.path
@@ -65,7 +66,7 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
         # Remove newline from output
         output = output.strip()
 
-        return (node_time, output)
+        return [(node_time, output)]
 
     def _process_gpio_line(self, line):
         timestamp, observer_id, node_id, name, value = line.split(",", 4)
@@ -102,7 +103,8 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
                 traceback.print_exc()
                 continue
 
-            self.processed_lines.append(output)
+            if output:
+                self.processed_lines.extend(output)
 
         # Also need to process gpio tracing
         gpiotracing_path = os.path.join(os.path.dirname(log_file.name), "gpiotracing.csv")
@@ -131,6 +133,53 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
 
     # Logs are grouped together by node id
     # The time will reset to earlier when the serial output for a new node is encountered
+
+class HexFlockLab(FlockLab, OfflineLogConverter):
+    def __init__(self, log_path):
+
+        self._buffer_timestamp = None
+        self._buffer = ""
+
+        super().__init__(log_path)
+
+    def _process_line(self, line):
+        timestamp, observer_id, node_id, direction, output = line.split(",", 4)
+
+        timestamp = float(timestamp)
+
+        node_time = datetime.fromtimestamp(timestamp)
+
+        # Remove newline from output
+        output = output.strip()
+        output = output[len("00ffff00001c0064"):]
+
+        # Get rid of NUL padding bytes
+        while output.endswith("00"):
+            output = output[:-len("00")]
+
+        output = binascii.unhexlify(output).decode("utf-8")
+
+        self._buffer += output
+
+        print("CURRENT BUFF '", self._buffer, "'")
+
+        result = []
+
+        newline_idx = self._buffer.find('\n')
+        while newline_idx != -1:
+
+            out = self._buffer[:newline_idx]
+            self._buffer = self._buffer[newline_idx+1:]
+
+            prev_timestamp = self._buffer_timestamp if self._buffer_timestamp else node_time
+
+            result.append((prev_timestamp, out))
+
+            newline_idx = self._buffer.find('\n')
+
+        self._buffer_timestamp = node_time if self._buffer else None
+
+        return result
 
 
 class FitIotLab(OfflineLogConverter, LineLogConverter):
@@ -196,7 +245,7 @@ class Avrora(OfflineLogConverter):
     RX_LINE_RE = re.compile(r'<====\s+((?:[0-9A-F][0-9A-F]\.)*[0-9A-F][0-9A-F])\s+(\d+\.\d+)\s+ms\s*')
 
     def __init__(self, log_path):
-        super(Avrora, self).__init__()
+        super().__init__()
 
         self._log_file = open(log_path, 'r')
         self._log_file_iter = iter(self._log_file)
@@ -386,7 +435,7 @@ class SerialMessageLogConverter(object):
 
 class Indriya(OfflineLogConverter, SerialMessageLogConverter):
     def __init__(self, log_path):
-        super(Indriya, self).__init__()
+        super().__init__()
 
         self.cdf = self._create_combined_results(log_path)
         

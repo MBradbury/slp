@@ -17,6 +17,8 @@ def platform():
     return ["telosb", "tinynode"]
 
 def log_mode():
+    # Note that "uart_printf" also works, but uses about 500 bytes more RAM
+    # and more ROM. So we stick with unbuffered printf
     return "unbuffered_printf"
 
 def url():
@@ -38,6 +40,7 @@ def build_arguments():
         "SLP_LEDS_RECORD_NO_SERIAL": 1
     }
 
+# No idea why this doesn't work
 def fastserial_supported():
     return False
 
