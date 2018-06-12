@@ -10,5 +10,5 @@ def _setup():
 local_parameter_names = (
     'sleep duration', 'sleep probability',#
     'non sleep source', 'non sleep sink',
-    'approach', 'restricted sleep', 'depth', 'safety factor', 
+    'approach', 'restricted sleep', 'quiet node distance', 'depth', 'safety factor', 
 )
