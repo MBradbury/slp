@@ -98,7 +98,7 @@ implementation
 
 #elif defined(NO_FAR_SLEEP)
 		// Nodes further than the sink-source distance do not sleep
-		result = source_distance < sink_source_distance;
+		result = (source_distance + sink_distance < (sink_source_distance + 2 * QUIET_NODE_DISTANCE));
 
 #else
 #	error "Technique not specified"
