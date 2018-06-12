@@ -53,29 +53,9 @@ class CLI(CommandLineCommon.CLI):
             return datetime.timedelta(hours=4)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
-        
-    def _argument_product(self, sim, extras=None):
-        parameters = self.algorithm_module.Parameters
-
-        argument_product = list(itertools.product(
-            parameters.sizes, parameters.configurations,
-            parameters.attacker_models, parameters.noise_models,
-            parameters.communication_models, parameters.fault_models,
-            [parameters.distance], parameters.node_id_orders, [parameters.latest_node_start_time],
-            parameters.source_periods, parameters.sleep_duration, parameters.sleep_probability, 
-            parameters.non_sleep_close_to_source, parameters.non_sleep_close_to_sink,
-            parameters.approach, parameters.forced_sleep, 
-            parameters.safety_factors
-        ))
-
-        argument_product = self.add_extra_arguments(argument_product, extras)
-
-        argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
-
-        return argument_product
 
     def time_after_first_normal_to_safety_period(self, tafn):
-        return tafn * 1.0
+        return tafn
 
 
     def _run_table(self, args):
@@ -119,7 +99,7 @@ class CLI(CommandLineCommon.CLI):
         }
 
         def filter_params(all_params):
-            return all_params['safety factor'] != '1.2'           
+            return all_params['safety factor'] != '1.3'           
 
         yextractors = { }      
 
