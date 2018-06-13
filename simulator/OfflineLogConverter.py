@@ -135,6 +135,7 @@ class FlockLab(OfflineLogConverter, LineLogConverter):
     # The time will reset to earlier when the serial output for a new node is encountered
 
 class HexFlockLab(FlockLab, OfflineLogConverter):
+    # Assumes that log lines for the same node are adjacent
     def __init__(self, log_path):
 
         self._buffer_timestamp = None
