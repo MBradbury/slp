@@ -25,6 +25,7 @@ class Arguments(ArgumentsCommon):
 
         self.add_argument("--approach", type=str, choices=approaches, required=True)
         self.add_argument("--restricted-sleep", type=str, choices=restricted_sleep, required=True)
+        self.add_argument("--quiet-node-distance", type=self.type_positive_int, required=True)
 
     def build_arguments(self):
         result = super().build_arguments()
@@ -34,6 +35,7 @@ class Arguments(ArgumentsCommon):
 
         result["NON_SLEEP_SOURCE"] = self.args.non_sleep_source # hops
         result["NON_SLEEP_SINK"] = self.args.non_sleep_sink # hops
+        result["QUIET_NODE_DISTANCE"] = self.args.quiet_node_distance # hops
 
         result[self.args.approach] = 1
         result[self.args.restricted_sleep] = 1

@@ -46,6 +46,8 @@ approach = ["SINK_SRC", "SRC_SINK", "SINK_SRC_SINK", "SRC_SINK_SRC"]
 
 restricted_sleep = ["ALL_SLEEP", "NO_FAR_SLEEP"]
 
+quiet_node_distance = [1, 2, 3]
+
 safety_factors = [0.4, 0.8, 1.2, 1.6, 2.0]
 
 repeats = 1000
