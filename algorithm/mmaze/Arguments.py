@@ -5,7 +5,7 @@ import simulator.MobilityModel
 
 approaches = ("SINK_SRC", "SRC_SINK", "SINK_SRC_SINK", "SRC_SINK_SRC")
 
-restricted_sleep = ("ALL_SLEEP", "NO_FAR_SLEEP")
+restricted_sleep = ("ALL_SLEEP", "NO_FAR_SLEEP", "NO_FAR_SLEEP_3_2")
 
 class Arguments(ArgumentsCommon):
     def __init__(self):
