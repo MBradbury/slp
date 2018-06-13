@@ -137,7 +137,7 @@ implementation
 	{
 		// Only the nodes between sink and source could be selected as sleep nodes.
 #if defined(NO_FAR_SLEEP)
-		if (source_distance > hop_distance_increment(sink_source_distance) ||
+		if (source_distance + sink_distance > (hop_distance_increment(sink_source_distance) + 2 * QUIET_NODE_DISTANCE) ||
 			source_distance <= NON_SLEEP_SOURCE ||
 			sink_distance <= NON_SLEEP_SINK)
 
