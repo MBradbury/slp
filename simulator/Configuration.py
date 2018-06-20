@@ -1,7 +1,9 @@
 
+import os.path
+
 import numpy as np
 
-from scipy.sparse.csgraph import shortest_path
+from scipy.sparse.csgraph import shortest_path, csgraph_from_dense
 from scipy.spatial.distance import cdist
 
 from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring, TopologyId, OrderedId, IndexId
@@ -71,14 +73,37 @@ class Configuration(object):
 
         self._dist_matrix_meters = cdist(coords, coords, 'euclidean')
 
-        # If there is not a uniform distance between nodes,
-        # then we cannot build the connectivity matrix this way
-        if not hasattr(self.topology, "distance"):
+        # If there is a uniform distance between nodes,
+        # then we can build the connectivity matrix (this is used for simulated topologies)
+        if hasattr(self.topology, "distance"):
+            connectivity_matrix = self._dist_matrix_meters <= self.topology.distance
+
+            self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, directed=True, return_predecessors=True)
+
+
+        # If this topology is for a testbed, then we can try loading its profile information
+        elif hasattr(self.topology, "platform"):
+
+            tx_power = 7
+
+            testbed_name = self.topology.__class__.__name__.lower()
+
+            link_path = os.path.join("testbed_results", testbed_name, "profile", "link.pickle")
+
+            with open(link_path, 'rb') as pickle_file:
+                import pickle
+
+                rssi, lqi, prr = pickle.load(pickle_file)
+
+                prr = csgraph_from_dense(prr[tx_power])
+
+                prr_connected = prr >= 0.75
+
+                self._dist_matrix, self._predecessors = shortest_path(prr_connected, directed=True, unweighted=False, return_predecessors=True)
+
+        # Don't know enough to determine hop distances
+        else:
             return
-
-        connectivity_matrix = self._dist_matrix_meters <= self.topology.distance
-
-        self._dist_matrix, self._predecessors = shortest_path(connectivity_matrix, directed=True, return_predecessors=True)
 
     def size(self):
         """The number of nodes in this configuration's topology."""
