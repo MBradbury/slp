@@ -12,6 +12,15 @@ enum Channel
     EMPTYNORMAL_CHANNEL = 5
 };
 
+enum
+{
+    SourceNode = 0,
+    SinkNode = 1,
+    NormalNode = 2,
+    SearchNode = 3,
+    ChangeNode = 4,
+};
+
 #define SLP_MAX_NUM_SOURCES 1
 #define SLP_MAX_NUM_SINKS 1
 //#define SLP_MAX_1_HOP_NEIGHBOURHOOD 5

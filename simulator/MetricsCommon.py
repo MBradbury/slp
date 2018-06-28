@@ -176,7 +176,11 @@ class MetricsCommon(object):
 
         # Set the types
         for (kind, var_name, str_name) in matches:
-            var = names_assoc[var_name]
+            try:
+                var = names_assoc[var_name]
+            except KeyError:
+                print(f"Failed to find {var_name} in {names_assoc}. Have you defined both message and node types in 'Constants.h'?", file=sys.stderr)
+                raise
 
             if kind == "MessageType":
                 self.message_types[var] = str_name

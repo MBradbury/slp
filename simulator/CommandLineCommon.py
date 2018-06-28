@@ -846,12 +846,31 @@ class CLI(object):
         # All directories that have results for the same parameters
         common_results_dirs = {result_dirs.rsplit("_", 1)[0] for result_dirs in results_dirs}
 
-        if self.safety_period_module_name is not None:
+        if self.safety_period_module_name is True:
+            if self.custom_run_simulation_class is None:
+                raise RuntimeError("NEED TO HAVE CUSTOM SIMULATOR CLASS")
+
+            def safety_periods(safety_key, local_params_values, source_period):
+                safety_key_names = ("configuration", "attacker model", "fault model", "node id order", "tx power", "channel", "lpl")
+                
+                dargs = dict(zip(safety_key_names, safety_key))
+                dargs["source period"] = source_period
+                dargs.update(local_params_values)
+
+                # Hopefully they don't use the self variable
+                return str(self.custom_run_simulation_class._get_safety_period(None, dargs))
+
+        elif self.safety_period_module_name is None:
+            safety_periods = None
+        else:
             safety_period_result_path = self.get_safety_period_result_path("real", testbed=testbed)
             safety_period_table = safety_period.TableGenerator("real",
                                                                safety_period_result_path,
                                                                self.time_after_first_normal_to_safety_period)
-            safety_periods = safety_period_table.safety_periods()
+            safety_periods_table = safety_period_table.safety_periods()
+
+            def safety_periods(safety_key, local_params_values, source_period):
+                return str(safety_periods_table[safety_key][source_period])
 
         commands = []
 
@@ -894,7 +913,7 @@ class CLI(object):
             params = out_param.split("-")
 
             if len(params) == 5 + len(self.algorithm_module.local_parameter_names):
-                (configuration, tx_power, channel, lpl, source_period) = params[:5]
+                (configuration, tx_power, channel, lpl, source_period), local_params = params[:5], params[5:]
                 fault_model = "ReliableFaultModel()"
             #elif len(params) == 3 + len(self.algorithm_module.local_parameter_names):
             #    (configuration, source_period) = params[:2]
@@ -905,11 +924,12 @@ class CLI(object):
             settings["--configuration"] = configuration
             settings["--fault-model"] = fault_model
 
-            if self.safety_period_module_name is not None:
+            if safety_periods:
                 source_period = source_period.replace("_", ".")
 
                 safety_key = (configuration, str(args.attacker_model), fault_model, 'topology', tx_power, channel, 'disabled')
-                settings["--safety-period"] = str(safety_periods[safety_key][source_period])
+                local_params_values = dict(zip(self.algorithm_module.local_parameter_names, local_params))
+                settings["--safety-period"] = safety_periods(safety_key, local_params_values, source_period)
             
             command += " ".join(f"{k} \"{v}\"" for (k, v) in settings.items())
 

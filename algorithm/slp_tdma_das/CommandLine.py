@@ -26,11 +26,10 @@ class RunSimulations(RunSimulationsCommon):
         (source_id,) = configuration.source_ids
         (sink_id,) = configuration.sink_ids
 
-        network_size = darguments["network size"]
-        search_distance = darguments["search distance"]
-        dissem_period = darguments["dissem period"]
-        slot_period = darguments["slot period"]
-        tdma_num_slots = darguments["tdma num slots"]
+        search_distance = int(darguments["search distance"])
+        dissem_period = float(darguments["dissem period"])
+        slot_period = float(darguments["slot period"])
+        tdma_num_slots = int(darguments["tdma num slots"])
         tdma_period_length = dissem_period + (slot_period * tdma_num_slots)
         ssd = configuration.ssd(sink_id, source_id)
         change_distance = ssd // 3
