@@ -47,7 +47,7 @@ class Arguments(ArgumentsCommon):
         # result["TDMA_DISSEM_TIMEOUT"] = self.args.dissem_timeout
         # result["SAFETY_PERIOD"] = ssd_hops
         result["SEARCH_DIST"] = self.args.search_distance
-        result["CHANGE_LENGTH"] = ssd_hops - self.args.search_distance
+        result["CHANGE_LENGTH"] = int(ssd_hops - self.args.search_distance)
         result["TDMA_TIMESYNC"] = 1 if self.args.timesync == "enabled" else 0
         result["TIMESYNC_PERIOD_MS"] = int(self.args.timesync_period * 1000)
 
