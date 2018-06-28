@@ -107,15 +107,6 @@ implementation
     uint32_t redir_length = 0;
 
     enum
-	{
-		SourceNode,
-        SinkNode,
-        NormalNode,
-        SearchNode,
-        ChangeNode,
-	};
-
-    enum
     {
         UnknownFaultPoint = 0,
         PathFaultPoint,
