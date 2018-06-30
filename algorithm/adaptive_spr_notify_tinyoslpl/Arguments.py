@@ -10,4 +10,3 @@ class Arguments(ArgumentsCommon):
 
         # Need to force these values
         setattr(self.args, "low_power_listening", "enabled")
-        #setattr(self.args, "lpl_custom", "SLPDutyCycleC")

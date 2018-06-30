@@ -44,7 +44,7 @@ class CLI(CommandLineCommon.CLI):
         for parameter in self.algorithm_module.base_parameter_names:
              parameter_values.append(self._get_local_parameter_values(parameters, parameter))
 
-        my_paramater_names = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+        my_paramater_names = ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks')
         my_paramater_values = [self._get_local_parameter_values(parameters, parameter) for parameter in my_paramater_names]
 
         argument_product = [
