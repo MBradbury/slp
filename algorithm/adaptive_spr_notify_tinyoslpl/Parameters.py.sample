@@ -15,7 +15,7 @@ configurations = [
 
 fault_models = ["ReliableFaultModel()"]
 
-attacker_models = [f"SeqNosReactiveAttacker(message_detect='within_range({distance+0.25}')"]
+attacker_models = [f"SeqNosReactiveAttacker(message_detect='within_range({distance+0.25})')"]
 
 latest_node_start_time = 1.0 # in seconds
 
