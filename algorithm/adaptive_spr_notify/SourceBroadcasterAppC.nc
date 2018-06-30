@@ -48,8 +48,12 @@ implementation
 	App.LocalTime -> LocalTimeMilliC;
 
 #ifdef LOW_POWER_LISTENING
+#ifdef LOW_POWER_LISTENING_TIMING_ANALYSIS
 	components SLPDutyCycleC as SLPDutyCycle;
 	SLPDutyCycle.NodeType -> NodeTypeC;
+#else
+	components SLPTinyOSDutyCycleC as SLPDutyCycle;
+#endif
 #else
 	components DummyDutyCycleC as SLPDutyCycle;
 #endif
