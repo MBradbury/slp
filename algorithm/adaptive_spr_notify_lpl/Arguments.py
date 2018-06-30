@@ -29,4 +29,6 @@ class Arguments(ArgumentsCommon):
         result["SLP_LPL_FAKE_EARLY_MS"] = self.args.lpl_fake_early
         result["SLP_LPL_FAKE_LATE_MS"] = self.args.lpl_fake_late
 
+        result["LOW_POWER_LISTENING_TIMING_ANALYSIS"] = 1
+
         return result
