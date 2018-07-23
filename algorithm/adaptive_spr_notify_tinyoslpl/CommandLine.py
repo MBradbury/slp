@@ -9,6 +9,7 @@ import simulator.sim
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless", extras=["Analysis"])
 adaptive_spr_notify = algorithm.import_algorithm("adaptive_spr_notify", extras=["Analysis"])
+adaptive_spr_notify_lpl = algorithm.import_algorithm("adaptive_spr_notify_lpl", extras=["Analysis"])
 
 from data import results, submodule_loader
 from data.table import fake_result
@@ -44,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
         for parameter in self.algorithm_module.base_parameter_names:
              parameter_values.append(self._get_local_parameter_values(parameters, parameter))
 
-        my_paramater_names = ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks')
+        my_paramater_names = self.algorithm_module.extra_parameter_names
         my_paramater_values = [self._get_local_parameter_values(parameters, parameter) for parameter in my_paramater_names]
 
         argument_product = [
@@ -103,7 +104,7 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Sec per Node', 'left top'),
         }
 
-        lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+        lpl_params = self.algorithm_module.extra_parameter_names
 
         varying = [
             #(('network size', ''), ('source period', ' seconds')),
@@ -121,9 +122,22 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(sent,time taken),network size)': 5,
         }
 
+        key_equivalence = {
+            "low power listening": {"enabled": "disabled"}
+        }
+
         #custom_yaxis_range_min = {
         #    'received ratio': 70,
         #}
+
+        def vvalue_converter(name):
+            try:
+                return {
+                    "PB_FIXED1_APPROACH": "Fixed1",
+                    "PB_FIXED2_APPROACH": "Fixed2",
+                }[name]
+            except KeyError:
+                return name
 
         yextractors = {
             # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
@@ -143,12 +157,14 @@ class CLI(CommandLineCommon.CLI):
         def filter_params(all_params):
             return all_params['source period'] == '0.25'
 
-        self._create_baseline_versus_graph(args.sim, adaptive_spr_notify, graph_parameters, varying,
-            testbed=args.testbed,
+        self._create_min_max_versus_graph(args.sim, [adaptive_spr_notify, adaptive_spr_notify_lpl], None, graph_parameters, varying,
+            #testbed=args.testbed,
+            vvalue_label_converter = vvalue_converter,
 
             results_filter=filter_params,
             custom_yaxis_range_max=custom_yaxis_range_max,
             #custom_yaxis_range_min=custom_yaxis_range_min,
+            key_equivalence=key_equivalence,
             yextractor = yextractors,
             xaxis_font = "',18'",
             yaxis_font = "',18'",
@@ -156,15 +172,22 @@ class CLI(CommandLineCommon.CLI):
             ylabel_font = "',15'",
             line_width = 3,
             point_size = 1,
-            nokey = True,
+            #nokey = True,
             generate_legend_graph = True,
             legend_font_size = 16,
             legend_divisor = 4,
             legend_base_height = 0.3,
             vary_label = "",
-            baseline_label="DynamicSPR (no duty cycle)",
+            #baseline_label="DynamicSPR (no duty cycle)",
 
-            fetch_baseline_result=fetch_baseline_result,
+            max_label = ['DynamicSPR Maximum', 'DynamicSPR DC Maximum'],
+            min_label = ['DynamciSPR Minimum', 'DynamicSPR DC Minimum'],
+            min_max_same_label = ["DynamicSPR", "DynamicSPR DC"],
+            comparison_label = "DynamicSPR TinyOS LPL",
+
+            #squash_path=True,
+
+            #fetch_baseline_result=fetch_baseline_result,
         )
 
     def _run_graph_testbed(self, args):
@@ -188,7 +211,7 @@ class CLI(CommandLineCommon.CLI):
             'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
         }
 
-        lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+        lpl_params = self.algorithm_module.extra_parameter_names
 
         varying = [
             #(('network size', ''), ('source period', ' seconds')),

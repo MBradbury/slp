@@ -398,7 +398,7 @@ class CLI(object):
     def _create_min_max_versus_graph(self, sim_name, comparison_modules, baseline_module, graph_parameters, varying, *,
                                      algo_results=None, custom_yaxis_range_max=None,
                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
-                                     yextractors=None,
+                                     yextractor=None,
                                      **kwargs):
         from data.graph import min_max_versus
 
@@ -436,19 +436,21 @@ class CLI(object):
             baseline_results = None
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
-
-            if isinstance(vary, tuple):
-                vary_str = "(" + ",".join(vary) + ")"
-            else:
-                vary_str = str(vary)
-
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary_str).replace(" ", "_")
+                name = f'{self._shorter_name(xaxis)}-v-{self._shorter_name(yaxis)}-w-{self._shorter_name(vary)}'
+
+                if isinstance(yextractor, dict):
+                    try:
+                        yextractor_single = yextractor[yaxis]
+                    except KeyError:
+                        yextractor_single = scalar_extractor
+                else:
+                    yextractor_single = scalar_extractor
 
                 g = min_max_versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor if yextractors is None else yextractors.get(yaxis, scalar_extractor))
+                    yextractor=yextractor_single)
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label

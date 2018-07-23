@@ -75,6 +75,8 @@ class Grapher(GrapherBase):
         self.missing_value_string = '?'
         self.set_datafile_missing = False
 
+        self.squash_path = False
+
     def _value_extractor(self, yvalue):
         if self.error_bars:
             return yvalue
@@ -90,8 +92,13 @@ class Grapher(GrapherBase):
     def _build_plots_from_dat(self, dat):
         plot_created = False
 
+        parameter_summary = {}
+        for (key_names, key_values) in dat.keys():
+            for (k, v) in zip(key_names, key_values):
+                parameter_summary.setdefault(k, set()).add(v)
+
         for ((key_names, key_values), values) in dat.items():
-            plot_created |= self._create_plot(key_names, key_values, values)
+            plot_created |= self._create_plot(key_names, key_values, values, parameter_summary)
 
         if plot_created:
             self._create_graphs(self.result_name)
@@ -317,7 +324,14 @@ class Grapher(GrapherBase):
 
             graph_p.write('plot {}\n\n'.format(', '.join(plots)))
 
-    def _create_plot(self, key_names, key_values, values):
+    def _create_plot(self, key_names, key_values, values, parameter_summary):
+
+        if self.squash_path:
+            to_remove = [k for (k, v) in parameter_summary.items() if len(v) == 1 and k not in self._key_names_base]
+
+            print(f"Removing {to_remove} from the path")
+
+            key_names, key_values, removed = self.remove_index(key_names, key_values, to_remove)
 
         key_values = self._shorten_long_names(key_names, key_values)
 
