@@ -10,4 +10,5 @@ def _setup():
 import algorithm.adaptive_spr_notify
 
 base_parameter_names = algorithm.adaptive_spr_notify.local_parameter_names
-local_parameter_names = base_parameter_names + ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks')
+extra_parameter_names = ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks')
+local_parameter_names = base_parameter_names + extra_parameter_names

@@ -9,6 +9,7 @@ import simulator.sim
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless", extras=["Analysis"])
 adaptive_spr_notify = algorithm.import_algorithm("adaptive_spr_notify", extras=["Analysis"])
+adaptive_spr_notify_tinyoslpl = algorithm.import_algorithm("adaptive_spr_notify_tinyoslpl", extras=["Analysis"])
 
 from data import results, submodule_loader
 from data.table import fake_result
@@ -44,7 +45,7 @@ class CLI(CommandLineCommon.CLI):
         for parameter in self.algorithm_module.base_parameter_names:
              parameter_values.append(self._get_local_parameter_values(parameters, parameter))
 
-        my_paramater_names = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+        my_paramater_names = self.algorithm_module.extra_parameter_names
         my_paramater_values = [self._get_local_parameter_values(parameters, parameter) for parameter in my_paramater_names]
 
         argument_product = [
@@ -103,7 +104,7 @@ class CLI(CommandLineCommon.CLI):
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Sec per Node', 'left top'),
         }
 
-        lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+        lpl_params = self.algorithm_module.extra_parameter_names
 
         varying = [
             #(('network size', ''), ('source period', ' seconds')),
@@ -188,7 +189,7 @@ class CLI(CommandLineCommon.CLI):
             'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
         }
 
-        lpl_params = ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late')
+        lpl_params = self.algorithm_module.extra_parameter_names
 
         varying = [
             #(('network size', ''), ('source period', ' seconds')),

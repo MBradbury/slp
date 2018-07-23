@@ -60,7 +60,7 @@ class TableDataFormatter(object):
                 "buffer size": ("Buffer", "Size"),
                 "max walk length": ("Max Walk", "Length (hops)"),
                 "pr direct to sink": ("Pr Direct", "to Sink"),
-                "msg group size": ("Msg Group", "Size"),
+                "msg group size": ("Grp", "Size"),
 
                 "failed avoid sink": ("Failed Avoid", "Sink (\\%)"),
                 "failed avoid sink when captured": ("Failed Avoid", "Sink (Cap) (\\%)"),

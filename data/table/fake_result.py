@@ -30,7 +30,7 @@ class ResultTable(object):
 
     def _title_row(self, row):
         titles = [
-            latex.escape(self.fmt.format_header(title)[row])
+            self.fmt.format_header(title)[row]
             for title
             in ("source period",) + self.results.parameter_names +  self.results.result_names
         ]
