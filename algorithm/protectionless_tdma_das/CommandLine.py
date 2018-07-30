@@ -14,7 +14,8 @@ from data.util import scalar_extractor
 
 class CLI(CommandLineCommon.CLI):
     def __init__(self):
-        super(CLI, self).__init__(__package__)
+        # super(CLI, self).__init__(__package__)
+        super(CLI, self).__init__(None)
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("table", self._run_table)
