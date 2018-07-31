@@ -22,6 +22,10 @@
 #define PRINTF(node, ...) if(TOS_NODE_ID==node)simdbgverbose("stdout", __VA_ARGS__);
 #define PRINTF0(...) PRINTF(0,__VA_ARGS__)
 
+#define LOG_FUNC(label) simdbg("stdout", "%s: %s\n", label, __FUNCTION__)
+#define S() LOG_FUNC("START")
+#define E() LOG_FUNC("END")
+
 module SourceBroadcasterC
 {
 	uses interface Boot;
@@ -263,6 +267,7 @@ implementation
     void process_dissem(void)
     {
         int i;
+        S();
         //simdbgverbose("stdout", "Processing DISSEM...\n");
         if(call TDMA.get_slot() == BOT)
         {
@@ -290,11 +295,13 @@ implementation
 
             simdbgverbose("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, call TDMA.get_slot(), hop);
         }
+        E();
 
     }
 
     void process_collision(void)
     {
+        S();
         if (call TDMA.get_slot() != BOT)
         {
             OnehopList neighbour_info;
@@ -358,6 +365,7 @@ implementation
              *}
              */
         }
+        E();
     }
 
     event void DissemTimerSender.fired()
@@ -365,6 +373,7 @@ implementation
         /*if(dissem_sending>0)*/
         /*{*/
             DissemMessage msg;
+            S();
             msg.normal = normal;
             NeighbourList_select(&n_info, &neighbours, &(msg.N));
 
@@ -374,12 +383,14 @@ implementation
             /*dissem_sending--;*/
         /*}*/
         /*if(period_counter < get_pre_beacon_periods()) set_dissem_timer();*/
+            E();
     }
 
 	task void send_normal(void)
 	{
 		NormalMessage* message;
 
+        S();
         // This task may be delayed, such that it is scheduled when the slot is active,
         // but called after the slot is no longer active.
         // So it is important to check here if the slot is still active before sending.
@@ -411,21 +422,25 @@ implementation
             call EmptyNormalSeqNos.increment(TOS_NODE_ID);
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
         }
+        E();
 	}
 
     void send_Normal_done(message_t* msg, error_t error)
     {
+        S();
         // If our slot is currently active and there are more messages to be sent
         // then send them.
         if (call TDMA.is_slot_active() && !(call MessageQueue.empty()))
         {
             post send_normal();
         }
+        E();
     }
 
     void MessageQueue_clear()
     {
         NormalMessage* message;
+        S();
         while(!(call MessageQueue.empty()))
         {
             message = call MessageQueue.dequeue();
@@ -434,6 +449,7 @@ implementation
                 call MessagePool.put(message);
             }
         }
+        E();
     }
     //Main Logic}}}
 
@@ -442,6 +458,7 @@ implementation
     {
         /*PRINTF0("%s: BeaconTimer fired.\n", sim_time_string());*/
         const uint32_t now = call LocalTime.get();
+        S();
         METRIC_START_PERIOD();
         period_counter++;
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
@@ -457,6 +474,7 @@ implementation
             process_collision();
         }
 
+        E();
         return TRUE;
     }
 
@@ -474,6 +492,7 @@ implementation
 
     event void SourcePeriodModel.fired()
     {
+        S();
         /*simdbgverbose("stdout", "SourcePeriodModel fired.\n");*/
         if(call TDMA.get_slot() != BOT && period_counter > get_minimum_setup_periods())
         {
@@ -500,12 +519,14 @@ implementation
                 ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another Normal message.\n");
             }
         }
+        E();
     }
     //}}} Timers.fired()
 
     //Receivers{{{
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+        S();
         /*simdbgverbose("stdout", "Received normal.\n");*/
 		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
@@ -529,17 +550,18 @@ implementation
 				ERROR_OCCURRED(ERROR_POOL_FULL, "No pool space available for another Normal message.\n");
 			}
 		}
+        E();
 	}
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
+        S();
         simdbgverbose("stdout", "SINK RECEIVED NORMAL.\n");
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
-
 			METRIC_RCV_NORMAL(rcvd);
 		}
+        E();
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Normal, Receive)
@@ -554,6 +576,7 @@ implementation
         const NeighbourInfo* source;
         NeighbourList rcvdList;
 
+        S();
         METRIC_RCV_DISSEM(rcvd);
 
         OnehopList_to_NeighbourList(&(rcvd->N), &rcvdList);
@@ -619,12 +642,14 @@ implementation
                 NeighbourList_add_info(&n_info, source);
             }
         }
+        E();
     }
 
     void Sink_receive_Dissem(const DissemMessage* const rcvd, am_addr_t source_addr)
     {
         int i;
 
+        S();
         METRIC_RCV_DISSEM(rcvd);
 
         IDList_add(&neighbours, source_addr);
@@ -633,6 +658,7 @@ implementation
         {
             NeighbourList_add_info(&n_info, &rcvd->N.info[i]);
         }
+        E();
     }
 
 
@@ -644,9 +670,11 @@ implementation
 
     void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
     {
+        S();
         if (call EmptyNormalSeqNos.before_and_update(source_addr, rcvd->sequence_number)) {
             METRIC_RCV_EMPTYNORMAL(rcvd);
         }
+        E();
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)
