@@ -121,7 +121,7 @@ implementation
     App.NormalSeqNos -> NormalSeqNos;
 
     components
-        new SequenceNumbersC(SLP_MAX_1_HOP_NEIGHBOURHOOD) as EmptyNormalSeqNos;
+        new SequenceNumbersC(SLP_MAX_2_HOP_NEIGHBOURHOOD) as EmptyNormalSeqNos;
     App.EmptyNormalSeqNos -> EmptyNormalSeqNos;
 
     components new FaultModelC(6);
