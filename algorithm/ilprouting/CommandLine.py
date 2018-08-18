@@ -97,17 +97,30 @@ class CLI(CommandLineCommon.CLI):
         )
 
     def _run_table(self, args):
+        from data.table.summary_formatter import TableDataFormatter
+        fmt = TableDataFormatter()
+
         parameters = [
-            "attacker distance percentage",
-            'normal latency', 'ssd', 'captured',
             'received ratio',
-            #'attacker distance wrt src',
+            'captured',
+            'normal latency',
+            'norm(sent,time taken)',
             'attacker distance',
-            #'failed avoid sink',
-            #'failed avoid sink when captured',
         ]
 
-        self._create_results_table(args.sim, parameters, show=args.show)
+        def results_filter(params):
+            return params["noise model"] != "casino-lab" or params["pr direct to sink"] != "0.2"
+
+        hide_parameters = ['buffer size', 'max walk length', 'pr direct to sink']
+ 
+        extractors = {
+            # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
+            "attacker distance": lambda yvalue: yvalue[(0, 0)]
+        }
+
+        self._create_results_table(args.sim, parameters,
+            fmt=fmt, results_filter=results_filter, hide_parameters=hide_parameters, extractors=extractors,
+            show=args.show)
 
     def _run_graph(self, args):
         graph_parameters = {
@@ -118,7 +131,7 @@ class CLI(CommandLineCommon.CLI):
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
             'norm(sent,time taken)': ('Total Messages Sent per Second', 'left top'),
             'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
-            "attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
+            #"attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
             #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
             #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
         }

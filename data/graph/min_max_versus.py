@@ -41,7 +41,6 @@ class Grapher(GrapherBase):
 
         min_comparison_results = []
         max_comparison_results = []
-        baseline_comparison_results = {}
 
         # Handle the case where a single comparison result is provided
         if not isinstance(comparison_results, (list, tuple)):
@@ -55,7 +54,7 @@ class Grapher(GrapherBase):
         else:
             comparison_labels = self.comparison_label
 
-        if not isinstance(self.vary, (list, tuple)):
+        if not isinstance(self.vary, list):
             varys = [self.vary] * len(actual_results)
         else:
             varys = self.vary
@@ -99,17 +98,6 @@ class Grapher(GrapherBase):
 
             min_comparison_results.append(min_comparison_result)
             max_comparison_results.append(max_comparison_result)
-
-        if baseline_results is not None:
-            for (data_key, items1) in baseline_results.data.items():
-                for (src_period, items2) in items1.items():
-                    results = items2[tuple()]
-
-                    yvalue_index = baseline_results.result_names.index(self.yaxis)
-                    yvalue = results[yvalue_index]
-                    yvalue = self._value_extractor(yvalue)
-
-                    baseline_comparison_results.setdefault(data_key, {})[src_period] = yvalue
 
         min_max_merge_consider = defaultdict(set)
 
@@ -175,7 +163,20 @@ class Grapher(GrapherBase):
                                     print(f"\t{minlabel}|{maxlabel} - {key}")
 
                         if baseline_results is not None:
-                            dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = baseline_comparison_results[data_key].get(src_period)
+                            baseline_params = tuple(
+                                value
+                                for (name, value)
+                                in zip(actual_result.parameter_names, params)
+                                if name in baseline_results.parameter_names
+                            )
+
+                            baseline_res = self.fetch_baseline_result(baseline_results, data_key, src_period, baseline_params)
+
+                            yvalue_index = baseline_results.result_names.index(self.yaxis)
+                            yvalue = baseline_res[yvalue_index]
+                            yvalue = self._value_extractor(yvalue)
+
+                            dat.setdefault((key_names, values), {})[(xvalue, self.baseline_label)] = yvalue
 
         # If every min/max value are close to each other, then remove both and replace with one "same" line
         for ((key_names, values, max_label, min_label, i), this_xvalues) in min_max_merge_consider.items():
@@ -205,6 +206,9 @@ class Grapher(GrapherBase):
                 dat[(key_names, values)] = local_dat
 
         return self._build_plots_from_dat(dat)
+
+    def fetch_baseline_result(self, baseline_results, data_key, src_period, baseline_params):
+        return baseline_results.data[data_key][src_period][baseline_params]
 
     def _get_key_in_comparison(self, data_key, max_comparison_result, min_comparison_result):
         # Try the simple case first

@@ -116,7 +116,7 @@ class CLI(CommandLineCommon.CLI):
             'captured': 25,
             'received ratio': 100,
             'average duty cycle': 100,
-            'normal latency': 250,
+            'normal latency': 1000,
             'attacker distance': 70,
             'norm(norm(fake,time taken),network size)': 4,
             'norm(norm(sent,time taken),network size)': 5,
@@ -172,7 +172,7 @@ class CLI(CommandLineCommon.CLI):
             ylabel_font = "',15'",
             line_width = 3,
             point_size = 1,
-            #nokey = True,
+            nokey = False,
             generate_legend_graph = True,
             legend_font_size = 16,
             legend_divisor = 4,
@@ -181,7 +181,7 @@ class CLI(CommandLineCommon.CLI):
             #baseline_label="DynamicSPR (no duty cycle)",
 
             max_label = ['DynamicSPR Maximum', 'DynamicSPR DC Maximum'],
-            min_label = ['DynamciSPR Minimum', 'DynamicSPR DC Minimum'],
+            min_label = ['DynamicSPR Minimum', 'DynamicSPR DC Minimum'],
             min_max_same_label = ["DynamicSPR", "DynamicSPR DC"],
             comparison_label = "DynamicSPR TinyOS LPL",
 
