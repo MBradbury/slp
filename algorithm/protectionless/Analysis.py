@@ -69,7 +69,7 @@ class Analyzer(AnalyzerCommon):
         d['sent heatmap']       = lambda x: self._format_results(x, 'SentHeatMap')
         d['received heatmap']   = lambda x: self._format_results(x, 'ReceivedHeatMap')
 
-        def dp(x, n1, n2):
+        """def dp(x, n1, n2):
 
             d1 = x.average_of.get(n1, None)
             d2 = x.average_of.get(n2, None)
@@ -83,10 +83,10 @@ class Analyzer(AnalyzerCommon):
             for (key, value) in d1.items():
                 result[key] = value / (d1[key] + d2[key])
 
-            return str(result)
+            return str(result)"""
 
-        d['rcvd further hops']     = lambda x: dp(x, 'ReceivedFromFurtherHops', 'ReceivedFromCloserOrSameHops')
-        d['rcvd further meters']   = lambda x: dp(x, 'ReceivedFromFurtherMeters', 'ReceivedFromCloserOrSameMeters')
+        #d['rcvd further hops']     = lambda x: dp(x, 'ReceivedFromFurtherHops', 'ReceivedFromCloserOrSameHops')
+        #d['rcvd further meters']   = lambda x: dp(x, 'ReceivedFromFurtherMeters', 'ReceivedFromCloserOrSameMeters')
 
         d['norm(sent,time taken)']   = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),network size)']   = lambda x: self._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')

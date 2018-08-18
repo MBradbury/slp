@@ -6,8 +6,8 @@ import sys
 from data import latex
 
 class TableDataFormatter(object):
-    def __init__(self, convert_to_stddev=False):
-        self.convert_to_stddev = convert_to_stddev
+    def __init__(self):
+        super().__init__()
 
     def format_header(self, name):
         try:
@@ -23,7 +23,7 @@ class TableDataFormatter(object):
                 "pr(pfs)": ("P[PFS]", "(\\%)"),
                 "short walk length": ("Short Walk Length", "(hops)"),
                 "long walk length": ("Long Walk Length", "(hops)"),
-                "captured": ("Cap", "(\\%)"),
+                "captured": ("Captured", "(\\%)"),
                 "reached upper bound": ("RUB", "(\\%)"),
                 "fake": ("Fake", "Messages"),
                 "dummy normal": ("Dummy Normal", "Messages"),
@@ -33,9 +33,9 @@ class TableDataFormatter(object):
                 "tailfs": ("TailFS", "~"),
                 "pull back hops": ("Pull Back", "Messages"),
                 "ssd": ("$\\Delta_{ss}$", "(hops)"),
-                "normal latency": ("Laten", "(msec)"),
+                "normal latency": ("Latency", "(msec)"),
                 "approach": ("Approach", "~"),
-                "time taken": ("Time", "(sec)"),
+                "time taken": ("Time Taken", "(sec)"),
                 "safety period": ("Safety Period", "(sec)"),
                 "wall time": ("Wall Time", "(sec)"),
                 "total wall time": ("Total Wall", "Time (sec)"),
@@ -43,6 +43,9 @@ class TableDataFormatter(object):
                 "event count": ("Event Count", ""),
                 "memory rss": ("Memory", "RSS (MB)"),
                 "memory vms": ("Memory", "VMS (MB)"),
+
+                "pr tfs": ("Pr(TFS)", "(\\%)"),
+                "pr pfs": ("Pr(PFS)", "(\\%)"),
                 
                 "walk length": ("Walk Length", "(hops)"),
                 "walk retries": ("Walk", "Retries"),
@@ -69,8 +72,8 @@ class TableDataFormatter(object):
                 "energy impact per node": ("Energy", "$\\Sigma^{-1}$"),
                 "energy impact per node per second": ("Energy", "$\\Sigma^{-1}$ $s^{-1}$"),
 
-                "norm(sent,time taken)": ("$M$ $T^{-1}$", "~"),
-                "norm(norm(sent,time taken),network size)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
+                "norm(sent,time taken)": ("Messages Sent", "Per Second"),
+                "norm(norm(sent,time taken),network size)": ("Messages Sent Per Node", "Per Second"),
                 "norm(norm(norm(sent,time taken),network size),source_rate)": ("$M$ $T^{-1}$ $\\Sigma^{-1}$ $R^{-1}$", "~"),
 
                 "norm(norm(fake,time taken),network size)": ("$\\mathcal{F}$ $T^{-1}$ $\\Sigma^{-1}$", "~"),
@@ -92,51 +95,51 @@ class TableDataFormatter(object):
                 "lpl max cca checks": ("CCA", "~"),
 
                 "average duty cycle": ("Duty Cycle", "(\\%)"),
+
+                "attacker distance": ("Attacker", "Distance"),
             }[name]
         except KeyError as ex:
             print("Failed to find the name '{}'. Using default. : {}".format(name, ex), file=sys.stderr)
             return (name, "~")
-
-    def _convert_variance(self, variance):
-        if self.convert_to_stddev:
-            return math.sqrt(variance)
-        else:
-            return variance
 
     def format_value(self, name, value):
         if value is None:
             return "None"
         elif name in {"source period", "fake period", "walk length", "walk retries",
                       "repeats", "short walk length", "long walk length"}:
-            return "${}$".format(value)
+            return str(value)
         elif name in {"duration", "temp fake duration",
                       "lpl normal early", "lpl normal late",
                       "lpl fake early", "lpl fake late",
                       "lpl choose early", "lpl choose late"}:
             return "${:.0f}$".format(value)
-        elif name == "pr(tfs)" or name == "pr(pfs)":
+        elif name in {"pr tfs", "pr pfs", "pr direct to sink"}:
             return "${:.0f}$".format(value * 100.0)
         elif name == "average duty cycle":
             return "${:.2f}$".format(value[0])
         elif name in {"tfs", "pfs", "tailfs"}:
             return "${:.1f}$".format(value[0])
         elif name == "approach":
-            return latex.escape(value.replace("_APPROACH", ""))
+            return latex.escape(value.replace("_APPROACH", "").replace("PB_", ""))
         elif name in {"landmark node", "cone type"}:
             return latex.escape(value)
-        elif name.startswith("energy impact"):
-            return "${:.5f}$".format(value[0])
+        #elif name.startswith("energy impact"):
+        #    return "${:.5f}$".format(value[0])
         elif name in {"received ratio", "ssd", "paths reached end"}:
-            return "${:.1f} \\pm {:.1f}$".format(value[0], self._convert_variance(value[1]))
+            return "${:.1f} \\pm {:.1f}$".format(value['mean'], value['std'])
         elif name in {"sent", "received", "delivered",
                       "fake", "away", "choose", "dummy normal",
-                      "normal latency", "event count"}:
-            return "${:.0f} \\pm {:.0f}$".format(value[0], self._convert_variance(value[1]))
+                      "normal latency", "event count",
+                      "norm(sent,time taken)"}:
+            return "${:.0f} \\pm {:.2f}$".format(value['mean'], value['std'])
         elif name in {"memory rss", "memory vms"}:
             value = value / (1024 * 1024)
-            return "${:.0f} \\pm {:.0f}$".format(value[0], self._convert_variance(value[1]))
+            return "${:.0f} \\pm {:.0f}$".format(value['mean'], value['std'])
         elif isinstance(value, dict):
-            return latex.escape(str(value))
+            if 'mean' in value:
+                return "${:.3f} \\pm {:.3f}$".format(value['mean'], value['std'])
+            else:
+                return latex.escape(str(value))
         elif isinstance(value, float):
             return "${:.2f}$".format(value)
         elif isinstance(value, int):
@@ -146,8 +149,30 @@ class TableDataFormatter(object):
         else:
             try:
                 if isinstance(value[0], dict):
-                    return "${} \\pm {}$".format(value[0], self._convert_variance(value[1]))
+                    return "${} \\pm {}$".format(value['mean'], value['std'])
                 else:
-                    return "${:.3f} \\pm {:.3f}$".format(value[0], self._convert_variance(value[1]))
+                    return "${:.3f} \\pm {:.3f}$".format(value['mean'], value['std'])
             except TypeError as e:
                 raise RuntimeError("Unable to format values for {} with values {} under the default settings. (HINT: You might need to add a custom formatter in this function)".format(name, value), e)
+
+
+class ShortTableDataFormatter(TableDataFormatter):
+    def __init__(self):
+        super().__init__()
+
+    def format_header(self, name):
+        try:
+            return {
+                "repeats": ("R", "~"),
+                "time taken": ("$\\mathcal{TT}$", "(sec)"),
+                "received ratio": ("Received", "(\\%)"),
+                "captured": ("Captured", "(\\%)"),
+                "normal latency": ("Latency", "(ms)"),
+                "attacker distance": ("Attacker", "Distance"),
+                "sent": ("Sent", "~"),
+                "norm(sent,time taken)": ("Sent", "per sec"),
+                "pr tfs": ("PrTFS", "(\\%)"),
+                "pr direct to sink": ("PrDS", "(\\%)")
+            }[name]
+        except KeyError as ex:
+            return super().format_header(name)

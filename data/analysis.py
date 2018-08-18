@@ -19,6 +19,7 @@ from more_itertools import unique_everseen, one
 import numpy as np
 import pandas as pd
 import psutil
+from scipy import stats
 
 import data.submodule_loader as submodule_loader
 import data.testbed
@@ -160,33 +161,6 @@ def _parse_dict_string_tuple_to_value(indict):
     }
 
     return dict1
-
-def dict_mean(dict_list):
-    """Dict mean using incremental averaging"""
-
-    result = dict(next(iter(dict_list)))
-
-    get = result.get
-
-    for (n, dict_item) in enumerate(islice(dict_list, 1, None), start=2):
-        for (key, value) in dict_item.items():
-            current = get(key, 0)
-            result[key] = current + ((value - current) / n)
-
-    return result
-
-def dict_var(dict_list, mean):
-    """Dict variance"""
-    lin = defaultdict(list)
-
-    for d in dict_list:
-        for (k, v) in d.items():
-            lin[k].append(v)
-
-    for k in lin:
-        lin[k] = np.var(lin[k], dtype=np.float64)
-
-    return dict(lin)
 
 """
 def _energy_impact(columns, cached_cols, constants):
@@ -815,45 +789,65 @@ class Analyse(object):
 
         raise KeyError(f"Unable to find {header}")
 
-    def average_of(self, header):
-        values = self.find_column(header)
+    @staticmethod
+    def series_describe(values):
+        """def dennis_convergence(window):
+            alpha = 0.01
 
-        if len(values) == 0:
-            # Filtered values may legitimately have no values
-            if header.startswith("filtered"):
-                return 0
-            else:
-                raise RuntimeError(f"There are no values for {header} to be able to average")
+            return abs(window[1] - window[0]) <= alpha * window[0]
 
-        first = next(iter(values))
+        expcol = values.expanding().mean()
+        expcol_conv = expcol.rolling(2).apply(dennis_convergence, raw=True)
 
-        if isinstance(first, dict):
-            return dict_mean(values)
-        elif isinstance(first, str):
-            raise TypeError(f"Cannot find the average of a string for {header}")
+        j = None
+        g = None
+        for j, g in expcol_conv.groupby([(expcol_conv != expcol_conv.shift()).cumsum()]):
+            pass
+
+        if g.size == 0 or g.size == 1 or g.iloc[0] != 1.0:
+            conv_length = 0 # Did not converge
         else:
-            return values.mean()
+            conv_length = g.size / expcol_conv.size"""
 
-    def variance_of(self, header, mean):
-        values = self.find_column(header)
+        sample_mean = values.mean()
+        sample_std = values.std()
+        sample_sem = values.sem()
 
-        if len(values) == 0:
-            # Filtered values may legitimately have no values
-            if header.startswith("filtered"):
-                return 0
-            else:
-                raise RuntimeError(f"There are no values for {header} to be able to find the variance")
+        #t_critical = stats.t.ppf(q=0.975, df=values.count()-1) # 95% (two tailed)
+        #confidence_interval = (sample_mean - t_critical * sample_sem, sample_mean + t_critical * sample_sem)
 
-        first = next(iter(values))
-
-        if isinstance(first, dict):
-            return dict_var(values, mean)
-        elif isinstance(first, str):
-            raise TypeError(f"Cannot find the variance of a string for {header}")
+        # https://hamelg.blogspot.com/2015/11/python-for-data-analysis-part-23-point.html
+        if sample_sem == 0.0:
+            ci95 = 0
         else:
-            return values.var()
+            confidence_interval_95 = stats.t.interval(
+                alpha=0.95,             # Confidence level
+                df=values.count()-1,
+                loc=sample_mean,
+                scale=sample_sem)
 
-    def median_of(self, header):
+            ci95 = confidence_interval_95[1] - sample_mean
+
+
+        l = {'nobs'  : len(values.index),
+             'valid' : values.count()   ,
+             'mean'  : sample_mean      ,
+             'min'   : values.min()     ,
+             'max'   : values.max()     ,
+             'std'   : sample_std       ,
+             '10%'   : values.quantile(0.10),
+             '25%'   : values.quantile(0.25),
+             '50%'   : values.median()  ,
+             '75%'   : values.quantile(0.75),
+             '90%'   : values.quantile(0.90),
+             'skew'  : values.skew()    ,
+             'kurt'  : values.kurt()    ,
+             'sem'   : sample_sem       ,
+             'ci95'  : ci95             ,
+            }
+        return l
+
+    def describe_of(self, header):
         values = self.find_column(header)
 
         if len(values) == 0:
@@ -861,23 +855,28 @@ class Analyse(object):
             if header.startswith("filtered"):
                 return None
             else:
-                raise RuntimeError(f"There are no values for {header} to be able to find the median")
+                raise RuntimeError(f"There are no values for {header} to be able to describe")
 
         first = next(iter(values))
 
         if isinstance(first, dict):
-            raise NotImplementedError("Finding the median of dicts is not implemented")
+            # Need to reset the index, as rows may have been removed earlier
+            ddf = pd.DataFrame.from_records(values.reset_index(drop=True))
+            descs = ddf.apply(self.series_describe).to_dict()
+            return descs
         elif isinstance(first, str):
-            raise TypeError(f"Cannot find the median of a string for {header}")
+            raise TypeError(f"Cannot describe a string for {header}")
         else:
-            return values.median()
+            return self.series_describe(values)
 
 
 class AnalysisResults(object):
     def __init__(self, analysis):
-        self.average_of = {}
-        self.variance_of = {}
+        #self.average_of = {}
+        #self.variance_of = {}
         #self.median_of = {}
+
+        self.describe_of = {}
 
         skip = ["Seed"]
 
@@ -888,6 +887,15 @@ class AnalysisResults(object):
                 continue
 
             try:
+                self.describe_of[heading] = analysis.describe_of(heading)
+            except NotImplementedError:
+                pass
+            except (TypeError, RuntimeError) as ex:
+                if heading not in expected_fail:
+                    print("Failed to describe {}: {}".format(heading, ex), file=sys.stderr)
+                    #print(traceback.format_exc(), file=sys.stderr)
+
+            """try:
                 self.average_of[heading] = analysis.average_of(heading)
             except NotImplementedError:
                 pass
@@ -903,7 +911,7 @@ class AnalysisResults(object):
             except (TypeError, KeyError, RuntimeError) as ex:
                 if heading not in expected_fail:
                     print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
-                    #print(traceback.format_exc(), file=sys.stderr)
+                    #print(traceback.format_exc(), file=sys.stderr)"""
 
         #self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
 
@@ -988,8 +996,8 @@ class AnalyzerCommon(object):
         d['memory rss']         = lambda x: self._format_results(x, 'MemoryRSS', allow_missing=True)
         d['memory vms']         = lambda x: self._format_results(x, 'MemoryVMS', allow_missing=True)
 
-        d['captured']           = lambda x: str(x.average_of['Captured'])
-        d['reached upper bound']= lambda x: str(x.average_of['ReachedSimUpperBound'])
+        d['captured']           = lambda x: self._format_results(x, 'Captured')
+        d['reached upper bound']= lambda x: self._format_results(x, 'ReachedSimUpperBound')
 
         d['received ratio']     = lambda x: self._format_results(x, 'ReceiveRatio')
         d['normal latency']     = lambda x: self._format_results(x, 'NormalLatency')
@@ -1016,7 +1024,17 @@ class AnalyzerCommon(object):
 
     @staticmethod
     def _format_results(x, name, allow_missing=False):
-        if name in x.variance_of:
+        try:
+            desc = x.describe_of[name]
+
+            return str(desc).replace(": ", ":").replace(", ", ",")
+        except KeyError:
+            if allow_missing or name in x.headers_to_skip:
+                return "None"
+            else:
+                raise
+
+        """if name in x.variance_of:
             ave = x.average_of[name]
             var = x.variance_of[name]
 
@@ -1037,7 +1055,7 @@ class AnalyzerCommon(object):
                 if allow_missing or name in x.headers_to_skip:
                     return "None"
                 else:
-                    raise
+                    raise"""
 
     def analyse_path(self, path, **kwargs):
         return Analyse(path, self.normalised_values, self.filtered_values, **kwargs)
