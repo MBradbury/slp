@@ -142,11 +142,12 @@ class ResultTable(object):
                             to_print.append(self.fmt.format_value(name, value))
 
                     for (combined, header) in self.combined_columns.items():
-                        loc = []
-                        for comb in combined:
-                            loc.append(self.fmt.format_value(comb, paramsd[comb]))
+                        names, loc = zip(*[(n, paramsd[n]) for n in combined])
 
-                        to_print.append("(" + ", ".join(loc) + ")")
+                        try:
+                            to_print.append(self.fmt.format_value(names, loc))
+                        except RuntimeError:
+                            to_print.append("(" + ", ".join(map(str, loc)) + ")")
 
 
                     for (name, value) in zip(self.results.result_names, results):

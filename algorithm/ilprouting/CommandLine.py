@@ -153,8 +153,8 @@ class CLI(CommandLineCommon.CLI):
 
         yextractors = {
             # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
-            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)],
-            "attacker distance percentage": lambda yvalue: scalar_extractor(yvalue)[(0, 0)] * 100
+            "attacker distance": lambda yvalue: scalar_extractor(yvalue, key=(0, 0)),
+            "attacker distance percentage": lambda yvalue: scalar_extractor(yvalue, key=(0, 0)) * 100
         }
 
         kwargs = {

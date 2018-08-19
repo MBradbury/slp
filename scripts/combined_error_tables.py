@@ -66,8 +66,8 @@ extractors = {
 }
 
 combined_columns = {
-    ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late'): ("Duty Cycle", "~ "),
-    ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks'): ("TinyOS LPL", "~"),
+    ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late'): ("DC", "~"),
+    ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks'): ("TOS", "LPL"),
 
 }
 
