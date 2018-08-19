@@ -182,7 +182,7 @@ class CLI(CommandLineCommon.CLI):
                 return name
             
         yextractors = {
-            "attacker distance": lambda vvalue: scalar_extractor(vvalue)[(1, 0)]
+            "attacker distance": lambda vvalue: scalar_extractor(vvalue, key=(1, 0))
         }
 
         def filter_params(all_params):
@@ -283,7 +283,7 @@ class CLI(CommandLineCommon.CLI):
                 # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
                 def yextractor(yvalue):
                     print(yvalue)
-                    return scalar_extractor(yvalue)[(0, 0)]
+                    return scalar_extractor(yvalue, key=(0, 0))
             else:
                 yextractor = scalar_extractor
 
@@ -412,7 +412,7 @@ class CLI(CommandLineCommon.CLI):
                 # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
                 def yextractor(yvalue):
                     print(yvalue)
-                    return scalar_extractor(yvalue)[(0, 0)]
+                    return scalar_extractor(yvalue, key=(0, 0))
             else:
                 yextractor = scalar_extractor
 

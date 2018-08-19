@@ -70,14 +70,16 @@ def useful_log10(data):
     else:
         return -math.log10(-data)
 
-def scalar_extractor(x):
+def scalar_extractor(x, key=None):
     if x is None:
         return None
     elif np.isscalar(x):
         return x
     else:
-        (val, stddev) = x
-        return val
+        if key is None:
+            return x['mean']
+        else:
+            return x[key]['mean']
 
 # From: https://github.com/liyanage/python-modules/blob/master/running_stats.py
 # Based on http://www.johndcook.com/standard_deviation.html

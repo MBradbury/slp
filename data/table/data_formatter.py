@@ -150,8 +150,10 @@ class TableDataFormatter(object):
             try:
                 if isinstance(value[0], dict):
                     return "${} \\pm {}$".format(value['mean'], value['std'])
-                else:
+                elif isinstance(value, dict):
                     return "${:.3f} \\pm {:.3f}$".format(value['mean'], value['std'])
+                else:
+                    raise RuntimeError("Unable to format values for {} with values {} under the default settings. (HINT: You might need to add a custom formatter in this function)".format(name, value))
             except TypeError as e:
                 raise RuntimeError("Unable to format values for {} with values {} under the default settings. (HINT: You might need to add a custom formatter in this function)".format(name, value), e)
 
@@ -163,6 +165,8 @@ class ShortTableDataFormatter(TableDataFormatter):
     def format_header(self, name):
         try:
             return {
+                "approach": ("App.", "~"),
+
                 "repeats": ("R", "~"),
                 "time taken": ("$\\mathcal{TT}$", "(sec)"),
                 "received ratio": ("Received", "(\\%)"),
@@ -172,7 +176,41 @@ class ShortTableDataFormatter(TableDataFormatter):
                 "sent": ("Sent", "~"),
                 "norm(sent,time taken)": ("Sent", "per sec"),
                 "pr tfs": ("PrTFS", "(\\%)"),
-                "pr direct to sink": ("PrDS", "(\\%)")
+                "pr direct to sink": ("PDS", "(\\%)"),
             }[name]
         except KeyError as ex:
             return super().format_header(name)
+
+    lpl_conv = {
+        (200, 200, 250, 250 ,75, 75): 1,
+        (80, 80, 120, 130, 5, 50): 2,
+        (40, 40, 120, 130, 5, 50): 3,
+        (35, 35, 100, 100, 5, 50): 4,
+        (35, 35, 60, 60, 5, 50): 5,
+
+        (200, 200, 120, 130, 75, 75): 6, # Only for FlockLab
+    }
+
+    tinyoslpl_conv = {
+        (50, 50, 10, 1150): 1,
+        (50, 50, 100, 400): 2,
+        (75, 75, 10, 1150): 3,
+        (75, 75, 10, 2300): 4,
+        (75, 75, 100, 400): 5,
+    }
+
+    def format_value(self, name, value):
+        if name == ('lpl normal early', 'lpl normal late', 'lpl fake early', 'lpl fake late', 'lpl choose early', 'lpl choose late'):
+            return str(self.lpl_conv.get(value, value))
+        elif name == ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks'):
+            return str(self.tinyoslpl_conv.get(value, value))
+        elif name == "approach":
+
+            return {
+                "PB_FIXED1_APPROACH": "Fxd1",
+                "PB_FIXED2_APPROACH": "Fxd2",
+                "PB_ATTACKER_EST_APPROACH": "AEst",
+
+            }.get(value, latex.escape(value.replace("_APPROACH", "").replace("PB_", "")))
+        else:
+            return super().format_value(name, value)
