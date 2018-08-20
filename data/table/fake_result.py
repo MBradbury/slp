@@ -100,7 +100,7 @@ class ResultTable(object):
                 print('    \\centering', file=stream)
                 
             else:
-                print('\\begin{center}', file=stream)
+                print('{\\centering', file=stream)
 
             if font_size:
                 print('    \\{}'.format(font_size), file=stream)
@@ -112,7 +112,9 @@ class ResultTable(object):
                 else:
                     print('\\begin{{longtabu}} {{{}}}'.format(self._column_layout()), file=stream)
 
+                print('\\hiderowcolors', file=stream)
                 print('\\caption{{\\normalsize {}}}\\\\'.format(caption), file=stream)
+                print('\\showrowcolors', file=stream)
 
             else:
                 if self.resize_to_width:
@@ -124,8 +126,12 @@ class ResultTable(object):
             print(self._title_row(1), file=stream)
             print('        \\hline', file=stream)
 
-            #if self.longtable:
-            #    print('        \\endhead', file=stream)
+            if self.longtable:
+                print('        \\endfirsthead', file=stream)
+                print(self._title_row(0), file=stream)
+                print(self._title_row(1), file=stream)
+                print('        \\hline', file=stream)
+                print('        \\endhead', file=stream)
 
             for source_period in source_periods:
                 items = self.results.data[table_key][source_period].items()
@@ -168,8 +174,8 @@ class ResultTable(object):
 
             else:
                 print('\\end{longtabu}', file=stream)
-                print('\\end{center}', file=stream)
+                print('\\par}', file=stream)
 
-            print('\\vspace{-0.5cm}', file=stream)
+            #print('\\vspace{-0.5cm}', file=stream)
 
             print('', file=stream)

@@ -58,6 +58,7 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
         command = f"{executable} -output-directory=\"{path}\" \"{path_and_name}\""
         print(command)
         subprocess.check_call(command, shell=True)
+        subprocess.check_call(command, shell=True)
 
     finally:
         exts_to_remove = (".log", ".aux", ".dvi", ".out", ".synctex.gz")
