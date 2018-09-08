@@ -64,23 +64,33 @@ class CLI(CommandLineCommon.CLI):
         )
 
     def _run_table(self, args):
-        result_file_path = self.get_results_file_path(args.sim, testbed=args.testbed)
-        
-        protectionless_results = results.Results(
-            args.sim, result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=(
-                'sent', 'delivered', 'time taken',
-                'average power consumption',
-                'norm(norm(sent,time taken),network size)',
-                'normal latency', 'ssd', 'attacker distance',
-            ))
+        from data.table.summary_formatter import TableDataFormatter
+        fmt = TableDataFormatter()
 
-        fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
+        parameters = [
+            'repeats',
+            'time taken',
+            'received ratio',
+            'captured',
+            'normal latency',
+            'norm(sent,time taken)',
+            'attacker distance',
+        ]
 
-        result_table = fake_result.ResultTable(protectionless_results, fmt)
+        def results_filter(params):
+            return params["noise model"] != "casino-lab" or params["configuration"] != "SourceCorner" or params["source period"] == "0.125"
 
-        self._create_table(self.algorithm_module.name + "-results", result_table, show=args.show)
+        hide_parameters = []#'buffer size', 'max walk length', 'pr direct to sink']
+        caption_values = ["network size"]
+
+        extractors = {
+            # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
+            "attacker distance": lambda yvalue: yvalue[(0, 0)]
+        }
+
+        self._create_results_table(args.sim, parameters,
+            fmt=fmt, results_filter=results_filter, hide_parameters=hide_parameters, extractors=extractors, resize_to_width=True,
+            caption_values=caption_values, show=args.show)
 
     def _run_graph(self, args):
         graph_parameters = {

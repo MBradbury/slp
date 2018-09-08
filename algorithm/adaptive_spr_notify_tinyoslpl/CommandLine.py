@@ -9,7 +9,7 @@ import simulator.sim
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless", extras=["Analysis"])
 adaptive_spr_notify = algorithm.import_algorithm("adaptive_spr_notify", extras=["Analysis"])
-adaptive_spr_notify_tinyoslpl = algorithm.import_algorithm("adaptive_spr_notify_tinyoslpl", extras=["Analysis"])
+adaptive_spr_notify_lpl = algorithm.import_algorithm("adaptive_spr_notify_lpl", extras=["Analysis"])
 
 from data import results, submodule_loader
 from data.table import fake_result
@@ -33,9 +33,6 @@ class CLI(CommandLineCommon.CLI):
         subparser = self._add_argument("graph", self._run_graph)
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
-
-        subparser = self._add_argument("graph-min-max", self._run_graph_min_max)
-        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
         subparser = self._add_argument("graph-testbed", self._run_graph_testbed)
         subparser.add_argument("testbed", type=str, choices=submodule_loader.list_available(data.testbed), help="Select the testbed to analyse. (Only if not analysing regular results.)")
@@ -119,88 +116,6 @@ class CLI(CommandLineCommon.CLI):
             'captured': 25,
             'received ratio': 100,
             'average duty cycle': 100,
-            'normal latency': 250,
-            'attacker distance': 70,
-            'norm(norm(fake,time taken),network size)': 4,
-            'norm(norm(sent,time taken),network size)': 5,
-        }
-
-        #custom_yaxis_range_min = {
-        #    'received ratio': 70,
-        #}
-
-        yextractors = {
-            # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
-            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)]
-        }
-
-        def fetch_baseline_result(baseline_results, data_key, src_period, baseline_params):
-
-            if data_key[-1] != 'enabled':
-                raise RuntimeError(f"Expected 'enabled', got {data_key[-1]}")
-
-            # adaptive_spr_notify doesn't run with lpl enabled, but that is what we want to compare against
-            data_key = data_key[:-1] + ('disabled',)
-
-            return baseline_results.data[data_key][src_period][baseline_params]
-
-        def filter_params(all_params):
-            return all_params['source period'] == '0.25'
-
-        self._create_baseline_versus_graph(args.sim, adaptive_spr_notify, graph_parameters, varying,
-            testbed=args.testbed,
-
-            results_filter=filter_params,
-            custom_yaxis_range_max=custom_yaxis_range_max,
-            #custom_yaxis_range_min=custom_yaxis_range_min,
-            yextractor = yextractors,
-            xaxis_font = "',18'",
-            yaxis_font = "',18'",
-            xlabel_font = "',16'",
-            ylabel_font = "',15'",
-            line_width = 3,
-            point_size = 1,
-            nokey = True,
-            generate_legend_graph = True,
-            legend_font_size = 16,
-            legend_divisor = 4,
-            legend_base_height = 0.3,
-            vary_label = "",
-            baseline_label="DynamicSPR (no duty cycle)",
-
-            fetch_baseline_result=fetch_baseline_result,
-        )
-
-    def _run_graph_min_max(self, args):
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (ms)', 'left top'),
-            #'ssd': ('Sink-Source Distance (hops)', 'left top'),
-            'captured': ('Capture Ratio (%)', 'left top'),
-            #'fake': ('Fake Messages Sent', 'left top'),
-            #'sent': ('Total Messages Sent', 'left top'),
-            'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            #'tfs': ('Number of TFS Created', 'left top'),
-            #'pfs': ('Number of PFS Created', 'left top'),
-            #'tailfs': ('Number of TailFS Created', 'left top'),
-            'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
-            #"attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
-            'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
-            'norm(norm(sent,time taken),network size)': ('Messages Sent per Sec per Node', 'left top'),
-            'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Sec per Node', 'left top'),
-        }
-
-        lpl_params = self.algorithm_module.extra_parameter_names
-
-        varying = [
-            #(('network size', ''), ('source period', ' seconds')),
-            #(('network size', ''), (lpl_params, '~')),
-            (('source period', ''), (lpl_params, '~')),
-        ]
-
-        custom_yaxis_range_max = {
-            'captured': 25,
-            'received ratio': 100,
-            'average duty cycle': 100,
             'normal latency': 1000,
             'attacker distance': 70,
             'norm(norm(fake,time taken),network size)': 4,
@@ -240,9 +155,9 @@ class CLI(CommandLineCommon.CLI):
             return baseline_results.data[data_key][src_period][baseline_params]
 
         def filter_params(all_params):
-            return all_params['source period'] == '0.25' or all_params['network size'] == '5'
+            return all_params['source period'] == '0.25'
 
-        self._create_min_max_versus_graph(args.sim, [adaptive_spr_notify_tinyoslpl], adaptive_spr_notify, graph_parameters, varying,
+        self._create_min_max_versus_graph(args.sim, [adaptive_spr_notify, adaptive_spr_notify_lpl], None, graph_parameters, varying,
             #testbed=args.testbed,
             vvalue_label_converter = vvalue_converter,
 
@@ -261,19 +176,18 @@ class CLI(CommandLineCommon.CLI):
             generate_legend_graph = True,
             legend_font_size = 16,
             legend_divisor = 4,
-            legend_base_height = 0.5,
+            legend_base_height = 0.3,
             vary_label = "",
             #baseline_label="DynamicSPR (no duty cycle)",
 
-            max_label = ['TinyOS LPL Max'],#'DynamicSPR Max', 
-            min_label = ['TinyOS LPL Min'], #'DynamicSPR Min', 
-            min_max_same_label = ["TinyOS LPL"],#"DynamicSPR", 
-            comparison_label = "DC",
-            baseline_label = "DynamicSPR",
+            max_label = ['DynamicSPR Maximum', 'DynamicSPR DC Maximum'],
+            min_label = ['DynamicSPR Minimum', 'DynamicSPR DC Minimum'],
+            min_max_same_label = ["DynamicSPR", "DynamicSPR DC"],
+            comparison_label = "DynamicSPR TinyOS LPL",
 
             #squash_path=True,
 
-            fetch_baseline_result=fetch_baseline_result,
+            #fetch_baseline_result=fetch_baseline_result,
         )
 
     def _run_graph_testbed(self, args):

@@ -5,6 +5,7 @@ import ast
 import csv
 import math
 import os.path
+import sys
 
 import numpy as np
 
@@ -19,19 +20,11 @@ def literal_eval_with_nan(value):
     else:
         return ast.literal_eval(value)
 
-def extract_average_and_stddev(value):
-    (mean, var) = value.split(';', 1)
+to_scale = {'mean', 'std', 'min', 'max', 'sem', '10%', '25%', '50%', '75%', '90%', 'ci95'}
 
-    mean = literal_eval_with_nan(mean)
-    var = literal_eval_with_nan(var)
-
-    # The variance can be a dict, so we need to handle square rooting those values
-    if isinstance(var, dict):
-        stddev = {k: math.sqrt(v) for (k, v) in var.items()}
-    else:
-        stddev = math.sqrt(var)
-
-    return np.array((mean, stddev))
+def extract_scaled(value, scale=1):
+    value = ast.literal_eval(value.replace('nan', '"NaN"'))
+    return {k: (v * scale if k in to_scale else v) if v != "NaN" else float("NaN") for (k, v) in value.items()}
 
 class Results(object):
     def __init__(self, sim_name, result_file, parameters, results, results_filter=None,
@@ -120,11 +113,11 @@ class Results(object):
 
     def _read_results(self, result_path, results_filter, source_period_normalisation, network_size_normalisation):
 
-        print(f"Reading results from {result_path}")
+        print(f"Reading results from {result_path}", file=sys.stderr)
 
         with open(result_path, 'r') as result_file:
 
-            reader = csv.reader(result_file, delimiter='|')
+            reader = csv.reader(result_file, delimiter='|', quoting=csv.QUOTE_NONE)
             
             reader_iter = iter(reader)
 
@@ -167,15 +160,15 @@ class Results(object):
             raise RuntimeError(f"Unable to read '{name}' from the result file '{self.result_file_name}'. Available keys: {dvalues.keys()}")
 
         if name == 'captured':
-            return float(value) * 100.0
+            return extract_scaled(value, scale=100.0)
         elif name in {'received ratio', 'paths reached end', 'source dropped', 'average duty cycle'}:
             # Convert from percentage in [0, 1] to [0, 100]
-            return extract_average_and_stddev(value) * 100.0
+            return extract_scaled(value, scale=100.0)
         elif name == 'normal latency':
             # Convert from seconds to milliseconds
-            return extract_average_and_stddev(value) * 1000.0
-        elif ';' in value:
-            return extract_average_and_stddev(value)
+            return extract_scaled(value, scale=1000.0)
+        elif 'mean' in value:
+            return extract_scaled(value)
         else:
             try:
                 return ast.literal_eval(value)

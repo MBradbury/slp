@@ -35,14 +35,23 @@ class CLI(CommandLineCommon.CLI):
 
         custom_mapping = {"pr direct to sink": "direct_to_sink_prs"}
 
-        for parameter in self.algorithm_module.local_parameter_names:
+        for parameter in self.algorithm_module.base_parameter_names:
              parameter_values.append(self._get_local_parameter_values(parameters, parameter, custom_mapping=custom_mapping))
 
-        argument_product = list(itertools.product(*parameter_values))
+        my_paramater_names = ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks')
+        my_paramater_values = [
+            self._get_local_parameter_values(parameters, parameter, custom_mapping=custom_mapping)
+            for parameter
+            in my_paramater_names
+        ]
+
+        argument_product = [
+            x + y
+            for x in itertools.product(*parameter_values)
+            for y in zip(*my_paramater_values)
+        ]
 
         argument_product = self.add_extra_arguments(argument_product, extras)
-
-        #argument_product = self.adjust_source_period_for_multi_source(sim, argument_product)
         
         return argument_product
 

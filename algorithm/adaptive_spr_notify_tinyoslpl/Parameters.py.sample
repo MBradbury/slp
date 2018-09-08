@@ -1,0 +1,41 @@
+
+distance = 4.5
+
+noise_models = ["casino-lab", "meyer-heavy"]
+
+communication_models = ["low-asymmetry"]
+
+sizes = [5, 7, 9, 11]
+
+source_periods = [2.0, 1.0, 0.5, 0.25]
+
+configurations = [
+    'SourceCorner',
+]
+
+fault_models = ["ReliableFaultModel()"]
+
+attacker_models = [f"SeqNosReactiveAttacker(message_detect='within_range({distance+0.25})')"]
+
+latest_node_start_time = 1.0 # in seconds
+
+#node_id_orders = ['randomised']
+
+approaches = ["PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH"]
+
+repeats = 500
+
+# Testbed Parameters
+rf_powers = [7]
+channels = [26]
+node_id_orders = ['topology']
+low_power_listenings = ["enabled"]
+
+lpl_local_wakeups = [75, 125] # How often to wakeup
+lpl_remote_wakeups = [75, 125] # How long to retry sending a message
+lpl_delay_after_receives = [10] # How long to wait for more messages after receiving one
+lpl_max_cca_checks = [2300] # How long to listen for
+
+# COOJA
+radio_models = [f"UDGMRadioModel({distance+0.25},{distance+0.25},1,1)"]
+platforms = ["Sky"]

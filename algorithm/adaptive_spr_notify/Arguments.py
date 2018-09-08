@@ -5,8 +5,8 @@ import simulator.MobilityModel
 approaches = ("PB_FIXED1_APPROACH", "PB_FIXED2_APPROACH", "PB_RND_APPROACH")
 
 class Arguments(ArgumentsCommon):
-    def __init__(self):
-        super().__init__("SLP Adaptive SPR Notify", has_safety_period=True)
+    def __init__(self, **kwargs):
+        super().__init__("SLP Adaptive SPR Notify", has_safety_period=True, **kwargs)
 
         self.add_argument("--source-period", type=self.type_positive_float, required=True)
         self.add_argument("--source-mobility",
