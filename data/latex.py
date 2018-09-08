@@ -23,8 +23,11 @@ def print_header(stream, orientation='portrait'):
     print('\\usepackage{subfigure}', file=stream)
     print('\\usepackage{graphicx}', file=stream)
     print('\\usepackage{epstopdf}', file=stream)
+    print('\\usepackage{siunitx}\\sisetup{separate-uncertainty}', file=stream)
+    print('\\usepackage{amsfonts}', file=stream)
     print('\\usepackage[table]{xcolor}', file=stream)
     print('\\usepackage{longtable}', file=stream)
+    print('\\usepackage{tabu}', file=stream)
     print("\\usepackage{grffile}", file=stream) # Long file names
     print("\\usepackage{morefloats}", file=stream) # More floats with no text
     print('', file=stream)
@@ -54,6 +57,7 @@ def compile_document(path_and_name, executable="pdflatex -interaction=nonstopmod
     try:
         command = f"{executable} -output-directory=\"{path}\" \"{path_and_name}\""
         print(command)
+        subprocess.check_call(command, shell=True)
         subprocess.check_call(command, shell=True)
 
     finally:

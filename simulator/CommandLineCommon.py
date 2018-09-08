@@ -33,7 +33,6 @@ import data.testbed
 from data.graph import heatmap, summary
 
 from data.table import safety_period, fake_result
-from data.table.data_formatter import TableDataFormatter
 
 from data.util import create_dirtree, recreate_dirtree, touch, scalar_extractor
 
@@ -157,17 +156,19 @@ class CLI(object):
             if not isinstance(safety_period_module_name, bool):
                 subparser = self._add_argument("safety-table", self._run_safety_table, help="Output protectionless information along with the safety period to be used for those parameter combinations.")
                 subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
-                subparser.add_argument("--show-stddev", action="store_true")
                 subparser.add_argument("--show", action="store_true", default=False)
                 subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("time-taken-table", self._run_time_taken_table, help="Creates a table showing how long simulations took in real and virtual time.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
-        subparser.add_argument("--show-stddev", action="store_true")
         subparser.add_argument("--show", action="store_true", default=False)
         subparser.add_argument("--testbed", type=str, choices=submodule_loader.list_available(data.testbed), default=None, help="Select the testbed to analyse. (Only if not analysing regular results.)")
 
         subparser = self._add_argument("error-table", self._run_error_table, help="Creates a table showing the number of simulations in which an error occurred.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
+        subparser.add_argument("--show", action="store_true", default=False)
+
+        subparser = self._add_argument("convergence-table", self._run_convergence_table, help="Creates a table showing the results and error metrics.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
         subparser.add_argument("--show", action="store_true", default=False)
 
@@ -177,6 +178,12 @@ class CLI(object):
 
         subparser = self._add_argument("graph-heatmap", self._run_graph_heatmap, help="Graph the sent and received heatmaps.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
+
+
+        subparser = self._add_argument("graph-convergence", self._run_graph_convergence, help="Graph the mean of specific results as the simulation iterations progress.")
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to check results for.")
+        subparser.add_argument("-H", "--headers", nargs="+", metavar="H", required=True)
+        subparser.add_argument("--show", action="store_true", default=False)
 
         ###
 
@@ -246,13 +253,18 @@ class CLI(object):
         if show:
             subprocess.call(["xdg-open", filename_pdf])
 
-    def _create_results_table(self, sim_name, parameters, **kwargs):
+    def _create_results_table(self, sim_name, parameters, results_filter=None,
+                              fmt=None, hide_parameters=None, extractors=None,
+                              resize_to_width=False, caption_values=None,
+                              **kwargs):
         res = results.Results(
             sim_name, self.algorithm_module.result_file_path(sim_name),
             parameters=self.algorithm_module.local_parameter_names,
-            results=parameters)
+            results=parameters,
+            results_filter=results_filter)
 
-        result_table = fake_result.ResultTable(res)
+        result_table = fake_result.ResultTable(res, fmt=fmt,
+            hide_parameters=hide_parameters, extractors=extractors, resize_to_width=resize_to_width, caption_values=caption_values)
 
         self._create_table(f"{self.algorithm_module.name}-{sim_name}-results", result_table, **kwargs)
 
@@ -398,7 +410,7 @@ class CLI(object):
     def _create_min_max_versus_graph(self, sim_name, comparison_modules, baseline_module, graph_parameters, varying, *,
                                      algo_results=None, custom_yaxis_range_max=None,
                                      source_period_normalisation=None, network_size_normalisation=None, results_filter=None,
-                                     yextractors=None,
+                                     yextractor=None,
                                      **kwargs):
         from data.graph import min_max_versus
 
@@ -436,19 +448,21 @@ class CLI(object):
             baseline_results = None
 
         for ((xaxis, xaxis_units), (vary, vary_units)) in varying:
-
-            if isinstance(vary, tuple):
-                vary_str = "(" + ",".join(vary) + ")"
-            else:
-                vary_str = str(vary)
-
             for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}-w-{}'.format(xaxis, yaxis, vary_str).replace(" ", "_")
+                name = f'{self._shorter_name(xaxis)}-v-{self._shorter_name(yaxis)}-w-{self._shorter_name(vary)}'
+
+                if isinstance(yextractor, dict):
+                    try:
+                        yextractor_single = yextractor[yaxis]
+                    except KeyError:
+                        yextractor_single = scalar_extractor
+                else:
+                    yextractor_single = scalar_extractor
 
                 g = min_max_versus.Grapher(
                     sim_name, self.algorithm_module.graphs_path(sim_name), name,
                     xaxis=xaxis, yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor if yextractors is None else yextractors.get(yaxis, scalar_extractor))
+                    yextractor=yextractor_single)
 
                 g.xaxis_label = xaxis.title()
                 g.yaxis_label = yaxis_label
@@ -957,12 +971,9 @@ class CLI(object):
     def _run_safety_table(self, args):
         safety_period_result_path = self.get_safety_period_result_path(args.sim, testbed=args.testbed)
 
-        fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
-
         safety_period_table = safety_period.TableGenerator(args.sim,
                                                            safety_period_result_path,
-                                                           self.time_after_first_normal_to_safety_period,
-                                                           fmt)
+                                                           self.time_after_first_normal_to_safety_period)
 
         if args.testbed:
             print("Writing testbed safety period table...")
@@ -1004,6 +1015,43 @@ class CLI(object):
         result_table = fake_result.ResultTable(res)
 
         self._create_table(self.algorithm_module.name + "-error-results", result_table, show=args.show)
+
+    def _run_convergence_table(self, args):
+        from data.table.summary_formatter import TableDataFormatter
+        fmt = TableDataFormatter()
+
+        parameters = [
+            'repeats',
+            'time taken',
+            'received ratio',
+            'captured',
+            'normal latency',
+            'norm(sent,time taken)',
+            'attacker distance',
+        ]
+
+        def results_filter(params):
+            return (
+                params.get("noise model", "casino-lab") != "casino-lab" or
+                params["configuration"] != "SourceCorner" or
+                params["source period"] == "0.125" or
+                params["network size"] == "5"
+            )
+
+        hide_parameters = [
+            'buffer size', 'max walk length', 'pr direct to sink', # ILPRouting
+            'pr pfs', # Template
+        ]
+        caption_values = ["network size"]
+
+        extractors = {
+            # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
+            "attacker distance": lambda yvalue: yvalue[(0, 0)]
+        }
+
+        self._create_results_table(args.sim, parameters,
+            fmt=fmt, results_filter=results_filter, hide_parameters=hide_parameters, extractors=extractors, resize_to_width=True,
+            caption_values=caption_values, show=args.show)
 
     def _get_emails_to_notify(self, args):
         """Gets the emails that a cluster job should notify after finishing.
@@ -1128,9 +1176,7 @@ class CLI(object):
                                           'memory vms'),
         )
 
-        fmt = TableDataFormatter(convert_to_stddev=args.show_stddev)
-
-        result_table = fake_result.ResultTable(result, fmt)
+        result_table = fake_result.ResultTable(result)
 
         self._create_table(self.algorithm_module.name + "-time-taken", result_table, orientation="landscape", show=args.show)
 
@@ -1250,6 +1296,97 @@ class CLI(object):
             os.path.join(self.algorithm_module.graphs_path(args.sim), args.grapher),
             os.path.join(algorithm.results_directory_name, f"{self.algorithm_module.name}-{args.grapher}")
         ).run(show=args.show)
+
+    def _run_graph_convergence(self, args):
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from scipy import stats
+
+        def results_finder(results_directory):
+            return fnmatch.filter(os.listdir(results_directory), '*.txt')
+
+        results_directory = self.algorithm_module.results_path(args.sim)
+
+        print(results_directory)
+
+        analyzer = self.algorithm_module.Analysis.Analyzer(args.sim, results_directory)
+
+        #def dennis_convergence(window, alpha=0.01):
+        #    return abs(window[1] - window[0]) <= alpha * window[0]
+            
+
+        # Possible alternatives
+        # https://stats.stackexchange.com/questions/195020/how-to-test-whether-a-time-series-of-measurements-have-converged-to-an-equilibri
+        # https://en.wikipedia.org/wiki/Convergence_tests
+
+        def ci(values):
+            sample_mean = values.mean()
+
+            confidence_interval_95 = stats.t.interval(
+                alpha=0.95,             # Confidence level
+                df=values.count()-1,
+                loc=sample_mean,
+                scale=values.sem())
+
+            return confidence_interval_95[1] - sample_mean
+
+        result_basedir = f"results/conv/{args.sim}/{self.algorithm_module.name}"
+        create_dirtree(result_basedir)
+
+        files = sorted(results_finder(results_directory))
+        for num, infile in enumerate(files):
+            path = os.path.join(results_directory, infile)
+
+            print(f'Analysing {path}')
+
+            res = analyzer.analyse_path(path)
+
+            factor = 2.5
+            f, axes = plt.subplots(len(args.headers), 3, figsize=(5*factor,4*factor))
+
+            axes[0][0].set_title("Values")
+            axes[0][1].set_title("Histogram")
+            axes[0][2].set_title("Expanding Mean")
+            #axes[0][3].set_title("Denis Convergence $\\alpha=0.01$")
+
+            for (i, header) in enumerate(args.headers):
+                col = res.find_column(header).astype(float)
+
+                expcol = col.expanding()
+
+                expcol_mean = expcol.mean()
+                expcol_cis = expcol.apply(ci, raw=False)
+                expcol_ciu = expcol_mean + expcol_cis
+                expcol_cil = expcol_mean - expcol_cis
+
+                axes[i, 0].plot(col)
+                axes[i, 0].set_ylabel(header)
+
+                axes[i, 1].hist(col, bins=50)
+                axes[i, 1].axvline(col.mean(), color='k', linestyle='dashed', linewidth=1)
+
+                axes[i, 2].plot(expcol_mean)
+                axes[i, 2].plot(expcol_ciu)
+                axes[i, 2].plot(expcol_cil)
+                axes[i, 2].set_ylim(bottom=expcol_cil.tail(expcol_cil.count()-50).min(),
+                                    top=expcol_ciu.tail(expcol_ciu.count()-50).max())
+                #axes[i, 2].legend(['Mean', 'Upper 95% CI', 'Lower 95% CI'], loc='lower right')
+
+                #dccol = expcol.rolling(2).apply(dennis_convergence, kwargs={"alpha": 0.01}, raw=True)
+
+                #j = None
+                #g = None
+                #for j, g in dccol.groupby([(dccol != dccol.shift()).cumsum()]):
+                #    pass
+                #print("j", j, "g", g.size /  dccol.size, g.iloc[0])
+
+                #axes[i, 3].plot(dccol)
+
+            if args.show:
+                plt.show()
+            else:
+                plt.savefig(f"{result_basedir}/{infile}.pdf", aspect='auto', bbox_inches='tight', dpi=300)
+
 
     def _run_historical_time_estimator(self, args):
         sim = submodule_loader.load(simulator.sim, args.sim)

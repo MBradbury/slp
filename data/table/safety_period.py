@@ -31,7 +31,7 @@ class TableGenerator:
         return name, result[self._result_names.index(name)]
 
     def _get_just_value(self, result, name):
-        return result[self._result_names.index(name)][0]
+        return result[self._result_names.index(name)]['mean']
 
     def write_tables(self, *args, **kwargs):
         if self._sim_name == "real":
@@ -216,9 +216,9 @@ class TableGenerator:
     def safety_periods(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> safety period
         return self._get_result_mapping(('time after first normal',),
-                                        lambda tafn: self.tafn_to_safety_period(tafn[0]))
+                                        lambda tafn: self.tafn_to_safety_period(tafn['mean']))
 
     def time_taken(self):
         # (size, configuration, attacker model, noise model, communication model, distance) -> source period -> time taken
         return self._get_result_mapping(('time taken',),
-                                        lambda tt: tt[0])
+                                        lambda tt: tt['mean'])
