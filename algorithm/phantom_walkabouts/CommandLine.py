@@ -16,7 +16,7 @@ from simulator import Configuration
 #import algorithm.protectionless as protectionless
 import algorithm
 protectionless = algorithm.import_algorithm("protectionless")
-#phantom_chen = algorithm.import_algorithm("phantom_chen")
+phantom_chen = algorithm.import_algorithm("phantom_chen")
 #lprouting_chen = algorithm.import_algorithm("ilprouting_chen")
 #adaptive_spr_notify_chen = algorithm.import_algorithm("adaptive_spr_notify_chen")
 #protectionless_chen = algorithm.import_algorithm("protectionless_chen")
@@ -46,6 +46,8 @@ class CLI(CommandLineCommon.CLI):
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
         subparser = self._add_argument("graph-min-max", self._run_min_max_versus)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
+
         subparser = self._add_argument("graph-dominating-min-max", self._run_dominating_min_max_versus)
         subparser = self._add_argument("graph-multi", self._run_multi_versus)
 
@@ -92,7 +94,7 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         parameters = [
             'captured',
-            'received ratio', 'sent', 'normal latency',
+            'received ratio', 'normal latency',
             #'attacker distance wrt src',
             #'attacker distance',
             #'failed avoid sink',
@@ -246,15 +248,15 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'left top'),
             'norm(sent,time taken)': ('Messages Transmission (messages)', 'right top'),
             'received ratio': ('Delivery Ratio (%)', 'left bottom'),
-            'utility animal': ('Utility (Animal Protection)', 'right top'),
-            'utility monitor': ('Utility (Asset Monitor)', 'right bottom'),
-            'utility military': ('Utility (Military)', 'right bottom'),
+            #'utility animal': ('Utility (Animal Protection)', 'right top'),
+            #'utility monitor': ('Utility (Asset Monitor)', 'right bottom'),
+            #'utility military': ('Utility (Military)', 'right bottom'),
             'normalised captured': ('Normalised Capture Ratio', 'left top'),
             'normalised norm(sent,time taken)': ('Normalised Messages Transmission', 'right top'),
         }
 
         varying = [
-            (('safety factor', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
+            (('network size', ''), (('direction bias', 'order', 'short count', 'long count', 'wait before short'), '')),
         ]
         
         custom_yaxis_range_max = {
@@ -274,14 +276,14 @@ class CLI(CommandLineCommon.CLI):
         }
 
         args = (
-            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen],
+            [phantom_chen],
             None, graph_parameters, varying, None, custom_yaxis_range_max,
         )
 
         kwargs = {
-            "min_label": ["Protectionless - Min", "ProtectionlessCTP - Min","Phantom - Min", "ILP - Min", "AdaptiveSPR - Min"],
-            "max_label": ["Protectionless - Max", "ProtectionlessCTP - Max", "Phantom - Max", "ILP - Max", "AdaptiveSPR - Max"],
-            "min_max_same_label": ["Protectionless", "ProtectionlessCTP", "Phantom", "ILP", "AdaptiveSPR"],
+            "min_label": ["Phantom_chen - Min"],
+            "max_label": ["Phantom_chen - Max"],
+            "min_max_same_label": ["Phantom_chen"],
             "vary_label": "",
             "comparison_label": "PW",
             "vvalue_label_converter": self.vvalue_converter,
@@ -292,17 +294,7 @@ class CLI(CommandLineCommon.CLI):
 
         self._create_min_max_versus_graph(*args, **kwargs)
 
-        graph_parameters = {
-            'normal latency': ('Normal Message Latency (milliseconds)', 'left bottom'),
-        }
-
-        args = (
-            [protectionless_chen, protectionless_ctp_chen, phantom_chen, ilprouting_chen, adaptive_spr_notify_chen],
-            None, graph_parameters, varying, None, custom_yaxis_range_max,
-        )
-
-        # For latency generate graphs with log10 yaxis scale
-        self._create_min_max_versus_graph(*args, yaxis_logscale=10, yaxis_range_min=10, **kwargs)
+        
 
     def _run_multi_versus(self, args):
         graph_parameters = [
