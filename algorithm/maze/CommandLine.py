@@ -60,8 +60,8 @@ class CLI(CommandLineCommon.CLI):
 
     def _run_table(self, args):
         parameters = [
-            #'normal latency', 
-            #'sent', 
+            'normal latency', 
+            'norm(sent,time taken)', 
             'captured',
             'received ratio',
             #'attacker distance wrt src',
