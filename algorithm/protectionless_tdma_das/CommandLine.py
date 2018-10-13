@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import itertools
 import os
+import datetime
 
 from simulator import CommandLineCommon
 
@@ -19,6 +20,9 @@ class CLI(CommandLineCommon.CLI):
 
         subparser = self._add_argument("graph", self._run_graph)
         subparser = self._add_argument("table", self._run_table)
+
+    def _cluster_time_estimator(self, sim, args, **kwargs):
+        return datetime.timedelta(hours=12)
 
     def _argument_product(self, sim, extras=None):
         parameters = self.algorithm_module.Parameters
