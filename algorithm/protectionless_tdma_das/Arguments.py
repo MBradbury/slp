@@ -36,3 +36,17 @@ class Arguments(ArgumentsCommon):
         result["TIMESYNC_PERIOD_MS"] = int(self.args.timesync_period * 1000)
 
         return result
+
+    def virtual_arguments(self):
+        configuration = simulator.Configuration.create(self.args.configuration, self.args)
+
+        if len(configuration.source_ids) != 1:
+            raise RuntimeError("Configuration must have one and only one source")
+
+        (source_id,) = configuration.source_ids
+        (sink_id,) = configuration.sink_ids
+
+        ssd_hops = configuration.ssd(sink_id, source_id)
+        num_slots = int(self.args.tdma_num_slots)
+        return {"safety_period": float(self.args.source_period)*ssd_hops*3}
+
