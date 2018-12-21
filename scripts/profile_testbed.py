@@ -469,13 +469,12 @@ class AnalyseTestbedProfile(object):
 
     def _process_line(self, line):
         try:
-            (date_time, rest) = line.split("|", 1)
-
-            date_time = datetime.strptime(date_time, "%Y/%m/%d %H:%M:%S.%f")
-
+            (date_time, rest) = line
             (kind, d_or_e, nid, localtime, details) = rest.split(":", 4)
+
+            localtime == None if localtime == "None" else int(localtime)
  
-            return (date_time, kind, d_or_e, int(nid), int(localtime), details)
+            return (date_time, kind, d_or_e, int(nid), localtime, details)
 
         except BaseException as ex:
             print("Failed to parse the line:", self._sanitise_string(line))
