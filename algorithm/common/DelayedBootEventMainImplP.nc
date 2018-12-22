@@ -1,5 +1,7 @@
 #include <stdint.h>
 
+#include "MetricLogging.h"
+
 #ifndef DELAYED_BOOT_TIME_MINUTES
 #define DELAYED_BOOT_TIME_MINUTES 10
 #endif
