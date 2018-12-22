@@ -833,6 +833,8 @@ def try_create_specific(name):
 
     if len(topology_classes) == 0:
         raise RuntimeError(f"Unable to find a topology called {topology_name}")
+    if len(topology_classes) != 1:
+        raise RuntimeError(f"Too many topologies called {topology_name}?")
 
     topology_class = topology_classes[0]
 
