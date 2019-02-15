@@ -13,6 +13,11 @@ import sys
 import numpy as np
 import pandas as pd
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
 from data import submodule_loader
 import data.testbed
 
@@ -344,13 +349,11 @@ class ResultsProcessor(object):
 
 
     def _draw_link_heatmap_fn(self, args, heatmap_name, converter=lambda x: x, min_max=None, cmap=None, title_formatter=None):
-        import matplotlib
-        import matplotlib.pyplot as plt
         from matplotlib.ticker import MultipleLocator
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        matplotlib.rcParams.update({'font.size': 16, 'figure.autolayout': True})
+        mpl.rcParams.update({'font.size': 16, 'figure.autolayout': True})
 
         plt.tight_layout()
 
@@ -362,7 +365,7 @@ class ResultsProcessor(object):
 
         prr = {k: v * 100 for (k, v) in prr.items()}
 
-        details = [("prr", prr, "%"), ("rssi", rssi, "dBm"), ("lqi", lqi, "")]
+        details = [("prr", prr, r'$\%$'), ("rssi", rssi, "dBm"), ("lqi", lqi, "")]
 
         for (power, channel) in itertools.product(sorted(tx_powers), sorted(channels)):
             for (i, (name, value, label)) in enumerate(details, start=1):
@@ -461,6 +464,9 @@ class ResultsProcessor(object):
         import networkx as nx
         from networkx.drawing.nx_pydot import write_dot
 
+        # Avoid Type 3 latex fonts
+        neato_font_name = "Times"
+
         rssi, lqi, prr = self._get_combined_link_results()
 
         if args.name == "rssi":
@@ -499,6 +505,7 @@ class ResultsProcessor(object):
             x, y = coords[0], coords[1]
 
             G.node[node]['pos'] = f"{x*scale},{y*scale}"
+            G.node[node]['fontname'] = neato_font_name
             G.node[node]['fontsize'] = "36"
             G.node[node]['fixedsize'] = "true"
             G.node[node]['width'] = "0.8"
@@ -511,24 +518,25 @@ class ResultsProcessor(object):
                         G.add_edge(node1, node2,
                             label=round(row[node2], 2),
                             color=colors.rgb2hex(scalarmap.to_rgba(row[node2])),
-                            fontsize="22"
+                            fontsize="22",
+                            fontname=neato_font_name
                         )
 
         dot_path = f"{args.name}-{args.power}.dot"
+        eps_path = dot_path.replace(".dot", ".eps")
         pdf_path = dot_path.replace(".dot", ".pdf")
 
         write_dot(G, dot_path)
 
-        subprocess.check_call(f"neato -n2 -Gdpi=500 -T pdf {dot_path} -o {pdf_path}", shell=True)
-
+        # Need to go via eps to get sensible fonts
+        subprocess.check_call(f"neato -n2 -Gdpi=500 -T eps {dot_path} -o {eps_path}", shell=True)
+        subprocess.check_call(f"epstopdf {eps_path}", shell=True)
         subprocess.check_call(["pdfcrop", pdf_path, pdf_path])
 
         if args.show:
             subprocess.call(f"xdg-open {pdf_path}", shell=True)
 
     def draw_noise_floor_heatmap(self, args):
-        import matplotlib.pyplot as plt
-
         noise_floor = self._get_combined_noise_floor()
 
         z = {
@@ -628,9 +636,6 @@ class ResultsProcessor(object):
                 plt.show()
 
     def draw_noise_floor_graph(self, args):
-        import matplotlib as mpl
-        import matplotlib.pyplot as plt
-
         noise_floor = self._get_combined_noise_floor()
 
         data = {}
@@ -701,9 +706,6 @@ class ResultsProcessor(object):
             plt.show()
 
     def draw_combined_current_graph(self, args):
-        import matplotlib as mpl
-        import matplotlib.pyplot as plt
-
         def other_get_combined_current_results(name):
             processor = ResultsProcessor()
             a = copy.deepcopy(self.args)
@@ -719,7 +721,7 @@ class ResultsProcessor(object):
         channels = [26]
         tx_powers = [7, 19, 31]
 
-        fig, (ax, ax2) = plt.subplots(2, 1, sharex=True, figsize=(7.0056, 3.5), gridspec_kw = {'height_ratios':[4, 1]})
+        fig, (ax, ax2) = plt.subplots(2, 1, sharex=True, figsize=(7.0056, 2.6), gridspec_kw = {'height_ratios':[4, 1]})
 
         xs = [x.nid for x in self.testbed_topology.nodes.keys()]
         xns = np.arange(len(xs))
@@ -851,7 +853,7 @@ class ResultsProcessor(object):
 
         handles, labels = ax.get_legend_handles_labels()
         d = {h: l for (h, l) in zip(handles, labels) if isinstance(h, mpl.collections.PathCollection)}
-        ax2.legend(d.keys(), d.values(), ncol=len(d.keys()), loc="upper center", bbox_to_anchor=(0.5, 1.6))
+        ax2.legend(d.keys(), d.values(), ncol=len(d.keys()), loc="upper center", bbox_to_anchor=(0.5, 1.9))
 
         plt.tight_layout()
 
