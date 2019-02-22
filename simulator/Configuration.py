@@ -85,17 +85,18 @@ class Configuration(object):
         elif hasattr(self.topology, "platform"):
 
             tx_power = 7
+            channel = 26
 
             testbed_name = self.topology.__class__.__name__.lower()
 
-            link_path = os.path.join("testbed_results", testbed_name, "profile", "link.pickle")
+            link_path = os.path.join("testbed_results", testbed_name, "noforward", "link.pickle")
 
             with open(link_path, 'rb') as pickle_file:
                 import pickle
 
                 rssi, lqi, prr = pickle.load(pickle_file)
 
-                prr = csgraph_from_dense(prr[tx_power])
+                prr = csgraph_from_dense(prr[(tx_power, channel)])
 
                 prr_connected = prr >= 0.75
 

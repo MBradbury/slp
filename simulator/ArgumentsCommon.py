@@ -132,8 +132,8 @@ def _add_cc2420(parser, **kwargs):
 OPTS = {
     "configuration":       lambda x, **kwargs: x.add_argument("-c", "--configuration",
                                                               type=str,
-                                                              required=True,
-                                                              choices=Configuration.names()),
+                                                              required=True),
+                                                              #choices=Configuration.names()),
 
     "verbose":             lambda x, **kwargs: x.add_argument("-v", "--verbose",
                                                               action="store_true"),
