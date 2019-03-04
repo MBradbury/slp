@@ -62,7 +62,10 @@ class ResultTable(object):
         return "        " + "\\rowcolor{gray!40}" + " & ".join(titles) + "\\\\"
 
     def _extract(self, name, value):
-        return self.extractors.get(name, lambda x: x)(value)
+        if self.extractors:
+            return self.extractors.get(name, lambda x: x)(value)
+        else:
+            return value
 
     def caption_formatter(self, table_key):
         caption = " and ".join([

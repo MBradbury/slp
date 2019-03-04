@@ -103,6 +103,9 @@ class TableDataFormatter(object):
             return (name, "~")
 
     def format_value(self, name, value):
+
+        pmvalue = "ci95" #"std"
+
         if value is None:
             return "None"
         elif name in {"source period", "fake period", "walk length", "walk retries",
@@ -116,7 +119,7 @@ class TableDataFormatter(object):
         elif name in {"pr tfs", "pr pfs", "pr direct to sink"}:
             return "${:.0f}$".format(value * 100.0)
         elif name == "average duty cycle":
-            return "${:.2f}$".format(value[0])
+            return "${:.2f}$".format(value['mean'])
         elif name in {"tfs", "pfs", "tailfs"}:
             return "${:.1f}$".format(value[0])
         elif name == "approach":
@@ -126,18 +129,18 @@ class TableDataFormatter(object):
         #elif name.startswith("energy impact"):
         #    return "${:.5f}$".format(value[0])
         elif name in {"received ratio", "ssd", "paths reached end"}:
-            return "${:.1f} \\pm {:.1f}$".format(value['mean'], value['std'])
+            return "${:.1f} \\pm {:.1f}$".format(value['mean'], value[pmvalue])
         elif name in {"sent", "received", "delivered",
                       "fake", "away", "choose", "dummy normal",
                       "normal latency", "event count",
                       "norm(sent,time taken)"}:
-            return "${:.0f} \\pm {:.2f}$".format(value['mean'], value['std'])
+            return "${:.0f} \\pm {:.2f}$".format(value['mean'], value[pmvalue])
         elif name in {"memory rss", "memory vms"}:
             value = value / (1024 * 1024)
-            return "${:.0f} \\pm {:.0f}$".format(value['mean'], value['std'])
+            return "${:.0f} \\pm {:.0f}$".format(value['mean'], value[pmvalue])
         elif isinstance(value, dict):
             if 'mean' in value:
-                return "${:.3f} \\pm {:.3f}$".format(value['mean'], value['std'])
+                return "${:.3f} \\pm {:.3f}$".format(value['mean'], value[pmvalue])
             else:
                 return latex.escape(str(value))
         elif isinstance(value, float):
@@ -149,9 +152,9 @@ class TableDataFormatter(object):
         else:
             try:
                 if isinstance(value[0], dict):
-                    return "${} \\pm {}$".format(value['mean'], value['std'])
+                    return "${} \\pm {}$".format(value['mean'], value[pmvalue])
                 elif isinstance(value, dict):
-                    return "${:.3f} \\pm {:.3f}$".format(value['mean'], value['std'])
+                    return "${:.3f} \\pm {:.3f}$".format(value['mean'], value[pmvalue])
                 else:
                     raise RuntimeError("Unable to format values for {} with values {} under the default settings. (HINT: You might need to add a custom formatter in this function)".format(name, value))
             except TypeError as e:
