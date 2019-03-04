@@ -186,7 +186,8 @@ implementation
 		call RadioControl.start();
 	}
 
-    void init();
+    void init(void);
+
 	event void RadioControl.startDone(error_t err)
 	{
 		if (err == SUCCESS)
@@ -378,8 +379,6 @@ implementation
 
 	task void send_normal(void)
 	{
-		NormalMessage* message;
-
         // This task may be delayed, such that it is scheduled when the slot is active,
         // but called after the slot is no longer active.
         // So it is important to check here if the slot is still active before sending.
@@ -390,13 +389,15 @@ implementation
 
 		simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
 
-		message = call MessageQueue.dequeue();
-
-		if (message != NULL)
+		if (!(call MessageQueue.empty()))
 		{
+            NormalMessage* message = call MessageQueue.head();
+
             error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
 			if (send_result == SUCCESS)
 			{
+                NormalMessage* message2 = call MessageQueue.dequeue();
+                assert(message == message2);
 				call MessagePool.put(message);
 			}
 			else
@@ -423,7 +424,7 @@ implementation
         }
     }
 
-    void MessageQueue_clear()
+    void MessageQueue_clear(void)
     {
         NormalMessage* message;
         while(!(call MessageQueue.empty()))
@@ -433,6 +434,10 @@ implementation
             {
                 call MessagePool.put(message);
             }
+        }
+        if(!(call MessageQueue.empty()))
+        {
+            ERROR_OCCURRED(ERROR_ASSERT, "Failed to empty the queue.\n");
         }
     }
     //Main Logic}}}
@@ -488,6 +493,7 @@ implementation
 
                 if (call MessageQueue.enqueue(message) != SUCCESS)
                 {
+                    call MessagePool.put(forwarding_message);
                     ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
                 }
                 else
@@ -521,6 +527,7 @@ implementation
 
 				if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
 				{
+                    call MessagePool.put(forwarding_message);
 					ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
 				}
 			}
@@ -534,10 +541,8 @@ implementation
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
         simdbgverbose("stdout", "SINK RECEIVED NORMAL.\n");
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
-
 			METRIC_RCV_NORMAL(rcvd);
 		}
 	}
