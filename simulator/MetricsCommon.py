@@ -328,7 +328,15 @@ class MetricsCommon(object):
             # (See protectionless_ctp). As a -1 means a previous message is being rebroadcasted,
             # we can simply ignore adding this message
             if sequence_number is not None:
-                self.normal_sent_time[(top_node_id, sequence_number)] = time
+
+                key = (top_node_id, sequence_number)
+
+                if __debug__:
+                    if key in self.normal_sent_time:
+                        self._warning_or_error("Already have a sent time for {}, it was {}, updating to {}.".format(
+                            key, self.normal_sent_time[key], time))
+
+                self.normal_sent_time[key] = time
 
                 # Handle starting the duration timeout in the simulation running
                 self.sim.trigger_duration_run_start(time)

@@ -1,0 +1,36 @@
+#include "Constants.h"
+
+#include <Timer.h>
+
+configuration SourceBroadcasterAppC
+{
+}
+
+implementation
+{
+	// The application
+	components SourceBroadcasterC as App;
+
+	// Low levels events such as boot and LED control
+	components DelayedBootEventMainP as MainC;
+	components LedsWhenGuiC as LedsC;
+	
+	App.Boot -> MainC;
+	App.Leds -> LedsC;
+
+	components MetricLoggingP as MetricLogging;
+	App.MetricLogging -> MetricLogging;
+	
+	components MetricHelpersP as MetricHelpers;
+	App.MetricHelpers -> MetricHelpers;
+
+	components new NodeTypeC(6);
+	App.NodeType -> NodeTypeC;
+	NodeTypeC.MetricLogging -> MetricLogging;
+
+	components new MessageTypeC(6);
+	App.MessageType -> MessageTypeC;
+	MessageTypeC.MetricLogging -> MetricLogging;
+
+	MetricLogging.MessageType -> MessageTypeC;
+}

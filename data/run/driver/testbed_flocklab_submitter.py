@@ -64,6 +64,11 @@ class Runner(object):
 
         return short_name
 
+    def fix_image_id(self, name):
+        for c in ['/', '-']:
+            name = name.replace(c, '_')
+        return name
+
     def generate_configuration_xml(self, configuration, config_file, exe_path, duration, name, **kwargs):
 
         # See: https://www.flocklab.ethz.ch/wiki/wiki/Public/Man/XmlConfig
@@ -79,6 +84,7 @@ class Runner(object):
         
         name = escape_xml(name)
         short_name = escape_xml(short_name)
+        image_id = self.fix_image_id(short_name)
 
         print('<?xml version="1.0" encoding="UTF-8"?>', file=config_file)
         print('<!-- $Id: flocklab.xml {} {} $ -->'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S Z%Z"), getpass.getuser()), file=config_file)
@@ -99,7 +105,7 @@ class Runner(object):
         print('        <obsIds>{}</obsIds>'.format(nodes), file=config_file)
         print('        <targetIds>{}</targetIds>'.format(nodes), file=config_file)
         print('        <voltage>3.3</voltage>', file=config_file)
-        print('        <embeddedImageId>{}</embeddedImageId>'.format(short_name), file=config_file)
+        print('        <embeddedImageId>{}</embeddedImageId>'.format(image_id), file=config_file)
         print('    </targetConf>', file=config_file)        
 
         # serialConf tests show:
@@ -126,7 +132,7 @@ class Runner(object):
         platform = self._get_platform(configuration.topology.platform)
 
         print('    <imageConf>', file=config_file)
-        print('        <embeddedImageId>{}</embeddedImageId>'.format(short_name), file=config_file)
+        print('        <embeddedImageId>{}</embeddedImageId>'.format(image_id), file=config_file)
         print('        <name>{}</name>'.format(short_name), file=config_file)
         print('        <description>{}</description>'.format(name), file=config_file)
         print('        <platform>{}</platform>'.format(platform), file=config_file)
