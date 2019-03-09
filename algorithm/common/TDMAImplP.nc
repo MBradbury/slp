@@ -39,6 +39,12 @@ implementation
 	command void TDMA.set_slot(uint16_t new_slot)
 	{
 		const uint16_t old_slot = slot;
+
+        if(!((0 < new_slot && new_slot <= TDMA_NUM_SLOTS) || new_slot == BOT))
+        {
+            ERROR_OCCURRED(ERROR_ASSERT, "FAILED: 0 < %u <= %u || BOT\n", new_slot, TDMA_NUM_SLOTS);
+        }
+
 		slot = new_slot;
 		signal TDMA.slot_changed(old_slot, new_slot);
 		call MetricLogging.log_metric_node_slot_change(old_slot, new_slot);

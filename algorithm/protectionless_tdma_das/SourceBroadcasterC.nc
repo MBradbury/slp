@@ -1,6 +1,7 @@
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
+#include "HopDistance.h"
 
 #include "NormalMessage.h"
 #include "DissemMessage.h"
@@ -13,7 +14,7 @@
 
 #include <stdlib.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
 #define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, UNKNOWN_SEQNO, 1)
 #define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, msg->sequence_number, 1)
 
@@ -410,6 +411,9 @@ implementation
                     send_result);
                 post send_normal();
 			}
+
+            //LOG_STDOUT(ERROR_UNKNOWN, "Sent Normal %"PRIu32" (%s)\n",
+            //    message->sequence_number, call NodeType.to_string(call NodeType.get()));
 		}
         else
         {
@@ -455,7 +459,6 @@ implementation
         if(call NodeType.get() != SourceNode) MessageQueue_clear(); //XXX Dirty hack to stop other nodes sending stale messages
         if(call TDMA.get_slot() != BOT || period_counter < get_pre_beacon_periods())
         {
-            /*call DissemTimerSender.startOneShotAt(now, (uint32_t)(get_slot_period() * random_float()));*/
             call DissemTimerSender.startOneShotAt(now, random_interval(0, get_dissem_period()));
         }
 
@@ -546,6 +549,8 @@ implementation
 		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			METRIC_RCV_NORMAL(rcvd);
+
+            //LOG_STDOUT(ERROR_UNKNOWN, "Received Normal %"PRIu32"\n", rcvd->sequence_number);
 		}
 	}
 
