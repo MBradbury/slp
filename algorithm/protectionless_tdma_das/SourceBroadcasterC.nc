@@ -295,7 +295,6 @@ implementation
 
             simdbgverbose("stdout", "Updating parent to %u, slot to %u and hop to %u.\n", parent, call TDMA.get_slot(), hop);
         }
-
     }
 
     void process_collision(void)
@@ -406,7 +405,10 @@ implementation
 			}
 			else
 			{
-				simdbgerrorverbose("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
+                ERROR_OCCURRED(ERROR_BROADCAST_FAILED,
+                    "Send failed with code %u, not returning memory to pool so it will be tried again\n",
+                    send_result);
+                post send_normal();
 			}
 		}
         else
@@ -439,10 +441,7 @@ implementation
                 call MessagePool.put(message);
             }
         }
-        if(!(call MessageQueue.empty()))
-        {
-            ERROR_OCCURRED(ERROR_ASSERT, "Failed to empty the queue.\n");
-        }
+        assert(call MessageQueue.empty());
     }
     //Main Logic}}}
 
@@ -497,7 +496,7 @@ implementation
 
                 if (call MessageQueue.enqueue(message) != SUCCESS)
                 {
-                    call MessagePool.put(forwarding_message);
+                    call MessagePool.put(message);
                     ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
                 }
                 else
@@ -544,7 +543,6 @@ implementation
 
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
-        simdbgverbose("stdout", "SINK RECEIVED NORMAL.\n");
 		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			METRIC_RCV_NORMAL(rcvd);
@@ -653,7 +651,8 @@ implementation
 
     void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
     {
-        if (call EmptyNormalSeqNos.before_and_update(source_addr, rcvd->sequence_number)) {
+        if (call EmptyNormalSeqNos.before_and_update(source_addr, rcvd->sequence_number))
+        {
             METRIC_RCV_EMPTYNORMAL(rcvd);
         }
     }
