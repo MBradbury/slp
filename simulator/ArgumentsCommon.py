@@ -138,6 +138,9 @@ OPTS = {
     "verbose":             lambda x, **kwargs: x.add_argument("-v", "--verbose",
                                                               action="store_true"),
 
+    "low verbose":         lambda x, **kwargs: x.add_argument("-v1", "--low-verbose",
+                                                              action="store_true"),
+
     "debug":               lambda x, **kwargs: x.add_argument("--debug",
                                                               action="store_true"),
 
@@ -218,6 +221,11 @@ OPTS = {
                                                               type=ArgumentsCommon.type_positive_int,
                                                               required=False,
                                                               default=6),
+
+    "gui timescale":       lambda x, **kwargs: x.add_argument("--gui-timescale",
+                                                              type=ArgumentsCommon.type_positive_float,
+                                                              required=False,
+                                                              default=1.0),
 
     "job size":            lambda x, **kwargs: x.add_argument("--job-size",
                                                               type=ArgumentsCommon.type_positive_int,
@@ -320,7 +328,7 @@ class ArgumentsCommon(object):
         self.args = None
 
         # Don't show these arguments when printing the argument values before showing the results
-        self.arguments_to_hide = {"job_id", "verbose", "debug", "gui_node_label", "gui_scale", "mode", "seed", "thread_count",
+        self.arguments_to_hide = {"job_id", "verbose", "low verbose", "debug", "gui_node_label", "gui_scale", "mode", "seed", "thread_count",
                                   "show_raw_log"}
 
     def add_argument(self, *args, **kwargs):

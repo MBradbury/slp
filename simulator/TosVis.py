@@ -93,13 +93,13 @@ class DebugAnalyzer:
         return None
 
 class Gui:
-    def __init__(self, sim, sim_tool, node_position_scale_factor=None):
+    def __init__(self, sim, sim_tool, node_position_scale_factor=None, timescale=1.0):
 
         from simulator.topovis.TopoVis import Scene
         from simulator.topovis.TkPlotter import Plotter
 
         # Setup an animating canvas
-        self.scene = Scene(timescale=1)
+        self.scene = Scene(timescale=timescale)
         self.scene.addPlotter(Plotter())
 
         self._sim = sim
@@ -391,7 +391,7 @@ class GuiSimulation(Simulation):
 
         self._node_label = args.gui_node_label
 
-        self.gui = Gui(self, args.sim, node_position_scale_factor=args.gui_scale)
+        self.gui = Gui(self, args.sim, node_position_scale_factor=args.gui_scale, timescale=args.gui_timescale)
 
         self._check_node_label()
 

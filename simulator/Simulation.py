@@ -87,7 +87,7 @@ class Simulation(object):
 
         self.safety_period_value = float('inf') if self.safety_period is None else (self.safety_period * self.safety_factor)
 
-        if args.mode == "GUI" or args.verbose:
+        if args.mode == "GUI" or args.verbose or args.low_verbose:
             self.tossim.addChannel("stdout", sys.stdout)
             self.tossim.addChannel("stderr", sys.stderr)
 
@@ -361,7 +361,7 @@ class OfflineSimulation(object):
 
         self._event_log = event_log
 
-        if args.mode == "GUI" or args.verbose:
+        if args.mode == "GUI" or args.verbose or args.low_verbose:
             self.register_output_handler("stdout", self._stdout_printer)
         else:
             self.register_output_handler("stdout", None)
