@@ -1,0 +1,4 @@
+#ifndef SLP_CONSTANTS_H
+#define SLP_CONSTANTS_H
+
+#endif // SLP_CONSTANTS_H

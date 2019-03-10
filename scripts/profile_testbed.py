@@ -42,6 +42,41 @@ class UnknownTestbedError(RuntimeError):
     def __init__(self, testbed):
         super(UnknownTestbedError, self).__init__(f"Unknown testbed {testbed}")
 
+
+class TimeResult(object):
+    def __init__(self):
+        self.initial_global = None
+        self.initial_local = None
+
+        self.times_global = []
+        self.times_local = []
+
+    def add(self, date_time, kind, d_or_e, nid, localtime, details):
+        # Convert both to seconds
+        if localtime is not None and localtime != "None":
+            g, l = date_time.timestamp(), int(localtime) / 1000.0
+        else:
+            g, l = date_time.timestamp(), float('NaN')
+
+        if self.initial_global is None:
+            self.initial_global = g
+        if self.initial_local is None:
+            self.initial_local = l
+
+        self.times_global.append(g - self.initial_global)
+        self.times_local.append(l - self.initial_local)
+
+    def combine(self, other):
+        raise RuntimeError("Doesn't make sense?")
+
+        """result = TimeResult()
+
+        result.times.extend(self.times)
+        result.times.extend(other.times)
+
+        return result"""
+
+
 class RSSIResult(object):
     def __init__(self):
         self.node_average = {}
@@ -113,18 +148,20 @@ class RSSIResult(object):
 
         return result
 
+
 class LinkResult(object):
-    def __init__(self):
+    def __init__(self, channel):
         self.broadcasting_node_id = None
         self.broadcasts = 0
         self.broadcast_power = None
+        self.channel = int(channel)
 
         self.deliver_at_rssi = defaultdict(RunningStats)
         self.deliver_at_lqi = defaultdict(RunningStats)
 
     def add(self, date_time, kind, d_or_e, nid, localtime, details):
         if kind == "M-CB":
-            (msg_type, status, seq_no, tx_power) = details.split(",", 3)
+            (msg_type, status, ultimate_src, seq_no, tx_power, payload) = details.split(",", 5)
 
             tx_power = int(tx_power)
 
@@ -143,7 +180,7 @@ class LinkResult(object):
                 raise RuntimeError("Multiple broadcast powers")
 
         elif kind == "M-CD":
-            (msg_type, proximate_src, ultimate_src, seq_no, rssi, lqi) = details.split(",", 5)
+            (msg_type, target, proximate_src, ultimate_src, seq_no, rssi, lqi, payload) = details.split(",", 7)
 
             rssi = _adjust_tinyos_rssi(int(rssi))
             lqi = int(lqi)
@@ -152,9 +189,6 @@ class LinkResult(object):
 
             self.deliver_at_rssi[nid].push(rssi)
             self.deliver_at_lqi[nid].push(lqi)
-
-        else:
-            return
 
     def prr(self):
         return {
@@ -168,8 +202,10 @@ class LinkResult(object):
             raise RuntimeError("Bad broadcasting_node_id")
         if self.broadcast_power != other.broadcast_power:
             raise RuntimeError("Bad broadcast_power")
+        if self.channel != other.channel:
+            raise RuntimeError("Bad channel")
 
-        result = LinkResult()
+        result = LinkResult(self.channel)
 
         result.broadcasting_node_id = self.broadcasting_node_id
         result.broadcast_power = self.broadcast_power
@@ -182,11 +218,18 @@ class LinkResult(object):
 
         return result
 
+
 class CurrentDraw(object):
-    def __init__(self, summary_df, bad_df=None, broadcasting_node_id=None):
-        self.broadcasting_node_id = broadcasting_node_id
+    def __init__(self, summary_df, bad_df=None,
+                 broadcasting_node_id=None, broadcast_power=None, channel=None):
+
         self.summary_df = summary_df
         self.bad_df = bad_df
+
+        self.broadcasting_node_id = broadcasting_node_id
+        self.broadcast_power = broadcast_power
+        self.channel = channel
+
 
 class AnalyseTestbedProfile(object):
 
@@ -211,7 +254,10 @@ class AnalyseTestbedProfile(object):
 
     @classmethod
     def _sanitise_string(cls, input_string):
-        return cls._sanitise_match.sub(r"\1..\1", input_string)
+        if input_string == "\0":
+            return "NUL"
+        else:
+            return cls._sanitise_match.sub(r"\1..\1", input_string)
 
     def _get_result_path(self, results_dir):
 
@@ -316,7 +362,7 @@ class AnalyseTestbedProfile(object):
 
         return results
 
-    def _get_average_current_draw(self, results_dir, measurement_results, broadcasting_node_id):
+    def _get_average_current_draw(self, results_dir, measurement_results, **kwargs):
 
         pickle_path = os.path.join(results_dir, "current.pickle")
 
@@ -328,6 +374,8 @@ class AnalyseTestbedProfile(object):
             except EOFError:
                 print("Failed to load saved current results from:", pickle_path)
 
+        print("Reading raw current results")
+
         if self.testbed_name == "flocklab":
 
             raw_df = measurement_results["powerprofiling.csv"]
@@ -335,7 +383,7 @@ class AnalyseTestbedProfile(object):
 
             df = raw_df.groupby("node")["I"].agg([np.mean, var0, len]).reset_index()
 
-            result = CurrentDraw(df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(df, **kwargs)
 
         elif self.testbed_name == "fitiotlab":
 
@@ -366,7 +414,7 @@ class AnalyseTestbedProfile(object):
             df = raw_df.groupby("node")["I"].agg([np.mean, var0, len]).reset_index()
             removed_df = removed_df.groupby(["node"])["current", "voltage", "power"].agg([np.mean, np.std, len]).reset_index()
 
-            result = CurrentDraw(df, bad_df=removed_df, broadcasting_node_id=broadcasting_node_id)
+            result = CurrentDraw(df, bad_df=removed_df, **kwargs)
 
         else:
             raise UnknownTestbedError(self.testbed_name)
@@ -401,23 +449,24 @@ class AnalyseTestbedProfile(object):
 
     def _do_run(self, results_dir, progress):
         if not os.path.isdir(results_dir):
+            print(f"Unable to read results from {results_dir} as is not not a directory")
             return None
 
         result = self._parse_aggregation(results_dir)
-        if result is None:
-            return None
+        #if result is None:
+        #    return None
         
         measurement_results = self._parse_measurements(results_dir)
 
         try:
-            if hasattr(result, "broadcasting_node_id"):
-                broadcasting_node_id = result.broadcasting_node_id
-            else:
-                broadcasting_node_id = None
+            average_current_draw = self._get_average_current_draw(results_dir, measurement_results,
+                broadcasting_node_id=getattr(result, "broadcasting_node_id", None),
+                broadcast_power=getattr(result, "broadcast_power", None),
+                channel=getattr(result, "channel", None)
+            )
 
-            average_current_draw = self._get_average_current_draw(results_dir, measurement_results, broadcasting_node_id)
-
-        except (KeyError, UnknownTestbedError):
+        except (UnknownTestbedError, KeyError) as ex:
+            print(ex)
             average_current_draw = None
 
         # Some testbeds can record the RSSI during the execution of the application
@@ -432,13 +481,14 @@ class AnalyseTestbedProfile(object):
 
             self._job_counter += 1
 
-        return result, average_current_draw#, rssi_extra
+        return result, average_current_draw#, time_result #, rssi_extra
 
     def _run(self, args, map_fn):
         files = [
             os.path.join(args.results_dir, result_folder)
             for result_folder
             in os.listdir(args.results_dir)
+            if os.path.isdir(os.path.join(args.results_dir, result_folder))
         ]
 
         if map_fn is map:
@@ -469,23 +519,45 @@ class AnalyseTestbedProfile(object):
 
     def _process_line(self, line):
         try:
-            (date_time, rest) = line.split("|", 1)
-
-            date_time = datetime.strptime(date_time, "%Y/%m/%d %H:%M:%S.%f")
-
+            (date_time, rest) = line
             (kind, d_or_e, nid, localtime, details) = rest.split(":", 4)
+
+            localtime == None if localtime == "None" else int(localtime)
  
-            return (date_time, kind, d_or_e, int(nid), int(localtime), details)
+            return (date_time, kind, d_or_e, int(nid), localtime, details)
 
         except BaseException as ex:
-            print("Failed to parse the line:", self._sanitise_string(line))
-            print(self._sanitise_string(str(ex)))
+            try:
+                sanitised_string = self._sanitise_string(line)
+                sanitised_ex = self._sanitise_string(str(ex))
+            except BaseException as ex2:
+                print(f"Failed to sanitise the string due to {ex2}", file=sys.stderr)
+                traceback.print_exc()
+                sanitised_string = None
+                sanitised_ex = None
+
+            print(f"Failed to parse the line: {sanitised_string} with {sanitised_ex}", file=sys.stderr)
             traceback.print_exc()
 
             return None
 
+    def _get_channel_from_filename(self, converter):
+        dirname = os.path.basename(os.path.dirname(converter.log_path))
+        # E.g., FlockLabSource10Sink1-31-26-disabled-0_5_62394
+        configuration, tx_power, channel, lpl, psrc_and_run = dirname.split('-')
+        assert int(channel) in range(11, 27)
+        return int(channel)
+
+    """def _cheeky_plot(self, time_result):
+        import matplotlib.pyplot as plt
+
+        plt.plot(time_result.times_global, time_result.times_local)
+
+        plt.show()"""
+
     def _analyse_log_file(self, converter):
         result = None
+        #time_result = TimeResult()
 
         for line in converter:
 
@@ -496,7 +568,8 @@ class AnalyseTestbedProfile(object):
             if result is None:
                 kind, details = line_result[1], line_result[5]
                 if kind == "stdout" and "An object has been detected" in details:
-                    result = LinkResult()
+                    ch = self._get_channel_from_filename(converter)
+                    result = LinkResult(ch)
 
                 elif kind == "M-RSSI":
                     result = RSSIResult()
@@ -506,11 +579,14 @@ class AnalyseTestbedProfile(object):
 
             try:
                 result.add(*line_result)
+                #time_result.add(*line_result)
             except ValueError as ex:
                 print("Failed to parse: ", self._sanitise_string(line))
                 traceback.print_exc()
 
-        return result
+        #self._cheeky_plot(time_result)
+
+        return result#, time_result
 
     def _create_noise_log(self, converter, rssi_log_file):
         result = None

@@ -2,6 +2,7 @@
 
 import argparse
 from collections import defaultdict
+import copy
 import itertools
 import math
 import os.path
@@ -12,6 +13,11 @@ import sys
 import numpy as np
 import pandas as pd
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
 from data import submodule_loader
 import data.testbed
 
@@ -19,7 +25,8 @@ from simulator.Topology import OrderedId
 
 from scripts.profile_testbed import LinkResult, CurrentDraw, RSSIResult
 
-min_max = {"prr": (0, 1), "rssi": (-100, -50), "lqi": (40, 115)}
+min_max = {"prr": (0, 1), "rssi": (-95.5, -42.5), "lqi": (50, 110)}
+asymmetry_min_max = {"prr": (-1, 1), "rssi": (-100, 100), "lqi": (-110, 110)}
 
 class ResultsProcessor(object):
 
@@ -46,10 +53,13 @@ class ResultsProcessor(object):
         self.link_results = sorted([result for result in self.results if isinstance(result, LinkResult)], key=lambda x: x.broadcasting_node_id)
         self.current_results = [result for result in self.results if isinstance(result, CurrentDraw)]
 
-        if len(self.rssi_results) == 0:
-            raise RuntimeError("No RSSI results")
-        if len(self.link_results) == 0:
-            raise RuntimeError("No Link results")
+        if len(self.results) != len(self.rssi_results) + len(self.link_results) + len(self.current_results):
+            raise RuntimeError("Unable to process some results")
+
+        #if len(self.rssi_results) == 0:
+        #    raise RuntimeError("No RSSI results")
+        #if len(self.link_results) == 0:
+        #    raise RuntimeError("No Link results")
 
     def _get_testbed(self):
         return submodule_loader.load(data.testbed, self.args.testbed)
@@ -64,12 +74,17 @@ class ResultsProcessor(object):
 
         # Get each result the sum of squares
         for result in results:
-            df = result.summary_df
+            df = result.summary_df if not isinstance(result, pd.DataFrame) else pd.DataFrame(result)
+
+            if "var0" not in df and "std" in df:
+                df["var0"] = df["std"]**2
 
             df["ss"] = df["var0"] * df["len"] + df["len"] * df["mean"]**2
             df["sum"] = df["mean"] * df["len"]
 
-            df = df.set_index("node").reindex(labels, fill_value=0)[["len", "ss", "sum"]]
+            if "node" in df:
+                df = df.set_index("node")#.reindex(labels, fill_value=0)
+            df = df[["len", "ss", "sum"]]
 
             dfs.append(df)
 
@@ -93,7 +108,9 @@ class ResultsProcessor(object):
         total = None
 
         for result in self.current_results:
-            grouped_results[result.broadcasting_node_id].append(result)
+            key = (result.broadcasting_node_id, result.broadcast_power, result.channel)
+
+            grouped_results[key].append(result)
 
             if result.bad_df is not None:
                 bad_df_as_dict = result.bad_df.to_dict(orient='index')
@@ -106,10 +123,10 @@ class ResultsProcessor(object):
 
         combined_results = {}
 
-        for (broadcasting_node_id, results) in grouped_results.items():
+        for (key, results) in grouped_results.items():
             combined_result = self._combine_current_summary(results)
             
-            combined_results[broadcasting_node_id] = combined_result
+            combined_results[key] = combined_result
 
             if total is None:
                 total = combined_result[["len"]]
@@ -133,24 +150,35 @@ class ResultsProcessor(object):
         return result
 
     def _combine_link_results(self):
-        labels = list(self.testbed_topology.nodes.keys())
-
+        labels = [x.nid for x in self.testbed_topology.nodes.keys()]
         tx_powers = {result.broadcast_power for result in self.link_results}
+        channels = {result.channel for result in self.link_results}
 
         #print(labels)
 
-        rssi = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
-        lqi = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
-        prr = {power: pd.DataFrame(np.full((len(labels), len(labels)), np.nan), index=labels, columns=labels) for power in tx_powers}
+        def empty_label_grid(default=np.nan):
+            return pd.DataFrame(np.full((len(labels), len(labels)), default), index=labels, columns=labels)
+
+        rssi = {k: empty_label_grid() for k in itertools.product(tx_powers, channels)}
+        lqi  = {k: empty_label_grid() for k in itertools.product(tx_powers, channels)}
+        prr  = {k: empty_label_grid() for k in itertools.product(tx_powers, channels)}
 
         # Combine results by broadcast id
         combined_results = {
-            (label, power): [result for result in self.link_results if result.broadcasting_node_id == label and result.broadcast_power == power]
+            (label, power, channel): [
+                result
+                for result
+                in self.link_results
+                if result.broadcasting_node_id == label
+                and result.broadcast_power == power
+                and result.channel == channel
+            ]
             for label in labels
             for power in tx_powers
+            for channel in channels
         }
 
-        for (sender, power), sender_results in combined_results.items():
+        for (sender, power, channel), sender_results in combined_results.items():
 
             result = None
 
@@ -167,6 +195,7 @@ class ResultsProcessor(object):
                 for sender_result in sender_results_iter:
                     result = result.combine(sender_result)
 
+            key = (power, channel)
 
             result_prr = result.prr()
 
@@ -175,9 +204,9 @@ class ResultsProcessor(object):
                 if sender not in labels or other_nid not in labels:
                     continue
 
-                rssi[power].set_value(sender, other_nid, result.deliver_at_rssi[other_nid].mean())
-                lqi[power].set_value(sender, other_nid, result.deliver_at_lqi[other_nid].mean())
-                prr[power].set_value(sender, other_nid, result_prr[other_nid])
+                rssi[key].at[sender, other_nid] = result.deliver_at_rssi[other_nid].mean()
+                lqi[key].at[sender, other_nid] = result.deliver_at_lqi[other_nid].mean()
+                prr[key].at[sender, other_nid] = result_prr[other_nid]
 
         return rssi, lqi, prr
 
@@ -205,7 +234,18 @@ class ResultsProcessor(object):
             names = list(copy.columns.values)
 
             for (row, col) in itertools.product(names, repeat=2):
-                copy.set_value(row, col, df[row][col] - df[col][row])
+
+                left = df[row][col]
+                right = df[col][row]
+
+                if np.isnan(left) and np.isnan(right):
+                    pass
+                elif np.isnan(left) and not np.isnan(right):
+                    copy.at[row, col] = +right
+                elif not np.isnan(left) and np.isnan(right):
+                    copy.at[row, col] = -left
+                else:
+                    copy.at[row, col] = right - left
 
             new_result[k] = copy
 
@@ -264,6 +304,14 @@ class ResultsProcessor(object):
 
             print("Node {:>3} bad {:>5} badpc {:.2f}%".format(k, v, (v / (v + good_count)) * 100))
 
+    def print_combined_current(self, args):
+        combined_current, total_good_current, bad_current_nodes = self._get_combined_current_results()
+
+        print(combined_current)
+
+        #print("Good: ", total_good_current)
+        print("Bad: ", bad_current_nodes)
+
     def print_missing_results(self, args):
         tx_powers = {result.broadcast_power for result in self.link_results}
 
@@ -286,38 +334,40 @@ class ResultsProcessor(object):
         rssi, lqi, prr = self._get_combined_link_results()
 
         tx_powers = {result.broadcast_power for result in self.link_results}
+        channels = {result.channel for result in self.link_results}
 
         with open("link-info.txt", "w") as link_info_file:
             with pd.option_context("display.max_rows", None, "display.max_columns", None, "expand_frame_repr", False):
-                for power in sorted(tx_powers):
-                    print("For power level:", power, file=link_info_file)
-                    print("RSSI:\n", rssi[power].round(2).replace(np.nan, ''), file=link_info_file)
-                    print("LQI:\n", lqi[power].round(2).replace(np.nan, ''), file=link_info_file)
-                    print("PRR:\n", prr[power].round(2).replace(np.nan, ''), file=link_info_file)
+                for (power, channel) in itertools.product(sorted(tx_powers), sorted(channels)):
+                    print(f"For power level: {power} and Channel {channel}", file=link_info_file)
+                    print("RSSI:\n", rssi[(power, channel)].round(2).replace(np.nan, ''), file=link_info_file)
+                    print("LQI:\n", lqi[(power, channel)].round(2).replace(np.nan, ''), file=link_info_file)
+                    print("PRR:\n", prr[(power, channel)].round(2).replace(np.nan, ''), file=link_info_file)
                     print("", file=link_info_file)
 
         print("Saved link info to link-info.txt")
 
 
-    def _draw_link_heatmap_fn(self, args, heatmap_name, converter=lambda x: x, min_max=None):
-        import matplotlib
-        import matplotlib.pyplot as plt
+    def _draw_link_heatmap_fn(self, args, heatmap_name, converter=lambda x: x, min_max=None, cmap=None, title_formatter=None):
+        from matplotlib.ticker import MultipleLocator
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        matplotlib.rcParams.update({'font.size': 18, 'figure.autolayout': True})
+        mpl.rcParams.update({'font.size': 16, 'figure.autolayout': True})
 
         plt.tight_layout()
 
         rssi, lqi, prr = map(converter, self._get_combined_link_results())
 
+        nids = [nid.nid for nid in self.testbed_topology.nodes.keys()]
         tx_powers = {result.broadcast_power for result in self.link_results}
+        channels = {result.channel for result in self.link_results}
 
         prr = {k: v * 100 for (k, v) in prr.items()}
 
-        details = [("prr", prr, "%"), ("rssi", rssi, "dBm"), ("lqi", lqi, "")]
+        details = [("prr", prr, r'$\%$'), ("rssi", rssi, "dBm"), ("lqi", lqi, "")]
 
-        for power in sorted(tx_powers):
+        for (power, channel) in itertools.product(sorted(tx_powers), sorted(channels)):
             for (i, (name, value, label)) in enumerate(details, start=1):
 
                 if min_max is None:
@@ -334,9 +384,28 @@ class ResultsProcessor(object):
                 else:
                     ax = plt.gca()
 
-                im = ax.imshow(value[power], cmap="PiYG", aspect="equal", origin="lower", vmin=vmin, vmax=vmax)
 
-                title = name.upper() if not label else "{} ({})".format(name.upper(), label)
+                # Check that we are within the bounds
+                f = np.vectorize(lambda x: np.nan if vmin <= x <= vmax or np.isnan(x) else x)
+                check = f(value[(power, channel)].values)
+
+                if not np.isnan(check).all():
+                    print(check)
+
+                im = ax.imshow(value[(power, channel)], cmap=cmap, aspect="equal", origin="lower", vmin=vmin, vmax=vmax)
+
+                ax.xaxis.set_ticks(range(len(nids)))
+                ax.yaxis.set_ticks(range(len(nids)))
+                ax.set_xticklabels(nids)
+                ax.set_yticklabels(nids)
+                ax.tick_params(axis='both', which='both', labelsize=11)
+
+                for l in ax.xaxis.get_ticklabels()[1::2]:
+                    l.set_visible(False)
+                for l in ax.yaxis.get_ticklabels()[2::2]:
+                    l.set_visible(False)
+
+                title = title_formatter(name, label)
 
                 plt.title(title)
                 plt.ylabel("Sender")
@@ -347,14 +416,15 @@ class ResultsProcessor(object):
 
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                plt.colorbar(im, cax=cax)
+                cb = plt.colorbar(im, cax=cax)
+                cb.ax.tick_params(labelsize=12)
 
                 #plt.xlim(min(df.columns), max(df.columns))
                 #plt.ylim(min(df.index), max(df.index))
 
                 if not args.combine:
 
-                    filename = "{}-heatmap-{}-{}.pdf".format(heatmap_name, name, power)
+                    filename = f"{heatmap_name}-heatmap-{name}-{power}-{channel}.pdf"
 
                     plt.savefig(filename)
 
@@ -373,11 +443,19 @@ class ResultsProcessor(object):
             plt.clf()
 
     def draw_link_heatmap(self, args):
-        return self._draw_link_heatmap_fn(args, "link", min_max=min_max)
+        return self._draw_link_heatmap_fn(args, "link",
+            min_max=min_max,
+            cmap="PiYG",
+            title_formatter=lambda name, label: f"{name.upper()}" if not label else f"{name.upper()} ({label})"
+        )
 
     def draw_link_asymmetry_heatmap(self, args):
-        return self._draw_link_heatmap_fn(args, "asymmetry-link", converter=self._get_link_asymmetry_results)
-
+        return self._draw_link_heatmap_fn(args, "asymmetry-link",
+            converter=self._get_link_asymmetry_results,
+            min_max=asymmetry_min_max,
+            cmap="bwr",
+            title_formatter=lambda name, label: f"{name.upper()} Difference" if not label else f"{name.upper()} Difference ({label})"
+        )
 
     def draw_link(self, args):
         import matplotlib.colors as colors
@@ -385,6 +463,9 @@ class ResultsProcessor(object):
 
         import networkx as nx
         from networkx.drawing.nx_pydot import write_dot
+
+        # Avoid Type 3 latex fonts
+        neato_font_name = "Times"
 
         rssi, lqi, prr = self._get_combined_link_results()
 
@@ -398,7 +479,7 @@ class ResultsProcessor(object):
             raise RuntimeError(f"Unknown name {args.name}")
 
         try:
-            result = result[args.power]
+            result = result[(args.power, args.channel)]
         except KeyError:
             raise RuntimeError("No result for {} with power {}".format(args.name, args.power))
 
@@ -424,26 +505,38 @@ class ResultsProcessor(object):
             x, y = coords[0], coords[1]
 
             G.node[node]['pos'] = f"{x*scale},{y*scale}"
+            G.node[node]['fontname'] = neato_font_name
+            G.node[node]['fontsize'] = "36"
+            G.node[node]['fixedsize'] = "true"
+            G.node[node]['width'] = "0.8"
+            G.node[node]['height'] = "0.8"
 
         for node1, row in result.iterrows():
             for node2 in labels:
                 if not np.isnan(row[node2]):
                     if args.threshold is None or row[node2] >= args.threshold:
-                        G.add_edge(node1, node2, label=round(row[node2], 2), color=colors.rgb2hex(scalarmap.to_rgba(row[node2])))
+                        G.add_edge(node1, node2,
+                            label=round(row[node2], 2),
+                            color=colors.rgb2hex(scalarmap.to_rgba(row[node2])),
+                            fontsize="22",
+                            fontname=neato_font_name
+                        )
 
         dot_path = f"{args.name}-{args.power}.dot"
+        eps_path = dot_path.replace(".dot", ".eps")
         pdf_path = dot_path.replace(".dot", ".pdf")
 
         write_dot(G, dot_path)
 
-        subprocess.check_call(f"neato -n2 -Gdpi=500 -T pdf {dot_path} -o {pdf_path}", shell=True)
+        # Need to go via eps to get sensible fonts
+        subprocess.check_call(f"neato -n2 -Gdpi=500 -T eps {dot_path} -o {eps_path}", shell=True)
+        subprocess.check_call(f"epstopdf {eps_path}", shell=True)
+        subprocess.check_call(["pdfcrop", pdf_path, pdf_path])
 
         if args.show:
             subprocess.call(f"xdg-open {pdf_path}", shell=True)
 
     def draw_noise_floor_heatmap(self, args):
-        import matplotlib.pyplot as plt
-
         noise_floor = self._get_combined_noise_floor()
 
         z = {
@@ -483,7 +576,7 @@ class ResultsProcessor(object):
 
             fig, ax = plt.subplots(figsize=(scale * (rangex / rangex), scale * (rangey / rangex)))
 
-            plt.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r", vmin=vmin, vmax=vmax)
+            plt.scatter(xs, ys, c=cs, s=400, cmap="binary", vmin=vmin, vmax=vmax)
             ax.set_yticklabels([])
             ax.set_xticklabels([])
 
@@ -515,7 +608,7 @@ class ResultsProcessor(object):
                 ys = [xy[1] for xy in xys]
                 cs = [xy[2] for xy in xys]
 
-                im = ax.scatter(xs, ys, c=cs, s=400, cmap="PiYG_r", vmin=vmin, vmax=vmax)
+                im = ax.scatter(xs, ys, c=cs, s=400, cmap="binary", vmin=vmin, vmax=vmax)
                 ax.set_yticklabels([])
                 ax.set_xticklabels([])
 
@@ -542,6 +635,235 @@ class ResultsProcessor(object):
             if args.show:
                 plt.show()
 
+    def draw_noise_floor_graph(self, args):
+        noise_floor = self._get_combined_noise_floor()
+
+        data = {}
+        for ((nid, channel), result) in noise_floor.node_average.items():
+            data[(nid, channel)] = (result.mean(), result.stddev())
+
+        node_ids = [
+            nid.nid
+            for (nid, coord)
+            in self.testbed_topology.nodes.items()
+        ]
+
+        channels = list(range(11, 27))
+
+        fig, axs = plt.subplots(ncols=3, nrows=math.ceil(len(node_ids)/3), figsize=(7.0056, 4))
+
+        real_vmin, real_vmax = min(v[0] for (k, v) in data.items()), max(v[0] for (k, v) in data.items())
+
+        vmin, vmax = -100, -80
+
+        if real_vmin < vmin:
+            raise RuntimeError("Bad vmin {} < {}".format(real_vmin, vmin))
+        if real_vmax > vmax:
+            raise RuntimeError("Bad vmax {} > {}".format(real_vmax, vmax))
+
+
+        for nid, ax in zip(node_ids, axs.flat):
+            xs = channels
+            ys = [data[(nid, x)][0] if (nid, x) in data else float('NaN') for x in xs]
+            es = [data[(nid, x)][1] if (nid, x) in data else float('NaN') for x in xs]
+
+            ax.set_title(str(nid), rotation='horizontal', x=-0.1, y=-0.5)
+
+            #ax.scatter(xs, ys, label=str(nid))
+            #ax.errorbar(xs, ys, yerr=es, label=str(nid), linestyle="None")
+
+            hm = [ys]
+
+            im = ax.imshow(hm, cmap="binary", interpolation='none', vmin=vmin, vmax=vmax)
+            ax.set_aspect(1.5)
+            ax.set_xticks(range(len(xs)))
+            ax.set_xticklabels(xs)
+
+            for label in ax.xaxis.get_ticklabels()[::2]:
+                label.set_visible(False)
+
+            ax.tick_params(
+                axis='y',
+                which='both',
+                left=False,
+                right=False,
+                labelleft=False)
+            ax.tick_params(axis='both', which='major', labelsize=8)
+            ax.tick_params(axis='both', which='minor', labelsize=8)
+
+        plt.tight_layout()
+
+        cax, kw = mpl.colorbar.make_axes([ax for ax in axs.flat])
+        cb = plt.colorbar(im, cax=cax, **kw)
+        cb.ax.tick_params(labelsize=10)
+
+        path = "noise-floor-graph.pdf"
+        plt.savefig(path)
+
+        subprocess.check_call(["pdfcrop", path, path])
+
+        if args.show:
+            plt.show()
+
+    def draw_combined_current_graph(self, args):
+        def other_get_combined_current_results(name):
+            processor = ResultsProcessor()
+            a = copy.deepcopy(self.args)
+            a.results_dir = os.path.join(os.path.dirname(a.results_dir), name)
+            print(a.results_dir)
+            processor.setup(a)
+            return processor._get_combined_current_results()
+
+        combined_current_empty, _, _ = self._get_combined_current_results()
+        combined_current_rssi, _, _ = other_get_combined_current_results("_read_rssi")
+        ccp, _, _ = other_get_combined_current_results("noforward")
+
+        channels = [26]
+        tx_powers = [7, 19, 31]
+
+        fig, (ax, ax2) = plt.subplots(2, 1, sharex=True, figsize=(7.0056, 2.6), gridspec_kw = {'height_ratios':[4, 1]})
+
+        xs = [x.nid for x in self.testbed_topology.nodes.keys()]
+        xns = np.arange(len(xs))
+        xmap = dict(zip(xs, xns))
+
+        # Separate
+        """
+        # Get only the Txing results
+        d = {(txp, ch): [
+                ccp[(x, txp, ch)][ccp[(x, txp, ch)].index == x]
+                for x in xs
+                if (x, txp, ch) in ccp
+            ]
+            for txp in tx_powers
+            for ch in channels
+        }
+        combined_current_txing = {k: pd.concat(v) for (k, v) in d.items()}
+
+        # Get only the Rxing results
+        d = {(txp, ch): [
+                ccp[(x, txp, ch)][ccp[(x, txp, ch)].index != x]
+                for x in xs
+                if (x, txp, ch) in ccp
+            ]
+            for txp in tx_powers
+            for ch in channels
+        }
+        combined_current_rxing = {k: self._combine_current_summary(v) for (k, v) in d.items()}
+        """
+
+        # Combined
+        # Get only the Txing results
+        d = {(None, None, None): [
+                ccp[(x, txp, ch)][ccp[(x, txp, ch)].index == x]
+                for x in xs
+                for txp in tx_powers
+                for ch in channels
+                if (x, txp, ch) in ccp
+            ]
+        }
+        combined_current_txing = {k: pd.concat(v) for (k, v) in d.items()}
+
+        # Get only the Rxing results
+        d = {(None, None, None): [
+                ccp[(x, txp, ch)][ccp[(x, txp, ch)].index != x]
+                for x in xs
+                for txp in tx_powers
+                for ch in channels
+                if (x, txp, ch) in ccp
+            ]
+        }
+        combined_current_rxing = {k: self._combine_current_summary(v) for (k, v) in d.items()}
+
+        ccs = {
+            "Nothing": combined_current_empty,
+            "RSSI": combined_current_rssi,
+            "Tx": combined_current_txing,
+            "Rx": combined_current_rxing,
+        }
+
+        print("Differences:")
+
+        m1 = combined_current_rssi[(None, None, None)]["mean"]
+        print("RSSI", np.max(m1) - np.min(m1))
+
+        m1 = combined_current_rxing[(None, None, None)]["mean"]
+        print("RX", np.max(m1) - np.min(m1))
+
+        for a in (ax, ax2):
+            for (name, cc) in ccs.items():
+
+                for (key, df) in cc.items():
+                    xs_local = [xmap[x] for x in df.index if x in xmap]
+                    ys = df["mean"][[x in xmap for x in df.index]]
+                    es = df["std"][[x in xmap for x in df.index]]
+
+                    if key is None or all(k is None for k in key):
+                        label = name
+                    else:
+                        label = f"{name} PTx:{key[0]} Ch:{key[1]}"
+
+                    a.scatter(xs_local, ys, label=label)
+                    a.errorbar(xs_local, ys, yerr=es, label=label, linestyle="None")
+
+        ax.set_xticks(xns)
+        ax.set_xticklabels(xs)
+
+        ax2.set_ylim(0, 1)
+        ax.set_ylim(18, 22)
+
+        cax = fig.add_subplot(111)
+
+        
+        cax.set_frame_on(False)
+        cax.tick_params(labelleft=False, labelbottom=False, left=False, bottom=False)
+        cax.set_ylabel("Average Current Draw (mA)", labelpad=35)
+
+        ax2.set_xlabel("Node IDs")
+
+        # From: https://matplotlib.org/2.0.2/examples/pylab_examples/broken_axis.html
+
+        # hide the spines between ax and ax2
+        ax.spines['bottom'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+        ax.xaxis.tick_top()
+        ax.tick_params(labeltop='off')  # don't put tick labels at the top
+        ax2.xaxis.tick_bottom()
+
+        #plt.tick_params(axis='both', which='major', labelsize=8)
+        #plt.tick_params(axis='both', which='minor', labelsize=8)
+
+        # This looks pretty good, and was fairly painless, but you can get that
+        # cut-out diagonal lines look with just a bit more work. The important
+        # thing to know here is that in axes coordinates, which are always
+        # between 0-1, spine endpoints are at these locations (0,0), (0,1),
+        # (1,0), and (1,1).  Thus, we just need to put the diagonals in the
+        # appropriate corners of each of our axes, and so long as we use the
+        # right transform and disable clipping.
+
+        d = .015  # how big to make the diagonal lines in axes coordinates
+        # arguments to pass to plot, just so we don't keep repeating them
+        kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
+        ax.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
+        ax.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
+
+        kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
+        ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+        ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
+
+        handles, labels = ax.get_legend_handles_labels()
+        d = {h: l for (h, l) in zip(handles, labels) if isinstance(h, mpl.collections.PathCollection)}
+        ax2.legend(d.keys(), d.values(), ncol=len(d.keys()), loc="upper center", bbox_to_anchor=(0.5, 1.9))
+
+        plt.tight_layout()
+
+        path = "energy-graph.pdf"
+        plt.savefig(path)
+
+        subprocess.check_call(["pdfcrop", path, path])
+
+        if args.show:
+            plt.show()
 
 
 def main():
@@ -564,6 +886,7 @@ def main():
 
     subparser = add_argument("print-individual-rssi", processor.print_individual_rssi)
     subparser = add_argument("print-combined-rssi", processor.print_combined_rssi)
+    subparser = add_argument("print-combined-current", processor.print_combined_current)
     subparser = add_argument("print-current-errors", processor.print_current_errors)
     subparser = add_argument("print-missing-results", processor.print_missing_results)
     subparser = add_argument("print-link-info", processor.print_link_info)
@@ -571,6 +894,7 @@ def main():
     subparser = add_argument("draw-link", processor.draw_link)
     subparser.add_argument("name", type=str, help="The name of the metric to draw", choices=["prr", "lqi", "rssi"])
     subparser.add_argument("power", type=int, help="The broadcast power level to show", choices=[3, 7, 11, 15, 19, 23, 27, 31])
+    subparser.add_argument("channel", type=int, help="The channel", choices=range(11,27))
     subparser.add_argument("--show", action="store_true", default=False)
     subparser.add_argument("--threshold", type=float, default=None, help="The minimum value to show")
 
@@ -583,7 +907,13 @@ def main():
     subparser.add_argument("--combine", action="store_true", default=False)
 
     subparser = add_argument("draw-noise-floor-heatmap", processor.draw_noise_floor_heatmap)
-    subparser.add_argument("channel", type=int, choices=[26])
+    subparser.add_argument("channel", type=int, choices=range(11, 27))
+    subparser.add_argument("--show", action="store_true", default=False)
+
+    subparser = add_argument("draw-noise-floor-graph", processor.draw_noise_floor_graph)
+    subparser.add_argument("--show", action="store_true", default=False)
+
+    subparser = add_argument("draw-combined-current-graph", processor.draw_combined_current_graph)
     subparser.add_argument("--show", action="store_true", default=False)
 
     args = parser.parse_args(sys.argv[1:])
