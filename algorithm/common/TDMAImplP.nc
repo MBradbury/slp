@@ -39,6 +39,12 @@ implementation
 	command void TDMA.set_slot(uint16_t new_slot)
 	{
 		const uint16_t old_slot = slot;
+
+        if(!((0 < new_slot && new_slot <= TDMA_NUM_SLOTS) || new_slot == BOT))
+        {
+            ERROR_OCCURRED(ERROR_ASSERT, "FAILED: 0 < %u <= %u || BOT\n", new_slot, TDMA_NUM_SLOTS);
+        }
+
 		slot = new_slot;
 		signal TDMA.slot_changed(old_slot, new_slot);
 		call MetricLogging.log_metric_node_slot_change(old_slot, new_slot);
@@ -63,7 +69,9 @@ implementation
 	event void DissemTimer.fired()
     {
         uint32_t now = call DissemTimer.gett0() + call DissemTimer.getdt();
+
         timesync_sent = FALSE;
+
         call TimeSyncMode.setMode(TS_USER_MODE); //XXX: Do this any earlier and it doesn't work
 
         if (signal TDMA.dissem_fired())
@@ -81,16 +89,21 @@ implementation
         uint32_t now, local_now, global_now;
         uint16_t s;
         int32_t timesync_overflow;
+
         local_now = global_now = call PreSlotTimer.gett0() + call PreSlotTimer.getdt();
         if(call GlobalTime.local2Global(&global_now) == FAIL) {
             global_now = local_now;
         }
 
-        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
+        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot-1;
 
         //XXX: Potentially 'now' could negatively wrap-around
         now = local_now - (global_now - local_now + timesync_offset);
         timesync_offset = local_now - global_now;
+
+#ifdef TOSSIM
+        assert(now == local_now);
+#endif
 
         //If timesync_offset is too large for the timer, reduce the offset for
         //this step and catch up in another timer
@@ -98,13 +111,47 @@ implementation
             timesync_offset -= timesync_overflow;
         }
 
-        call SlotTimer.startOneShotAt(now, (s * SLOT_PERIOD_MS));
+#ifdef TOSSIM
+        assert(timesync_offset == 0);
+#endif
+
+        if (slot == BOT)
+        {
+            call DissemTimer.startOneShotAt(now, (s * SLOT_PERIOD_MS));
+        }
+        else
+        {
+            call SlotTimer.startOneShotAt(now, (s * SLOT_PERIOD_MS));
+        }
     }
+
+#ifdef TOSSIM
+    uint32_t prev_slot_time = -1;
+    uint16_t prev_slot_slot = -1;
+#endif
 
     event void SlotTimer.fired()
     {
         uint32_t now = call SlotTimer.gett0() + call SlotTimer.getdt();
         slot_active = TRUE;
+
+        assert(slot != BOT);
+
+#ifdef TOSSIM
+        if (prev_slot_time != -1)
+        {
+            uint16_t slot_diff = (prev_slot_slot == -1) ? 0 : prev_slot_slot - slot;
+
+            if (call SlotTimer.getNow() - prev_slot_time + (slot_diff * SLOT_PERIOD_MS) !=
+                (TDMA_NUM_SLOTS * SLOT_PERIOD_MS + DISSEM_PERIOD_MS))
+            {
+                 LOG_STDOUT(ERROR_UNKNOWN, "SlotTimer %u, fired out of time %d != %d\n",
+                    slot, call SlotTimer.getNow() - prev_slot_time, (TDMA_NUM_SLOTS * SLOT_PERIOD_MS) + DISSEM_PERIOD_MS);
+            }
+        }
+        prev_slot_time = call SlotTimer.getNow();
+        prev_slot_slot = slot;
+#endif
 
         signal TDMA.slot_started();
 
@@ -116,29 +163,40 @@ implementation
         uint32_t now, local_now, global_now;
         uint16_t s;
         int32_t timesync_overflow;
+
+        assert(slot != BOT);
+
         local_now = global_now = call PostSlotTimer.gett0() + call PostSlotTimer.getdt();
         if(call GlobalTime.local2Global(&global_now) == FAIL) {
             global_now = local_now;
         }
 
-        s = (slot == BOT) ? TDMA_NUM_SLOTS : slot;
+        s = slot;
 
         //XXX: Potentially 'now' could negatively wrap-around
         now = local_now - (global_now - local_now + timesync_offset);
         timesync_offset = local_now - global_now;
 
+#ifdef TOSSIM
+        assert(now == local_now);
+#endif
+
         //If timesync_offset is too large for the timer, reduce the offset for
         //this step and catch up in another timer
-        if((timesync_overflow = local_now - (now + ((TDMA_NUM_SLOTS - (s-1)) * SLOT_PERIOD_MS))) > 0) {
+        if((timesync_overflow = local_now - (now + ((TDMA_NUM_SLOTS - s) * SLOT_PERIOD_MS))) > 0) {
             timesync_offset -= timesync_overflow;
         }
+
+#ifdef TOSSIM
+        assert(timesync_offset == 0);
+#endif
 
         signal TDMA.slot_finished();
         slot_active = FALSE;
 #if TDMA_TIMESYNC && TIMESYNC_PERIOD_MS > 0
-        call TimesyncTimer.startOneShotAt(now, (TDMA_NUM_SLOTS - (s-1)) * SLOT_PERIOD_MS);
+        call TimesyncTimer.startOneShotAt(now, (TDMA_NUM_SLOTS - s) * SLOT_PERIOD_MS);
 #else
-        call DissemTimer.startOneShotAt(now, (TDMA_NUM_SLOTS - (s-1)) * SLOT_PERIOD_MS);
+        call DissemTimer.startOneShotAt(now, (TDMA_NUM_SLOTS - s) * SLOT_PERIOD_MS);
 #endif
     }
 

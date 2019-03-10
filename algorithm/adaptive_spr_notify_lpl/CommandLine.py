@@ -226,7 +226,7 @@ class CLI(CommandLineCommon.CLI):
 
         yextractors = {
             # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
-            "attacker distance": lambda yvalue: scalar_extractor(yvalue)[(0, 0)]
+            "attacker distance": lambda yvalue: scalar_extractor(yvalue, key=(0, 0))
         }
 
         def fetch_baseline_result(baseline_results, data_key, src_period, baseline_params):
@@ -257,7 +257,7 @@ class CLI(CommandLineCommon.CLI):
             ylabel_font = "',15'",
             line_width = 3,
             point_size = 1,
-            nokey = False,
+            nokey = True,
             generate_legend_graph = True,
             legend_font_size = 16,
             legend_divisor = 4,
@@ -291,7 +291,7 @@ class CLI(CommandLineCommon.CLI):
             #"attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
             'norm(norm(fake,time taken),network size)': ('Fake Messages Sent per Second per node', 'left top'),
-            'average power consumption': ('Average Power Consumption (mA)', 'left top'),
+            'average power consumption': ('Average Current Draw (mA)', 'left top'),
             'average power used': ('Average Energy Consumed (mAh)', 'left top'),
             'time taken': ('Time Taken (sec)', 'left top'),
             'average duty cycle': ('Average Duty Cycle (%)', 'right top'),

@@ -76,10 +76,14 @@ def scalar_extractor(x, key=None):
     elif np.isscalar(x):
         return x
     else:
-        if key is None:
-            return x['mean']
-        else:
-            return x[key]['mean']
+        try:
+            if key is None:
+                return x['mean']
+            else:
+                return x[key]['mean']
+        except KeyError:
+            print(x)
+            raise
 
 # From: https://github.com/liyanage/python-modules/blob/master/running_stats.py
 # Based on http://www.johndcook.com/standard_deviation.html
