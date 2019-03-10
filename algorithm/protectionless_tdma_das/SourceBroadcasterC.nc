@@ -485,7 +485,6 @@ implementation
 
     event void SourcePeriodModel.fired()
     {
-        /*simdbgverbose("stdout", "SourcePeriodModel fired.\n");*/
         if(call TDMA.get_slot() != BOT && period_counter > get_minimum_setup_periods())
         {
             NormalMessage* message;
