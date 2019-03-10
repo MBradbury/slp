@@ -4,14 +4,15 @@ import itertools
 import os
 import datetime
 
+import simulator.sim
 from simulator import CommandLineCommon
 import simulator.Configuration
 
 import algorithm
 
-protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das")
+protectionless_tdma_das = algorithm.import_algorithm("protectionless_tdma_das", extras=["Analysis"])
 
-from data import results
+from data import results, submodule_loader
 from data.run.common import RunSimulationsCommon
 from data.graph import summary, versus, baseline_versus
 from data.table import safety_period
@@ -44,7 +45,9 @@ class CLI(CommandLineCommon.CLI):
         super(CLI, self).__init__(True, RunSimulations)
 
         subparser = self._add_argument("graph", self._run_graph)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
         subparser = self._add_argument("graph-versus-baseline", self._run_graph_versus_baseline)
+        subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
 
     def _cluster_time_estimator(self, sim, args, **kwargs):
         """Estimates how long simulations are run for. Override this in algorithm
@@ -53,15 +56,15 @@ class CLI(CommandLineCommon.CLI):
         to adjust the number of repeats to get the simulation time in this range."""
         size = args['network size']
         if size == 7:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=12)
         elif size == 11:
-            return datetime.timedelta(hours=8) #For 2000 runs
+            return datetime.timedelta(hours=12) #For 2000 runs
         elif size == 15:
-            return datetime.timedelta(hours=8) #For 2000 runs
+            return datetime.timedelta(hours=15) #For 2000 runs
         elif size == 21:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=18)
         elif size == 25:
-            return datetime.timedelta(hours=8)
+            return datetime.timedelta(hours=18)
         else:
             raise RuntimeError("No time estimate for network sizes other than 11, 15, 21 or 25")
 
@@ -100,6 +103,51 @@ class CLI(CommandLineCommon.CLI):
 
         return argument_product
 
+    # def _run_graph(self, args):
+        # graph_parameters = {
+            # 'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            # 'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            # 'captured': ('Capture Ratio (%)', 'left top'),
+            # 'sent': ('Total Messages Sent', 'left top'),
+            # 'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            # 'attacker distance': ('Meters', 'left top'),
+        # }
+
+        # # slp_tdma_das_results = results.Results(
+            # # self.algorithm_module.result_file_path,
+            # # parameters=self.algorithm_module.local_parameter_names,
+            # # results=tuple(graph_parameters.keys()))
+
+        # slp_tdma_das_results = results.Results(
+            # "tossim",
+            # self.algorithm_module.result_file_path("tossim"),
+            # parameters=self.algorithm_module.local_parameter_names,
+            # results=tuple(graph_parameters.keys()))
+
+        # # for (vary, vary_prefix) in [("source period", " seconds"), ("attacker model", "")]:
+        # for (vary, vary_prefix) in [("attacker model", "")]:
+            # for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                # name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
+
+                # g = versus.Grapher(
+                    # "tossim",
+                    # self.algorithm_module.graphs_path("tossim"), name,
+                    # xaxis='network size', yaxis=yaxis, vary=vary,
+                    # yextractor=scalar_extractor)
+
+                # g.xaxis_label = 'Network Size'
+                # g.yaxis_label = yaxis_label
+                # g.vary_label = vary.title()
+                # g.vary_prefix = vary_prefix
+                # g.key_position = key_position
+
+                # g.create(slp_tdma_das_results)
+
+                # summary.GraphSummary(
+                    # os.path.join(self.algorithm_module.graphs_path("tossim"), name),
+                    # os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
+                # ).run()
+
     def _run_graph(self, args):
         graph_parameters = {
             'normal latency': ('Normal Message Latency (ms)', 'left top'),
@@ -107,43 +155,27 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'attacker distance': ('Meters', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+            'path sent': ('Total Path Creation Messages Sent', 'left top'),
+            'overhead': ('Path Creation Message Overhead', 'left top')
         }
 
-        # slp_tdma_das_results = results.Results(
-            # self.algorithm_module.result_file_path,
-            # parameters=self.algorithm_module.local_parameter_names,
-            # results=tuple(graph_parameters.keys()))
+        varying = [
+                (('network size', ''), ('attacker model', ''))
+                ]
 
-        slp_tdma_das_results = results.Results(
-            "tossim",
-            self.algorithm_module.result_file_path("tossim"),
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+        custom_yaxis_range_max = {
+                'received ratio': 100,
+                'overhead': 1,
+                }
 
-        # for (vary, vary_prefix) in [("source period", " seconds"), ("attacker model", "")]:
-        for (vary, vary_prefix) in [("attacker model", "")]:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
+        self._create_versus_graph(args.sim, graph_parameters, varying,
+                custom_yaxis_range_max=custom_yaxis_range_max,
+                network_size_normalisation='UseNumNodes',
+                no_key=True,
+                generate_legend_graph=True)
 
-                g = versus.Grapher(
-                    "tossim",
-                    self.algorithm_module.graphs_path("tossim"), name,
-                    xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
-
-                g.xaxis_label = 'Network Size'
-                g.yaxis_label = yaxis_label
-                g.vary_label = vary.title()
-                g.vary_prefix = vary_prefix
-                g.key_position = key_position
-
-                g.create(slp_tdma_das_results)
-
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path("tossim"), name),
-                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
-                ).run()
 
     def _run_graph_versus_baseline(self, args):
         graph_parameters = {
@@ -152,47 +184,155 @@ class CLI(CommandLineCommon.CLI):
             'captured': ('Capture Ratio (%)', 'left top'),
             'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'attacker distance': ('Meters', 'left top'),
             'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
             'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
         }
 
-        protectionless_tdma_das_results = results.Results(
-            protectionless_tdma_das.result_file_path,
-            parameters=protectionless_tdma_das.local_parameter_names,
-            results=list(set(graph_parameters.keys()) & set(protectionless_tdma_das.Analysis.Analyzer.results_header().keys())))
+        varying = [
+                (('network size', ''), ('search distance', ''))
+                ]
 
-        slp_tdma_das_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=tuple(graph_parameters.keys()))
+        custom_yaxis_range_max = {
+                'received ratio': 100,
+                }
 
-        for (vary, vary_prefix) in [("source period", " seconds")]:
-            for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
-                name = '{}-v-baseline-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
+        print(dir(protectionless_tdma_das))
 
-                g = baseline_versus.Grapher(
-                    self.algorithm_module.graphs_path, name,
-                    xaxis='network size', yaxis=yaxis, vary=vary,
-                    yextractor=scalar_extractor)
+        self._create_baseline_versus_graph(args.sim, protectionless_tdma_das, graph_parameters, varying,
+                custom_yaxis_range_max=custom_yaxis_range_max,
+                network_size_normalisation='UseNumNodes',
+                nokey=True,
+                generate_legend_graph=True)
 
-                g.xaxis_label = 'Network Size'
-                g.yaxis_label = yaxis_label
-                g.vary_label = vary.title() + " -"
-                #g.vary_prefix = vary_prefix
-                g.key_position = key_position
+        # self._create_min_max_versus_graph(args.sim, [], protectionless_tdma_das, graph_parameters, varying,
+                # custom_yaxis_range_max=custom_yaxis_range_max,
+                # network_size_normalisation='UseNumNodes',
+                # no_key=True,
+                # generate_legend_graph=True)
 
-                g.force_vvalue_label = True
-                g.result_label = "SLP TDMA DAS"
-                g.baseline_label = "Protectionless TDMA DAS"
 
-                g.nokey = True
-                g.generate_legend_graph = True
-                g.legend_font_size = '8'
+    # def _run_graph_versus_baseline(self, args):
+        # graph_parameters = {
+            # 'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            # 'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            # 'captured': ('Capture Ratio (%)', 'left top'),
+            # 'sent': ('Total Messages Sent', 'left top'),
+            # 'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            # 'attacker distance': ('Meters', 'left top'),
+            # 'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            # 'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+        # }
 
-                g.create(slp_tdma_das_results, baseline_results=protectionless_tdma_das_results)
+        # protectionless_tdma_das_results = results.Results(
+            # protectionless_tdma_das.result_file_path,
+            # parameters=protectionless_tdma_das.local_parameter_names,
+            # results=list(set(graph_parameters.keys()) & set(protectionless_tdma_das.Analysis.Analyzer.results_header().keys())))
 
-                summary.GraphSummary(
-                    os.path.join(self.algorithm_module.graphs_path, name),
-                    os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
-                ).run()
+        # slp_tdma_das_results = results.Results(
+            # self.algorithm_module.result_file_path,
+            # parameters=self.algorithm_module.local_parameter_names,
+            # results=tuple(graph_parameters.keys()))
+
+        # for (vary, vary_prefix) in [("source period", " seconds")]:
+            # for (yaxis, (yaxis_label, key_position)) in graph_parameters.items():
+                # name = '{}-v-baseline-{}'.format(yaxis.replace(" ", "_"), vary.replace(" ", "-"))
+
+                # g = baseline_versus.Grapher(
+                    # self.algorithm_module.graphs_path, name,
+                    # xaxis='network size', yaxis=yaxis, vary=vary,
+                    # yextractor=scalar_extractor)
+
+                # g.xaxis_label = 'Network Size'
+                # g.yaxis_label = yaxis_label
+                # g.vary_label = vary.title() + " -"
+                # #g.vary_prefix = vary_prefix
+                # g.key_position = key_position
+
+                # g.force_vvalue_label = True
+                # g.result_label = "SLP TDMA DAS"
+                # g.baseline_label = "Protectionless TDMA DAS"
+
+                # g.nokey = True
+                # g.generate_legend_graph = True
+                # g.legend_font_size = '8'
+
+                # g.create(slp_tdma_das_results, baseline_results=protectionless_tdma_das_results)
+
+                # summary.GraphSummary(
+                    # os.path.join(self.algorithm_module.graphs_path, name),
+                    # os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name))
+                # ).run()
+
+    # def _run_min_max_versus(self, args):
+        # graph_parameters = {
+            # 'normal latency': ('Normal Message Latency (ms)', 'left top'),
+            # 'ssd': ('Sink-Source Distance (hops)', 'left top'),
+            # 'captured': ('Capture Ratio (%)', 'left top'),
+            # 'sent': ('Total Messages Sent', 'left top'),
+            # 'received ratio': ('Receive Ratio (%)', 'left bottom'),
+            # 'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            # 'norm(norm(sent,time taken),network size)': ('Messages Sent per Second per Node', 'left top'),
+        # }
+
+        # custom_yaxis_range_max = {
+            # # 'sent': 450000,
+            # # 'captured': 40,
+            # 'received ratio': 100,
+            # # 'normal latency': 300,
+            # # 'norm(norm(sent,time taken),num_nodes)': 30,
+        # }
+
+        # protectionless_results = results.Results(
+            # protectionless.result_file_path,
+            # parameters=tuple(),
+            # results=graph_parameters.keys(),
+            # network_size_normalisation="UseNumNodes"
+        # )
+
+        # das_results = results.Results(
+            # self.algorithm_module.result_file_path,
+            # parameters=self.algorithm_module.local_parameter_names,
+            # results=graph_parameters.keys(),
+            # network_size_normalisation="UseNumNodes"
+        # )
+
+        # def graph_min_max_versus(result_name):
+            # name = 'min-max-{}-versus-{}'.format(result_name, adaptive.name)
+
+            # g = min_max_versus.Grapher(
+                # self.algorithm_module.graphs_path, name,
+                # xaxis='network size', yaxis=result_name, vary='search distance', yextractor=scalar_extractor)
+
+            # # g.xaxis_label = 'Number of Nodes'
+            # g.yaxis_label = graph_parameters[result_name][0]
+            # g.key_position = graph_parameters[result_name][1]
+
+            # g.nokey = True  # result_name in nokey
+
+            # g.min_label = 'Dynamic - Lowest'
+            # g.max_label = 'Dynamic - Highest'
+            # g.comparison_label = 'DAS'
+            # g.baseline_label = 'Protectionless - Baseline'
+            # g.vary_label = ''
+
+            # g.generate_legend_graph = True
+
+            # g.point_size = 1.3
+            # g.line_width = 4
+            # g.yaxis_font = "',14'"
+            # g.xaxis_font = "',12'"
+
+            # if result_name in custom_yaxis_range_max:
+                # g.yaxis_range_max = custom_yaxis_range_max[result_name]
+
+            # g.vvalue_label_converter = lambda value: "W_h = {}".format(value)
+
+            # g.create(das_results, protectionless_results)
+
+            # summary.GraphSummary(
+                # os.path.join(self.algorithm_module.graphs_path, name),
+                # os.path.join(algorithm.results_directory_name, '{}-{}'.format(self.algorithm_module.name, name).replace(" ", "_"))
+            # ).run()
+
+        # for result_name in graph_parameters.keys():
+            # graph_min_max_versus(result_name)
