@@ -69,12 +69,15 @@ implementation
 	event void DissemTimer.fired()
     {
         uint32_t now = call DissemTimer.gett0() + call DissemTimer.getdt();
+        bool dissem_result;
 
         timesync_sent = FALSE;
 
         call TimeSyncMode.setMode(TS_USER_MODE); //XXX: Do this any earlier and it doesn't work
 
-        if (signal TDMA.dissem_fired())
+        dissem_result = signal TDMA.dissem_fired();
+        assert(dissem_result);
+        if (dissem_result)
         {
         	call PreSlotTimer.startOneShotAt(now, DISSEM_PERIOD_MS);
         }
@@ -145,8 +148,8 @@ implementation
             if (call SlotTimer.getNow() - prev_slot_time + (slot_diff * SLOT_PERIOD_MS) !=
                 (TDMA_NUM_SLOTS * SLOT_PERIOD_MS + DISSEM_PERIOD_MS))
             {
-                 LOG_STDOUT(ERROR_UNKNOWN, "SlotTimer %u, fired out of time %d != %d\n",
-                    slot, call SlotTimer.getNow() - prev_slot_time, (TDMA_NUM_SLOTS * SLOT_PERIOD_MS) + DISSEM_PERIOD_MS);
+                 LOG_STDOUT(ERROR_UNKNOWN, "SlotTimer %u (prev %u), fired out of time %d != %d\n",
+                    slot, prev_slot_slot, call SlotTimer.getNow() - prev_slot_time, (TDMA_NUM_SLOTS * SLOT_PERIOD_MS) + DISSEM_PERIOD_MS);
             }
         }
         prev_slot_time = call SlotTimer.getNow();

@@ -633,12 +633,12 @@ implementation
         if(period_counter == get_search_period_count())
         {
             send_search_init();
-            return FALSE;
+            return TRUE;//FALSE;
         }
         else if(period_counter == get_change_period_count())
         {
             send_change_init();
-            return FALSE;
+            return TRUE;//FALSE;
         }
         if(call TDMA.get_slot() != BOT || period_counter < get_pre_beacon_periods())
         {
