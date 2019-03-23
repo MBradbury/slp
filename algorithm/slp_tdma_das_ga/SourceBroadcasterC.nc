@@ -230,9 +230,7 @@ implementation
     }
 
 	task void send_normal(void)
-	{
-		NormalMessage* message;
-
+    {
         // This task may be delayed, such that it is scheduled when the slot is active,
         // but called after the slot is no longer active.
         // So it is important to check here if the slot is still active before sending.
@@ -241,28 +239,38 @@ implementation
             return;
         }
 
-		simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
+        simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
 
-		message = call MessageQueue.dequeue();
+        if (!(call MessageQueue.empty()))
+        {
+            NormalMessage* message = call MessageQueue.head();
 
-		if (message != NULL)
-		{
             error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
-			if (send_result == SUCCESS)
-			{
-				call MessagePool.put(message);
-			}
-			else
-			{
-				simdbgerrorverbose("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
-			}
-		}
+            if (send_result == SUCCESS)
+            {
+                NormalMessage* message2 = call MessageQueue.dequeue();
+                assert(message == message2);
+                call MessagePool.put(message);
+            }
+            else
+            {
+                ERROR_OCCURRED(ERROR_BROADCAST_FAILED,
+                    "Send failed with code %u, not returning memory to pool so it will be tried again\n",
+                    send_result);
+                post send_normal();
+            }
+
+            //LOG_STDOUT(ERROR_UNKNOWN, "Sent Normal %"PRIu32" (%s)\n",
+            //    message->sequence_number, call NodeType.to_string(call NodeType.get()));
+        }
         else
         {
             EmptyNormalMessage msg;
+            //msg.sequence_number = call EmptyNormalSeqNos.next(TOS_NODE_ID);
+            //call EmptyNormalSeqNos.increment(TOS_NODE_ID);
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
         }
-	}
+    }
 
     void send_Normal_done(message_t* msg, error_t error)
     {
@@ -342,11 +350,9 @@ implementation
 	void Normal_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
         /*simdbgverbose("stdout", "Received normal.\n");*/
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			NormalMessage* forwarding_message;
-
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
 			METRIC_RCV_NORMAL(rcvd);
 
@@ -371,10 +377,8 @@ implementation
 	void Sink_receive_Normal(const NormalMessage* const rcvd, am_addr_t source_addr)
 	{
         simdbgverbose("stdout", "SINK RECEIVED NORMAL.\n");
-		if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+		if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
-
 			METRIC_RCV_NORMAL(rcvd);
 		}
 	}
