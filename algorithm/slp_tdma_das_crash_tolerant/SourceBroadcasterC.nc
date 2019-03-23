@@ -1,6 +1,7 @@
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
+#include "HopDistance.h"
 
 #include "NormalMessage.h"
 #include "DissemMessage.h"
@@ -17,13 +18,13 @@
 
 #include <stdlib.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, BOTTOM, 1)
-#define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, BOTTOM, 1)
-#define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, BOTTOM, 1)
-#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, BOTTOM, 1)
-#define METRIC_RCV_REPAIR(msg) METRIC_RCV(Repair, source_addr, msg->source_id, BOTTOM, msg->distance + 1)
-#define METRIC_RCV_CRASH(msg) METRIC_RCV(Crash, source_addr, source_addr, BOTTOM, 1)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
+#define METRIC_RCV_DISSEM(msg) METRIC_RCV(Dissem, source_addr, source_addr, UNKNOWN_SEQNO, 1)
+#define METRIC_RCV_SEARCH(msg) METRIC_RCV(Search, source_addr, source_addr, UNKNOWN_SEQNO, 1)
+#define METRIC_RCV_CHANGE(msg) METRIC_RCV(Change, source_addr, source_addr, UNKNOWN_SEQNO, 1)
+#define METRIC_RCV_EMPTYNORMAL(msg) METRIC_RCV(EmptyNormal, source_addr, source_addr, UNKNOWN_SEQNO, 1)
+#define METRIC_RCV_REPAIR(msg) METRIC_RCV(Repair, source_addr, msg->source_id, UNKNOWN_SEQNO, hop_distance_increment(msg->distance))
+#define METRIC_RCV_CRASH(msg) METRIC_RCV(Crash, source_addr, source_addr, UNKNOWN_SEQNO, 1)
 
 #define BOT UINT16_MAX
 
@@ -89,6 +90,7 @@ module SourceBroadcasterC
     uses interface SourcePeriodModel;
 
     uses interface SequenceNumbers as NormalSeqNos;
+    uses interface SequenceNumbers as EmptyNormalSeqNos;
 
     uses interface FaultModel;
 }
@@ -616,8 +618,6 @@ implementation
 
     task void send_normal(void)
     {
-        NormalMessage* message;
-
         // This task may be delayed, such that it is scheduled when the slot is active,
         // but called after the slot is no longer active.
         // So it is important to check here if the slot is still active before sending.
@@ -628,23 +628,33 @@ implementation
 
         simdbgverbose("SourceBroadcasterC", "BroadcastTimer fired.\n");
 
-        message = call MessageQueue.dequeue();
-
-        if (message != NULL)
+        if (!(call MessageQueue.empty()))
         {
+            NormalMessage* message = call MessageQueue.head();
+
             error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
             if (send_result == SUCCESS)
             {
+                NormalMessage* message2 = call MessageQueue.dequeue();
+                assert(message == message2);
                 call MessagePool.put(message);
             }
             else
             {
-                simdbgerrorverbose("stdout", "send failed with code %u, not returning memory to pool so it will be tried again\n", send_result);
+                ERROR_OCCURRED(ERROR_BROADCAST_FAILED,
+                    "Send failed with code %u, not returning memory to pool so it will be tried again\n",
+                    send_result);
+                post send_normal();
             }
+
+            //LOG_STDOUT(ERROR_UNKNOWN, "Sent Normal %"PRIu32" (%s)\n",
+            //    message->sequence_number, call NodeType.to_string(call NodeType.get()));
         }
         else
         {
             EmptyNormalMessage msg;
+            msg.sequence_number = call EmptyNormalSeqNos.next(TOS_NODE_ID);
+            call EmptyNormalSeqNos.increment(TOS_NODE_ID);
             send_EmptyNormal_message(&msg, AM_BROADCAST_ADDR);
         }
     }
@@ -941,11 +951,9 @@ implementation
     {
         /*simdbgverbose("stdout", "Received normal.\n");*/
         record_rcv(source_addr);
-        if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+        if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
         {
             NormalMessage* forwarding_message;
-
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
 
             METRIC_RCV_NORMAL(rcvd);
 
@@ -957,6 +965,7 @@ implementation
 
                 if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
                 {
+                    call MessagePool.put(forwarding_message);
                     ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
                 }
             }
@@ -971,10 +980,8 @@ implementation
     {
         simdbgverbose("stdout", "SINK RECEIVED NORMAL.\n");
         record_rcv(source_addr);
-        if (call NormalSeqNos.before(TOS_NODE_ID, rcvd->sequence_number))
+        if (call NormalSeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
         {
-            call NormalSeqNos.update(TOS_NODE_ID, rcvd->sequence_number);
-
             METRIC_RCV_NORMAL(rcvd);
         }
     }
@@ -1286,8 +1293,9 @@ implementation
 
     void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
     {
-        record_rcv(source_addr);
-        METRIC_RCV_EMPTYNORMAL(rcvd);
+        if (call EmptyNormalSeqNos.before_and_update(source_addr, rcvd->sequence_number)) {
+            METRIC_RCV_EMPTYNORMAL(rcvd);
+        }
     }
 
     RECEIVE_MESSAGE_BEGIN(EmptyNormal, Receive)

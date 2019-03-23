@@ -138,6 +138,10 @@ implementation
         new SequenceNumbersC(SLP_MAX_NUM_SOURCES) as NormalSeqNos;
     App.NormalSeqNos -> NormalSeqNos;
 
+    components
+        new SequenceNumbersC(SLP_MAX_2_HOP_NEIGHBOURHOOD) as EmptyNormalSeqNos;
+    App.EmptyNormalSeqNos -> EmptyNormalSeqNos;
+
     components new FaultModelC(6);
     App.FaultModel -> FaultModelC;
     FaultModelC.MetricLogging -> MetricLogging;
