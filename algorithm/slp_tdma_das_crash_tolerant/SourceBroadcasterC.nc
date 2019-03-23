@@ -1293,6 +1293,7 @@ implementation
 
     void x_receive_EmptyNormal(const EmptyNormalMessage* const rcvd, am_addr_t source_addr)
     {
+        record_rcv(source_addr);
         if (call EmptyNormalSeqNos.before_and_update(source_addr, rcvd->sequence_number)) {
             METRIC_RCV_EMPTYNORMAL(rcvd);
         }
