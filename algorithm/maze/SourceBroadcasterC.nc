@@ -112,7 +112,7 @@ implementation
 	// The function ensure that nodes go to quiet state backwards based on the SeqNo
 	int16_t calculate_distance_with_seqno(int16_t msgSeqNo)
 	{
-		hop_distance_t non_sleep_distance =  sink_source_distance - NON_SLEEP_CLOSE_TO_SOURCE - NON_SLEEP_CLOSE_TO_SINK;
+		hop_distance_t non_sleep_distance =  sink_source_distance - NON_SLEEP_SOURCE - NON_SLEEP_SINK;
 		int16_t m = 2*(non_sleep_distance - 1);
 
 		if (msgSeqNo % m <= non_sleep_distance && msgSeqNo % m != 0)
@@ -136,16 +136,14 @@ implementation
 	int sleep_node_type()
 	{
 		// Only the nodes between sink and source could be selected as sleep nodes.
-#if defined(RESTRICT)
-		//simdbg("stdout", "SINK_SOURCE_NODES\n");
-		if (source_distance > hop_distance_increment(sink_source_distance) ||
-			source_distance <= NON_SLEEP_CLOSE_TO_SOURCE ||
-			sink_distance <= NON_SLEEP_CLOSE_TO_SINK)
+#if defined(NO_FAR_SLEEP)
+		if (source_distance + sink_distance > (hop_distance_increment(sink_source_distance) + 2 * QUIET_NODE_DISTANCE) ||
+			source_distance <= NON_SLEEP_SOURCE ||
+			sink_distance <= NON_SLEEP_SINK)
 
-#elif defined(BROAD)
-		//simdbg("stdout", "BROAD_NODES\n");
-		if (source_distance <= NON_SLEEP_CLOSE_TO_SOURCE ||
-			sink_distance <= NON_SLEEP_CLOSE_TO_SINK)
+#elif defined(ALL_SLEEP)
+		if (source_distance <= NON_SLEEP_SOURCE ||
+			sink_distance <= NON_SLEEP_SINK)
 #elif defined(NONE)
 		if (FALSE)
 #else
@@ -162,33 +160,29 @@ implementation
 
 	bool sleep_node_should_drop_message(const NormalMessage* rcvd)
 	{
-		const int16_t non_sleep_distance = sink_source_distance - NON_SLEEP_CLOSE_TO_SOURCE - NON_SLEEP_CLOSE_TO_SINK;
+		const int16_t non_sleep_distance = sink_source_distance - NON_SLEEP_SOURCE - NON_SLEEP_SINK;
 
 		const uint16_t rnd = (call Random.rand16() % 100);
 		const bool rnd_test = rnd <= SLEEP_PROBABILITY;
 
 		bool result;
 
-#if defined(SINK_TO_SOURCE_WAVE)
-		//simdbg("stdout", "SINK_TO_SOURCE_WAVE\n");
+#if defined(SINK_SRC)
 		result = (rcvd->sequence_number % non_sleep_distance == sink_distance ||
 			      (rcvd->sequence_number +1) % non_sleep_distance == sink_distance) 
 			&& rnd_test && sleep_timer > 0;
 
-#elif defined(SINK_TO_SOURCE_BACKWARDS)
-		//simdbg("stdout", "SINK_TO_SOURCE_BACKWARDS\n");
+#elif defined(SINK_SRC_SINK)
 		result = (calculate_distance_with_seqno(rcvd->sequence_number) == sink_distance ||
 			      calculate_distance_with_seqno(rcvd->sequence_number+1) == sink_distance)
 			&& rnd_test && sleep_timer > 0;
 
-#elif defined(SOURCE_TO_SINK_WAVE)
-		//simdbg("stdout", "SOURCE_TO_SINK_WAVE\n");
+#elif defined(SRC_SINK)
 		result = (rcvd->sequence_number % non_sleep_distance == source_distance ||
 			      (rcvd->sequence_number +1) % non_sleep_distance == source_distance) 
 			&& rnd_test && sleep_timer > 0;
 
-#elif defined(SOURCE_TO_SINK_BACKWARDS)
-		//simdbg("stdout", "SOURCE_TO_SINK_BACKWARDS\n");
+#elif defined(SRC_SINK_SRC)
 		result = (calculate_distance_with_seqno(rcvd->sequence_number) == source_distance ||
 			      calculate_distance_with_seqno(rcvd->sequence_number+1) == source_distance)
 			&& rnd_test && sleep_timer > 0;

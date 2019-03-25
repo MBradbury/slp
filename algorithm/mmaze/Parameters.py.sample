@@ -7,7 +7,7 @@ communication_models = ["low-asymmetry"]
 
 sizes = [11, 25]
 
-source_periods = [0.25, 2.0]
+source_periods = [0.25, 0.5, 1.0, 2.0]
 
 configurations = [
     'SourceCorner',
@@ -34,18 +34,22 @@ node_id_orders = ['randomised']
 
 fault_models = ['ReliableFaultModel()']
 
-sleep_duration = [1,2]
+sleep_duration = [2]
 
-sleep_probability = [0.5, 0.6, 0.7, 0.8]
+sleep_probability = [0.7, 0.8, 0.9]
 
-non_sleep_closer_to_source = [1]
+non_sleep_source = [3]
 
-non_sleep_closer_to_sink = [1]
+non_sleep_sink = [0]
 
-approaches = ["SINK_TO_SOURCE_WAVE", "SINK_TO_SOURCE_BACKWARDS", "SOURCE_TO_SINK_WAVE", "SOURCE_TO_SINK_BACKWARDS"]
+approach = ["SINK_SRC", "SRC_SINK", "SINK_SRC_SINK", "SRC_SINK_SRC"]
 
-forced_sleep = ["RESTRICT", "BROAD"]
+restricted_sleep = ["ALL_SLEEP", "NO_FAR_SLEEP"]
 
-safety_factors = [0.4, 0.8, 1.2, 1.6, 2.0]
+quiet_node_distance = [0, 1, 2, 3]
+
+depth = [2]
+
+safety_factors = [2.0]
 
 repeats = 1000

@@ -92,7 +92,8 @@ class CLI(CommandLineCommon.CLI):
     def _run_table(self, args):
         parameters = [
             'captured',
-            'received ratio', 'sent', 'normal latency',
+            'received ratio', 'norm(sent,time taken)', 
+            #'normal latency',
             #'attacker distance wrt src',
             #'attacker distance',
             #'failed avoid sink',
@@ -122,9 +123,8 @@ class CLI(CommandLineCommon.CLI):
             'normal latency': ('Message Latency (msec)', 'left top'),
             #'ssd': ('Sink-Source Distance (hops)', 'left top'),
             'captured': ('Capture Ratio (%)', 'left top'),
-            #'sent': ('Total Messages Sent', 'left top'),
             'received ratio': ('Receive Ratio (%)', 'left bottom'),
-            'norm(sent,time taken)': ('Messages Transmission (messages)', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second (messages)', 'left top'),
             #'attacker distance': ('Attacker Distance From Source (Meters)', 'left top'),
             #'failed avoid sink': ('Failed to Avoid Sink (%)', 'left top'),
             #'failed avoid sink when captured': ('Failed to Avoid Sink When Captured (%)', 'left top'),
@@ -137,7 +137,7 @@ class CLI(CommandLineCommon.CLI):
         custom_yaxis_range_max = {
             'captured': 100,
             'received ratio': 100,
-            'normal latency': 300,
+            'normal latency': 1000,
             'norm(sent,time taken)': 2500
         }           
 
