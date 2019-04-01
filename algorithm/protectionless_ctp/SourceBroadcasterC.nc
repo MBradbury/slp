@@ -199,6 +199,9 @@ implementation
 				rcvd->sequence_number, rcvd->source_id, source_addr);
 
 			rcvd->source_distance = hop_distance_increment(rcvd->source_distance);
+
+			// Need to update the CRC as the message has changed
+			SET_CRC(Normal, rcvd);
 		}
 
 		return TRUE;
