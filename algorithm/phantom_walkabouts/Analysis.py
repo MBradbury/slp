@@ -4,7 +4,6 @@ from data.analysis_extra.utility import Function, AnimalProtection, AssetMonitor
 
 algorithm_module = __import__(__package__, globals(), locals(), ['object'])
 
-
 class Analyzer(AnalyzerCommon):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
