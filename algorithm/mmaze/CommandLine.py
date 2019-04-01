@@ -1,5 +1,6 @@
 
 import datetime
+import itertools
 
 import simulator.sim
 from simulator import CommandLineCommon
@@ -89,14 +90,14 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         custom_yaxis_range_max = {
-            'captured': 80,
+            'captured': 100,
             'received ratio': 100,
             'normal latency': 200,
             'norm(sent,time taken)': 2000
         }
 
         def filter_params(all_params):
-            return all_params['safety factor'] != '1.2'           
+            return all_params['safety factor'] != '1.3'           
 
         yextractors = { }      
 
