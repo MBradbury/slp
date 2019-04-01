@@ -1011,8 +1011,12 @@ implementation
 		}
 
 		half_ssd = landmark_sink_distance / 2 -1;
-		random_walk_hops = call Random.rand16() % half_ssd + 2;
-		long_random_walk_hops = call Random.rand16() % half_ssd + landmark_sink_distance + 2;
+
+		random_walk_hops = call Random.rand16() % half_ssd + 1;
+		long_random_walk_hops = call Random.rand16() % half_ssd + 1.5*landmark_sink_distance;
+
+		//random_walk_hops = call Random.rand16() % half_ssd + 2;
+		//long_random_walk_hops = call Random.rand16() % half_ssd + landmark_sink_distance + 2;
 				
 		//simdbg("stdout","(ssd:%d,random walk length:%d)short random walk hop=%d, long random walk hop=%d\n", landmark_sink_distance, half_ssd, random_walk_hops, long_random_walk_hops);
 
