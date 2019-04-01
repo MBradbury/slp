@@ -859,12 +859,12 @@ implementation
         if(period_counter == get_search_period_count())
         {
             send_search_init();
-            return FALSE;
+            return TRUE;//FALSE;
         }
         else if(period_counter == get_change_period_count())
         {
             send_change_init();
-            return FALSE;
+            return TRUE;//FALSE;
         }
         /*if(call TDMA.get_slot() != BOT || period_counter < get_pre_beacon_periods())*/
         if(active || period_counter < get_pre_beacon_periods())
@@ -931,6 +931,7 @@ implementation
 
                 if (call MessageQueue.enqueue(message) != SUCCESS)
                 {
+                    call MessagePool.put(message);
                     ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
                 }
                 else
