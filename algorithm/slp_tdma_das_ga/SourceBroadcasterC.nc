@@ -332,6 +332,7 @@ implementation
 
             if (call MessageQueue.enqueue(message) != SUCCESS)
             {
+                call MessagePool.put(message);
                 ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
             }
             else
@@ -364,6 +365,7 @@ implementation
 
 				if (call MessageQueue.enqueue(forwarding_message) != SUCCESS)
 				{
+                    call MessagePool.put(forwarding_message);
 					ERROR_OCCURRED(ERROR_QUEUE_FULL, "No queue space available for another Normal message.\n");
 				}
 			}
