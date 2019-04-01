@@ -38,10 +38,21 @@
  			return msg; \
  		} \
  	}
+#	define CHECK_INTERCEPT_CRC(NAME, rcvd) \
+	{ \
+		const uint16_t rcvd_crc = *(nx_uint16_t*)(rcvd + 1); \
+ 		const uint16_t calc_crc = call Crc.crc16(rcvd, sizeof(NAME##Message)); \
+ 		if (rcvd_crc != calc_crc) \
+ 		{ \
+ 			call MetricLogging.log_metric_bad_crc(#NAME, payload, len, rcvd_crc, calc_crc); \
+ 			return FALSE; \
+ 		} \
+ 	}
 #else
 #	define PAYLOAD_LENGTH(NAME) sizeof(NAME##Message)
 #	define SET_CRC(NAME, message)
 #	define CHECK_CRC(NAME, rcvd)
+#	define CHECK_INTERCEPT_CRC(NAME, rcvd)
 #endif
 
 #ifdef SLP_SEND_ANY_DONE_CALLBACK
@@ -375,7 +386,7 @@ event bool NAME##KIND.forward(message_t* msg, void* payload, uint8_t len) \
 	const am_addr_t ultimate_source = MSG_GET(NAME, source_id, rcvd); \
 	const SequenceNumberWithBottom sequence_number = MSG_GET(NAME, sequence_number, rcvd); \
  \
- 	CHECK_CRC(NAME, rcvd); \
+ 	CHECK_INTERCEPT_CRC(NAME, rcvd); \
  \
  	ATTACKER_RCV(NAME, msg, payload, len, source_addr, ultimate_source, sequence_number, rssi, lqi); \
  \

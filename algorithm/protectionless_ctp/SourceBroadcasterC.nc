@@ -1,6 +1,7 @@
 #include "Constants.h"
 #include "Common.h"
 #include "SendReceiveFunctions.h"
+#include "HopDistance.h"
 
 #include "NormalMessage.h"
 
@@ -8,12 +9,13 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
 
 module SourceBroadcasterC
 {
 	uses interface Boot;
 	uses interface Leds;
+	uses interface Crc;
 
 	uses interface Packet;
 	uses interface AMPacket;
@@ -137,8 +139,8 @@ implementation
 			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
 
-		simdbgverbose("stdout", "%s: Generated Normal seqno=%u at %u.\n",
-			sim_time_string(), message.sequence_number, message.source_id);
+		simdbgverbose("stdout", "Generated Normal seqno="SEQUENCE_NUMBER_SPEC" at "TOS_NODE_ID_SPEC".\n",
+			message.sequence_number, message.source_id);
 	}
 
 
@@ -151,8 +153,8 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			simdbgverbose("stdout", "%s: Sink Received unseen Normal seqno=%u srcid=%u from %u.\n",
-				sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
+			simdbgverbose("stdout", "Sink Received unseen Normal seqno="SEQUENCE_NUMBER_SPEC" srcid="TOS_NODE_ID_SPEC" from "TOS_NODE_ID_SPEC".\n",
+				rcvd->sequence_number, rcvd->source_id, source_addr);
 		}
 	}
 
@@ -172,8 +174,8 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			simdbgverbose("stdout", "%s: Normal Snooped unseen Normal data=%u seqno=%u srcid=%u from %u.\n",
-				sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
+			simdbgverbose("stdout", "Normal Snooped unseen Normal seqno="SEQUENCE_NUMBER_SPEC" srcid="TOS_NODE_ID_SPEC" from "TOS_NODE_ID_SPEC".\n",
+				rcvd->sequence_number, rcvd->source_id, source_addr);
 		}*/
 	}
 
@@ -193,10 +195,10 @@ implementation
 
 			METRIC_RCV_NORMAL(rcvd);
 
-			simdbgverbose("stdout", "%s: Normal Intercepted unseen Normal seqno=%u srcid=%u from %u.\n",
-				sim_time_string(), rcvd->sequence_number, rcvd->source_id, source_addr);
+			simdbgverbose("stdout", "Normal Intercepted unseen Normal seqno="SEQUENCE_NUMBER_SPEC" srcid="TOS_NODE_ID_SPEC" from "TOS_NODE_ID_SPEC".\n",
+				rcvd->sequence_number, rcvd->source_id, source_addr);
 
-			rcvd->source_distance += 1;
+			rcvd->source_distance = hop_distance_increment(rcvd->source_distance);
 		}
 
 		return TRUE;

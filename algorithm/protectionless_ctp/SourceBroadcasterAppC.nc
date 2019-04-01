@@ -14,9 +14,11 @@ implementation
 	// Low levels events such as boot and LED control
 	components DelayedBootEventMainP as MainC;
 	components LedsWhenGuiC as LedsC;
+	components CrcC;
 	
 	App.Boot -> MainC;
 	App.Leds -> LedsC;
+	App.Crc -> CrcC;
 
 	components MetricLoggingP as MetricLogging;
 	App.MetricLogging -> MetricLogging;
@@ -75,4 +77,5 @@ implementation
 	CTPMetricsP.MetricHelpers -> MetricHelpers;
 	CTPMetricsP.CtpInfo -> CollectionC;
 	CollectionC.CollectionDebug -> CTPMetricsP;
+	CTPMetricsP.Packet -> CollectionC;
 }
