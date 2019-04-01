@@ -57,14 +57,12 @@ implementation
 
 			error_t result = call CtpInfo.getParent(&current_parent);
 
-			if (result == SUCCESS)
+			if (result != SUCCESS)
 			{
-				call MetricLogging.log_metric_parent_change(current_parent, new_parent);
+				current_parent = AM_BROADCAST_ADDR;	
 			}
-			else
-			{
-				call MetricLogging.log_metric_parent_change(AM_BROADCAST_ADDR, new_parent);
-			}
+
+			call MetricLogging.log_metric_parent_change(current_parent, new_parent);
 		}
 
 		return SUCCESS;
@@ -72,13 +70,16 @@ implementation
 	command error_t CollectionDebug.logEventMsg(uint8_t event_type, uint16_t msg, am_addr_t origin, am_addr_t node, const message_t* packet) {
 		//simdbg("stdout", "logEventMessage %u %u %u %u\n", event_type, msg, origin, node);
 
-		if (event_type == NET_C_FE_SENDDONE_WAITACK || event_type == NET_C_FE_SENT_MSG || event_type == NET_C_FE_FWD_MSG)
+		if (event_type == NET_C_FE_SENDDONE_WAITACK || event_type == NET_C_FE_SENT_MSG ||
+			event_type == NET_C_FE_FWD_MSG)
 		{
 			// TODO: FIXME
 			// Likely to be double counting Normal message broadcasts due to METRIC_BCAST in send_Normal_message
 
 			uint8_t payloadLength = call Packet.payloadLength((message_t*)packet);
 			const void* payload = call Packet.getPayload((message_t*)packet, payloadLength);
+
+			assert(payloadLength == PAYLOAD_LENGTH(Normal));
 
 			METRIC_BCAST(Normal, payload, payloadLength, SUCCESS, origin, UNKNOWN_SEQNO, call MetricHelpers.getTxPower(packet));
 		}
