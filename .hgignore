@@ -6,6 +6,7 @@ syntax: glob
 *.csc
 *~
 *.class
+.hg.bak
 simbuild
 TOSSIM.py
 app.xml
