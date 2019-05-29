@@ -25,7 +25,7 @@ from simulator.Topology import OrderedId
 
 from scripts.profile_testbed import LinkResult, CurrentDraw, RSSIResult
 
-min_max = {"prr": (0, 1), "rssi": (-95.5, -42.5), "lqi": (50, 110)}
+min_max = {"prr": (0, 1), "rssi": (-95.5, -42.5), "lqi": (50, 110), "snr": (0, 50)}
 asymmetry_min_max = {"prr": (-1, 1), "rssi": (-100, 100), "lqi": (-110, 110)}
 
 class ResultsProcessor(object):
@@ -238,8 +238,9 @@ class ResultsProcessor(object):
                 left = df[row][col]
                 right = df[col][row]
 
-                if np.isnan(left) and np.isnan(right):
-                    pass
+                if np.isnan(left) or np.isnan(right):
+                    copy.at[row, col] = np.nan
+
                 elif np.isnan(left) and not np.isnan(right):
                     copy.at[row, col] = +right
                 elif not np.isnan(left) and np.isnan(right):
@@ -348,7 +349,7 @@ class ResultsProcessor(object):
         print("Saved link info to link-info.txt")
 
 
-    def _draw_link_heatmap_fn(self, args, heatmap_name, converter=lambda x: x, min_max=None, cmap=None, title_formatter=None):
+    def _draw_link_heatmap_fn(self, args, heatmap_name, converter=None, min_max=None, cmap=None, title_formatter=None):
         from matplotlib.ticker import MultipleLocator
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -357,7 +358,17 @@ class ResultsProcessor(object):
 
         plt.tight_layout()
 
-        rssi, lqi, prr = map(converter, self._get_combined_link_results())
+        rssi, lqi, prr = self._get_combined_link_results()
+        if converter is not None:
+            rssi, lqi, prr = map(converter, (rssi, lqi, prr))
+        
+
+        nf_results = self.other_get_noise_floor_results()
+        snr = {
+            (power, channel): rssis.apply(lambda x: x - nf_results.node_average[(int(x.name), channel)].mean(), axis=0)
+
+            for ((power, channel), rssis) in rssi.items()
+        }
 
         nids = [nid.nid for nid in self.testbed_topology.nodes.keys()]
         tx_powers = {result.broadcast_power for result in self.link_results}
@@ -366,6 +377,8 @@ class ResultsProcessor(object):
         prr = {k: v * 100 for (k, v) in prr.items()}
 
         details = [("prr", prr, r'$\%$'), ("rssi", rssi, "dBm"), ("lqi", lqi, "")]
+        if converter is not None:
+            details.append(("snr", snr, ""))
 
         for (power, channel) in itertools.product(sorted(tx_powers), sorted(channels)):
             for (i, (name, value, label)) in enumerate(details, start=1):
@@ -457,6 +470,15 @@ class ResultsProcessor(object):
             title_formatter=lambda name, label: f"{name.upper()} Difference" if not label else f"{name.upper()} Difference ({label})"
         )
 
+    def other_get_noise_floor_results(self):
+        processor = ResultsProcessor()
+        a = copy.deepcopy(self.args)
+        a.results_dir = os.path.join(os.path.dirname(a.results_dir), "..", "_read_rssi")
+        print(a.results_dir)
+        processor.setup(a)
+        return processor._get_combined_noise_floor()
+
+
     def draw_link(self, args):
         import matplotlib.colors as colors
         import matplotlib.cm as cmx
@@ -475,6 +497,13 @@ class ResultsProcessor(object):
             result = prr
         elif args.name == "lqi":
             result = lqi
+        elif args.name == "snr":
+            nf_results = self.other_get_noise_floor_results()
+            result = {
+                (power, channel): rssis.apply(lambda x: x - nf_results.node_average[(int(x.name), channel)].mean(), axis=0)
+
+                for ((power, channel), rssis) in rssi.items()
+            }
         else:
             raise RuntimeError(f"Unknown name {args.name}")
 
@@ -482,6 +511,9 @@ class ResultsProcessor(object):
             result = result[(args.power, args.channel)]
         except KeyError:
             raise RuntimeError("No result for {} with power {}".format(args.name, args.power))
+
+        print(result)
+        print(prr)
 
         labels = list(result.columns.values)
 
@@ -705,18 +737,18 @@ class ResultsProcessor(object):
         if args.show:
             plt.show()
 
-    def draw_combined_current_graph(self, args):
-        def other_get_combined_current_results(name):
-            processor = ResultsProcessor()
-            a = copy.deepcopy(self.args)
-            a.results_dir = os.path.join(os.path.dirname(a.results_dir), name)
-            print(a.results_dir)
-            processor.setup(a)
-            return processor._get_combined_current_results()
+    def other_get_combined_current_results(self, name):
+        processor = ResultsProcessor()
+        a = copy.deepcopy(self.args)
+        a.results_dir = os.path.join(os.path.dirname(a.results_dir), name)
+        print(a.results_dir)
+        processor.setup(a)
+        return processor._get_combined_current_results()
 
+    def draw_combined_current_graph(self, args):
         combined_current_empty, _, _ = self._get_combined_current_results()
-        combined_current_rssi, _, _ = other_get_combined_current_results("_read_rssi")
-        ccp, _, _ = other_get_combined_current_results("noforward")
+        combined_current_rssi, _, _ = self.other_get_combined_current_results("_read_rssi")
+        ccp, _, _ = self.other_get_combined_current_results("noforward")
 
         channels = [26]
         tx_powers = [7, 19, 31]
@@ -892,7 +924,7 @@ def main():
     subparser = add_argument("print-link-info", processor.print_link_info)
 
     subparser = add_argument("draw-link", processor.draw_link)
-    subparser.add_argument("name", type=str, help="The name of the metric to draw", choices=["prr", "lqi", "rssi"])
+    subparser.add_argument("name", type=str, help="The name of the metric to draw", choices=["prr", "lqi", "rssi", "snr"])
     subparser.add_argument("power", type=int, help="The broadcast power level to show", choices=[3, 7, 11, 15, 19, 23, 27, 31])
     subparser.add_argument("channel", type=int, help="The channel", choices=range(11,27))
     subparser.add_argument("--show", action="store_true", default=False)
