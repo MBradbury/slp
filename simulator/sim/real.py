@@ -1,7 +1,7 @@
 
 def parsers():
     return [
-        ("SINGLE", None, ["verbose", "debug", "configuration",
+        ("SINGLE", None, ["verbose", "low verbose", "debug", "configuration",
                           "fault model", "node id order",
                           "low power listening", "cc2420"]),
     ]
