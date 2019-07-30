@@ -25,6 +25,9 @@ def _secure_random():
     return rno
 
 def _add_safety_period(parser, has_safety_period=False, has_safety_factor=False, **kwargs):
+    assert not has_safety_factor or has_safety_period
+
+
     if has_safety_period:
         parser.add_argument("-safety", "--safety-period",
                             type=ArgumentsCommon.type_positive_float,
