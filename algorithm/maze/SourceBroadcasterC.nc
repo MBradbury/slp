@@ -84,6 +84,8 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as NormalSeqNos;
 	 
 	uses interface Random;
+
+	uses interface LocalTime<TMilli>;
 }
 
 implementation 
@@ -191,9 +193,9 @@ implementation
 #	error "Technique not specified"
 #endif
 		
-		simdbg("stdout",
-			"[Sequence:%d, Node ID: %d] distance to source: %d, distance to sink: %d, ssd = %d,rnd = %d, P = %d. I am sleep = %d.\n", 
-			rcvd->sequence_number, TOS_NODE_ID, source_distance, sink_distance, sink_source_distance, rnd, SLEEP_PROBABILITY, result);
+		//simdbg("stdout",
+		//	"[Sequence:%d, Node ID: %d] distance to source: %d, distance to sink: %d, ssd = %d,rnd = %d, P = %d. I am sleep = %d.\n", 
+		//	rcvd->sequence_number, TOS_NODE_ID, source_distance, sink_distance, sink_source_distance, rnd, SLEEP_PROBABILITY, result);
 
 		return result;
 	}

@@ -96,4 +96,8 @@ implementation
     // Random
     components RandomC;
     App.Random -> RandomC;
+
+    // Time
+    components LocalTimeMilliC;
+    App.LocalTime -> LocalTimeMilliC;
 }
