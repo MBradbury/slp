@@ -5,8 +5,8 @@ import numpy as np
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
-    def __init__(self, sim, configuration):
-        super(Metrics, self).__init__(sim, configuration)
+    def __init__(self, sim, configuration, **kwargs):
+        super(Metrics, self).__init__(sim, configuration, **kwargs)
 
     @staticmethod
     def items():
