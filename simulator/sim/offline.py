@@ -4,7 +4,7 @@ import importlib
 
 def parsers():
     return [
-        ("SINGLE", None, ["verbose", "configuration", "attacker model", "fault model", "safety period",
+        ("SINGLE", None, ["verbose", "low verbose", "configuration", "attacker model", "fault model", "safety period",
                           "seed", "log file", "log converter", "nonstrict", "extra metrics", "show raw log"]),
         ("GUI", "SINGLE", ["gui scale"]),
     ]
