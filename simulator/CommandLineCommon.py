@@ -54,7 +54,7 @@ class CLI(object):
         try:
             self.algorithm_module = algorithm.import_algorithm(package, extras=["Analysis", "Parameters"])
         except ImportError:
-            print(f"Failed to import Parameters from {package}. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
+            raise RuntimeError(f"Failed to import Parameters from {package}. Have you made sure to copy Parameters.py.sample to Parameters.py and then edit it?")
 
         self.safety_period_module_name = safety_period_module_name
         self.custom_run_simulation_class = custom_run_simulation_class
