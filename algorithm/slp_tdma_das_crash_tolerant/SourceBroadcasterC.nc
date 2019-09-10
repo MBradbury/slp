@@ -164,6 +164,7 @@ implementation
 
     uint16_t choose(const IDList* list)
     {
+        ASSERT_MESSAGE(list != NULL, "list NULL in choose\n");
         if (list->count == 0) return UINT16_MAX;
         else return list->ids[(call Random.rand16()) % list->count];
     }
@@ -398,10 +399,7 @@ implementation
                 parent_info->id, parent_info->hop, parent_info->slot);
 
             other_info = OtherList_get(&others, parent_info->id);
-            if(other_info == NULL) {
-                simdbgerrorverbose("stdout", "Other info was NULL.\n");
-                return;
-            }
+            ASSERT_MESSAGE(other_info != NULL, "Other info was NULL.\n");
 
             set_parent(parent_info->id);
             set_hop(parent_info->hop + 1);
@@ -594,7 +592,7 @@ implementation
             msg.path_order = path_order;
             send_Change_message(&msg, AM_BROADCAST_ADDR);
             call NodeType.set(ChangeNode);
-            simdbgverbose("a_node was %u\n", msg.a_node);
+            simdbgverbose("stdout", "a_node was %u\n", msg.a_node);
 
             set_path_child(msg.a_node);
         }
@@ -630,13 +628,16 @@ implementation
 
         if (!(call MessageQueue.empty()))
         {
+            error_t send_result;
             NormalMessage* message = call MessageQueue.head();
+            ASSERT_MESSAGE(message != NULL, "message was NULL.\n");
 
-            error_t send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
+            send_result = send_Normal_message_ex(message, AM_BROADCAST_ADDR);
             if (send_result == SUCCESS)
             {
                 NormalMessage* message2 = call MessageQueue.dequeue();
                 assert(message == message2);
+                assert(message2 != NULL);
                 call MessagePool.put(message);
             }
             else
@@ -687,7 +688,7 @@ implementation
         }
     }
 
-    void MessageQueue_clear()
+    void MessageQueue_clear(void)
     {
         NormalMessage* message;
         while(!(call MessageQueue.empty()))
@@ -723,7 +724,7 @@ implementation
         }
     }
 
-    void check_crashes()
+    void check_crashes(void)
     {
         //Remove crashed nodes from all data structures
         {
@@ -834,7 +835,7 @@ implementation
                 msg.path_order = path_order;
                 send_Change_message(&msg, AM_BROADCAST_ADDR);
                 /*call NodeType.set(ChangeNode);*/
-                simdbgverbose("a_node was %u\n", msg.a_node);
+                simdbgverbose("stdout", "a_node was %u\n", msg.a_node);
 
                 set_path_child(msg.a_node);
             }
@@ -1235,12 +1236,15 @@ implementation
         }
         if(rcvd->len_d > 0 && npar.count != 0)
         {
+            NeighbourInfo* neighbour;
             ChangeMessage msg;
-            OnehopList onehop;
+            OnehopList onehop = OnehopList_new();
             simdbgverbose("stdout", "Received change\n");
             call TDMA.set_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
-            NeighbourList_get(&n_info, source_addr)->slot = rcvd->n_slot; //Update source_addr node with new slot information
+            neighbour = NeighbourList_get(&n_info, source_addr);
+            assert(neighbour != NULL);
+            neighbour->slot = rcvd->n_slot; //Update source_addr node with new slot information
             NeighbourList_select(&n_info, &neighbours, &onehop);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.a_node = choose(&npar);

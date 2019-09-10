@@ -73,10 +73,16 @@ uint16_t OnehopList_min_slot(OnehopList* list);
 void NeighbourInfo_print(const NeighbourInfo* info);
 void OnehopList_print(const OnehopList* list);
 void NeighbourList_print(const NeighbourList* list);
+
 uint16_t OnehopList_min_slot(OnehopList* list)
 {
-    uint16_t min_slot = list->info[0].slot;
-    int i;
+    uint16_t min_slot;
+    uint16_t i;
+
+    assert(list != NULL);
+    assert(list->count > 0);
+
+    min_slot = list->info[0].slot;
     for(i = 0; i < list->count; i++)
     {
         min_slot = (min_slot > list->info[i].slot) ? list->info[i].slot : min_slot;
@@ -116,7 +122,7 @@ void IDList_add(IDList* list, am_addr_t id)
 {
     if(list->count >= MAX_TWOHOP)
     {
-        simdbgerrorverbose("stdout", "IDList is full\n");
+        simdbgerror("stderr", "IDList is full\n");
         return;
     }
 
@@ -371,7 +377,7 @@ void NeighbourList_select(NeighbourList* list, const IDList* onehop, OnehopList*
         const NeighbourInfo* info = NeighbourList_get(list, onehop->ids[i]);
         if(info == NULL)
         {
-            simdbgerrorverbose("stdout", "Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
+            simdbgerror("stderr", "Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
             continue;
         }
         NeighbourList_add_info(&tempList, info);
@@ -383,7 +389,8 @@ void NeighbourList_to_OnehopList(const NeighbourList* list, OnehopList *newList)
 {
     if(list->count > MAX_ONEHOP)
     {
-        simdbgverbose("stdout", "NeighbourList too big to coerce to OnehopList. Truncating.\n");
+        simdbgerror("stderr", "NeighbourList (%" PRIu16") too big to coerce to OnehopList (%u). Truncating.\n", list->count, MAX_ONEHOP);
+        return;
     }
     newList->count = (list->count > MAX_ONEHOP) ? MAX_ONEHOP : list->count;
     memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
@@ -494,4 +501,14 @@ OtherInfo* OtherList_get(OtherList* list, am_addr_t id)
     }
     return NULL;
 }
+
+OnehopList OnehopList_new(void)
+{
+    OnehopList list;
+    list.count = 0;
+    memset(&list.info, 0, sizeof(list.info));
+    return list;
+}
+
+
 #endif /* UTILS_H */
