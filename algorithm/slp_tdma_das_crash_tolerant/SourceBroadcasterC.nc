@@ -1243,7 +1243,9 @@ implementation
             call TDMA.set_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
             neighbour = NeighbourList_get(&n_info, source_addr);
-            assert(neighbour != NULL);
+            ASSERT_MESSAGE(neighbour != NULL,
+                "Failed to find neighbour info for " TOS_NODE_ID_SPEC ", have %" PRIu16 " neighbours.\n",
+                source_addr, n_info.count);
             neighbour->slot = rcvd->n_slot; //Update source_addr node with new slot information
             NeighbourList_select(&n_info, &neighbours, &onehop);
             msg.n_slot = OnehopList_min_slot(&onehop);
