@@ -2,6 +2,7 @@
 
 import os
 import sys
+import faulthandler
 
 import algorithm
 
@@ -12,6 +13,8 @@ import simulator.VersionDetection as VersionDetection
 from data import submodule_loader
 
 def main(argv):
+    # Print a traceback in the case of segfaults
+    faulthandler.enable()
 
     if __debug__:
         if len(argv) <= 1:
