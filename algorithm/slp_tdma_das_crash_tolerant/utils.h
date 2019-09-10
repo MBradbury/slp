@@ -317,7 +317,7 @@ uint16_t NeighbourList_indexOf(const NeighbourList* list, am_addr_t id)
 
 NeighbourInfo* NeighbourList_get(NeighbourList* list, am_addr_t id)
 {
-    int i;
+    uint16_t i;
     for(i=0; i<list->count; i++)
     {
         if(list->info[i].id == id)
