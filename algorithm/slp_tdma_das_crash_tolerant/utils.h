@@ -49,8 +49,8 @@ IDList IDList_clone(IDList* list);
 void IDList_add(IDList* list, am_addr_t id);
 void IDList_remove(IDList* list, am_addr_t id);
 void IDList_sort(IDList* list);
-uint16_t IDList_indexOf(IDList* list, am_addr_t el);
-IDList IDList_minus_parent(IDList* list, am_addr_t parent);
+uint16_t IDList_indexOf(const IDList* list, am_addr_t el);
+IDList IDList_minus_parent(const IDList* list, am_addr_t parent);
 void IDList_clear(IDList* list);
 void IDList_print(const IDList* list);
 void IDList_copy(IDList* to, IDList* from);
@@ -193,7 +193,7 @@ void IDList_sort(IDList* list)
     //simdbgverbose("stdout", "IDList after sort: "); IDList_print(list); simdbgverbose_clear("stdout", "\n");
 }
 
-uint16_t IDList_indexOf(IDList* list, am_addr_t el)
+uint16_t IDList_indexOf(const IDList* list, am_addr_t el)
 {
     uint16_t i;
     for(i = 0; i<list->count; i++)
@@ -203,7 +203,7 @@ uint16_t IDList_indexOf(IDList* list, am_addr_t el)
     return UINT16_MAX;
 }
 
-IDList IDList_minus_parent(IDList* list, am_addr_t parent)
+IDList IDList_minus_parent(const IDList* list, am_addr_t parent)
 {
     IDList newList = IDList_new();
     uint16_t i;
@@ -225,12 +225,12 @@ void IDList_clear(IDList* list)
 void IDList_print(const IDList* list)
 {
     uint16_t i;
-    simdbgverbose_clear("stdout", "IDList size=%u [", list->count);
+    simdbg_clear("stdout", "IDList size=%u [", list->count);
     for (i = 0; i < list->count; ++i)
     {
         simdbg_clear("stdout", "%u, ", list->ids[i]);
     }
-    simdbgverbose_clear("stdout", "]");
+    simdbg_clear("stdout", "]");
 }
 
 void IDList_copy(IDList* to, IDList* from)
@@ -285,7 +285,7 @@ void NeighbourList_add_info(NeighbourList* list, const NeighbourInfo* info)
     if(i == UINT16_MAX){
         if(list->count >= MAX_TWOHOP)
         {
-            simdbgerrorverbose("stdout", "NeighbourList is full.\n");
+            simdbgerror("stdout", "NeighbourList is full %" PRIu16 " >= %" PRIu16 ".\n", list->count, MAX_TWOHOP);
             return;
         }
         i = list->count;

@@ -1193,6 +1193,7 @@ implementation
             msg.a_node = BOT;
             for(i=0; i<children.count; i++) {
                 NeighbourInfo* child = NeighbourList_get(&n_info, children.ids[i]);
+                assert(child != NULL);
                 if(child->slot == min_slot)
                 {
                     msg.a_node = child->id;
@@ -1243,10 +1244,26 @@ implementation
             call TDMA.set_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
             neighbour = NeighbourList_get(&n_info, source_addr);
+            
+            /*if (!neighbour)
+            {
+                simdbg("stdout", "n_info: ");
+                NeighbourList_print(&n_info);
+                simdbg_clear("stdout", "\n");
+            }
             ASSERT_MESSAGE(neighbour != NULL,
                 "Failed to find neighbour info for " TOS_NODE_ID_SPEC ", have %" PRIu16 " neighbours.\n",
-                source_addr, n_info.count);
-            neighbour->slot = rcvd->n_slot; //Update source_addr node with new slot information
+                source_addr, n_info.count);*/
+
+            if (neighbour)
+            {
+                neighbour->slot = rcvd->n_slot; //Update source_addr node with new slot information
+            }
+            else
+            {
+                NeighbourList_add(&n_info, source_addr, BOT, rcvd->n_slot); // Add the neighbour if we don't know it
+            }
+
             NeighbourList_select(&n_info, &neighbours, &onehop);
             msg.n_slot = OnehopList_min_slot(&onehop);
             msg.a_node = choose(&npar);
