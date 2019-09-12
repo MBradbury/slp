@@ -377,7 +377,7 @@ void NeighbourList_select(NeighbourList* list, const IDList* onehop, OnehopList*
         const NeighbourInfo* info = NeighbourList_get(list, onehop->ids[i]);
         if(info == NULL)
         {
-            simdbgerror("stderr", "Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
+            simdbg("stderr", "0,Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
             continue;
         }
         NeighbourList_add_info(&tempList, info);
@@ -393,14 +393,14 @@ void NeighbourList_to_OnehopList(const NeighbourList* list, OnehopList *newList)
         return;
     }
     newList->count = (list->count > MAX_ONEHOP) ? MAX_ONEHOP : list->count;
-    memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
+    memcpy(&(newList->info), &(list->info), newList->count * sizeof(NeighbourInfo));
 }
 
 void OnehopList_to_NeighbourList(const OnehopList* list, NeighbourList* newList)
 {
     *newList = NeighbourList_new();
     newList->count = list->count;
-    memcpy(&(newList->info), &(list->info), MAX_ONEHOP * sizeof(NeighbourInfo));
+    memcpy(&(newList->info), &(list->info), newList->count * sizeof(NeighbourInfo));
 }
 
 void NeighbourInfo_print(const NeighbourInfo* info)

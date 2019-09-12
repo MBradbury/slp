@@ -2,6 +2,7 @@
 interface TDMA
 {
 	command void set_slot(uint16_t new_slot);
+    command void set_valid_slot(uint16_t new_slot);
 	command uint16_t get_slot();
 
 	command bool is_slot_active();

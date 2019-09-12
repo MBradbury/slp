@@ -370,7 +370,7 @@ implementation
         {
             parent = AM_BROADCAST_ADDR;
             set_hop(0);
-            call TDMA.set_slot(get_tdma_num_slots());
+            call TDMA.set_valid_slot(get_tdma_num_slots());
 
             start = FALSE;
             active = TRUE;
@@ -403,7 +403,7 @@ implementation
 
             set_parent(parent_info->id);
             set_hop(parent_info->hop + 1);
-            call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
+            call TDMA.set_valid_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             active = TRUE;
 
             /*simdbgverbose("stdout", "OtherList: "); IDList_print(&(other_info->N)); simdbgverbose_clear("stdout", "\n");*/
@@ -435,7 +435,7 @@ implementation
                 simdbg("stdout", "SPECIAL PARENT CHANGE\n");
                 set_parent(pparent->id);
                 set_hop(pparent->hop + 1);
-                call TDMA.set_slot(pparent->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
+                call TDMA.set_valid_slot(pparent->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             }
 
             IDList_copy(&children, &neighbours);
@@ -469,7 +469,7 @@ implementation
                     // If nodes have the same distance use the node id as a tie breaker.
                     if((hop > n_info_i->hop) || (hop == n_info_i->hop && TOS_NODE_ID > n_info_i->id))
                     {
-                        call TDMA.set_slot(call TDMA.get_slot() - 1);
+                        call TDMA.set_valid_slot(call TDMA.get_slot() - 1);
 
                         simdbgverbose("stdout", "Adjusted slot of current node to %u because node %u has slot %u.\n",
                             call TDMA.get_slot(), n_info_i->id, n_info_i->slot);
@@ -709,7 +709,8 @@ implementation
         }
     }
 
-    void reset_node() {
+    void reset_node(void) {
+        simdbg("stdout", "Resetting node\n");
         call TDMA.set_slot(BOT);
         set_hop(BOT);
         set_parent(BOT);
@@ -765,7 +766,7 @@ implementation
                 }
                 set_parent(parent_info->id);
                 set_hop(parent_info->hop + 1);
-                call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
+                call TDMA.set_valid_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             }
             else
             {
@@ -1070,7 +1071,7 @@ implementation
                         if(p_parents.info[i].slot < call TDMA.get_slot())
                         {
                             /*call TDMA.set_slot( source->slot - (NeighbourList_get(&n_info, parent)->slot - source->slot) );*/
-                            call TDMA.set_slot( source->slot - 1 ); //TODO: Testing
+                            call TDMA.set_valid_slot( source->slot - 1 ); //TODO: Testing
                             normal = FALSE;
                             break;
                         }
@@ -1089,7 +1090,7 @@ implementation
             int8_t reduction = 1;
             OtherInfo* other_info = OtherList_get(&others, source_addr);
             if(other_info) reduction = rank(&(other_info->N), TOS_NODE_ID);
-            call TDMA.set_slot(source->slot - reduction - get_assignment_interval() - 1);
+            call TDMA.set_valid_slot(source->slot - reduction - get_assignment_interval() - 1);
         }
 
         //Update the still alive count of the parent/child in the path
@@ -1241,7 +1242,7 @@ implementation
             ChangeMessage msg;
             OnehopList onehop = OnehopList_new();
             simdbgverbose("stdout", "Received change\n");
-            call TDMA.set_slot(rcvd->n_slot - 1);
+            call TDMA.set_valid_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot); //Update own information before processing
             neighbour = NeighbourList_get(&n_info, source_addr);
             
@@ -1278,7 +1279,7 @@ implementation
         else if(rcvd->len_d == 0 && npar.count != 0)
         {
             normal = FALSE;
-            call TDMA.set_slot(rcvd->n_slot - 1);
+            call TDMA.set_valid_slot(rcvd->n_slot - 1);
             //NeighbourList_add(&n_info, TOS_NODE_ID, hop, slot);
             simdbgverbose("stdout", "Change messages ended\n");
             call NodeType.set(ChangeNode);
@@ -1416,7 +1417,7 @@ implementation
                 }
                 set_parent(parent_info->id);
                 set_hop(parent_info->hop + 1);
-                call TDMA.set_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
+                call TDMA.set_valid_slot(parent_info->slot - rank(&(other_info->N), TOS_NODE_ID) - get_assignment_interval() - 1);
             }
             else
             {
