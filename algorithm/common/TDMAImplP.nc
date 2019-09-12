@@ -50,6 +50,15 @@ implementation
 		call MetricLogging.log_metric_node_slot_change(old_slot, new_slot);
 	}
 
+    command void TDMA.set_valid_slot(uint16_t new_slot)
+    {
+        if (new_slot == BOT)
+        {
+            ERROR_OCCURRED(ERROR_ASSERT, "Tried to set slot to BOT\n");
+        }
+        call TDMA.set_slot(new_slot);
+    }
+
 	command uint16_t TDMA.get_slot()
 	{
 		return slot;
@@ -138,7 +147,7 @@ implementation
         uint32_t now = call SlotTimer.gett0() + call SlotTimer.getdt();
         slot_active = TRUE;
 
-        assert(slot != BOT);
+        ASSERT_MESSAGE(slot != BOT, "Assertion failed %"PRIu16" != %"PRIu16"\n", slot, BOT);
 
 #ifdef TOSSIM
         if (prev_slot_time != -1)
