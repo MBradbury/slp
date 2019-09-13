@@ -711,8 +711,8 @@ implementation
 
     void reset_node(void) {
         simdbg("stdout", "Resetting node\n");
-        call TDMA.set_slot(BOT);
-        set_hop(BOT);
+        //call TDMA.set_slot(BOT);
+        //set_hop(BOT);
         set_parent(BOT);
         IDList_clear(&potential_parents);
         IDList_clear(&children);
@@ -723,6 +723,8 @@ implementation
                 n_info.info[i].hop = BOT;
             }
         }
+
+        init();
     }
 
     void check_crashes(void)
