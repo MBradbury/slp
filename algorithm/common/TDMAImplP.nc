@@ -145,6 +145,13 @@ implementation
     event void SlotTimer.fired()
     {
         uint32_t now = call SlotTimer.gett0() + call SlotTimer.getdt();
+
+        if (slot == BOT)
+        {
+            call DissemTimer.startOneShotAt(now, 0);
+            return;
+        }
+
         slot_active = TRUE;
 
         ASSERT_MESSAGE(slot != BOT, "Assertion failed %"PRIu16" != %"PRIu16"\n", slot, BOT);
