@@ -22,6 +22,7 @@ module TDMAImplP
 implementation
 {
 	uint16_t slot;
+    uint16_t next_period_slot;
 	bool slot_active;
     bool timesync_sent;
     int32_t timesync_offset;
@@ -29,6 +30,7 @@ implementation
     command error_t Init.init()
     {
         slot = BOT;
+        next_period_slot = BOT;
         slot_active = FALSE;
         timesync_sent = FALSE;
         timesync_offset = 0;
@@ -45,7 +47,7 @@ implementation
             ERROR_OCCURRED(ERROR_ASSERT, "FAILED: 0 < %u <= %u || BOT\n", new_slot, TDMA_NUM_SLOTS);
         }
 
-		slot = new_slot;
+		next_period_slot = new_slot;
 		signal TDMA.slot_changed(old_slot, new_slot);
 		call MetricLogging.log_metric_node_slot_change(old_slot, new_slot);
 	}
@@ -61,7 +63,8 @@ implementation
 
 	command uint16_t TDMA.get_slot()
 	{
-		return slot;
+		/*return slot;*/
+        return next_period_slot;
 	}
 
 	command bool TDMA.is_slot_active()
@@ -107,6 +110,8 @@ implementation
             global_now = local_now;
         }
 
+        slot = next_period_slot;
+
         s = (slot == BOT) ? TDMA_NUM_SLOTS : slot-1;
 
         //XXX: Potentially 'now' could negatively wrap-around
@@ -145,12 +150,6 @@ implementation
     event void SlotTimer.fired()
     {
         uint32_t now = call SlotTimer.gett0() + call SlotTimer.getdt();
-
-        if (slot == BOT)
-        {
-            call DissemTimer.startOneShotAt(now, 0);
-            return;
-        }
 
         slot_active = TRUE;
 
