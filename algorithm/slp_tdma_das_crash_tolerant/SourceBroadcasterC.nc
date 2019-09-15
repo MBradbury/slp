@@ -440,7 +440,7 @@ implementation
 
             IDList_copy(&children, &neighbours);
             for(i = 0; i < potential_parents.count; i++) {
-                IDList_minus_parent(&children, potential_parents.ids[i]);
+                children = IDList_minus_parent(&children, potential_parents.ids[i]);
             }
         }
     }
@@ -922,7 +922,7 @@ implementation
 
     event void SourcePeriodModel.fired()
     {
-        if(call TDMA.get_slot() != BOT && period_counter > get_minimum_setup_periods())
+        if(call TDMA.get_slot() != BOT && period_counter > get_normal_start_period())
         {
             NormalMessage* message;
 
