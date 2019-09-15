@@ -425,11 +425,13 @@ implementation
         }
         else
         {
-            const NeighbourInfo* pparent = NeighbourList_info_for_min_hop(&n_info, &potential_parents);
+            const NeighbourInfo* pparent = NeighbourList_info_for_min_hop(&n_info, &neighbours);
             OtherInfo* other_info;
             if(!pparent || pparent->id == parent) return;
             other_info = OtherList_get(&others, pparent->id);
             if(!other_info) return;
+
+            IDList_add(&potential_parents, pparent->id);
 
             if(pparent->hop < hop) {
                 simdbg("stdout", "SPECIAL PARENT CHANGE\n");
