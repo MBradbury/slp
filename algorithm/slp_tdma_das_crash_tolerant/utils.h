@@ -370,14 +370,14 @@ NeighbourInfo* NeighbourList_info_for_min_hop(NeighbourList* list, const IDList*
 
 void NeighbourList_select(NeighbourList* list, const IDList* onehop, OnehopList* newList)
 {
-    int i;
+    uint16_t i;
     NeighbourList tempList = NeighbourList_new();
     for(i = 0; i< onehop->count; i++)
     {
         const NeighbourInfo* info = NeighbourList_get(list, onehop->ids[i]);
-        if(info == NULL)
+        if (info == NULL)
         {
-            simdbg("stderr", "0,Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
+            simdbg("stdout", "0,Attempted to include information for %u. But no information available.\n", onehop->ids[i]);
             continue;
         }
         NeighbourList_add_info(&tempList, info);

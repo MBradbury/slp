@@ -558,6 +558,7 @@ implementation
             min_slot = OnehopList_min_slot(&child_list);
             for(i=0; i<children.count; i++) {
                 NeighbourInfo* child = NeighbourList_get(&n_info, children.ids[i]);
+                assert(child != NULL);
                 if(child->slot == min_slot)
                 {
                     msg.a_node = child->id;
