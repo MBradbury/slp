@@ -20,7 +20,7 @@ enum Channel
 //#define SLP_MAX_2_HOP_NEIGHBOURHOOD 13
 //For low-asymmetry, could have diagonal neighbours
 #define SLP_MAX_1_HOP_NEIGHBOURHOOD 12
-#define SLP_MAX_2_HOP_NEIGHBOURHOOD 28
+#define SLP_MAX_2_HOP_NEIGHBOURHOOD 40
 
 #define MAX_REPAIR_PATH_LENGTH 6
 
