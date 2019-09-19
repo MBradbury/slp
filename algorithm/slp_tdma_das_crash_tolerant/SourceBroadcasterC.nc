@@ -553,7 +553,11 @@ implementation
             msg.a_node = BOT;
             set_path_order(0);
             msg.path_order = 0;
-            assert(children.count != 0);
+            if(children.count == 0)
+            {
+                simdbgverbose("stdout", "SinkNode has no children, no path created.");
+                return;
+            }
             NeighbourList_select(&n_info, &children, &child_list);
             min_slot = OnehopList_min_slot(&child_list);
             for(i=0; i<children.count; i++) {
@@ -803,7 +807,7 @@ implementation
                     msg.path_order = path_order;
                     /*assert(children.count != 0);*/
                     NeighbourList_select(&n_info, &children, &child_list);
-                    min_slot = OnehopList_min_slot(&child_list);
+                    min_slot = OnehopList_min_slot(&child_list);  //Don't need to catch this because children != 0 is already checked
                     for(i=0; i<children.count; i++) {
                         NeighbourInfo* child = NeighbourList_get(&n_info, children.ids[i]);
                         if(child->slot == min_slot)
@@ -1192,6 +1196,12 @@ implementation
             OnehopList child_list;
             uint16_t min_slot = BOT;
             NeighbourList_select(&n_info, &children, &child_list);
+            if(child_list.count == 0)
+            {
+                start_node = TRUE;  //So the first path built will actually have some change path to it
+                simdbgverbose("stdout", "child_list.count == 0, becoming ChangeNode instead...");
+                return;
+            }
             min_slot = OnehopList_min_slot(&child_list);
             msg.dist = (rcvd->dist-1<0) ? 0 : rcvd->dist - 1;
             msg.path_order = rcvd->path_order + 1;
