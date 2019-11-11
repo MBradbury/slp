@@ -739,8 +739,12 @@ class CLI(object):
                 return timedelta(hours=48)
             elif size == 11:
                 return timedelta(hours=71)
+            elif size == 13:
+                return timedelta(hours=71)
+            elif size == 15:
+                return timedelta(hours=71)
             else:
-                raise RuntimeError("No time estimate for network sizes other than 5, 7, 9 or 11")
+                raise RuntimeError("No time estimate for network sizes other than 5, 7, 9, 11, 13 or 15")
         else:
             if size == 7:
                 return timedelta(hours=7)
