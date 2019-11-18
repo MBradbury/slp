@@ -136,8 +136,8 @@ class TableDataFormatter(object):
                       "norm(sent,time taken)"}:
             return "${:.0f} \\pm {:.2f}$".format(value['mean'], value[pmvalue])
         elif name in {"memory rss", "memory vms"}:
-            value = value / (1024 * 1024)
-            return "${:.0f} \\pm {:.0f}$".format(value['mean'], value[pmvalue])
+            factor = 1024 * 1024 # Bytes to MB
+            return "${:.0f} \\pm {:.0f}$".format(value['mean'] / factor, value[pmvalue] / factor)
         elif isinstance(value, dict):
             if 'mean' in value:
                 return "${:.3f} \\pm {:.3f}$".format(value['mean'], value[pmvalue])
