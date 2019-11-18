@@ -81,15 +81,22 @@ def cooja_command(module, a, configuration):
 
 def cooja_iter(iterable):
     from datetime import datetime
-    import sys
 
     for line in iterable:
         line = line.rstrip()
 
-        if line.startswith('Exception'):
-            raise RuntimeError(f"Cooja exception: {line}")
+        # Skip empty lines
+        if not line:
+            continue
 
-        time_us, rest = line.split("|", 1)
+        if line.startswith('Exception'):
+            raise RuntimeError(f"Cooja exception: '{line}'")
+
+        try:
+            time_us, rest = line.split("|", 1)
+        except:
+            print(f"Failed to process {line}")
+            raise
 
         time_s = float(time_us) / 1000000.0
 
